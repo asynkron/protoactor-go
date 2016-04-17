@@ -22,12 +22,12 @@ type ChannelActorRef struct {
 }
 
 func (ref *ChannelActorRef) Tell(message interface{}) {
-	ref.actorCell.userMailbox <- message
+	ref.actorCell.mailbox.userMailbox <- message
 	ref.actorCell.schedule()
 }
 
 func (ref *ChannelActorRef) SendSystemMessage(message interface{}) {
-	ref.actorCell.userMailbox <- message
+	ref.actorCell.mailbox.userMailbox <- message
 	ref.actorCell.schedule()
 }
 
@@ -38,9 +38,12 @@ type Actor interface {
 func ActorOf(actor Actor) ActorRef {
 	userMailbox := make(chan interface{}, 100)
 	systemMailbox := make(chan interface{}, 100)
+	mailbox := Mailbox{
+		userMailbox:   userMailbox,
+		systemMailbox: systemMailbox,
+	}
 	cell := &ActorCell{
-		userMailbox:     userMailbox,
-		systemMailbox:   systemMailbox,
+		mailbox:         &mailbox,
 		actor:           actor,
 		hasMoreMessages: int32(0),
 		schedulerStatus: int32(0),
@@ -69,33 +72,37 @@ func (cell *ActorCell) processMessages() {
 	atomic.StoreInt32(&cell.hasMoreMessages, MailboxHasNoMessages)
 	for i := 0; i < 30; i++ {
 		select {
-		case sysMsg := <-cell.systemMailbox:
+		case sysMsg := <-cell.mailbox.systemMailbox:
 			//prioritize system messages
 			cell.invokeSystemMessage(sysMsg)
 		default:
 			//if no system message is present, try read user message
 			select {
-			case userMsg := <-cell.userMailbox:
+			case userMsg := <-cell.mailbox.userMailbox:
 				cell.invokeUserMessage(userMsg)
 			default:
 			}
 		}
 	}
-
-	hasMore := atomic.LoadInt32(&cell.hasMoreMessages) //was there any messages scheduled since we began processing?
 	atomic.StoreInt32(&cell.schedulerStatus, MailboxIdle)
-	if hasMore == MailboxHasMoreMessages {
+	hasMore := atomic.LoadInt32(&cell.hasMoreMessages) //was there any messages scheduled since we began processing?
+	status := atomic.LoadInt32(&cell.schedulerStatus)  //have there been any new scheduling of the mailbox? (e.g. race condition from the two above lines)
+	if hasMore == MailboxHasMoreMessages && status == MailboxIdle {
 		atomic.StoreInt32(&cell.schedulerStatus, MailboxBussy)
 		go cell.processMessages()
 	}
 }
 
 type ActorCell struct {
-	userMailbox     chan interface{}
-	systemMailbox   chan interface{}
+	mailbox         *Mailbox
 	actor           Actor
 	schedulerStatus int32
 	hasMoreMessages int32
+}
+
+type Mailbox struct {
+	userMailbox   chan interface{}
+	systemMailbox chan interface{}
 }
 
 func (cell *ActorCell) invokeSystemMessage(message interface{}) {
