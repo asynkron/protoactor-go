@@ -1,7 +1,12 @@
 package actor
 
 type Actor interface {
-	Receive(message interface{})
+	Receive(message *MessageContext)
+}
+
+type MessageContext struct {
+    Message interface{}
+    Self    ActorRef
 }
 
 func ActorOf(actor Actor) ActorRef {
@@ -9,6 +14,7 @@ func ActorOf(actor Actor) ActorRef {
 	systemMailbox := make(chan interface{}, 100)
 	cell := &ActorCell{
 		actor: actor,
+        
 	}
 	mailbox := Mailbox{
 		userMailbox:     userMailbox,
@@ -21,6 +27,7 @@ func ActorOf(actor Actor) ActorRef {
 	ref := ChannelActorRef{
 		mailbox: &mailbox,
 	}
+    cell.self = &ref
 
 	return &ref
 }

@@ -6,22 +6,53 @@ import "os"
 import "github.com/rogeralsing/goactor/actor"
 
 func main() {
-	myActor := actor.ActorOf(new(MyActor))
-	myActor.Tell(Hello{Name: "Roger"})
-	myActor.Tell(Hello{Name: "Go"})
+	parent := actor.ActorOf(NewParentActor())
+	parent.Tell(Hello{Name: "Roger"})
+	parent.Tell(Hello{Name: "Go"})
 	bufio.NewReader(os.Stdin).ReadString('\n')
 }
 
+type Ping struct {
+	Sender actor.ActorRef
+	Name   string
+}
+type Pong struct{}
 type Hello struct{ Name string }
 
-type MyActor struct{ messageCount int }
+type ChildActor struct{ messageCount int }
 
-func (state *MyActor) Receive(message interface{}) {
-	switch msg := message.(type) {
+func (state *ChildActor) Receive(context *actor.MessageContext) {
+	switch msg := context.Message.(type) {
 	default:
-		fmt.Printf("unexpected type %T\n", msg) // %T prints whatever type t has
-	case Hello:
-		fmt.Printf("Hello %v\n", msg.Name) // t has type bool
+		fmt.Printf("unexpected type %T\n", msg)
+	case Ping:
+		fmt.Printf("Hello %v\n", msg.Name)
 		state.messageCount++
+		msg.Sender.Tell(Pong{})
+	}
+}
+
+func NewParentActor() actor.Actor {
+	return &ParentActor{
+		Child: actor.ActorOf(new(ChildActor)),
+	}
+}
+
+type ParentActor struct {
+	Child actor.ActorRef
+}
+
+func (state *ParentActor) Receive(context *actor.MessageContext) {
+	switch msg := context.Message.(type) {
+	default:
+		fmt.Printf("unexpected type %T\n", msg)
+	case Pong:
+		fmt.Println("Got pong")
+	case Hello:
+		fmt.Printf("Parent got hello %v\n", msg.Name)
+		state.Child.Tell(Ping{
+			Name:   msg.Name,
+			Sender: context.Self,
+		})
 	}
 }
