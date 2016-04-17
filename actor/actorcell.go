@@ -3,14 +3,14 @@ package actor
 import "fmt"
 
 type ActorCell struct {
-	Self  ActorRef
-	actor Actor
+	Self     ActorRef
+	actor    Actor
 	behavior func(*Context)
 }
 
 func NewActorCell(actor Actor) *ActorCell {
-	cell := ActorCell {
-		actor: actor,
+	cell := ActorCell{
+		actor:    actor,
 		behavior: actor.Receive,
 	}
 	return &cell
@@ -21,11 +21,7 @@ func (cell *ActorCell) invokeSystemMessage(message interface{}) {
 }
 
 func (cell *ActorCell) invokeUserMessage(message interface{}) {
-	context := Context{
-		Message: message,
-		ActorCell: cell,
-	}
-	cell.behavior(&context)
+	cell.behavior(NewContext(cell, message))
 }
 
 func (cell *ActorCell) Become(behavior func(*Context)) {
