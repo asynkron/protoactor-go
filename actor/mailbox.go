@@ -3,12 +3,12 @@ package actor
 import "sync/atomic"
 
 const (
-	MailboxIdle    int32 = 0
-	MailboxRunning int32 = 1
+	MailboxIdle    = iota
+	MailboxRunning = iota
 )
 const (
-	MailboxHasNoMessages   int32 = 0
-	MailboxHasMoreMessages int32 = 1
+	MailboxHasNoMessages   = iota
+	MailboxHasMoreMessages = iota
 )
 
 type Mailbox struct {
@@ -30,8 +30,8 @@ func (mailbox *Mailbox) schedule() {
 func (mailbox *Mailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
-    
-    //process x messages in sequence, then exit
+
+	//process x messages in sequence, then exit
 	for i := 0; i < 30; i++ {
 		select {
 		case sysMsg := <-mailbox.systemMailbox:
