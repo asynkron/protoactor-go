@@ -12,8 +12,9 @@ func main() {
 	bufio.NewReader(os.Stdin).ReadString('\n')
 }
 
-type MyActor struct{ messageCount int }
 type Hello struct{ Name string }
+
+type MyActor struct{ messageCount int }
 
 func (state *MyActor) Receive(message interface{}) {
 	switch msg := message.(type) {
