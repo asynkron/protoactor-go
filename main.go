@@ -88,8 +88,10 @@ func (cell *ActorCell) processMessages() {
 	hasMore := atomic.LoadInt32(&cell.hasMoreMessages) //was there any messages scheduled since we began processing?
 	status := atomic.LoadInt32(&cell.schedulerStatus)  //have there been any new scheduling of the mailbox? (e.g. race condition from the two above lines)
 	if hasMore == MailboxHasMoreMessages && status == MailboxIdle {
-		atomic.StoreInt32(&cell.schedulerStatus, MailboxBussy)
-		go cell.processMessages()
+		swapped := atomic.CompareAndSwapInt32(&cell.schedulerStatus, MailboxIdle, MailboxBussy)
+		if swapped {
+			go cell.processMessages()
+		}
 	}
 }
 
