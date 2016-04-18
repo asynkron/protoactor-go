@@ -1,16 +1,15 @@
 package main
 
 import "fmt"
-import "bufio"
-import "os"
 import "github.com/rogeralsing/goactor/actor"
 
 func main() {
+	sys := actor.NewActorSystem()
 	props := actor.Props(NewParentActor).WithRouter(actor.NewRoundRobinGroupRouter())
-	parent := actor.Spawn(props)
+	parent := sys.ActorOf(props)
 	parent.Tell(Hello{Name: "Roger"})
 	parent.Tell(Hello{Name: "Go"})
-	bufio.NewReader(os.Stdin).ReadString('\n')
+	sys.AwaitTermination()
 }
 
 type Ping struct {
@@ -32,6 +31,8 @@ func (state *ChildActor) Receive(context *actor.Context) {
 		fmt.Println("Im starting")
 	case actor.Stopping:
 		fmt.Println("stopping child")
+	case actor.Stopped:
+		fmt.Println("stopped child")
 	case Ping:
 		fmt.Printf("Hello %v\n", msg.Name)
 		state.messageCount++
@@ -51,9 +52,12 @@ func NewParentActor() actor.Actor {
 func (state *ParentActor) Receive(context *actor.Context) {
 	switch msg := context.Message.(type) {
 	case actor.Starting:
-		state.Child = context.SpawnChild(actor.Props(NewChildActor))
+		state.Child = context.ActorOf(actor.Props(NewChildActor))
 	case actor.Stopping:
 		fmt.Println("stopping parent")
+	case actor.Stopped:
+		fmt.Println("stopped parent")
+
 	case Hello:
 		fmt.Printf("Parent got hello %v\n", msg.Name)
 		state.Child.Tell(Ping{
@@ -68,6 +72,9 @@ func (state *ParentActor) Other(context *actor.Context) {
 	switch context.Message.(type) {
 	case actor.Stopping:
 		fmt.Println("stopping parent in become")
+	case actor.Stopped:
+		fmt.Println("stopped parent in become")
+
 	case Pong:
 		fmt.Println("Got pong")
 		context.Self.Stop()

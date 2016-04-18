@@ -15,6 +15,6 @@ func NewRoundRobinGroupRouter(routees ...ActorRef) RouterConfig {
 func (config *RoundRobinGroupRouter) Create(props PropsValue) ActorRef {
 	actorProps := props
 	actorProps.routerConfig = nil
-	actor := Spawn(actorProps)
+	actor := spawn(actorProps)
 	return actor
 }

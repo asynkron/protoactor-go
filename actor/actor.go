@@ -4,7 +4,7 @@ type Actor interface {
 	Receive(message *Context)
 }
 
-func Spawn(props PropsValue) ActorRef {
+func spawn(props PropsValue) ActorRef {
 	cell := NewActorCell(props)
 	mailbox := NewDefaultMailbox(cell)
 	ref := ChannelActorRef{

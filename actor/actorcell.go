@@ -6,12 +6,13 @@ type Receive func(*Context)
 type SetActorRef map[ActorRef]ActorRef
 
 type ActorCell struct {
-	Self     ActorRef
-	actor    Actor
-	props    PropsValue
-	behavior Receive
-	children SetActorRef
-	watchers SetActorRef
+	Self       ActorRef
+	actor      Actor
+	props      PropsValue
+	behavior   Receive
+	children   SetActorRef
+	watchers   SetActorRef
+	isStopping bool
 }
 
 func NewActorCell(props PropsValue) *ActorCell {
@@ -31,13 +32,14 @@ func (cell *ActorCell) invokeSystemMessage(message interface{}) {
 	default:
 		fmt.Printf("Unknown system message %T", msg)
 	case Stop:
+		cell.isStopping = true
 		cell.invokeUserMessage(Stopping{})
 		for child := range cell.children {
 			child.Stop()
 		}
 		cell.tryTerminate()
-	case Stopped:
-		delete(cell.children,msg.Who)
+	case WatchedStopped:
+		delete(cell.children, msg.Who)
 		cell.tryTerminate()
 	case Watch:
 		cell.watchers[msg.Who] = msg.Who
@@ -45,14 +47,19 @@ func (cell *ActorCell) invokeSystemMessage(message interface{}) {
 }
 
 func (cell *ActorCell) tryTerminate() {
+	if !cell.isStopping {
+		return
+	}
+	
 	if len(cell.children) > 0 {
 		return
 	}
 
-	stopped := Stopped{Who: cell.Self}
+	cell.invokeUserMessage(Stopped{})
+	watchedStopped := WatchedStopped{Who: cell.Self}
 	for watcher := range cell.watchers {
-		watcher.SendSystemMessage(stopped)
-	}	
+		watcher.SendSystemMessage(watchedStopped)
+	}
 }
 
 func (cell *ActorCell) invokeUserMessage(message interface{}) {
@@ -67,9 +74,9 @@ func (cell *ActorCell) Unbecome() {
 	cell.behavior = cell.actor.Receive
 }
 
-func (cell *ActorCell) SpawnChild(props PropsValue) ActorRef {
-	ref := Spawn(props)
+func (cell *ActorCell) ActorOf(props PropsValue) ActorRef {
+	ref := spawn(props)
 	cell.children[ref] = ref
-	ref.SendSystemMessage(Watch{Who:cell.Self})
+	ref.SendSystemMessage(Watch{Who: cell.Self})
 	return ref
 }
