@@ -6,17 +6,17 @@ type Receive func(*Context)
 type SetActorRef map[ActorRef]ActorRef
 
 type ActorCell struct {
-	Self       ActorRef
-	actor      Actor
-	props      PropsValue
-	behavior   Receive
-	children   SetActorRef
-	watchers   SetActorRef
-	isStopping bool
+	Self     ActorRef
+	actor    Actor
+	props    PropsValue
+	behavior Receive
+	children SetActorRef
+	watchers SetActorRef
+	stopping bool
 }
 
 func NewActorCell(props PropsValue) *ActorCell {
-	actor := props.producer()
+	actor := props.actorProducer()
 	cell := ActorCell{
 		actor:    actor,
 		props:    props,
@@ -32,7 +32,7 @@ func (cell *ActorCell) invokeSystemMessage(message interface{}) {
 	default:
 		fmt.Printf("Unknown system message %T", msg)
 	case Stop:
-		cell.isStopping = true
+		cell.stopping = true
 		cell.invokeUserMessage(Stopping{})
 		for child := range cell.children {
 			child.Stop()
@@ -47,10 +47,10 @@ func (cell *ActorCell) invokeSystemMessage(message interface{}) {
 }
 
 func (cell *ActorCell) tryTerminate() {
-	if !cell.isStopping {
+	if !cell.stopping {
 		return
 	}
-	
+
 	if len(cell.children) > 0 {
 		return
 	}

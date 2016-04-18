@@ -1,7 +1,8 @@
 package actor
+
 import "sync/atomic"
 
-type DefaultMailbox struct {
+type BoundedMailbox struct {
 	userMailbox     chan interface{}
 	systemMailbox   chan interface{}
 	schedulerStatus int32
@@ -9,17 +10,17 @@ type DefaultMailbox struct {
 	actorCell       *ActorCell
 }
 
-func (mailbox *DefaultMailbox) PostUserMessage(message interface{}) {
+func (mailbox *BoundedMailbox) PostUserMessage(message interface{}) {
 	mailbox.userMailbox <- message
 	mailbox.schedule()
 }
 
-func (mailbox *DefaultMailbox) PostSystemMessage(message interface{}) {
+func (mailbox *BoundedMailbox) PostSystemMessage(message interface{}) {
 	mailbox.systemMailbox <- message
 	mailbox.schedule()
 }
 
-func (mailbox *DefaultMailbox) schedule() {
+func (mailbox *BoundedMailbox) schedule() {
 	swapped := atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, MailboxIdle, MailboxRunning)
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages) //we have more messages to process
 	if swapped {
@@ -27,7 +28,7 @@ func (mailbox *DefaultMailbox) schedule() {
 	}
 }
 
-func (mailbox *DefaultMailbox) processMessages() {
+func (mailbox *BoundedMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
 
@@ -62,10 +63,10 @@ func (mailbox *DefaultMailbox) processMessages() {
 	}
 }
 
-func NewDefaultMailbox(cell *ActorCell) Mailbox {
+func NewBoundedMailbox(cell *ActorCell) Mailbox {
 	userMailbox := make(chan interface{}, 100)
 	systemMailbox := make(chan interface{}, 100)
-	mailbox := DefaultMailbox{
+	mailbox := BoundedMailbox{
 		userMailbox:     userMailbox,
 		systemMailbox:   systemMailbox,
 		hasMoreMessages: MailboxHasNoMessages,

@@ -2,7 +2,7 @@ package actor
 
 func Spawn(props PropsValue) ActorRef {
 	cell := NewActorCell(props)
-	mailbox := NewQueueMailbox(cell)
+	mailbox := props.mailboxProducer(cell)
 	ref := ChannelActorRef{
 		mailbox: mailbox,
 	}
