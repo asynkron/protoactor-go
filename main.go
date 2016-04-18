@@ -30,6 +30,8 @@ func (state *ChildActor) Receive(context *actor.Context) {
 	switch msg := context.Message.(type) {
 	case actor.Starting:
 		fmt.Println("Im starting")
+	case actor.Stopping:
+		fmt.Println("stopping child")
 	case Ping:
 		fmt.Printf("Hello %v\n", msg.Name)
 		state.messageCount++
@@ -51,7 +53,7 @@ func (state *ParentActor) Receive(context *actor.Context) {
 	case actor.Starting:
 		state.Child = context.SpawnChild(actor.Props(NewChildActor))
 	case actor.Stopping:
-		fmt.Println("stopping")
+		fmt.Println("stopping parent")
 	case Hello:
 		fmt.Printf("Parent got hello %v\n", msg.Name)
 		state.Child.Tell(Ping{
@@ -64,6 +66,8 @@ func (state *ParentActor) Receive(context *actor.Context) {
 
 func (state *ParentActor) Other(context *actor.Context) {
 	switch context.Message.(type) {
+	case actor.Stopping:
+		fmt.Println("stopping parent in become")
 	case Pong:
 		fmt.Println("Got pong")
 		context.Self.Stop()
