@@ -1,4 +1,4 @@
-package actor
+package mailbox
 
 const (
 	MailboxIdle    = iota

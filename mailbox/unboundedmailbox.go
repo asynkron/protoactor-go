@@ -1,4 +1,4 @@
-package actor
+package mailbox
 
 import "sync/atomic"
 import "github.com/Workiva/go-datastructures/queue"

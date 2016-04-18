@@ -1,7 +1,9 @@
 package actor
 
+import "github.com/rogeralsing/goactor/mailbox"
+
 type ActorProducer func() Actor
-type MailboxProducer func(func(interface{}),func(interface{})) Mailbox
+type MailboxProducer func(func(interface{}),func(interface{})) mailbox.Mailbox
 
 type PropsValue struct {
 	actorProducer   ActorProducer
@@ -12,7 +14,7 @@ type PropsValue struct {
 func Props(actorProducer ActorProducer) PropsValue {
 	return PropsValue{
 		actorProducer: actorProducer,
-		mailboxProducer: NewQueueMailbox,
+		mailboxProducer: mailbox.NewQueueMailbox,
 	}
 }
 

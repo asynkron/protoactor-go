@@ -1,4 +1,5 @@
 package actor
+import "github.com/rogeralsing/goactor/mailbox"
 
 type ActorRef interface {
 	Tell(message interface{})
@@ -7,7 +8,7 @@ type ActorRef interface {
 }
 
 type ChannelActorRef struct {
-	mailbox Mailbox
+	mailbox mailbox.Mailbox
 }
 
 func (ref *ChannelActorRef) Tell(message interface{}) {
