@@ -74,8 +74,8 @@ func (cell *ActorCell) Unbecome() {
 	cell.behavior = cell.actor.Receive
 }
 
-func (cell *ActorCell) ActorOf(props PropsValue) ActorRef {
-	ref := spawn(props)
+func (cell *ActorCell) SpawnChild(props PropsValue) ActorRef {
+	ref := Spawn(props)
 	cell.children[ref] = ref
 	ref.SendSystemMessage(Watch{Who: cell.Self})
 	return ref

@@ -1,15 +1,21 @@
 package main
 
-import "fmt"
+import (
+	"bufio"
+	"fmt"
+	"os"
+)
 import "github.com/rogeralsing/goactor/actor"
 
 func main() {
-	sys := actor.NewActorSystem()
+
 	props := actor.Props(NewParentActor).WithRouter(actor.NewRoundRobinGroupRouter())
-	parent := sys.ActorOf(props)
+	parent := actor.Spawn(props)
 	parent.Tell(Hello{Name: "Roger"})
 	parent.Tell(Hello{Name: "Go"})
-	sys.AwaitTermination()
+
+	reader := bufio.NewReader(os.Stdin)
+	reader.ReadString('\n')
 }
 
 type Ping struct {
@@ -52,7 +58,7 @@ func NewParentActor() actor.Actor {
 func (state *ParentActor) Receive(context *actor.Context) {
 	switch msg := context.Message.(type) {
 	case actor.Starting:
-		state.Child = context.ActorOf(actor.Props(NewChildActor))
+		state.Child = context.SpawnChild(actor.Props(NewChildActor))
 	case actor.Stopping:
 		fmt.Println("stopping parent")
 	case actor.Stopped:
