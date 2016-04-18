@@ -4,10 +4,10 @@ type Actor interface {
 	Receive(message *Context)
 }
 
-func ActorOf(actor Actor) ActorRef {
+func ActorOf(props PropsValue) ActorRef {
 	userMailbox := make(chan interface{}, 100)
 	systemMailbox := make(chan interface{}, 100)
-	cell := NewActorCell(actor)
+	cell := NewActorCell(props)
 	mailbox := Mailbox{
 		userMailbox:     userMailbox,
 		systemMailbox:   systemMailbox,

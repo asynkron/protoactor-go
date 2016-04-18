@@ -6,7 +6,8 @@ import "os"
 import "github.com/rogeralsing/goactor/actor"
 
 func main() {
-	parent := actor.ActorOf(NewParentActor())
+	props := actor.Props(NewParentActor).WithRouter(actor.NewRoundRobinGroupRouter())
+	parent := actor.ActorOf(props)
 	parent.Tell(Hello{Name: "Roger"})
 	parent.Tell(Hello{Name: "Go"})
 	bufio.NewReader(os.Stdin).ReadString('\n')
@@ -21,6 +22,10 @@ type Hello struct{ Name string }
 
 type ChildActor struct{ messageCount int }
 
+func NewChildActor() actor.Actor {
+	return &ChildActor{}
+}
+
 func (state *ChildActor) Receive(context *actor.Context) {
 	switch msg := context.Message.(type) {
 	default:
@@ -33,14 +38,14 @@ func (state *ChildActor) Receive(context *actor.Context) {
 	}
 }
 
-func NewParentActor() actor.Actor {
-	return &ParentActor{
-		Child: actor.ActorOf(new(ChildActor)),
-	}
-}
-
 type ParentActor struct {
 	Child actor.ActorRef
+}
+
+func NewParentActor() actor.Actor {
+	return &ParentActor{
+		Child: actor.ActorOf(actor.Props(NewChildActor)),
+	}
 }
 
 func (state *ParentActor) Receive(context *actor.Context) {
