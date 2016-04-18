@@ -11,7 +11,12 @@ const (
 	MailboxHasMoreMessages = iota
 )
 
-type Mailbox struct {
+type Mailbox interface {
+	PostUserMessage(message interface{})
+	PostSystemMessage(message interface{})
+}
+
+type DefaultMailbox struct {
 	userMailbox     chan interface{}
 	systemMailbox   chan interface{}
 	schedulerStatus int32
@@ -19,7 +24,17 @@ type Mailbox struct {
 	actorCell       *ActorCell
 }
 
-func (mailbox *Mailbox) schedule() {
+func (mailbox *DefaultMailbox) PostUserMessage(message interface{}) {
+	mailbox.userMailbox <- message
+	mailbox.schedule()
+}
+
+func (mailbox *DefaultMailbox) PostSystemMessage(message interface{}) {
+	mailbox.systemMailbox <- message
+	mailbox.schedule()
+}
+
+func (mailbox *DefaultMailbox) schedule() {
 	swapped := atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, MailboxIdle, MailboxRunning)
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages) //we have more messages to process
 	if swapped {
@@ -27,7 +42,7 @@ func (mailbox *Mailbox) schedule() {
 	}
 }
 
-func (mailbox *Mailbox) processMessages() {
+func (mailbox *DefaultMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
 
@@ -60,4 +75,17 @@ func (mailbox *Mailbox) processMessages() {
 			go mailbox.processMessages()
 		}
 	}
+}
+
+func NewDefaultMailbox(cell *ActorCell) Mailbox {
+	userMailbox := make(chan interface{}, 100)
+	systemMailbox := make(chan interface{}, 100)
+	mailbox := DefaultMailbox{
+		userMailbox:     userMailbox,
+		systemMailbox:   systemMailbox,
+		hasMoreMessages: MailboxHasNoMessages,
+		schedulerStatus: MailboxIdle,
+		actorCell:       cell,
+	}
+	return &mailbox
 }

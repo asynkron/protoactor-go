@@ -5,19 +5,10 @@ type Actor interface {
 }
 
 func ActorOf(props PropsValue) ActorRef {
-	userMailbox := make(chan interface{}, 100)
-	systemMailbox := make(chan interface{}, 100)
 	cell := NewActorCell(props)
-	mailbox := Mailbox{
-		userMailbox:     userMailbox,
-		systemMailbox:   systemMailbox,
-		hasMoreMessages: MailboxHasNoMessages,
-		schedulerStatus: MailboxIdle,
-		actorCell:       cell,
-	}
-
+	mailbox := NewDefaultMailbox(cell)
 	ref := ChannelActorRef{
-		mailbox: &mailbox,
+		mailbox: mailbox,
 	}
 	cell.Self = &ref
 

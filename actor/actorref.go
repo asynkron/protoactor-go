@@ -6,15 +6,13 @@ type ActorRef interface {
 }
 
 type ChannelActorRef struct {
-	mailbox *Mailbox
+	mailbox Mailbox
 }
 
 func (ref *ChannelActorRef) Tell(message interface{}) {
-	ref.mailbox.userMailbox <- message
-	ref.mailbox.schedule()
+	ref.mailbox.PostUserMessage(message)
 }
 
 func (ref *ChannelActorRef) SendSystemMessage(message interface{}) {
-	ref.mailbox.userMailbox <- message
-	ref.mailbox.schedule()
+	ref.mailbox.PostSystemMessage(message)
 }

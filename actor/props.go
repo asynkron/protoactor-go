@@ -12,6 +12,7 @@ func Props(producer ActorProducer) PropsValue {
 }
 
 func (props PropsValue) WithRouter(routerConfig RouterConfig) PropsValue {
+    //pass by value, we only modify the copy
     props.routerConfig = routerConfig
 	return props
 }

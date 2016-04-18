@@ -68,5 +68,6 @@ func (state *ParentActor) Other(context *actor.Context) {
 		fmt.Printf("unexpected type %T\n", msg)
 	case Pong:
 		fmt.Println("Got pong")
+		context.Unbecome()
 	}
 }
