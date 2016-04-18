@@ -9,6 +9,7 @@ type ActorCell struct {
 	actor    Actor
 	props    PropsValue
 	behavior Receive
+	children map[ActorRef]ActorRef
 }
 
 func NewActorCell(props PropsValue) *ActorCell {
@@ -17,12 +18,21 @@ func NewActorCell(props PropsValue) *ActorCell {
 		actor:    actor,
 		props:    props,
 		behavior: actor.Receive,
+		children: make(map[ActorRef]ActorRef),
 	}
 	return &cell
 }
 
 func (cell *ActorCell) invokeSystemMessage(message interface{}) {
-	fmt.Printf("Received system message %v\n", message)
+	switch msg := message.(type) {
+	default:
+		fmt.Printf("Unknown system message %T", msg)
+	case Stop:
+		fmt.Println("stopping")
+		for child := range cell.children {
+			child.Stop()
+		}
+	}
 }
 
 func (cell *ActorCell) invokeUserMessage(message interface{}) {
@@ -35,4 +45,10 @@ func (cell *ActorCell) Become(behavior Receive) {
 
 func (cell *ActorCell) Unbecome() {
 	cell.behavior = cell.actor.Receive
+}
+
+func (cell *ActorCell) SpawnChild(props PropsValue) ActorRef {
+	ref := Spawn(props)
+	cell.children[ref] = ref
+	return ref
 }

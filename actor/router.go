@@ -9,11 +9,12 @@ type RoundRobinGroupRouter struct {
 }
 
 func NewRoundRobinGroupRouter(routees ...ActorRef) RouterConfig {
-    return &RoundRobinGroupRouter { routees: routees}
+	return &RoundRobinGroupRouter{routees: routees}
 }
 
 func (config *RoundRobinGroupRouter) Create(props PropsValue) ActorRef {
-	props.routerConfig = nil
-	actor := ActorOf(props)
+	actorProps := props
+	actorProps.routerConfig = nil
+	actor := Spawn(actorProps)
 	return actor
 }

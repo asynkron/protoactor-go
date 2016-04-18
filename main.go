@@ -7,7 +7,7 @@ import "github.com/rogeralsing/goactor/actor"
 
 func main() {
 	props := actor.Props(NewParentActor).WithRouter(actor.NewRoundRobinGroupRouter())
-	parent := actor.ActorOf(props)
+	parent := actor.Spawn(props)
 	parent.Tell(Hello{Name: "Roger"})
 	parent.Tell(Hello{Name: "Go"})
 	bufio.NewReader(os.Stdin).ReadString('\n')
@@ -28,8 +28,8 @@ func NewChildActor() actor.Actor {
 
 func (state *ChildActor) Receive(context *actor.Context) {
 	switch msg := context.Message.(type) {
-	default:
-		fmt.Printf("unexpected type %T\n", msg)
+	case actor.Starting:
+		fmt.Println("Im starting")
 	case Ping:
 		fmt.Printf("Hello %v\n", msg.Name)
 		state.messageCount++
@@ -43,15 +43,15 @@ type ParentActor struct {
 }
 
 func NewParentActor() actor.Actor {
-	return &ParentActor{
-		Child: actor.ActorOf(actor.Props(NewChildActor)),
-	}
+	return &ParentActor{}
 }
 
 func (state *ParentActor) Receive(context *actor.Context) {
 	switch msg := context.Message.(type) {
-	default:
-		fmt.Printf("unexpected type %T\n", msg)
+	case actor.Starting:
+		state.Child = context.SpawnChild(actor.Props(NewChildActor))
+	case actor.Stopping:
+		fmt.Println("stopping")
 	case Hello:
 		fmt.Printf("Parent got hello %v\n", msg.Name)
 		state.Child.Tell(Ping{
@@ -63,11 +63,9 @@ func (state *ParentActor) Receive(context *actor.Context) {
 }
 
 func (state *ParentActor) Other(context *actor.Context) {
-	switch msg := context.Message.(type) {
-	default:
-		fmt.Printf("unexpected type %T\n", msg)
+	switch context.Message.(type) {
 	case Pong:
 		fmt.Println("Got pong")
-		context.Unbecome()
+		context.Self.Stop()
 	}
 }
