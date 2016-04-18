@@ -1,7 +1,7 @@
 package actor
 
 type ActorProducer func() Actor
-type MailboxProducer func(*ActorCell) Mailbox
+type MailboxProducer func(func(interface{}),func(interface{})) Mailbox
 
 type PropsValue struct {
 	actorProducer   ActorProducer

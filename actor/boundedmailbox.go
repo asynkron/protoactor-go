@@ -1,13 +1,16 @@
 package actor
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
 type BoundedMailbox struct {
 	userMailbox     chan interface{}
 	systemMailbox   chan interface{}
 	schedulerStatus int32
 	hasMoreMessages int32
-	actorCell       *ActorCell
+	userInvoke      func(interface{})
+	systemInvoke    func(interface{})
 }
 
 func (mailbox *BoundedMailbox) PostUserMessage(message interface{}) {
@@ -37,12 +40,12 @@ func (mailbox *BoundedMailbox) processMessages() {
 		select {
 		case sysMsg := <-mailbox.systemMailbox:
 			//prioritize system messages
-			mailbox.actorCell.invokeSystemMessage(sysMsg)
+			mailbox.systemInvoke(sysMsg)
 		default:
 			//if no system message is present, try read user message
 			select {
 			case userMsg := <-mailbox.userMailbox:
-				mailbox.actorCell.invokeUserMessage(userMsg)
+				mailbox.userInvoke(userMsg)
 			default:
 			}
 		}
@@ -63,7 +66,7 @@ func (mailbox *BoundedMailbox) processMessages() {
 	}
 }
 
-func NewBoundedMailbox(cell *ActorCell) Mailbox {
+func NewBoundedMailbox(userInvoke func(interface{}), systemInvoke func(interface{})) Mailbox {
 	userMailbox := make(chan interface{}, 100)
 	systemMailbox := make(chan interface{}, 100)
 	mailbox := BoundedMailbox{
@@ -71,7 +74,8 @@ func NewBoundedMailbox(cell *ActorCell) Mailbox {
 		systemMailbox:   systemMailbox,
 		hasMoreMessages: MailboxHasNoMessages,
 		schedulerStatus: MailboxIdle,
-		actorCell:       cell,
+		userInvoke:      userInvoke,
+		systemInvoke:    systemInvoke,
 	}
 	return &mailbox
 }

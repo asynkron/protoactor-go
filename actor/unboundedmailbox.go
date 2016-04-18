@@ -8,7 +8,8 @@ type QueueMailbox struct {
 	systemMailbox   *queue.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
-	actorCell       *ActorCell
+	userInvoke      func(interface{})
+	systemInvoke    func(interface{})
 }
 
 func (mailbox *QueueMailbox) PostUserMessage(message interface{}) {
@@ -38,11 +39,11 @@ func (mailbox *QueueMailbox) processMessages() {
 		if !mailbox.systemMailbox.Empty() {
 			sysMsg, _ := mailbox.systemMailbox.Get(1)
 			first := sysMsg[0]
-			mailbox.actorCell.invokeSystemMessage(first)
+			mailbox.systemInvoke(first)
 		} else if !mailbox.userMailbox.Empty() {
 			userMsg, _ := mailbox.userMailbox.Get(1)
 			first := userMsg[0]
-			mailbox.actorCell.invokeUserMessage(first)
+			mailbox.userInvoke(first)
 		}
 	}
 	//set mailbox to idle
@@ -61,7 +62,7 @@ func (mailbox *QueueMailbox) processMessages() {
 	}
 }
 
-func NewQueueMailbox(cell *ActorCell) Mailbox {
+func NewQueueMailbox(userInvoke func(interface{}),systemInvoke func(interface{})) Mailbox {
 	userMailbox := queue.New(10)
 	systemMailbox := queue.New(10)
 	mailbox := QueueMailbox{
@@ -69,7 +70,8 @@ func NewQueueMailbox(cell *ActorCell) Mailbox {
 		systemMailbox:   systemMailbox,
 		hasMoreMessages: MailboxHasNoMessages,
 		schedulerStatus: MailboxIdle,
-		actorCell:       cell,
+		userInvoke: userInvoke,
+		systemInvoke: systemInvoke,
 	}
 	return &mailbox
 }
