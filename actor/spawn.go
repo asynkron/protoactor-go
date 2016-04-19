@@ -14,7 +14,7 @@ func spawnChild(props interfaces.Props, parent interfaces.ActorRef) interfaces.A
 	ref := LocalActorRef{
 		mailbox: mailbox,
 	}
-	cell.self = &ref
+	cell.self = &ref //TODO: this is fugly
 	ref.Tell(Starting{})
 	return &ref
 }
