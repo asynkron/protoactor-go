@@ -49,9 +49,9 @@ func TestActorReceivesMessage(t *testing.T) {
 	}
 }
 
-type Echo struct{ Sender ActorRef }
+type EchoRequest struct{ Sender ActorRef }
 
-type EchoEcho struct{}
+type EchoResponse struct{}
 
 type EchoActor struct{}
 
@@ -61,15 +61,15 @@ func NewEchoActor() Actor {
 
 func (EchoActor) Receive(context Context) {
 	switch msg := context.Message().(type) {
-	case Echo:
-		msg.Sender.Tell(EchoEcho{})
+	case EchoRequest:
+		msg.Sender.Tell(EchoResponse{})
 	}
 }
 
 func TestActorCanReplyToMessage(t *testing.T) {
 	future := NewFutureActorRef()
 	actor := ActorOf(Props(NewEchoActor))
-	actor.Tell(Echo{Sender: future})
+	actor.Tell(EchoRequest{Sender: future})
 	select {
 	case <-future.Result():
 	case <-time.After(testTimeout):
@@ -77,7 +77,7 @@ func TestActorCanReplyToMessage(t *testing.T) {
 	}
 }
 
-type BecomeMessage struct{}
+type BecomeRequest struct{}
 
 type EchoBecomeActor struct{}
 
@@ -87,23 +87,60 @@ func NewEchoBecomeActor() Actor {
 
 func (state EchoBecomeActor) Receive(context Context) {
 	switch context.Message().(type) {
-	case BecomeMessage:
+	case BecomeRequest:
 		context.Become(state.Other)
 	}
 }
 
 func (EchoBecomeActor) Other(context Context) {
 	switch msg := context.Message().(type) {
-	case Echo:
-		msg.Sender.Tell(EchoEcho{})
+	case EchoRequest:
+		msg.Sender.Tell(EchoResponse{})
 	}
 }
 
 func TestActorCanBecome(t *testing.T) {
 	future := NewFutureActorRef()
 	actor := ActorOf(Props(NewEchoActor))
-    actor.Tell(BecomeMessage{})
-	actor.Tell(Echo{Sender: future})
+	actor.Tell(BecomeRequest{})
+	actor.Tell(EchoRequest{Sender: future})
+	select {
+	case <-future.Result():
+	case <-time.After(testTimeout):
+		assert.Fail(t, "timed out")
+	}
+}
+
+type UnbecomeRequest struct{}
+
+type EchoUnbecomeActor struct{}
+
+func NewEchoUnbecomeActor() Actor {
+	return &EchoBecomeActor{}
+}
+
+func (state EchoUnbecomeActor) Receive(context Context) {
+	switch msg := context.Message().(type) {
+	case BecomeRequest:
+		context.BecomeStacked(state.Other)
+	case EchoRequest:
+		msg.Sender.Tell(EchoResponse{})
+	}
+}
+
+func (EchoUnbecomeActor) Other(context Context) {
+	switch context.Message().(type) {
+	case UnbecomeRequest:
+		context.UnbecomeStacked()
+	}
+}
+
+func TestActorCanUnbecome(t *testing.T) {
+	future := NewFutureActorRef()
+	actor := ActorOf(Props(NewEchoActor))
+	actor.Tell(BecomeRequest{})
+	actor.Tell(UnbecomeRequest{})
+	actor.Tell(EchoRequest{Sender: future})
 	select {
 	case <-future.Result():
 	case <-time.After(testTimeout):
