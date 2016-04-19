@@ -10,8 +10,8 @@ type OneForOneStrategy struct {
 	decider                     interfaces.Decider
 }
 
-func (strategy *OneForOneStrategy) Handle(child interfaces.ActorRef, cause interface{}) interfaces.Directive {
-	return strategy.decider(child, cause)
+func (strategy *OneForOneStrategy) Handle(child interfaces.ActorRef, reason interface{}) interfaces.Directive {
+	return strategy.decider(child, reason)
 }
 
 func NewOneForOneStrategy(maxNrOfRetries int, withinTimeRangeMilliseconds int, decider interfaces.Decider) interfaces.SupervisionStrategy {

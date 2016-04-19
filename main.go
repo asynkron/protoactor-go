@@ -10,7 +10,7 @@ import (
 import "github.com/rogeralsing/goactor/actor"
 
 func main() {
-	// decider := func(child interfaces.ActorRef, cause interface{}) interfaces.Directive {
+	// decider := func(child interfaces.ActorRef, reason interface{}) interfaces.Directive {
 	// 	fmt.Println("restarting failing child")
 	// 	return interfaces.Restart
 	// }
