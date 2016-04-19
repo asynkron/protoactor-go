@@ -7,11 +7,10 @@ import (
 	"os"
 )
 import "github.com/rogeralsing/goactor/actor"
-import "github.com/rogeralsing/goactor/mailbox"
 
 func main() {
 
-	props := actor.Props(NewParentActor).WithMailbox(mailbox.NewQueueMailbox)
+	props := actor.Props(NewParentActor).WithMailbox(actor.NewQueueMailbox)
 	parent := actor.Spawn(props)
 	parent.Tell(Hello{Name: "Roger"})
 	parent.Tell(Hello{Name: "Go"})
@@ -60,7 +59,7 @@ func NewParentActor() interfaces.Actor {
 func (state *ParentActor) Receive(context interfaces.Context) {
 	switch msg := context.Message().(type) {
 	case actor.Starting:
-		state.Child = context.SpawnChild(actor.Props(NewChildActor).WithMailbox(mailbox.NewQueueMailbox))
+		state.Child = context.SpawnChild(actor.Props(NewChildActor))
 	case actor.Stopping:
 		fmt.Println("stopping parent")
 	case actor.Stopped:

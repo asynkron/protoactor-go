@@ -1,30 +1,29 @@
-package mailbox
+package actor
+
+import "sync/atomic"
+import "github.com/Workiva/go-datastructures/queue"
 import "github.com/rogeralsing/goactor/interfaces"
 
-import (
-	"sync/atomic"
-)
-
-type BoundedMailbox struct {
-	userMailbox     chan interface{}
-	systemMailbox   chan interfaces.SystemMessage
+type QueueMailbox struct {
+	userMailbox     *queue.Queue
+	systemMailbox   *queue.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
 	userInvoke      func(interface{})
 	systemInvoke    func(interfaces.SystemMessage)
 }
 
-func (mailbox *BoundedMailbox) PostUserMessage(message interface{}) {
-	mailbox.userMailbox <- message
+func (mailbox *QueueMailbox) PostUserMessage(message interface{}) {
+	mailbox.userMailbox.Put(message)
 	mailbox.schedule()
 }
 
-func (mailbox *BoundedMailbox) PostSystemMessage(message interfaces.SystemMessage) {
-	mailbox.systemMailbox <- message
+func (mailbox *QueueMailbox) PostSystemMessage(message interfaces.SystemMessage) {
+	mailbox.systemMailbox.Put(message)
 	mailbox.schedule()
 }
 
-func (mailbox *BoundedMailbox) schedule() {
+func (mailbox *QueueMailbox) schedule() {
 	swapped := atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, MailboxIdle, MailboxRunning)
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages) //we have more messages to process
 	if swapped {
@@ -32,23 +31,20 @@ func (mailbox *BoundedMailbox) schedule() {
 	}
 }
 
-func (mailbox *BoundedMailbox) processMessages() {
+func (mailbox *QueueMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
 
 	//process x messages in sequence, then exit
 	for i := 0; i < 30; i++ {
-		select {
-		case sysMsg := <-mailbox.systemMailbox:
-			//prioritize system messages
-			mailbox.systemInvoke(sysMsg)
-		default:
-			//if no system message is present, try read user message
-			select {
-			case userMsg := <-mailbox.userMailbox:
-				mailbox.userInvoke(userMsg)
-			default:
-			}
+		if !mailbox.systemMailbox.Empty() {
+			sysMsg, _ := mailbox.systemMailbox.Get(1)
+			first := sysMsg[0].(interfaces.SystemMessage)
+			mailbox.systemInvoke(first)
+		} else if !mailbox.userMailbox.Empty() {
+			userMsg, _ := mailbox.userMailbox.Get(1)
+			first := userMsg[0]
+			mailbox.userInvoke(first)
 		}
 	}
 	//set mailbox to idle
@@ -67,10 +63,10 @@ func (mailbox *BoundedMailbox) processMessages() {
 	}
 }
 
-func NewBoundedMailbox(userInvoke func(interface{}), systemInvoke func(interfaces.SystemMessage)) interfaces.Mailbox {
-	userMailbox := make(chan interface{}, 100)
-	systemMailbox := make(chan interfaces.SystemMessage, 100)
-	mailbox := BoundedMailbox{
+func NewQueueMailbox(userInvoke func(interface{}), systemInvoke func(interfaces.SystemMessage)) interfaces.Mailbox {
+	userMailbox := queue.New(10)
+	systemMailbox := queue.New(10)
+	mailbox := QueueMailbox{
 		userMailbox:     userMailbox,
 		systemMailbox:   systemMailbox,
 		hasMoreMessages: MailboxHasNoMessages,

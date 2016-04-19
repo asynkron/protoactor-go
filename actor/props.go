@@ -2,7 +2,6 @@ package actor
 
 import (
 	"github.com/rogeralsing/goactor/interfaces"
-	"github.com/rogeralsing/goactor/mailbox"
 )
 
 type PropsValue struct {
@@ -21,7 +20,7 @@ func (props PropsValue) ProduceMailbox(userInvoke func(interface{}), systemInvok
 func Props(actorProducer interfaces.ActorProducer) PropsValue {
 	return PropsValue{
 		actorProducer: actorProducer,
-		mailboxProducer: mailbox.NewQueueMailbox,
+		mailboxProducer: NewQueueMailbox,
 	}
 }
 
