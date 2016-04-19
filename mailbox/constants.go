@@ -9,7 +9,3 @@ const (
 	MailboxHasMoreMessages = iota
 )
 
-type Mailbox interface {
-	PostUserMessage(message interface{})
-	PostSystemMessage(message interface{})
-}

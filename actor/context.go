@@ -1,13 +1,22 @@
 package actor
 
-type Context struct {
+import (
+	"github.com/rogeralsing/goactor/interfaces"
+)
+
+type ContextValue struct {
 	*ActorCell
-    Message interface{}	
+	message interface{}
 }
 
-func NewContext(cell *ActorCell,message interface{}) *Context {
-    return &Context {
-        ActorCell: cell,
-        Message: message,
-    }
+func (context *ContextValue) Message() interface{} {
+	return context.message
+}
+
+func NewContext(cell *ActorCell, message interface{}) interfaces.Context {
+	res := &ContextValue{
+		ActorCell: cell,
+		message:   message,
+	}
+	return res
 }

@@ -2,6 +2,7 @@ package mailbox
 
 import "sync/atomic"
 import "github.com/Workiva/go-datastructures/queue"
+import "github.com/rogeralsing/goactor/interfaces"
 
 type QueueMailbox struct {
 	userMailbox     *queue.Queue
@@ -9,7 +10,7 @@ type QueueMailbox struct {
 	schedulerStatus int32
 	hasMoreMessages int32
 	userInvoke      func(interface{})
-	systemInvoke    func(interface{})
+	systemInvoke    func(interfaces.SystemMessage)
 }
 
 func (mailbox *QueueMailbox) PostUserMessage(message interface{}) {
@@ -17,7 +18,7 @@ func (mailbox *QueueMailbox) PostUserMessage(message interface{}) {
 	mailbox.schedule()
 }
 
-func (mailbox *QueueMailbox) PostSystemMessage(message interface{}) {
+func (mailbox *QueueMailbox) PostSystemMessage(message interfaces.SystemMessage) {
 	mailbox.systemMailbox.Put(message)
 	mailbox.schedule()
 }
@@ -38,7 +39,7 @@ func (mailbox *QueueMailbox) processMessages() {
 	for i := 0; i < 30; i++ {
 		if !mailbox.systemMailbox.Empty() {
 			sysMsg, _ := mailbox.systemMailbox.Get(1)
-			first := sysMsg[0]
+			first := sysMsg[0].(interfaces.SystemMessage)
 			mailbox.systemInvoke(first)
 		} else if !mailbox.userMailbox.Empty() {
 			userMsg, _ := mailbox.userMailbox.Get(1)
@@ -62,7 +63,7 @@ func (mailbox *QueueMailbox) processMessages() {
 	}
 }
 
-func NewQueueMailbox(userInvoke func(interface{}),systemInvoke func(interface{})) Mailbox {
+func NewQueueMailbox(userInvoke func(interface{}), systemInvoke func(interfaces.SystemMessage)) interfaces.Mailbox {
 	userMailbox := queue.New(10)
 	systemMailbox := queue.New(10)
 	mailbox := QueueMailbox{
@@ -70,8 +71,8 @@ func NewQueueMailbox(userInvoke func(interface{}),systemInvoke func(interface{})
 		systemMailbox:   systemMailbox,
 		hasMoreMessages: MailboxHasNoMessages,
 		schedulerStatus: MailboxIdle,
-		userInvoke: userInvoke,
-		systemInvoke: systemInvoke,
+		userInvoke:      userInvoke,
+		systemInvoke:    systemInvoke,
 	}
 	return &mailbox
 }

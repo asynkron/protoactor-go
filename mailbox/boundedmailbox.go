@@ -1,4 +1,5 @@
 package mailbox
+import "github.com/rogeralsing/goactor/interfaces"
 
 import (
 	"sync/atomic"
@@ -6,11 +7,11 @@ import (
 
 type BoundedMailbox struct {
 	userMailbox     chan interface{}
-	systemMailbox   chan interface{}
+	systemMailbox   chan interfaces.SystemMessage
 	schedulerStatus int32
 	hasMoreMessages int32
 	userInvoke      func(interface{})
-	systemInvoke    func(interface{})
+	systemInvoke    func(interfaces.SystemMessage)
 }
 
 func (mailbox *BoundedMailbox) PostUserMessage(message interface{}) {
@@ -18,7 +19,7 @@ func (mailbox *BoundedMailbox) PostUserMessage(message interface{}) {
 	mailbox.schedule()
 }
 
-func (mailbox *BoundedMailbox) PostSystemMessage(message interface{}) {
+func (mailbox *BoundedMailbox) PostSystemMessage(message interfaces.SystemMessage) {
 	mailbox.systemMailbox <- message
 	mailbox.schedule()
 }
@@ -66,9 +67,9 @@ func (mailbox *BoundedMailbox) processMessages() {
 	}
 }
 
-func NewBoundedMailbox(userInvoke func(interface{}), systemInvoke func(interface{})) Mailbox {
+func NewBoundedMailbox(userInvoke func(interface{}), systemInvoke func(interfaces.SystemMessage)) interfaces.Mailbox {
 	userMailbox := make(chan interface{}, 100)
-	systemMailbox := make(chan interface{}, 100)
+	systemMailbox := make(chan interfaces.SystemMessage, 100)
 	mailbox := BoundedMailbox{
 		userMailbox:     userMailbox,
 		systemMailbox:   systemMailbox,

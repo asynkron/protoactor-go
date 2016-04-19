@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/rogeralsing/goactor/interfaces"
 	"os"
 )
 import "github.com/rogeralsing/goactor/actor"
@@ -20,7 +21,7 @@ func main() {
 }
 
 type Ping struct {
-	Sender actor.ActorRef
+	Sender interfaces.ActorRef
 	Name   string
 }
 type Pong struct{}
@@ -28,12 +29,12 @@ type Hello struct{ Name string }
 
 type ChildActor struct{ messageCount int }
 
-func NewChildActor() actor.Actor {
+func NewChildActor() interfaces.Actor {
 	return &ChildActor{}
 }
 
-func (state *ChildActor) Receive(context *actor.Context) {
-	switch msg := context.Message.(type) {
+func (state *ChildActor) Receive(context interfaces.Context) {
+	switch msg := context.Message().(type) {
 	case actor.Starting:
 		fmt.Println("Im starting")
 	case actor.Stopping:
@@ -49,17 +50,17 @@ func (state *ChildActor) Receive(context *actor.Context) {
 }
 
 type ParentActor struct {
-	Child actor.ActorRef
+	Child interfaces.ActorRef
 }
 
-func NewParentActor() actor.Actor {
+func NewParentActor() interfaces.Actor {
 	return &ParentActor{}
 }
 
-func (state *ParentActor) Receive(context *actor.Context) {
-	switch msg := context.Message.(type) {
+func (state *ParentActor) Receive(context interfaces.Context) {
+	switch msg := context.Message().(type) {
 	case actor.Starting:
-		state.Child = context.SpawnChild(actor.Props(NewChildActor))
+		state.Child = context.SpawnChild(actor.Props(NewChildActor).WithMailbox(mailbox.NewQueueMailbox))
 	case actor.Stopping:
 		fmt.Println("stopping parent")
 	case actor.Stopped:
@@ -75,8 +76,8 @@ func (state *ParentActor) Receive(context *actor.Context) {
 	}
 }
 
-func (state *ParentActor) Other(context *actor.Context) {
-	switch context.Message.(type) {
+func (state *ParentActor) Other(context interfaces.Context) {
+	switch context.Message().(type) {
 	case actor.Stopping:
 		fmt.Println("stopping parent in become")
 	case actor.Stopped:
