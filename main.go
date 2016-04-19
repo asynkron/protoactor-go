@@ -43,9 +43,7 @@ func (state *ChildActor) Receive(context actor.Context) {
 }
 
 //Parent actor
-type ParentActor struct {
-	Child actor.ActorRef
-}
+type ParentActor struct{ child actor.ActorRef }
 
 func NewParentActor() actor.Actor {
 	return &ParentActor{}
@@ -54,9 +52,9 @@ func NewParentActor() actor.Actor {
 func (state *ParentActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case actor.Starting:
-		state.Child = context.ActorOf(actor.Props(NewChildActor))
+		state.child = context.ActorOf(actor.Props(NewChildActor))
 	case Hello:
 		fmt.Printf("Parent got hello %v\n", msg.Name)
-		state.Child.Tell(Ping{Sender: context.Self()})
+		state.child.Tell(Ping{Sender: context.Self()})
 	}
 }
