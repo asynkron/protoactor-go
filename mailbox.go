@@ -8,3 +8,13 @@ type Mailbox interface {
 	Resume()
 	RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage))
 }
+
+const (
+	MailboxIdle    = iota
+	MailboxRunning = iota
+)
+const (
+	MailboxHasNoMessages   = iota
+	MailboxHasMoreMessages = iota
+)
+

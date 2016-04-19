@@ -19,7 +19,7 @@ func (ref *FutureActorRef) Result() <-chan interface{} {
 	return ref.channel
 }
 
-func (ref *FutureActorRef) SendSystemMessage(message interface{}) {
+func (ref *FutureActorRef) SendSystemMessage(message SystemMessage) {
 }
 
 func (ref *FutureActorRef) Stop() {
