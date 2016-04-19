@@ -1,15 +1,14 @@
 package actor
 
-
 func NewFutureActorRef() *FutureActorRef {
 	ref := FutureActorRef{
-        channel: make(chan interface{}),
-    }
+		channel: make(chan interface{}),
+	}
 	return &ref
 }
 
 type FutureActorRef struct {
-	channel     chan interface{}
+	channel chan interface{}
 }
 
 func (ref *FutureActorRef) Tell(message interface{}) {
@@ -17,12 +16,12 @@ func (ref *FutureActorRef) Tell(message interface{}) {
 }
 
 func (ref *FutureActorRef) Result() <-chan interface{} {
-    return ref.channel
+	return ref.channel
 }
 
 func (ref *FutureActorRef) SendSystemMessage(message interface{}) {
 }
 
 func (ref *FutureActorRef) Stop() {
-    close(ref.channel)
+	close(ref.channel)
 }

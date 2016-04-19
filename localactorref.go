@@ -4,6 +4,12 @@ type LocalActorRef struct {
 	mailbox Mailbox
 }
 
+func NewLocalActorRef(mailbox Mailbox) *LocalActorRef {
+	return &LocalActorRef {
+		mailbox: mailbox,
+	}
+}
+
 func (ref *LocalActorRef) Tell(message interface{}) {
 	ref.mailbox.PostUserMessage(message)
 }

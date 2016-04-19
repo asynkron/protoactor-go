@@ -1,60 +1,61 @@
-package main
+package actor
 
-import (
-	"bufio"
-	"fmt"
-	"os"
-)
-import "github.com/rogeralsing/goactor/actor"
 
-func main() {
-	props := actor.
-		Props(NewParentActor).
-		WithMailbox(actor.NewUnboundedMailbox()).
-		WithSupervisor(actor.DefaultStrategy())
+// import (
+// 	"bufio"
+// 	"fmt"
+// 	"os"
+// )
+// import "github.com/rogeralsing/goactor/actor"
 
-	parent := actor.ActorOf(props)
-	parent.Tell(Hello{Name: "Roger"})
-	parent.Tell(Hello{Name: "Go"})
+// func main() {
+// 	props := actor.
+// 		Props(NewParentActor).
+// 		WithMailbox(actor.NewUnboundedMailbox()).
+// 		WithSupervisor(actor.DefaultStrategy())
 
-	reader := bufio.NewReader(os.Stdin)
-	reader.ReadString('\n')
-}
+// 	parent := actor.ActorOf(props)
+// 	parent.Tell(Hello{Name: "Roger"})
+// 	parent.Tell(Hello{Name: "Go"})
 
-//Messages
-type Ping struct{ Sender actor.ActorRef }
-type Pong struct{}
-type Hello struct{ Name string }
+// 	reader := bufio.NewReader(os.Stdin)
+// 	reader.ReadString('\n')
+// }
 
-//Child actor
-type ChildActor struct{ messageCount int }
+// //Messages
+// type Ping struct{ Sender actor.ActorRef }
+// type Pong struct{}
+// type Hello struct{ Name string }
 
-func NewChildActor() actor.Actor {
-	return &ChildActor{}
-}
+// //Child actor
+// type ChildActor struct{ messageCount int }
 
-func (state *ChildActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case Ping:
-		state.messageCount++
-		fmt.Printf("message count %v \n", state.messageCount)
-		msg.Sender.Tell(Pong{})
-	}
-}
+// func NewChildActor() actor.Actor {
+// 	return &ChildActor{}
+// }
 
-//Parent actor
-type ParentActor struct{ child actor.ActorRef }
+// func (state *ChildActor) Receive(context actor.Context) {
+// 	switch msg := context.Message().(type) {
+// 	case Ping:
+// 		state.messageCount++
+// 		fmt.Printf("message count %v \n", state.messageCount)
+// 		msg.Sender.Tell(Pong{})
+// 	}
+// }
 
-func NewParentActor() actor.Actor {
-	return &ParentActor{}
-}
+// //Parent actor
+// type ParentActor struct{ child actor.ActorRef }
 
-func (state *ParentActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case actor.Starting:
-		state.child = context.ActorOf(actor.Props(NewChildActor))
-	case Hello:
-		fmt.Printf("Parent got hello %v\n", msg.Name)
-		state.child.Tell(Ping{Sender: context.Self()})
-	}
-}
+// func NewParentActor() actor.Actor {
+// 	return &ParentActor{}
+// }
+
+// func (state *ParentActor) Receive(context actor.Context) {
+// 	switch msg := context.Message().(type) {
+// 	case actor.Starting:
+// 		state.child = context.ActorOf(actor.Props(NewChildActor))
+// 	case Hello:
+// 		fmt.Printf("Parent got hello %v\n", msg.Name)
+// 		state.child.Tell(Ping{Sender: context.Self()})
+// 	}
+// }

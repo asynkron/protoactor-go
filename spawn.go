@@ -8,10 +8,8 @@ func spawnChild(props Properties, parent ActorRef) ActorRef {
 	cell := NewActorCell(props, parent)
 	mailbox := props.Mailbox()
 	mailbox.RegisterHandlers(cell.invokeUserMessage, cell.invokeSystemMessage)
-	ref := LocalActorRef{
-		mailbox: mailbox,
-	}
-	cell.self = &ref //TODO: this is fugly
+	ref := NewLocalActorRef(mailbox)
+	cell.self = ref
 	ref.Tell(Starting{})
-	return &ref
+	return ref
 }
