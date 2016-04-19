@@ -37,3 +37,8 @@ type Restart struct{}
 
 func (*Restart) SystemMessage() {}
 
+
+type Resume struct{}
+
+func (*Resume) SystemMessage() {}
+

@@ -9,8 +9,12 @@ import (
 import "github.com/rogeralsing/goactor/actor"
 
 func main() {
-
-	props := actor.Props(NewParentActor).WithMailbox(actor.NewQueueMailbox)
+	decider := func(child interfaces.ActorRef,cause interface{}) interfaces.Directive {
+		fmt.Println("restarting failing child")
+		return interfaces.Restart
+	}
+	
+	props := actor.Props(NewParentActor).WithMailbox(actor.NewQueueMailbox).WithSupervisor(actor.NewOneForOneStrategy(5,1000,decider))
 	parent := actor.Spawn(props)
 	parent.Tell(Hello{Name: "Roger"})
 	parent.Tell(Hello{Name: "Go"})
@@ -42,6 +46,7 @@ func (state *ChildActor) Receive(context interfaces.Context) {
 		fmt.Println("stopped child")
 	case Ping:
 		fmt.Printf("Hello %v\n", msg.Name)
+		panic("hej")
 		state.messageCount++
 		fmt.Printf("message count %v \n", state.messageCount)
 		msg.Sender.Tell(Pong{})

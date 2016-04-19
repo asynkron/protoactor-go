@@ -32,6 +32,14 @@ func (mailbox *BoundedMailbox) schedule() {
 	}
 }
 
+func (mailbox *BoundedMailbox) Suspend(){
+	
+}
+
+func (mailbox *BoundedMailbox) Resume(){
+	
+}
+
 func (mailbox *BoundedMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)

@@ -17,3 +17,11 @@ func (ref *LocalActorRef) SendSystemMessage(message interfaces.SystemMessage) {
 func (ref *LocalActorRef) Stop() {
 	ref.SendSystemMessage(&Stop{})
 }
+
+func (ref *LocalActorRef) Suspend() {
+	ref.mailbox.Suspend()
+}
+
+func (ref *LocalActorRef) Resume() {
+	ref.mailbox.Resume()
+}

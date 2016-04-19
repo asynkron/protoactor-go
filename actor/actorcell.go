@@ -6,15 +6,16 @@ import "github.com/emirpasic/gods/stacks/linkedliststack"
 import "github.com/rogeralsing/goactor/interfaces"
 
 type ActorCell struct {
-	parent   interfaces.ActorRef
-	self     interfaces.ActorRef
-	actor    interfaces.Actor
-	props    interfaces.Props
-	behavior *linkedliststack.Stack
-	children *hashset.Set
-	watchers *hashset.Set
-	watching *hashset.Set
-	stopping bool
+	parent     interfaces.ActorRef
+	self       *LocalActorRef
+	actor      interfaces.Actor
+	props      interfaces.Props
+	supervisor interfaces.SupervisionStrategy
+	behavior   *linkedliststack.Stack
+	children   *hashset.Set
+	watchers   *hashset.Set
+	watching   *hashset.Set
+	stopping   bool
 }
 
 func (cell *ActorCell) Self() interfaces.ActorRef {
@@ -28,12 +29,13 @@ func (cell *ActorCell) Parent() interfaces.ActorRef {
 func NewActorCell(props interfaces.Props, parent interfaces.ActorRef) *ActorCell {
 
 	cell := ActorCell{
-		parent:   parent,
-		props:    props,
-		behavior: linkedliststack.New(),
-		children: hashset.New(),
-		watchers: hashset.New(),
-		watching: hashset.New(),
+		parent:     parent,
+		props:      props,
+		supervisor: props.Supervisor(),
+		behavior:   linkedliststack.New(),
+		children:   hashset.New(),
+		watchers:   hashset.New(),
+		watching:   hashset.New(),
 	}
 	cell.incarnateActor()
 	return &cell
@@ -50,27 +52,58 @@ func (cell *ActorCell) invokeSystemMessage(message interfaces.SystemMessage) {
 	default:
 		fmt.Printf("Unknown system message %T", msg)
 	case *Stop:
-		cell.stopping = true
-		cell.invokeUserMessage(Stopping{})
-		for _, child := range cell.children.Values() {
-			child.(interfaces.ActorRef).Stop()
-		}
-		cell.tryTerminate()
+		cell.handleStop(msg)
 	case *OtherStopped:
-		cell.children.Remove(msg.Who)
-		cell.watching.Remove(msg.Who)
-		cell.tryTerminate()
+		cell.handleOtherStopped(msg)
 	case *Watch:
 		cell.watchers.Add(msg.Watcher)
 	case *Unwatch:
 		cell.watchers.Remove(msg.Watcher)
 	case *Failure:
-		//TODO: apply supervision strategy
-		msg.Who.SendSystemMessage(&Restart{})
+		cell.handleFailure(msg)
 	case *Restart:
-		cell.incarnateActor()
-		cell.invokeUserMessage(Starting{})
+		cell.handleRestart(msg)
+	case *Resume:
+		cell.self.Resume()
 	}
+}
+
+func (cell *ActorCell) handleStop(msg *Stop) {
+	cell.stopping = true
+	cell.invokeUserMessage(Stopping{})
+	for _, child := range cell.children.Values() {
+		child.(interfaces.ActorRef).Stop()
+	}
+	cell.tryTerminate()
+}
+
+func (cell *ActorCell) handleOtherStopped(msg *OtherStopped) {
+	cell.children.Remove(msg.Who)
+	cell.watching.Remove(msg.Who)
+	cell.tryTerminate()
+}
+
+func (cell *ActorCell) handleFailure(msg *Failure) {
+	directive := cell.supervisor.Handle(msg.Who, msg.Reason)
+	switch directive {
+	case interfaces.Resume:
+		//resume the fialing child
+		msg.Who.SendSystemMessage(&Resume{})
+	case interfaces.Restart:
+		//restart the failing child
+		msg.Who.SendSystemMessage(&Restart{})
+	case interfaces.Stop:
+		//stop the failing child
+		msg.Who.Stop()
+	case interfaces.Escalate:
+		//send failure to parent
+		cell.parent.SendSystemMessage(msg)
+	}
+}
+
+func (cell *ActorCell) handleRestart(msg *Restart) {
+	cell.incarnateActor()
+	cell.invokeUserMessage(Starting{})
 }
 
 func (cell *ActorCell) tryTerminate() {
@@ -83,7 +116,7 @@ func (cell *ActorCell) tryTerminate() {
 	}
 
 	cell.invokeUserMessage(Stopped{})
-	otherStopped := &OtherStopped{Who: cell.Self()}
+	otherStopped := &OtherStopped{Who: cell.self}
 	for _, watcher := range cell.watchers.Values() {
 		watcher.(interfaces.ActorRef).SendSystemMessage(otherStopped)
 	}
@@ -92,7 +125,12 @@ func (cell *ActorCell) tryTerminate() {
 func (cell *ActorCell) invokeUserMessage(message interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
-			cell.Parent().SendSystemMessage(&Failure{Reason: r, Who: cell.Self()})
+			if cell.parent == nil {
+				fmt.Println("TODO: implement root supervisor")
+			} else {
+				cell.self.Suspend()
+				cell.parent.SendSystemMessage(&Failure{Reason: r, Who: cell.self})
+			}
 		}
 	}()
 	behavior, _ := cell.behavior.Peek()
@@ -117,20 +155,20 @@ func (cell *ActorCell) UnbecomeStacked() {
 
 func (cell *ActorCell) Watch(who interfaces.ActorRef) {
 	who.SendSystemMessage(&Watch{
-		Watcher: cell.Self(),
+		Watcher: cell.self,
 	})
 	cell.watching.Add(who)
 }
 
 func (cell *ActorCell) Unwatch(who interfaces.ActorRef) {
 	who.SendSystemMessage(&Unwatch{
-		Watcher: cell.Self(),
+		Watcher: cell.self,
 	})
 	cell.watching.Remove(who)
 }
 
 func (cell *ActorCell) SpawnChild(props interfaces.Props) interfaces.ActorRef {
-	ref := spawnChild(props, cell.Self())
+	ref := spawnChild(props, cell.self)
 	cell.children.Add(ref)
 	cell.Watch(ref)
 	return ref
