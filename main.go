@@ -13,7 +13,7 @@ func main() {
 		WithMailbox(actor.NewUnboundedMailbox()).
 		WithSupervisor(actor.DefaultStrategy())
 
-	parent := actor.Spawn(props)
+	parent := actor.ActorOf(props)
 	parent.Tell(Hello{Name: "Roger"})
 	parent.Tell(Hello{Name: "Go"})
 
@@ -54,7 +54,7 @@ func NewParentActor() actor.Actor {
 func (state *ParentActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case actor.Starting:
-		state.Child = context.SpawnChild(actor.Props(NewChildActor))
+		state.Child = context.ActorOf(actor.Props(NewChildActor))
 	case Hello:
 		fmt.Printf("Parent got hello %v\n", msg.Name)
 		state.Child.Tell(Ping{Sender: context.Self()})

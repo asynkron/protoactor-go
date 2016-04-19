@@ -9,7 +9,7 @@ type Context interface {
 	UnbecomeStacked()
 	Self() ActorRef
 	Parent() ActorRef
-	SpawnChild(Properties) ActorRef
+	ActorOf(Properties) ActorRef
 }
 
 type ContextValue struct {

@@ -166,7 +166,7 @@ func (cell *ActorCell) Unwatch(who ActorRef) {
 	cell.watching.Remove(who)
 }
 
-func (cell *ActorCell) SpawnChild(props Properties) ActorRef {
+func (cell *ActorCell) ActorOf(props Properties) ActorRef {
 	ref := spawnChild(props, cell.self)
 	cell.children.Add(ref)
 	cell.Watch(ref)

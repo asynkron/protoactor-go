@@ -1,6 +1,6 @@
 package actor
 
-func Spawn(props Properties) ActorRef {
+func ActorOf(props Properties) ActorRef {
 	return spawnChild(props, nil)
 }
 
