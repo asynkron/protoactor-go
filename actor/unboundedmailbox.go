@@ -4,7 +4,7 @@ import "sync/atomic"
 import "github.com/Workiva/go-datastructures/queue"
 import "github.com/rogeralsing/goactor/interfaces"
 
-type QueueMailbox struct {
+type UnboundedMailbox struct {
 	userMailbox     *queue.Queue
 	systemMailbox   *queue.Queue
 	schedulerStatus int32
@@ -13,17 +13,17 @@ type QueueMailbox struct {
 	systemInvoke    func(interfaces.SystemMessage)
 }
 
-func (mailbox *QueueMailbox) PostUserMessage(message interface{}) {
+func (mailbox *UnboundedMailbox) PostUserMessage(message interface{}) {
 	mailbox.userMailbox.Put(message)
 	mailbox.schedule()
 }
 
-func (mailbox *QueueMailbox) PostSystemMessage(message interfaces.SystemMessage) {
+func (mailbox *UnboundedMailbox) PostSystemMessage(message interfaces.SystemMessage) {
 	mailbox.systemMailbox.Put(message)
 	mailbox.schedule()
 }
 
-func (mailbox *QueueMailbox) schedule() {
+func (mailbox *UnboundedMailbox) schedule() {
 	swapped := atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, MailboxIdle, MailboxRunning)
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages) //we have more messages to process
 	if swapped {
@@ -31,15 +31,15 @@ func (mailbox *QueueMailbox) schedule() {
 	}
 }
 
-func (mailbox *QueueMailbox) Suspend(){
-	
+func (mailbox *UnboundedMailbox) Suspend() {
+
 }
 
-func (mailbox *QueueMailbox) Resume(){
-	
+func (mailbox *UnboundedMailbox) Resume() {
+
 }
 
-func (mailbox *QueueMailbox) processMessages() {
+func (mailbox *UnboundedMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
 
@@ -71,16 +71,19 @@ func (mailbox *QueueMailbox) processMessages() {
 	}
 }
 
-func NewQueueMailbox(userInvoke func(interface{}), systemInvoke func(interfaces.SystemMessage)) interfaces.Mailbox {
+func NewUnboundedMailbox() interfaces.Mailbox {
 	userMailbox := queue.New(10)
 	systemMailbox := queue.New(10)
-	mailbox := QueueMailbox{
+	mailbox := UnboundedMailbox{
 		userMailbox:     userMailbox,
 		systemMailbox:   systemMailbox,
 		hasMoreMessages: MailboxHasNoMessages,
 		schedulerStatus: MailboxIdle,
-		userInvoke:      userInvoke,
-		systemInvoke:    systemInvoke,
 	}
 	return &mailbox
+}
+
+func (mailbox *UnboundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(interfaces.SystemMessage)) {
+	mailbox.userInvoke = userInvoke
+	mailbox.systemInvoke = systemInvoke
 }

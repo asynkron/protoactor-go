@@ -2,6 +2,6 @@ package interfaces
 
 type Props interface {
 	ProduceActor() Actor
-	ProduceMailbox(userInvoke func(interface{}), systemInvoke func(SystemMessage)) Mailbox
+	Mailbox() Mailbox
 	Supervisor() SupervisionStrategy
 }

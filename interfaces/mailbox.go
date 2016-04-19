@@ -6,4 +6,5 @@ type Mailbox interface {
 	PostSystemMessage(message SystemMessage)
 	Suspend()
 	Resume()
+	RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage))
 }

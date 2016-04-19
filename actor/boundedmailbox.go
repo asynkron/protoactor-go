@@ -75,16 +75,19 @@ func (mailbox *BoundedMailbox) processMessages() {
 	}
 }
 
-func NewBoundedMailbox(userInvoke func(interface{}), systemInvoke func(interfaces.SystemMessage)) interfaces.Mailbox {
-	userMailbox := make(chan interface{}, 100)
-	systemMailbox := make(chan interfaces.SystemMessage, 100)
+func NewBoundedMailbox(boundedSize int) interfaces.Mailbox {
+	userMailbox := make(chan interface{}, boundedSize)
+	systemMailbox := make(chan interfaces.SystemMessage, boundedSize)
 	mailbox := BoundedMailbox{
 		userMailbox:     userMailbox,
 		systemMailbox:   systemMailbox,
 		hasMoreMessages: MailboxHasNoMessages,
 		schedulerStatus: MailboxIdle,
-		userInvoke:      userInvoke,
-		systemInvoke:    systemInvoke,
 	}
 	return &mailbox
+}
+
+func (mailbox *BoundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(interfaces.SystemMessage)) {
+	mailbox.userInvoke = userInvoke
+	mailbox.systemInvoke = systemInvoke
 }

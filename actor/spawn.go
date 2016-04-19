@@ -10,7 +10,8 @@ func Spawn(props interfaces.Props) interfaces.ActorRef {
 
 func spawnChild(props interfaces.Props, parent interfaces.ActorRef) interfaces.ActorRef {
 	cell := NewActorCell(props, parent)
-	mailbox := props.ProduceMailbox(cell.invokeUserMessage, cell.invokeSystemMessage)
+	mailbox := props.Mailbox()
+	mailbox.RegisterHandlers(cell.invokeUserMessage,cell.invokeSystemMessage)
 	ref := LocalActorRef{
 		mailbox: mailbox,
 	}

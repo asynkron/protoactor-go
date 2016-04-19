@@ -21,3 +21,12 @@ func NewOneForOneStrategy(maxNrOfRetries int, withinTimeRangeMilliseconds int, d
         decider: decider,
     }
 }
+
+func DefaultDecider (child interfaces.ActorRef, reason interface{}) interfaces.Directive {
+    return interfaces.Restart
+}
+
+var defaultStrategy interfaces.SupervisionStrategy = NewOneForOneStrategy(10,30000,DefaultDecider)
+func DefaultStrategy() interfaces.SupervisionStrategy {
+    return defaultStrategy
+}

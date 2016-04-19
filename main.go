@@ -3,18 +3,23 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/rogeralsing/goactor/interfaces"
 	"os"
+
+	"github.com/rogeralsing/goactor/interfaces"
 )
 import "github.com/rogeralsing/goactor/actor"
 
 func main() {
-	decider := func(child interfaces.ActorRef,cause interface{}) interfaces.Directive {
-		fmt.Println("restarting failing child")
-		return interfaces.Restart
-	}
-	
-	props := actor.Props(NewParentActor).WithMailbox(actor.NewQueueMailbox).WithSupervisor(actor.NewOneForOneStrategy(5,1000,decider))
+	// decider := func(child interfaces.ActorRef, cause interface{}) interfaces.Directive {
+	// 	fmt.Println("restarting failing child")
+	// 	return interfaces.Restart
+	// }
+
+	props := actor.
+		Props(NewParentActor).
+		WithMailbox(actor.NewUnboundedMailbox()).
+		WithSupervisor(actor.DefaultStrategy())
+
 	parent := actor.Spawn(props)
 	parent.Tell(Hello{Name: "Roger"})
 	parent.Tell(Hello{Name: "Go"})

@@ -6,7 +6,7 @@ import (
 
 type PropsValue struct {
 	actorProducer       interfaces.ActorProducer
-	mailboxProducer     interfaces.MailboxProducer
+	mailbox             interfaces.Mailbox
 	supervisionStrategy interfaces.SupervisionStrategy
 }
 
@@ -18,20 +18,23 @@ func (props PropsValue) Supervisor() interfaces.SupervisionStrategy {
 	return props.supervisionStrategy
 }
 
-func (props PropsValue) ProduceMailbox(userInvoke func(interface{}), systemInvoke func(interfaces.SystemMessage)) interfaces.Mailbox {
-	return props.mailboxProducer(userInvoke, systemInvoke)
+func (props PropsValue) Mailbox() interfaces.Mailbox {
+	if props.mailbox == nil {
+		return NewUnboundedMailbox()
+	}
+	return props.mailbox
 }
 
 func Props(actorProducer interfaces.ActorProducer) PropsValue {
 	return PropsValue{
-		actorProducer:   actorProducer,
-		mailboxProducer: NewQueueMailbox,
+		actorProducer: actorProducer,
+		mailbox:       nil,
 	}
 }
 
-func (props PropsValue) WithMailbox(mailboxProducer interfaces.MailboxProducer) PropsValue {
+func (props PropsValue) WithMailbox(mailbox interfaces.Mailbox) PropsValue {
 	//pass by value, we only modify the copy
-	props.mailboxProducer = mailboxProducer
+	props.mailbox = mailbox
 	return props
 }
 
