@@ -21,10 +21,12 @@ func main() {
 	reader.ReadString('\n')
 }
 
+//Messages
 type Ping struct{ Sender actor.ActorRef }
 type Pong struct{}
 type Hello struct{ Name string }
 
+//Child actor
 type ChildActor struct{ messageCount int }
 
 func NewChildActor() actor.Actor {
@@ -40,6 +42,7 @@ func (state *ChildActor) Receive(context actor.Context) {
 	}
 }
 
+//Parent actor
 type ParentActor struct {
 	Child actor.ActorRef
 }
