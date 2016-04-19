@@ -7,21 +7,29 @@ import "github.com/emirpasic/gods/stacks/linkedliststack"
 type Receive func(*Context)
 
 type ActorCell struct {
-	Parent   ActorRef
-	Self     ActorRef
+	parent   ActorRef
+	self     ActorRef
 	actor    Actor
 	props    PropsValue
 	behavior *linkedliststack.Stack
-	children *hashset.Set //TODO: replace sets with faster non threadsafe sets
+	children *hashset.Set
 	watchers *hashset.Set
 	watching *hashset.Set
 	stopping bool
 }
 
+func (cell *ActorCell) Self() ActorRef {	
+	return cell.self
+}
+
+func (cell *ActorCell) Parent() ActorRef {	
+	return cell.parent
+}
+
 func NewActorCell(props PropsValue, parent ActorRef) *ActorCell {
 
 	cell := ActorCell{
-		Parent:   parent,
+		parent:   parent,
 		props:    props,
 		behavior: linkedliststack.New(),
 		children: hashset.New(),
@@ -58,6 +66,7 @@ func (cell *ActorCell) invokeSystemMessage(message interface{}) {
 	case Unwatch:
 		cell.watchers.Remove(msg.Watcher)
 	case Failure:
+		//TODO: apply supervision strategy
 		msg.Who.SendSystemMessage(Restart{})
 	case Restart:
 		cell.incarnateActor()
@@ -75,7 +84,7 @@ func (cell *ActorCell) tryTerminate() {
 	}
 
 	cell.invokeUserMessage(Stopped{})
-	otherStopped := OtherStopped{Who: cell.Self}
+	otherStopped := OtherStopped{Who: cell.Self()}
 	for _, watcher := range cell.watchers.Values() {
 		watcher.(ActorRef).SendSystemMessage(otherStopped)
 	}
@@ -84,7 +93,7 @@ func (cell *ActorCell) tryTerminate() {
 func (cell *ActorCell) invokeUserMessage(message interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
-			cell.Parent.SendSystemMessage(Failure{Reason: r,Who:cell.Self})
+			cell.Parent().SendSystemMessage(Failure{Reason: r,Who:cell.Self()})
 		}
 	}()
 	behavior, _ := cell.behavior.Peek()
@@ -109,20 +118,20 @@ func (cell *ActorCell) UnbecomeStacked() {
 
 func (cell *ActorCell) Watch(who ActorRef) {
 	who.SendSystemMessage(Watch{
-		Watcher: cell.Self,
+		Watcher: cell.Self(),
 	})
 	cell.watching.Add(who)
 }
 
 func (cell *ActorCell) Unwatch(who ActorRef) {
 	who.SendSystemMessage(Unwatch{
-		Watcher: cell.Self,
+		Watcher: cell.Self(),
 	})
 	cell.watching.Remove(who)
 }
 
 func (cell *ActorCell) SpawnChild(props PropsValue) ActorRef {
-	ref := SpawnChild(props, cell.Self)
+	ref := SpawnChild(props, cell.Self())
 	cell.children.Add(ref)
 	cell.Watch(ref)
 	return ref

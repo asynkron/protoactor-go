@@ -10,7 +10,7 @@ func SpawnChild(props PropsValue,parent ActorRef) ActorRef {
 	ref := ChannelActorRef{
 		mailbox: mailbox,
 	}
-	cell.Self = &ref
+	cell.self = &ref
 	ref.Tell(Starting{})
 	return &ref
 }

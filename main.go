@@ -69,7 +69,7 @@ func (state *ParentActor) Receive(context *actor.Context) {
 		fmt.Printf("Parent got hello %v\n", msg.Name)
 		state.Child.Tell(Ping{
 			Name:   msg.Name,
-			Sender: context.Self,
+			Sender: context.Self(),
 		})
 		context.Become(state.Other)
 	}
@@ -84,6 +84,6 @@ func (state *ParentActor) Other(context *actor.Context) {
 
 	case Pong:
 		fmt.Println("Got pong")
-		context.Self.Stop()
+		context.Self().Stop()
 	}
 }
