@@ -1,30 +1,41 @@
 package actor
 
 import "fmt"
+import "github.com/emirpasic/gods/sets/hashset"
+import "github.com/emirpasic/gods/stacks/linkedliststack"
 
 type Receive func(*Context)
-type SetActorRef map[ActorRef]ActorRef
 
 type ActorCell struct {
+	Parent   ActorRef
 	Self     ActorRef
 	actor    Actor
 	props    PropsValue
-	behavior Receive
-	children SetActorRef
-	watchers SetActorRef
+	behavior *linkedliststack.Stack
+	children *hashset.Set //TODO: replace sets with faster non threadsafe sets
+	watchers *hashset.Set
+	watching *hashset.Set
 	stopping bool
 }
 
-func NewActorCell(props PropsValue) *ActorCell {
-	actor := props.actorProducer()
+func NewActorCell(props PropsValue, parent ActorRef) *ActorCell {
+
 	cell := ActorCell{
-		actor:    actor,
+		Parent:   parent,
 		props:    props,
-		behavior: actor.Receive,
-		children: make(SetActorRef),
-		watchers: make(SetActorRef),
+		behavior: linkedliststack.New(),
+		children: hashset.New(),
+		watchers: hashset.New(),
+		watching: hashset.New(),
 	}
+	cell.incarnateActor()
 	return &cell
+}
+
+func (cell *ActorCell) incarnateActor() {
+	actor := cell.props.actorProducer()
+	cell.actor = actor
+	cell.Become(actor.Receive)	
 }
 
 func (cell *ActorCell) invokeSystemMessage(message interface{}) {
@@ -34,15 +45,23 @@ func (cell *ActorCell) invokeSystemMessage(message interface{}) {
 	case Stop:
 		cell.stopping = true
 		cell.invokeUserMessage(Stopping{})
-		for child := range cell.children {
-			child.Stop()
+		for _, child := range cell.children.Values() {
+			child.(ActorRef).Stop()
 		}
 		cell.tryTerminate()
-	case WatchedStopped:
-		delete(cell.children, msg.Who)
+	case OtherStopped:
+		cell.children.Remove(msg.Who)
+		cell.watching.Remove(msg.Who)
 		cell.tryTerminate()
 	case Watch:
-		cell.watchers[msg.Who] = msg.Who
+		cell.watchers.Add(msg.Watcher)
+	case Unwatch:
+		cell.watchers.Remove(msg.Watcher)
+	case Failure:
+		msg.Who.SendSystemMessage(Restart{})
+	case Restart:
+		cell.incarnateActor()
+		cell.invokeUserMessage(Starting{})
 	}
 }
 
@@ -51,32 +70,60 @@ func (cell *ActorCell) tryTerminate() {
 		return
 	}
 
-	if len(cell.children) > 0 {
+	if !cell.children.Empty() {
 		return
 	}
 
 	cell.invokeUserMessage(Stopped{})
-	watchedStopped := WatchedStopped{Who: cell.Self}
-	for watcher := range cell.watchers {
-		watcher.SendSystemMessage(watchedStopped)
+	otherStopped := OtherStopped{Who: cell.Self}
+	for _, watcher := range cell.watchers.Values() {
+		watcher.(ActorRef).SendSystemMessage(otherStopped)
 	}
 }
 
 func (cell *ActorCell) invokeUserMessage(message interface{}) {
-	cell.behavior(NewContext(cell, message))
+	defer func() {
+		if r := recover(); r != nil {
+			cell.Parent.SendSystemMessage(Failure{Reason: r,Who:cell.Self})
+		}
+	}()
+	behavior, _ := cell.behavior.Peek()
+	behavior.(Receive)(NewContext(cell, message))
 }
 
 func (cell *ActorCell) Become(behavior Receive) {
-	cell.behavior = behavior
+	cell.behavior.Clear()
+	cell.behavior.Push(behavior)
 }
 
-func (cell *ActorCell) Unbecome() {
-	cell.behavior = cell.actor.Receive
+func (cell *ActorCell) BecomeStacked(behavior Receive) {
+	cell.behavior.Push(behavior)
+}
+
+func (cell *ActorCell) UnbecomeStacked() {
+	if cell.behavior.Size() <= 1 {
+		panic("Can not unbecome actor base behavior")
+	}
+	cell.behavior.Pop()
+}
+
+func (cell *ActorCell) Watch(who ActorRef) {
+	who.SendSystemMessage(Watch{
+		Watcher: cell.Self,
+	})
+	cell.watching.Add(who)
+}
+
+func (cell *ActorCell) Unwatch(who ActorRef) {
+	who.SendSystemMessage(Unwatch{
+		Watcher: cell.Self,
+	})
+	cell.watching.Remove(who)
 }
 
 func (cell *ActorCell) SpawnChild(props PropsValue) ActorRef {
-	ref := Spawn(props)
-	cell.children[ref] = ref
-	ref.SendSystemMessage(Watch{Who: cell.Self})
+	ref := SpawnChild(props, cell.Self)
+	cell.children.Add(ref)
+	cell.Watch(ref)
 	return ref
 }

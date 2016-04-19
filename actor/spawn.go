@@ -1,8 +1,12 @@
 package actor
 
 func Spawn(props PropsValue) ActorRef {
-	cell := NewActorCell(props)
-	mailbox := props.mailboxProducer(cell.invokeUserMessage,cell.invokeSystemMessage)
+	return SpawnChild(props, nil)
+}
+
+func SpawnChild(props PropsValue,parent ActorRef) ActorRef {
+	cell := NewActorCell(props,parent)
+	mailbox := props.mailboxProducer(cell.invokeUserMessage, cell.invokeSystemMessage)
 	ref := ChannelActorRef{
 		mailbox: mailbox,
 	}

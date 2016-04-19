@@ -6,10 +6,11 @@ import (
 	"os"
 )
 import "github.com/rogeralsing/goactor/actor"
+import "github.com/rogeralsing/goactor/mailbox"
 
 func main() {
 
-	props := actor.Props(NewParentActor).WithRouter(actor.NewRoundRobinGroupRouter())
+	props := actor.Props(NewParentActor).WithMailbox(mailbox.NewQueueMailbox)
 	parent := actor.Spawn(props)
 	parent.Tell(Hello{Name: "Roger"})
 	parent.Tell(Hello{Name: "Go"})
