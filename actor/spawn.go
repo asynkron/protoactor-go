@@ -1,17 +1,13 @@
 package actor
 
-import (
-	"github.com/rogeralsing/goactor/interfaces"
-)
-
-func Spawn(props interfaces.Props) interfaces.ActorRef {
+func Spawn(props Properties) ActorRef {
 	return spawnChild(props, nil)
 }
 
-func spawnChild(props interfaces.Props, parent interfaces.ActorRef) interfaces.ActorRef {
+func spawnChild(props Properties, parent ActorRef) ActorRef {
 	cell := NewActorCell(props, parent)
 	mailbox := props.Mailbox()
-	mailbox.RegisterHandlers(cell.invokeUserMessage,cell.invokeSystemMessage)
+	mailbox.RegisterHandlers(cell.invokeUserMessage, cell.invokeSystemMessage)
 	ref := LocalActorRef{
 		mailbox: mailbox,
 	}

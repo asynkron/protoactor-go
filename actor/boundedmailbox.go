@@ -1,5 +1,4 @@
 package actor
-import "github.com/rogeralsing/goactor/interfaces"
 
 import (
 	"sync/atomic"
@@ -7,11 +6,11 @@ import (
 
 type BoundedMailbox struct {
 	userMailbox     chan interface{}
-	systemMailbox   chan interfaces.SystemMessage
+	systemMailbox   chan SystemMessage
 	schedulerStatus int32
 	hasMoreMessages int32
 	userInvoke      func(interface{})
-	systemInvoke    func(interfaces.SystemMessage)
+	systemInvoke    func(SystemMessage)
 }
 
 func (mailbox *BoundedMailbox) PostUserMessage(message interface{}) {
@@ -19,7 +18,7 @@ func (mailbox *BoundedMailbox) PostUserMessage(message interface{}) {
 	mailbox.schedule()
 }
 
-func (mailbox *BoundedMailbox) PostSystemMessage(message interfaces.SystemMessage) {
+func (mailbox *BoundedMailbox) PostSystemMessage(message SystemMessage) {
 	mailbox.systemMailbox <- message
 	mailbox.schedule()
 }
@@ -32,12 +31,12 @@ func (mailbox *BoundedMailbox) schedule() {
 	}
 }
 
-func (mailbox *BoundedMailbox) Suspend(){
-	
+func (mailbox *BoundedMailbox) Suspend() {
+
 }
 
-func (mailbox *BoundedMailbox) Resume(){
-	
+func (mailbox *BoundedMailbox) Resume() {
+
 }
 
 func (mailbox *BoundedMailbox) processMessages() {
@@ -75,9 +74,9 @@ func (mailbox *BoundedMailbox) processMessages() {
 	}
 }
 
-func NewBoundedMailbox(boundedSize int) interfaces.Mailbox {
+func NewBoundedMailbox(boundedSize int) Mailbox {
 	userMailbox := make(chan interface{}, boundedSize)
-	systemMailbox := make(chan interfaces.SystemMessage, boundedSize)
+	systemMailbox := make(chan SystemMessage, boundedSize)
 	mailbox := BoundedMailbox{
 		userMailbox:     userMailbox,
 		systemMailbox:   systemMailbox,
@@ -87,7 +86,7 @@ func NewBoundedMailbox(boundedSize int) interfaces.Mailbox {
 	return &mailbox
 }
 
-func (mailbox *BoundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(interfaces.SystemMessage)) {
+func (mailbox *BoundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
 }

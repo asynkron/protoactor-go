@@ -1,16 +1,14 @@
 package actor
 
-import "github.com/rogeralsing/goactor/interfaces"
-
 type LocalActorRef struct {
-	mailbox interfaces.Mailbox
+	mailbox Mailbox
 }
 
 func (ref *LocalActorRef) Tell(message interface{}) {
 	ref.mailbox.PostUserMessage(message)
 }
 
-func (ref *LocalActorRef) SendSystemMessage(message interfaces.SystemMessage) {
+func (ref *LocalActorRef) SendSystemMessage(message SystemMessage) {
 	ref.mailbox.PostSystemMessage(message)
 }
 

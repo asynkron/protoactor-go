@@ -1,8 +1,16 @@
 package actor
 
-import (
-	"github.com/rogeralsing/goactor/interfaces"
-)
+type Context interface {
+	Watch(ActorRef)
+	Unwatch(ActorRef)
+	Message() interface{}
+	Become(Receive)
+	BecomeStacked(Receive)
+	UnbecomeStacked()
+	Self() ActorRef
+	Parent() ActorRef
+	SpawnChild(Properties) ActorRef
+}
 
 type ContextValue struct {
 	*ActorCell
@@ -13,7 +21,7 @@ func (context *ContextValue) Message() interface{} {
 	return context.message
 }
 
-func NewContext(cell *ActorCell, message interface{}) interfaces.Context {
+func NewContext(cell *ActorCell, message interface{}) Context {
 	res := &ContextValue{
 		ActorCell: cell,
 		message:   message,

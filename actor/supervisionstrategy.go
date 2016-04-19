@@ -1,11 +1,11 @@
-package interfaces
+package actor
 
 type Directive int
 const (
-    Resume Directive = iota
-    Restart
-    Stop
-    Escalate
+    ResumeDirective Directive = iota
+    RestartDirective
+    StopDirective
+    EscalateDirective
 )
 
 type Decider func(child ActorRef, cause interface{}) Directive

@@ -1,33 +1,29 @@
 package actor
 
-import (
-	"github.com/rogeralsing/goactor/interfaces"
-)
-
 type Stop struct{}
 
 func (*Stop) SystemMessage() {}
 
 type Watch struct {
-	Watcher interfaces.ActorRef
+	Watcher ActorRef
 }
 
 func (*Watch) SystemMessage() {}
 
 type Unwatch struct {
-	Watcher interfaces.ActorRef
+	Watcher ActorRef
 }
 
 func (*Unwatch) SystemMessage() {}
 
 type OtherStopped struct {
-	Who interfaces.ActorRef
+	Who ActorRef
 }
 
 func (*OtherStopped) SystemMessage() {}
 
 type Failure struct {
-	Who    interfaces.ActorRef
+	Who    ActorRef
 	Reason interface{}
 }
 
@@ -37,8 +33,6 @@ type Restart struct{}
 
 func (*Restart) SystemMessage() {}
 
-
 type Resume struct{}
 
 func (*Resume) SystemMessage() {}
-

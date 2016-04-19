@@ -3,14 +3,13 @@ package actor
 import "fmt"
 import "github.com/emirpasic/gods/sets/hashset"
 import "github.com/emirpasic/gods/stacks/linkedliststack"
-import "github.com/rogeralsing/goactor/interfaces"
 
 type ActorCell struct {
-	parent     interfaces.ActorRef
+	parent     ActorRef
 	self       *LocalActorRef
-	actor      interfaces.Actor
-	props      interfaces.Props
-	supervisor interfaces.SupervisionStrategy
+	actor      Actor
+	props      Properties
+	supervisor SupervisionStrategy
 	behavior   *linkedliststack.Stack
 	children   *hashset.Set
 	watchers   *hashset.Set
@@ -18,15 +17,15 @@ type ActorCell struct {
 	stopping   bool
 }
 
-func (cell *ActorCell) Self() interfaces.ActorRef {
+func (cell *ActorCell) Self() ActorRef {
 	return cell.self
 }
 
-func (cell *ActorCell) Parent() interfaces.ActorRef {
+func (cell *ActorCell) Parent() ActorRef {
 	return cell.parent
 }
 
-func NewActorCell(props interfaces.Props, parent interfaces.ActorRef) *ActorCell {
+func NewActorCell(props Properties, parent ActorRef) *ActorCell {
 
 	cell := ActorCell{
 		parent:     parent,
@@ -47,7 +46,7 @@ func (cell *ActorCell) incarnateActor() {
 	cell.Become(actor.Receive)
 }
 
-func (cell *ActorCell) invokeSystemMessage(message interfaces.SystemMessage) {
+func (cell *ActorCell) invokeSystemMessage(message SystemMessage) {
 	switch msg := message.(interface{}).(type) {
 	default:
 		fmt.Printf("Unknown system message %T", msg)
@@ -72,7 +71,7 @@ func (cell *ActorCell) handleStop(msg *Stop) {
 	cell.stopping = true
 	cell.invokeUserMessage(Stopping{})
 	for _, child := range cell.children.Values() {
-		child.(interfaces.ActorRef).Stop()
+		child.(ActorRef).Stop()
 	}
 	cell.tryTerminate()
 }
@@ -86,16 +85,16 @@ func (cell *ActorCell) handleOtherStopped(msg *OtherStopped) {
 func (cell *ActorCell) handleFailure(msg *Failure) {
 	directive := cell.supervisor.Handle(msg.Who, msg.Reason)
 	switch directive {
-	case interfaces.Resume:
+	case ResumeDirective:
 		//resume the fialing child
 		msg.Who.SendSystemMessage(&Resume{})
-	case interfaces.Restart:
+	case RestartDirective:
 		//restart the failing child
 		msg.Who.SendSystemMessage(&Restart{})
-	case interfaces.Stop:
+	case StopDirective:
 		//stop the failing child
 		msg.Who.Stop()
-	case interfaces.Escalate:
+	case EscalateDirective:
 		//send failure to parent
 		cell.parent.SendSystemMessage(msg)
 	}
@@ -118,7 +117,7 @@ func (cell *ActorCell) tryTerminate() {
 	cell.invokeUserMessage(Stopped{})
 	otherStopped := &OtherStopped{Who: cell.self}
 	for _, watcher := range cell.watchers.Values() {
-		watcher.(interfaces.ActorRef).SendSystemMessage(otherStopped)
+		watcher.(ActorRef).SendSystemMessage(otherStopped)
 	}
 }
 
@@ -134,15 +133,15 @@ func (cell *ActorCell) invokeUserMessage(message interface{}) {
 		}
 	}()
 	behavior, _ := cell.behavior.Peek()
-	behavior.(interfaces.Receive)(NewContext(cell, message))
+	behavior.(Receive)(NewContext(cell, message))
 }
 
-func (cell *ActorCell) Become(behavior interfaces.Receive) {
+func (cell *ActorCell) Become(behavior Receive) {
 	cell.behavior.Clear()
 	cell.behavior.Push(behavior)
 }
 
-func (cell *ActorCell) BecomeStacked(behavior interfaces.Receive) {
+func (cell *ActorCell) BecomeStacked(behavior Receive) {
 	cell.behavior.Push(behavior)
 }
 
@@ -153,21 +152,21 @@ func (cell *ActorCell) UnbecomeStacked() {
 	cell.behavior.Pop()
 }
 
-func (cell *ActorCell) Watch(who interfaces.ActorRef) {
+func (cell *ActorCell) Watch(who ActorRef) {
 	who.SendSystemMessage(&Watch{
 		Watcher: cell.self,
 	})
 	cell.watching.Add(who)
 }
 
-func (cell *ActorCell) Unwatch(who interfaces.ActorRef) {
+func (cell *ActorCell) Unwatch(who ActorRef) {
 	who.SendSystemMessage(&Unwatch{
 		Watcher: cell.self,
 	})
 	cell.watching.Remove(who)
 }
 
-func (cell *ActorCell) SpawnChild(props interfaces.Props) interfaces.ActorRef {
+func (cell *ActorCell) SpawnChild(props Properties) ActorRef {
 	ref := spawnChild(props, cell.self)
 	cell.children.Add(ref)
 	cell.Watch(ref)

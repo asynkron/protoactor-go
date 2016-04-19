@@ -2,7 +2,6 @@ package actor
 
 import "sync/atomic"
 import "github.com/Workiva/go-datastructures/queue"
-import "github.com/rogeralsing/goactor/interfaces"
 
 type UnboundedMailbox struct {
 	userMailbox     *queue.Queue
@@ -10,7 +9,7 @@ type UnboundedMailbox struct {
 	schedulerStatus int32
 	hasMoreMessages int32
 	userInvoke      func(interface{})
-	systemInvoke    func(interfaces.SystemMessage)
+	systemInvoke    func(SystemMessage)
 }
 
 func (mailbox *UnboundedMailbox) PostUserMessage(message interface{}) {
@@ -18,7 +17,7 @@ func (mailbox *UnboundedMailbox) PostUserMessage(message interface{}) {
 	mailbox.schedule()
 }
 
-func (mailbox *UnboundedMailbox) PostSystemMessage(message interfaces.SystemMessage) {
+func (mailbox *UnboundedMailbox) PostSystemMessage(message SystemMessage) {
 	mailbox.systemMailbox.Put(message)
 	mailbox.schedule()
 }
@@ -47,7 +46,7 @@ func (mailbox *UnboundedMailbox) processMessages() {
 	for i := 0; i < 30; i++ {
 		if !mailbox.systemMailbox.Empty() {
 			sysMsg, _ := mailbox.systemMailbox.Get(1)
-			first := sysMsg[0].(interfaces.SystemMessage)
+			first := sysMsg[0].(SystemMessage)
 			mailbox.systemInvoke(first)
 		} else if !mailbox.userMailbox.Empty() {
 			userMsg, _ := mailbox.userMailbox.Get(1)
@@ -71,7 +70,7 @@ func (mailbox *UnboundedMailbox) processMessages() {
 	}
 }
 
-func NewUnboundedMailbox() interfaces.Mailbox {
+func NewUnboundedMailbox() Mailbox {
 	userMailbox := queue.New(10)
 	systemMailbox := queue.New(10)
 	mailbox := UnboundedMailbox{
@@ -83,7 +82,7 @@ func NewUnboundedMailbox() interfaces.Mailbox {
 	return &mailbox
 }
 
-func (mailbox *UnboundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(interfaces.SystemMessage)) {
+func (mailbox *UnboundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
 }

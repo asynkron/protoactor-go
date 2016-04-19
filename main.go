@@ -4,15 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-
-	"github.com/rogeralsing/goactor/interfaces"
 )
 import "github.com/rogeralsing/goactor/actor"
 
 func main() {
-	// decider := func(child interfaces.ActorRef, reason interface{}) interfaces.Directive {
+	// decider := func(child actor.ActorRef, reason interface{}) actor.Directive {
 	// 	fmt.Println("restarting failing child")
-	// 	return interfaces.Restart
+	// 	return actor.Restart
 	// }
 
 	props := actor.
@@ -29,7 +27,7 @@ func main() {
 }
 
 type Ping struct {
-	Sender interfaces.ActorRef
+	Sender actor.ActorRef
 	Name   string
 }
 type Pong struct{}
@@ -37,11 +35,11 @@ type Hello struct{ Name string }
 
 type ChildActor struct{ messageCount int }
 
-func NewChildActor() interfaces.Actor {
+func NewChildActor() actor.Actor {
 	return &ChildActor{}
 }
 
-func (state *ChildActor) Receive(context interfaces.Context) {
+func (state *ChildActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case actor.Starting:
 		fmt.Println("Im starting")
@@ -59,14 +57,14 @@ func (state *ChildActor) Receive(context interfaces.Context) {
 }
 
 type ParentActor struct {
-	Child interfaces.ActorRef
+	Child actor.ActorRef
 }
 
-func NewParentActor() interfaces.Actor {
+func NewParentActor() actor.Actor {
 	return &ParentActor{}
 }
 
-func (state *ParentActor) Receive(context interfaces.Context) {
+func (state *ParentActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case actor.Starting:
 		state.Child = context.SpawnChild(actor.Props(NewChildActor))
@@ -85,7 +83,7 @@ func (state *ParentActor) Receive(context interfaces.Context) {
 	}
 }
 
-func (state *ParentActor) Other(context interfaces.Context) {
+func (state *ParentActor) Other(context actor.Context) {
 	switch context.Message().(type) {
 	case actor.Stopping:
 		fmt.Println("stopping parent in become")

@@ -1,32 +1,29 @@
 package actor
 
-import (
-	"github.com/rogeralsing/goactor/interfaces"
-)
-
 type OneForOneStrategy struct {
 	maxNrOfRetries              int
 	withinTimeRangeMilliseconds int
-	decider                     interfaces.Decider
+	decider                     Decider
 }
 
-func (strategy *OneForOneStrategy) Handle(child interfaces.ActorRef, reason interface{}) interfaces.Directive {
+func (strategy *OneForOneStrategy) Handle(child ActorRef, reason interface{}) Directive {
 	return strategy.decider(child, reason)
 }
 
-func NewOneForOneStrategy(maxNrOfRetries int, withinTimeRangeMilliseconds int, decider interfaces.Decider) interfaces.SupervisionStrategy {
+func NewOneForOneStrategy(maxNrOfRetries int, withinTimeRangeMilliseconds int, decider Decider) SupervisionStrategy {
 	return &OneForOneStrategy{
-        maxNrOfRetries: maxNrOfRetries,
-        withinTimeRangeMilliseconds: withinTimeRangeMilliseconds,
-        decider: decider,
-    }
+		maxNrOfRetries:              maxNrOfRetries,
+		withinTimeRangeMilliseconds: withinTimeRangeMilliseconds,
+		decider:                     decider,
+	}
 }
 
-func DefaultDecider (child interfaces.ActorRef, reason interface{}) interfaces.Directive {
-    return interfaces.Restart
+func DefaultDecider(child ActorRef, reason interface{}) Directive {
+	return RestartDirective
 }
 
-var defaultStrategy interfaces.SupervisionStrategy = NewOneForOneStrategy(10,30000,DefaultDecider)
-func DefaultStrategy() interfaces.SupervisionStrategy {
-    return defaultStrategy
+var defaultStrategy SupervisionStrategy = NewOneForOneStrategy(10, 30000, DefaultDecider)
+
+func DefaultStrategy() SupervisionStrategy {
+	return defaultStrategy
 }

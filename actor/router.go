@@ -5,18 +5,18 @@ package actor
 // )
 
 // type RouterConfig interface {
-// 	Create(PropsValue) interfaces.ActorRef
+// 	Create(PropsValue) actor.ActorRef
 // }
 
 // type RoundRobinGroupRouter struct {
-// 	routees []interfaces.ActorRef
+// 	routees []actor.ActorRef
 // }
 
-// func NewRoundRobinGroupRouter(routees ...interfaces.ActorRef) RouterConfig {
+// func NewRoundRobinGroupRouter(routees ...actor.ActorRef) RouterConfig {
 // 	return &RoundRobinGroupRouter{routees: routees}
 // }
 
-// func (config *RoundRobinGroupRouter) Create(props PropsValue) interfaces.ActorRef {
+// func (config *RoundRobinGroupRouter) Create(props PropsValue) actor.ActorRef {
 // 	actorProps := props
 // 	actorProps.routerConfig = nil
 // 	actor := Spawn(actorProps)

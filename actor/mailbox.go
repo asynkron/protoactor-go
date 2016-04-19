@@ -1,4 +1,4 @@
-package interfaces
+package actor
 
 type MailboxProducer func(func(interface{}),func(SystemMessage)) Mailbox
 type Mailbox interface {

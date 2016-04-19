@@ -1,4 +1,4 @@
-package interfaces
+package actor
 
 type ActorProducer func() Actor
 type Actor interface {
