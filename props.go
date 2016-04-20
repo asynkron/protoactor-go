@@ -1,11 +1,10 @@
-package actor
+package gam
 
 type Properties interface {
 	ProduceActor() Actor
 	Mailbox() Mailbox
 	Supervisor() SupervisionStrategy
 }
-
 
 type PropsValue struct {
 	actorProducer       ActorProducer

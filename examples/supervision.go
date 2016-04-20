@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/rogeralsing/goactor"
+	"github.com/rogeralsing/gam"
 )
 
 type Hello struct{ Who string }

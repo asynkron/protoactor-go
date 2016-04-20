@@ -1,6 +1,6 @@
-package actor
+package gam
 
-type MailboxProducer func(func(interface{}),func(SystemMessage)) Mailbox
+type MailboxProducer func(func(interface{}), func(SystemMessage)) Mailbox
 type Mailbox interface {
 	PostUserMessage(message interface{})
 	PostSystemMessage(message SystemMessage)
@@ -17,4 +17,3 @@ const (
 	MailboxHasNoMessages   = iota
 	MailboxHasMoreMessages = iota
 )
-

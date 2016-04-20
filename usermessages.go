@@ -1,4 +1,4 @@
-package actor
+package gam
 
 //user message
 type Restarting struct{}

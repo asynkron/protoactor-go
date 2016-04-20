@@ -1,4 +1,4 @@
-package actor
+package gam
 
 func ActorOf(props Properties) ActorRef {
 	return spawnChild(props, nil)

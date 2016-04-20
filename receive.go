@@ -1,3 +1,3 @@
-package actor
+package gam
 
 type Receive func(Context)

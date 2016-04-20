@@ -1,11 +1,11 @@
-package actor
+package gam
 
 type LocalActorRef struct {
 	mailbox Mailbox
 }
 
 func NewLocalActorRef(mailbox Mailbox) *LocalActorRef {
-	return &LocalActorRef {
+	return &LocalActorRef{
 		mailbox: mailbox,
 	}
 }

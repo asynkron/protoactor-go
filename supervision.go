@@ -1,4 +1,4 @@
-package actor
+package gam
 
 type Directive int
 

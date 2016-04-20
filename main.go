@@ -1,5 +1,4 @@
-package actor
-
+package gam
 
 // import (
 // 	"bufio"
