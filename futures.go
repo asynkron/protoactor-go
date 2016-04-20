@@ -18,20 +18,20 @@ func (ref *FutureActorRef) Tell(message interface{}) {
 	ref.channel <- message
 }
 
-func (ref *FutureActorRef) Result() <-chan interface{} {
+func (ref *FutureActorRef) ResultChannel() <-chan interface{} {
 	return ref.channel
 }
 
-func (ref *FutureActorRef) WaitResultTimeout(timeout time.Duration) (interface{}, error) {
+func (ref *FutureActorRef) ResultOrTimeout(timeout time.Duration) (interface{}, error) {
 	select {
-	case res:= <-ref.channel:
+	case res := <-ref.channel:
 		return res, nil
 	case <-time.After(timeout):
 		return nil, fmt.Errorf("Timeout")
 	}
 }
 
-func (ref *FutureActorRef) WaitResult() interface{} {
+func (ref *FutureActorRef) Result() interface{} {
 	return <-ref.channel
 }
 

@@ -34,7 +34,7 @@ func NewEchoActor() Actor {
 	return &EchoActor{}
 }
 
-func (EchoActor) Receive(context Context) {
+func (*EchoActor) Receive(context Context) {
 	switch msg := context.Message().(type) {
 	case EchoMessage:
 		msg.Sender.Tell(EchoReplyMessage{})
@@ -46,8 +46,9 @@ func TestActorCanReplyToMessage(t *testing.T) {
 	actor := ActorOf(Props(NewEchoActor))
 	defer actor.Stop()
 	actor.Tell(EchoMessage{Sender: future})
-	if _, err := future.WaitResultTimeout(testTimeout); err != nil {
+	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
+		return
 	}
 }
 
@@ -59,7 +60,7 @@ func NewEchoBecomeActor() Actor {
 	return &EchoBecomeActor{}
 }
 
-func (state EchoBecomeActor) Receive(context Context) {
+func (state *EchoBecomeActor) Receive(context Context) {
 	switch context.Message().(type) {
 	case BecomeMessage:
 		context.Become(state.Other)
@@ -79,8 +80,9 @@ func TestActorCanBecome(t *testing.T) {
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
 	actor.Tell(EchoMessage{Sender: future})
-	if _, err := future.WaitResultTimeout(testTimeout); err != nil {
+	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
+		return
 	}
 }
 
@@ -92,7 +94,7 @@ func NewEchoUnbecomeActor() Actor {
 	return &EchoBecomeActor{}
 }
 
-func (state EchoUnbecomeActor) Receive(context Context) {
+func (state *EchoUnbecomeActor) Receive(context Context) {
 	switch msg := context.Message().(type) {
 	case BecomeMessage:
 		context.BecomeStacked(state.Other)
@@ -101,7 +103,7 @@ func (state EchoUnbecomeActor) Receive(context Context) {
 	}
 }
 
-func (EchoUnbecomeActor) Other(context Context) {
+func (*EchoUnbecomeActor) Other(context Context) {
 	switch context.Message().(type) {
 	case UnbecomeMessage:
 		context.UnbecomeStacked()
@@ -115,14 +117,15 @@ func TestActorCanUnbecome(t *testing.T) {
 	actor.Tell(BecomeMessage{})
 	actor.Tell(UnbecomeMessage{})
 	actor.Tell(EchoMessage{Sender: future})
-	if _, err := future.WaitResultTimeout(testTimeout); err != nil {
+	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
+		return
 	}
 }
 
 type EchoOnStartActor struct{ replyTo ActorRef }
 
-func (state EchoOnStartActor) Receive(context Context) {
+func (state *EchoOnStartActor) Receive(context Context) {
 	switch context.Message().(type) {
 	case Starting:
 		state.replyTo.Tell(EchoReplyMessage{})
@@ -139,14 +142,15 @@ func TestActorCanReplyOnStarting(t *testing.T) {
 	future := NewFutureActorRef()
 	actor := ActorOf(Props(NewEchoOnStartActor(future)))
 	defer actor.Stop()
-	if _, err := future.WaitResultTimeout(testTimeout); err != nil {
+	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
+		return
 	}
 }
 
 type EchoOnStoppingActor struct{ replyTo ActorRef }
 
-func (state EchoOnStoppingActor) Receive(context Context) {
+func (state *EchoOnStoppingActor) Receive(context Context) {
 	switch context.Message().(type) {
 	case Stopping:
 		state.replyTo.Tell(EchoReplyMessage{})
@@ -163,8 +167,9 @@ func TestActorCanReplyOnStopping(t *testing.T) {
 	future := NewFutureActorRef()
 	actor := ActorOf(Props(NewEchoOnStoppingActor(future)))
 	actor.Stop()
-	if _, err := future.WaitResultTimeout(testTimeout); err != nil {
+	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
+		return
 	}
 }
 
@@ -173,7 +178,7 @@ type GetChildCountMessage struct{ ReplyTo ActorRef }
 type GetChildCountReplyMessage struct{ ChildCount int }
 type CreateChildActor struct{}
 
-func (CreateChildActor) Receive(context Context) {
+func (*CreateChildActor) Receive(context Context) {
 	switch msg := context.Message().(type) {
 	case CreateChildMessage:
 		context.ActorOf(Props(NewBlackHoleActor))
@@ -196,10 +201,60 @@ func TestActorCanCreateChildren(t *testing.T) {
 		actor.Tell(CreateChildMessage{})
 	}
 	actor.Tell(GetChildCountMessage{ReplyTo: future})
-	response, err := future.WaitResultTimeout(testTimeout)
+	response, err := future.ResultOrTimeout(testTimeout)
 	if err != nil {
 		assert.Fail(t, "timed out")
-	} else {
-        assert.Equal(t, expected, response.(GetChildCountReplyMessage).ChildCount)    
-    }
+		return
+	}
+	assert.Equal(t, expected, response.(GetChildCountReplyMessage).ChildCount)
+}
+
+type CreateChildThenStopActor struct {
+	replyTo ActorRef
+}
+
+type GetChildCountMessage2 struct {
+	ReplyTo        ActorRef
+	ReplyAfterStop ActorRef
+}
+
+func (state *CreateChildThenStopActor) Receive(context Context) {
+	switch msg := context.Message().(type) {
+	case CreateChildMessage:
+		context.ActorOf(Props(NewBlackHoleActor))
+	case GetChildCountMessage2:
+		msg.ReplyTo.Tell(true)
+		state.replyTo = msg.ReplyAfterStop
+	case Stopped:
+		reply := GetChildCountReplyMessage{ChildCount: len(context.Children())}
+		state.replyTo.Tell(reply)
+	}
+}
+
+func NewCreateChildThenStopActor() Actor {
+	return &CreateChildThenStopActor{}
+}
+
+func TestActorCanStopChildren(t *testing.T) {
+	future := NewFutureActorRef()
+	afterStopped := NewFutureActorRef()
+	actor := ActorOf(Props(NewCreateChildThenStopActor))
+	count := 10
+	for i := 0; i < count; i++ {
+		actor.Tell(CreateChildMessage{})
+	}
+	actor.Tell(GetChildCountMessage2{ReplyTo: future, ReplyAfterStop: afterStopped})
+
+	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
+		assert.Fail(t, "timed out")
+		return
+	}
+
+	actor.Stop()
+	response, err := afterStopped.ResultOrTimeout(testTimeout)
+	if err != nil {
+		assert.Fail(t, "timed out")
+		return
+	}
+	assert.Equal(t, 0, response.(GetChildCountReplyMessage).ChildCount)
 }
