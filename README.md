@@ -2,6 +2,12 @@
 
 GAM is a MVP port of JVM Akka.Actor to Go.
 
+## Design philosophy:
+ 
+* Do one thing only, Actors
+* Networking and Clustering should be solved using other tools, e.g. gRPC and Consul
+* Serialization should be an external concern, GAM infrastructure and primitives should not be serialized
+
 ## Hello world
 ```go
 type Hello struct{ Who string }
