@@ -7,19 +7,19 @@ GAM is a MVP port of JVM Akka.Actor to Go.
 type Hello struct{ Who string }
 type HelloActor struct{}
 
-func (state *HelloActor) Receive(context actor.Context) {
+func (state *HelloActor) Receive(context gam.Context) {
 	switch msg := context.Message().(type) {
 	case Hello:
 		fmt.Printf("Hello %v\n", msg.Who)
 	}
 }
 
-func NewHelloActor() actor.Actor {
+func NewHelloActor() gam.Actor {
 	return &HelloActor{}
 }
 
 func main() {
-	actor := actor.ActorOf(actor.Props(NewHelloActor))
+	actor := gam.ActorOf(actor.Props(NewHelloActor))
 	actor.Tell(Hello{Who: "Roger"})
 
   ...
@@ -33,7 +33,7 @@ type Become struct {}
 type Hello struct{ Who string }
 type BecomeActor struct{}
 
-func (state *BecomeActor) Receive(context actor.Context) {
+func (state *BecomeActor) Receive(context gam.Context) {
 	switch msg := context.Message().(type) {
 	case Hello:
 		fmt.Printf("Hello %v\n", msg.Who)
@@ -41,19 +41,19 @@ func (state *BecomeActor) Receive(context actor.Context) {
 	}
 }
 
-func (state *BecomeActor) Other(context actor.Context) {
+func (state *BecomeActor) Other(context gam.Context) {
 	switch msg := context.Message().(type) {
 	case Hello:
 		fmt.Printf("%v, ey we are now handling messages in another behavior",msg.Who)
 	}
 }
 
-func NewBecomeActor() actor.Actor {
+func NewBecomeActor() gam.Actor {
 	return &BecomeActor{}
 }
 
 func main() {
-	actor := actor.ActorOf(actor.Props(NewBecomeActor))
+	actor := gam.ActorOf(actor.Props(NewBecomeActor))
 	actor.Tell(Hello{Who: "Roger"})
     actor.Tell(Hello{Who: "Roger"})
   
@@ -68,25 +68,25 @@ Unlike Akka, GAM uses messages for lifecycle events instead of OOP method overri
 type Hello struct{ Who string }
 type HelloActor struct{}
 
-func (state *HelloActor) Receive(context actor.Context) {
+func (state *HelloActor) Receive(context gam.Context) {
 	switch msg := context.Message().(type) {
-	case actor.Started:
+	case gam.Started:
 		fmt.Println("Started, initialize actor here")
-	case actor.Stopping:
+	case gam.Stopping:
 		fmt.Println("Stopping, actor is about shut down")
-	case actor.Stopped:
+	case gam.Stopped:
 		fmt.Println("Stopped, actor and it's children are stopped")
 	case Hello:
 		fmt.Printf("Hello %v\n", msg.Who)
 	}
 }
 
-func NewHelloActor() actor.Actor {
+func NewHelloActor() gam.Actor {
 	return &HelloActor{}
 }
 
 func main() {
-	actor := actor.ActorOf(actor.Props(NewHelloActor))
+	actor := gam.ActorOf(actor.Props(NewHelloActor))
 	actor.Tell(Hello{Who: "Roger"})
     
     //why wait? 
@@ -108,11 +108,11 @@ Root actors are supervised by the `actor.DefaultSupervisionStrategy()`, which al
 type Hello struct{ Who string }
 type HelloActor struct{}
 
-func (state *HelloActor) Receive(context actor.Context) {
+func (state *HelloActor) Receive(context gam.Context) {
 	switch msg := context.Message().(type) {
-	case actor.Started:
+	case gam.Started:
 		fmt.Println("Starting, initialize actor here")
-	case actor.Restarting:
+	case gam.Restarting:
 		fmt.Println("Restarting, actor is about restart")
 	case Hello:
 		fmt.Printf("Hello %v\n", msg.Who)
@@ -120,12 +120,12 @@ func (state *HelloActor) Receive(context actor.Context) {
 	}
 }
 
-func NewHelloActor() actor.Actor {
+func NewHelloActor() gam.Actor {
 	return &HelloActor{}
 }
 
 func main() {
-	actor := actor.ActorOf(actor.Props(NewHelloActor))
+	actor := gam.ActorOf(actor.Props(NewHelloActor))
 	actor.Tell(Hello{Who: "Roger"})
 	
   ...
