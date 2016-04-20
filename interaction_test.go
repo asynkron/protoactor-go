@@ -214,7 +214,7 @@ type CreateChildThenStopActor struct {
 }
 
 type GetChildCountMessage2 struct {
-	ReplyTo        ActorRef
+	ReplyDirectly  ActorRef
 	ReplyAfterStop ActorRef
 }
 
@@ -223,7 +223,7 @@ func (state *CreateChildThenStopActor) Receive(context Context) {
 	case CreateChildMessage:
 		context.ActorOf(Props(NewBlackHoleActor))
 	case GetChildCountMessage2:
-		msg.ReplyTo.Tell(true)
+		msg.ReplyDirectly.Tell(true)
 		state.replyTo = msg.ReplyAfterStop
 	case Stopped:
 		reply := GetChildCountReplyMessage{ChildCount: len(context.Children())}
@@ -243,18 +243,24 @@ func TestActorCanStopChildren(t *testing.T) {
 	for i := 0; i < count; i++ {
 		actor.Tell(CreateChildMessage{})
 	}
-	actor.Tell(GetChildCountMessage2{ReplyTo: future, ReplyAfterStop: afterStopped})
+	actor.Tell(GetChildCountMessage2{ReplyDirectly: future, ReplyAfterStop: afterStopped})
 
-	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
+    //wait for the actor to reply to the first future
+	_, err := future.ResultOrTimeout(testTimeout)
+	if err != nil {
 		assert.Fail(t, "timed out")
 		return
 	}
 
+    //then send a stop command
 	actor.Stop()
+    
+    //wait for the actor to stop and get the result from the stopped handler
 	response, err := afterStopped.ResultOrTimeout(testTimeout)
 	if err != nil {
 		assert.Fail(t, "timed out")
 		return
 	}
+    //we should have 0 children when the actor is stopped
 	assert.Equal(t, 0, response.(GetChildCountReplyMessage).ChildCount)
 }
