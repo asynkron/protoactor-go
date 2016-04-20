@@ -2,7 +2,7 @@
 
 GAM is a MVP port of JVM Akka.Actor to Go.<br/>
 This is mostly a learning experiment for me and not a production ready library.<br/>
-Having spent way too much time in the Akka source code by starting the Akka.NET (Akka on .NET) project late 2013 I thought<br/> 
+Having spent way too much time in the Akka source code by starting the Akka.NET (Akka on .NET) project late 2013 I thought
 it could be a nice way to learn Go by porting the core of Akka.<br/>
 <br/>
 ## Design philosophy:
