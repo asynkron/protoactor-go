@@ -49,8 +49,8 @@ type ActorCell struct {
 
 func (cell *ActorCell) Children() []ActorRef {
 	values := cell.children.Values()
-	children := make([]ActorRef,len(values))
-	for i,child := range values {
+	children := make([]ActorRef, len(values))
+	for i, child := range values {
 		children[i] = child.(ActorRef)
 	}
 	return children
@@ -112,13 +112,13 @@ func (cell *ActorCell) handleStop(msg *Stop) {
 	for _, child := range cell.children.Values() {
 		child.(ActorRef).Stop()
 	}
-	cell.tryTerminate()
+	cell.tryRestartOrTerminate()
 }
 
 func (cell *ActorCell) handleOtherStopped(msg *OtherStopped) {
 	cell.children.Remove(msg.Who)
 	cell.watching.Remove(msg.Who)
-	cell.tryTerminate()
+	cell.tryRestartOrTerminate()
 }
 
 func (cell *ActorCell) handleFailure(msg *Failure) {
@@ -140,16 +140,22 @@ func (cell *ActorCell) handleFailure(msg *Failure) {
 }
 
 func (cell *ActorCell) handleRestart(msg *Restart) {
-	cell.incarnateActor()
-	cell.invokeUserMessage(Starting{})
+	cell.stopping = false
+	cell.invokeUserMessage(Restarting{}) //TODO: change to restarting
+	for _, child := range cell.children.Values() {
+		child.(ActorRef).Stop()
+	}
+	cell.tryRestartOrTerminate()
 }
 
-func (cell *ActorCell) tryTerminate() {
-	if !cell.stopping {
+func (cell *ActorCell) tryRestartOrTerminate() {
+	if !cell.children.Empty() {
 		return
 	}
 
-	if !cell.children.Empty() {
+	if !cell.stopping {
+		cell.incarnateActor()
+		cell.invokeUserMessage(Started{})
 		return
 	}
 
@@ -163,11 +169,12 @@ func (cell *ActorCell) tryTerminate() {
 func (cell *ActorCell) invokeUserMessage(message interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
+			failure := &Failure{Reason: r, Who: cell.self}
 			if cell.parent == nil {
-				fmt.Println("TODO: implement root supervisor")
+				handleRootFailure(failure, defaultStrategy)
 			} else {
 				cell.self.Suspend()
-				cell.parent.SendSystemMessage(&Failure{Reason: r, Who: cell.self})
+				cell.parent.SendSystemMessage(failure)
 			}
 		}
 	}()
@@ -210,4 +217,22 @@ func (cell *ActorCell) ActorOf(props Properties) ActorRef {
 	cell.children.Add(ref)
 	cell.Watch(ref)
 	return ref
+}
+
+func handleRootFailure(msg *Failure, supervisor SupervisionStrategy) {
+	directive := supervisor.Handle(msg.Who, msg.Reason)
+	switch directive {
+	case ResumeDirective:
+		//resume the fialing child
+		msg.Who.SendSystemMessage(&Resume{})
+	case RestartDirective:
+		//restart the failing child
+		msg.Who.SendSystemMessage(&Restart{})
+	case StopDirective:
+		//stop the failing child
+		msg.Who.Stop()
+	case EscalateDirective:
+		//send failure to parent
+		panic("Can not escalate root level failures")
+	}
 }

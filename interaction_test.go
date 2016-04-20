@@ -127,7 +127,7 @@ type EchoOnStartActor struct{ replyTo ActorRef }
 
 func (state *EchoOnStartActor) Receive(context Context) {
 	switch context.Message().(type) {
-	case Starting:
+	case Started:
 		state.replyTo.Tell(EchoReplyMessage{})
 	}
 }
@@ -245,22 +245,22 @@ func TestActorCanStopChildren(t *testing.T) {
 	}
 	actor.Tell(GetChildCountMessage2{ReplyDirectly: future, ReplyAfterStop: afterStopped})
 
-    //wait for the actor to reply to the first future
+	//wait for the actor to reply to the first future
 	_, err := future.ResultOrTimeout(testTimeout)
 	if err != nil {
 		assert.Fail(t, "timed out")
 		return
 	}
 
-    //then send a stop command
+	//then send a stop command
 	actor.Stop()
-    
-    //wait for the actor to stop and get the result from the stopped handler
+
+	//wait for the actor to stop and get the result from the stopped handler
 	response, err := afterStopped.ResultOrTimeout(testTimeout)
 	if err != nil {
 		assert.Fail(t, "timed out")
 		return
 	}
-    //we should have 0 children when the actor is stopped
+	//we should have 0 children when the actor is stopped
 	assert.Equal(t, 0, response.(GetChildCountReplyMessage).ChildCount)
 }
