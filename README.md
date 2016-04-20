@@ -1,11 +1,14 @@
 # Go Actor Model
 
-GAM is a MVP port of JVM Akka.Actor to Go.
-
+GAM is a MVP port of JVM Akka.Actor to Go.<br/>
+This is mostly a learning experiment for me and not a production ready library.<br/>
+Having spent way too much time in the Akka source code by starting the Akka.NET project I thought<br/> 
+it could be a nice way to learn Go by porting the core of Akka.<br/>
+<br/>
 ## Design philosophy:
  
 * Do one thing only, Actors
-* Networking and Clustering should be solved using other tools, e.g. gRPC and Consul
+* Networking and Clustering should be solved using adapters over other tools, e.g. gRPC and Consul
 * Serialization should be an external concern, GAM infrastructure and primitives should not be serialized
 
 ## Hello world
