@@ -76,6 +76,8 @@ func (state *HelloActor) Receive(context gam.Context) {
 		fmt.Println("Stopping, actor is about shut down")
 	case gam.Stopped:
 		fmt.Println("Stopped, actor and it's children are stopped")
+	case gam.Restarting:
+		fmt.Println("Restarting, actor is about restart")
 	case Hello:
 		fmt.Printf("Hello %v\n", msg.Who)
 	}
