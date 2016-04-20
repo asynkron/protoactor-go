@@ -171,7 +171,7 @@ func (cell *ActorCell) invokeUserMessage(message interface{}) {
 		if r := recover(); r != nil {
 			failure := &Failure{Reason: r, Who: cell.self}
 			if cell.parent == nil {
-				handleRootFailure(failure, defaultStrategy)
+				handleRootFailure(failure, defaultSupervisionStrategy)
 			} else {
 				cell.self.Suspend()
 				cell.parent.SendSystemMessage(failure)

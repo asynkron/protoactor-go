@@ -1,17 +1,18 @@
 package actor
 
 type Directive int
+
 const (
-    ResumeDirective Directive = iota
-    RestartDirective
-    StopDirective
-    EscalateDirective
+	ResumeDirective Directive = iota
+	RestartDirective
+	StopDirective
+	EscalateDirective
 )
 
 type Decider func(child ActorRef, cause interface{}) Directive
 
 type SupervisionStrategy interface {
-    Handle(child ActorRef, cause interface{}) Directive
+	Handle(child ActorRef, cause interface{}) Directive
 }
 
 type OneForOneStrategy struct {
@@ -36,8 +37,8 @@ func DefaultDecider(child ActorRef, reason interface{}) Directive {
 	return RestartDirective
 }
 
-var defaultStrategy SupervisionStrategy = NewOneForOneStrategy(10, 30000, DefaultDecider)
+var defaultSupervisionStrategy SupervisionStrategy = NewOneForOneStrategy(10, 30000, DefaultDecider)
 
-func DefaultStrategy() SupervisionStrategy {
-	return defaultStrategy
+func DefaultSupervisionStrategy() SupervisionStrategy {
+	return defaultSupervisionStrategy
 }

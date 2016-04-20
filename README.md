@@ -102,6 +102,8 @@ func main() {
 
 ## Supervision
 
+Root actors are supervised by the `actor.DefaultSupervisionStrategy()`, which always issues a `actor.RestartDirective` for failing actors
+
 ```go
 type Hello struct{ Who string }
 type HelloActor struct{}
