@@ -1,9 +1,3 @@
-# Go Actor Model
-
-GAM is a MVP port of JVM Akka.Actor to Go.
-
-## Hello world
-```go
 package main
 
 import (
@@ -34,6 +28,3 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 	reader.ReadString('\n')
 }
-```
-
-
