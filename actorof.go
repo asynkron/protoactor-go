@@ -10,6 +10,6 @@ func spawnChild(props Properties, parent ActorRef) ActorRef {
 	mailbox.RegisterHandlers(cell.invokeUserMessage, cell.invokeSystemMessage)
 	ref := NewLocalActorRef(mailbox)
 	cell.self = ref
-	ref.Tell(Starting{})
+	cell.invokeUserMessage(Starting{})
 	return ref
 }
