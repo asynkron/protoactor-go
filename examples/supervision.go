@@ -12,15 +12,11 @@ type Hello struct{ Who string }
 type ParentActor struct{}
 
 func (state *ParentActor) Receive(context gam.Context) {
-	switch msg := context.Message().(type) {	
+	switch msg := context.Message().(type) {
 	case Hello:
-		child := context.ActorOf(gam.Props(NewChildActor))
+		child := context.SpawnTemplate(&ChildActor{})
 		child.Tell(msg)
 	}
-}
-
-func NewParentActor() gam.Actor {
-	return &ParentActor{}
 }
 
 type ChildActor struct{}
@@ -37,22 +33,13 @@ func (state *ChildActor) Receive(context gam.Context) {
 		fmt.Println("Restarting, actor is about restart")
 	case Hello:
 		fmt.Printf("Hello %v\n", msg.Who)
-        panic("Ouch")
+		panic("Ouch")
 	}
-}
-
-func NewChildActor() gam.Actor {
-	return &ChildActor{}
 }
 
 func main() {
-	decider := func(child gam.ActorRef, reason interface{}) gam.Directive {
-		fmt.Println("handling failure for child")
-		return gam.StopDirective
-	}
-	supervisor := gam.NewOneForOneStrategy(10,1000,decider)
-	actor := gam.ActorOf(gam.Props(NewParentActor).WithSupervisor(supervisor))
-	actor.Tell(Hello{Who: "Roger"})
+	pid := gam.SpawnTemplate(&ParentActor{})
+	pid.Tell(Hello{Who: "Roger"})
 	reader := bufio.NewReader(os.Stdin)
 	reader.ReadString('\n')
 }

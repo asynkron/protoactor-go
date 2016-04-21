@@ -19,7 +19,7 @@ func (ref *LocalActorRef) SendSystemMessage(message SystemMessage) {
 }
 
 func (ref *LocalActorRef) Stop() {
-	ref.SendSystemMessage(&Stop{})
+	ref.SendSystemMessage(&stop{})
 }
 
 func (ref *LocalActorRef) Suspend() {

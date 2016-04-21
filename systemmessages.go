@@ -4,39 +4,39 @@ type SystemMessage interface {
 	systemMessage()
 }
 
-type Stop struct{}
+type stop struct{}
 
-func (*Stop) systemMessage() {}
+func (*stop) systemMessage() {}
 
-type Watch struct {
+type watch struct {
 	Watcher ActorRef
 }
 
-func (*Watch) systemMessage() {}
+func (*watch) systemMessage() {}
 
-type Unwatch struct {
+type unwatch struct {
 	Watcher ActorRef
 }
 
-func (*Unwatch) systemMessage() {}
+func (*unwatch) systemMessage() {}
 
-type OtherStopped struct {
+type otherStopped struct {
 	Who ActorRef
 }
 
-func (*OtherStopped) systemMessage() {}
+func (*otherStopped) systemMessage() {}
 
-type Failure struct {
+type failure struct {
 	Who    ActorRef
 	Reason interface{}
 }
 
-func (*Failure) systemMessage() {}
+func (*failure) systemMessage() {}
 
-type Restart struct{}
+type restart struct{}
 
-func (*Restart) systemMessage() {}
+func (*restart) systemMessage() {}
 
-type Resume struct{}
+type resume struct{}
 
-func (*Resume) systemMessage() {}
+func (*resume) systemMessage() {}
