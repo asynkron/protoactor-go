@@ -14,9 +14,9 @@ type Context interface {
 	Self() ActorRef
 	Parent() ActorRef
 	ActorOf(Properties) ActorRef
-	Spawn(Properties) PID
-	SpawnTemplate(Actor) PID
-	SpawnFunc(ActorProducer) PID
+	Spawn(Properties) *PID
+	SpawnTemplate(Actor) *PID
+	SpawnFunc(ActorProducer) *PID
 	Children() []ActorRef
 }
 
@@ -222,14 +222,14 @@ func (cell *ActorCell) ActorOf(props Properties) ActorRef {
 	return ref
 }
 
-func (cell *ActorCell) Spawn(props Properties) PID {
+func (cell *ActorCell) Spawn(props Properties) *PID {
 	ref, pid := spawnChild(props, cell.self)
 	cell.children.Add(ref)
 	cell.Watch(ref)
 	return pid
 }
 
-func (cell *ActorCell) SpawnTemplate(template Actor) PID {
+func (cell *ActorCell) SpawnTemplate(template Actor) *PID {
 	producer := func() Actor {
 		return template
 	}
@@ -240,7 +240,7 @@ func (cell *ActorCell) SpawnTemplate(template Actor) PID {
 	return pid
 }
 
-func (cell *ActorCell) SpawnFunc(producer ActorProducer) PID {
+func (cell *ActorCell) SpawnFunc(producer ActorProducer) *PID {
 	props := Props(producer)
 	ref, pid := spawnChild(props, cell.self)
 	cell.children.Add(ref)
