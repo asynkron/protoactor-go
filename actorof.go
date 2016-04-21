@@ -6,7 +6,7 @@ func ActorOf(props Properties) ActorRef {
 
 func spawnChild(props Properties, parent ActorRef) ActorRef {
 	cell := NewActorCell(props, parent)
-	mailbox := props.Mailbox()
+	mailbox := props.ProduceMailbox()
 	mailbox.RegisterHandlers(cell.invokeUserMessage, cell.invokeSystemMessage)
 	ref := NewLocalActorRef(mailbox)
 	cell.self = ref

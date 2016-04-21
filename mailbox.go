@@ -1,6 +1,6 @@
 package gam
 
-type MailboxProducer func(func(interface{}), func(SystemMessage)) Mailbox
+type MailboxProducer func() Mailbox
 type Mailbox interface {
 	PostUserMessage(message interface{})
 	PostSystemMessage(message SystemMessage)

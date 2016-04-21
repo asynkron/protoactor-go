@@ -1,38 +1,42 @@
 package gam
 
+type SystemMessage interface {
+	systemMessage()
+}
+
 type Stop struct{}
 
-func (*Stop) SystemMessage() {}
+func (*Stop) systemMessage() {}
 
 type Watch struct {
 	Watcher ActorRef
 }
 
-func (*Watch) SystemMessage() {}
+func (*Watch) systemMessage() {}
 
 type Unwatch struct {
 	Watcher ActorRef
 }
 
-func (*Unwatch) SystemMessage() {}
+func (*Unwatch) systemMessage() {}
 
 type OtherStopped struct {
 	Who ActorRef
 }
 
-func (*OtherStopped) SystemMessage() {}
+func (*OtherStopped) systemMessage() {}
 
 type Failure struct {
 	Who    ActorRef
 	Reason interface{}
 }
 
-func (*Failure) SystemMessage() {}
+func (*Failure) systemMessage() {}
 
 type Restart struct{}
 
-func (*Restart) SystemMessage() {}
+func (*Restart) systemMessage() {}
 
 type Resume struct{}
 
-func (*Resume) SystemMessage() {}
+func (*Resume) systemMessage() {}

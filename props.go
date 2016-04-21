@@ -2,13 +2,13 @@ package gam
 
 type Properties interface {
 	ProduceActor() Actor
-	Mailbox() Mailbox
+	ProduceMailbox() Mailbox
 	Supervisor() SupervisionStrategy
 }
 
 type PropsValue struct {
 	actorProducer       ActorProducer
-	mailbox             Mailbox
+	mailboxProducer     MailboxProducer
 	supervisionStrategy SupervisionStrategy
 }
 
@@ -20,23 +20,23 @@ func (props PropsValue) Supervisor() SupervisionStrategy {
 	return props.supervisionStrategy
 }
 
-func (props PropsValue) Mailbox() Mailbox {
-	if props.mailbox == nil {
+func (props PropsValue) ProduceMailbox() Mailbox {
+	if props.mailboxProducer == nil {
 		return NewUnboundedMailbox()
 	}
-	return props.mailbox
+	return props.mailboxProducer()
 }
 
 func Props(actorProducer ActorProducer) PropsValue {
 	return PropsValue{
-		actorProducer: actorProducer,
-		mailbox:       nil,
+		actorProducer:   actorProducer,
+		mailboxProducer: nil,
 	}
 }
 
-func (props PropsValue) WithMailbox(mailbox Mailbox) PropsValue {
+func (props PropsValue) WithMailbox(mailbox MailboxProducer) PropsValue {
 	//pass by value, we only modify the copy
-	props.mailbox = mailbox
+	props.mailboxProducer = mailbox
 	return props
 }
 
