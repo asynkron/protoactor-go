@@ -1,8 +1,0 @@
-syntax = "proto3";
-package gam;
-
-message PID {
-  string Node = 1;
-  string Host = 2;
-  uint64 Id = 3;
-}

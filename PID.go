@@ -10,7 +10,7 @@ func Tell(pid *PID, message interface{}) {
 	ref.Tell(message)
 }
 
-func (pid *PID) SendSystemMessage(message SystemMessage) {
+func (pid *PID) sendSystemMessage(message SystemMessage) {
 	ref, _ := FromPID(pid)
 	ref.SendSystemMessage(message)
 }
