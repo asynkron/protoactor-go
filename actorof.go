@@ -50,10 +50,26 @@ func Tell(pid *PID, message interface{}) {
 	ref.Tell(message)
 }
 
-func Stop(pid *PID) {
+func (pid *PID) SendSystemMessage (message SystemMessage) {
+	ref, _ := FromPID(pid)
+	ref.SendSystemMessage(message)
+}
+
+func (pid *PID) Stop() {
 	ref, _ := FromPID(pid)
 	ref.Stop()
 }
+
+func (pid *PID) Suspend() {
+	ref, _ := FromPID(pid)
+	ref.(*LocalActorRef).Suspend()
+}
+
+func (pid *PID) Resume() {
+	ref, _ := FromPID(pid)
+	ref.(*LocalActorRef).Resume()
+}
+
 
 func FromPID(pid *PID) (ActorRef, bool) {
 	if pid.Host != host || pid.Node != node {
@@ -66,13 +82,13 @@ func FromPID(pid *PID) (ActorRef, bool) {
 	return ref, true
 }
 
-func spawnChild(props Properties, parent ActorRef) (ActorRef, *PID) {
+func spawnChild(props Properties, parent *PID) (ActorRef, *PID) {
 	cell := NewActorCell(props, parent)
 	mailbox := props.ProduceMailbox()
 	mailbox.RegisterHandlers(cell.invokeUserMessage, cell.invokeSystemMessage)
-	ref := NewLocalActorRef(mailbox)
-	cell.self = ref
+	ref := NewLocalActorRef(mailbox)	
 	pid := registerPID(ref)
+	cell.self = pid
 	cell.invokeUserMessage(Started{})
 	return ref, pid
 }

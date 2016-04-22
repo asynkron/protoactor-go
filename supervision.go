@@ -9,10 +9,10 @@ const (
 	EscalateDirective
 )
 
-type Decider func(child ActorRef, cause interface{}) Directive
+type Decider func(child *PID, cause interface{}) Directive
 
 type SupervisionStrategy interface {
-	Handle(child ActorRef, cause interface{}) Directive
+	Handle(child *PID, cause interface{}) Directive
 }
 
 type OneForOneStrategy struct {
@@ -21,7 +21,7 @@ type OneForOneStrategy struct {
 	decider                     Decider
 }
 
-func (strategy *OneForOneStrategy) Handle(child ActorRef, reason interface{}) Directive {
+func (strategy *OneForOneStrategy) Handle(child *PID, reason interface{}) Directive {
 	return strategy.decider(child, reason)
 }
 
@@ -33,7 +33,7 @@ func NewOneForOneStrategy(maxNrOfRetries int, withinTimeRangeMilliseconds int, d
 	}
 }
 
-func DefaultDecider(child ActorRef, reason interface{}) Directive {
+func DefaultDecider(child *PID, reason interface{}) Directive {
 	return RestartDirective
 }
 

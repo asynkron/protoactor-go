@@ -9,25 +9,25 @@ type stop struct{}
 func (*stop) systemMessage() {}
 
 type watch struct {
-	Watcher ActorRef
+	Watcher *PID
 }
 
 func (*watch) systemMessage() {}
 
 type unwatch struct {
-	Watcher ActorRef
+	Watcher *PID
 }
 
 func (*unwatch) systemMessage() {}
 
 type otherStopped struct {
-	Who ActorRef
+	Who *PID
 }
 
 func (*otherStopped) systemMessage() {}
 
 type failure struct {
-	Who    ActorRef
+	Who    *PID
 	Reason interface{}
 }
 

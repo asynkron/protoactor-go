@@ -5,19 +5,19 @@ import "github.com/emirpasic/gods/sets/hashset"
 import "github.com/emirpasic/gods/stacks/linkedliststack"
 
 type Context interface {
-	Watch(ActorRef)
-	Unwatch(ActorRef)
+	Watch(*PID)
+	Unwatch(*PID)
 	Message() interface{}
 	Become(Receive)
 	BecomeStacked(Receive)
 	UnbecomeStacked()
-	Self() ActorRef
-	Parent() ActorRef
-	ActorOf(Properties) ActorRef
+	Self() *PID
+	Parent() *PID
+	//ActorOf(Properties) ActorRef
 	Spawn(Properties) *PID
 	SpawnTemplate(Actor) *PID
 	SpawnFunc(ActorProducer) *PID
-	Children() []ActorRef
+	Children() []*PID
 }
 
 type ContextValue struct {
@@ -38,8 +38,8 @@ func NewContext(cell *ActorCell, message interface{}) Context {
 }
 
 type ActorCell struct {
-	parent     ActorRef
-	self       *LocalActorRef
+	parent     *PID
+	self       *PID
 	actor      Actor
 	props      Properties
 	supervisor SupervisionStrategy
@@ -50,24 +50,24 @@ type ActorCell struct {
 	stopping   bool
 }
 
-func (cell *ActorCell) Children() []ActorRef {
+func (cell *ActorCell) Children() []*PID {
 	values := cell.children.Values()
-	children := make([]ActorRef, len(values))
+	children := make([]*PID, len(values))
 	for i, child := range values {
-		children[i] = child.(ActorRef)
+		children[i] = child.(*PID)
 	}
 	return children
 }
 
-func (cell *ActorCell) Self() ActorRef {
+func (cell *ActorCell) Self() *PID {
 	return cell.self
 }
 
-func (cell *ActorCell) Parent() ActorRef {
+func (cell *ActorCell) Parent() *PID {
 	return cell.parent
 }
 
-func NewActorCell(props Properties, parent ActorRef) *ActorCell {
+func NewActorCell(props Properties, parent *PID) *ActorCell {
 
 	cell := ActorCell{
 		parent:     parent,
@@ -113,7 +113,7 @@ func (cell *ActorCell) handleStop(msg *stop) {
 	cell.stopping = true
 	cell.invokeUserMessage(Stopping{})
 	for _, child := range cell.children.Values() {
-		child.(ActorRef).Stop()
+		child.(*PID).Stop()
 	}
 	cell.tryRestartOrTerminate()
 }
@@ -146,7 +146,7 @@ func (cell *ActorCell) handleRestart(msg *restart) {
 	cell.stopping = false
 	cell.invokeUserMessage(Restarting{}) //TODO: change to restarting
 	for _, child := range cell.children.Values() {
-		child.(ActorRef).Stop()
+		child.(*PID).Stop()
 	}
 	cell.tryRestartOrTerminate()
 }
@@ -165,7 +165,7 @@ func (cell *ActorCell) tryRestartOrTerminate() {
 	cell.invokeUserMessage(Stopped{})
 	otherStopped := &otherStopped{Who: cell.self}
 	for _, watcher := range cell.watchers.Values() {
-		watcher.(ActorRef).SendSystemMessage(otherStopped)
+		watcher.(*PID).SendSystemMessage(otherStopped)
 	}
 }
 
@@ -201,31 +201,31 @@ func (cell *ActorCell) UnbecomeStacked() {
 	cell.behavior.Pop()
 }
 
-func (cell *ActorCell) Watch(who ActorRef) {
+func (cell *ActorCell) Watch(who *PID) {
 	who.SendSystemMessage(&watch{
 		Watcher: cell.self,
 	})
 	cell.watching.Add(who)
 }
 
-func (cell *ActorCell) Unwatch(who ActorRef) {
+func (cell *ActorCell) Unwatch(who *PID) {
 	who.SendSystemMessage(&unwatch{
 		Watcher: cell.self,
 	})
 	cell.watching.Remove(who)
 }
 
-func (cell *ActorCell) ActorOf(props Properties) ActorRef {
-	ref, _ := spawnChild(props, cell.self)
-	cell.children.Add(ref)
-	cell.Watch(ref)
-	return ref
+func (cell *ActorCell) ActorOf(props Properties) *PID {
+	_, pid := spawnChild(props, cell.self)
+	cell.children.Add(pid)
+	cell.Watch(pid)
+	return pid
 }
 
 func (cell *ActorCell) Spawn(props Properties) *PID {
-	ref, pid := spawnChild(props, cell.self)
-	cell.children.Add(ref)
-	cell.Watch(ref)
+	_, pid := spawnChild(props, cell.self)
+	cell.children.Add(pid)
+	cell.Watch(pid)
 	return pid
 }
 
@@ -234,17 +234,17 @@ func (cell *ActorCell) SpawnTemplate(template Actor) *PID {
 		return template
 	}
 	props := Props(producer)
-	ref, pid := spawnChild(props, cell.self)
-	cell.children.Add(ref)
-	cell.Watch(ref)
+	_, pid := spawnChild(props, cell.self)
+	cell.children.Add(pid)
+	cell.Watch(pid)
 	return pid
 }
 
 func (cell *ActorCell) SpawnFunc(producer ActorProducer) *PID {
 	props := Props(producer)
-	ref, pid := spawnChild(props, cell.self)
-	cell.children.Add(ref)
-	cell.Watch(ref)
+	_, pid := spawnChild(props, cell.self)
+	cell.children.Add(pid)
+	cell.Watch(pid)
 	return pid
 }
 
