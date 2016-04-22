@@ -42,7 +42,7 @@ func (*EchoActor) Receive(context Context) {
 }
 
 func TestActorCanReplyToMessage(t *testing.T) {
-	replyPID,result := FuturePID()
+	replyPID, result := FuturePID()
 	actor := Spawn(Props(NewEchoActor))
 	defer actor.Stop()
 	actor.Tell(EchoMessage{Sender: replyPID})
@@ -75,7 +75,7 @@ func (EchoBecomeActor) Other(context Context) {
 }
 
 func TestActorCanBecome(t *testing.T) {
-	replyPID,result := FuturePID()
+	replyPID, result := FuturePID()
 	actor := Spawn(Props(NewEchoActor))
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
@@ -111,7 +111,7 @@ func (*EchoUnbecomeActor) Other(context Context) {
 }
 
 func TestActorCanUnbecome(t *testing.T) {
-	replyPID,result := FuturePID()
+	replyPID, result := FuturePID()
 	actor := Spawn(Props(NewEchoActor))
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
@@ -164,7 +164,7 @@ func NewEchoOnStoppingActor(replyTo *PID) func() Actor {
 }
 
 func TestActorCanReplyOnStopping(t *testing.T) {
-	replyPID,result := FuturePID()
+	replyPID, result := FuturePID()
 	actor := Spawn(Props(NewEchoOnStoppingActor(replyPID)))
 	actor.Stop()
 	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
@@ -193,7 +193,7 @@ func NewCreateChildActor() Actor {
 }
 
 func TestActorCanCreateChildren(t *testing.T) {
-	replyPID,result := FuturePID()
+	replyPID, result := FuturePID()
 	actor := Spawn(Props(NewCreateChildActor))
 	defer actor.Stop()
 	expected := 10
@@ -236,14 +236,14 @@ func NewCreateChildThenStopActor() Actor {
 }
 
 func TestActorCanStopChildren(t *testing.T) {
-	replyPID,result := FuturePID()
-	afterStopped,result2 := FuturePID()
+	replyPID, result := FuturePID()
+	replyPID2, result2 := FuturePID()
 	actor := Spawn(Props(NewCreateChildThenStopActor))
 	count := 10
 	for i := 0; i < count; i++ {
 		actor.Tell(CreateChildMessage{})
 	}
-	actor.Tell(GetChildCountMessage2{ReplyDirectly: replyPID, ReplyAfterStop: afterStopped})
+	actor.Tell(GetChildCountMessage2{ReplyDirectly: replyPID, ReplyAfterStop: replyPID2})
 
 	//wait for the actor to reply to the first replyPID
 	_, err := result.ResultOrTimeout(testTimeout)
