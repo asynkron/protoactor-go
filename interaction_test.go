@@ -18,13 +18,13 @@ func NewBlackHoleActor() Actor {
 	return &BlackHoleActor{}
 }
 
-func TestActorOfProducesActorRef(t *testing.T) {
-	actor := ActorOf(Props(NewBlackHoleActor))
+func TestSpawnProducesActorRef(t *testing.T) {
+	actor := Spawn(Props(NewBlackHoleActor))
 	defer actor.Stop()
 	assert.NotNil(t, actor)
 }
 
-type EchoMessage struct{ Sender ActorRef }
+type EchoMessage struct{ Sender *PID }
 
 type EchoReplyMessage struct{}
 
@@ -42,8 +42,8 @@ func (*EchoActor) Receive(context Context) {
 }
 
 func TestActorCanReplyToMessage(t *testing.T) {
-	future := NewFutureActorRef()
-	actor := ActorOf(Props(NewEchoActor))
+	future := FuturePID()
+	actor := Spawn(Props(NewEchoActor))
 	defer actor.Stop()
 	actor.Tell(EchoMessage{Sender: future})
 	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
@@ -75,8 +75,8 @@ func (EchoBecomeActor) Other(context Context) {
 }
 
 func TestActorCanBecome(t *testing.T) {
-	future := NewFutureActorRef()
-	actor := ActorOf(Props(NewEchoActor))
+	future := FuturePID()
+	actor := Spawn(Props(NewEchoActor))
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
 	actor.Tell(EchoMessage{Sender: future})
@@ -111,8 +111,8 @@ func (*EchoUnbecomeActor) Other(context Context) {
 }
 
 func TestActorCanUnbecome(t *testing.T) {
-	future := NewFutureActorRef()
-	actor := ActorOf(Props(NewEchoActor))
+	future := FuturePID()
+	actor := Spawn(Props(NewEchoActor))
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
 	actor.Tell(UnbecomeMessage{})
@@ -123,7 +123,7 @@ func TestActorCanUnbecome(t *testing.T) {
 	}
 }
 
-type EchoOnStartActor struct{ replyTo ActorRef }
+type EchoOnStartActor struct{ replyTo *PID }
 
 func (state *EchoOnStartActor) Receive(context Context) {
 	switch context.Message().(type) {
@@ -132,15 +132,15 @@ func (state *EchoOnStartActor) Receive(context Context) {
 	}
 }
 
-func NewEchoOnStartActor(replyTo ActorRef) func() Actor {
+func NewEchoOnStartActor(replyTo *PID) func() Actor {
 	return func() Actor {
 		return &EchoOnStartActor{replyTo: replyTo}
 	}
 }
 
 func TestActorCanReplyOnStarting(t *testing.T) {
-	future := NewFutureActorRef()
-	actor := ActorOf(Props(NewEchoOnStartActor(future)))
+	future := FuturePID()
+	actor := Spawn(Props(NewEchoOnStartActor(future)))
 	defer actor.Stop()
 	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
@@ -148,7 +148,7 @@ func TestActorCanReplyOnStarting(t *testing.T) {
 	}
 }
 
-type EchoOnStoppingActor struct{ replyTo ActorRef }
+type EchoOnStoppingActor struct{ replyTo *PID }
 
 func (state *EchoOnStoppingActor) Receive(context Context) {
 	switch context.Message().(type) {
@@ -157,15 +157,15 @@ func (state *EchoOnStoppingActor) Receive(context Context) {
 	}
 }
 
-func NewEchoOnStoppingActor(replyTo ActorRef) func() Actor {
+func NewEchoOnStoppingActor(replyTo *PID) func() Actor {
 	return func() Actor {
 		return &EchoOnStoppingActor{replyTo: replyTo}
 	}
 }
 
 func TestActorCanReplyOnStopping(t *testing.T) {
-	future := NewFutureActorRef()
-	actor := ActorOf(Props(NewEchoOnStoppingActor(future)))
+	future := FuturePID()
+	actor := Spawn(Props(NewEchoOnStoppingActor(future)))
 	actor.Stop()
 	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
@@ -174,14 +174,14 @@ func TestActorCanReplyOnStopping(t *testing.T) {
 }
 
 type CreateChildMessage struct{}
-type GetChildCountMessage struct{ ReplyTo ActorRef }
+type GetChildCountMessage struct{ ReplyTo *PID }
 type GetChildCountReplyMessage struct{ ChildCount int }
 type CreateChildActor struct{}
 
 func (*CreateChildActor) Receive(context Context) {
 	switch msg := context.Message().(type) {
 	case CreateChildMessage:
-		context.ActorOf(Props(NewBlackHoleActor))
+		context.Spawn(Props(NewBlackHoleActor))
 	case GetChildCountMessage:
 		reply := GetChildCountReplyMessage{ChildCount: len(context.Children())}
 		msg.ReplyTo.Tell(reply)
@@ -193,8 +193,8 @@ func NewCreateChildActor() Actor {
 }
 
 func TestActorCanCreateChildren(t *testing.T) {
-	future := NewFutureActorRef()
-	actor := ActorOf(Props(NewCreateChildActor))
+	future := FuturePID()
+	actor := Spawn(Props(NewCreateChildActor))
 	defer actor.Stop()
 	expected := 10
 	for i := 0; i < expected; i++ {
@@ -210,18 +210,18 @@ func TestActorCanCreateChildren(t *testing.T) {
 }
 
 type CreateChildThenStopActor struct {
-	replyTo ActorRef
+	replyTo *PID
 }
 
 type GetChildCountMessage2 struct {
-	ReplyDirectly  ActorRef
-	ReplyAfterStop ActorRef
+	ReplyDirectly  *PID
+	ReplyAfterStop *PID
 }
 
 func (state *CreateChildThenStopActor) Receive(context Context) {
 	switch msg := context.Message().(type) {
 	case CreateChildMessage:
-		context.ActorOf(Props(NewBlackHoleActor))
+		context.Spawn(Props(NewBlackHoleActor))
 	case GetChildCountMessage2:
 		msg.ReplyDirectly.Tell(true)
 		state.replyTo = msg.ReplyAfterStop
@@ -236,9 +236,9 @@ func NewCreateChildThenStopActor() Actor {
 }
 
 func TestActorCanStopChildren(t *testing.T) {
-	future := NewFutureActorRef()
-	afterStopped := NewFutureActorRef()
-	actor := ActorOf(Props(NewCreateChildThenStopActor))
+	future := FuturePID()
+	afterStopped := FuturePID()
+	actor := Spawn(Props(NewCreateChildThenStopActor))
 	count := 10
 	for i := 0; i < count; i++ {
 		actor.Tell(CreateChildMessage{})

@@ -13,7 +13,6 @@ type Context interface {
 	UnbecomeStacked()
 	Self() *PID
 	Parent() *PID
-	//ActorOf(Properties) ActorRef
 	Spawn(Properties) *PID
 	SpawnTemplate(Actor) *PID
 	SpawnFunc(ActorProducer) *PID
@@ -105,7 +104,7 @@ func (cell *ActorCell) invokeSystemMessage(message SystemMessage) {
 	case *restart:
 		cell.handleRestart(msg)
 	case *resume:
-		cell.self.Resume()
+		cell.self.resume()
 	}
 }
 
@@ -176,7 +175,7 @@ func (cell *ActorCell) invokeUserMessage(message interface{}) {
 			if cell.parent == nil {
 				handleRootFailure(failure, defaultSupervisionStrategy)
 			} else {
-				cell.self.Suspend()
+				cell.self.suspend()
 				cell.parent.SendSystemMessage(failure)
 			}
 		}
@@ -215,12 +214,12 @@ func (cell *ActorCell) Unwatch(who *PID) {
 	cell.watching.Remove(who)
 }
 
-func (cell *ActorCell) ActorOf(props Properties) *PID {
-	_, pid := spawnChild(props, cell.self)
-	cell.children.Add(pid)
-	cell.Watch(pid)
-	return pid
-}
+// func (cell *ActorCell) ActorOf(props Properties) *PID {
+// 	_, pid := spawnChild(props, cell.self)
+// 	cell.children.Add(pid)
+// 	cell.Watch(pid)
+// 	return pid
+// }
 
 func (cell *ActorCell) Spawn(props Properties) *PID {
 	_, pid := spawnChild(props, cell.self)

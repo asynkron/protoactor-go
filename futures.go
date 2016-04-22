@@ -3,11 +3,12 @@ package gam
 import "time"
 import "fmt"
 
-func NewFutureActorRef() *FutureActorRef {
-	ref := FutureActorRef{
+func FuturePID() *PID {
+	ref := &FutureActorRef{
 		channel: make(chan interface{}),
 	}
-	return &ref
+	pid := registerPID(ref)
+	return pid
 }
 
 type FutureActorRef struct {

@@ -45,30 +45,7 @@ func registerPID(actorRef ActorRef) *PID {
 	return &pid
 }
 
-func Tell(pid *PID, message interface{}) {
-	ref, _ := FromPID(pid)
-	ref.Tell(message)
-}
 
-func (pid *PID) SendSystemMessage (message SystemMessage) {
-	ref, _ := FromPID(pid)
-	ref.SendSystemMessage(message)
-}
-
-func (pid *PID) Stop() {
-	ref, _ := FromPID(pid)
-	ref.Stop()
-}
-
-func (pid *PID) Suspend() {
-	ref, _ := FromPID(pid)
-	ref.(*LocalActorRef).Suspend()
-}
-
-func (pid *PID) Resume() {
-	ref, _ := FromPID(pid)
-	ref.(*LocalActorRef).Resume()
-}
 
 
 func FromPID(pid *PID) (ActorRef, bool) {
