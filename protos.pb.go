@@ -11,6 +11,7 @@ It is generated from these files:
 It has these top-level messages:
 	PID
 	MessageEnvelope
+	Unit
 	Restarting
 	Stopping
 	Stopped
@@ -22,6 +23,11 @@ package gam
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+
+import (
+	context "golang.org/x/net/context"
+	grpc "google.golang.org/grpc"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -44,17 +50,30 @@ func (*PID) ProtoMessage()               {}
 func (*PID) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
 type MessageEnvelope struct {
-	// Name of the message type.  Must be defined by one of the files in
-	// proto_files.
-	TypeName string `protobuf:"bytes,1,opt,name=type_name,json=typeName" json:"type_name,omitempty"`
-	// The message data.
+	TypeName    string `protobuf:"bytes,1,opt,name=type_name,json=typeName" json:"type_name,omitempty"`
 	MessageData []byte `protobuf:"bytes,2,opt,name=message_data,json=messageData,proto3" json:"message_data,omitempty"`
+	Target      *PID   `protobuf:"bytes,3,opt,name=target" json:"target,omitempty"`
 }
 
 func (m *MessageEnvelope) Reset()                    { *m = MessageEnvelope{} }
 func (m *MessageEnvelope) String() string            { return proto.CompactTextString(m) }
 func (*MessageEnvelope) ProtoMessage()               {}
 func (*MessageEnvelope) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+func (m *MessageEnvelope) GetTarget() *PID {
+	if m != nil {
+		return m.Target
+	}
+	return nil
+}
+
+type Unit struct {
+}
+
+func (m *Unit) Reset()                    { *m = Unit{} }
+func (m *Unit) String() string            { return proto.CompactTextString(m) }
+func (*Unit) ProtoMessage()               {}
+func (*Unit) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
 
 // user messages
 type Restarting struct {
@@ -63,7 +82,7 @@ type Restarting struct {
 func (m *Restarting) Reset()                    { *m = Restarting{} }
 func (m *Restarting) String() string            { return proto.CompactTextString(m) }
 func (*Restarting) ProtoMessage()               {}
-func (*Restarting) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+func (*Restarting) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
 
 type Stopping struct {
 }
@@ -71,7 +90,7 @@ type Stopping struct {
 func (m *Stopping) Reset()                    { *m = Stopping{} }
 func (m *Stopping) String() string            { return proto.CompactTextString(m) }
 func (*Stopping) ProtoMessage()               {}
-func (*Stopping) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+func (*Stopping) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
 
 type Stopped struct {
 }
@@ -79,7 +98,7 @@ type Stopped struct {
 func (m *Stopped) Reset()                    { *m = Stopped{} }
 func (m *Stopped) String() string            { return proto.CompactTextString(m) }
 func (*Stopped) ProtoMessage()               {}
-func (*Stopped) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+func (*Stopped) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
 
 type PoisonPill struct {
 }
@@ -87,7 +106,7 @@ type PoisonPill struct {
 func (m *PoisonPill) Reset()                    { *m = PoisonPill{} }
 func (m *PoisonPill) String() string            { return proto.CompactTextString(m) }
 func (*PoisonPill) ProtoMessage()               {}
-func (*PoisonPill) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+func (*PoisonPill) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
 
 type Started struct {
 }
@@ -95,11 +114,12 @@ type Started struct {
 func (m *Started) Reset()                    { *m = Started{} }
 func (m *Started) String() string            { return proto.CompactTextString(m) }
 func (*Started) ProtoMessage()               {}
-func (*Started) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+func (*Started) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
 
 func init() {
 	proto.RegisterType((*PID)(nil), "gam.PID")
 	proto.RegisterType((*MessageEnvelope)(nil), "gam.MessageEnvelope")
+	proto.RegisterType((*Unit)(nil), "gam.Unit")
 	proto.RegisterType((*Restarting)(nil), "gam.Restarting")
 	proto.RegisterType((*Stopping)(nil), "gam.Stopping")
 	proto.RegisterType((*Stopped)(nil), "gam.Stopped")
@@ -107,19 +127,94 @@ func init() {
 	proto.RegisterType((*Started)(nil), "gam.Started")
 }
 
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion2
+
+// Client API for Remoting service
+
+type RemotingClient interface {
+	Receive(ctx context.Context, in *MessageEnvelope, opts ...grpc.CallOption) (*Unit, error)
+}
+
+type remotingClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewRemotingClient(cc *grpc.ClientConn) RemotingClient {
+	return &remotingClient{cc}
+}
+
+func (c *remotingClient) Receive(ctx context.Context, in *MessageEnvelope, opts ...grpc.CallOption) (*Unit, error) {
+	out := new(Unit)
+	err := grpc.Invoke(ctx, "/gam.Remoting/Receive", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for Remoting service
+
+type RemotingServer interface {
+	Receive(context.Context, *MessageEnvelope) (*Unit, error)
+}
+
+func RegisterRemotingServer(s *grpc.Server, srv RemotingServer) {
+	s.RegisterService(&_Remoting_serviceDesc, srv)
+}
+
+func _Remoting_Receive_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MessageEnvelope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RemotingServer).Receive(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gam.Remoting/Receive",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RemotingServer).Receive(ctx, req.(*MessageEnvelope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Remoting_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "gam.Remoting",
+	HandlerType: (*RemotingServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Receive",
+			Handler:    _Remoting_Receive_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{},
+}
+
 var fileDescriptor0 = []byte{
-	// 202 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x34, 0x8f, 0x4d, 0x4b, 0xc4, 0x30,
-	0x10, 0x86, 0xe9, 0x07, 0xda, 0x8e, 0x41, 0x21, 0xa7, 0x82, 0x17, 0xcd, 0xc9, 0x93, 0x17, 0xcf,
-	0xde, 0x2a, 0xd8, 0x83, 0xa5, 0xc6, 0x1f, 0x50, 0x22, 0x19, 0x6a, 0xa0, 0xcd, 0x84, 0x26, 0x08,
-	0xfb, 0xef, 0x37, 0x49, 0x77, 0x4f, 0x79, 0xf2, 0xcc, 0x3b, 0x2f, 0x0c, 0x30, 0xb7, 0x53, 0x20,
-	0xff, 0x9a, 0x1f, 0x5e, 0x2d, 0x6a, 0x13, 0xef, 0x50, 0x4d, 0x43, 0xcf, 0x39, 0xd4, 0x23, 0x69,
-	0xec, 0x8a, 0xa7, 0xe2, 0xa5, 0x95, 0xb5, 0x8d, 0x9c, 0xdc, 0x27, 0xf9, 0xd0, 0x95, 0x87, 0xfb,
-	0x8b, 0xcc, 0xef, 0xa1, 0x1c, 0x74, 0x57, 0x45, 0x53, 0xcb, 0xd2, 0x68, 0xf1, 0x0d, 0x0f, 0x5f,
-	0xe8, 0xbd, 0x5a, 0xf0, 0xc3, 0xfe, 0xe3, 0x4a, 0x0e, 0xf9, 0x23, 0xb4, 0xe1, 0xe4, 0x70, 0xb6,
-	0x6a, 0xbb, 0xf6, 0x35, 0x49, 0x8c, 0xf1, 0xcf, 0x9f, 0x81, 0x6d, 0x47, 0x7e, 0xd6, 0x2a, 0xa8,
-	0xdc, 0xcd, 0xe4, 0xdd, 0xc5, 0xf5, 0x51, 0x09, 0x06, 0x20, 0xd1, 0x07, 0xb5, 0x07, 0x63, 0x17,
-	0x01, 0xd0, 0xfc, 0x04, 0x72, 0x2e, 0x71, 0x0b, 0xb7, 0x99, 0x51, 0xa7, 0xd0, 0x44, 0xc6, 0x93,
-	0x9d, 0xcc, 0xba, 0x1e, 0x83, 0xb8, 0x80, 0xfa, 0xf7, 0x26, 0xdf, 0xf6, 0x76, 0x0e, 0x00, 0x00,
-	0xff, 0xff, 0x81, 0x1f, 0xbd, 0x08, 0xeb, 0x00, 0x00, 0x00,
+	// 258 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x5c, 0x90, 0x31, 0x4f, 0xc3, 0x30,
+	0x10, 0x85, 0x69, 0x12, 0xa5, 0xc9, 0x35, 0x02, 0xc9, 0x62, 0x88, 0x60, 0x29, 0x9e, 0x18, 0x50,
+	0x86, 0xb2, 0xb0, 0xb0, 0x15, 0x89, 0x0e, 0x54, 0x91, 0x11, 0x73, 0x65, 0xf0, 0x29, 0x58, 0x4a,
+	0x6c, 0xab, 0xb6, 0x2a, 0xf1, 0xef, 0x39, 0x3b, 0x65, 0x61, 0xf2, 0xf3, 0xe7, 0xbb, 0x7b, 0xcf,
+	0x07, 0x8d, 0x3b, 0xda, 0x60, 0x7d, 0x97, 0x0e, 0x96, 0x0f, 0x72, 0xe2, 0xcf, 0x90, 0xf7, 0xbb,
+	0x2d, 0x63, 0x50, 0xec, 0xad, 0xc2, 0x76, 0xb1, 0x5e, 0xdc, 0xd7, 0xa2, 0x30, 0xa4, 0x23, 0x7b,
+	0xb5, 0x3e, 0xb4, 0xd9, 0xcc, 0xbe, 0x49, 0xb3, 0x4b, 0xc8, 0x76, 0xaa, 0xcd, 0x89, 0x14, 0x22,
+	0xd3, 0x8a, 0x7b, 0xb8, 0x7a, 0x43, 0xef, 0xe5, 0x80, 0x2f, 0xe6, 0x84, 0xa3, 0x75, 0xc8, 0x6e,
+	0xa1, 0x0e, 0x3f, 0x0e, 0x0f, 0x46, 0x4e, 0x7f, 0xf3, 0xaa, 0x08, 0xf6, 0x74, 0x67, 0x77, 0xd0,
+	0x4c, 0x73, 0xfd, 0x41, 0xc9, 0x20, 0xd3, 0xec, 0x46, 0xac, 0xce, 0x6c, 0x4b, 0x88, 0xad, 0xa1,
+	0x0c, 0xf2, 0x38, 0x60, 0x48, 0x36, 0xab, 0x4d, 0xd5, 0x51, 0xce, 0x8e, 0x42, 0x8a, 0x33, 0xe7,
+	0x25, 0x14, 0x1f, 0x46, 0x07, 0xde, 0x00, 0x08, 0xf4, 0x04, 0x83, 0x36, 0x03, 0x07, 0xa8, 0xde,
+	0x83, 0x75, 0x2e, 0xea, 0x1a, 0x96, 0x49, 0xa3, 0x8a, 0x45, 0xbd, 0xd5, 0xde, 0x9a, 0x5e, 0x8f,
+	0xe3, 0xfc, 0x40, 0x0d, 0xa8, 0x36, 0x4f, 0x50, 0x09, 0x9c, 0x6c, 0xec, 0x65, 0x0f, 0xb0, 0x14,
+	0xf8, 0x85, 0xfa, 0x84, 0xec, 0x3a, 0xd9, 0xfd, 0xfb, 0xd4, 0x4d, 0x9d, 0x68, 0x72, 0xbd, 0xf8,
+	0x2c, 0xd3, 0xfe, 0x1e, 0x7f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x43, 0x48, 0x0c, 0xec, 0x4f, 0x01,
+	0x00, 0x00,
 }
