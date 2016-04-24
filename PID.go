@@ -29,3 +29,11 @@ func (pid *PID) resume() {
 	ref, _ := GlobalProcessRegistry.FromPID(pid)
 	ref.(*LocalActorRef).Resume()
 }
+
+func NewPID(node string, host string, id string) *PID {
+	return &PID {
+		Node: node,
+		Host: host,
+		Id: id,
+	}
+}

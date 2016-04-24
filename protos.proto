@@ -4,7 +4,7 @@ package gam;
 message PID {
   string Node = 1;
   string Host = 2;
-  uint64 Id = 3;
+  string Id = 3;
 }
 
 //message envelope
