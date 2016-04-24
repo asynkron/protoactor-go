@@ -12,18 +12,18 @@ type ProcessRegistry struct {
 	SequenceID     uint64
 }
 
-var GlobalProcessRegistry = ProcessRegistry{
+var GlobalProcessRegistry = &ProcessRegistry{
 	Node:           "nonnode",
 	Host:           "nonhost",
 	LocalPids:      make(map[string]ActorRef),
 	RemoteHandlers: make([]RemoteHandler, 0),
 }
 
-func (pr ProcessRegistry) AddRemoteHandler(handler RemoteHandler) {
+func (pr *ProcessRegistry) AddRemoteHandler(handler RemoteHandler) {
 	pr.RemoteHandlers = append(pr.RemoteHandlers, handler)
 }
 
-func (pr ProcessRegistry) RegisterPID(actorRef ActorRef) *PID {
+func (pr *ProcessRegistry) RegisterPID(actorRef ActorRef) *PID {
 	id := atomic.AddUint64(&pr.SequenceID, 1)
 
 	pid := PID{
@@ -36,7 +36,7 @@ func (pr ProcessRegistry) RegisterPID(actorRef ActorRef) *PID {
 	return &pid
 }
 
-func (pr ProcessRegistry) FromPID(pid *PID) (ActorRef, bool) {
+func (pr *ProcessRegistry) FromPID(pid *PID) (ActorRef, bool) {
 	if pid.Host != pr.Host || pid.Node != pr.Node {
 		for _, handler := range pr.RemoteHandlers {
 			ref, ok := handler(pid)
