@@ -2,30 +2,38 @@ package gam
 
 import "sync/atomic"
 
-var node = "nonnode"
-var host = "nonhost"
-var processDirectory = make(map[uint64]ActorRef)
-var sequenceID uint64
+type ProcessRegistry struct {
+	Node       string
+	Host       string
+	LocalPids  map[uint64]ActorRef
+	SequenceID uint64
+}
 
-func registerPID(actorRef ActorRef) *PID {
-	id := atomic.AddUint64(&sequenceID, 1)
+var GlobalProcessRegistry = ProcessRegistry{
+	Node:      "nonnode",
+	Host:      "nonhost",
+	LocalPids: make(map[uint64]ActorRef),
+}
+
+func (pr ProcessRegistry) RegisterPID(actorRef ActorRef) *PID {
+	id := atomic.AddUint64(&pr.SequenceID, 1)
 
 	pid := PID{
-		Node: node,
-		Host: host,
+		Node: pr.Node,
+		Host: pr.Host,
 		Id:   id,
 	}
 
-	processDirectory[pid.Id] = actorRef
+	pr.LocalPids[pid.Id] = actorRef
 	return &pid
 }
 
-func FromPID(pid *PID) (ActorRef, bool) {
-	if pid.Host != host || pid.Node != node {
+func (pr ProcessRegistry) FromPID(pid *PID) (ActorRef, bool) {
+	if pid.Host != pr.Host || pid.Node != pr.Node {
 		panic("Unknown host or node")
 		return deadLetter, false
 	}
-	ref, ok := processDirectory[pid.Id]
+	ref, ok := pr.LocalPids[pid.Id]
 	if !ok {
 		panic("Unknown PID")
 		return deadLetter, false

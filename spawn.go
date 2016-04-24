@@ -27,7 +27,7 @@ func spawnChild(props Properties, parent *PID) *PID {
 	mailbox := props.ProduceMailbox()
 	mailbox.RegisterHandlers(cell.invokeUserMessage, cell.invokeSystemMessage)
 	ref := NewLocalActorRef(mailbox)
-	pid := registerPID(ref)
+	pid := GlobalProcessRegistry.RegisterPID(ref)
 	cell.self = pid
 	cell.invokeUserMessage(Started{})
 	return pid

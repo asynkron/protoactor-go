@@ -7,7 +7,7 @@ func RequestResponsePID() (*PID, *Response) {
 	ref := &Response{
 		channel: make(chan interface{}),
 	}
-	pid := registerPID(ref)
+	pid := GlobalProcessRegistry.RegisterPID(ref)
 	return pid, ref
 }
 
