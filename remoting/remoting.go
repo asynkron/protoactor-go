@@ -54,7 +54,7 @@ func NewRemoteActorRef(pid *gam.PID) gam.ActorRef {
 func (ref *RemoteActorRef) Tell(message interface{}) {
 	switch msg := message.(type) {
 		case proto.Message:
-			sendMessage(ref.pid.Host,msg,ref.pid)
+			sendMessage(msg,ref.pid)
 		default:
 			log.Printf("failed, trying to send non Proto %v message to %v",msg,ref.pid)
 	}
@@ -71,13 +71,13 @@ func (ref *RemoteActorRef) Stop() {
 var _ gam.ActorRef = &RemoteActorRef {}
 
 //TODO: this should be streaming
-func sendMessage(address string, message proto.Message, target *gam.PID) {
+func sendMessage(message proto.Message, target *gam.PID) {
 	envelope, err := PackMessage(message, target)
 	if err != nil {
 		log.Fatalf("did not pack message: %v", err)
 	}
 	// Set up a connection to the server.
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	conn, err := grpc.Dial(target.Host, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
