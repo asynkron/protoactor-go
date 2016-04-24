@@ -3,27 +3,27 @@ package gam
 import "time"
 import "fmt"
 
-func FuturePID() (*PID, *FutureResult) {
-	ref := &FutureResult{
+func RequestResponsePID() (*PID, *Response) {
+	ref := &Response{
 		channel: make(chan interface{}),
 	}
 	pid := registerPID(ref)
 	return pid, ref
 }
 
-type FutureResult struct {
+type Response struct {
 	channel chan interface{}
 }
 
-func (ref *FutureResult) Tell(message interface{}) {
+func (ref *Response) Tell(message interface{}) {
 	ref.channel <- message
 }
 
-func (ref *FutureResult) ResultChannel() <-chan interface{} {
+func (ref *Response) ResultChannel() <-chan interface{} {
 	return ref.channel
 }
 
-func (ref *FutureResult) ResultOrTimeout(timeout time.Duration) (interface{}, error) {
+func (ref *Response) ResultOrTimeout(timeout time.Duration) (interface{}, error) {
 	select {
 	case res := <-ref.channel:
 		return res, nil
@@ -32,13 +32,13 @@ func (ref *FutureResult) ResultOrTimeout(timeout time.Duration) (interface{}, er
 	}
 }
 
-func (ref *FutureResult) Result() interface{} {
+func (ref *Response) Result() interface{} {
 	return <-ref.channel
 }
 
-func (ref *FutureResult) SendSystemMessage(message SystemMessage) {
+func (ref *Response) SendSystemMessage(message SystemMessage) {
 }
 
-func (ref *FutureResult) Stop() {
+func (ref *Response) Stop() {
 	close(ref.channel)
 }

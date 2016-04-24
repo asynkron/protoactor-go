@@ -1,6 +1,5 @@
 package gam
 
-
 func SpawnFunc(producer ActorProducer) *PID {
 	props := Props(producer)
 	pid := spawnChild(props, nil)
@@ -8,7 +7,9 @@ func SpawnFunc(producer ActorProducer) *PID {
 }
 
 func SpawnTemplate(template Actor) *PID {
+	//actorType := reflect.TypeOf(template)
 	producer := func() Actor {
+		//	return reflect.New(actorType).Elem().Interface().(Actor)
 		return template
 	}
 	props := Props(producer)
@@ -25,7 +26,7 @@ func spawnChild(props Properties, parent *PID) *PID {
 	cell := NewActorCell(props, parent)
 	mailbox := props.ProduceMailbox()
 	mailbox.RegisterHandlers(cell.invokeUserMessage, cell.invokeSystemMessage)
-	ref := NewLocalActorRef(mailbox)	
+	ref := NewLocalActorRef(mailbox)
 	pid := registerPID(ref)
 	cell.self = pid
 	cell.invokeUserMessage(Started{})

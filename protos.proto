@@ -7,6 +7,20 @@ message PID {
   uint64 Id = 3;
 }
 
+//message envelope
+
+message MessageEnvelope {
+  // Set of .proto files which define the type.
+ // FileDescriptorSet proto_files = 1;
+
+  // Name of the message type.  Must be defined by one of the files in
+  // proto_files.
+  string type_name = 1;
+
+  // The message data.
+  bytes message_data = 2;
+}
+
 //user messages
 message Restarting {}
 message Stopping {}
