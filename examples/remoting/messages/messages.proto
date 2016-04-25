@@ -1,9 +1,9 @@
 syntax = "proto3";
 package messages;
-import "protos.proto";
+import "actor.proto";
 
 message Echo {
-  gam.PID Sender = 1;
+  actor.PID Sender = 1;
   string Message = 2;
 }
 

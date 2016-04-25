@@ -1,14 +1,14 @@
 package main
 
-import "github.com/rogeralsing/gam"
+import "github.com/rogeralsing/gam/actor"
 import "github.com/rogeralsing/gam/remoting"
 import "bufio"
 import "os"
-import "github.com/rogeralsing/example/messages"
+import "github.com/rogeralsing/gam/examples/remoting/messages"
 
 type MyActor struct{}
 
-func (*MyActor) Receive(context gam.Context) {
+func (*MyActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *messages.Echo:
         msg.Sender.Tell(&messages.Response {
@@ -20,7 +20,7 @@ func (*MyActor) Receive(context gam.Context) {
 
 func main() {
 	remoting.StartServer("localhost:8091")
-	pid := gam.SpawnTemplate(&MyActor{})
-    gam.GlobalProcessRegistry.Register("foo",pid)
+	pid := actor.SpawnTemplate(&MyActor{})
+    actor.GlobalProcessRegistry.Register("foo",pid)
 	bufio.NewReader(os.Stdin).ReadString('\n')
 }
