@@ -2,9 +2,8 @@ syntax = "proto3";
 package gam;
 
 message PID {
-  string Node = 1;
-  string Host = 2;
-  string Id = 3;
+  string Host = 1;
+  string Id = 2;
 }
 
 //message envelope

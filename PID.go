@@ -30,10 +30,9 @@ func (pid *PID) resume() {
 	ref.(*LocalActorRef).Resume()
 }
 
-func NewPID(node string, host string, id string) *PID {
-	return &PID {
-		Node: node,
+func NewPID(host, id string) *PID {
+	return &PID{
 		Host: host,
-		Id: id,
+		Id:   id,
 	}
 }

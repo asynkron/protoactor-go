@@ -26,9 +26,8 @@ func remoteHandler(pid *gam.PID) (gam.ActorRef, bool) {
 	return ref,true
 }
 
-func StartServer(node string, host string) {
+func StartServer(host string) {
 	gam.GlobalProcessRegistry.AddRemoteHandler(remoteHandler)
-	gam.GlobalProcessRegistry.Node = node
 	gam.GlobalProcessRegistry.Host = host
 	lis, err := net.Listen("tcp", host)
 	if err != nil {
@@ -36,7 +35,7 @@ func StartServer(node string, host string) {
 	}
 	s := grpc.NewServer()
 	gam.RegisterRemotingServer(s, &server{})
-	log.Printf("Starting GAM server on %v@%v.", node, host)
+	log.Printf("Starting GAM server on %v.", host)
 	go s.Serve(lis)
 }
 

@@ -5,7 +5,6 @@ import "strconv"
 
 type RemoteHandler func(*PID) (ActorRef, bool)
 type ProcessRegistry struct {
-	Node           string
 	Host           string
 	LocalPids      map[string]ActorRef
 	RemoteHandlers []RemoteHandler
@@ -13,7 +12,6 @@ type ProcessRegistry struct {
 }
 
 var GlobalProcessRegistry = &ProcessRegistry{
-	Node:           "nonnode",
 	Host:           "nonhost",
 	LocalPids:      make(map[string]ActorRef),
 	RemoteHandlers: make([]RemoteHandler, 0),
@@ -27,7 +25,6 @@ func (pr *ProcessRegistry) RegisterPID(actorRef ActorRef) *PID {
 	id := atomic.AddUint64(&pr.SequenceID, 1)
 
 	pid := PID{
-		Node: pr.Node,
 		Host: pr.Host,
 		Id:   strconv.FormatUint(id, 16),
 	}
@@ -37,7 +34,7 @@ func (pr *ProcessRegistry) RegisterPID(actorRef ActorRef) *PID {
 }
 
 func (pr *ProcessRegistry) FromPID(pid *PID) (ActorRef, bool) {
-	if pid.Host != pr.Host || pid.Node != pr.Node {
+	if pid.Host != pr.Host {
 		for _, handler := range pr.RemoteHandlers {
 			ref, ok := handler(pid)
 			if ok {
