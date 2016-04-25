@@ -1,4 +1,4 @@
-package gam
+package actor
 
 func SpawnFunc(producer ActorProducer) *PID {
 	props := Props(producer)

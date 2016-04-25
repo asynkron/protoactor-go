@@ -1,4 +1,4 @@
-package gam
+package actor
 
 // import (
 // 	"github.com/rogeralsing/goactor/interfaces"

@@ -1,4 +1,4 @@
-package gam
+package actor
 
 import (
 	"sync/atomic"
@@ -42,7 +42,6 @@ func (mailbox *BoundedMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
 
-
 	done := false
 	//process x messages in sequence, then exit
 	for i := 0; i < 30; i++ {
@@ -64,11 +63,11 @@ func (mailbox *BoundedMailbox) processMessages() {
 	if !done {
 		atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages)
 	}
-	
+
 	//set mailbox to idle
 	atomic.StoreInt32(&mailbox.schedulerStatus, MailboxIdle)
 	//check if there are still messages to process (sent after the message loop ended)
-	if  atomic.SwapInt32(&mailbox.hasMoreMessages,MailboxHasNoMessages) == MailboxHasMoreMessages {
+	if atomic.SwapInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages) == MailboxHasMoreMessages {
 		mailbox.schedule()
 	}
 }

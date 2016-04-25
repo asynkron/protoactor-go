@@ -5,16 +5,16 @@ import (
 	"net"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/rogeralsing/gam"
+	"github.com/rogeralsing/gam/actor"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
-var _ gam.ActorRef = &RemoteActorRef{}
+var _ actor.ActorRef = &RemoteActorRef{}
 
 type server struct{}
 
-func (s *server) Receive(stream gam.Remoting_ReceiveServer) error {
+func (s *server) Receive(stream Remoting_ReceiveServer) error {
 	for {
 		envelope, err := stream.Recv()
 		if err != nil {
@@ -26,34 +26,34 @@ func (s *server) Receive(stream gam.Remoting_ReceiveServer) error {
 	}
 }
 
-func remoteHandler(pid *gam.PID) (gam.ActorRef, bool) {
+func remoteHandler(pid *actor.PID) (actor.ActorRef, bool) {
 	ref := NewRemoteActorRef(pid)
 	return ref, true
 }
 
-var endpointManagerPID *gam.PID
+var endpointManagerPID *actor.PID
 
 func StartServer(host string) {
-	gam.GlobalProcessRegistry.AddRemoteHandler(remoteHandler)
-	gam.GlobalProcessRegistry.Host = host
+	actor.GlobalProcessRegistry.AddRemoteHandler(remoteHandler)
+	actor.GlobalProcessRegistry.Host = host
 
-	endpointManagerPID = gam.SpawnTemplate(&EndpointManagerActor{})
+	endpointManagerPID = actor.SpawnTemplate(&EndpointManagerActor{})
 
 	lis, err := net.Listen("tcp", host)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	gam.RegisterRemotingServer(s, &server{})
+	RegisterRemotingServer(s, &server{})
 	log.Printf("Starting GAM server on %v.", host)
 	go s.Serve(lis)
 }
 
 type RemoteActorRef struct {
-	pid *gam.PID
+	pid *actor.PID
 }
 
-func NewRemoteActorRef(pid *gam.PID) gam.ActorRef {
+func NewRemoteActorRef(pid *actor.PID) actor.ActorRef {
 	return &RemoteActorRef{
 		pid: pid,
 	}
@@ -69,7 +69,7 @@ func (ref *RemoteActorRef) Tell(message interface{}) {
 	}
 }
 
-func (ref *RemoteActorRef) SendSystemMessage(message gam.SystemMessage) {
+func (ref *RemoteActorRef) SendSystemMessage(message actor.SystemMessage) {
 
 }
 
@@ -77,23 +77,23 @@ func (ref *RemoteActorRef) Stop() {
 
 }
 
-func sendMessage(message proto.Message, target *gam.PID) {
+func sendMessage(message proto.Message, target *actor.PID) {
 
 }
 
 type EndpointManagerActor struct {
-	connections map[string]*gam.PID
+	connections map[string]*actor.PID
 }
 
-func (state *EndpointManagerActor) Receive(ctx gam.Context) {
+func (state *EndpointManagerActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case gam.Started:
-		state.connections = make(map[string]*gam.PID)
+	case actor.Started:
+		state.connections = make(map[string]*actor.PID)
 		log.Println("Started EndpointManagerActor")
-	case *gam.MessageEnvelope:
+	case *MessageEnvelope:
 		pid := state.connections[msg.Target.Host]
 		if pid == nil {
-			pid = gam.SpawnTemplate(&EndpointSenderActor{host: msg.Target.Host})
+			pid = actor.SpawnTemplate(&EndpointSenderActor{host: msg.Target.Host})
 			state.connections[msg.Target.Host] = pid
 		}
 		pid.Tell(msg)
@@ -103,24 +103,24 @@ func (state *EndpointManagerActor) Receive(ctx gam.Context) {
 type EndpointSenderActor struct {
 	host   string
 	conn   *grpc.ClientConn
-	stream gam.Remoting_ReceiveClient
+	stream Remoting_ReceiveClient
 }
 
-func (state *EndpointSenderActor) Receive(ctx gam.Context) {
+func (state *EndpointSenderActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case gam.Started:
+	case actor.Started:
 		log.Println("Started EndpointSenderActor for host ", state.host)
 		conn, err := grpc.Dial(state.host, grpc.WithInsecure())
 		state.conn = conn
 		if err != nil {
 			log.Fatalf("did not connect: %v", err)
 		}
-		c := gam.NewRemotingClient(conn)
+		c := NewRemotingClient(conn)
 		stream, err := c.Receive(context.Background())
 		state.stream = stream
-	case gam.Stopped:
+	case actor.Stopped:
 		state.conn.Close()
-	case *gam.MessageEnvelope:
+	case *MessageEnvelope:
 		state.stream.Send(msg)
 	}
 }

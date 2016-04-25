@@ -1,4 +1,4 @@
-package gam
+package actor
 
 import "fmt"
 import "github.com/emirpasic/gods/sets/hashset"

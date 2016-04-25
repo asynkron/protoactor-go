@@ -1,4 +1,4 @@
-package gam
+package actor
 
 import "sync/atomic"
 import "github.com/Workiva/go-datastructures/queue"
@@ -58,18 +58,18 @@ func (mailbox *UnboundedMailbox) processMessages() {
 			break
 		}
 	}
-	
+
 	if !done {
 		atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages)
 	}
-	
+
 	//set mailbox to idle
 	atomic.StoreInt32(&mailbox.schedulerStatus, MailboxIdle)
 	//check if there are still messages to process (sent after the message loop ended)
-	if  atomic.SwapInt32(&mailbox.hasMoreMessages,MailboxHasNoMessages) == MailboxHasMoreMessages {
+	if atomic.SwapInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages) == MailboxHasMoreMessages {
 		mailbox.schedule()
 	}
-	
+
 }
 
 func NewUnboundedMailbox() Mailbox {

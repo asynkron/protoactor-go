@@ -1,4 +1,4 @@
-package gam
+package actor
 
 type Properties interface {
 	ProduceActor() Actor
@@ -17,7 +17,7 @@ func (props PropsValue) ProduceActor() Actor {
 }
 
 func (props PropsValue) Supervisor() SupervisionStrategy {
-	if (props.supervisionStrategy == nil){
+	if props.supervisionStrategy == nil {
 		return DefaultSupervisionStrategy()
 	}
 	return props.supervisionStrategy

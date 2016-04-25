@@ -1,4 +1,4 @@
-package gam
+package actor
 
 type ActorRef interface {
 	Tell(message interface{})

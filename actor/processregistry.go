@@ -1,4 +1,4 @@
-package gam
+package actor
 
 import "sync/atomic"
 import "strconv"
@@ -52,7 +52,7 @@ func (pr *ProcessRegistry) FromPID(pid *PID) (ActorRef, bool) {
 	return ref, true
 }
 
-func (pr *ProcessRegistry) Register(name string, pid *PID){
-	ref,_ := pr.FromPID(pid)
+func (pr *ProcessRegistry) Register(name string, pid *PID) {
+	ref, _ := pr.FromPID(pid)
 	pr.LocalPids[name] = ref
 }

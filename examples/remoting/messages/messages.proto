@@ -1,0 +1,13 @@
+syntax = "proto3";
+package messages;
+import "protos.proto";
+
+message Echo {
+  gam.PID Sender = 1;
+  string Message = 2;
+}
+
+message Response {
+  string SomeValue = 1;
+  int32 AnInt= 2;
+}

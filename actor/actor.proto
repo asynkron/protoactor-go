@@ -1,0 +1,14 @@
+syntax = "proto3";
+package actor;
+
+message PID {
+  string Host = 1;
+  string Id = 2;
+}
+
+//user messages
+message Restarting {}
+message Stopping {}
+message Stopped {}
+message PoisonPill {}
+message Started {}

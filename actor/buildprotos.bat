@@ -1,0 +1,1 @@
+c:\proto\protoc actor.proto --go_out=plugins=grpc:.

@@ -1,4 +1,4 @@
-package gam
+package actor
 
 func (pid *PID) Tell(message interface{}) {
 	ref, _ := GlobalProcessRegistry.FromPID(pid)

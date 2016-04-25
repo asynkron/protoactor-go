@@ -1,4 +1,4 @@
-package gam
+package actor
 
 import "time"
 import "fmt"
