@@ -23,12 +23,10 @@ func (s *server) Receive(stream gam.Remoting_ReceiveServer) error {
 		pid := envelope.Target
 		message := UnpackMessage(envelope)
 		pid.Tell(message)
-		log.Println("Got message ", message)
 	}
 }
 
 func remoteHandler(pid *gam.PID) (gam.ActorRef, bool) {
-	log.Println("Resolving ", pid)
 	ref := NewRemoteActorRef(pid)
 	return ref, true
 }
