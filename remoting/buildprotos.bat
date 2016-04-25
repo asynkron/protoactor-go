@@ -1,1 +1,1 @@
-c:\proto\protoc --go_out=plugins=grpc:. --proto_path=. --proto_path=c:\Projects\Go\src\github.com\rogeralsing\gam\actor remoting.proto
+c:\proto\protoc --go_out=plugins=grpc,Mactor.proto=github.com/rogeralsing/gam/actor:. --proto_path=. --proto_path=c:\Projects\Go\src\github.com\rogeralsing\gam\actor remoting.proto
