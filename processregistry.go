@@ -54,3 +54,8 @@ func (pr *ProcessRegistry) FromPID(pid *PID) (ActorRef, bool) {
 	}
 	return ref, true
 }
+
+func (pr *ProcessRegistry) Register(name string, pid *PID){
+	ref,_ := pr.FromPID(pid)
+	pr.LocalPids[name] = ref
+}
