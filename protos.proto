@@ -17,7 +17,7 @@ message MessageEnvelope {
 message Unit {}
 
 service Remoting {
-  rpc Receive (MessageEnvelope) returns (Unit) {}
+  rpc Receive (stream MessageEnvelope) returns (Unit) {}
 }
 
 //user messages
