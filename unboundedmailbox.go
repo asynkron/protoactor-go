@@ -2,6 +2,7 @@ package gam
 
 import "sync/atomic"
 import "github.com/Workiva/go-datastructures/queue"
+import _ "log"
 
 type UnboundedMailbox struct {
 	userMailbox     *queue.Queue
@@ -23,9 +24,8 @@ func (mailbox *UnboundedMailbox) PostSystemMessage(message SystemMessage) {
 }
 
 func (mailbox *UnboundedMailbox) schedule() {
-	swapped := atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, MailboxIdle, MailboxRunning)
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages) //we have more messages to process
-	if swapped {
+	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, MailboxIdle, MailboxRunning) {
 		go mailbox.processMessages()
 	}
 }
@@ -42,6 +42,7 @@ func (mailbox *UnboundedMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
 
+	done := false
 	//process x messages in sequence, then exit
 	for i := 0; i < 30; i++ {
 		if !mailbox.systemMailbox.Empty() {
@@ -52,27 +53,28 @@ func (mailbox *UnboundedMailbox) processMessages() {
 			userMsg, _ := mailbox.userMailbox.Get(1)
 			first := userMsg[0]
 			mailbox.userInvoke(first)
+		} else {
+			done = true
+			break
 		}
 	}
+	
+	if !done {
+		atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages)
+	}
+	
 	//set mailbox to idle
 	atomic.StoreInt32(&mailbox.schedulerStatus, MailboxIdle)
 	//check if there are still messages to process (sent after the message loop ended)
-	hasMore := atomic.LoadInt32(&mailbox.hasMoreMessages)
-	//what is the current status of the mailbox? it could have changed concurrently since the last two lines
-	status := atomic.LoadInt32(&mailbox.schedulerStatus)
-	//if there are still messages to process and the mailbox is idle, then reschedule a mailbox run
-	//otherwise, we either exit, or the mailbox have been scheduled already by the schedule method
-	if hasMore == MailboxHasMoreMessages && status == MailboxIdle {
-		swapped := atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, MailboxIdle, MailboxRunning)
-		if swapped {
-			go mailbox.processMessages()
-		}
+	if  atomic.SwapInt32(&mailbox.hasMoreMessages,MailboxHasNoMessages) == MailboxHasMoreMessages {
+		mailbox.schedule()
 	}
+	
 }
 
 func NewUnboundedMailbox() Mailbox {
-	userMailbox := queue.New(10)
-	systemMailbox := queue.New(10)
+	userMailbox := queue.New(0)
+	systemMailbox := queue.New(0)
 	mailbox := UnboundedMailbox{
 		userMailbox:     userMailbox,
 		systemMailbox:   systemMailbox,
