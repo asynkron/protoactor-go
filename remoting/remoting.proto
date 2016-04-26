@@ -1,6 +1,6 @@
 syntax = "proto3";
 package remoting;
-import "actor.proto";
+import "github.com/rogeralsing/gam/actor/actor.proto";
 
 message MessageEnvelope {
   string type_name = 1;
