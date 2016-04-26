@@ -234,3 +234,5 @@ message Response {
   string SomeValue = 1;
 }
 ```
+
+For more examples, see the example folder in this repository.
