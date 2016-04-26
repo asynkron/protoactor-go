@@ -17,12 +17,8 @@ func (state *HelloActor) Receive(context actor.Context) {
     }
 }
 
-func NewHelloActor() actor.Actor {
-    return &HelloActor{}
-}
-
 func main() {
-    pid := actor.Spawn(actor.Props(NewHelloActor))
+    pid := actor.SpawnTemplate(&HelloActor{})
     pid.Tell(Hello{Who: "Roger"})
     bufio.NewReader(os.Stdin).ReadString('\n')
 }

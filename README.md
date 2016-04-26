@@ -1,37 +1,26 @@
 # Go Actor Model
 
-GAM is a MVP port of JVM Akka.Actor to Go.<br/>
-This is mostly a learning experiment for me and not a production ready library.<br/>
-Having spent way too much time in the Akka source code by starting the Akka.NET (Akka on .NET) project late 2013 I thought
-it could be a nice way to learn Go by porting the core of Akka.<br/>
+GAM is a MVP Actor Model framework for Go.<br/>
 <br/>
-## Design philosophy:
- 
-* Do one thing only, Actors
-* Networking and Clustering should be solved using adapters over other tools, e.g. gRPC and Consul
-* Serialization should be an external concern, GAM infrastructure and primitives should not be serialized
+
+The framework started out as a port of JVM Akka.Actor, but have since then been reworked to be closer to Erlang semantics.<br/>
 
 ## Hello world
 ```go
 type Hello struct{ Who string }
 type HelloActor struct{}
 
-func (state *HelloActor) Receive(context gam.Context) {
-	switch msg := context.Message().(type) {
-	case Hello:
-		fmt.Printf("Hello %v\n", msg.Who)
-	}
-}
-
-func NewHelloActor() gam.Actor {
-	return &HelloActor{}
+func (state *HelloActor) Receive(context actor.Context) {
+    switch msg := context.Message().(type) {
+    case Hello:
+        fmt.Printf("Hello %v\n", msg.Who)
+    }
 }
 
 func main() {
-	actor := gam.ActorOf(actor.Props(NewHelloActor))
-	actor.Tell(Hello{Who: "Roger"})
-
-  ...
+    pid := actor.SpawnTemplate(&HelloActor{})
+    pid.Tell(Hello{Who: "Roger"})
+    bufio.NewReader(os.Stdin).ReadString('\n')
 }
 ```
 
@@ -42,31 +31,30 @@ type Become struct {}
 type Hello struct{ Who string }
 type BecomeActor struct{}
 
-func (state *BecomeActor) Receive(context gam.Context) {
-	switch msg := context.Message().(type) {
-	case Hello:
-		fmt.Printf("Hello %v\n", msg.Who)
+func (state *BecomeActor) Receive(context actor.Context) {
+    switch msg := context.Message().(type) {
+    case Hello:
+        fmt.Printf("Hello %v\n", msg.Who)
         context.Become(state.Other)
-	}
+    }
 }
 
-func (state *BecomeActor) Other(context gam.Context) {
-	switch msg := context.Message().(type) {
-	case Hello:
-		fmt.Printf("%v, ey we are now handling messages in another behavior",msg.Who)
-	}
+func (state *BecomeActor) Other(context actor.Context) {
+    switch msg := context.Message().(type) {
+    case Hello:
+        fmt.Printf("%v, ey we are now handling messages in another behavior",msg.Who)
+    }
 }
 
-func NewBecomeActor() gam.Actor {
-	return &BecomeActor{}
+func NewBecomeActor() actor.Actor {
+    return &BecomeActor{}
 }
 
 func main() {
-	actor := gam.ActorOf(actor.Props(NewBecomeActor))
-	actor.Tell(Hello{Who: "Roger"})
-    actor.Tell(Hello{Who: "Roger"})
-  
-  ...  
+    pid := actor.Spawn(actor.Props(NewBecomeActor))
+    pid.Tell(Hello{Who: "Roger"})
+    pid.Tell(Hello{Who: "Roger"})
+    bufio.NewReader(os.Stdin).ReadString('\n')
 }
 ```
 
@@ -77,132 +65,172 @@ Unlike Akka, GAM uses messages for lifecycle events instead of OOP method overri
 type Hello struct{ Who string }
 type HelloActor struct{}
 
-func (state *HelloActor) Receive(context gam.Context) {
+func (state *HelloActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case gam.Started:
+	case actor.Started:
 		fmt.Println("Started, initialize actor here")
-	case gam.Stopping:
+	case actor.Stopping:
 		fmt.Println("Stopping, actor is about shut down")
-	case gam.Stopped:
+	case actor.Stopped:
 		fmt.Println("Stopped, actor and it's children are stopped")
-	case gam.Restarting:
+	case actor.Restarting:
 		fmt.Println("Restarting, actor is about restart")
 	case Hello:
 		fmt.Printf("Hello %v\n", msg.Who)
 	}
 }
 
-func NewHelloActor() gam.Actor {
+func NewHelloActor() actor.Actor {
 	return &HelloActor{}
 }
 
 func main() {
-	actor := gam.ActorOf(actor.Props(NewHelloActor))
+	actor := actor.Spawn(actor.Props(NewHelloActor))
 	actor.Tell(Hello{Who: "Roger"})
-    
-    //why wait? 
-    //Stop is a system message and is not processed through the user message mailbox
-    //thus, it will be handled _before_ any user message
+
+	//why wait?
+	//Stop is a system message and is not processed through the user message mailbox
+	//thus, it will be handled _before_ any user message
+    //we only do this to show the correct order of events in the console
 	time.Sleep(1 * time.Second)
 	actor.Stop()
 
-  ...
+	bufio.NewReader(os.Stdin).ReadString('\n')
 }
 
 ```
 
 ## Supervision
 
-Root actors are supervised by the `actor.DefaultSupervisionStrategy()`, which always issues a `actor.RestartDirective` for failing actors
-
-```go
-type Hello struct{ Who string }
-type HelloActor struct{}
-
-func (state *HelloActor) Receive(context gam.Context) {
-	switch msg := context.Message().(type) {
-	case gam.Started:
-		fmt.Println("Starting, initialize actor here")
-	case gam.Restarting:
-		fmt.Println("Restarting, actor is about restart")
-	case Hello:
-		fmt.Printf("Hello %v\n", msg.Who)
-        panic("Ouch")
-	}
-}
-
-func NewHelloActor() gam.Actor {
-	return &HelloActor{}
-}
-
-func main() {
-	actor := gam.ActorOf(actor.Props(NewHelloActor))
-	actor.Tell(Hello{Who: "Roger"})
-	
-  ...
-}
-```
-
-Child actors are supervised by their parents.
-Parents can customize their child supervisor strategy using `gam.Props`
-
-```go
-decider := func(child gam.ActorRef, reason interface{}) gam.Directive {
-	fmt.Println("handling failure for child")
-	return gam.StopDirective
-}
-supervisor := gam.NewOneForOneStrategy(10,1000,decider)
-actor := gam.ActorOf(gam.Props(NewParentActor).WithSupervisor(supervisor))
-```
-
-Example
+Root actors are supervised by the `actor.DefaultSupervisionStrategy()`, which always issues a `actor.RestartDirective` for failing actors<br/>
+Child actors are supervised by their parents.<br/>
+Parents can customize their child supervisor strategy using `gam.Props`<br/>
+<br/>
+Example<br/>
 ```go
 type Hello struct{ Who string }
 type ParentActor struct{}
 
-func (state *ParentActor) Receive(context gam.Context) {
-	switch msg := context.Message().(type) {	
+func (state *ParentActor) Receive(context actor.Context) {
+	switch msg := context.Message().(type) {
 	case Hello:
-		child := context.ActorOf(gam.Props(NewChildActor))
+		child := context.Spawn(actor.Props(NewChildActor))
 		child.Tell(msg)
 	}
 }
 
-func NewParentActor() gam.Actor {
+func NewParentActor() actor.Actor {
 	return &ParentActor{}
 }
 
 type ChildActor struct{}
 
-func (state *ChildActor) Receive(context gam.Context) {
+func (state *ChildActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case gam.Started:
+	case actor.Started:
 		fmt.Println("Starting, initialize actor here")
-	case gam.Stopping:
+	case actor.Stopping:
 		fmt.Println("Stopping, actor is about shut down")
-	case gam.Stopped:
+	case actor.Stopped:
 		fmt.Println("Stopped, actor and it's children are stopped")
-	case gam.Restarting:
+	case actor.Restarting:
 		fmt.Println("Restarting, actor is about restart")
 	case Hello:
 		fmt.Printf("Hello %v\n", msg.Who)
-        panic("Ouch")
+		panic("Ouch")
 	}
 }
 
-func NewChildActor() gam.Actor {
+func NewChildActor() actor.Actor {
 	return &ChildActor{}
 }
 
 func main() {
-	decider := func(child gam.ActorRef, reason interface{}) gam.Directive {
+	decider := func(child *actor.PID, reason interface{}) actor.Directive {
 		fmt.Println("handling failure for child")
-		return gam.StopDirective
+		return actor.StopDirective
 	}
-	supervisor := gam.NewOneForOneStrategy(10,1000,decider)
-	actor := gam.ActorOf(gam.Props(NewParentActor).WithSupervisor(supervisor))
-	actor.Tell(Hello{Who: "Roger"})
+	supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
+	pid := actor.Spawn(actor.Props(NewParentActor).WithSupervisor(supervisor))
+	pid.Tell(Hello{Who: "Roger"})
+
+	bufio.NewReader(os.Stdin).ReadString('\n')
+}
+```
+## Networking / Remoting
+
+GAM's networking layer is built as a thin wrapper ontop of gRPC and message serialization is built on Protocol Buffers<br/>
+
+Example:<br/>
+
+### Node 1
+```go
+type MyActor struct{
+	count int
+}
+
+func (state *MyActor) Receive(context actor.Context) {
+	switch msg := context.Message().(type) {
+	case *messages.Response:
+		state.count++
+		fmt.Println(state.count)
+	}
+}
+
+func main() {
+	remoting.StartServer("localhost:8090")
+
+	pid := actor.SpawnTemplate(&MyActor{})
+	message := &messages.Echo{Message: "hej", Sender: pid}
 	
-	...
+	//this is the remote actor we want to communicate with
+	remote := actor.NewPID("localhost:8091", "myactor")
+	for i := 0; i < 10; i++ {
+		remote.Tell(message)
+	}
+
+	bufio.NewReader(os.Stdin).ReadString('\n')
+}
+```
+
+### Node 2
+```go
+type MyActor struct{}
+
+func (*MyActor) Receive(context actor.Context) {
+	switch msg := context.Message().(type) {
+	case *messages.Echo:
+		msg.Sender.Tell(&messages.Response{
+			SomeValue: "result",
+		})
+	}
+}
+
+func main() {
+	remoting.StartServer("localhost:8091")
+	pid := actor.SpawnTemplate(&MyActor{})
+	
+	//register a name for our local actor so that it can be discovered remotely
+	actor.ProcessRegistry.Register("myactor", pid)
+	bufio.NewReader(os.Stdin).ReadString('\n')
+}
+```
+
+### Message Contracts
+
+```proto
+syntax = "proto3";
+package messages;
+import "actor.proto"; //we need to import actor.proto, so our messages can include PID's
+
+//this is the message the actor on node 1 will send to the remote actor on node 2
+message Echo {
+  actor.PID Sender = 1; //this is the PID the remote actor should reply to
+  string Message = 2;
+}
+
+//this is the message the remote actor should reply with
+message Response {
+  string SomeValue = 1;
 }
 ```
