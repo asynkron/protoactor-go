@@ -3,25 +3,25 @@ package actor
 import "sync/atomic"
 import "strconv"
 
-type RemoteHandler func(*PID) (ActorRef, bool)
-type ProcessRegistry struct {
+type HostResolver func(*PID) (ActorRef, bool)
+type ProcessRegistryValue struct {
 	Host           string
 	LocalPids      map[string]ActorRef
-	RemoteHandlers []RemoteHandler
+	RemoteHandlers []HostResolver
 	SequenceID     uint64
 }
 
-var GlobalProcessRegistry = &ProcessRegistry{
+var ProcessRegistry = &ProcessRegistryValue{
 	Host:           "nonhost",
 	LocalPids:      make(map[string]ActorRef),
-	RemoteHandlers: make([]RemoteHandler, 0),
+	RemoteHandlers: make([]HostResolver, 0),
 }
 
-func (pr *ProcessRegistry) AddRemoteHandler(handler RemoteHandler) {
+func (pr *ProcessRegistryValue) RegisterHostResolver(handler HostResolver) {
 	pr.RemoteHandlers = append(pr.RemoteHandlers, handler)
 }
 
-func (pr *ProcessRegistry) RegisterPID(actorRef ActorRef) *PID {
+func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef) *PID {
 	id := atomic.AddUint64(&pr.SequenceID, 1)
 
 	pid := PID{
@@ -33,7 +33,7 @@ func (pr *ProcessRegistry) RegisterPID(actorRef ActorRef) *PID {
 	return &pid
 }
 
-func (pr *ProcessRegistry) FromPID(pid *PID) (ActorRef, bool) {
+func (pr *ProcessRegistryValue) fromPID(pid *PID) (ActorRef, bool) {
 	if pid.Host != pr.Host {
 		for _, handler := range pr.RemoteHandlers {
 			ref, ok := handler(pid)
@@ -52,7 +52,7 @@ func (pr *ProcessRegistry) FromPID(pid *PID) (ActorRef, bool) {
 	return ref, true
 }
 
-func (pr *ProcessRegistry) Register(name string, pid *PID) {
-	ref, _ := pr.FromPID(pid)
+func (pr *ProcessRegistryValue) Register(name string, pid *PID) {
+	ref, _ := pr.fromPID(pid)
 	pr.LocalPids[name] = ref
 }

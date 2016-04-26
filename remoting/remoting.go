@@ -34,10 +34,10 @@ func remoteHandler(pid *actor.PID) (actor.ActorRef, bool) {
 var endpointManagerPID *actor.PID
 
 func StartServer(host string) {
-	actor.GlobalProcessRegistry.AddRemoteHandler(remoteHandler)
-	actor.GlobalProcessRegistry.Host = host
+	actor.ProcessRegistry.RegisterHostResolver(remoteHandler)
+	actor.ProcessRegistry.Host = host
 
-	endpointManagerPID = actor.SpawnTemplate(&EndpointManagerActor{})
+	endpointManagerPID = actor.SpawnTemplate(&EndpointManager{})
 
 	lis, err := net.Listen("tcp", host)
 	if err != nil {
@@ -81,11 +81,11 @@ func sendMessage(message proto.Message, target *actor.PID) {
 
 }
 
-type EndpointManagerActor struct {
+type EndpointManager struct {
 	connections map[string]*actor.PID
 }
 
-func (state *EndpointManagerActor) Receive(ctx actor.Context) {
+func (state *EndpointManager) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case actor.Started:
 		state.connections = make(map[string]*actor.PID)
@@ -93,20 +93,20 @@ func (state *EndpointManagerActor) Receive(ctx actor.Context) {
 	case *MessageEnvelope:
 		pid := state.connections[msg.Target.Host]
 		if pid == nil {
-			pid = actor.SpawnTemplate(&EndpointSenderActor{host: msg.Target.Host})
+			pid = actor.SpawnTemplate(&EndpointWriter{host: msg.Target.Host})
 			state.connections[msg.Target.Host] = pid
 		}
 		pid.Tell(msg)
 	}
 }
 
-type EndpointSenderActor struct {
+type EndpointWriter struct {
 	host   string
 	conn   *grpc.ClientConn
 	stream Remoting_ReceiveClient
 }
 
-func (state *EndpointSenderActor) Receive(ctx actor.Context) {
+func (state *EndpointWriter) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case actor.Started:
 		log.Println("Started EndpointSenderActor for host ", state.host)
