@@ -91,7 +91,7 @@ func (state *EndpointManager) Receive(ctx actor.Context) {
 		state.connections = make(map[string]*actor.PID)
 		log.Println("Started EndpointManager")
 	case *MessageEnvelope:
-		pid,ok := state.connections[msg.Target.Host]
+		pid, ok := state.connections[msg.Target.Host]
 		if !ok {
 			pid = actor.SpawnTemplate(&EndpointWriter{host: msg.Target.Host})
 			state.connections[msg.Target.Host] = pid
@@ -109,21 +109,29 @@ type EndpointWriter struct {
 func (state *EndpointWriter) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case actor.Started:
-		log.Println("Started EndpointWriter for host ", state.host)
+		log.Println("Started EndpointWriter for host", state.host)
+		log.Println("Connecting to host", state.host)
 		conn, err := grpc.Dial(state.host, grpc.WithInsecure())
-		state.conn = conn
 		if err != nil {
 			log.Fatalf("did not connect: %v", err)
 		}
+		log.Println("Connected to host", state.host)
+		state.conn = conn
 		c := NewRemotingClient(conn)
+		log.Println("Getting stream from host", state.host)
 		stream, err := c.Receive(context.Background())
+		log.Println("Got stream from host", state.host)
 		state.stream = stream
 	case actor.Stopped:
 		state.conn.Close()
+	case actor.Restarting:
+		state.conn.Close()
 	case *MessageEnvelope:
 		err := state.stream.Send(msg)
-		if (err != nil) {
-			log.Println("Failed to send to host ",state.host)
+		if err != nil {
+			ctx.Stash()
+			log.Println("Failed to send to host", state.host)
+			panic("restart")
 		}
 	}
 }

@@ -2,6 +2,7 @@ package actor
 
 import "fmt"
 import "github.com/emirpasic/gods/sets/hashset"
+import "github.com/Workiva/go-datastructures/queue"
 import "github.com/emirpasic/gods/stacks/linkedliststack"
 
 type Context interface {
@@ -17,6 +18,7 @@ type Context interface {
 	SpawnTemplate(Actor) *PID
 	SpawnFunc(ActorProducer) *PID
 	Children() []*PID
+	Stash()
 }
 
 type ContextValue struct {
@@ -26,6 +28,10 @@ type ContextValue struct {
 
 func (context *ContextValue) Message() interface{} {
 	return context.message
+}
+
+func (context *ContextValue) Stash() {
+	context.ActorCell.stashMessage(context.message)
 }
 
 func NewContext(cell *ActorCell, message interface{}) Context {
@@ -46,6 +52,7 @@ type ActorCell struct {
 	children   *hashset.Set
 	watchers   *hashset.Set
 	watching   *hashset.Set
+	stash      *queue.Queue
 	stopping   bool
 }
 
@@ -64,6 +71,14 @@ func (cell *ActorCell) Self() *PID {
 
 func (cell *ActorCell) Parent() *PID {
 	return cell.parent
+}
+
+func (cell *ActorCell) stashMessage(message interface{}) {
+	if cell.stash == nil {
+		cell.stash = queue.New(10)
+	}
+	
+	cell.stash.Put(message)
 }
 
 func NewActorCell(props Properties, parent *PID) *ActorCell {
