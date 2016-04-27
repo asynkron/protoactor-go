@@ -161,11 +161,12 @@ func (cell *ActorCell) tryRestartOrTerminate() {
 		return
 	}
 
+	ProcessRegistry.unregisterPID(cell.self)	
 	cell.invokeUserMessage(Stopped{})
-	otherStopped := &otherStopped{Who: cell.self}
+	otherStopped := &otherStopped{Who: cell.self}	
 	for _, watcher := range cell.watchers.Values() {
 		watcher.(*PID).sendSystemMessage(otherStopped)
-	}
+	}	
 }
 
 func (cell *ActorCell) invokeUserMessage(message interface{}) {
