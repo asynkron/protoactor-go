@@ -129,6 +129,25 @@ func (state *endpointWriter) initialize() {
 	state.stream = stream
 }
 
+func (state *endpointWriter) sendEnvelopes(messages []interface{}, ctx actor.Context) {
+	envelopes := make([]*MessageEnvelope, len(messages))
+
+	for i, tmp := range messages {
+		envelopes[i] = tmp.(*MessageEnvelope)
+	}
+
+	pack := &MessageBatch{
+		Envelopes: envelopes,
+	}
+
+	err := state.stream.Send(pack)
+	if err != nil {
+		ctx.Stash()
+		log.Println("Failed to send to host", state.host)
+		panic("restart")
+	}
+}
+
 func (state *endpointWriter) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case actor.Started:
@@ -138,23 +157,7 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 	case actor.Restarting:
 		state.conn.Close()
 	case []interface{}:
-		envelopes := make([]*MessageEnvelope, len(msg))
-
-		for i, tmp := range msg {
-			envelope := tmp.(*MessageEnvelope)
-			envelopes[i] = envelope
-		}
-
-		pack := &MessageBatch{
-			Envelopes: envelopes,
-		}
-
-		err := state.stream.Send(pack)
-		if err != nil {
-			ctx.Stash()
-			log.Println("Failed to send to host", state.host)
-			panic("restart")
-		}
+		state.sendEnvelopes(msg, ctx)
 	default:
 		log.Fatal("Unknown message", msg)
 	}
