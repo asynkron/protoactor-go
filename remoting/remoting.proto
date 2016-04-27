@@ -8,12 +8,12 @@ message MessageEnvelope {
   actor.PID target = 3;
 }
 
-message MessagePack {
-  repeated MessageEnvelope message = 1;
+message MessageBatch {
+  repeated MessageEnvelope envelopes = 1;
 }
 
 message Unit {}
 
 service Remoting {
-  rpc Receive (stream MessagePack) returns (Unit) {}
+  rpc Receive (stream MessageBatch) returns (Unit) {}
 }

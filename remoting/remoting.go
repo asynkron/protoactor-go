@@ -16,11 +16,11 @@ type server struct{}
 
 func (s *server) Receive(stream Remoting_ReceiveServer) error {
 	for {
-		pack, err := stream.Recv()
+		batch, err := stream.Recv()
 		if err != nil {
 			return err
 		}
-		for _, envelope := range pack.Message {
+		for _, envelope := range batch.Envelopes {
 			pid := envelope.Target
 			message := UnpackMessage(envelope)
 			pid.Tell(message)
@@ -145,8 +145,8 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 			envelopes[i] = envelope
 		}
 
-		pack := &MessagePack{
-			Message: envelopes,
+		pack := &MessageBatch{
+			Envelopes: envelopes,
 		}
 
 		err := state.stream.Send(pack)
