@@ -1,14 +1,18 @@
 package actor
 
-import "sync/atomic"
+import (
+	"sync"
+	"sync/atomic"
+)
 import "strconv"
 
 type HostResolver func(*PID) (ActorRef, bool)
 type ProcessRegistryValue struct {
 	Host           string
-	LocalPids      map[string]ActorRef
+	LocalPids      map[string]ActorRef  //maybe this should be replaced with something lockfree like ctrie instead
 	RemoteHandlers []HostResolver
 	SequenceID     uint64
+	rw             sync.RWMutex
 }
 
 var ProcessRegistry = &ProcessRegistryValue{
@@ -29,6 +33,8 @@ func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef) *PID {
 		Id:   strconv.FormatUint(id, 16),
 	}
 
+	pr.rw.Lock()
+	defer pr.rw.Unlock()
 	pr.LocalPids[pid.Id] = actorRef
 	return &pid
 }
@@ -44,6 +50,8 @@ func (pr *ProcessRegistryValue) fromPID(pid *PID) (ActorRef, bool) {
 		panic("Unknown host or node")
 		return deadLetter, false
 	}
+	pr.rw.RLock()
+	defer pr.rw.RUnlock()
 	ref, ok := pr.LocalPids[pid.Id]
 	if !ok {
 		panic("Unknown PID")
