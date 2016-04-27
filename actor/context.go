@@ -2,7 +2,6 @@ package actor
 
 import "fmt"
 import "github.com/emirpasic/gods/sets/hashset"
-import "github.com/Workiva/go-datastructures/queue"
 import "github.com/emirpasic/gods/stacks/linkedliststack"
 
 type Context interface {
@@ -52,7 +51,7 @@ type ActorCell struct {
 	children   *hashset.Set
 	watchers   *hashset.Set
 	watching   *hashset.Set
-	stash      *queue.Queue
+	stash      *linkedliststack.Stack
 	stopping   bool
 }
 
@@ -75,10 +74,10 @@ func (cell *ActorCell) Parent() *PID {
 
 func (cell *ActorCell) stashMessage(message interface{}) {
 	if cell.stash == nil {
-		cell.stash = queue.New(10)
+		cell.stash = linkedliststack.New()
 	}
-	
-	cell.stash.Put(message)
+
+	cell.stash.Push(message)
 }
 
 func NewActorCell(props Properties, parent *PID) *ActorCell {
@@ -181,6 +180,12 @@ func (cell *ActorCell) tryRestartOrTerminate() {
 func (cell *ActorCell) restart() {
 	cell.incarnateActor()
 	cell.invokeUserMessage(Started{})
+	if cell.stash != nil {
+		for !cell.stash.Empty() {
+			msg, _ := cell.stash.Pop()
+			cell.invokeUserMessage(msg)
+		}
+	}
 }
 
 func (cell *ActorCell) stopped() {
