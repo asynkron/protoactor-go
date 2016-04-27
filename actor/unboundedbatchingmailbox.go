@@ -11,6 +11,7 @@ type UnboundedBatchingMailbox struct {
 	hasMoreMessages int32
 	userInvoke      func(interface{})
 	systemInvoke    func(SystemMessage)
+	batchSize       int
 }
 
 func (mailbox *UnboundedBatchingMailbox) PostUserMessage(message interface{}) {
@@ -41,19 +42,19 @@ func (mailbox *UnboundedBatchingMailbox) Resume() {
 func (mailbox *UnboundedBatchingMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
-
+	batchSize := mailbox.batchSize
 	done := false
 	//process x messages in sequence, then exit
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < batchSize; i++ {
 		if !mailbox.systemMailbox.Empty() {
 			sysMsg, _ := mailbox.systemMailbox.Get(1)
 			first := sysMsg[0].(SystemMessage)
 			mailbox.systemInvoke(first)
 		} else if !mailbox.userMailbox.Empty() {
-            count := mailbox.userMailbox.Len()
-            if count > 1000 {
-                count = 1000
-            }
+			count := mailbox.userMailbox.Len()
+			if count > int64(batchSize) {
+				count = int64(batchSize)
+			}
 			userMsg, _ := mailbox.userMailbox.Get(count)
 			mailbox.userInvoke(userMsg)
 		} else {
@@ -75,16 +76,20 @@ func (mailbox *UnboundedBatchingMailbox) processMessages() {
 
 }
 
-func NewUnboundedBatchingMailbox() Mailbox {
-	userMailbox := queue.New(0)
-	systemMailbox := queue.New(0)
-	mailbox := UnboundedBatchingMailbox{
-		userMailbox:     userMailbox,
-		systemMailbox:   systemMailbox,
-		hasMoreMessages: MailboxHasNoMessages,
-		schedulerStatus: MailboxIdle,
+func NewUnboundedBatchingMailbox(batchSize int) MailboxProducer {
+
+	return func() Mailbox {
+		userMailbox := queue.New(0)
+		systemMailbox := queue.New(0)
+		mailbox := UnboundedBatchingMailbox{
+			userMailbox:     userMailbox,
+			systemMailbox:   systemMailbox,
+			hasMoreMessages: MailboxHasNoMessages,
+			schedulerStatus: MailboxIdle,
+			batchSize: batchSize,
+		}
+		return &mailbox
 	}
-	return &mailbox
 }
 
 func (mailbox *UnboundedBatchingMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {

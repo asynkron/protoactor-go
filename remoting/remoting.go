@@ -97,7 +97,7 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 	case *MessageEnvelope:
 		pid, ok := state.connections[msg.Target.Host]
 		if !ok {
-			pid = actor.Spawn(actor.Props(newEndpointWriter(msg.Target.Host)).WithMailbox(actor.NewUnboundedBatchingMailbox))
+			pid = actor.Spawn(actor.Props(newEndpointWriter(msg.Target.Host)).WithMailbox(actor.NewUnboundedBatchingMailbox(500)))
 			state.connections[msg.Target.Host] = pid
 		}
 		pid.Tell(msg)
