@@ -105,13 +105,16 @@ func (state *EndpointWriter) Receive(ctx actor.Context) {
 		log.Println("Connecting to host", state.host)
 		conn, err := grpc.Dial(state.host, grpc.WithInsecure())
 		if err != nil {
-			log.Fatalf("did not connect: %v", err)
+			log.Fatalf("Failed to connect to host %v: %v",state.host, err)
 		}
 		log.Println("Connected to host", state.host)
 		state.conn = conn
 		c := NewRemotingClient(conn)
 		log.Println("Getting stream from host", state.host)
 		stream, err := c.Receive(context.Background())
+		if err != nil {
+			log.Fatalf("Failed to get stream from host %v: %v",state.host, err)
+		}
 		log.Println("Got stream from host", state.host)
 		state.stream = stream
 	case actor.Stopped:
