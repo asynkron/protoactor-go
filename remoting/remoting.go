@@ -89,10 +89,10 @@ func (state *EndpointManager) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case actor.Started:
 		state.connections = make(map[string]*actor.PID)
-		log.Println("Started EndpointManagerActor")
+		log.Println("Started EndpointManager")
 	case *MessageEnvelope:
-		pid := state.connections[msg.Target.Host]
-		if pid == nil {
+		pid,ok := state.connections[msg.Target.Host]
+		if !ok {
 			pid = actor.SpawnTemplate(&EndpointWriter{host: msg.Target.Host})
 			state.connections[msg.Target.Host] = pid
 		}
@@ -109,7 +109,7 @@ type EndpointWriter struct {
 func (state *EndpointWriter) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case actor.Started:
-		log.Println("Started EndpointSenderActor for host ", state.host)
+		log.Println("Started EndpointWriter for host ", state.host)
 		conn, err := grpc.Dial(state.host, grpc.WithInsecure())
 		state.conn = conn
 		if err != nil {
@@ -121,6 +121,9 @@ func (state *EndpointWriter) Receive(ctx actor.Context) {
 	case actor.Stopped:
 		state.conn.Close()
 	case *MessageEnvelope:
-		state.stream.Send(msg)
+		err := state.stream.Send(msg)
+		if (err != nil) {
+			log.Println("Failed to send to host ",state.host)
+		}
 	}
 }
