@@ -156,17 +156,25 @@ func (cell *ActorCell) tryRestartOrTerminate() {
 	}
 
 	if !cell.stopping {
-		cell.incarnateActor()
-		cell.invokeUserMessage(Started{})
+		cell.restart()
 		return
 	}
 
-	ProcessRegistry.unregisterPID(cell.self)	
+	cell.stopped()
+}
+
+func (cell *ActorCell) restart() {
+	cell.incarnateActor()
+	cell.invokeUserMessage(Started{})
+}
+
+func (cell *ActorCell) stopped() {
+	ProcessRegistry.unregisterPID(cell.self)
 	cell.invokeUserMessage(Stopped{})
-	otherStopped := &otherStopped{Who: cell.self}	
+	otherStopped := &otherStopped{Who: cell.self}
 	for _, watcher := range cell.watchers.Values() {
 		watcher.(*PID).sendSystemMessage(otherStopped)
-	}	
+	}
 }
 
 func (cell *ActorCell) invokeUserMessage(message interface{}) {
