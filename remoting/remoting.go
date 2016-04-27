@@ -69,17 +69,9 @@ func (ref *RemoteActorRef) Tell(message interface{}) {
 	}
 }
 
-func (ref *RemoteActorRef) SendSystemMessage(message actor.SystemMessage) {
+func (ref *RemoteActorRef) SendSystemMessage(message actor.SystemMessage) {}
 
-}
-
-func (ref *RemoteActorRef) Stop() {
-
-}
-
-func sendMessage(message proto.Message, target *actor.PID) {
-
-}
+func (ref *RemoteActorRef) Stop() {}
 
 type EndpointManager struct {
 	connections map[string]*actor.PID
