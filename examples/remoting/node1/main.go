@@ -3,6 +3,7 @@ package main
 import "github.com/rogeralsing/gam/actor"
 import "github.com/rogeralsing/gam/remoting"
 import "fmt"
+import "log"
 import "bufio"
 import "os"
 import "github.com/rogeralsing/gam/examples/remoting/messages"
@@ -18,7 +19,7 @@ func (state *MyActor) Receive(context actor.Context) {
 	case *messages.Response:
 		state.count++
 		if state.count % 1000 == 0 {
-			fmt.Println(state.count)
+			log.Println(state.count)
 		}
 	}
 }
