@@ -4,7 +4,7 @@ import "sync/atomic"
 import "github.com/Workiva/go-datastructures/queue"
 import _ "log"
 
-type UnboundedMailbox struct {
+type UnboundedBatchingMailbox struct {
 	userMailbox     *queue.Queue
 	systemMailbox   *queue.Queue
 	schedulerStatus int32
@@ -13,32 +13,32 @@ type UnboundedMailbox struct {
 	systemInvoke    func(SystemMessage)
 }
 
-func (mailbox *UnboundedMailbox) PostUserMessage(message interface{}) {
+func (mailbox *UnboundedBatchingMailbox) PostUserMessage(message interface{}) {
 	mailbox.userMailbox.Put(message)
 	mailbox.schedule()
 }
 
-func (mailbox *UnboundedMailbox) PostSystemMessage(message SystemMessage) {
+func (mailbox *UnboundedBatchingMailbox) PostSystemMessage(message SystemMessage) {
 	mailbox.systemMailbox.Put(message)
 	mailbox.schedule()
 }
 
-func (mailbox *UnboundedMailbox) schedule() {
+func (mailbox *UnboundedBatchingMailbox) schedule() {
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages) //we have more messages to process
 	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, MailboxIdle, MailboxRunning) {
 		go mailbox.processMessages()
 	}
 }
 
-func (mailbox *UnboundedMailbox) Suspend() {
+func (mailbox *UnboundedBatchingMailbox) Suspend() {
 
 }
 
-func (mailbox *UnboundedMailbox) Resume() {
+func (mailbox *UnboundedBatchingMailbox) Resume() {
 
 }
 
-func (mailbox *UnboundedMailbox) processMessages() {
+func (mailbox *UnboundedBatchingMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
 
@@ -50,9 +50,12 @@ func (mailbox *UnboundedMailbox) processMessages() {
 			first := sysMsg[0].(SystemMessage)
 			mailbox.systemInvoke(first)
 		} else if !mailbox.userMailbox.Empty() {
-			userMsg, _ := mailbox.userMailbox.Get(1)
-			first := userMsg[0]
-			mailbox.userInvoke(first)
+            count := mailbox.userMailbox.Len()
+            if count > 100 {
+                count = 100
+            }
+			userMsg, _ := mailbox.userMailbox.Get(count)
+			mailbox.userInvoke(userMsg)
 		} else {
 			done = true
 			break
@@ -72,10 +75,10 @@ func (mailbox *UnboundedMailbox) processMessages() {
 
 }
 
-func NewUnboundedMailbox() Mailbox {
+func NewUnboundedBatchingMailbox() Mailbox {
 	userMailbox := queue.New(0)
 	systemMailbox := queue.New(0)
-	mailbox := UnboundedMailbox{
+	mailbox := UnboundedBatchingMailbox{
 		userMailbox:     userMailbox,
 		systemMailbox:   systemMailbox,
 		hasMoreMessages: MailboxHasNoMessages,
@@ -84,7 +87,7 @@ func NewUnboundedMailbox() Mailbox {
 	return &mailbox
 }
 
-func (mailbox *UnboundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
+func (mailbox *UnboundedBatchingMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
 }

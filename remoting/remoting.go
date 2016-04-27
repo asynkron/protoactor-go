@@ -16,13 +16,15 @@ type server struct{}
 
 func (s *server) Receive(stream Remoting_ReceiveServer) error {
 	for {
-		envelope, err := stream.Recv()
+		pack, err := stream.Recv()
 		if err != nil {
 			return err
 		}
-		pid := envelope.Target
-		message := UnpackMessage(envelope)
-		pid.Tell(message)
+		for _, envelope := range pack.Message {
+			pid := envelope.Target
+			message := UnpackMessage(envelope)
+			pid.Tell(message)
+		}
 	}
 }
 
@@ -31,13 +33,23 @@ func remoteHandler(pid *actor.PID) (actor.ActorRef, bool) {
 	return ref, true
 }
 
+func newEndpointManager() actor.Actor {
+	return &endpointManager{}
+}
+
+func newEndpointWriter(host string) actor.ActorProducer {
+	return func() actor.Actor {
+		return &endpointWriter{host: host}
+	}
+}
+
 var endpointManagerPID *actor.PID
 
 func StartServer(host string) {
 	actor.ProcessRegistry.RegisterHostResolver(remoteHandler)
 	actor.ProcessRegistry.Host = host
 
-	endpointManagerPID = actor.SpawnTemplate(&endpointManager{})
+	endpointManagerPID = actor.Spawn(actor.Props(newEndpointManager))
 
 	lis, err := net.Listen("tcp", host)
 	if err != nil {
@@ -85,7 +97,7 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 	case *MessageEnvelope:
 		pid, ok := state.connections[msg.Target.Host]
 		if !ok {
-			pid = actor.SpawnTemplate(&endpointWriter{host: msg.Target.Host})
+			pid = actor.Spawn(actor.Props(newEndpointWriter(msg.Target.Host)).WithMailbox(actor.NewUnboundedBatchingMailbox))
 			state.connections[msg.Target.Host] = pid
 		}
 		pid.Tell(msg)
@@ -125,12 +137,25 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 		state.conn.Close()
 	case actor.Restarting:
 		state.conn.Close()
-	case *MessageEnvelope:
-		err := state.stream.Send(msg)
+	case []interface{}:
+		envelopes := make([]*MessageEnvelope, len(msg))
+
+		for i, tmp := range msg {
+			envelope := tmp.(*MessageEnvelope)
+			envelopes[i] = envelope
+		}
+
+		pack := &MessagePack{
+			Message: envelopes,
+		}
+
+		err := state.stream.Send(pack)
 		if err != nil {
 			ctx.Stash()
 			log.Println("Failed to send to host", state.host)
 			panic("restart")
 		}
+	default:
+		log.Fatal("Unknown message", msg)
 	}
 }
