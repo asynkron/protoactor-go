@@ -45,7 +45,7 @@ func (mailbox *UnboundedBatchingMailbox) processMessages() {
 	batchSize := mailbox.batchSize
 	done := false
 	//process x messages in sequence, then exit
-	for i := 0; i < batchSize; i++ {
+	for i := 0; i < 1; i++ {
 		if !mailbox.systemMailbox.Empty() {
 			sysMsg, _ := mailbox.systemMailbox.Get(1)
 			first := sysMsg[0].(SystemMessage)
