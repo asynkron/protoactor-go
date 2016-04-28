@@ -3,6 +3,7 @@ package actor
 import "sync/atomic"
 import "github.com/Workiva/go-datastructures/queue"
 import _ "log"
+import "runtime"
 
 type UnboundedBatchingMailbox struct {
 	userMailbox     *queue.Queue
@@ -44,27 +45,27 @@ func (mailbox *UnboundedBatchingMailbox) processMessages() {
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
 	batchSize := mailbox.batchSize
 	done := false
-	//process x messages in sequence, then exit
-	for i := 0; i < 1; i++ {
-		if !mailbox.systemMailbox.Empty() {
-			sysMsg, _ := mailbox.systemMailbox.Get(1)
-			first := sysMsg[0].(SystemMessage)
-			mailbox.systemInvoke(first)
-		} else if !mailbox.userMailbox.Empty() {
-			count := mailbox.userMailbox.Len()
-			if count > int64(batchSize) {
-				count = int64(batchSize)
-			}
-			userMsg, _ := mailbox.userMailbox.Get(count)
-			mailbox.userInvoke(userMsg)
-		} else {
-			done = true
-			break
-		}
-	}
 
-	if !done {
-		atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages)
+	for !done {
+		//process x messages in sequence, then exit
+		for i := 0; i < 1; i++ {
+			if !mailbox.systemMailbox.Empty() {
+				sysMsg, _ := mailbox.systemMailbox.Get(1)
+				first := sysMsg[0].(SystemMessage)
+				mailbox.systemInvoke(first)
+			} else if !mailbox.userMailbox.Empty() {
+				count := mailbox.userMailbox.Len()
+				if count > int64(batchSize) {
+					count = int64(batchSize)
+				}
+				userMsg, _ := mailbox.userMailbox.Get(count)
+				mailbox.userInvoke(userMsg)
+			} else {
+				done = true
+				break
+			}
+		}
+		runtime.Gosched()
 	}
 
 	//set mailbox to idle
@@ -86,7 +87,7 @@ func NewUnboundedBatchingMailbox(batchSize int) MailboxProducer {
 			systemMailbox:   systemMailbox,
 			hasMoreMessages: MailboxHasNoMessages,
 			schedulerStatus: MailboxIdle,
-			batchSize: batchSize,
+			batchSize:       batchSize,
 		}
 		return &mailbox
 	}

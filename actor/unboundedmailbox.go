@@ -3,6 +3,7 @@ package actor
 import "sync/atomic"
 import "github.com/Workiva/go-datastructures/queue"
 import _ "log"
+import "runtime"
 
 type UnboundedMailbox struct {
 	userMailbox     *queue.Queue
@@ -43,24 +44,23 @@ func (mailbox *UnboundedMailbox) processMessages() {
 	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
 
 	done := false
-	//process x messages in sequence, then exit
-	for i := 0; i < 100; i++ {
-		if !mailbox.systemMailbox.Empty() {
-			sysMsg, _ := mailbox.systemMailbox.Get(1)
-			first := sysMsg[0].(SystemMessage)
-			mailbox.systemInvoke(first)
-		} else if !mailbox.userMailbox.Empty() {
-			userMsg, _ := mailbox.userMailbox.Get(1)
-			first := userMsg[0]
-			mailbox.userInvoke(first)
-		} else {
-			done = true
-			break
+	for !done {
+		//process x messages in sequence, then exit
+		for i := 0; i < 100; i++ {
+			if !mailbox.systemMailbox.Empty() {
+				sysMsg, _ := mailbox.systemMailbox.Get(1)
+				first := sysMsg[0].(SystemMessage)
+				mailbox.systemInvoke(first)
+			} else if !mailbox.userMailbox.Empty() {
+				userMsg, _ := mailbox.userMailbox.Get(1)
+				first := userMsg[0]
+				mailbox.userInvoke(first)
+			} else {
+				done = true
+				break
+			}
 		}
-	}
-
-	if !done {
-		atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages)
+		runtime.Gosched()
 	}
 
 	//set mailbox to idle
