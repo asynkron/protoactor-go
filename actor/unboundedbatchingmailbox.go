@@ -1,11 +1,10 @@
 package actor
 
-import (
-	"runtime"
-	"sync/atomic"
+import "sync/atomic"
 
-	"github.com/Workiva/go-datastructures/queue"
-)
+import "github.com/rogeralsing/gam/queue"
+import _ "log"
+import "runtime"
 
 type UnboundedBatchingMailbox struct {
 	userMailbox     *queue.Queue
@@ -18,12 +17,12 @@ type UnboundedBatchingMailbox struct {
 }
 
 func (mailbox *UnboundedBatchingMailbox) PostUserMessage(message interface{}) {
-	mailbox.userMailbox.Put(message)
+	mailbox.userMailbox.Push(message)
 	mailbox.schedule()
 }
 
 func (mailbox *UnboundedBatchingMailbox) PostSystemMessage(message SystemMessage) {
-	mailbox.systemMailbox.Put(message)
+	mailbox.systemMailbox.Push(message)
 	mailbox.schedule()
 }
 
@@ -49,16 +48,12 @@ func (mailbox *UnboundedBatchingMailbox) processMessages() {
 	done := false
 
 	for !done {
-		if !mailbox.systemMailbox.Empty() {
-			sysMsg, _ := mailbox.systemMailbox.Get(1)
-			first := sysMsg[0].(SystemMessage)
+		if sysMsg, ok := mailbox.systemMailbox.Pop(); ok {
+
+			first := sysMsg.(SystemMessage)
 			mailbox.systemInvoke(first)
-		} else if !mailbox.userMailbox.Empty() {
-			count := mailbox.userMailbox.Len()
-			if count > int64(batchSize) {
-				count = int64(batchSize)
-			}
-			userMsg, _ := mailbox.userMailbox.Get(count)
+		} else if userMsg, ok := mailbox.userMailbox.PopMany(batchSize); ok {
+
 			mailbox.userInvoke(userMsg)
 		} else {
 			done = true
@@ -79,8 +74,8 @@ func (mailbox *UnboundedBatchingMailbox) processMessages() {
 func NewUnboundedBatchingMailbox(batchSize int) MailboxProducer {
 
 	return func() Mailbox {
-		userMailbox := queue.New(0)
-		systemMailbox := queue.New(0)
+		userMailbox := queue.New()
+		systemMailbox := queue.New()
 		mailbox := UnboundedBatchingMailbox{
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,

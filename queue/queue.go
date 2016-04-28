@@ -8,11 +8,11 @@ type Queue struct {
 	tail   int
 	len    int
 	mod    int
-	lock   sync.RWMutex
+	lock   sync.Mutex
 }
 
 func New() *Queue {
-	initialSize := 10000
+	initialSize := 10
 	return &Queue{
 		buffer: make([]interface{}, initialSize),
 		head:   0,
@@ -45,8 +45,8 @@ func (q *Queue) Push(item interface{}) {
 }
 
 func (q *Queue) Length() int {
-	q.lock.RLock()
-	defer q.lock.RUnlock()
+	q.lock.Lock()
+	defer q.lock.Lock()
 
 	return q.len
 }
@@ -66,4 +66,24 @@ func (q *Queue) Pop() (interface{}, bool) {
 	q.head = ((q.head + 1) % q.mod)
 	q.len--
 	return q.buffer[q.head], true
+}
+
+func (q *Queue) PopMany(count int) ([]interface{}, bool) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if q.len == 0 {
+		return nil, false
+	}
+
+	if count >= q.len {
+		count = q.len
+	}
+
+	buffer := make([]interface{}, count)
+	for i := 0; i < count; i++ {
+		buffer[i] = q.buffer[(q.head+1+i)%q.mod]
+	}
+	q.head = (q.head + count) % q.mod
+	q.len -= count
+	return buffer, true
 }
