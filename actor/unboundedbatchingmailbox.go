@@ -47,23 +47,20 @@ func (mailbox *UnboundedBatchingMailbox) processMessages() {
 	done := false
 
 	for !done {
-		//process x messages in sequence, then exit
-		for i := 0; i < 1; i++ {
-			if !mailbox.systemMailbox.Empty() {
-				sysMsg, _ := mailbox.systemMailbox.Get(1)
-				first := sysMsg[0].(SystemMessage)
-				mailbox.systemInvoke(first)
-			} else if !mailbox.userMailbox.Empty() {
-				count := mailbox.userMailbox.Len()
-				if count > int64(batchSize) {
-					count = int64(batchSize)
-				}
-				userMsg, _ := mailbox.userMailbox.Get(count)
-				mailbox.userInvoke(userMsg)
-			} else {
-				done = true
-				break
+		if !mailbox.systemMailbox.Empty() {
+			sysMsg, _ := mailbox.systemMailbox.Get(1)
+			first := sysMsg[0].(SystemMessage)
+			mailbox.systemInvoke(first)
+		} else if !mailbox.userMailbox.Empty() {
+			count := mailbox.userMailbox.Len()
+			if count > int64(batchSize) {
+				count = int64(batchSize)
 			}
+			userMsg, _ := mailbox.userMailbox.Get(count)
+			mailbox.userInvoke(userMsg)
+		} else {
+			done = true
+			break
 		}
 		runtime.Gosched()
 	}

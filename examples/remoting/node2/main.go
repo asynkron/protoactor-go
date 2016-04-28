@@ -5,6 +5,7 @@ import "github.com/rogeralsing/gam/remoting"
 import "bufio"
 import "os"
 import "github.com/rogeralsing/gam/examples/remoting/messages"
+import "runtime"
 
 type MyActor struct{}
 
@@ -19,8 +20,10 @@ func (*MyActor) Receive(context actor.Context) {
 }
 
 func main() {
+	runtime.GOMAXPROCS(8)
 	remoting.StartServer("localhost:8091")
 	pid := actor.SpawnTemplate(&MyActor{})
 	actor.ProcessRegistry.Register("foo", pid)
+
 	bufio.NewReader(os.Stdin).ReadString('\n')
 }
