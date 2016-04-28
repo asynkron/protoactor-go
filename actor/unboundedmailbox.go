@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"github.com/Workiva/go-datastructures/queue"
+	"github.com/rogeralsing/gam/queue"
 )
 
 type UnboundedMailbox struct {
@@ -17,12 +17,12 @@ type UnboundedMailbox struct {
 }
 
 func (mailbox *UnboundedMailbox) PostUserMessage(message interface{}) {
-	mailbox.userMailbox.Put(message)
+	mailbox.userMailbox.Push(message)
 	mailbox.schedule()
 }
 
 func (mailbox *UnboundedMailbox) PostSystemMessage(message SystemMessage) {
-	mailbox.systemMailbox.Put(message)
+	mailbox.systemMailbox.Push(message)
 	mailbox.schedule()
 }
 
@@ -49,14 +49,12 @@ func (mailbox *UnboundedMailbox) processMessages() {
 	for !done {
 		//process x messages in sequence, then exit
 		for i := 0; i < 100; i++ {
-			if !mailbox.systemMailbox.Empty() {
-				sysMsg, _ := mailbox.systemMailbox.Get(1)
-				first := sysMsg[0].(SystemMessage)
-				mailbox.systemInvoke(first)
-			} else if !mailbox.userMailbox.Empty() {
-				userMsg, _ := mailbox.userMailbox.Get(1)
-				first := userMsg[0]
-				mailbox.userInvoke(first)
+			if sysMsg, ok := mailbox.systemMailbox.Pop(); ok {
+				sys, _ := sysMsg.(SystemMessage)
+				mailbox.systemInvoke(sys)
+			} else if userMsg, ok := mailbox.userMailbox.Pop(); ok {
+
+				mailbox.userInvoke(userMsg)
 			} else {
 				done = true
 				break
@@ -75,8 +73,8 @@ func (mailbox *UnboundedMailbox) processMessages() {
 }
 
 func NewUnboundedMailbox() Mailbox {
-	userMailbox := queue.New(0)
-	systemMailbox := queue.New(0)
+	userMailbox := queue.New()
+	systemMailbox := queue.New()
 	mailbox := UnboundedMailbox{
 		userMailbox:     userMailbox,
 		systemMailbox:   systemMailbox,

@@ -12,12 +12,13 @@ type Queue struct {
 }
 
 func New() *Queue {
+	initialSize := 10000
 	return &Queue{
-		buffer: make([]interface{}, 100),
+		buffer: make([]interface{}, initialSize),
 		head:   0,
 		tail:   0,
 		len:    0,
-		mod:    100,
+		mod:    initialSize,
 	}
 }
 
@@ -26,8 +27,9 @@ func (q *Queue) Push(item interface{}) {
 	defer q.lock.Unlock()
 	q.tail = ((q.tail + 1) % q.mod)
 	if q.tail == q.head {
+		fillFactor := 50
 		//we need to resize
-		newBuff := make([]interface{}, q.mod*2)
+		newBuff := make([]interface{}, q.mod*fillFactor)
 		for i := 0; i < q.mod; i++ {
 			buffIndex := (q.head + i) % q.mod
 			x := q.buffer[buffIndex]
@@ -36,7 +38,7 @@ func (q *Queue) Push(item interface{}) {
 		q.buffer = newBuff
 		q.head = 0
 		q.tail = q.mod
-		q.mod *= 2
+		q.mod *= fillFactor
 	}
 	q.len++
 	q.buffer[q.tail] = item
@@ -53,15 +55,15 @@ func (q *Queue) Empty() bool {
 	return q.Length() == 0
 }
 
-func (q *Queue) Pop() interface{} {
+func (q *Queue) Pop() (interface{}, bool) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
-	q.head = ((q.head + 1) % q.mod)
 	if q.len == 0 {
 
-		return nil
+		return nil, false
 	}
+	q.head = ((q.head + 1) % q.mod)
 	q.len--
-	return q.buffer[q.head]
+	return q.buffer[q.head], true
 }
