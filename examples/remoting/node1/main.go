@@ -57,7 +57,6 @@ func main() {
 	wgStart.Add(1)
 
 	messageCount := 1000000
-	fillers := 50
 
 	remoting.StartServer("localhost:8090")
 
@@ -71,13 +70,9 @@ func main() {
 	remote := actor.NewPID("localhost:8091", "remote")
 	remote.Tell(&messages.StartRemote{Sender: pid})
 	wgStart.Wait()
-	log.Println("Starting to send")	
-	for j := 0; j < fillers; j++ {
-		go func() {
-			for i := 0; i < messageCount/fillers; i++ {
-				remote.Tell(message)
-			}
-		}()
+	log.Println("Starting to send")
+	for i := 0; i < messageCount; i++ {
+		remote.Tell(message)
 	}
 
 	wgStop.Wait()
