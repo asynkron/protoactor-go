@@ -1,8 +1,11 @@
 package actor
 
-import "fmt"
-import "github.com/emirpasic/gods/sets/hashset"
-import "github.com/emirpasic/gods/stacks/linkedliststack"
+import (
+	"fmt"
+
+	"github.com/emirpasic/gods/sets/hashset"
+	"github.com/emirpasic/gods/stacks/linkedliststack"
+)
 
 type Context interface {
 	Watch(*PID)

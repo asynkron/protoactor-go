@@ -1,15 +1,15 @@
 package actor
 
 import (
+	"strconv"
 	"sync"
 	"sync/atomic"
 )
-import "strconv"
 
 type HostResolver func(*PID) (ActorRef, bool)
 type ProcessRegistryValue struct {
 	Host           string
-	LocalPids      map[string]ActorRef  //maybe this should be replaced with something lockfree like ctrie instead
+	LocalPids      map[string]ActorRef //maybe this should be replaced with something lockfree like ctrie instead
 	RemoteHandlers []HostResolver
 	SequenceID     uint64
 	rw             sync.RWMutex
@@ -42,7 +42,7 @@ func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef) *PID {
 func (pr *ProcessRegistryValue) unregisterPID(pid *PID) {
 	pr.rw.Lock()
 	defer pr.rw.Unlock()
-	delete(pr.LocalPids,pid.Id)
+	delete(pr.LocalPids, pid.Id)
 }
 
 func (pr *ProcessRegistryValue) fromPID(pid *PID) (ActorRef, bool) {

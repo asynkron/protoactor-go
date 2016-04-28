@@ -1,9 +1,11 @@
 package actor
 
-import "sync/atomic"
-import "github.com/Workiva/go-datastructures/queue"
-import _ "log"
-import "runtime"
+import (
+	"runtime"
+	"sync/atomic"
+
+	"github.com/Workiva/go-datastructures/queue"
+)
 
 type UnboundedBatchingMailbox struct {
 	userMailbox     *queue.Queue

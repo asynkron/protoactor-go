@@ -1,12 +1,14 @@
 package main
 
-import "github.com/rogeralsing/gam/actor"
-import "github.com/rogeralsing/gam/remoting"
+import (
+	"github.com/rogeralsing/gam/actor"
+	"github.com/rogeralsing/gam/remoting"
 
-import "log"
-import "sync"
+	"log"
+	"sync"
 
-import "time"
+	"time"
+)
 
 // import "runtime/pprof"
 import "github.com/rogeralsing/gam/examples/remoting/messages"

@@ -1,7 +1,9 @@
 package actor
 
-import "time"
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 func RequestResponsePID() (*PID, *Response) {
 	ref := &Response{

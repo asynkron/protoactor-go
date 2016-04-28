@@ -1,8 +1,11 @@
 package remoting
 
-import "reflect"
-import proto "github.com/golang/protobuf/proto"
-import "github.com/rogeralsing/gam/actor"
+import (
+	"reflect"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/rogeralsing/gam/actor"
+)
 
 func PackMessage(message proto.Message, target *actor.PID) (*MessageEnvelope, error) {
 	typeName := proto.MessageName(message)
