@@ -28,18 +28,10 @@ func (state *localActor) Receive(context actor.Context) {
 			log.Println(state.count)
 		}
 		if state.count == state.messageCount {
-			elapsed := time.Since(state.start)
-			log.Printf("Elapsed %s", elapsed)
-
-			x := int(float32(state.messageCount*2) / (float32(elapsed) / float32(time.Second)))
-			log.Printf("Msg per sec %v", x)
-
 			state.wgStop.Done()
 		}
 	case *messages.Start:
-		log.Println("Starting")
 		state.wgStart.Done()
-		state.start = time.Now()
 	}
 }
 
@@ -71,9 +63,15 @@ func main() {
 	remote.Tell(&messages.StartRemote{Sender: pid})
 	wgStart.Wait()
 	log.Println("Starting to send")
+	start := time.Now()
 	for i := 0; i < messageCount; i++ {
 		remote.Tell(message)
 	}
 
 	wgStop.Wait()
+	elapsed := time.Since(start)
+	log.Printf("Elapsed %s", elapsed)
+
+	x := int(float32(messageCount*2) / (float32(elapsed) / float32(time.Second)))
+	log.Printf("Msg per sec %v", x)
 }
