@@ -14,6 +14,7 @@ import "runtime"
 
 type localActor struct {
 	count        int
+	wgStart      *sync.WaitGroup
 	wgStop       *sync.WaitGroup
 	start        time.Time
 	messageCount int
@@ -37,6 +38,7 @@ func (state *localActor) Receive(context actor.Context) {
 		}
 	case *messages.Start:
 		log.Println("Starting")
+		state.wgStart.Done()
 		state.start = time.Now()
 	}
 }
@@ -60,6 +62,7 @@ func main() {
 	remoting.StartServer("localhost:8090")
 
 	pid := actor.SpawnTemplate(&localActor{
+		wgStart:      &wgStart,
 		wgStop:       &wgStop,
 		messageCount: messageCount,
 	})
@@ -67,6 +70,8 @@ func main() {
 	message := &messages.Ping{Sender: pid}
 	remote := actor.NewPID("localhost:8091", "remote")
 	remote.Tell(&messages.StartRemote{Sender: pid})
+	wgStart.Wait()
+	log.Println("Starting to send")	
 	for j := 0; j < fillers; j++ {
 		go func() {
 			for i := 0; i < messageCount/fillers; i++ {
