@@ -24,6 +24,9 @@ type localActor struct {
 
 func (state *localActor) Receive(context actor.Context) {
 	switch context.Message().(type) {
+	case actor.Started:
+		state.wgStart.Add(1)
+		state.wgStop.Add(1)
 	case *messages.Pong:
 		state.count++
 		if state.count%50000 == 0 {
@@ -47,9 +50,7 @@ func main() {
 	// defer pprof.StopCPUProfile()
 
 	var wgStop sync.WaitGroup
-	wgStop.Add(1)
 	var wgStart sync.WaitGroup
-	wgStart.Add(1)
 
 	messageCount := 1000000
 
@@ -64,9 +65,11 @@ func main() {
 	message := &messages.Ping{Sender: pid}
 	remote := actor.NewPID("localhost:8091", "remote")
 	remote.Tell(&messages.StartRemote{Sender: pid})
+
 	wgStart.Wait()
-	log.Println("Starting to send")
 	start := time.Now()
+	log.Println("Starting to send")
+
 	for i := 0; i < messageCount; i++ {
 		remote.Tell(message)
 	}
