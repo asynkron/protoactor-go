@@ -7,23 +7,20 @@ import "os"
 import "github.com/rogeralsing/gam/examples/remoting/messages"
 import "runtime"
 
-type MyActor struct{}
+type remoteActor struct{}
 
-func (*MyActor) Receive(context actor.Context) {
+func (*remoteActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case *messages.Echo:
-		msg.Sender.Tell(&messages.Response{
-			SomeValue: "result",
-			AnInt:     123,
-		})
+	case *messages.Ping:
+		msg.Sender.Tell(&messages.Pong{})
 	}
 }
 
 func main() {
 	runtime.GOMAXPROCS(8)
 	remoting.StartServer("localhost:8091")
-	pid := actor.SpawnTemplate(&MyActor{})
-	actor.ProcessRegistry.Register("foo", pid)
+	pid := actor.SpawnTemplate(&remoteActor{})
+	actor.ProcessRegistry.Register("remote", pid)
 
 	bufio.NewReader(os.Stdin).ReadString('\n')
 }

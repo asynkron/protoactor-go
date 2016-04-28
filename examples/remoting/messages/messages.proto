@@ -2,12 +2,9 @@ syntax = "proto3";
 package messages;
 import "github.com/rogeralsing/gam/actor/actor.proto";
 
-message Echo {
+message Ping {
   actor.PID Sender = 1;
-  string Message = 2;
 }
 
-message Response {
-  string SomeValue = 1;
-  int32 AnInt= 2;
+message Pong {
 }

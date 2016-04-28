@@ -12,29 +12,30 @@ import "time"
 import "github.com/rogeralsing/gam/examples/remoting/messages"
 import "runtime"
 
-type MyActor struct {
-	count int
-	wg    *sync.WaitGroup
-	start time.Time
+type localActor struct {
+	count        int
+	wg           *sync.WaitGroup
+	start        time.Time
+	messageCount int
 }
 
-func (state *MyActor) Receive(context actor.Context) {
+func (state *localActor) Receive(context actor.Context) {
 	switch context.Message().(type) {
-	case *messages.Response:
+	case *messages.Pong:
 		state.count++
-		if state.count%10000 == 0 {
+		if state.count%50000 == 0 {
 			log.Println(state.count)
 		}
 		if state.count == 1 {
 			state.start = time.Now()
 		}
-		if state.count == 1000000 {
+		if state.count == state.messageCount {
 			elapsed := time.Since(state.start)
 			log.Printf("Elapsed %s", elapsed)
-			
-			x := int(2000000.0 / (float32(elapsed) / float32(time.Second)))
+
+			x := int(float32(state.messageCount*2) / (float32(elapsed) / float32(time.Second)))
 			log.Printf("Msg per sec %v", x)
-			
+
 			state.wg.Done()
 		}
 	}
@@ -51,16 +52,19 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
+	messageCount := 1000000
+	fillers := 10
+
 	remoting.StartServer("localhost:8090")
 
-	pid := actor.SpawnTemplate(&MyActor{wg: &wg})
+	pid := actor.SpawnTemplate(&localActor{wg: &wg, messageCount: messageCount})
 
-	message := &messages.Echo{Message: "", Sender: pid}
-	remote := actor.NewPID("localhost:8091", "foo")
+	message := &messages.Ping{Sender: pid}
+	remote := actor.NewPID("localhost:8091", "remote")
 
-	for j := 0; j < 10; j++ {
+	for j := 0; j < fillers; j++ {
 		go func() {
-			for i := 0; i < 100000; i++ {
+			for i := 0; i < messageCount/fillers; i++ {
 				remote.Tell(message)
 			}
 		}()
