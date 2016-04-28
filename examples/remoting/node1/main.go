@@ -38,7 +38,7 @@ func (state *localActor) Receive(context actor.Context) {
 }
 
 func main() {
-	runtime.GOMAXPROCS(8)
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	// f, err := os.Create("cpuprofile")
 	// if err != nil {
 	// 	log.Fatal(err)
@@ -84,5 +84,4 @@ func main() {
 	// }
 	// pprof.WriteHeapProfile(f)
 	// f.Close()
-	// return
 }

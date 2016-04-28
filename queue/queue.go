@@ -27,14 +27,14 @@ func (q *Queue) Push(item interface{}) {
 	defer q.lock.Unlock()
 	q.tail = ((q.tail + 1) % q.mod)
 	if q.tail == q.head {
-		fillFactor := 50
+		fillFactor := 2
 		//we need to resize
 		newBuff := make([]interface{}, q.mod*fillFactor)
 		for i := 0; i < q.mod; i++ {
 			buffIndex := (q.head + i) % q.mod
-			x := q.buffer[buffIndex]
-			newBuff[i] = x
+			newBuff[i] = q.buffer[buffIndex]
 		}
+		//set the new buffer and reset head and tail
 		q.buffer = newBuff
 		q.head = 0
 		q.tail = q.mod

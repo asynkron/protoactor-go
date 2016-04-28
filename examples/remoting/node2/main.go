@@ -24,7 +24,8 @@ func (*remoteActor) Receive(context actor.Context) {
 }
 
 func main() {
-	runtime.GOMAXPROCS(8)
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	remoting.StartServer("localhost:8091")
 	pid := actor.SpawnTemplate(&remoteActor{})
 	actor.ProcessRegistry.Register("remote", pid)
