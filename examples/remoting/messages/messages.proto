@@ -2,9 +2,11 @@ syntax = "proto3";
 package messages;
 import "github.com/rogeralsing/gam/actor/actor.proto";
 
+message Start {}
+message StartRemote {
+     actor.PID Sender = 1; 
+}
 message Ping {
-  actor.PID Sender = 1;
+     actor.PID Sender = 1; 
 }
-
-message Pong {
-}
+message Pong {}
