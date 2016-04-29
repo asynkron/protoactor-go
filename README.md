@@ -12,7 +12,7 @@ Avoid enterprisey JVM like containers and configurations.
 
 #### Build on existing technologies
 
-There are already a lot of great tech for e.g. netowrking and clustering, build on those.
+There are already a lot of great tech for e.g. networking and clustering, build on those.
 e.g. gRPC streams for networking, Consul.IO for clustering.
 
 #### Pass data, not objects
