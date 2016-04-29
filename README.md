@@ -24,7 +24,25 @@ Protobuf all the way.
 
 Do not trade performance for magic API trickery.
 
-GAM currently manages to pass 600k+ messages per second using only two remote actor, while still preserving message order!
+Ultra fast remoting, GAM currently manages to pass 600k+ messages between nodes using only two actors, while still preserving message order!
+
+```
+{lamb} node1
+2016/04/29 10:21:08 Started EndpointManager
+2016/04/29 10:21:08 Starting GAM server on localhost:8090.
+2016/04/29 10:21:08 Started EndpointWriter for host localhost:8091
+2016/04/29 10:21:08 Connecting to host localhost:8091
+2016/04/29 10:21:08 Connected to host localhost:8091
+2016/04/29 10:21:08 Getting stream from host localhost:8091
+2016/04/29 10:21:09 Got stream from host localhost:8091
+2016/04/29 10:21:10 Starting to send
+2016/04/29 10:21:11 50000
+...snip....
+2016/04/29 10:21:13 1000000
+2016/04/29 10:21:13 Elapsed 3.0853098s
+
+2016/04/29 10:21:13 Msg per sec 648233 <---------------------------------
+```
 
 ---
 
