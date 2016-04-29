@@ -24,6 +24,8 @@ Protobuf all the way.
 
 Do not trade performance for magic API trickery.
 
+GAM currently manages to pass 600k+ messages per second using only two remote actor, while still preserving message order!
+
 ---
 
 
