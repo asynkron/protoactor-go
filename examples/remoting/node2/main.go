@@ -25,10 +25,23 @@ func (*remoteActor) Receive(context actor.Context) {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	// f, err := os.Create("cpuprofile")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// pprof.StartCPUProfile(f)
+	// defer pprof.StopCPUProfile()
 
 	remoting.StartServer("localhost:8091")
 	pid := actor.SpawnTemplate(&remoteActor{})
 	actor.ProcessRegistry.Register("remote", pid)
+
+	// f, err = os.Create("memprof")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// pprof.WriteHeapProfile(f)
+	// f.Close()
 
 	bufio.NewReader(os.Stdin).ReadString('\n')
 }
