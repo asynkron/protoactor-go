@@ -1,1 +1,1 @@
-c:\proto\protoc actor.proto --gofast_out=plugins=grpc:.
+c:\proto\protoc --gofast_out=plugins=grpc:. --proto_path=. --proto_path=c:\Projects\Go\src protos.proto

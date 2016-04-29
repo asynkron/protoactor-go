@@ -1,6 +1,7 @@
 syntax = "proto3";
 package messages;
-import "github.com/rogeralsing/gam/actor/actor.proto";
+import "github.com/rogeralsing/gam/actor/protos.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message Start {}
 message StartRemote {
