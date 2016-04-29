@@ -1,5 +1,7 @@
 package actor
 
+import "log"
+
 type Directive int
 
 const (
@@ -34,6 +36,7 @@ func NewOneForOneStrategy(maxNrOfRetries int, withinTimeRangeMilliseconds int, d
 }
 
 func DefaultDecider(child *PID, reason interface{}) Directive {
+	log.Println(reason)
 	return RestartDirective
 }
 
