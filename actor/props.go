@@ -25,7 +25,7 @@ func (props PropsValue) Supervisor() SupervisionStrategy {
 
 func (props PropsValue) ProduceMailbox() Mailbox {
 	if props.mailboxProducer == nil {
-		return NewUnboundedMailbox()
+		return NewUnboundedMailbox(100)()
 	}
 	return props.mailboxProducer()
 }

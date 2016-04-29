@@ -8,6 +8,7 @@ import (
 )
 
 type UnboundedMailbox struct {
+	throughput      int
 	userMailbox     *queue.Queue
 	systemMailbox   *queue.Queue
 	schedulerStatus int32
@@ -48,7 +49,7 @@ func (mailbox *UnboundedMailbox) processMessages() {
 	done := false
 	for !done {
 		//process x messages in sequence, then exit
-		for i := 0; i < 100; i++ {
+		for i := 0; i < mailbox.throughput; i++ {
 			if sysMsg, ok := mailbox.systemMailbox.Pop(); ok {
 				sys, _ := sysMsg.(SystemMessage)
 				mailbox.systemInvoke(sys)
@@ -72,16 +73,19 @@ func (mailbox *UnboundedMailbox) processMessages() {
 
 }
 
-func NewUnboundedMailbox() Mailbox {
-	userMailbox := queue.New()
-	systemMailbox := queue.New()
-	mailbox := UnboundedMailbox{
-		userMailbox:     userMailbox,
-		systemMailbox:   systemMailbox,
-		hasMoreMessages: MailboxHasNoMessages,
-		schedulerStatus: MailboxIdle,
+func NewUnboundedMailbox(throughput int) MailboxProducer {
+	return func() Mailbox {
+		userMailbox := queue.New()
+		systemMailbox := queue.New()
+		mailbox := UnboundedMailbox{
+			throughput:      throughput,
+			userMailbox:     userMailbox,
+			systemMailbox:   systemMailbox,
+			hasMoreMessages: MailboxHasNoMessages,
+			schedulerStatus: MailboxIdle,
+		}
+		return &mailbox
 	}
-	return &mailbox
 }
 
 func (mailbox *UnboundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
