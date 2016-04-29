@@ -27,7 +27,7 @@ Do not trade performance for magic API trickery.
 Ultra fast remoting, GAM currently manages to pass 600k+ messages between nodes using only two actors, while still preserving message order!
 
 ```
-{lamb} node1
+:> node1.exe
 2016/04/29 10:21:08 Started EndpointManager
 2016/04/29 10:21:08 Starting GAM server on localhost:8090.
 2016/04/29 10:21:08 Started EndpointWriter for host localhost:8091
