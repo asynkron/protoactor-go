@@ -8,7 +8,7 @@ type Queue struct {
 	tail   int
 	len    int
 	mod    int
-	lock   sync.Mutex
+	lock   sync.RWMutex
 }
 
 func New() *Queue {
@@ -29,7 +29,10 @@ func (q *Queue) Push(item interface{}) {
 	if q.tail == q.head {
 		fillFactor := 2
 		//we need to resize
-		newBuff := make([]interface{}, q.mod*fillFactor)
+
+		newLen := q.mod * fillFactor
+		newBuff := make([]interface{}, newLen)
+
 		for i := 0; i < q.mod; i++ {
 			buffIndex := (q.head + i) % q.mod
 			newBuff[i] = q.buffer[buffIndex]
@@ -45,8 +48,8 @@ func (q *Queue) Push(item interface{}) {
 }
 
 func (q *Queue) Length() int {
-	q.lock.Lock()
-	defer q.lock.Lock()
+	q.lock.RLock()
+	defer q.lock.RUnlock()
 
 	return q.len
 }

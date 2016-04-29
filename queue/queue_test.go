@@ -10,7 +10,7 @@ import (
 func TestPushPop(t *testing.T) {
 	q := New()
 	q.Push("hello")
-	res := q.Pop()
+	res, _ := q.Pop()
 	assert.Equal(t, "hello", res)
 	assert.True(t, q.Empty())
 }
@@ -20,7 +20,7 @@ func TestPushPopMany(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		item := fmt.Sprintf("hello%v", i)
 		q.Push(item)
-		res := q.Pop()
+		res, _ := q.Pop()
 		assert.Equal(t, item, res)
 	}
 	assert.True(t, q.Empty())
@@ -34,7 +34,7 @@ func TestPushPopMany2(t *testing.T) {
 	}
 	for i := 0; i < 10000; i++ {
 		item := fmt.Sprintf("hello%v", i)
-		res := q.Pop()
+		res, _ := q.Pop()
 		assert.Equal(t, item, res)
 	}
 	assert.True(t, q.Empty())
