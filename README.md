@@ -3,7 +3,29 @@
 GAM is a MVP Actor Model framework for Go.<br/>
 <br/>
 
-The framework started out as a port of JVM Akka.Actor, but have since then been reworked to be closer to Erlang semantics.<br/>
+Design principles:
+
+#### Minimalistic API
+
+In the spirit of Go, the API should be small and easy to use.
+Avoid enterprisey JVM like containers and configurations.
+
+#### Build on existing technologies
+
+There are already a lot of great tech for e.g. netowrking and clustering, build on those.
+e.g. gRPC streams for networking, Consul.IO for clustering.
+
+#### Pass data, not objects
+
+Serialization is an explicit concern, don't try to hide it.
+Protobuf all the way.
+
+#### Be fast
+
+Do not trade performance for magic API trickery.
+
+---
+
 
 ## Hello world
 ```go
