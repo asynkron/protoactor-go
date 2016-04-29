@@ -1,1 +1,1 @@
-c:\proto\protoc actor.proto --go_out=plugins=grpc:.
+c:\proto\protoc actor.proto --gofast_out=plugins=grpc:.

@@ -1,1 +1,1 @@
-c:\proto\protoc --go_out=plugins=grpc:. --proto_path=. --proto_path=c:\Projects\Go\src remoting.proto
+c:\proto\protoc --gofast_out=plugins=grpc:. --proto_path=. --proto_path=c:\Projects\Go\src remoting.proto

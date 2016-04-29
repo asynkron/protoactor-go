@@ -1,1 +1,1 @@
-c:\proto\protoc --go_out=. --proto_path=.  --proto_path=c:\Projects\Go\src messages.proto
+c:\proto\protoc --gofast_out=. --proto_path=.  --proto_path=c:\Projects\Go\src messages.proto

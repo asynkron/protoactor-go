@@ -114,6 +114,7 @@ func (state *endpointWriter) initialize() {
 	log.Println("Started EndpointWriter for host", state.host)
 	log.Println("Connecting to host", state.host)
 	conn, err := grpc.Dial(state.host, grpc.WithInsecure())
+
 	if err != nil {
 		log.Fatalf("Failed to connect to host %v: %v", state.host, err)
 	}
@@ -136,11 +137,11 @@ func (state *endpointWriter) sendEnvelopes(messages []interface{}, ctx actor.Con
 		envelopes[i] = tmp.(*MessageEnvelope)
 	}
 
-	pack := &MessageBatch{
+	batch := &MessageBatch{
 		Envelopes: envelopes,
 	}
 
-	err := state.stream.Send(pack)
+	err := state.stream.Send(batch)
 	if err != nil {
 		ctx.Stash()
 		log.Println("Failed to send to host", state.host)
