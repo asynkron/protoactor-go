@@ -70,11 +70,9 @@ func main() {
 	start := time.Now()
 	log.Println("Starting to send")
 
-	go func() {
-		for i := 0; i < messageCount; i++ {
-			remote.Tell(message)
-		}
-	}()
+	for i := 0; i < messageCount; i++ {
+		remote.Tell(message)
+	}
 
 	wgStop.Wait()
 	elapsed := time.Since(start)
