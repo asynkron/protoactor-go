@@ -50,6 +50,11 @@ Ultra fast remoting, GAM currently manages to pass 600k+ messages between nodes 
 
 ![batman](/resources/batman.jpg)
 
+* Decoupled Concurrency
+* Distributed by default
+* Fault tolerance
+
+For a more indepth description of the differences, see this thread [Actors vs. CSP](https://www.quora.com/Go-programming-language-How-are-Akka-actors-are-different-than-Goroutines-and-Channels)
 
 ## Hello world
 ```go
