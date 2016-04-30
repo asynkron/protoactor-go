@@ -46,6 +46,10 @@ Ultra fast remoting, GAM currently manages to pass 600k+ messages between nodes 
 
 ---
 
+## Why Actors?
+
+[batman](/resources/batman.jpg)
+
 
 ## Hello world
 ```go
