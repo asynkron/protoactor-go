@@ -63,7 +63,7 @@ func main() {
 	})
 
 	message := &messages.Ping{Sender: pid}
-	remote := actor.NewPID("127.0.0.1:8091", "remote")
+	remote := actor.NewPID("127.0.0.1:8080", "remote")
 	remote.Tell(&messages.StartRemote{Sender: pid})
 
 	wgStart.Wait()

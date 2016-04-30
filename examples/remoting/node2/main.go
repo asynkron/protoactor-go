@@ -32,7 +32,7 @@ func main() {
 	// pprof.StartCPUProfile(f)
 	// defer pprof.StopCPUProfile()
 
-	remoting.StartServer("127.0.0.1:8091")
+	remoting.StartServer("127.0.0.1:8080")
 	pid := actor.SpawnTemplate(&remoteActor{})
 	actor.ProcessRegistry.Register("remote", pid)
 
