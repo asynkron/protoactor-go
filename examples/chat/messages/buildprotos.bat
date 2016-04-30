@@ -1,0 +1,1 @@
+c:\proto\protoc --gofast_out=. --proto_path=.  --proto_path=c:\Projects\Go\src protos.proto

@@ -1,5 +1,13 @@
 package remoting
 
+import (
+	"log"
+	"net"
+
+	"github.com/rogeralsing/gam/actor"
+	"google.golang.org/grpc"
+)
+
 type server struct{}
 
 func (s *server) Receive(stream Remoting_ReceiveServer) error {
@@ -14,4 +22,24 @@ func (s *server) Receive(stream Remoting_ReceiveServer) error {
 			pid.Tell(message)
 		}
 	}
+}
+
+func StartServer(host string) {
+
+	lis, err := net.Listen("tcp", host)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	host = lis.Addr().String()
+	log.Printf("Host is %v", host)
+	actor.ProcessRegistry.RegisterHostResolver(remoteHandler)
+	actor.ProcessRegistry.Host = host
+
+	endpointManagerPID = actor.Spawn(actor.Props(newEndpointManager).WithMailbox(actor.NewUnboundedMailbox(1000)))
+
+	s := grpc.NewServer()
+	RegisterRemotingServer(s, &server{})
+	log.Printf("Starting GAM server on %v.", host)
+	go s.Serve(lis)
 }

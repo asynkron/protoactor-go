@@ -1,0 +1,32 @@
+syntax = "proto3";
+package messages;
+import "github.com/rogeralsing/gam/actor/protos.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message Connect {
+    actor.PID Sender = 1;
+}
+
+message Connected {
+    string Message = 1;
+}
+
+message SayRequest {
+    string UserName = 1;
+    string Message = 2;
+}
+
+message SayResponse {
+    string UserName = 1;
+    string Message = 2;
+}
+
+message NickRequest {
+    string OldUserName = 1;
+    string NewUserName = 2;
+}
+
+message NickResponse {
+    string OldUserName = 1;
+    string NewUserName = 2;
+}

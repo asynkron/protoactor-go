@@ -54,7 +54,7 @@ func main() {
 
 	messageCount := 1000000
 
-	remoting.StartServer("localhost:8090")
+	remoting.StartServer("127.0.0.1:0")
 
 	pid := actor.SpawnTemplate(&localActor{
 		wgStart:      &wgStart,
@@ -63,7 +63,7 @@ func main() {
 	})
 
 	message := &messages.Ping{Sender: pid}
-	remote := actor.NewPID("localhost:8091", "remote")
+	remote := actor.NewPID("127.0.0.1:8091", "remote")
 	remote.Tell(&messages.StartRemote{Sender: pid})
 
 	wgStart.Wait()

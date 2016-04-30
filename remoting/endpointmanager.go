@@ -2,30 +2,11 @@ package remoting
 
 import (
 	"log"
-	"net"
-
-	"google.golang.org/grpc"
 
 	"github.com/rogeralsing/gam/actor"
 )
 
 var endpointManagerPID *actor.PID
-
-func StartServer(host string) {
-	actor.ProcessRegistry.RegisterHostResolver(remoteHandler)
-	actor.ProcessRegistry.Host = host
-
-	endpointManagerPID = actor.Spawn(actor.Props(newEndpointManager).WithMailbox(actor.NewUnboundedMailbox(1000)))
-
-	lis, err := net.Listen("tcp", host)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
-	RegisterRemotingServer(s, &server{})
-	log.Printf("Starting GAM server on %v.", host)
-	go s.Serve(lis)
-}
 
 func newEndpointManager() actor.Actor {
 	return &endpointManager{}
