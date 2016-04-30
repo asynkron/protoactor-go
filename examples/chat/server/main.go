@@ -1,7 +1,8 @@
-package chatserver
+package main
 
 import (
 	"bufio"
+	"log"
 	"os"
 	"runtime"
 
@@ -25,6 +26,7 @@ func (state *server) notifyAll(message interface{}) {
 func (state *server) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case messages.Connect:
+		log.Printf("Client %v connected", msg.Sender)
 		state.clients.Add(msg.Sender)
 		msg.Sender.Tell(&messages.Connected{Message: "Welcome!"})
 	case messages.SayRequest:
@@ -40,18 +42,12 @@ func (state *server) Receive(context actor.Context) {
 	}
 }
 
-func newServer() actor.ActorProducer {
-	return func() actor.Actor {
-		return &server{
-			clients: hashset.New(),
-		}
-	}
-}
-
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	remoting.StartServer("127.0.0.1:8080")
-	pid := actor.SpawnFunc(newServer())
+	pid := actor.SpawnTemplate(&server{
+		clients: hashset.New(),
+	})
 	actor.ProcessRegistry.Register("chatserver", pid)
 	bufio.NewReader(os.Stdin).ReadString('\n')
 }
