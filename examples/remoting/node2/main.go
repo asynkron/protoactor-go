@@ -39,7 +39,7 @@ func main() {
 	// defer pprof.StopCPUProfile()
 
 	remoting.StartServer("127.0.0.1:8080")
-	pid := actor.Spawn(actor.Props(newRemoteActor()).WithMailbox(actor.NewBoundedMailbox(1000, 1000)))
+	pid := actor.Spawn(actor.Props(newRemoteActor()).WithMailbox(actor.NewBoundedMailbox(1000, 10000)))
 	actor.ProcessRegistry.Register("remote", pid)
 
 	// f, err = os.Create("memprof")
