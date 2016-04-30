@@ -25,16 +25,16 @@ func (state *server) notifyAll(message interface{}) {
 
 func (state *server) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case messages.Connect:
+	case *messages.Connect:
 		log.Printf("Client %v connected", msg.Sender)
 		state.clients.Add(msg.Sender)
 		msg.Sender.Tell(&messages.Connected{Message: "Welcome!"})
-	case messages.SayRequest:
+	case *messages.SayRequest:
 		state.notifyAll(&messages.SayResponse{
 			UserName: msg.UserName,
 			Message:  msg.Message,
 		})
-	case messages.NickRequest:
+	case *messages.NickRequest:
 		state.notifyAll(&messages.NickResponse{
 			OldUserName: msg.OldUserName,
 			NewUserName: msg.NewUserName,
