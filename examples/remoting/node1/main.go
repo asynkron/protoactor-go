@@ -40,6 +40,16 @@ func (state *localActor) Receive(context actor.Context) {
 	}
 }
 
+func newLocalActor(start *sync.WaitGroup, stop *sync.WaitGroup, messageCount int) actor.ActorProducer {
+	return func() actor.Actor {
+		return &localActor{
+			wgStart:      start,
+			wgStop:       stop,
+			messageCount: messageCount,
+		}
+	}
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	// f, err := os.Create("cpuprofile")
@@ -56,11 +66,7 @@ func main() {
 
 	remoting.StartServer("127.0.0.1:0")
 
-	pid := actor.SpawnTemplate(&localActor{
-		wgStart:      &wgStart,
-		wgStop:       &wgStop,
-		messageCount: messageCount,
-	})
+	pid := actor.Spawn(actor.Props(newLocalActor(&wgStart, &wgStop, messageCount)).WithMailbox(actor.NewBoundedMailbox(1000, 1000)))
 
 	message := &messages.Ping{Sender: pid}
 	remote := actor.NewPID("127.0.0.1:8080", "remote")
