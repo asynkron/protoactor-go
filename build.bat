@@ -19,3 +19,4 @@ go build ./examples/remotebenchmark/node1
 go build ./examples/remotebenchmark/node2
 go build ./examples/supervison
 
+rm *.exe
