@@ -11,24 +11,23 @@ import (
 	"github.com/rogeralsing/gam/remoting"
 )
 
-//spawn an inline actor that pushes messages onto the channel
-func newMyMessageChannel() <-chan *messages.MyMessage {
+func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	remoting.StartServer("127.0.0.1:8080")
+	//create the channel
 	channel := make(chan *messages.MyMessage)
+
+	//create an actor receiving messages and pushing them onto the channel
 	pid := actor.SpawnReceiveFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *messages.MyMessage:
 			channel <- msg
 		}
 	})
+	//expose a known endpoint
 	actor.ProcessRegistry.Register("MyMessage", pid)
-	return channel
-}
 
-func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	remoting.StartServer("127.0.0.1:8080")
-	channel := newMyMessageChannel()
-
+	//consume the channel just like you use to
 	go func() {
 		for msg := range channel {
 			log.Println(msg)
