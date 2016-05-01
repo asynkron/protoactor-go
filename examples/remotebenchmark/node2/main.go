@@ -7,7 +7,7 @@ import (
 	"runtime"
 
 	"github.com/rogeralsing/gam/actor"
-	"github.com/rogeralsing/gam/examples/remoting/messages"
+	"github.com/rogeralsing/gam/examples/remotebenchmark/messages"
 	"github.com/rogeralsing/gam/remoting"
 )
 

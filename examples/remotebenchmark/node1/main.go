@@ -11,7 +11,7 @@ import (
 )
 
 // import "runtime/pprof"
-import "github.com/rogeralsing/gam/examples/remoting/messages"
+import "github.com/rogeralsing/gam/examples/remotebenchmark/messages"
 import "runtime"
 
 type localActor struct {
