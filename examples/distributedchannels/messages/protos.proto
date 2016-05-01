@@ -1,0 +1,7 @@
+syntax = "proto3";
+package messages;
+import "github.com/rogeralsing/gam/actor/protos.proto";
+
+message MyMessage {
+    string Message = 1;
+}
