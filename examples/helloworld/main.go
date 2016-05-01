@@ -1,11 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 
 	"github.com/rogeralsing/gam/actor"
+	"github.com/rogeralsing/goconsole"
 )
 
 type Hello struct{ Who string }
@@ -21,5 +20,5 @@ func (state *HelloActor) Receive(context actor.Context) {
 func main() {
 	pid := actor.SpawnTemplate(&HelloActor{})
 	pid.Tell(Hello{Who: "Roger"})
-	bufio.NewReader(os.Stdin).ReadString('\n')
+	console.ReadLine()
 }

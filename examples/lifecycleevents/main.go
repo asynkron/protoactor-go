@@ -1,12 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/rogeralsing/gam/actor"
+	"github.com/rogeralsing/goconsole"
 )
 
 type Hello struct{ Who string }
@@ -42,5 +41,5 @@ func main() {
 	time.Sleep(1 * time.Second)
 	actor.Stop()
 
-	bufio.NewReader(os.Stdin).ReadString('\n')
+	console.ReadLine()
 }

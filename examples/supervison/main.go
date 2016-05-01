@@ -1,11 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 
 	"github.com/rogeralsing/gam/actor"
+	"github.com/rogeralsing/goconsole"
 )
 
 type Hello struct{ Who string }
@@ -54,5 +53,5 @@ func main() {
 	pid := actor.Spawn(actor.Props(NewParentActor).WithSupervisor(supervisor))
 	pid.Tell(Hello{Who: "Roger"})
 
-	bufio.NewReader(os.Stdin).ReadString('\n')
+	console.ReadLine()
 }

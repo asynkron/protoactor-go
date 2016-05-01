@@ -1,15 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"log"
-	"os"
 	"runtime"
 	"strings"
 
 	"github.com/rogeralsing/gam/actor"
 	"github.com/rogeralsing/gam/examples/chat/messages"
 	"github.com/rogeralsing/gam/remoting"
+	"github.com/rogeralsing/goconsole"
 )
 
 func main() {
@@ -35,8 +34,8 @@ func main() {
 
 	nick := "Roger"
 	for {
-		text, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-		text = strings.TrimRight(text, " \t\n\r") //trim ws
+
+		text, _ := console.ReadLine()
 		if strings.HasPrefix(text, "/nick ") {
 			newNick := strings.Split(text, " ")[1] //get the first word after /nick
 			server.Tell(&messages.NickRequest{
@@ -50,5 +49,6 @@ func main() {
 				Message:  text,
 			})
 		}
+
 	}
 }

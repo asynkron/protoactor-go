@@ -1,14 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"log"
-	"os"
 	"runtime"
 
 	"github.com/rogeralsing/gam/actor"
 	"github.com/rogeralsing/gam/examples/remotebenchmark/messages"
 	"github.com/rogeralsing/gam/remoting"
+	"github.com/rogeralsing/goconsole"
 )
 
 type remoteActor struct{}
@@ -36,5 +35,5 @@ func main() {
 	pid := actor.Spawn(actor.Props(newRemoteActor()).WithMailbox(actor.NewBoundedMailbox(1000, 10000)))
 	actor.ProcessRegistry.Register("remote", pid)
 
-	bufio.NewReader(os.Stdin).ReadString('\n')
+	console.ReadLine()
 }

@@ -1,14 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"runtime"
 
 	"github.com/rogeralsing/gam/actor"
 	"github.com/rogeralsing/gam/examples/distributedchannels/messages"
 	"github.com/rogeralsing/gam/remoting"
+	"github.com/rogeralsing/goconsole"
 )
 
 func newMyMessageSenderChannel() chan<- *messages.MyMessage {
@@ -35,5 +34,5 @@ func main() {
 		channel <- message
 	}
 
-	bufio.NewReader(os.Stdin).ReadString('\n')
+	console.ReadLine()
 }
