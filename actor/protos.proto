@@ -1,6 +1,5 @@
 syntax = "proto3";
 package actor;
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message PID {
   string Host = 1;

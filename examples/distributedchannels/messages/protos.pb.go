@@ -3,13 +3,13 @@
 // DO NOT EDIT!
 
 /*
-	Package messages is a generated protocol buffer package.
+Package messages is a generated protocol buffer package.
 
-	It is generated from these files:
-		protos.proto
+It is generated from these files:
+	protos.proto
 
-	It has these top-level messages:
-		MyMessage
+It has these top-level messages:
+	MyMessage
 */
 package messages
 

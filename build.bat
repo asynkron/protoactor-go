@@ -1,3 +1,10 @@
+cmd.exe /c buildprotos.bat ./actor
+cmd.exe /c buildprotos.bat ./remoting
+cmd.exe /c buildprotos.bat ./examples/chat/messages
+cmd.exe /c buildprotos.bat ./examples/distributedchannels/messages
+cmd.exe /c buildprotos.bat ./examples/remotebenchmark/messages
+
+
 go build ./queue
 go build ./actor
 go build ./remoting
