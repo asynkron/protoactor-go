@@ -24,7 +24,7 @@ Protobuf all the way.
 
 Do not trade performance for magic API trickery.
 
-Ultra fast remoting, GAM currently manages to pass 600k+ messages between nodes using only two actors, while still preserving message order!
+Ultra fast remoting, GAM currently manages to pass 800k+ messages between nodes using only two actors, while still preserving message order!
 
 ```
 :> node1.exe
