@@ -36,9 +36,7 @@ func main() {
 		FromProducer(newRemoteActor()).
 		WithMailbox(actor.NewBoundedMailbox(1000, 10000))
 
-	pid := actor.Spawn(props)
-
-	actor.ProcessRegistry.Register("remote", pid)
+	actor.SpawnNamed(props, "remote")
 
 	console.ReadLine()
 }

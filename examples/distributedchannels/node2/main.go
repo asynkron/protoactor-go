@@ -23,9 +23,7 @@ func main() {
 			channel <- msg
 		}
 	})
-	pid := actor.Spawn(props)
-	//expose a known endpoint
-	actor.ProcessRegistry.Register("MyMessage", pid)
+	actor.SpawnNamed(props, "MyMessage")
 
 	//consume the channel just like you use to
 	go func() {

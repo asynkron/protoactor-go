@@ -17,8 +17,7 @@ type Context interface {
 	Self() *PID
 	Parent() *PID
 	Spawn(Properties) *PID
-	SpawnTemplate(Actor) *PID
-	SpawnFunc(ActorProducer) *PID
+	SpawnNamed(Properties, string) *PID
 	Children() []*PID
 	Stash()
 }
@@ -254,26 +253,12 @@ func (cell *ActorCell) Unwatch(who *PID) {
 // }
 
 func (cell *ActorCell) Spawn(props Properties) *PID {
-	pid := spawn(props, cell.self)
-	cell.children.Add(pid)
-	cell.Watch(pid)
-	return pid
+	id := ProcessRegistry.getAutoId()
+	return cell.SpawnNamed(props, id)
 }
 
-func (cell *ActorCell) SpawnTemplate(template Actor) *PID {
-	producer := func() Actor {
-		return template
-	}
-	props := FromProducer(producer)
-	pid := spawn(props, cell.self)
-	cell.children.Add(pid)
-	cell.Watch(pid)
-	return pid
-}
-
-func (cell *ActorCell) SpawnFunc(producer ActorProducer) *PID {
-	props := FromProducer(producer)
-	pid := spawn(props, cell.self)
+func (cell *ActorCell) SpawnNamed(props Properties, name string) *PID {
+	pid := spawn(name, props, cell.self)
 	cell.children.Add(pid)
 	cell.Watch(pid)
 	return pid

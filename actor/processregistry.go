@@ -25,12 +25,16 @@ func (pr *ProcessRegistryValue) RegisterHostResolver(handler HostResolver) {
 	pr.RemoteHandlers = append(pr.RemoteHandlers, handler)
 }
 
-func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef) *PID {
-	id := atomic.AddUint64(&pr.SequenceID, 1)
+func (pr *ProcessRegistryValue) getAutoId() string {
+	id := strconv.FormatUint(atomic.AddUint64(&pr.SequenceID, 1), 16)
+	return id
+}
+
+func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef, id string) *PID {
 
 	pid := PID{
 		Host: pr.Host,
-		Id:   strconv.FormatUint(id, 16),
+		Id:   id,
 	}
 
 	pr.rw.Lock()
@@ -64,9 +68,4 @@ func (pr *ProcessRegistryValue) fromPID(pid *PID) (ActorRef, bool) {
 		return deadLetter, false
 	}
 	return ref, true
-}
-
-func (pr *ProcessRegistryValue) Register(name string, pid *PID) {
-	ref, _ := pr.fromPID(pid)
-	pr.LocalPids[name] = ref
 }

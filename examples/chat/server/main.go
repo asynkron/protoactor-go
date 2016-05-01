@@ -40,7 +40,6 @@ func main() {
 			})
 		}
 	})
-	server := actor.Spawn(props)
-	actor.ProcessRegistry.Register("chatserver", server)
+	actor.SpawnNamed(props, "chatserver")
 	console.ReadLine()
 }
