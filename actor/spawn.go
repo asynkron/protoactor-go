@@ -22,6 +22,13 @@ func Spawn(props Properties) *PID {
 	return pid
 }
 
+func SpawnReceiveFunc(receive Receive) *PID {
+	pid := SpawnTemplate(&EmptyActor{
+		receive: receive,
+	})
+	return pid
+}
+
 func spawnChild(props Properties, parent *PID) *PID {
 	cell := NewActorCell(props, parent)
 	mailbox := props.ProduceMailbox()

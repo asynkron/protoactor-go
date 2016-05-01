@@ -11,22 +11,14 @@ import (
 	"github.com/rogeralsing/gam/remoting"
 )
 
-//actor state has ref to the receiving channel
-type myMessageChannelReceiver struct {
-	channel chan<- *messages.MyMessage
-}
-
-func (state *myMessageChannelReceiver) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case *messages.MyMessage:
-		state.channel <- msg
-	}
-}
-
+//spawn an inline actor that pushes messages onto the channel
 func newMyMessageChannel() <-chan *messages.MyMessage {
 	channel := make(chan *messages.MyMessage)
-	pid := actor.SpawnTemplate(&myMessageChannelReceiver{
-		channel: channel,
+	pid := actor.SpawnReceiveFunc(func(context actor.Context) {
+		switch msg := context.Message().(type) {
+		case *messages.MyMessage:
+			channel <- msg
+		}
 	})
 	actor.ProcessRegistry.Register("MyMessage", pid)
 	return channel
