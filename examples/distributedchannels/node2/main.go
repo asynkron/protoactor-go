@@ -17,12 +17,13 @@ func main() {
 	channel := make(chan *messages.MyMessage)
 
 	//create an actor receiving messages and pushing them onto the channel
-	pid := actor.SpawnReceiveFunc(func(context actor.Context) {
+	props := actor.FromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *messages.MyMessage:
 			channel <- msg
 		}
 	})
+	pid := actor.Spawn(props)
 	//expose a known endpoint
 	actor.ProcessRegistry.Register("MyMessage", pid)
 

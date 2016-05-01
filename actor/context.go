@@ -254,7 +254,7 @@ func (cell *ActorCell) Unwatch(who *PID) {
 // }
 
 func (cell *ActorCell) Spawn(props Properties) *PID {
-	pid := spawnChild(props, cell.self)
+	pid := spawn(props, cell.self)
 	cell.children.Add(pid)
 	cell.Watch(pid)
 	return pid
@@ -264,16 +264,16 @@ func (cell *ActorCell) SpawnTemplate(template Actor) *PID {
 	producer := func() Actor {
 		return template
 	}
-	props := Props(producer)
-	pid := spawnChild(props, cell.self)
+	props := FromProducer(producer)
+	pid := spawn(props, cell.self)
 	cell.children.Add(pid)
 	cell.Watch(pid)
 	return pid
 }
 
 func (cell *ActorCell) SpawnFunc(producer ActorProducer) *PID {
-	props := Props(producer)
-	pid := spawnChild(props, cell.self)
+	props := FromProducer(producer)
+	pid := spawn(props, cell.self)
 	cell.children.Add(pid)
 	cell.Watch(pid)
 	return pid

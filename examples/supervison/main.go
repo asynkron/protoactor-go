@@ -13,7 +13,8 @@ type ParentActor struct{}
 func (state *ParentActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case Hello:
-		child := context.Spawn(actor.Props(NewChildActor))
+		props := actor.FromProducer(NewChildActor)
+		child := context.Spawn(props)
 		child.Tell(msg)
 	}
 }
@@ -50,7 +51,11 @@ func main() {
 		return actor.StopDirective
 	}
 	supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
-	pid := actor.Spawn(actor.Props(NewParentActor).WithSupervisor(supervisor))
+	props := actor.
+		FromProducer(NewParentActor).
+		WithSupervisor(supervisor)
+
+	pid := actor.Spawn(props)
 	pid.Tell(Hello{Who: "Roger"})
 
 	console.ReadLine()

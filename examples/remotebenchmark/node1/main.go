@@ -60,7 +60,11 @@ func main() {
 
 	remoting.StartServer("127.0.0.1:0")
 
-	pid := actor.Spawn(actor.Props(newLocalActor(&wgStart, &wgStop, messageCount)).WithMailbox(actor.NewBoundedMailbox(1000, 10000)))
+	props := actor.
+		FromProducer(newLocalActor(&wgStart, &wgStop, messageCount)).
+		WithMailbox(actor.NewBoundedMailbox(1000, 10000))
+
+	pid := actor.Spawn(props)
 
 	message := &messages.Ping{Sender: pid}
 	remote := actor.NewPID("127.0.0.1:8080", "remote")

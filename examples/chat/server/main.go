@@ -22,7 +22,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	remoting.StartServer("127.0.0.1:8080")
 	clients := hashset.New()
-	server := actor.SpawnReceiveFunc(func(context actor.Context) {
+	props := actor.FromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *messages.Connect:
 			log.Printf("Client %v connected", msg.Sender)
@@ -40,6 +40,7 @@ func main() {
 			})
 		}
 	})
+	server := actor.Spawn(props)
 	actor.ProcessRegistry.Register("chatserver", server)
 	console.ReadLine()
 }

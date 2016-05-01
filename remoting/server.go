@@ -35,8 +35,11 @@ func StartServer(host string) {
 	log.Printf("Host is %v", host)
 	actor.ProcessRegistry.RegisterHostResolver(remoteHandler)
 	actor.ProcessRegistry.Host = host
+	props := actor.
+		FromProducer(newEndpointManager).
+		WithMailbox(actor.NewBoundedMailbox(1000, 100000))
 
-	endpointManagerPID = actor.Spawn(actor.Props(newEndpointManager).WithMailbox(actor.NewBoundedMailbox(1000, 100000)))
+	endpointManagerPID = actor.Spawn(props)
 
 	s := grpc.NewServer()
 	RegisterRemotingServer(s, &server{})

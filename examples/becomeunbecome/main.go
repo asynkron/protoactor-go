@@ -31,7 +31,8 @@ func NewBecomeActor() actor.Actor {
 }
 
 func main() {
-	pid := actor.Spawn(actor.Props(NewBecomeActor))
+	props := actor.FromProducer(NewBecomeActor)
+	pid := actor.Spawn(props)
 	pid.Tell(Hello{Who: "Roger"})
 	pid.Tell(Hello{Who: "Roger"})
 	console.ReadLine()

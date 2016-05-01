@@ -30,13 +30,6 @@ func (props PropsValue) ProduceMailbox() Mailbox {
 	return props.mailboxProducer()
 }
 
-func Props(actorProducer ActorProducer) PropsValue {
-	return PropsValue{
-		actorProducer:   actorProducer,
-		mailboxProducer: nil,
-	}
-}
-
 func (props PropsValue) WithMailbox(mailbox MailboxProducer) PropsValue {
 	//pass by value, we only modify the copy
 	props.mailboxProducer = mailbox
@@ -47,4 +40,29 @@ func (props PropsValue) WithSupervisor(supervisor SupervisionStrategy) PropsValu
 	//pass by value, we only modify the copy
 	props.supervisionStrategy = supervisor
 	return props
+}
+
+func FromProducer(actorProducer ActorProducer) PropsValue {
+	return PropsValue{
+		actorProducer:   actorProducer,
+		mailboxProducer: nil,
+	}
+}
+
+func FromFunc(receive Receive) PropsValue {
+	a := &EmptyActor{
+		receive: receive,
+	}
+	p := FromProducer(func() Actor {
+		return a
+	})
+	return p
+}
+
+func FromInstance(template Actor) PropsValue {
+	producer := func() Actor {
+		return template
+	}
+	p := FromProducer(producer)
+	return p
 }

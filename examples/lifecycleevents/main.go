@@ -26,12 +26,9 @@ func (state *HelloActor) Receive(context actor.Context) {
 	}
 }
 
-func NewHelloActor() actor.Actor {
-	return &HelloActor{}
-}
-
 func main() {
-	actor := actor.Spawn(actor.Props(NewHelloActor))
+	props := actor.FromInstance(&HelloActor{})
+	actor := actor.Spawn(props)
 	actor.Tell(Hello{Who: "Roger"})
 
 	//why wait?

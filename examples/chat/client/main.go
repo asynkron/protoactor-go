@@ -17,7 +17,7 @@ func main() {
 	server := actor.NewPID("127.0.0.1:8080", "chatserver")
 
 	//spawn our chat client inline
-	client := actor.SpawnReceiveFunc(func(context actor.Context) {
+	props := actor.FromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *messages.Connected:
 			log.Println(msg.Message)
@@ -27,6 +27,8 @@ func main() {
 			log.Printf("%v is now known as %v", msg.OldUserName, msg.NewUserName)
 		}
 	})
+
+	client := actor.Spawn(props)
 
 	server.Tell(&messages.Connect{
 		Sender: client,

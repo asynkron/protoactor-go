@@ -18,7 +18,8 @@ func (state *HelloActor) Receive(context actor.Context) {
 }
 
 func main() {
-	pid := actor.SpawnTemplate(&HelloActor{})
+	props := actor.FromInstance(&HelloActor{})
+	pid := actor.Spawn(props)
 	pid.Tell(Hello{Who: "Roger"})
 	console.ReadLine()
 }

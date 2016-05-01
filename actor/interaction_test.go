@@ -19,7 +19,7 @@ func NewBlackHoleActor() Actor {
 }
 
 func TestSpawnProducesActorRef(t *testing.T) {
-	actor := Spawn(Props(NewBlackHoleActor))
+	actor := Spawn(FromProducer(NewBlackHoleActor))
 	defer actor.Stop()
 	assert.NotNil(t, actor)
 }
@@ -43,7 +43,7 @@ func (*EchoActor) Receive(context Context) {
 
 func TestActorCanReplyToMessage(t *testing.T) {
 	responsePID, result := RequestResponsePID()
-	actor := Spawn(Props(NewEchoActor))
+	actor := Spawn(FromProducer(NewEchoActor))
 	defer actor.Stop()
 	actor.Tell(EchoMessage{Sender: responsePID})
 	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
@@ -76,7 +76,7 @@ func (EchoBecomeActor) Other(context Context) {
 
 func TestActorCanBecome(t *testing.T) {
 	responsePID, result := RequestResponsePID()
-	actor := Spawn(Props(NewEchoActor))
+	actor := Spawn(FromProducer(NewEchoActor))
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
 	actor.Tell(EchoMessage{Sender: responsePID})
@@ -112,7 +112,7 @@ func (*EchoUnbecomeActor) Other(context Context) {
 
 func TestActorCanUnbecome(t *testing.T) {
 	responsePID, result := RequestResponsePID()
-	actor := Spawn(Props(NewEchoActor))
+	actor := Spawn(FromProducer(NewEchoActor))
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
 	actor.Tell(UnbecomeMessage{})
@@ -165,7 +165,7 @@ func NewEchoOnStoppingActor(replyTo *PID) func() Actor {
 
 func TestActorCanReplyOnStopping(t *testing.T) {
 	responsePID, result := RequestResponsePID()
-	actor := Spawn(Props(NewEchoOnStoppingActor(responsePID)))
+	actor := Spawn(FromProducer(NewEchoOnStoppingActor(responsePID)))
 	actor.Stop()
 	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
@@ -181,7 +181,7 @@ type CreateChildActor struct{}
 func (*CreateChildActor) Receive(context Context) {
 	switch msg := context.Message().(type) {
 	case CreateChildMessage:
-		context.Spawn(Props(NewBlackHoleActor))
+		context.Spawn(FromProducer(NewBlackHoleActor))
 	case GetChildCountMessage:
 		reply := GetChildCountReplyMessage{ChildCount: len(context.Children())}
 		msg.ReplyTo.Tell(reply)
@@ -194,7 +194,7 @@ func NewCreateChildActor() Actor {
 
 func TestActorCanCreateChildren(t *testing.T) {
 	responsePID, result := RequestResponsePID()
-	actor := Spawn(Props(NewCreateChildActor))
+	actor := Spawn(FromProducer(NewCreateChildActor))
 	defer actor.Stop()
 	expected := 10
 	for i := 0; i < expected; i++ {
@@ -221,7 +221,7 @@ type GetChildCountMessage2 struct {
 func (state *CreateChildThenStopActor) Receive(context Context) {
 	switch msg := context.Message().(type) {
 	case CreateChildMessage:
-		context.Spawn(Props(NewBlackHoleActor))
+		context.Spawn(FromProducer(NewBlackHoleActor))
 	case GetChildCountMessage2:
 		msg.ReplyDirectly.Tell(true)
 		state.replyTo = msg.ReplyAfterStop
@@ -238,7 +238,7 @@ func NewCreateChildThenStopActor() Actor {
 func TestActorCanStopChildren(t *testing.T) {
 	responsePID, result := RequestResponsePID()
 	responsePID2, result2 := RequestResponsePID()
-	actor := Spawn(Props(NewCreateChildThenStopActor))
+	actor := Spawn(FromProducer(NewCreateChildThenStopActor))
 	count := 10
 	for i := 0; i < count; i++ {
 		actor.Tell(CreateChildMessage{})

@@ -32,7 +32,12 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	remoting.StartServer("127.0.0.1:8080")
-	pid := actor.Spawn(actor.Props(newRemoteActor()).WithMailbox(actor.NewBoundedMailbox(1000, 10000)))
+	props := actor.
+		FromProducer(newRemoteActor()).
+		WithMailbox(actor.NewBoundedMailbox(1000, 10000))
+
+	pid := actor.Spawn(props)
+
 	actor.ProcessRegistry.Register("remote", pid)
 
 	console.ReadLine()
