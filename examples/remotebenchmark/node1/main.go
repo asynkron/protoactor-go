@@ -52,12 +52,6 @@ func newLocalActor(start *sync.WaitGroup, stop *sync.WaitGroup, messageCount int
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	// f, err := os.Create("cpuprofile")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// pprof.StartCPUProfile(f)
-	// defer pprof.StopCPUProfile()
 
 	var wgStop sync.WaitGroup
 	var wgStart sync.WaitGroup
@@ -86,11 +80,4 @@ func main() {
 
 	x := int(float32(messageCount*2) / (float32(elapsed) / float32(time.Second)))
 	log.Printf("Msg per sec %v", x)
-
-	// f, err = os.Create("memprof")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// pprof.WriteHeapProfile(f)
-	// f.Close()
 }

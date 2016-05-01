@@ -31,23 +31,10 @@ func newRemoteActor() actor.ActorProducer {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	// f, err := os.Create("cpuprofile")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// pprof.StartCPUProfile(f)
-	// defer pprof.StopCPUProfile()
 
 	remoting.StartServer("127.0.0.1:8080")
 	pid := actor.Spawn(actor.Props(newRemoteActor()).WithMailbox(actor.NewBoundedMailbox(1000, 10000)))
 	actor.ProcessRegistry.Register("remote", pid)
-
-	// f, err = os.Create("memprof")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// pprof.WriteHeapProfile(f)
-	// f.Close()
 
 	bufio.NewReader(os.Stdin).ReadString('\n')
 }
