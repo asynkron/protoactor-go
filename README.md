@@ -59,17 +59,17 @@ type Hello struct{ Who string }
 type HelloActor struct{}
 
 func (state *HelloActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case Hello:
-		fmt.Printf("Hello %v\n", msg.Who)
-	}
+    switch msg := context.Message().(type) {
+    case Hello:
+        fmt.Printf("Hello %v\n", msg.Who)
+    }
 }
 
 func main() {
-	props := actor.FromInstance(&HelloActor{})
-	pid := actor.Spawn(props)
-	pid.Tell(Hello{Who: "Roger"})
-	console.ReadLine()
+    props := actor.FromInstance(&HelloActor{})
+    pid := actor.Spawn(props)
+    pid.Tell(Hello{Who: "Roger"})
+    console.ReadLine()
 }
 ```
 
@@ -81,30 +81,30 @@ type Hello struct{ Who string }
 type BecomeActor struct{}
 
 func (state *BecomeActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case Hello:
-		fmt.Printf("Hello %v\n", msg.Who)
-		context.Become(state.Other)
-	}
+    switch msg := context.Message().(type) {
+    case Hello:
+        fmt.Printf("Hello %v\n", msg.Who)
+        context.Become(state.Other)
+    }
 }
 
 func (state *BecomeActor) Other(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case Hello:
-		fmt.Printf("%v, ey we are now handling messages in another behavior", msg.Who)
-	}
+    switch msg := context.Message().(type) {
+    case Hello:
+        fmt.Printf("%v, ey we are now handling messages in another behavior", msg.Who)
+    }
 }
 
 func NewBecomeActor() actor.Actor {
-	return &BecomeActor{}
+    return &BecomeActor{}
 }
 
 func main() {
-	props := actor.FromProducer(NewBecomeActor)
-	pid := actor.Spawn(props)
-	pid.Tell(Hello{Who: "Roger"})
-	pid.Tell(Hello{Who: "Roger"})
-	console.ReadLine()
+    props := actor.FromProducer(NewBecomeActor)
+    pid := actor.Spawn(props)
+    pid.Tell(Hello{Who: "Roger"})
+    pid.Tell(Hello{Who: "Roger"})
+    console.ReadLine()
 }
 ```
 
@@ -117,33 +117,33 @@ type Hello struct{ Who string }
 type HelloActor struct{}
 
 func (state *HelloActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case actor.Started:
-		fmt.Println("Started, initialize actor here")
-	case actor.Stopping:
-		fmt.Println("Stopping, actor is about shut down")
-	case actor.Stopped:
-		fmt.Println("Stopped, actor and it's children are stopped")
-	case actor.Restarting:
-		fmt.Println("Restarting, actor is about restart")
-	case Hello:
-		fmt.Printf("Hello %v\n", msg.Who)
-	}
+    switch msg := context.Message().(type) {
+    case actor.Started:
+        fmt.Println("Started, initialize actor here")
+    case actor.Stopping:
+        fmt.Println("Stopping, actor is about shut down")
+    case actor.Stopped:
+        fmt.Println("Stopped, actor and it's children are stopped")
+    case actor.Restarting:
+        fmt.Println("Restarting, actor is about restart")
+    case Hello:
+        fmt.Printf("Hello %v\n", msg.Who)
+    }
 }
 
 func main() {
-	props := actor.FromInstance(&HelloActor{})
-	actor := actor.Spawn(props)
-	actor.Tell(Hello{Who: "Roger"})
+    props := actor.FromInstance(&HelloActor{})
+    actor := actor.Spawn(props)
+    actor.Tell(Hello{Who: "Roger"})
 
-	//why wait?
-	//Stop is a system message and is not processed through the user message mailbox
-	//thus, it will be handled _before_ any user message
-	//we only do this to show the correct order of events in the console
-	time.Sleep(1 * time.Second)
-	actor.Stop()
+    //why wait?
+    //Stop is a system message and is not processed through the user message mailbox
+    //thus, it will be handled _before_ any user message
+    //we only do this to show the correct order of events in the console
+    time.Sleep(1 * time.Second)
+    actor.Stop()
 
-	console.ReadLine()
+    console.ReadLine()
 }
 ```
 
@@ -160,54 +160,54 @@ type Hello struct{ Who string }
 type ParentActor struct{}
 
 func (state *ParentActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case Hello:
-		props := actor.FromProducer(NewChildActor)
-		child := context.Spawn(props)
-		child.Tell(msg)
-	}
+    switch msg := context.Message().(type) {
+    case Hello:
+        props := actor.FromProducer(NewChildActor)
+        child := context.Spawn(props)
+        child.Tell(msg)
+    }
 }
 
 func NewParentActor() actor.Actor {
-	return &ParentActor{}
+    return &ParentActor{}
 }
 
 type ChildActor struct{}
 
 func (state *ChildActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case actor.Started:
-		fmt.Println("Starting, initialize actor here")
-	case actor.Stopping:
-		fmt.Println("Stopping, actor is about shut down")
-	case actor.Stopped:
-		fmt.Println("Stopped, actor and it's children are stopped")
-	case actor.Restarting:
-		fmt.Println("Restarting, actor is about restart")
-	case Hello:
-		fmt.Printf("Hello %v\n", msg.Who)
-		panic("Ouch")
-	}
+    switch msg := context.Message().(type) {
+    case actor.Started:
+        fmt.Println("Starting, initialize actor here")
+    case actor.Stopping:
+        fmt.Println("Stopping, actor is about shut down")
+    case actor.Stopped:
+        fmt.Println("Stopped, actor and it's children are stopped")
+    case actor.Restarting:
+        fmt.Println("Restarting, actor is about restart")
+    case Hello:
+        fmt.Printf("Hello %v\n", msg.Who)
+        panic("Ouch")
+    }
 }
 
 func NewChildActor() actor.Actor {
-	return &ChildActor{}
+    return &ChildActor{}
 }
 
 func main() {
-	decider := func(child *actor.PID, reason interface{}) actor.Directive {
-		fmt.Println("handling failure for child")
-		return actor.StopDirective
-	}
-	supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
-	props := actor.
-		FromProducer(NewParentActor).
-		WithSupervisor(supervisor)
+    decider := func(child *actor.PID, reason interface{}) actor.Directive {
+        fmt.Println("handling failure for child")
+        return actor.StopDirective
+    }
+    supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
+    props := actor.
+        FromProducer(NewParentActor).
+        WithSupervisor(supervisor)
 
-	pid := actor.Spawn(props)
-	pid.Tell(Hello{Who: "Roger"})
+    pid := actor.Spawn(props)
+    pid.Tell(Hello{Who: "Roger"})
 
-	console.ReadLine()
+    console.ReadLine()
 }
 ```
 
