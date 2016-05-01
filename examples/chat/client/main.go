@@ -12,26 +12,25 @@ import (
 	"github.com/rogeralsing/gam/remoting"
 )
 
-type client struct{}
-
-func (state *client) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case *messages.Connected:
-		log.Println(msg.Message)
-	case *messages.SayResponse:
-		log.Printf("%v: %v", msg.UserName, msg.Message)
-	case *messages.NickResponse:
-		log.Printf("%v is now known as %v", msg.OldUserName, msg.NewUserName)
-	}
-}
-
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	remoting.StartServer("127.0.0.1:0")
 	server := actor.NewPID("127.0.0.1:8080", "chatserver")
-	pid := actor.SpawnTemplate(&client{})
+
+	//spawn our chat client inline
+	client := actor.SpawnReceiveFunc(func(context actor.Context) {
+		switch msg := context.Message().(type) {
+		case *messages.Connected:
+			log.Println(msg.Message)
+		case *messages.SayResponse:
+			log.Printf("%v: %v", msg.UserName, msg.Message)
+		case *messages.NickResponse:
+			log.Printf("%v is now known as %v", msg.OldUserName, msg.NewUserName)
+		}
+	})
+
 	server.Tell(&messages.Connect{
-		Sender: pid,
+		Sender: client,
 	})
 
 	nick := "Roger"
