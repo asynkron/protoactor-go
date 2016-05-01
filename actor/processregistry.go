@@ -31,6 +31,7 @@ func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef) *PID {
 	pid := PID{
 		Host: pr.Host,
 		Id:   strconv.FormatUint(id, 16),
+		NumberOfRetries: 0,
 	}
 
 	pr.rw.Lock()

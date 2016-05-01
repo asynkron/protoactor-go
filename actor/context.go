@@ -144,11 +144,13 @@ func (cell *ActorCell) handleFailure(msg *failure) {
 	directive := cell.supervisor.Handle(msg.Who, msg.Reason)
 	switch directive {
 	case ResumeDirective:
-		//resume the fialing child
+		//resume the failing child
 		msg.Who.sendSystemMessage(&resume{})
+		cell.self.NumberOfRetries++
 	case RestartDirective:
 		//restart the failing child
 		msg.Who.sendSystemMessage(&restart{})
+		cell.self.NumberOfRetries++
 	case StopDirective:
 		//stop the failing child
 		msg.Who.Stop()
@@ -283,7 +285,7 @@ func handleRootFailure(msg *failure, supervisor SupervisionStrategy) {
 	directive := supervisor.Handle(msg.Who, msg.Reason)
 	switch directive {
 	case ResumeDirective:
-		//resume the fialing child
+		//resume the failing child
 		msg.Who.sendSystemMessage(&resume{})
 	case RestartDirective:
 		//restart the failing child

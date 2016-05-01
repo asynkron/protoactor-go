@@ -24,6 +24,10 @@ type OneForOneStrategy struct {
 }
 
 func (strategy *OneForOneStrategy) Handle(child *PID, reason interface{}) Directive {
+	if (child.NumberOfRetries >= int32(strategy.maxNrOfRetries)){
+		return EscalateDirective
+	}
+
 	return strategy.decider(child, reason)
 }
 

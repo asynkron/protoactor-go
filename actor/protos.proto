@@ -5,6 +5,7 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 message PID {
   string Host = 1;
   string Id = 2;
+  int32 NumberOfRetries = 3;
 }
 
 //user messages
