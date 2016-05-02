@@ -9,6 +9,7 @@ import (
 
 type RemoteActorRef struct {
 	pid *actor.PID
+	actor.ActorRef
 }
 
 func newRemoteActorRef(pid *actor.PID) actor.ActorRef {
@@ -26,7 +27,3 @@ func (ref *RemoteActorRef) Tell(message interface{}) {
 		log.Printf("failed, trying to send non Proto %v message to %v", msg, ref.pid)
 	}
 }
-
-func (ref *RemoteActorRef) SendSystemMessage(message actor.SystemMessage) {}
-
-func (ref *RemoteActorRef) Stop() {}

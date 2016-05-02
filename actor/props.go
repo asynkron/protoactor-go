@@ -4,12 +4,18 @@ type Properties interface {
 	ProduceActor() Actor
 	ProduceMailbox() Mailbox
 	Supervisor() SupervisionStrategy
+	RouterConfig() RouterConfig
 }
 
 type Props struct {
 	actorProducer       ActorProducer
 	mailboxProducer     MailboxProducer
 	supervisionStrategy SupervisionStrategy
+	routerConfig        RouterConfig
+}
+
+func (props Props) RouterConfig() RouterConfig {
+	return props.routerConfig
 }
 
 func (props Props) ProduceActor() Actor {
@@ -39,6 +45,12 @@ func (props Props) WithMailbox(mailbox MailboxProducer) Props {
 func (props Props) WithSupervisor(supervisor SupervisionStrategy) Props {
 	//pass by value, we only modify the copy
 	props.supervisionStrategy = supervisor
+	return props
+}
+
+func (props Props) WithRouter(routerConfig RouterConfig) Props {
+	//pass by value, we only modify the copy
+	props.routerConfig = routerConfig
 	return props
 }
 

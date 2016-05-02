@@ -16,8 +16,8 @@ type Context interface {
 	UnbecomeStacked()
 	Self() *PID
 	Parent() *PID
-	Spawn(Properties) *PID
-	SpawnNamed(Properties, string) *PID
+	Spawn(Props) *PID
+	SpawnNamed(Props, string) *PID
 	Children() []*PID
 	Stash()
 }
@@ -47,7 +47,7 @@ type ActorCell struct {
 	parent     *PID
 	self       *PID
 	actor      Actor
-	props      Properties
+	props      Props
 	supervisor SupervisionStrategy
 	behavior   *linkedliststack.Stack
 	children   *hashset.Set
@@ -82,7 +82,7 @@ func (cell *ActorCell) stashMessage(message interface{}) {
 	cell.stash.Push(message)
 }
 
-func NewActorCell(props Properties, parent *PID) *ActorCell {
+func NewActorCell(props Props, parent *PID) *ActorCell {
 
 	cell := ActorCell{
 		parent:     parent,
@@ -252,12 +252,12 @@ func (cell *ActorCell) Unwatch(who *PID) {
 // 	return pid
 // }
 
-func (cell *ActorCell) Spawn(props Properties) *PID {
+func (cell *ActorCell) Spawn(props Props) *PID {
 	id := ProcessRegistry.getAutoId()
 	return cell.SpawnNamed(props, id)
 }
 
-func (cell *ActorCell) SpawnNamed(props Properties, name string) *PID {
+func (cell *ActorCell) SpawnNamed(props Props, name string) *PID {
 	pid := spawn(name, props, cell.self)
 	cell.children.Add(pid)
 	cell.Watch(pid)

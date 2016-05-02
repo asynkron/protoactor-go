@@ -36,7 +36,6 @@ func main() {
 
 	nick := "Roger"
 	for {
-
 		text, _ := console.ReadLine()
 		if strings.HasPrefix(text, "/nick ") {
 			newNick := strings.Split(text, " ")[1] //get the first word after /nick
