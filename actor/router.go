@@ -3,8 +3,9 @@ package actor
 import "sync/atomic"
 
 type RouterConfig interface {
-	OnStarted(context Context, props Props)
-	Route(message interface{})
+	OnStarted(context Context, props Props, router RouterState)
+
+	Create() RouterState
 }
 
 type RoundRobinGroupRouter struct {
@@ -15,7 +16,21 @@ type RoundRobinGroupRouter struct {
 type RoundRobinPoolRouter struct {
 	index    int32
 	poolSize int
-	routees  []*PID
+}
+
+type RouterState interface {
+	Route(message interface{})
+	SetRoutees(routees []*PID)
+}
+
+type RoundRobinState struct {
+	index   int32
+	routees []*PID
+	config  RouterConfig
+}
+
+func (state *RoundRobinState) SetRoutees(routees []*PID) {
+	state.routees = routees
 }
 
 func NewRoundRobinGroupRouter(routees ...*PID) RouterConfig {
@@ -26,14 +41,21 @@ func NewRoundRobinPoolRouter(poolSize int) RouterConfig {
 	return &RoundRobinPoolRouter{poolSize: poolSize}
 }
 
-func (config *RoundRobinPoolRouter) Route(message interface{}) {
-	pid := roundRobinRoutee(&config.index, config.routees)
+func (state *RoundRobinState) Route(message interface{}) {
+	pid := roundRobinRoutee(&state.index, state.routees)
 	pid.Tell(message)
 }
 
-func (config *RoundRobinGroupRouter) Route(message interface{}) {
-	pid := roundRobinRoutee(&config.index, config.routees)
-	pid.Tell(message)
+func (config *RoundRobinPoolRouter) Create() RouterState {
+	return &RoundRobinState{
+		config: config,
+	}
+}
+
+func (config *RoundRobinGroupRouter) Create() RouterState {
+	return &RoundRobinState{
+		config: config,
+	}
 }
 
 func roundRobinRoutee(index *int32, routees []*PID) *PID {
@@ -43,18 +65,20 @@ func roundRobinRoutee(index *int32, routees []*PID) *PID {
 	return routee
 }
 
-func (config *RoundRobinGroupRouter) OnStarted(context Context, props Props) {
+func (config *RoundRobinGroupRouter) OnStarted(context Context, props Props, router RouterState) {
 	for _, r := range config.routees {
 		context.Watch(r)
 	}
+	router.SetRoutees(config.routees)
 }
 
-func (config *RoundRobinPoolRouter) OnStarted(context Context, props Props) {
-	config.routees = make([]*PID, config.poolSize)
+func (config *RoundRobinPoolRouter) OnStarted(context Context, props Props, router RouterState) {
+	routees := make([]*PID, config.poolSize)
 	for i := 0; i < config.poolSize; i++ {
 		pid := context.Spawn(props)
-		config.routees[i] = pid
+		routees[i] = pid
 	}
+	router.SetRoutees(routees)
 }
 
 var NoRouter RouterConfig = nil
@@ -62,14 +86,16 @@ var NoRouter RouterConfig = nil
 func spawnRouter(config RouterConfig, props Props, parent *PID) *PID {
 	id := ProcessRegistry.getAutoId()
 	routeeProps := props.WithRouter(NoRouter)
+	routerState := config.Create()
+
 	routerProps := FromFunc(func(context Context) {
 		switch context.Message().(type) {
 		case Started:
-			config.OnStarted(context, routeeProps)
+			config.OnStarted(context, routeeProps, routerState)
 		}
 	})
 	router := spawn(id, routerProps, parent)
-	ref := newRouterActorRef(router, config)
+	ref := newRouterActorRef(router, routerState)
 	proxyID := ProcessRegistry.getAutoId()
 	proxy := ProcessRegistry.registerPID(ref, proxyID)
 	return proxy
@@ -77,17 +103,17 @@ func spawnRouter(config RouterConfig, props Props, parent *PID) *PID {
 
 type RouterActorRef struct {
 	router *PID
-	config RouterConfig
+	state  RouterState
 	ActorRef
 }
 
 func (ref *RouterActorRef) Tell(message interface{}) {
-	ref.config.Route(message)
+	ref.state.Route(message)
 }
 
-func newRouterActorRef(router *PID, config RouterConfig) ActorRef {
+func newRouterActorRef(router *PID, state RouterState) ActorRef {
 	return &RouterActorRef{
 		router: router,
-		config: config,
+		state:  state,
 	}
 }
