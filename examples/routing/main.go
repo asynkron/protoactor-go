@@ -7,19 +7,18 @@ import (
 	"github.com/rogeralsing/goconsole"
 )
 
-type MyMessage struct {
-}
+type myMessage struct{}
 
 func main() {
 	props := actor.FromFunc(func(context actor.Context) {
 		switch context.Message().(type) {
-		case MyMessage:
+		case myMessage:
 			log.Printf("%v got message", context.Self())
 		}
 	}).WithRouter(actor.NewRoundRobinPoolRouter(10))
 	pid := actor.Spawn(props)
 	for i := 0; i < 10; i++ {
-		pid.Tell(MyMessage{})
+		pid.Tell(myMessage{})
 	}
 	console.ReadLine()
 }
