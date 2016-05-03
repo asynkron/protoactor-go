@@ -12,7 +12,7 @@ func SpawnNamed(props Props, name string) *PID {
 }
 
 func spawn(id string, props Props, parent *PID) *PID {
-	if props.RouterConfig != nil {
+	if props.RouterConfig() != nil {
 		return spawnRouter(props.RouterConfig(), props, parent)
 	}
 

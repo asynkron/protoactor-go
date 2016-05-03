@@ -58,6 +58,7 @@ func FromProducer(actorProducer ActorProducer) Props {
 	return Props{
 		actorProducer:   actorProducer,
 		mailboxProducer: nil,
+		routerConfig:    nil,
 	}
 }
 

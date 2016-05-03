@@ -27,16 +27,16 @@ func NewRoundRobinPoolRouter(poolSize int) RouterConfig {
 }
 
 func (config *RoundRobinPoolRouter) Route(message interface{}) {
-	pid := roundRobinPID(&config.index, config.routees)
+	pid := roundRobinRoutee(&config.index, config.routees)
 	pid.Tell(message)
 }
 
 func (config *RoundRobinGroupRouter) Route(message interface{}) {
-	pid := roundRobinPID(&config.index, config.routees)
+	pid := roundRobinRoutee(&config.index, config.routees)
 	pid.Tell(message)
 }
 
-func roundRobinPID(index *int32, routees []*PID) *PID {
+func roundRobinRoutee(index *int32, routees []*PID) *PID {
 	i := int(atomic.AddInt32(index, 1))
 	mod := len(routees)
 	routee := routees[i%mod]
@@ -82,7 +82,7 @@ type RouterActorRef struct {
 }
 
 func (ref *RouterActorRef) Tell(message interface{}) {
-
+	ref.config.Route(message)
 }
 
 func newRouterActorRef(router *PID, config RouterConfig) ActorRef {
