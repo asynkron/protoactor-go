@@ -62,7 +62,7 @@ go get github.com/gogo/protobuf/protoc-gen-gogo
 go get github.com/gogo/protobuf/gogoproto
 ```
 
-Finally, use the `make` tool in the package's root to generate the protobuf definitions and build the packages.
+Finally, run the `make` tool in the package's root to generate the protobuf definitions and build the packages.
 
 ## Hello world
 
