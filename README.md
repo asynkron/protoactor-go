@@ -51,6 +51,19 @@ Ultra fast remoting, GAM currently manages to pass 800k+ messages between nodes 
 
 For a more indepth description of the differences, see this thread [Actors vs. CSP](https://www.quora.com/Go-programming-language-How-are-Akka-actors-are-different-than-Goroutines-and-Channels)
 
+## Building
+
+You need to ensure that your `$GOPATH` variable is properly set.
+
+Next, install the [standard protocol buffer implementation](https://github.com/google/protobuf) and run the following commands to get all the neccessary tooling:
+```
+go get github.com/gogo/protobuf/proto
+go get github.com/gogo/protobuf/protoc-gen-gogo
+go get github.com/gogo/protobuf/gogoproto
+```
+
+Finally, use the `make` tool in the package's root to generate the protobuf definitions and build the packages.
+
 ## Hello world
 
 ```go
