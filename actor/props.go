@@ -48,7 +48,7 @@ func (props Props) WithSupervisor(supervisor SupervisionStrategy) Props {
 	return props
 }
 
-func (props Props) WithRouter(routerConfig RouterConfig) Props {
+func (props Props) WithPoolRouter(routerConfig PoolRouterConfig) Props {
 	//pass by value, we only modify the copy
 	props.routerConfig = routerConfig
 	return props
@@ -78,4 +78,11 @@ func FromInstance(template Actor) Props {
 	}
 	p := FromProducer(producer)
 	return p
+}
+
+func FromGroupRouter(router GroupRouterConfig) Props {
+	return Props{
+		routerConfig:  router,
+		actorProducer: nil,
+	}
 }

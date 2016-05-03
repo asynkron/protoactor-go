@@ -15,7 +15,7 @@ func main() {
 		case myMessage:
 			log.Printf("%v got message", context.Self())
 		}
-	}).WithRouter(actor.NewRoundRobinPoolRouter(10))
+	}).WithPoolRouter(actor.NewRoundRobinPoolRouter(10))
 	pid := actor.Spawn(props)
 	for i := 0; i < 10; i++ {
 		pid.Tell(myMessage{})

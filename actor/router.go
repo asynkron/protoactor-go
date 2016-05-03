@@ -2,15 +2,23 @@ package actor
 
 type RouterConfig interface {
 	OnStarted(context Context, props Props, router RouterState)
-
 	Create() RouterState
 }
 
-var NoRouter RouterConfig = nil
+type GroupRouterConfig interface {
+	RouterConfig
+	GroupRouter()
+}
+
+type PoolRouterConfig interface {
+	RouterConfig
+	PoolRouter()
+}
 
 func spawnRouter(config RouterConfig, props Props, parent *PID) *PID {
 	id := ProcessRegistry.getAutoId()
-	routeeProps := props.WithRouter(NoRouter)
+	routeeProps := props
+	routeeProps.routerConfig = nil
 	routerState := config.Create()
 
 	routerProps := FromFunc(func(context Context) {

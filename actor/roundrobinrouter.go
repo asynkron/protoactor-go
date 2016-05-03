@@ -25,11 +25,11 @@ func (state *RoundRobinState) SetRoutees(routees []*PID) {
 	state.routees = routees
 }
 
-func NewRoundRobinGroupRouter(routees ...*PID) RouterConfig {
+func NewRoundRobinGroupRouter(routees ...*PID) GroupRouterConfig {
 	return &RoundRobinGroupRouter{routees: routees}
 }
 
-func NewRoundRobinPoolRouter(poolSize int) RouterConfig {
+func NewRoundRobinPoolRouter(poolSize int) PoolRouterConfig {
 	return &RoundRobinPoolRouter{poolSize: poolSize}
 }
 
@@ -49,6 +49,9 @@ func (config *RoundRobinGroupRouter) Create() RouterState {
 		config: config,
 	}
 }
+
+func (config *RoundRobinPoolRouter) PoolRouter()   {}
+func (config *RoundRobinGroupRouter) GroupRouter() {}
 
 func roundRobinRoutee(index *int32, routees []*PID) *PID {
 	i := int(atomic.AddInt32(index, 1))
