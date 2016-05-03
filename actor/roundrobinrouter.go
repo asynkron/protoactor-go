@@ -25,11 +25,11 @@ func (state *RoundRobinState) SetRoutees(routees []*PID) {
 	state.routees = routees
 }
 
-func NewRoundRobinGroupRouter(routees ...*PID) GroupRouterConfig {
+func NewRoundRobinGroup(routees ...*PID) GroupRouterConfig {
 	return &RoundRobinGroupRouter{routees: routees}
 }
 
-func NewRoundRobinPoolRouter(poolSize int) PoolRouterConfig {
+func NewRoundRobinPool(poolSize int) PoolRouterConfig {
 	return &RoundRobinPoolRouter{poolSize: poolSize}
 }
 

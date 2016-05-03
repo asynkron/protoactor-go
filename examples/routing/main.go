@@ -10,15 +10,17 @@ import (
 type myMessage struct{}
 
 func main() {
-	props := actor.FromFunc(func(context actor.Context) {
+	act := func(context actor.Context) {
 		switch context.Message().(type) {
 		case myMessage:
 			log.Printf("%v got message", context.Self())
 		}
-	}).WithPoolRouter(actor.NewRoundRobinPoolRouter(10))
+	}
+	props := actor.FromFunc(act).WithPoolRouter(actor.NewRoundRobinPool(10))
 	pid := actor.Spawn(props)
 	for i := 0; i < 10; i++ {
 		pid.Tell(myMessage{})
 	}
+
 	console.ReadLine()
 }
