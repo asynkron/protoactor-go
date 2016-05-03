@@ -1,1 +1,0 @@
-c:\proto\protoc --gofast_out=plugins=grpc:%1 --proto_path=%1  --proto_path=c:\Projects\Go\src %1/protos.proto
