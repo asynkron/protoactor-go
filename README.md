@@ -1,7 +1,6 @@
 # Go Actor Model
 
 GAM is a MVP Actor Model framework for Go.
-Disclaimer: this is more of a learning project than a polished framework.
 
 Design principles:
 
