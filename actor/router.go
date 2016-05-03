@@ -47,3 +47,12 @@ type RouterActorRef struct {
 func (ref *RouterActorRef) Tell(message interface{}) {
 	ref.state.Route(message)
 }
+
+func (ref *RouterActorRef) SendSystemMessage(message SystemMessage) {
+	r, _ := ProcessRegistry.fromPID(ref.router)
+	r.SendSystemMessage(message)
+}
+
+func (ref *RouterActorRef) Stop() {
+	ref.SendSystemMessage(&stop{})
+}
