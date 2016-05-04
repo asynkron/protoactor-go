@@ -64,6 +64,8 @@ go get github.com/gogo/protobuf/gogoproto
 
 Finally, run the `make` tool in the package's root to generate the protobuf definitions and build the packages.
 
+Windows users can use Cygwin to run make: [www.cygwin.com](https://www.cygwin.com/)
+
 ## Hello world
 
 ```go
