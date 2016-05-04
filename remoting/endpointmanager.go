@@ -4,16 +4,24 @@ import (
 	"log"
 
 	"github.com/rogeralsing/gam/actor"
+	"google.golang.org/grpc"
 )
 
 var endpointManagerPID *actor.PID
 
-func newEndpointManager() actor.Actor {
-	return &endpointManager{}
+func newEndpointManager(dialOpts []grpc.DialOption, callOpts []grpc.CallOption) actor.ActorProducer {
+	return func() actor.Actor {
+		return &endpointManager{
+			dialOpts: dialOpts,
+			callOpts: callOpts,
+		}
+	}
 }
 
 type endpointManager struct {
 	connections map[string]*actor.PID
+	dialOpts    []grpc.DialOption
+	callOpts    []grpc.CallOption
 }
 
 func (state *endpointManager) Receive(ctx actor.Context) {

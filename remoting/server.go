@@ -24,7 +24,7 @@ func (s *server) Receive(stream Remoting_ReceiveServer) error {
 	}
 }
 
-func StartServer(host string) {
+func StartServer(host string, opt ...grpc.ServerOption) {
 
 	lis, err := net.Listen("tcp", host)
 	if err != nil {
@@ -36,12 +36,12 @@ func StartServer(host string) {
 	actor.ProcessRegistry.RegisterHostResolver(remoteHandler)
 	actor.ProcessRegistry.Host = host
 	props := actor.
-		FromProducer(newEndpointManager).
+		FromProducer(newEndpointManager(nil, nil)).
 		WithMailbox(actor.NewBoundedMailbox(1000, 100000))
 
 	endpointManagerPID = actor.Spawn(props)
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(opt...)
 	RegisterRemotingServer(s, &server{})
 	log.Printf("Starting GAM server on %v.", host)
 	go s.Serve(lis)
