@@ -8,13 +8,17 @@ import (
 	"google.golang.org/grpc"
 )
 
-func newEndpointWriter(host string) actor.ActorProducer {
+func newEndpointWriter(host string, config *RemotingConfig) actor.ActorProducer {
 	return func() actor.Actor {
-		return &endpointWriter{host: host}
+		return &endpointWriter{
+			host:   host,
+			config: config,
+		}
 	}
 }
 
 type endpointWriter struct {
+	config *RemotingConfig
 	host   string
 	conn   *grpc.ClientConn
 	stream Remoting_ReceiveClient
@@ -23,7 +27,7 @@ type endpointWriter struct {
 func (state *endpointWriter) initialize() {
 	log.Println("Started EndpointWriter for host", state.host)
 	log.Println("Connecting to host", state.host)
-	conn, err := grpc.Dial(state.host, grpc.WithInsecure())
+	conn, err := grpc.Dial(state.host, state.config.DialOptions...)
 
 	if err != nil {
 		log.Fatalf("Failed to connect to host %v: %v", state.host, err)
@@ -32,7 +36,7 @@ func (state *endpointWriter) initialize() {
 	state.conn = conn
 	c := NewRemotingClient(conn)
 	log.Println("Getting stream from host", state.host)
-	stream, err := c.Receive(context.Background())
+	stream, err := c.Receive(context.Background(), state.config.CallOptions...)
 	if err != nil {
 		log.Fatalf("Failed to get stream from host %v: %v", state.host, err)
 	}
