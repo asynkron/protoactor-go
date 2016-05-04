@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"runtime"
-	"strings"
 
 	"github.com/rogeralsing/gam/actor"
 	"github.com/rogeralsing/gam/examples/chat/messages"
@@ -35,20 +34,18 @@ func main() {
 	})
 
 	nick := "Roger"
-	for {
-		text, _ := console.ReadLine()
-		if strings.HasPrefix(text, "/nick ") {
-			newNick := strings.Split(text, " ")[1] //get the first word after /nick
-			server.Tell(&messages.NickRequest{
-				OldUserName: nick,
-				NewUserName: newNick,
-			})
-			nick = newNick
-		} else {
-			server.Tell(&messages.SayRequest{
-				UserName: nick,
-				Message:  text,
-			})
-		}
-	}
+	cons := console.NewConsole(func(text string) {
+		server.Tell(&messages.SayRequest{
+			UserName: nick,
+			Message:  text,
+		})
+	})
+	//write /nick NAME to change your chat username
+	cons.Command("/nick", func(newNick string) {
+		server.Tell(&messages.NickRequest{
+			OldUserName: nick,
+			NewUserName: newNick,
+		})
+	})
+	cons.Run()
 }
