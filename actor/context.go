@@ -22,21 +22,21 @@ type Context interface {
 	Stash()
 }
 
-type ContextValue struct {
+type contextValue struct {
 	*ActorCell
 	message interface{}
 }
 
-func (context *ContextValue) Message() interface{} {
+func (context *contextValue) Message() interface{} {
 	return context.message
 }
 
-func (context *ContextValue) Stash() {
+func (context *contextValue) Stash() {
 	context.ActorCell.stashMessage(context.message)
 }
 
 func NewContext(cell *ActorCell, message interface{}) Context {
-	res := &ContextValue{
+	res := &contextValue{
 		ActorCell: cell,
 		message:   message,
 	}

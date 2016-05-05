@@ -66,7 +66,7 @@ func FromProducer(actorProducer ActorProducer) Props {
 }
 
 func FromFunc(receive Receive) Props {
-	a := &EmptyActor{
+	a := &emptyActor{
 		receive: receive,
 	}
 	p := FromProducer(func() Actor {

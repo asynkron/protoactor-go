@@ -13,6 +13,7 @@ import (
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	remoting.Start("127.0.0.1:0")
+
 	server := actor.NewPID("127.0.0.1:8080", "chatserver")
 	//spawn our chat client inline
 	props := actor.FromFunc(func(context actor.Context) {

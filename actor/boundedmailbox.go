@@ -7,7 +7,7 @@ import (
 	"github.com/Workiva/go-datastructures/queue"
 )
 
-type BoundedMailbox struct {
+type boundedMailbox struct {
 	throughput      int
 	userMailbox     *queue.RingBuffer
 	systemMailbox   *queue.RingBuffer
@@ -17,34 +17,34 @@ type BoundedMailbox struct {
 	systemInvoke    func(SystemMessage)
 }
 
-func (mailbox *BoundedMailbox) PostUserMessage(message interface{}) {
+func (mailbox *boundedMailbox) PostUserMessage(message interface{}) {
 	mailbox.userMailbox.Put(message)
 	mailbox.schedule()
 }
 
-func (mailbox *BoundedMailbox) PostSystemMessage(message SystemMessage) {
+func (mailbox *boundedMailbox) PostSystemMessage(message SystemMessage) {
 	mailbox.systemMailbox.Put(message)
 	mailbox.schedule()
 }
 
-func (mailbox *BoundedMailbox) schedule() {
-	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages) //we have more messages to process
-	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, MailboxIdle, MailboxRunning) {
+func (mailbox *boundedMailbox) schedule() {
+	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
+	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, mailboxIdle, mailboxRunning) {
 		go mailbox.processMessages()
 	}
 }
 
-func (mailbox *BoundedMailbox) Suspend() {
+func (mailbox *boundedMailbox) Suspend() {
 
 }
 
-func (mailbox *BoundedMailbox) Resume() {
+func (mailbox *boundedMailbox) Resume() {
 
 }
 
-func (mailbox *BoundedMailbox) processMessages() {
+func (mailbox *boundedMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
-	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
+	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages)
 
 	done := false
 	for !done {
@@ -66,9 +66,9 @@ func (mailbox *BoundedMailbox) processMessages() {
 	}
 
 	//set mailbox to idle
-	atomic.StoreInt32(&mailbox.schedulerStatus, MailboxIdle)
+	atomic.StoreInt32(&mailbox.schedulerStatus, mailboxIdle)
 	//check if there are still messages to process (sent after the message loop ended)
-	if atomic.SwapInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages) == MailboxHasMoreMessages {
+	if atomic.SwapInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages) == mailboxHasMoreMessages {
 		mailbox.schedule()
 	}
 
@@ -78,18 +78,18 @@ func NewBoundedMailbox(throughput int, size int) MailboxProducer {
 	return func() Mailbox {
 		userMailbox := queue.NewRingBuffer(uint64(size))
 		systemMailbox := queue.NewRingBuffer(100)
-		mailbox := BoundedMailbox{
+		mailbox := boundedMailbox{
 			throughput:      throughput,
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
-			hasMoreMessages: MailboxHasNoMessages,
-			schedulerStatus: MailboxIdle,
+			hasMoreMessages: mailboxHasNoMessages,
+			schedulerStatus: mailboxIdle,
 		}
 		return &mailbox
 	}
 }
 
-func (mailbox *BoundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
+func (mailbox *boundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
 }

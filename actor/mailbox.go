@@ -10,10 +10,10 @@ type Mailbox interface {
 }
 
 const (
-	MailboxIdle    int32 = iota
-	MailboxRunning int32 = iota
+	mailboxIdle int32 = iota
+	mailboxRunning int32 = iota
 )
 const (
-	MailboxHasNoMessages   int32 = iota
-	MailboxHasMoreMessages int32 = iota
+	mailboxHasNoMessages int32 = iota
+	mailboxHasMoreMessages int32 = iota
 )

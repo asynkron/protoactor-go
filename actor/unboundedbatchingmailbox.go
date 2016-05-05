@@ -6,7 +6,7 @@ import "github.com/rogeralsing/gam/queue"
 import _ "log"
 import "runtime"
 
-type UnboundedBatchingMailbox struct {
+type unboundedBatchingMailbox struct {
 	userMailbox     *queue.Queue
 	systemMailbox   *queue.Queue
 	schedulerStatus int32
@@ -16,34 +16,34 @@ type UnboundedBatchingMailbox struct {
 	batchSize       int
 }
 
-func (mailbox *UnboundedBatchingMailbox) PostUserMessage(message interface{}) {
+func (mailbox *unboundedBatchingMailbox) PostUserMessage(message interface{}) {
 	mailbox.userMailbox.Push(message)
 	mailbox.schedule()
 }
 
-func (mailbox *UnboundedBatchingMailbox) PostSystemMessage(message SystemMessage) {
+func (mailbox *unboundedBatchingMailbox) PostSystemMessage(message SystemMessage) {
 	mailbox.systemMailbox.Push(message)
 	mailbox.schedule()
 }
 
-func (mailbox *UnboundedBatchingMailbox) schedule() {
-	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasMoreMessages) //we have more messages to process
-	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, MailboxIdle, MailboxRunning) {
+func (mailbox *unboundedBatchingMailbox) schedule() {
+	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
+	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, mailboxIdle, mailboxRunning) {
 		go mailbox.processMessages()
 	}
 }
 
-func (mailbox *UnboundedBatchingMailbox) Suspend() {
+func (mailbox *unboundedBatchingMailbox) Suspend() {
 
 }
 
-func (mailbox *UnboundedBatchingMailbox) Resume() {
+func (mailbox *unboundedBatchingMailbox) Resume() {
 
 }
 
-func (mailbox *UnboundedBatchingMailbox) processMessages() {
+func (mailbox *unboundedBatchingMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
-	atomic.StoreInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages)
+	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages)
 	batchSize := mailbox.batchSize
 	done := false
 
@@ -63,9 +63,9 @@ func (mailbox *UnboundedBatchingMailbox) processMessages() {
 	}
 
 	//set mailbox to idle
-	atomic.StoreInt32(&mailbox.schedulerStatus, MailboxIdle)
+	atomic.StoreInt32(&mailbox.schedulerStatus, mailboxIdle)
 	//check if there are still messages to process (sent after the message loop ended)
-	if atomic.SwapInt32(&mailbox.hasMoreMessages, MailboxHasNoMessages) == MailboxHasMoreMessages {
+	if atomic.SwapInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages) == mailboxHasMoreMessages {
 		mailbox.schedule()
 	}
 
@@ -76,18 +76,18 @@ func NewUnboundedBatchingMailbox(batchSize int) MailboxProducer {
 	return func() Mailbox {
 		userMailbox := queue.New()
 		systemMailbox := queue.New()
-		mailbox := UnboundedBatchingMailbox{
+		mailbox := unboundedBatchingMailbox{
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
-			hasMoreMessages: MailboxHasNoMessages,
-			schedulerStatus: MailboxIdle,
+			hasMoreMessages: mailboxHasNoMessages,
+			schedulerStatus: mailboxIdle,
 			batchSize:       batchSize,
 		}
 		return &mailbox
 	}
 }
 
-func (mailbox *UnboundedBatchingMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
+func (mailbox *unboundedBatchingMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
 }
