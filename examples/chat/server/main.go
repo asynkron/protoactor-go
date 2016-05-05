@@ -20,7 +20,7 @@ func notifyAll(clients *hashset.Set, message interface{}) {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	remoting.StartServer("127.0.0.1:8080")
+	remoting.Start("127.0.0.1:8080")
 	clients := hashset.New()
 	props := actor.FromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {

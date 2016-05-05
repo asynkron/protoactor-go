@@ -24,7 +24,7 @@ func newMyMessageSenderChannel() chan<- *messages.MyMessage {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	remoting.StartServer("127.0.0.1:0")
+	remoting.Start("127.0.0.1:0")
 	channel := newMyMessageSenderChannel()
 
 	for i := 0; i < 10; i++ {

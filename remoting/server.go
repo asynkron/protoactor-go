@@ -24,7 +24,7 @@ func (s *server) Receive(stream Remoting_ReceiveServer) error {
 	}
 }
 
-func StartServer(host string, options ...func(*RemotingConfig)) {
+func Start(host string, options ...RemotingOption) {
 
 	lis, err := net.Listen("tcp", host)
 	if err != nil {
@@ -49,42 +49,4 @@ func StartServer(host string, options ...func(*RemotingConfig)) {
 	RegisterRemotingServer(s, &server{})
 	log.Printf("Starting GAM server on %v.", host)
 	go s.Serve(lis)
-}
-
-func defaultRemoteConfig() *RemotingConfig {
-	return &RemotingConfig{
-		dialOptions: []grpc.DialOption{grpc.WithInsecure()},
-		batchSize:   200,
-	}
-}
-
-func WithBatchSize(batchSize int) func(*RemotingConfig) {
-	return func(config *RemotingConfig) {
-		config.batchSize = batchSize
-	}
-}
-
-func WithDialOptions(options ...grpc.DialOption) func(*RemotingConfig) {
-	return func(config *RemotingConfig) {
-		config.dialOptions = options
-	}
-}
-
-func WithServerOptions(options ...grpc.ServerOption) func(*RemotingConfig) {
-	return func(config *RemotingConfig) {
-		config.serverOptions = options
-	}
-}
-
-func WithCallOptions(options ...grpc.CallOption) func(*RemotingConfig) {
-	return func(config *RemotingConfig) {
-		config.callOptions = options
-	}
-}
-
-type RemotingConfig struct {
-	serverOptions []grpc.ServerOption
-	callOptions   []grpc.CallOption
-	dialOptions   []grpc.DialOption
-	batchSize     int
 }

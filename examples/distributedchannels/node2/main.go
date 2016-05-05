@@ -12,7 +12,7 @@ import (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	remoting.StartServer("127.0.0.1:8080")
+	remoting.Start("127.0.0.1:8080")
 	//create the channel
 	channel := make(chan *messages.MyMessage)
 

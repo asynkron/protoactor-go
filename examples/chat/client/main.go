@@ -12,7 +12,7 @@ import (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	remoting.StartServer("127.0.0.1:0")
+	remoting.Start("127.0.0.1:0")
 	server := actor.NewPID("127.0.0.1:8080", "chatserver")
 
 	//spawn our chat client inline
