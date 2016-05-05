@@ -27,7 +27,7 @@ type endpointWriter struct {
 func (state *endpointWriter) initialize() {
 	log.Println("Started EndpointWriter for host", state.host)
 	log.Println("Connecting to host", state.host)
-	conn, err := grpc.Dial(state.host, state.config.DialOptions...)
+	conn, err := grpc.Dial(state.host, state.config.dialOptions...)
 
 	if err != nil {
 		log.Fatalf("Failed to connect to host %v: %v", state.host, err)
@@ -36,7 +36,7 @@ func (state *endpointWriter) initialize() {
 	state.conn = conn
 	c := NewRemotingClient(conn)
 	log.Println("Getting stream from host", state.host)
-	stream, err := c.Receive(context.Background(), state.config.CallOptions...)
+	stream, err := c.Receive(context.Background(), state.config.callOptions...)
 	if err != nil {
 		log.Fatalf("Failed to get stream from host %v: %v", state.host, err)
 	}

@@ -24,15 +24,15 @@ func (s *server) Receive(stream Remoting_ReceiveServer) error {
 	}
 }
 
-func StartServer(host string) {
-	StartServerWithConfig(host, DefaultRemoteConfig())
-}
-
-func StartServerWithConfig(host string, config *RemotingConfig) {
+func StartServer(host string, options ...func(*RemotingConfig)) {
 
 	lis, err := net.Listen("tcp", host)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
+	}
+	config := defaultRemoteConfig()
+	for _, option := range options {
+		option(config)
 	}
 
 	host = lis.Addr().String()
@@ -45,22 +45,46 @@ func StartServerWithConfig(host string, config *RemotingConfig) {
 
 	endpointManagerPID = actor.Spawn(props)
 
-	s := grpc.NewServer(config.ServerOptions...)
+	s := grpc.NewServer(config.serverOptions...)
 	RegisterRemotingServer(s, &server{})
 	log.Printf("Starting GAM server on %v.", host)
 	go s.Serve(lis)
 }
 
-func DefaultRemoteConfig() *RemotingConfig {
+func defaultRemoteConfig() *RemotingConfig {
 	return &RemotingConfig{
-		DialOptions: []grpc.DialOption{grpc.WithInsecure()},
-		BatchSize:   200,
+		dialOptions: []grpc.DialOption{grpc.WithInsecure()},
+		batchSize:   200,
+	}
+}
+
+func WithBatchSize(batchSize int) func(*RemotingConfig) {
+	return func(config *RemotingConfig) {
+		config.batchSize = batchSize
+	}
+}
+
+func WithDialOptions(options ...grpc.DialOption) func(*RemotingConfig) {
+	return func(config *RemotingConfig) {
+		config.dialOptions = options
+	}
+}
+
+func WithServerOptions(options ...grpc.ServerOption) func(*RemotingConfig) {
+	return func(config *RemotingConfig) {
+		config.serverOptions = options
+	}
+}
+
+func WithCallOptions(options ...grpc.CallOption) func(*RemotingConfig) {
+	return func(config *RemotingConfig) {
+		config.callOptions = options
 	}
 }
 
 type RemotingConfig struct {
-	ServerOptions []grpc.ServerOption
-	CallOptions   []grpc.CallOption
-	DialOptions   []grpc.DialOption
-	BatchSize     int
+	serverOptions []grpc.ServerOption
+	callOptions   []grpc.CallOption
+	dialOptions   []grpc.DialOption
+	batchSize     int
 }
