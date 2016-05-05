@@ -35,7 +35,7 @@ func (context *contextValue) Stash() {
 	context.actorCell.stashMessage(context.message)
 }
 
-func newContext(cell *actorCell, message interface{}) Context {
+func (cell *actorCell) newContext(message interface{}) Context {
 	res := &contextValue{
 		actorCell: cell,
 		message:   message,
@@ -212,7 +212,7 @@ func (cell *actorCell) invokeUserMessage(message interface{}) {
 		}
 	}()
 	behavior, _ := cell.behavior.Peek()
-	behavior.(Receive)(newContext(cell, message))
+	behavior.(Receive)(cell.newContext(message))
 }
 
 func (cell *actorCell) Become(behavior Receive) {
