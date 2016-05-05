@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func newEndpointWriter(host string, config *RemotingConfig) actor.ActorProducer {
+func newEndpointWriter(host string, config *remotingConfig) actor.ActorProducer {
 	return func() actor.Actor {
 		return &endpointWriter{
 			host:   host,
@@ -18,7 +18,7 @@ func newEndpointWriter(host string, config *RemotingConfig) actor.ActorProducer 
 }
 
 type endpointWriter struct {
-	config *RemotingConfig
+	config *remotingConfig
 	host   string
 	conn   *grpc.ClientConn
 	stream Remoting_ReceiveClient

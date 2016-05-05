@@ -7,21 +7,21 @@ import (
 	"github.com/rogeralsing/gam/actor"
 )
 
-type RemoteActorRef struct {
+type remoteActorRef struct {
 	pid *actor.PID
 	actor.ActorRef
 }
 
 func newRemoteActorRef(pid *actor.PID) actor.ActorRef {
-	return &RemoteActorRef{
+	return &remoteActorRef{
 		pid: pid,
 	}
 }
 
-func (ref *RemoteActorRef) Tell(message interface{}) {
+func (ref *remoteActorRef) Tell(message interface{}) {
 	switch msg := message.(type) {
 	case proto.Message:
-		envelope, _ := PackMessage(msg, ref.pid)
+		envelope, _ := packMessage(msg, ref.pid)
 		endpointManagerPID.Tell(envelope)
 	default:
 		log.Printf("failed, trying to send non Proto %v message to %v", msg, ref.pid)

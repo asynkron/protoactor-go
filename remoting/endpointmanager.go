@@ -8,7 +8,7 @@ import (
 
 var endpointManagerPID *actor.PID
 
-func newEndpointManager(config *RemotingConfig) actor.ActorProducer {
+func newEndpointManager(config *remotingConfig) actor.ActorProducer {
 	return func() actor.Actor {
 		return &endpointManager{
 			config: config,
@@ -18,7 +18,7 @@ func newEndpointManager(config *RemotingConfig) actor.ActorProducer {
 
 type endpointManager struct {
 	connections map[string]*actor.PID
-	config      *RemotingConfig
+	config      *remotingConfig
 }
 
 func (state *endpointManager) Receive(ctx actor.Context) {
