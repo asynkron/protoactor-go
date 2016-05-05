@@ -54,6 +54,7 @@ func StartServerWithConfig(host string, config *RemotingConfig) {
 func DefaultRemoteConfig() *RemotingConfig {
 	return &RemotingConfig{
 		DialOptions: []grpc.DialOption{grpc.WithInsecure()},
+		BatchSize:   200,
 	}
 }
 
@@ -61,4 +62,5 @@ type RemotingConfig struct {
 	ServerOptions []grpc.ServerOption
 	CallOptions   []grpc.CallOption
 	DialOptions   []grpc.DialOption
+	BatchSize     int
 }
