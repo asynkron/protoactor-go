@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/rogeralsing/gam/actor"
+	"github.com/rogeralsing/gam/remoting/messages"
 )
 
 var endpointManagerPID *actor.PID
@@ -26,7 +27,7 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 	case actor.Started:
 		state.connections = make(map[string]*actor.PID)
 		log.Println("Started EndpointManager")
-	case *MessageEnvelope:
+	case *messages.MessageEnvelope:
 		pid, ok := state.connections[msg.Target.Host]
 		if !ok {
 			props := actor.

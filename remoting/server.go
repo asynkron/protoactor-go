@@ -5,12 +5,13 @@ import (
 	"net"
 
 	"github.com/rogeralsing/gam/actor"
+	"github.com/rogeralsing/gam/remoting/messages"
 	"google.golang.org/grpc"
 )
 
 type server struct{}
 
-func (s *server) Receive(stream Remoting_ReceiveServer) error {
+func (s *server) Receive(stream messages.Remoting_ReceiveServer) error {
 	for {
 		batch, err := stream.Recv()
 		if err != nil {
@@ -46,7 +47,7 @@ func Start(host string, options ...RemotingOption) {
 	endpointManagerPID = actor.Spawn(props)
 
 	s := grpc.NewServer(config.serverOptions...)
-	RegisterRemotingServer(s, &server{})
+	messages.RegisterRemotingServer(s, &server{})
 	log.Printf("Starting GAM server on %v.", host)
 	go s.Serve(lis)
 }

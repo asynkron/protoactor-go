@@ -5,15 +5,16 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/rogeralsing/gam/actor"
+	"github.com/rogeralsing/gam/remoting/messages"
 )
 
-func packMessage(message proto.Message, target *actor.PID) (*MessageEnvelope, error) {
+func packMessage(message proto.Message, target *actor.PID) (*messages.MessageEnvelope, error) {
 	typeName := proto.MessageName(message)
 	bytes, err := proto.Marshal(message)
 	if err != nil {
 		return nil, err
 	}
-	envelope := &MessageEnvelope{
+	envelope := &messages.MessageEnvelope{
 		TypeName:    typeName,
 		MessageData: bytes,
 		Target:      target,
@@ -22,7 +23,7 @@ func packMessage(message proto.Message, target *actor.PID) (*MessageEnvelope, er
 	return envelope, nil
 }
 
-func unpackMessage(message *MessageEnvelope) proto.Message {
+func unpackMessage(message *messages.MessageEnvelope) proto.Message {
 	t := proto.MessageType(message.TypeName).Elem()
 	intPtr := reflect.New(t)
 	instance := intPtr.Interface().(proto.Message)

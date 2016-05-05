@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/rogeralsing/gam/actor"
+	"github.com/rogeralsing/gam/remoting/messages"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -21,7 +22,7 @@ type endpointWriter struct {
 	config *remotingConfig
 	host   string
 	conn   *grpc.ClientConn
-	stream Remoting_ReceiveClient
+	stream messages.Remoting_ReceiveClient
 }
 
 func (state *endpointWriter) initialize() {
@@ -34,7 +35,7 @@ func (state *endpointWriter) initialize() {
 	}
 	log.Println("Connected to host", state.host)
 	state.conn = conn
-	c := NewRemotingClient(conn)
+	c := messages.NewRemotingClient(conn)
 	log.Println("Getting stream from host", state.host)
 	stream, err := c.Receive(context.Background(), state.config.callOptions...)
 	if err != nil {
@@ -44,14 +45,14 @@ func (state *endpointWriter) initialize() {
 	state.stream = stream
 }
 
-func (state *endpointWriter) sendEnvelopes(messages []interface{}, ctx actor.Context) {
-	envelopes := make([]*MessageEnvelope, len(messages))
+func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context) {
+	envelopes := make([]*messages.MessageEnvelope, len(msg))
 
-	for i, tmp := range messages {
-		envelopes[i] = tmp.(*MessageEnvelope)
+	for i, tmp := range msg {
+		envelopes[i] = tmp.(*messages.MessageEnvelope)
 	}
 
-	batch := &MessageBatch{
+	batch := &messages.MessageBatch{
 		Envelopes: envelopes,
 	}
 

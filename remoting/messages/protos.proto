@@ -1,5 +1,5 @@
 syntax = "proto3";
-package remoting;
+package messages;
 import "github.com/rogeralsing/gam/actor/protos.proto";
 
 message MessageEnvelope {
