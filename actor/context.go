@@ -23,7 +23,7 @@ type Context interface {
 }
 
 type contextValue struct {
-	*ActorCell
+	*actorCell
 	message interface{}
 }
 
@@ -32,18 +32,18 @@ func (context *contextValue) Message() interface{} {
 }
 
 func (context *contextValue) Stash() {
-	context.ActorCell.stashMessage(context.message)
+	context.actorCell.stashMessage(context.message)
 }
 
-func NewContext(cell *ActorCell, message interface{}) Context {
+func newContext(cell *actorCell, message interface{}) Context {
 	res := &contextValue{
-		ActorCell: cell,
+		actorCell: cell,
 		message:   message,
 	}
 	return res
 }
 
-type ActorCell struct {
+type actorCell struct {
 	parent     *PID
 	self       *PID
 	actor      Actor
@@ -57,7 +57,7 @@ type ActorCell struct {
 	stopping   bool
 }
 
-func (cell *ActorCell) Children() []*PID {
+func (cell *actorCell) Children() []*PID {
 	values := cell.children.Values()
 	children := make([]*PID, len(values))
 	for i, child := range values {
@@ -66,15 +66,15 @@ func (cell *ActorCell) Children() []*PID {
 	return children
 }
 
-func (cell *ActorCell) Self() *PID {
+func (cell *actorCell) Self() *PID {
 	return cell.self
 }
 
-func (cell *ActorCell) Parent() *PID {
+func (cell *actorCell) Parent() *PID {
 	return cell.parent
 }
 
-func (cell *ActorCell) stashMessage(message interface{}) {
+func (cell *actorCell) stashMessage(message interface{}) {
 	if cell.stash == nil {
 		cell.stash = linkedliststack.New()
 	}
@@ -82,9 +82,9 @@ func (cell *ActorCell) stashMessage(message interface{}) {
 	cell.stash.Push(message)
 }
 
-func NewActorCell(props Props, parent *PID) *ActorCell {
+func NewActorCell(props Props, parent *PID) *actorCell {
 
-	cell := ActorCell{
+	cell := actorCell{
 		parent:     parent,
 		props:      props,
 		supervisor: props.Supervisor(),
@@ -97,13 +97,13 @@ func NewActorCell(props Props, parent *PID) *ActorCell {
 	return &cell
 }
 
-func (cell *ActorCell) incarnateActor() {
+func (cell *actorCell) incarnateActor() {
 	actor := cell.props.ProduceActor()
 	cell.actor = actor
 	cell.Become(actor.Receive)
 }
 
-func (cell *ActorCell) invokeSystemMessage(message SystemMessage) {
+func (cell *actorCell) invokeSystemMessage(message SystemMessage) {
 	switch msg := message.(interface{}).(type) {
 	default:
 		fmt.Printf("Unknown system message %T", msg)
@@ -124,7 +124,7 @@ func (cell *ActorCell) invokeSystemMessage(message SystemMessage) {
 	}
 }
 
-func (cell *ActorCell) handleStop(msg *stop) {
+func (cell *actorCell) handleStop(msg *stop) {
 	cell.stopping = true
 	cell.invokeUserMessage(Stopping{})
 	for _, child := range cell.children.Values() {
@@ -133,13 +133,13 @@ func (cell *ActorCell) handleStop(msg *stop) {
 	cell.tryRestartOrTerminate()
 }
 
-func (cell *ActorCell) handleOtherStopped(msg *otherStopped) {
+func (cell *actorCell) handleOtherStopped(msg *otherStopped) {
 	cell.children.Remove(msg.Who)
 	cell.watching.Remove(msg.Who)
 	cell.tryRestartOrTerminate()
 }
 
-func (cell *ActorCell) handleFailure(msg *failure) {
+func (cell *actorCell) handleFailure(msg *failure) {
 	directive := cell.supervisor.Handle(msg.Who, msg.Reason)
 	switch directive {
 	case ResumeDirective:
@@ -157,7 +157,7 @@ func (cell *ActorCell) handleFailure(msg *failure) {
 	}
 }
 
-func (cell *ActorCell) handleRestart(msg *restart) {
+func (cell *actorCell) handleRestart(msg *restart) {
 	cell.stopping = false
 	cell.invokeUserMessage(Restarting{}) //TODO: change to restarting
 	for _, child := range cell.children.Values() {
@@ -166,7 +166,7 @@ func (cell *ActorCell) handleRestart(msg *restart) {
 	cell.tryRestartOrTerminate()
 }
 
-func (cell *ActorCell) tryRestartOrTerminate() {
+func (cell *actorCell) tryRestartOrTerminate() {
 	if !cell.children.Empty() {
 		return
 	}
@@ -179,7 +179,7 @@ func (cell *ActorCell) tryRestartOrTerminate() {
 	cell.stopped()
 }
 
-func (cell *ActorCell) restart() {
+func (cell *actorCell) restart() {
 	cell.incarnateActor()
 	cell.invokeUserMessage(Started{})
 	if cell.stash != nil {
@@ -190,7 +190,7 @@ func (cell *ActorCell) restart() {
 	}
 }
 
-func (cell *ActorCell) stopped() {
+func (cell *actorCell) stopped() {
 	ProcessRegistry.unregisterPID(cell.self)
 	cell.invokeUserMessage(Stopped{})
 	otherStopped := &otherStopped{Who: cell.self}
@@ -199,7 +199,7 @@ func (cell *ActorCell) stopped() {
 	}
 }
 
-func (cell *ActorCell) invokeUserMessage(message interface{}) {
+func (cell *actorCell) invokeUserMessage(message interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
 			failure := &failure{Reason: r, Who: cell.self}
@@ -212,52 +212,45 @@ func (cell *ActorCell) invokeUserMessage(message interface{}) {
 		}
 	}()
 	behavior, _ := cell.behavior.Peek()
-	behavior.(Receive)(NewContext(cell, message))
+	behavior.(Receive)(newContext(cell, message))
 }
 
-func (cell *ActorCell) Become(behavior Receive) {
+func (cell *actorCell) Become(behavior Receive) {
 	cell.behavior.Clear()
 	cell.behavior.Push(behavior)
 }
 
-func (cell *ActorCell) BecomeStacked(behavior Receive) {
+func (cell *actorCell) BecomeStacked(behavior Receive) {
 	cell.behavior.Push(behavior)
 }
 
-func (cell *ActorCell) UnbecomeStacked() {
+func (cell *actorCell) UnbecomeStacked() {
 	if cell.behavior.Size() <= 1 {
 		panic("Can not unbecome actor base behavior")
 	}
 	cell.behavior.Pop()
 }
 
-func (cell *ActorCell) Watch(who *PID) {
+func (cell *actorCell) Watch(who *PID) {
 	who.sendSystemMessage(&watch{
 		Watcher: cell.self,
 	})
 	cell.watching.Add(who)
 }
 
-func (cell *ActorCell) Unwatch(who *PID) {
+func (cell *actorCell) Unwatch(who *PID) {
 	who.sendSystemMessage(&unwatch{
 		Watcher: cell.self,
 	})
 	cell.watching.Remove(who)
 }
 
-// func (cell *ActorCell) ActorOf(props Properties) *PID {
-// 	_, pid := spawnChild(props, cell.self)
-// 	cell.children.Add(pid)
-// 	cell.Watch(pid)
-// 	return pid
-// }
-
-func (cell *ActorCell) Spawn(props Props) *PID {
+func (cell *actorCell) Spawn(props Props) *PID {
 	id := ProcessRegistry.getAutoId()
 	return cell.SpawnNamed(props, id)
 }
 
-func (cell *ActorCell) SpawnNamed(props Props, name string) *PID {
+func (cell *actorCell) SpawnNamed(props Props, name string) *PID {
 	pid := spawn(name, props, cell.self)
 	cell.children.Add(pid)
 	cell.Watch(pid)
