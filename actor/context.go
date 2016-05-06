@@ -22,28 +22,16 @@ type Context interface {
 	Stash()
 }
 
-type contextValue struct {
-	*actorCell
-	message interface{}
+func (cell *actorCell) Message() interface{} {
+	return cell.message
 }
 
-func (context *contextValue) Message() interface{} {
-	return context.message
-}
-
-func (context *contextValue) Stash() {
-	context.actorCell.stashMessage(context.message)
-}
-
-func (cell *actorCell) newContext(message interface{}) Context {
-	res := &contextValue{
-		actorCell: cell,
-		message:   message,
-	}
-	return res
+func (cell *actorCell) Stash() {
+	cell.stashMessage(cell.message)
 }
 
 type actorCell struct {
+	message    interface{}
 	parent     *PID
 	self       *PID
 	actor      Actor
@@ -212,7 +200,8 @@ func (cell *actorCell) invokeUserMessage(message interface{}) {
 		}
 	}()
 	behavior, _ := cell.behavior.Peek()
-	behavior.(Receive)(cell.newContext(message))
+	cell.message = message
+	behavior.(Receive)(cell)
 }
 
 func (cell *actorCell) Become(behavior Receive) {
