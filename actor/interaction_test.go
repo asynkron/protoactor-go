@@ -138,15 +138,15 @@ func NewEchoOnStartActor(replyTo *PID) func() Actor {
 	}
 }
 
-// func TestActorCanReplyOnStarting(t *testing.T) {
-// 	responsePID,result := FuturePID()
-// 	actor := Spawn(Props(NewEchoOnStartActor(responsePID)))
-// 	defer actor.Stop()
-// 	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
-// 		assert.Fail(t, "timed out")
-// 		return
-// 	}
-// }
+func TestActorCanReplyOnStarting(t *testing.T) {
+	responsePID, result := RequestResponsePID()
+	actor := Spawn(FromProducer(NewEchoOnStartActor(responsePID)))
+	defer actor.Stop()
+	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
+		assert.Fail(t, "timed out")
+		return
+	}
+}
 
 type EchoOnStoppingActor struct{ replyTo *PID }
 

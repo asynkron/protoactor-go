@@ -7,7 +7,7 @@ import (
 
 func RequestResponsePID() (*PID, *Response) {
 	ref := &Response{
-		channel: make(chan interface{}),
+		channel: make(chan interface{}, 1),
 	}
 	id := ProcessRegistry.getAutoId()
 	pid := ProcessRegistry.registerPID(ref, id)

@@ -143,7 +143,7 @@ func (cell *actorCell) handleFailure(msg *failure) {
 	directive := cell.supervisor.Handle(msg.Who, msg.Reason)
 	switch directive {
 	case ResumeDirective:
-		//resume the fialing child
+		//resume the failing child
 		msg.Who.sendSystemMessage(&resume{})
 	case RestartDirective:
 		//restart the failing child
@@ -159,7 +159,7 @@ func (cell *actorCell) handleFailure(msg *failure) {
 
 func (cell *actorCell) handleRestart(msg *restart) {
 	cell.stopping = false
-	cell.invokeUserMessage(Restarting{}) //TODO: change to restarting
+	cell.invokeUserMessage(Restarting{})
 	for _, child := range cell.children.Values() {
 		child.(*PID).Stop()
 	}
