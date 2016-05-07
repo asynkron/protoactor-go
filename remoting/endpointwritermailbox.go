@@ -18,7 +18,7 @@ const (
 	mailboxHasMoreMessages int32 = iota
 )
 
-type unboundedBatchingMailbox struct {
+type endpointWriterMailbox struct {
 	userMailbox     *queue.Queue
 	systemMailbox   *queue.Queue
 	schedulerStatus int32
@@ -28,32 +28,32 @@ type unboundedBatchingMailbox struct {
 	batchSize       int
 }
 
-func (mailbox *unboundedBatchingMailbox) PostUserMessage(message interface{}) {
+func (mailbox *endpointWriterMailbox) PostUserMessage(message interface{}) {
 	mailbox.userMailbox.Push(message)
 	mailbox.schedule()
 }
 
-func (mailbox *unboundedBatchingMailbox) PostSystemMessage(message actor.SystemMessage) {
+func (mailbox *endpointWriterMailbox) PostSystemMessage(message actor.SystemMessage) {
 	mailbox.systemMailbox.Push(message)
 	mailbox.schedule()
 }
 
-func (mailbox *unboundedBatchingMailbox) schedule() {
+func (mailbox *endpointWriterMailbox) schedule() {
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
 	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, mailboxIdle, mailboxRunning) {
 		go mailbox.processMessages()
 	}
 }
 
-func (mailbox *unboundedBatchingMailbox) Suspend() {
+func (mailbox *endpointWriterMailbox) Suspend() {
 
 }
 
-func (mailbox *unboundedBatchingMailbox) Resume() {
+func (mailbox *endpointWriterMailbox) Resume() {
 
 }
 
-func (mailbox *unboundedBatchingMailbox) processMessages() {
+func (mailbox *endpointWriterMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages)
 	batchSize := mailbox.batchSize
@@ -83,12 +83,12 @@ func (mailbox *unboundedBatchingMailbox) processMessages() {
 
 }
 
-func newUnboundedBatchingMailbox(batchSize, initialSize int) actor.MailboxProducer {
+func newEndpointWriterMailbox(batchSize, initialSize int) actor.MailboxProducer {
 
 	return func() actor.Mailbox {
 		userMailbox := queue.New(initialSize)
 		systemMailbox := queue.New(10)
-		mailbox := unboundedBatchingMailbox{
+		mailbox := endpointWriterMailbox{
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
 			hasMoreMessages: mailboxHasNoMessages,
@@ -99,7 +99,7 @@ func newUnboundedBatchingMailbox(batchSize, initialSize int) actor.MailboxProduc
 	}
 }
 
-func (mailbox *unboundedBatchingMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(actor.SystemMessage)) {
+func (mailbox *endpointWriterMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(actor.SystemMessage)) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
 }
