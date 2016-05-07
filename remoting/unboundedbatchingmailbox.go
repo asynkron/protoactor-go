@@ -1,10 +1,22 @@
-package actor
+package remoting
 
 import "sync/atomic"
 
-import "github.com/rogeralsing/gam/queue"
+import (
+	"github.com/rogeralsing/gam/actor"
+	"github.com/rogeralsing/gam/queue"
+)
 import _ "log"
 import "runtime"
+
+const (
+	mailboxIdle    int32 = iota
+	mailboxRunning int32 = iota
+)
+const (
+	mailboxHasNoMessages   int32 = iota
+	mailboxHasMoreMessages int32 = iota
+)
 
 type unboundedBatchingMailbox struct {
 	userMailbox     *queue.Queue
@@ -12,7 +24,7 @@ type unboundedBatchingMailbox struct {
 	schedulerStatus int32
 	hasMoreMessages int32
 	userInvoke      func(interface{})
-	systemInvoke    func(SystemMessage)
+	systemInvoke    func(actor.SystemMessage)
 	batchSize       int
 }
 
@@ -21,7 +33,7 @@ func (mailbox *unboundedBatchingMailbox) PostUserMessage(message interface{}) {
 	mailbox.schedule()
 }
 
-func (mailbox *unboundedBatchingMailbox) PostSystemMessage(message SystemMessage) {
+func (mailbox *unboundedBatchingMailbox) PostSystemMessage(message actor.SystemMessage) {
 	mailbox.systemMailbox.Push(message)
 	mailbox.schedule()
 }
@@ -50,7 +62,7 @@ func (mailbox *unboundedBatchingMailbox) processMessages() {
 	for !done {
 		if sysMsg, ok := mailbox.systemMailbox.Pop(); ok {
 
-			first := sysMsg.(SystemMessage)
+			first := sysMsg.(actor.SystemMessage)
 			mailbox.systemInvoke(first)
 		} else if userMsg, ok := mailbox.userMailbox.PopMany(batchSize); ok {
 
@@ -71,11 +83,11 @@ func (mailbox *unboundedBatchingMailbox) processMessages() {
 
 }
 
-func NewUnboundedBatchingMailbox(batchSize int) MailboxProducer {
+func newUnboundedBatchingMailbox(batchSize, initialSize int) actor.MailboxProducer {
 
-	return func() Mailbox {
-		userMailbox := queue.New()
-		systemMailbox := queue.New()
+	return func() actor.Mailbox {
+		userMailbox := queue.New(initialSize)
+		systemMailbox := queue.New(10)
 		mailbox := unboundedBatchingMailbox{
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
@@ -87,7 +99,7 @@ func NewUnboundedBatchingMailbox(batchSize int) MailboxProducer {
 	}
 }
 
-func (mailbox *unboundedBatchingMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
+func (mailbox *unboundedBatchingMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(actor.SystemMessage)) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
 }

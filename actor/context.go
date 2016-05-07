@@ -80,6 +80,7 @@ func NewActorCell(props Props, parent *PID) *actorCell {
 		children:   hashset.New(),
 		watchers:   hashset.New(),
 		watching:   hashset.New(),
+		message:    nil,
 	}
 	cell.incarnateActor()
 	return &cell

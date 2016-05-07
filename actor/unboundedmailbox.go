@@ -75,8 +75,8 @@ func (mailbox *unboundedMailbox) processMessages() {
 
 func NewUnboundedMailbox(throughput int) MailboxProducer {
 	return func() Mailbox {
-		userMailbox := queue.New()
-		systemMailbox := queue.New()
+		userMailbox := queue.New(10)
+		systemMailbox := queue.New(10)
 		mailbox := unboundedMailbox{
 			throughput:      throughput,
 			userMailbox:     userMailbox,

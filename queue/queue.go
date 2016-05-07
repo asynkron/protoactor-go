@@ -15,8 +15,7 @@ type Queue struct {
 	lock    sync.RWMutex
 }
 
-func New() *Queue {
-	initialSize := 10
+func New(initialSize int) *Queue {
 	return &Queue{
 		content: &ringBuffer{
 			buffer: make([]interface{}, initialSize),
