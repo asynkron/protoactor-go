@@ -30,6 +30,7 @@ func newRemoteActor() actor.ActorProducer {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GC()
 
 	remoting.Start("127.0.0.1:8080")
 	props := actor.

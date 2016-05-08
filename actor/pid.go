@@ -31,3 +31,10 @@ func NewPID(host, id string) *PID {
 		Id:   id,
 	}
 }
+
+func NewLocalPID(id string) *PID {
+	return &PID{
+		Host: ProcessRegistry.Host,
+		Id:   id,
+	}
+}

@@ -58,7 +58,7 @@ func main() {
 
 	messageCount := 1000000
 
-	remoting.Start("127.0.0.1:0")
+	remoting.Start("127.0.0.1:8081")
 
 	props := actor.
 		FromProducer(newLocalActor(&wgStart, &wgStop, messageCount)).

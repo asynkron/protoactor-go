@@ -6,7 +6,7 @@ import (
 	"github.com/rogeralsing/gam/actor"
 	"github.com/rogeralsing/gam/queue"
 )
-import _ "log"
+
 import "runtime"
 
 const (
