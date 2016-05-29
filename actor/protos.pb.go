@@ -15,6 +15,7 @@ It has these top-level messages:
 	Stopped
 	PoisonPill
 	Started
+	Foo
 */
 package actor
 
@@ -84,6 +85,14 @@ func (m *Started) String() string            { return proto.CompactTextString(m)
 func (*Started) ProtoMessage()               {}
 func (*Started) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{5} }
 
+type Foo struct {
+}
+
+func (m *Foo) Reset()                    { *m = Foo{} }
+func (m *Foo) String() string            { return proto.CompactTextString(m) }
+func (*Foo) ProtoMessage()               {}
+func (*Foo) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{6} }
+
 func init() {
 	proto.RegisterType((*PID)(nil), "actor.PID")
 	proto.RegisterType((*Restarting)(nil), "actor.Restarting")
@@ -91,6 +100,7 @@ func init() {
 	proto.RegisterType((*Stopped)(nil), "actor.Stopped")
 	proto.RegisterType((*PoisonPill)(nil), "actor.PoisonPill")
 	proto.RegisterType((*Started)(nil), "actor.Started")
+	proto.RegisterType((*Foo)(nil), "actor.foo")
 }
 func (m *PID) Marshal() (data []byte, err error) {
 	size := m.Size()
@@ -212,6 +222,24 @@ func (m *Started) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
+func (m *Foo) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *Foo) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
 func encodeFixed64Protos(data []byte, offset int, v uint64) int {
 	data[offset] = uint8(v)
 	data[offset+1] = uint8(v >> 8)
@@ -278,6 +306,12 @@ func (m *PoisonPill) Size() (n int) {
 }
 
 func (m *Started) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
+func (m *Foo) Size() (n int) {
 	var l int
 	_ = l
 	return n
@@ -654,6 +688,56 @@ func (m *Started) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+func (m *Foo) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: foo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: foo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func skipProtos(data []byte) (n int, err error) {
 	l := len(data)
 	iNdEx := 0
@@ -760,7 +844,7 @@ var (
 )
 
 var fileDescriptorProtos = []byte{
-	// 150 bytes of a gzipped FileDescriptorProto
+	// 156 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x28, 0xca, 0x2f,
 	0xc9, 0x2f, 0xd6, 0x03, 0x53, 0x42, 0xac, 0x89, 0xc9, 0x25, 0xf9, 0x45, 0x4a, 0x9a, 0x5c, 0xcc,
 	0x01, 0x9e, 0x2e, 0x42, 0x42, 0x5c, 0x2c, 0x1e, 0xf9, 0xc5, 0x25, 0x12, 0x8c, 0x0a, 0x8c, 0x1a,
@@ -768,7 +852,7 @@ var fileDescriptorProtos = []byte{
 	0x29, 0x33, 0x45, 0x89, 0x87, 0x8b, 0x2b, 0x28, 0xb5, 0xb8, 0x24, 0xb1, 0xa8, 0x24, 0x33, 0x2f,
 	0x5d, 0x89, 0x8b, 0x8b, 0x23, 0xb8, 0x24, 0xbf, 0xa0, 0x00, 0xc4, 0xe6, 0xe4, 0x62, 0x07, 0xb3,
 	0x53, 0xc1, 0x8a, 0x02, 0xf2, 0x33, 0x8b, 0xf3, 0xf3, 0x02, 0x32, 0x73, 0x72, 0x20, 0x12, 0x40,
-	0x0d, 0xa9, 0x29, 0x4e, 0x02, 0x27, 0x1e, 0xc9, 0x31, 0x5e, 0x00, 0xe2, 0x07, 0x40, 0x3c, 0xe3,
-	0xb1, 0x1c, 0x43, 0x12, 0x1b, 0xd8, 0x21, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0xfe, 0x13,
-	0x73, 0x0f, 0x98, 0x00, 0x00, 0x00,
+	0x0d, 0x40, 0x09, 0x56, 0x2e, 0xe6, 0xb4, 0xfc, 0x7c, 0x27, 0x81, 0x13, 0x8f, 0xe4, 0x18, 0x2f,
+	0x00, 0xf1, 0x03, 0x20, 0x9e, 0xf1, 0x58, 0x8e, 0x21, 0x89, 0x0d, 0xec, 0x1e, 0x63, 0x40, 0x00,
+	0x00, 0x00, 0xff, 0xff, 0xa2, 0xdf, 0x72, 0xaf, 0x9f, 0x00, 0x00, 0x00,
 }
