@@ -2,25 +2,33 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/rogeralsing/gam/actor"
 	"github.com/rogeralsing/goconsole"
 )
 
-type myMessage struct{}
+type myMessage struct{ i int }
 
 func main() {
 	act := func(context actor.Context) {
 		switch context.Message().(type) {
 		case myMessage:
-			log.Printf("%v got message", context.Self())
+			log.Printf("%v got message %d", context.Self(), context.Message().(myMessage).i)
 		}
 	}
-	props := actor.FromFunc(act).WithPoolRouter(actor.NewRoundRobinPool(10))
+	log.Println("Round robin routing:")
+	props := actor.FromFunc(act).WithPoolRouter(actor.NewRoundRobinPool(5))
 	pid := actor.Spawn(props)
 	for i := 0; i < 10; i++ {
-		pid.Tell(myMessage{})
+		pid.Tell(myMessage{i})
 	}
-
+	time.Sleep(1 * time.Second)
+	log.Println("Random routing:")
+	props = actor.FromFunc(act).WithPoolRouter(actor.NewRandomPool(5))
+	pid = actor.Spawn(props)
+	for i := 0; i < 10; i++ {
+		pid.Tell(myMessage{i})
+	}
 	console.ReadLine()
 }
