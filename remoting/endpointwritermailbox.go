@@ -3,8 +3,8 @@ package remoting
 import "sync/atomic"
 
 import (
-	"github.com/rogeralsing/gam/actor"
-	"github.com/rogeralsing/gam/queue"
+	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/queue"
 )
 
 import "runtime"

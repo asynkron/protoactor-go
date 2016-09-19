@@ -3,9 +3,9 @@ package remoting
 import (
 	"reflect"
 
+	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/remoting/messages"
 	"github.com/golang/protobuf/proto"
-	"github.com/rogeralsing/gam/actor"
-	"github.com/rogeralsing/gam/remoting/messages"
 )
 
 func packMessage(message proto.Message, target *actor.PID) (*messages.MessageEnvelope, error) {

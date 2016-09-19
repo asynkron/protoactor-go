@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/rogeralsing/gam/actor"
+	"github.com/AsynkronIT/gam/actor"
 )
 
 type remoteActorRef struct {

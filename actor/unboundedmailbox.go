@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"github.com/rogeralsing/gam/queue"
+	"github.com/AsynkronIT/gam/queue"
 )
 
 type unboundedMailbox struct {

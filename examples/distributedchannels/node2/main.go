@@ -4,10 +4,10 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/rogeralsing/gam/actor"
-	"github.com/rogeralsing/gam/examples/distributedchannels/messages"
-	"github.com/rogeralsing/gam/remoting"
-	"github.com/rogeralsing/goconsole"
+	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/examples/distributedchannels/messages"
+	"github.com/AsynkronIT/gam/remoting"
+	"github.com/AsynkronIT/goconsole"
 )
 
 func main() {

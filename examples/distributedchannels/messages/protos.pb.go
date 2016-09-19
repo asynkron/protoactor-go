@@ -16,7 +16,7 @@ package messages
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import _ "github.com/rogeralsing/gam/actor"
+import _ "github.com/AsynkronIT/gam/actor"
 
 import io "io"
 

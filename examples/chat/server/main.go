@@ -4,11 +4,11 @@ import (
 	"log"
 	"runtime"
 
+	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/examples/chat/messages"
+	"github.com/AsynkronIT/gam/remoting"
 	"github.com/emirpasic/gods/sets/hashset"
-	"github.com/rogeralsing/gam/actor"
-	"github.com/rogeralsing/gam/examples/chat/messages"
-	"github.com/rogeralsing/gam/remoting"
-	"github.com/rogeralsing/goconsole"
+	"github.com/AsynkronIT/goconsole"
 )
 
 func notifyAll(clients *hashset.Set, message interface{}) {

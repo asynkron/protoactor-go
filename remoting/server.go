@@ -4,8 +4,8 @@ import (
 	"log"
 	"net"
 
-	"github.com/rogeralsing/gam/actor"
-	"github.com/rogeralsing/gam/remoting/messages"
+	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/remoting/messages"
 	"google.golang.org/grpc"
 )
 

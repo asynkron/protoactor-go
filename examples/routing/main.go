@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/rogeralsing/gam/actor"
-	"github.com/rogeralsing/goconsole"
+	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/goconsole"
 )
 
 type myMessage struct{ i int }

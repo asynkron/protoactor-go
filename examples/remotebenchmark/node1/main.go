@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/rogeralsing/gam/actor"
-	"github.com/rogeralsing/gam/remoting"
+	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/remoting"
 
 	"log"
 	"sync"
@@ -11,7 +11,7 @@ import (
 )
 
 // import "runtime/pprof"
-import "github.com/rogeralsing/gam/examples/remotebenchmark/messages"
+import "github.com/AsynkronIT/gam/examples/remotebenchmark/messages"
 import "runtime"
 
 type localActor struct {
