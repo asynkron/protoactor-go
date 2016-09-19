@@ -1,12 +1,5 @@
 package actor
 
-type Properties interface {
-	ProduceActor() Actor
-	ProduceMailbox() Mailbox
-	Supervisor() SupervisionStrategy
-	RouterConfig() RouterConfig
-}
-
 type Props struct {
 	actorProducer       ActorProducer
 	mailboxProducer     MailboxProducer
