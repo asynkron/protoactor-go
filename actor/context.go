@@ -19,6 +19,7 @@ type Context interface {
 	Spawn(Props) *PID
 	SpawnNamed(Props, string) *PID
 	Children() []*PID
+	Handle(interface{})
 	Stash()
 }
 
@@ -42,7 +43,8 @@ type actorCell struct {
 	watchers       *hashset.Set
 	watching       *hashset.Set
 	stash          *linkedliststack.Stack
-	receivePlugins []ReceivePlugin
+	receivePlugins []Receive
+	receiveIndex   int
 	stopping       bool
 }
 
@@ -87,7 +89,18 @@ func NewActorCell(props Props, parent *PID) *actorCell {
 	cell.incarnateActor()
 	return &cell
 }
-
+func (cell *actorCell) Handle(message interface{}) {
+	var receive Receive
+	if cell.receiveIndex < len(cell.receivePlugins) {
+		receive = cell.receivePlugins[cell.receiveIndex]
+		cell.receiveIndex++
+	} else {
+		tmp, _ := cell.behavior.Peek()
+		receive = tmp.(Receive)
+	}
+	cell.message = message
+	receive(cell)
+}
 func (cell *actorCell) incarnateActor() {
 	actor := cell.props.ProduceActor()
 	cell.actor = actor
@@ -202,18 +215,9 @@ func (cell *actorCell) invokeUserMessage(message interface{}) {
 			}
 		}
 	}()
-	if cell.receivePlugins != nil {
-		for _, rh := range cell.receivePlugins {
-			cell.message = message
-			message = rh(cell)
-			if message == nil {
-				return
-			}
-		}
-	}
-	behavior, _ := cell.behavior.Peek()
-	cell.message = message
-	behavior.(Receive)(cell)
+
+	cell.receiveIndex = 0
+	cell.Handle(message)
 }
 
 func (cell *actorCell) Become(behavior Receive) {

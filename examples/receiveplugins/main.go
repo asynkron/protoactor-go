@@ -8,31 +8,28 @@ import (
 )
 
 type Hello struct{ Who string }
-type HelloActor struct{}
 
-func (state *HelloActor) Receive(context actor.Context) {
+func Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case Hello:
 		fmt.Printf("Hello %v\n", msg.Who)
 	}
 }
 
-func myReceivePlugin(context actor.Context) interface{} {
+func myReceivePlugin(context actor.Context) {
 	message := context.Message()
-	fmt.Printf("Received message %v\n", message)
-
+	fmt.Printf("Before message %v\n", message)
 	switch msg := context.Message().(type) {
 	case Hello:
-		return Hello{
-			Who: msg.Who + " Modified",
-		}
+		context.Handle(Hello{Who: msg.Who + "Modified"})
+	default:
+		context.Handle(msg)
 	}
-
-	return message
+	fmt.Printf("After message %v\n", message)
 }
 
 func main() {
-	props := actor.FromInstance(&HelloActor{}).WithReceivePlugin(myReceivePlugin)
+	props := actor.FromFunc(Receive).WithReceivePlugin(myReceivePlugin)
 	pid := actor.Spawn(props)
 	pid.Tell(Hello{Who: "Roger"})
 	console.ReadLine()
