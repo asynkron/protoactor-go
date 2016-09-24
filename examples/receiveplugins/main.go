@@ -16,20 +16,21 @@ func Receive(context actor.Context) {
 	}
 }
 
-func myReceivePlugin(context actor.Context) {
-	message := context.Message()
-	fmt.Printf("Before message %v\n", message)
-	switch msg := context.Message().(type) {
-	case Hello:
-		context.Handle(Hello{Who: msg.Who + "Modified"})
-	default:
-		context.Handle(msg)
-	}
-	fmt.Printf("After message %v\n", message)
-}
+//Custom plugin
+// func ConsoleLogging(context actor.Context) {
+// 	message := context.Message()
+// 	fmt.Printf("Before message %v\n", message)
+// 	switch msg := context.Message().(type) {
+// 	case Hello:
+// 		context.Handle(Hello{Who: msg.Who + "Modified"})
+// 	default:
+// 		context.Handle(msg)
+// 	}
+// 	fmt.Printf("After message %v\n", message)
+// }
 
 func main() {
-	props := actor.FromFunc(Receive).WithReceivePlugin(myReceivePlugin)
+	props := actor.FromFunc(Receive).WithReceivePlugin(actor.ConsoleLogging) //using built in plugin
 	pid := actor.Spawn(props)
 	pid.Tell(Hello{Who: "Roger"})
 	console.ReadLine()
