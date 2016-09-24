@@ -31,18 +31,19 @@ func (cell *actorCell) Stash() {
 }
 
 type actorCell struct {
-	message    interface{}
-	parent     *PID
-	self       *PID
-	actor      Actor
-	props      Props
-	supervisor SupervisionStrategy
-	behavior   *linkedliststack.Stack
-	children   *hashset.Set
-	watchers   *hashset.Set
-	watching   *hashset.Set
-	stash      *linkedliststack.Stack
-	stopping   bool
+	message        interface{}
+	parent         *PID
+	self           *PID
+	actor          Actor
+	props          Props
+	supervisor     SupervisionStrategy
+	behavior       *linkedliststack.Stack
+	children       *hashset.Set
+	watchers       *hashset.Set
+	watching       *hashset.Set
+	stash          *linkedliststack.Stack
+	receivePlugins []ReceivePlugin
+	stopping       bool
 }
 
 func (cell *actorCell) Children() []*PID {
@@ -73,14 +74,15 @@ func (cell *actorCell) stashMessage(message interface{}) {
 func NewActorCell(props Props, parent *PID) *actorCell {
 
 	cell := actorCell{
-		parent:     parent,
-		props:      props,
-		supervisor: props.Supervisor(),
-		behavior:   linkedliststack.New(),
-		children:   hashset.New(),
-		watchers:   hashset.New(),
-		watching:   hashset.New(),
-		message:    nil,
+		parent:         parent,
+		props:          props,
+		supervisor:     props.Supervisor(),
+		behavior:       linkedliststack.New(),
+		children:       hashset.New(),
+		watchers:       hashset.New(),
+		watching:       hashset.New(),
+		message:        nil,
+		receivePlugins: props.receivePluins,
 	}
 	cell.incarnateActor()
 	return &cell
@@ -200,6 +202,15 @@ func (cell *actorCell) invokeUserMessage(message interface{}) {
 			}
 		}
 	}()
+	if cell.receivePlugins != nil {
+		for _, rh := range cell.receivePlugins {
+			cell.message = message
+			message = rh(cell)
+			if message == nil {
+				return
+			}
+		}
+	}
 	behavior, _ := cell.behavior.Peek()
 	cell.message = message
 	behavior.(Receive)(cell)
