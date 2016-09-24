@@ -9,7 +9,7 @@ import (
 
 type Hello struct{ Who string }
 
-func Receive(context actor.Context) {
+func receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case Hello:
 		fmt.Printf("Hello %v\n", msg.Who)
@@ -30,7 +30,7 @@ func Receive(context actor.Context) {
 // }
 
 func main() {
-	props := actor.FromFunc(Receive).WithReceivePlugin(actor.MessageLogging) //using built in plugin
+	props := actor.FromFunc(receive).WithReceivePlugin(actor.MessageLogging) //using built in plugin
 	pid := actor.Spawn(props)
 	pid.Tell(Hello{Who: "Roger"})
 	console.ReadLine()

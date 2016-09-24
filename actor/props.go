@@ -30,9 +30,9 @@ func (props Props) ProduceMailbox() Mailbox {
 	return props.mailboxProducer()
 }
 
-func (props Props) WithReceivePlugin(plugin Receive) Props {
+func (props Props) WithReceivePlugin(plugin ...Receive) Props {
 	//pass by value, we only modify the copy
-	props.receivePluins = append(props.receivePluins, plugin)
+	props.receivePluins = append(props.receivePluins, plugin...)
 	return props
 }
 
