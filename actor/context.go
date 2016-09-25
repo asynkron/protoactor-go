@@ -19,6 +19,7 @@ type Context interface {
 	Spawn(Props) *PID
 	SpawnNamed(Props, string) *PID
 	Children() []*PID
+	Next(interface{})
 	Handle(interface{})
 	Stash()
 }
@@ -90,6 +91,13 @@ func NewActorCell(props Props, parent *PID) *actorCell {
 	return &cell
 }
 func (cell *actorCell) Handle(message interface{}) {
+	tmp := cell.receiveIndex
+	cell.receiveIndex = 0
+	cell.Next(message)
+	cell.receiveIndex = tmp
+}
+
+func (cell *actorCell) Next(message interface{}) {
 	var receive Receive
 	if cell.receiveIndex < len(cell.receivePlugins) {
 		receive = cell.receivePlugins[cell.receiveIndex]
@@ -217,7 +225,7 @@ func (cell *actorCell) invokeUserMessage(message interface{}) {
 	}()
 
 	cell.receiveIndex = 0
-	cell.Handle(message)
+	cell.Next(message)
 }
 
 func (cell *actorCell) Become(behavior Receive) {

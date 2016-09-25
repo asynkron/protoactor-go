@@ -22,7 +22,7 @@ func spawn(id string, props Props, parent *PID) *PID {
 	ref := NewLocalActorRef(mailbox)
 	pid := ProcessRegistry.registerPID(ref, id)
 	cell.self = pid
+
 	cell.invokeUserMessage(Started{})
 	return pid
-
 }

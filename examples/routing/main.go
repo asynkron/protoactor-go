@@ -20,6 +20,7 @@ func main() {
 	log.Println("Round robin routing:")
 	props := actor.FromFunc(act).WithPoolRouter(actor.NewRoundRobinPool(5))
 	pid := actor.Spawn(props)
+	log.Println("spawned")
 	for i := 0; i < 10; i++ {
 		pid.Tell(myMessage{i})
 	}
