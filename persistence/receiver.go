@@ -7,27 +7,6 @@ import (
 	"github.com/AsynkronIT/gam/actor"
 )
 
-type PersistentMessage interface {
-	PersistentMessage()
-}
-
-type Replay struct{}
-type ReplayComplete struct{}
-type OfferSnapshot struct {
-	Snapshot interface{}
-}
-type RequestSnapshot struct {
-	PersistSnapshot func(snapshot interface{})
-}
-
-type PersistenceProvider interface {
-	GetSnapshotInterval() int
-	GetSnapshot(actorName string) (interface{}, bool)
-	GetEvents(actorName string) []PersistentMessage
-	GetPersistSnapshot(actorName string) func(snapshot interface{})
-	PersistEvent(actorName string, event PersistentMessage)
-}
-
 func Using(provider PersistenceProvider) actor.Receive {
 	started := false
 	eventIndex := 0

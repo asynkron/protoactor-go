@@ -40,7 +40,7 @@ func DefaultDecider(child *PID, reason interface{}) Directive {
 	return RestartDirective
 }
 
-var defaultSupervisionStrategy SupervisionStrategy = NewOneForOneStrategy(10, 30000, DefaultDecider)
+var defaultSupervisionStrategy = NewOneForOneStrategy(10, 3000, DefaultDecider)
 
 func DefaultSupervisionStrategy() SupervisionStrategy {
 	return defaultSupervisionStrategy
