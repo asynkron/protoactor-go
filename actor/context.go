@@ -8,19 +8,31 @@ import (
 )
 
 type Context interface {
+	//Subscribes to ???
 	Watch(*PID)
 	Unwatch(*PID)
+	//Returns the currently processed message
 	Message() interface{}
+	//Replaces the current Receive handler with a custom
 	Become(Receive)
+	//Stacks a new Receive handler ontop of the current
 	BecomeStacked(Receive)
 	UnbecomeStacked()
+	//Returns the PID for the current actor
 	Self() *PID
+	//Returns the PID for the current actors parent
 	Parent() *PID
+	//Spawns a child actor using the given Props
 	Spawn(Props) *PID
+	//Spawns a named child actor using the given Props
 	SpawnNamed(Props, string) *PID
+	//Returns a slice of the current actors children
 	Children() []*PID
+	//Executes the next middleware or base Receive handler
 	Next()
+	//Invoke a custom User message synchronously
 	Receive(interface{})
+	//Stashes the current message
 	Stash()
 }
 
@@ -29,7 +41,11 @@ func (cell *actorCell) Message() interface{} {
 }
 
 func (cell *actorCell) Stash() {
-	cell.stashMessage(cell.message)
+	if cell.stash == nil {
+		cell.stash = linkedliststack.New()
+	}
+
+	cell.stash.Push(cell.message)
 }
 
 type actorCell struct {
@@ -64,14 +80,6 @@ func (cell *actorCell) Self() *PID {
 
 func (cell *actorCell) Parent() *PID {
 	return cell.parent
-}
-
-func (cell *actorCell) stashMessage(message interface{}) {
-	if cell.stash == nil {
-		cell.stash = linkedliststack.New()
-	}
-
-	cell.stash.Push(message)
 }
 
 func NewActorCell(props Props, parent *PID) *actorCell {
