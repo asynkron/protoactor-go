@@ -1,13 +1,13 @@
 package remoting
 
-import "sync/atomic"
-
 import (
-	"github.com/AsynkronIT/gam/actor"
-	"github.com/AsynkronIT/gam/queue"
-)
+	"sync/atomic"
 
-import "runtime"
+	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/goring"
+
+	"runtime"
+)
 
 const (
 	mailboxIdle    int32 = iota
@@ -19,8 +19,8 @@ const (
 )
 
 type endpointWriterMailbox struct {
-	userMailbox     *queue.Queue
-	systemMailbox   *queue.Queue
+	userMailbox     *goring.Queue
+	systemMailbox   *goring.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
 	userInvoke      func(interface{})
@@ -86,8 +86,8 @@ func (mailbox *endpointWriterMailbox) processMessages() {
 func newEndpointWriterMailbox(batchSize, initialSize int) actor.MailboxProducer {
 
 	return func() actor.Mailbox {
-		userMailbox := queue.New(initialSize)
-		systemMailbox := queue.New(10)
+		userMailbox := goring.New(initialSize)
+		systemMailbox := goring.New(10)
 		mailbox := endpointWriterMailbox{
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
