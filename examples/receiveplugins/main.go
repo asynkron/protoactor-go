@@ -16,19 +16,6 @@ func receive(context actor.Context) {
 	}
 }
 
-//Custom plugin
-// func ConsoleLogging(context actor.Context) {
-// 	message := context.Message()
-// 	fmt.Printf("Before message %v\n", message)
-// 	switch msg := context.Message().(type) {
-// 	case Hello:
-// 		context.Handle(Hello{Who: msg.Who + "Modified"})
-// 	default:
-// 		context.Handle(msg)
-// 	}
-// 	fmt.Printf("After message %v\n", message)
-// }
-
 func main() {
 	props := actor.FromFunc(receive).WithReceivePlugin(actor.MessageLogging) //using built in plugin
 	pid := actor.Spawn(props)

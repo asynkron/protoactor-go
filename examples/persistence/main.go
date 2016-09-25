@@ -65,7 +65,9 @@ func newPersistentActor() actor.Actor {
 }
 
 func main() {
-	props := actor.FromProducer(newPersistentActor).WithReceivePlugin(actor.AutoReceive, persistence.NewPersistenceReceive(&persistence.InMemoryProvider{}))
+	props := actor.
+		FromProducer(newPersistentActor).
+		WithReceivePlugin(actor.AutoReceive, persistence.PersistenceReceive(&persistence.InMemoryProvider{}))
 
 	pid := actor.Spawn(props)
 	pid.Tell(AddItemCommand{Item: "Banana"})
