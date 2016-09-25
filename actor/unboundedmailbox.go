@@ -4,13 +4,13 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"github.com/AsynkronIT/gam/queue"
+	"github.com/AsynkronIT/goring"
 )
 
 type unboundedMailbox struct {
 	throughput      int
-	userMailbox     *queue.Queue
-	systemMailbox   *queue.Queue
+	userMailbox     *goring.Queue
+	systemMailbox   *goring.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
 	userInvoke      func(interface{})
@@ -75,8 +75,8 @@ func (mailbox *unboundedMailbox) processMessages() {
 
 func NewUnboundedMailbox(throughput int) MailboxProducer {
 	return func() Mailbox {
-		userMailbox := queue.New(10)
-		systemMailbox := queue.New(10)
+		userMailbox := goring.New(10)
+		systemMailbox := goring.New(10)
 		mailbox := unboundedMailbox{
 			throughput:      throughput,
 			userMailbox:     userMailbox,
