@@ -14,23 +14,15 @@ type persistentActor struct {
 }
 
 //CQRS style messages
-type RenameCommand struct {
-	Name string
-}
+type RenameCommand struct{ Name string }
 
-type RenamedEvent struct {
-	Name string
-}
+type RenamedEvent struct{ Name string }
 
 func (RenamedEvent) PersistentMessage() {} //mark event as persistent
 
-type AddItemCommand struct {
-	Item string
-}
+type AddItemCommand struct{ Item string }
 
-type AddedItemEvent struct {
-	Item string
-}
+type AddedItemEvent struct{ Item string }
 
 func (AddedItemEvent) PersistentMessage() {} //mark event as persistent
 
@@ -41,20 +33,20 @@ func (self *persistentActor) Receive(context actor.Context) {
 	case RenameCommand: //command handler, you can have side effects here
 		event := RenamedEvent{Name: msg.Name}
 		log.Printf("Rename %v\n", msg.Name)
-		context.Handle(event)
+		context.Receive(event)
 	case RenamedEvent: //event handler, only mutate state here
 		self.name = msg.Name
 	case AddItemCommand:
 		event := AddedItemEvent{Item: msg.Item}
 		log.Printf("Add item %v", msg.Item)
-		context.Handle(event)
+		context.Receive(event)
 	case AddedItemEvent:
 		self.items = append(self.items, msg.Item)
 	case DumpCommand: //just so we can manually trigger a console dump of state
 		log.Printf("%+v", self)
 	case persistence.ReplayComplete: //will be triggered once the persistence plugin have replayed all events
 		log.Println("Replay Complete")
-		log.Printf("%+v", self)
+		context.Receive(DumpCommand{})
 	}
 }
 
@@ -67,7 +59,7 @@ func newPersistentActor() actor.Actor {
 func main() {
 	props := actor.
 		FromProducer(newPersistentActor).
-		WithReceivePlugin(actor.AutoReceive, persistence.PersistenceReceive(&persistence.InMemoryProvider{}))
+		WithReceivers(persistence.Using(persistence.InMemory))
 
 	pid := actor.Spawn(props)
 	pid.Tell(AddItemCommand{Item: "Banana"})

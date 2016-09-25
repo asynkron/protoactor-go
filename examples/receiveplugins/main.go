@@ -17,7 +17,7 @@ func receive(context actor.Context) {
 }
 
 func main() {
-	props := actor.FromFunc(receive).WithReceivePlugin(actor.MessageLogging) //using built in plugin
+	props := actor.FromFunc(receive).WithReceivers(actor.MessageLogging) //using built in plugin
 	pid := actor.Spawn(props)
 	pid.Tell(Hello{Who: "Roger"})
 	console.ReadLine()

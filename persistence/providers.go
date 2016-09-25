@@ -20,6 +20,8 @@ type InMemoryProvider struct {
 	events []PersistentMessage //fake database entries, only for a single actor
 }
 
+var InMemory *InMemoryProvider = &InMemoryProvider{}
+
 func (provider *InMemoryProvider) GetEvents(actorName string) []PersistentMessage {
 	return provider.events
 }

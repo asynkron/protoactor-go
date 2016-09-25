@@ -20,7 +20,7 @@ type Context interface {
 	SpawnNamed(Props, string) *PID
 	Children() []*PID
 	Next()
-	Handle(interface{})
+	Receive(interface{})
 	Stash()
 }
 
@@ -85,19 +85,17 @@ func NewActorCell(props Props, parent *PID) *actorCell {
 		watchers:       hashset.New(),
 		watching:       hashset.New(),
 		message:        nil,
-		receivePlugins: props.receivePluins,
+		receivePlugins: append(props.receivePluins, AutoReceive),
 	}
 	cell.incarnateActor()
 	return &cell
 }
-func (cell *actorCell) Handle(message interface{}) {
-	i := cell.receiveIndex
-	m := cell.message
-	cell.receiveIndex = 0
-	cell.message = message
+
+func (cell *actorCell) Receive(message interface{}) {
+	i, m := cell.receiveIndex, cell.message
+	cell.receiveIndex, cell.message = 0, message
 	cell.Next()
-	cell.receiveIndex = i
-	cell.message = m
+	cell.receiveIndex, cell.message = i, m
 }
 
 func (cell *actorCell) Next() {

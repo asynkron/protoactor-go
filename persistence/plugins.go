@@ -28,7 +28,7 @@ type PersistenceProvider interface {
 	PersistEvent(actorName string, event PersistentMessage)
 }
 
-func PersistenceReceive(provider PersistenceProvider) actor.Receive {
+func Using(provider PersistenceProvider) actor.Receive {
 	started := false
 	eventIndex := 0
 	snapshotInterval := provider.GetSnapshotInterval()
@@ -47,15 +47,15 @@ func PersistenceReceive(provider PersistenceProvider) actor.Receive {
 			snapshot, ok := provider.GetSnapshot(name)
 			if ok {
 				//synchronously receive snapshot
-				context.Handle(OfferSnapshot{Snapshot: snapshot})
+				context.Receive(OfferSnapshot{Snapshot: snapshot})
 			}
 			messages := provider.GetEvents(name)
 			for _, m := range messages {
 				//synchronously receive events
-				context.Handle(m)
+				context.Receive(m)
 			}
 			started = true //persistence is now started
-			context.Handle(ReplayComplete{})
+			context.Receive(ReplayComplete{})
 		case actor.Stopped:
 			log.Printf("Stopped\n")
 			context.Next()
@@ -66,7 +66,7 @@ func PersistenceReceive(provider PersistenceProvider) actor.Receive {
 				provider.PersistEvent(name, msg)
 				if snapshotInterval != 0 && eventIndex%snapshotInterval == 0 {
 					persistSnapshot := provider.GetPersistSnapshot(name)
-					context.Handle(RequestSnapshot{PersistSnapshot: persistSnapshot})
+					context.Receive(RequestSnapshot{PersistSnapshot: persistSnapshot})
 				}
 			}
 			context.Next()
