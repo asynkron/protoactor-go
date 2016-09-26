@@ -66,11 +66,11 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 
 func (state *endpointWriter) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case actor.Started:
+	case *actor.Started:
 		state.initialize()
-	case actor.Stopped:
+	case *actor.Stopped:
 		state.conn.Close()
-	case actor.Restarting:
+	case *actor.Restarting:
 		state.conn.Close()
 	case []interface{}:
 		state.sendEnvelopes(msg, ctx)

@@ -24,7 +24,7 @@ type endpointManager struct {
 
 func (state *endpointManager) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case actor.Started:
+	case *actor.Started:
 		state.connections = make(map[string]*actor.PID)
 		log.Println("Started EndpointManager")
 	case *messages.MessageEnvelope:

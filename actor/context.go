@@ -2,6 +2,7 @@ package actor
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
@@ -223,6 +224,7 @@ func (cell *actorCell) stopped() {
 func (cell *actorCell) invokeUserMessage(message interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
+			log.Printf("Recovering %v", r)
 			failure := &failure{Reason: r, Who: cell.self}
 			if cell.parent == nil {
 				handleRootFailure(failure, defaultSupervisionStrategy)

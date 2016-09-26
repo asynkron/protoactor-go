@@ -1,6 +1,7 @@
 package remoting
 
 import (
+	"log"
 	"reflect"
 
 	"github.com/AsynkronIT/gam/actor"
@@ -10,6 +11,7 @@ import (
 
 func packMessage(message proto.Message, target *actor.PID) (*messages.MessageEnvelope, error) {
 	typeName := proto.MessageName(message)
+	log.Println(typeName)
 	bytes, err := proto.Marshal(message)
 	if err != nil {
 		return nil, err
