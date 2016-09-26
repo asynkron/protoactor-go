@@ -57,5 +57,5 @@ func (provider *Provider) GetEvents(actorName string) []persistence.PersistentMe
 	return nil
 }
 
-func (provider *Provider) PersistEvent(actorName string, event persistence.PersistentMessage) {
+func (provider *Provider) PersistEvent(actorName string, eventIndex int, event persistence.PersistentMessage) {
 }

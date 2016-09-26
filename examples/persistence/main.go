@@ -4,8 +4,9 @@ import (
 	"log"
 
 	"github.com/AsynkronIT/gam/actor"
-	"github.com/AsynkronIT/gam/cassandra_persistence"
+	"github.com/AsynkronIT/gam/couchbase_persistence"
 
+	"github.com/AsynkronIT/gam/examples/persistence/messages"
 	"github.com/AsynkronIT/gam/persistence"
 	"github.com/AsynkronIT/goconsole"
 )
@@ -16,39 +17,25 @@ type persistentActor struct {
 }
 
 //CQRS style messages
-type RenameCommand struct{ Name string }
-
-type RenamedEvent struct{ Name string }
-
-func (RenamedEvent) PersistentMessage() {} //mark event as persistent
-
-type AddItemCommand struct{ Item string }
-
-type AddedItemEvent struct{ Item string }
-
-func (AddedItemEvent) PersistentMessage() {} //mark event as persistent
-
-type DumpCommand struct{}
-
 func (self *persistentActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case RenameCommand: //command handler, you can have side effects here
-		event := RenamedEvent{Name: msg.Name}
+	case *messages.RenameCommand: //command handler, you can have side effects here
+		event := messages.RenamedEvent{Name: msg.Name}
 		log.Printf("Rename %v\n", msg.Name)
 		context.Receive(event)
-	case RenamedEvent: //event handler, only mutate state here
+	case *messages.RenamedEvent: //event handler, only mutate state here
 		self.name = msg.Name
-	case AddItemCommand:
-		event := AddedItemEvent{Item: msg.Item}
+	case *messages.AddItemCommand:
+		event := messages.AddedItemEvent{Item: msg.Item}
 		log.Printf("Add item %v", msg.Item)
 		context.Receive(event)
-	case AddedItemEvent:
+	case *messages.AddedItemEvent:
 		self.items = append(self.items, msg.Item)
-	case DumpCommand: //just so we can manually trigger a console dump of state
+	case *messages.DumpCommand: //just so we can manually trigger a console dump of state
 		log.Printf("%+v", self)
 	case persistence.ReplayComplete: //will be triggered once the persistence plugin have replayed all events
 		log.Println("Replay Complete")
-		context.Receive(DumpCommand{})
+		context.Receive(messages.DumpCommand{})
 	}
 }
 
@@ -59,18 +46,18 @@ func newPersistentActor() actor.Actor {
 }
 
 func main() {
-	cassandra_persistence.New("demo", "127.0.0.1")
+
 	props := actor.
 		FromProducer(newPersistentActor).
-		WithReceivers(persistence.Using(persistence.InMemory))
+		WithReceivers(persistence.Using(couchbase_persistence.New("labb", "couchbase://localhost")))
 
 	pid := actor.Spawn(props)
-	pid.Tell(AddItemCommand{Item: "Banana"})
-	pid.Tell(AddItemCommand{Item: "Apple"})
-	pid.Tell(AddItemCommand{Item: "Orange"})
-	pid.Tell(RenameCommand{Name: "Acme Inc"})
-	pid.Tell(DumpCommand{})
-	pid.Tell(actor.PoisonPill{})
-	pid.Tell(DumpCommand{})
+	pid.Tell(&messages.AddItemCommand{Item: "Banana"})
+	pid.Tell(&messages.AddItemCommand{Item: "Apple"})
+	pid.Tell(&messages.AddItemCommand{Item: "Orange"})
+	pid.Tell(&messages.RenameCommand{Name: "Acme Inc"})
+	pid.Tell(&messages.DumpCommand{})
+	pid.Tell(&actor.PoisonPill{})
+	pid.Tell(&messages.DumpCommand{})
 	console.ReadLine()
 }

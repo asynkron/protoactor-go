@@ -1,9 +1,5 @@
 package persistence
 
-type PersistentMessage interface {
-	PersistentMessage()
-}
-
 type Replay struct{}
 type ReplayComplete struct{}
 type OfferSnapshot struct {

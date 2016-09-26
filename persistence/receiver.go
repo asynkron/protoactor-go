@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/AsynkronIT/gam/actor"
+	"github.com/gogo/protobuf/proto"
 )
 
 func Using(provider PersistenceProvider) actor.Receive {
@@ -38,11 +39,11 @@ func Using(provider PersistenceProvider) actor.Receive {
 		case actor.Stopped:
 			log.Printf("Stopped\n")
 			context.Next()
-		case PersistentMessage:
+		case proto.Message:
 			if started {
 				log.Printf("got persistent message %v %+v\n", reflect.TypeOf(msg), msg)
+				provider.PersistEvent(name, eventIndex, msg)
 				eventIndex++
-				provider.PersistEvent(name, msg)
 				if snapshotInterval != 0 && eventIndex%snapshotInterval == 0 {
 					persistSnapshot := provider.GetPersistSnapshot(name)
 					context.Receive(RequestSnapshot{PersistSnapshot: persistSnapshot})

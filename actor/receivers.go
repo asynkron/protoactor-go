@@ -13,7 +13,7 @@ func MessageLogging(context Context) {
 
 func AutoReceive(context Context) {
 	switch context.Message().(type) {
-	case PoisonPill:
+	case *PoisonPill:
 		panic("Poison Pill")
 	default:
 		context.Next()

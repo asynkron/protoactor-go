@@ -1,0 +1,17 @@
+syntax = "proto3";
+package messages;
+
+//user messages
+message AddItemCommand {
+  string item = 1;
+}
+message AddedItemEvent {
+  string item = 1;
+}
+message RenameCommand {
+  string name = 1;
+}
+message RenamedEvent {
+  string name = 1;
+}
+message DumpCommand {}

@@ -1,5 +1,7 @@
 package persistence
 
+import "github.com/gogo/protobuf/proto"
+
 type NoSnapshotSupport struct {
 }
 
@@ -17,15 +19,15 @@ func (provider *NoSnapshotSupport) GetSnapshot(actorName string) (interface{}, b
 
 type InMemoryProvider struct {
 	*NoSnapshotSupport
-	events []PersistentMessage //fake database entries, only for a single actor
+	events []proto.Message //fake database entries, only for a single actor
 }
 
 var InMemory *InMemoryProvider = &InMemoryProvider{}
 
-func (provider *InMemoryProvider) GetEvents(actorName string) []PersistentMessage {
+func (provider *InMemoryProvider) GetEvents(actorName string) []proto.Message {
 	return provider.events
 }
 
-func (provider *InMemoryProvider) PersistEvent(actorName string, event PersistentMessage) {
+func (provider *InMemoryProvider) PersistEvent(actorName string, eventIndex int, event proto.Message) {
 	provider.events = append(provider.events, event)
 }
