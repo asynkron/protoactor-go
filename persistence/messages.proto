@@ -1,0 +1,8 @@
+syntax = "proto3";
+package persistence;
+
+import "github.com/gogo/protobuf/protobuf/google/protobuf/descriptor.proto";
+
+extend google.protobuf.MessageOptions {
+  bool event = 43245;
+}

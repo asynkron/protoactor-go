@@ -2,6 +2,10 @@ package persistence
 
 import "github.com/gogo/protobuf/proto"
 
+type PersistentEvent interface {
+	Persistent()
+}
+
 type PersistenceProvider interface {
 	GetSnapshotInterval() int
 	GetSnapshot(actorName string) (interface{}, bool)

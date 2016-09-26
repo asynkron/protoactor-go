@@ -5,10 +5,10 @@ import (
 
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/couchbase_persistence"
+	"github.com/AsynkronIT/goconsole"
 
 	"github.com/AsynkronIT/gam/examples/persistence/messages"
 	"github.com/AsynkronIT/gam/persistence"
-	"github.com/AsynkronIT/goconsole"
 )
 
 type persistentActor struct {
@@ -20,13 +20,13 @@ type persistentActor struct {
 func (self *persistentActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *messages.RenameCommand: //command handler, you can have side effects here
-		event := messages.RenamedEvent{Name: msg.Name}
+		event := &messages.RenamedEvent{Name: msg.Name}
 		log.Printf("Rename %v\n", msg.Name)
 		context.Receive(event)
 	case *messages.RenamedEvent: //event handler, only mutate state here
 		self.name = msg.Name
 	case *messages.AddItemCommand:
-		event := messages.AddedItemEvent{Item: msg.Item}
+		event := &messages.AddedItemEvent{Item: msg.Item}
 		log.Printf("Add item %v", msg.Item)
 		context.Receive(event)
 	case *messages.AddedItemEvent:

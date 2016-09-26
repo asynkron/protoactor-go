@@ -41,12 +41,15 @@ func Using(provider PersistenceProvider) actor.Receive {
 			context.Next()
 		case proto.Message:
 			if started {
-				log.Printf("got persistent message %v %+v\n", reflect.TypeOf(msg), msg)
-				provider.PersistEvent(name, eventIndex, msg)
-				eventIndex++
-				if snapshotInterval != 0 && eventIndex%snapshotInterval == 0 {
-					persistSnapshot := provider.GetPersistSnapshot(name)
-					context.Receive(RequestSnapshot{PersistSnapshot: persistSnapshot})
+				_, ok := context.Message().(PersistentEvent)
+				if ok {
+					log.Printf("got persistent message %v %+v\n", reflect.TypeOf(msg), msg)
+					provider.PersistEvent(name, eventIndex, msg)
+					eventIndex++
+					if snapshotInterval != 0 && eventIndex%snapshotInterval == 0 {
+						persistSnapshot := provider.GetPersistSnapshot(name)
+						context.Receive(RequestSnapshot{PersistSnapshot: persistSnapshot})
+					}
 				}
 			}
 			context.Next()
