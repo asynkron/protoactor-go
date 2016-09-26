@@ -47,6 +47,8 @@ func newPersistentActor() actor.Actor {
 
 func main() {
 
+	//	log.Println(proto.MessageName(&messages.AddedItemEvent{}))
+
 	props := actor.
 		FromProducer(newPersistentActor).
 		WithReceivers(persistence.Using(couchbase_persistence.New("labb", "couchbase://localhost")))

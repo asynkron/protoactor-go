@@ -40,12 +40,26 @@ func (provider *Provider) GetEvents(actorName string) []proto.Message {
 }
 
 func (provider *Provider) PersistEvent(actorName string, eventIndex int, event proto.Message) {
-	key := fmt.Sprintf("%v-%v", actorName, eventIndex)
-	_, err := provider.bucket.Insert(key, event, 0)
+	typeName := proto.MessageName(event)
+	log.Println(typeName)
+	bytes, err := json.Marshal(event)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("writing")
+	envelope := &Envelope{
+		Type:    typeName,
+		Message: bytes,
+	}
+	key := fmt.Sprintf("%v-%v", actorName, eventIndex)
+	_, err = provider.bucket.Insert(key, envelope, 0)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+type Envelope struct {
+	Type    string          `json:"type"`
+	Message json.RawMessage `json:"event"`
 }
 
 type Transcoder struct {

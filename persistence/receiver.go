@@ -2,7 +2,6 @@ package persistence
 
 import (
 	"log"
-	"reflect"
 
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/gogo/protobuf/proto"
@@ -42,7 +41,6 @@ func Using(provider Provider) actor.Receive {
 		case proto.Message:
 			if started {
 				if _, ok := context.Message().(PersistentEvent); ok {
-					log.Printf("got persistent message %v %+v\n", reflect.TypeOf(msg), msg)
 					provider.PersistEvent(name, eventIndex, msg)
 					eventIndex++
 					if snapshotInterval != 0 && eventIndex%snapshotInterval == 0 {
