@@ -24,7 +24,7 @@ type localActor struct {
 
 func (state *localActor) Receive(context actor.Context) {
 	switch context.Message().(type) {
-	case actor.Started:
+	case *actor.Started:
 		state.wgStart.Add(1)
 		state.wgStop.Add(1)
 	case *messages.Pong:
