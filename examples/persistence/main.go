@@ -4,6 +4,8 @@ import (
 	"log"
 
 	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/cassandra_persistence"
+
 	"github.com/AsynkronIT/gam/persistence"
 	"github.com/AsynkronIT/goconsole"
 )
@@ -57,6 +59,7 @@ func newPersistentActor() actor.Actor {
 }
 
 func main() {
+	cassandra_persistence.New("demo", "127.0.0.1")
 	props := actor.
 		FromProducer(newPersistentActor).
 		WithReceivers(persistence.Using(persistence.InMemory))
