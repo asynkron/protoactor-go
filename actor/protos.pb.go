@@ -19,11 +19,16 @@ It has these top-level messages:
 */
 package actor
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	"log"
 
-import io "io"
+	proto "github.com/golang/protobuf/proto"
+
+	io "io"
+)
+
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -94,6 +99,7 @@ func (*Foo) ProtoMessage()               {}
 func (*Foo) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{6} }
 
 func init() {
+	log.Println("Init actor protos.proto")
 	proto.RegisterType((*PID)(nil), "actor.PID")
 	proto.RegisterType((*Restarting)(nil), "actor.Restarting")
 	proto.RegisterType((*Stopping)(nil), "actor.Stopping")

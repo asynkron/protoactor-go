@@ -1,6 +1,5 @@
 syntax = "proto3";
 package messages;
-
 //user messages
 message AddItemCommand {
   string item = 1;

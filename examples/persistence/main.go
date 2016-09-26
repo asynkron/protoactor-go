@@ -3,12 +3,14 @@ package main
 import (
 	"log"
 
+	//"github.com/gogo/protobuf/proto"
+	proto "github.com/golang/protobuf/proto"
+
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/couchbase_persistence"
-	"github.com/AsynkronIT/goconsole"
-
 	"github.com/AsynkronIT/gam/examples/persistence/messages"
 	"github.com/AsynkronIT/gam/persistence"
+	"github.com/AsynkronIT/goconsole"
 )
 
 type persistentActor struct {
@@ -46,8 +48,7 @@ func newPersistentActor() actor.Actor {
 }
 
 func main() {
-
-	//	log.Println(proto.MessageName(&messages.AddedItemEvent{}))
+	log.Println(proto.MessageName(&messages.AddedItemEvent{}))
 
 	props := actor.
 		FromProducer(newPersistentActor).

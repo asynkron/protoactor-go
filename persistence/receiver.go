@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/AsynkronIT/gam/actor"
-	"github.com/gogo/protobuf/proto"
+	proto "github.com/golang/protobuf/proto"
 )
 
 func Using(provider Provider) actor.Receive {

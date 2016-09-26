@@ -1,6 +1,8 @@
 package persistence
 
-import "github.com/gogo/protobuf/proto"
+import (
+	proto "github.com/golang/protobuf/proto"
+)
 
 //PersistentEvent is a marker interface for persistent events
 type PersistentEvent interface {

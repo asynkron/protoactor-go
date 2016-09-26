@@ -7,7 +7,7 @@ import (
 
 	"github.com/AsynkronIT/gam/persistence"
 	"github.com/couchbase/gocb"
-	"github.com/gogo/protobuf/proto"
+	proto "github.com/golang/protobuf/proto"
 )
 
 type Provider struct {
