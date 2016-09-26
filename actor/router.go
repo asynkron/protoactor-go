@@ -1,5 +1,7 @@
 package actor
 
+import "log"
+
 type RouterConfig interface {
 	OnStarted(context Context, props Props, router RouterState)
 	Create() RouterState
@@ -22,8 +24,9 @@ func spawnRouter(config RouterConfig, props Props, parent *PID) *PID {
 	routerState := config.Create()
 
 	routerProps := FromFunc(func(context Context) {
+		log.Println("got message")
 		switch context.Message().(type) {
-		case Started:
+		case *Started:
 			config.OnStarted(context, routeeProps, routerState)
 		}
 	})

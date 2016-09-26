@@ -15,10 +15,10 @@ func Using(provider Provider) actor.Receive {
 	return func(context actor.Context) {
 		name := context.Self().Id
 		switch msg := context.Message().(type) {
-		case actor.Started:
+		case *actor.Started:
 			context.Next()
-			context.Self().Tell(Replay{})
-		case Replay:
+			context.Self().Tell(&Replay{})
+		case *Replay:
 			started = false
 			log.Printf("Starting\n")
 			eventIndex = 0
@@ -35,8 +35,8 @@ func Using(provider Provider) actor.Receive {
 				context.Receive(m)
 			}
 			started = true //persistence is now started
-			context.Receive(ReplayComplete{})
-		case actor.Stopped:
+			context.Receive(&ReplayComplete{})
+		case *actor.Stopped:
 			log.Printf("Stopped\n")
 			context.Next()
 		case proto.Message:

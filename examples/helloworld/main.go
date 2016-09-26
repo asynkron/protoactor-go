@@ -7,19 +7,19 @@ import (
 	"github.com/AsynkronIT/goconsole"
 )
 
-type Hello struct{ Who string }
-type HelloActor struct{}
+type hello struct{ Who string }
+type helloActor struct{}
 
-func (state *HelloActor) Receive(context actor.Context) {
+func (state *helloActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case Hello:
+	case *hello:
 		fmt.Printf("Hello %v\n", msg.Who)
 	}
 }
 
 func main() {
-	props := actor.FromInstance(&HelloActor{})
+	props := actor.FromInstance(&helloActor{})
 	pid := actor.Spawn(props)
-	pid.Tell(Hello{Who: "Roger"})
+	pid.Tell(&hello{Who: "Roger"})
 	console.ReadLine()
 }

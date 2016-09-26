@@ -33,7 +33,7 @@ func (self *persistentActor) Receive(context actor.Context) {
 		self.items = append(self.items, msg.Item)
 	case *messages.DumpCommand: //just so we can manually trigger a console dump of state
 		log.Printf("%+v", self)
-	case persistence.ReplayComplete: //will be triggered once the persistence plugin have replayed all events
+	case *persistence.ReplayComplete: //will be triggered once the persistence plugin have replayed all events
 		log.Println("Replay Complete")
 		context.Receive(messages.DumpCommand{})
 	}

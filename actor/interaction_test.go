@@ -127,7 +127,7 @@ type EchoOnStartActor struct{ replyTo *PID }
 
 func (state *EchoOnStartActor) Receive(context Context) {
 	switch context.Message().(type) {
-	case Started:
+	case *Started:
 		state.replyTo.Tell(EchoReplyMessage{})
 	}
 }

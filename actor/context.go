@@ -147,7 +147,7 @@ func (cell *actorCell) invokeSystemMessage(message SystemMessage) {
 
 func (cell *actorCell) handleStop(msg *stop) {
 	cell.stopping = true
-	cell.invokeUserMessage(Stopping{})
+	cell.invokeUserMessage(&Stopping{})
 	for _, child := range cell.children.Values() {
 		child.(*PID).Stop()
 	}
@@ -180,7 +180,7 @@ func (cell *actorCell) handleFailure(msg *failure) {
 
 func (cell *actorCell) handleRestart(msg *restart) {
 	cell.stopping = false
-	cell.invokeUserMessage(Restarting{})
+	cell.invokeUserMessage(&Restarting{})
 	for _, child := range cell.children.Values() {
 		child.(*PID).Stop()
 	}
@@ -202,7 +202,7 @@ func (cell *actorCell) tryRestartOrTerminate() {
 
 func (cell *actorCell) restart() {
 	cell.incarnateActor()
-	cell.invokeUserMessage(Started{})
+	cell.invokeUserMessage(&Started{})
 	if cell.stash != nil {
 		for !cell.stash.Empty() {
 			msg, _ := cell.stash.Pop()
@@ -213,7 +213,7 @@ func (cell *actorCell) restart() {
 
 func (cell *actorCell) stopped() {
 	ProcessRegistry.unregisterPID(cell.self)
-	cell.invokeUserMessage(Stopped{})
+	cell.invokeUserMessage(&Stopped{})
 	otherStopped := &otherStopped{Who: cell.self}
 	for _, watcher := range cell.watchers.Values() {
 		watcher.(*PID).sendSystemMessage(otherStopped)

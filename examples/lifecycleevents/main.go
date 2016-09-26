@@ -8,28 +8,28 @@ import (
 	"github.com/AsynkronIT/goconsole"
 )
 
-type Hello struct{ Who string }
-type HelloActor struct{}
+type hello struct{ Who string }
+type helloActor struct{}
 
-func (state *HelloActor) Receive(context actor.Context) {
+func (state *helloActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case actor.Started:
+	case *actor.Started:
 		fmt.Println("Started, initialize actor here")
-	case actor.Stopping:
+	case *actor.Stopping:
 		fmt.Println("Stopping, actor is about shut down")
-	case actor.Stopped:
+	case *actor.Stopped:
 		fmt.Println("Stopped, actor and it's children are stopped")
-	case actor.Restarting:
+	case *actor.Restarting:
 		fmt.Println("Restarting, actor is about restart")
-	case Hello:
+	case *hello:
 		fmt.Printf("Hello %v\n", msg.Who)
 	}
 }
 
 func main() {
-	props := actor.FromInstance(&HelloActor{})
+	props := actor.FromInstance(&helloActor{})
 	actor := actor.Spawn(props)
-	actor.Tell(Hello{Who: "Roger"})
+	actor.Tell(&hello{Who: "Roger"})
 
 	//why wait?
 	//Stop is a system message and is not processed through the user message mailbox

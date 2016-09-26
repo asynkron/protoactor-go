@@ -7,42 +7,42 @@ import (
 	"github.com/AsynkronIT/goconsole"
 )
 
-type Hello struct{ Who string }
-type ParentActor struct{}
+type hello struct{ Who string }
+type parentActor struct{}
 
-func (state *ParentActor) Receive(context actor.Context) {
+func (state *parentActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case Hello:
-		props := actor.FromProducer(NewChildActor)
+	case *hello:
+		props := actor.FromProducer(newChildActor)
 		child := context.Spawn(props)
 		child.Tell(msg)
 	}
 }
 
-func NewParentActor() actor.Actor {
-	return &ParentActor{}
+func newParentActor() actor.Actor {
+	return &parentActor{}
 }
 
-type ChildActor struct{}
+type childActor struct{}
 
-func (state *ChildActor) Receive(context actor.Context) {
+func (state *childActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case actor.Started:
+	case *actor.Started:
 		fmt.Println("Starting, initialize actor here")
-	case actor.Stopping:
+	case *actor.Stopping:
 		fmt.Println("Stopping, actor is about shut down")
-	case actor.Stopped:
+	case *actor.Stopped:
 		fmt.Println("Stopped, actor and it's children are stopped")
-	case actor.Restarting:
+	case *actor.Restarting:
 		fmt.Println("Restarting, actor is about restart")
-	case Hello:
+	case *hello:
 		fmt.Printf("Hello %v\n", msg.Who)
 		panic("Ouch")
 	}
 }
 
-func NewChildActor() actor.Actor {
-	return &ChildActor{}
+func newChildActor() actor.Actor {
+	return &childActor{}
 }
 
 func main() {
@@ -52,11 +52,11 @@ func main() {
 	}
 	supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
 	props := actor.
-		FromProducer(NewParentActor).
+		FromProducer(newParentActor).
 		WithSupervisor(supervisor)
 
 	pid := actor.Spawn(props)
-	pid.Tell(Hello{Who: "Roger"})
+	pid.Tell(&hello{Who: "Roger"})
 
 	console.ReadLine()
 }

@@ -23,6 +23,6 @@ func spawn(id string, props Props, parent *PID) *PID {
 	pid := ProcessRegistry.registerPID(ref, id)
 	cell.self = pid
 
-	cell.invokeUserMessage(Started{})
+	cell.invokeUserMessage(&Started{})
 	return pid
 }
