@@ -1,13 +1,12 @@
-package routers
+package actor
 
 import (
 	"math/rand"
 
-	"github.com/AsynkronIT/gam/actor"
 )
 
 type RandomGroupRouter struct {
-	routees []*actor.PID
+	routees []*PID
 }
 
 type RandomPoolRouter struct {
@@ -15,19 +14,19 @@ type RandomPoolRouter struct {
 }
 
 type RandomRouterState struct {
-	routees []*actor.PID
-	config  actor.RouterConfig
+	routees []*PID
+	config  RouterConfig
 }
 
-func (state *RandomRouterState) SetRoutees(routees []*actor.PID) {
+func (state *RandomRouterState) SetRoutees(routees []*PID) {
 	state.routees = routees
 }
 
-func NewRandomPool(poolSize int) actor.PoolRouterConfig {
+func NewRandomPool(poolSize int) PoolRouterConfig {
 	return &RandomPoolRouter{poolSize: poolSize}
 }
 
-func NewRandomGroup(routees ...*actor.PID) actor.GroupRouterConfig {
+func NewRandomGroup(routees ...*PID) GroupRouterConfig {
 	return &RandomGroupRouter{routees: routees}
 }
 
@@ -36,13 +35,13 @@ func (state *RandomRouterState) Route(message interface{}) {
 	pid.Tell(message)
 }
 
-func (config *RandomPoolRouter) Create() actor.RouterState {
+func (config *RandomPoolRouter) Create() RouterState {
 	return &RandomRouterState{
 		config: config,
 	}
 }
 
-func (config *RandomGroupRouter) Create() actor.RouterState {
+func (config *RandomGroupRouter) Create() RouterState {
 	return &RandomRouterState{
 		config: config,
 	}
@@ -51,20 +50,20 @@ func (config *RandomGroupRouter) Create() actor.RouterState {
 func (config *RandomPoolRouter) PoolRouter()   {}
 func (config *RandomGroupRouter) GroupRouter() {}
 
-func randomRoutee(routees []*actor.PID) *actor.PID {
+func randomRoutee(routees []*PID) *PID {
 	routee := routees[rand.Intn(len(routees))]
 	return routee
 }
 
-func (config *RandomGroupRouter) OnStarted(context actor.Context, props actor.Props, router actor.RouterState) {
+func (config *RandomGroupRouter) OnStarted(context Context, props Props, router RouterState) {
 	for _, r := range config.routees {
 		context.Watch(r)
 	}
 	router.SetRoutees(config.routees)
 }
 
-func (config *RandomPoolRouter) OnStarted(context actor.Context, props actor.Props, router actor.RouterState) {
-	routees := make([]*actor.PID, config.poolSize)
+func (config *RandomPoolRouter) OnStarted(context Context, props Props, router RouterState) {
+	routees := make([]*PID, config.poolSize)
 	for i := 0; i < config.poolSize; i++ {
 		pid := context.Spawn(props)
 		routees[i] = pid
