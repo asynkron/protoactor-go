@@ -41,7 +41,6 @@ func (provider *Provider) GetEvents(actorName string) []proto.Message {
 
 func (provider *Provider) PersistEvent(actorName string, eventIndex int, event proto.Message) {
 	typeName := proto.MessageName(event)
-	log.Println(typeName)
 	bytes, err := json.Marshal(event)
 	if err != nil {
 		log.Fatal(err)
@@ -50,7 +49,7 @@ func (provider *Provider) PersistEvent(actorName string, eventIndex int, event p
 		Type:    typeName,
 		Message: bytes,
 	}
-	key := fmt.Sprintf("%v-%v", actorName, eventIndex)
+	key := fmt.Sprintf("%v-%010d", actorName, eventIndex)
 	_, err = provider.bucket.Insert(key, envelope, 0)
 	if err != nil {
 		log.Fatal(err)
