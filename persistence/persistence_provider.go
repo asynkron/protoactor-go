@@ -2,11 +2,13 @@ package persistence
 
 import "github.com/gogo/protobuf/proto"
 
+//PersistentEvent is a marker interface for persistent events
 type PersistentEvent interface {
 	Persistent()
 }
 
-type PersistenceProvider interface {
+//Provider is the abstraction used for persistence
+type Provider interface {
 	GetSnapshotInterval() int
 	GetSnapshot(actorName string) (interface{}, bool)
 	GetEvents(actorName string) []proto.Message

@@ -8,7 +8,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
-func Using(provider PersistenceProvider) actor.Receive {
+func Using(provider Provider) actor.Receive {
 	started := false
 	eventIndex := 0
 	snapshotInterval := provider.GetSnapshotInterval()
@@ -41,8 +41,7 @@ func Using(provider PersistenceProvider) actor.Receive {
 			context.Next()
 		case proto.Message:
 			if started {
-				_, ok := context.Message().(PersistentEvent)
-				if ok {
+				if _, ok := context.Message().(PersistentEvent); ok {
 					log.Printf("got persistent message %v %+v\n", reflect.TypeOf(msg), msg)
 					provider.PersistEvent(name, eventIndex, msg)
 					eventIndex++
