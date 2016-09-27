@@ -13,7 +13,8 @@ import (
 
 type Provider struct {
 	*persistence.NoSnapshotSupport
-	bucket *gocb.Bucket
+	bucket     *gocb.Bucket
+	bucketName string
 }
 
 func New(bucketName string, baseU string) *Provider {
@@ -28,13 +29,23 @@ func New(bucketName string, baseU string) *Provider {
 	bucket.SetTranscoder(Transcoder{})
 
 	return &Provider{
-		bucket: bucket,
+		bucket:     bucket,
+		bucketName: bucketName,
 	}
 }
 
+func formatKey(actorName string, eventIndex int) string {
+	key := fmt.Sprintf("%v-%010d", actorName, eventIndex)
+	return key
+}
+
 func (provider *Provider) GetEvents(actorName string, callback func(event interface{})) {
-	q := gocb.NewN1qlQuery("SELECT b.* FROM `labb` b WHERE meta(b).id >= \"1-0000000000\"")
-	rows, err := provider.bucket.ExecuteN1qlQuery(q, nil)
+	q := gocb.NewN1qlQuery("SELECT b.* FROM `" + provider.bucketName + "` b WHERE meta(b).id >= $1 and meta(b).id <= $2")
+	var p []interface{}
+	p = append(p, formatKey(actorName, 0))
+	p = append(p, formatKey(actorName, 9999999999))
+
+	rows, err := provider.bucket.ExecuteN1qlQuery(q, p)
 	if err != nil {
 		log.Fatalf("Error executing N1ql: %v", err)
 	}
@@ -66,7 +77,7 @@ func (provider *Provider) PersistEvent(actorName string, eventIndex int, event p
 		Type:    typeName,
 		Message: bytes,
 	}
-	key := fmt.Sprintf("%v-%010d", actorName, eventIndex)
+	key := formatKey(actorName, eventIndex)
 	_, err = provider.bucket.Insert(key, envelope, 0)
 	if err != nil {
 		log.Fatal(err)

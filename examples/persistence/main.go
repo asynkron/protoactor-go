@@ -18,25 +18,25 @@ type persistentActor struct {
 }
 
 //CQRS style messages
-func (self *persistentActor) Receive(context actor.Context) {
+func (state *persistentActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *messages.RenameCommand: //command handler, you can have side effects here
 		event := &messages.RenamedEvent{Name: msg.Name}
 		log.Printf("Rename %v\n", msg.Name)
 		context.Receive(event)
 	case *messages.RenamedEvent: //event handler, only mutate state here
-		self.name = msg.Name
+		state.name = msg.Name
 	case *messages.AddItemCommand:
 		event := &messages.AddedItemEvent{Item: msg.Item}
 		log.Printf("Add item %v", msg.Item)
 		context.Receive(event)
 	case *messages.AddedItemEvent:
-		self.items = append(self.items, msg.Item)
+		state.items = append(state.items, msg.Item)
 	case *messages.DumpCommand: //just so we can manually trigger a console dump of state
-		log.Printf("%+v", self)
+		log.Printf("%+v", state)
 	case *persistence.ReplayComplete: //will be triggered once the persistence plugin have replayed all events
 		log.Println("Replay Complete")
-		context.Receive(messages.DumpCommand{})
+		context.Receive(&messages.DumpCommand{})
 	}
 }
 
