@@ -3,8 +3,6 @@ package main
 import (
 	"log"
 
-	//"github.com/gogo/protobuf/proto"
-
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/couchbase_persistence"
 	"github.com/AsynkronIT/gam/examples/persistence/messages"
