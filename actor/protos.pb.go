@@ -21,7 +21,6 @@ package actor
 
 import (
 	fmt "fmt"
-	"log"
 
 	proto "github.com/golang/protobuf/proto"
 
@@ -99,7 +98,6 @@ func (*Foo) ProtoMessage()               {}
 func (*Foo) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{6} }
 
 func init() {
-	log.Println("Init actor protos.proto")
 	proto.RegisterType((*PID)(nil), "actor.PID")
 	proto.RegisterType((*Restarting)(nil), "actor.Restarting")
 	proto.RegisterType((*Stopping)(nil), "actor.Stopping")

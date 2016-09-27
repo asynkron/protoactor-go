@@ -34,6 +34,12 @@ func New(bucketName string, baseU string) *Provider {
 func (provider *Provider) GetEvents(actorName string) []proto.Message {
 	var myValue interface{}
 	provider.bucket.Get("1-3", &myValue)
+	q := gocb.NewN1qlQuery("SELECT b.* FROM `labb` b WHERE meta(b).id >= \"1-0000000000\"")
+	r, err := provider.bucket.ExecuteN1qlQuery(q, nil)
+	if err != nil {
+		log.Fatalf("Error executing N1ql: %v", err)
+	}
+	log.Println(r)
 
 	log.Printf("%+v\n", myValue)
 	return nil

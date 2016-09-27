@@ -4,7 +4,6 @@ import (
 	"log"
 
 	//"github.com/gogo/protobuf/proto"
-	proto "github.com/golang/protobuf/proto"
 
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/couchbase_persistence"
@@ -48,7 +47,6 @@ func newPersistentActor() actor.Actor {
 }
 
 func main() {
-	log.Println(proto.MessageName(&messages.AddedItemEvent{}))
 
 	props := actor.
 		FromProducer(newPersistentActor).

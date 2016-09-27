@@ -19,7 +19,6 @@ func Using(provider Provider) actor.Receive {
 			context.Self().Tell(&Replay{})
 		case *Replay:
 			started = false
-			log.Printf("Starting\n")
 			eventIndex = 0
 
 			context.Next()
