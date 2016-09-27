@@ -24,8 +24,10 @@ type InMemoryProvider struct {
 
 var InMemory *InMemoryProvider = &InMemoryProvider{}
 
-func (provider *InMemoryProvider) GetEvents(actorName string) []proto.Message {
-	return provider.events
+func (provider *InMemoryProvider) GetEvents(actorName string, callback func(event interface{})) {
+	for _, e := range provider.events {
+		callback(e)
+	}
 }
 
 func (provider *InMemoryProvider) PersistEvent(actorName string, eventIndex int, event proto.Message) {

@@ -27,11 +27,8 @@ func Using(provider Provider) actor.Receive {
 				//synchronously receive snapshot
 				context.Receive(OfferSnapshot{Snapshot: snapshot})
 			}
-			messages := provider.GetEvents(name)
-			for _, m := range messages {
-				//synchronously receive events
-				context.Receive(m)
-			}
+			provider.GetEvents(name, context.Receive)
+
 			started = true //persistence is now started
 			context.Receive(&ReplayComplete{})
 		case *actor.Stopped:

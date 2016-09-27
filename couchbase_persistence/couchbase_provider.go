@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/AsynkronIT/gam/persistence"
 	"github.com/couchbase/gocb"
@@ -31,18 +32,31 @@ func New(bucketName string, baseU string) *Provider {
 	}
 }
 
-func (provider *Provider) GetEvents(actorName string) []proto.Message {
+func (provider *Provider) GetEvents(actorName string, callback func(event interface{})) {
 	var myValue interface{}
 	provider.bucket.Get("1-3", &myValue)
 	q := gocb.NewN1qlQuery("SELECT b.* FROM `labb` b WHERE meta(b).id >= \"1-0000000000\"")
-	r, err := provider.bucket.ExecuteN1qlQuery(q, nil)
+	rows, err := provider.bucket.ExecuteN1qlQuery(q, nil)
 	if err != nil {
 		log.Fatalf("Error executing N1ql: %v", err)
 	}
-	log.Println(r)
+	defer rows.Close()
+	var row Envelope
+
+	for rows.Next(&row) {
+		e := unpackMessage(row)
+		callback(e)
+	}
 
 	log.Printf("%+v\n", myValue)
-	return nil
+}
+
+func unpackMessage(message Envelope) proto.Message {
+	t := proto.MessageType(message.Type).Elem()
+	intPtr := reflect.New(t)
+	instance := intPtr.Interface().(proto.Message)
+	json.Unmarshal(message.Message, instance)
+	return instance
 }
 
 func (provider *Provider) PersistEvent(actorName string, eventIndex int, event proto.Message) {
