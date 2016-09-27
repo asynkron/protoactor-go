@@ -33,8 +33,6 @@ func New(bucketName string, baseU string) *Provider {
 }
 
 func (provider *Provider) GetEvents(actorName string, callback func(event interface{})) {
-	var myValue interface{}
-	provider.bucket.Get("1-3", &myValue)
 	q := gocb.NewN1qlQuery("SELECT b.* FROM `labb` b WHERE meta(b).id >= \"1-0000000000\"")
 	rows, err := provider.bucket.ExecuteN1qlQuery(q, nil)
 	if err != nil {
@@ -45,10 +43,9 @@ func (provider *Provider) GetEvents(actorName string, callback func(event interf
 
 	for rows.Next(&row) {
 		e := unpackMessage(row)
+		log.Printf("%+v\n", e)
 		callback(e)
 	}
-
-	log.Printf("%+v\n", myValue)
 }
 
 func unpackMessage(message Envelope) proto.Message {

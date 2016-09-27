@@ -27,7 +27,10 @@ func Using(provider Provider) actor.Receive {
 				//synchronously receive snapshot
 				context.Receive(OfferSnapshot{Snapshot: snapshot})
 			}
-			provider.GetEvents(name, context.Receive)
+			provider.GetEvents(name, func(e interface{}) {
+				context.Receive(e)
+				eventIndex++
+			})
 
 			started = true //persistence is now started
 			context.Receive(&ReplayComplete{})
