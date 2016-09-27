@@ -55,8 +55,8 @@ func main() {
 	pid.Tell(&messages.AddItemCommand{Item: "Apple"})
 	pid.Tell(&messages.AddItemCommand{Item: "Orange"})
 	pid.Tell(&messages.RenameCommand{Name: "Acme Inc"})
-	pid.Tell(&messages.DumpCommand{})
-	pid.Tell(&actor.PoisonPill{})
+	pid.Tell(&messages.DumpCommand{}) //dump current state to console
+	pid.Tell(&actor.PoisonPill{})     //force restart of actor to show that we can handle failure
 	pid.Tell(&messages.DumpCommand{})
 	console.ReadLine()
 }
