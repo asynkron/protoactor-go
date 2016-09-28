@@ -4,11 +4,6 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
-//PersistentEvent is a marker interface for persistent events
-type PersistentEvent interface {
-	Persistent()
-}
-
 //Provider is the abstraction used for persistence
 type Provider interface {
 	GetSnapshotInterval() int

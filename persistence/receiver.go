@@ -1,22 +1,32 @@
 package persistence
 
 import (
+	"log"
+	"reflect"
+
 	"github.com/AsynkronIT/gam/actor"
 	proto "github.com/golang/protobuf/proto"
 )
 
 func Using(provider Provider) actor.Receive {
-	started := false
 	eventIndex := 0
-	snapshotInterval := provider.GetSnapshotInterval()
+	//snapshotInterval := provider.GetSnapshotInterval()
 	return func(context actor.Context) {
 		name := context.Self().Id
-		switch msg := context.Message().(type) {
+		switch context.Message().(type) {
 		case *actor.Started:
 			context.Next()
 			context.Self().Tell(&Replay{})
 		case *Replay:
-			started = false
+			if p, ok := context.Actor().(persistent); ok {
+				p.init(func(msg proto.Message) {
+					provider.PersistEvent(name, eventIndex, msg)
+					eventIndex++
+					context.Receive(msg)
+				})
+			} else {
+				log.Fatalf("Actor type %v is not persistent", reflect.TypeOf(context.Actor()))
+			}
 			eventIndex = 0
 
 			context.Next()
@@ -30,20 +40,7 @@ func Using(provider Provider) actor.Receive {
 				eventIndex++
 			})
 
-			started = true //persistence is now started
 			context.Receive(&ReplayComplete{})
-		case proto.Message:
-			if started {
-				if _, ok := context.Message().(PersistentEvent); ok {
-					provider.PersistEvent(name, eventIndex, msg)
-					eventIndex++
-					if snapshotInterval != 0 && eventIndex%snapshotInterval == 0 {
-						persistSnapshot := provider.GetPersistSnapshot(name)
-						context.Receive(RequestSnapshot{PersistSnapshot: persistSnapshot})
-					}
-				}
-			}
-			context.Next()
 		default:
 			context.Next()
 		}
