@@ -10,6 +10,7 @@ import (
 
 func Using(provider Provider) actor.Receive {
 	eventIndex := 0
+
 	//snapshotInterval := provider.GetSnapshotInterval()
 	return func(context actor.Context) {
 		name := context.Self().Id
@@ -19,10 +20,15 @@ func Using(provider Provider) actor.Receive {
 			context.Self().Tell(&Replay{})
 		case *Replay:
 			if p, ok := context.Actor().(persistent); ok {
-				p.init(func(msg proto.Message) {
-					provider.PersistEvent(name, eventIndex, msg)
-					eventIndex++
-					context.Receive(msg)
+				p.init(functions{
+					persistMessage: func(msg proto.Message) {
+						provider.PersistEvent(name, eventIndex, msg)
+						eventIndex++
+						context.Receive(msg)
+					},
+					persistSnapshot: func(msg proto.Message) {
+						log.Println("Persit Snapshot")
+					},
 				})
 			} else {
 				log.Fatalf("Actor type %v is not persistent", reflect.TypeOf(context.Actor()))
