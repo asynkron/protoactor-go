@@ -17,6 +17,7 @@ type persistentActor struct {
 
 //CQRS style messages
 func (state *persistentActor) Receive(context actor.Context) {
+	
 	switch msg := context.Message().(type) {
 	case *messages.RenameCommand: //command handler, you can have side effects here
 		event := &messages.RenamedEvent{Name: msg.Name}
@@ -46,9 +47,12 @@ func newPersistentActor() actor.Actor {
 
 func main() {
 
+	cb := couchbase_persistence.New("labb", "couchbase://localhost")
 	props := actor.
 		FromProducer(newPersistentActor).
-		WithReceivers(persistence.Using(couchbase_persistence.New("labb", "couchbase://localhost")))
+		WithReceivers(
+			actor.MessageLogging,  //<- logging receive pipeline
+			persistence.Using(cb)) //<- persistence receive pipeline
 
 	pid := actor.Spawn(props)
 	pid.Tell(&messages.AddItemCommand{Item: "Banana"})

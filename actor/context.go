@@ -35,6 +35,13 @@ type Context interface {
 	Receive(interface{})
 	//Stashes the current message
 	Stash()
+
+	//the actor instance
+	Actor() Actor
+}
+
+func (cell *actorCell) Actor() Actor {
+	return cell.actor
 }
 
 func (cell *actorCell) Message() interface{} {

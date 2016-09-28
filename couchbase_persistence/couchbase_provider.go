@@ -54,7 +54,6 @@ func (provider *Provider) GetEvents(actorName string, callback func(event interf
 
 	for rows.Next(&row) {
 		e := unpackMessage(row)
-		log.Printf("%+v\n", e)
 		callback(e)
 	}
 }

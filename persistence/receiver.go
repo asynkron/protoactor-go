@@ -1,8 +1,6 @@
 package persistence
 
 import (
-	"log"
-
 	"github.com/AsynkronIT/gam/actor"
 	proto "github.com/golang/protobuf/proto"
 )
@@ -34,9 +32,6 @@ func Using(provider Provider) actor.Receive {
 
 			started = true //persistence is now started
 			context.Receive(&ReplayComplete{})
-		case *actor.Stopped:
-			log.Printf("Stopped\n")
-			context.Next()
 		case proto.Message:
 			if started {
 				if _, ok := context.Message().(PersistentEvent); ok {
