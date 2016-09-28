@@ -6,7 +6,7 @@ import (
 
 type persistent interface {
 	init(func(message proto.Message))
-	StoreAndReceive(message proto.Message)
+	PersistReceive(message proto.Message)
 }
 
 type Mixin struct {
