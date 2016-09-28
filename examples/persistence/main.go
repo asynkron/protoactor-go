@@ -22,13 +22,13 @@ func (state *persistentActor) Receive(context actor.Context) {
 	case *messages.RenameCommand: //command handler, you can have side effects here
 		event := &messages.RenamedEvent{Name: msg.Name}
 		log.Printf("Rename %v\n", msg.Name)
-		state.StoreAndReceive(event)
+		state.PersistReceive(event)
 	case *messages.RenamedEvent: //event handler, only mutate state here
 		state.name = msg.Name
 	case *messages.AddItemCommand:
 		event := &messages.AddedItemEvent{Item: msg.Item}
 		log.Printf("Add item %v", msg.Item)
-		state.StoreAndReceive(event)
+		state.PersistReceive(event)
 	case *messages.AddedItemEvent:
 		state.items = append(state.items, msg.Item)
 	case *messages.DumpCommand: //just so we can manually trigger a console dump of state

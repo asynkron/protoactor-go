@@ -13,7 +13,7 @@ type Mixin struct {
 	sar func(message proto.Message)
 }
 
-func (mixin *Mixin) StoreAndReceive(message proto.Message) {
+func (mixin *Mixin) PersistReceive(message proto.Message) {
 	mixin.sar(message)
 }
 
