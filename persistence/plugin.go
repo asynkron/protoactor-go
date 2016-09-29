@@ -11,12 +11,23 @@ type functions struct {
 
 type persistent interface {
 	init(functions)
+	replayComplete()
 	PersistReceive(message proto.Message)
 	PersistSnapshot(snapshot proto.Message)
+	Recovering() bool
 }
 
 type Mixin struct {
 	functions
+	recovering bool
+}
+
+func (mixin *Mixin) replayComplete() {
+	mixin.recovering = false
+}
+
+func (mixin *Mixin) Recovering() bool {
+	return mixin.recovering
 }
 
 func (mixin *Mixin) PersistReceive(message proto.Message) {
@@ -29,4 +40,5 @@ func (mixin *Mixin) PersistSnapshot(snapshot proto.Message) {
 
 func (mixin *Mixin) init(f functions) {
 	mixin.functions = f
+	mixin.recovering = true
 }

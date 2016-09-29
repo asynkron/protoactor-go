@@ -19,7 +19,8 @@ func Using(provider Provider) actor.Receive {
 			context.Next()
 			context.Self().Tell(&Replay{})
 		case *Replay:
-			if p, ok := context.Actor().(persistent); ok {
+			p, ok := context.Actor().(persistent)
+			if ok {
 				p.init(functions{
 					persistMessage: func(msg proto.Message) {
 						provider.PersistEvent(name, eventIndex, msg)
@@ -30,23 +31,26 @@ func Using(provider Provider) actor.Receive {
 						log.Println("Persit Snapshot")
 					},
 				})
+
+				eventIndex = 0
+
+				context.Next()
+				snapshot, ok := provider.GetSnapshot(name)
+				if ok {
+					//synchronously receive snapshot
+					context.Receive(OfferSnapshot{Snapshot: snapshot})
+				}
+				provider.GetEvents(name, func(e interface{}) {
+					context.Receive(e)
+					eventIndex++
+				})
+
+				context.Receive(&ReplayComplete{})
+				p.replayComplete()
 			} else {
 				log.Fatalf("Actor type %v is not persistent", reflect.TypeOf(context.Actor()))
 			}
-			eventIndex = 0
 
-			context.Next()
-			snapshot, ok := provider.GetSnapshot(name)
-			if ok {
-				//synchronously receive snapshot
-				context.Receive(OfferSnapshot{Snapshot: snapshot})
-			}
-			provider.GetEvents(name, func(e interface{}) {
-				context.Receive(e)
-				eventIndex++
-			})
-
-			context.Receive(&ReplayComplete{})
 		default:
 			context.Next()
 		}

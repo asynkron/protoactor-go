@@ -23,7 +23,6 @@ func (self *persistentActor) Receive(context actor.Context) {
 		event := &messages.RenamedEvent{Name: msg.Name}
 		log.Printf("Rename %v\n", msg.Name)
 		self.PersistReceive(event)
-		self.PersistSnapshot(event)
 
 	case *messages.RenamedEvent: //event handler, only mutate state here
 		self.state.Name = msg.Name
