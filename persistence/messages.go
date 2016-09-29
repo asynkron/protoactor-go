@@ -5,6 +5,4 @@ type ReplayComplete struct{}
 type OfferSnapshot struct {
 	Snapshot interface{}
 }
-type RequestSnapshot struct {
-	PersistSnapshot func(snapshot interface{})
-}
+type RequestSnapshot struct{}
