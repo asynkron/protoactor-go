@@ -1,8 +1,6 @@
 package persistence
 
 import (
-	"log"
-
 	"github.com/AsynkronIT/gam/actor"
 	proto "github.com/golang/protobuf/proto"
 )
@@ -36,13 +34,11 @@ func (mixin *Mixin) PersistReceive(message proto.Message) {
 	mixin.eventIndex++
 	mixin.context.Receive(message)
 	if mixin.eventIndex%mixin.provider.GetSnapshotInterval() == 0 {
-		log.Println("Requesting snapshot")
 		mixin.context.Receive(&RequestSnapshot{})
 	}
 }
 
 func (mixin *Mixin) PersistSnapshot(snapshot proto.Message) {
-	log.Println("Persisting snapshot")
 	mixin.provider.PersistSnapshot(mixin.Name(), mixin.eventIndex, snapshot)
 }
 
