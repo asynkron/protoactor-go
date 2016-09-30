@@ -38,16 +38,10 @@ func (self *persistentActor) Receive(context actor.Context) {
 	case *messages.DumpCommand: //just so we can manually trigger a console dump of state
 		log.Printf("%+v", self)
 
-	case *persistence.ReplayComplete: //will be triggered once the persistence plugin have replayed all events
-		log.Println("Replay Complete")
-		context.Receive(&messages.DumpCommand{})
-
 	case *persistence.RequestSnapshot:
-		log.Println("Snapshot requested")
 		self.PersistSnapshot(&self.state)
 
 	case *messages.State:
-		log.Printf("Got state %+v", msg)
 		self.state = *msg
 	}
 }
@@ -62,13 +56,15 @@ func main() {
 	props := actor.
 		FromProducer(newPersistentActor).
 		WithReceivers(
-			actor.MessageLogging,  //<- logging receive pipeline
+			//	actor.MessageLogging,  //<- logging receive pipeline
 			persistence.Using(cb)) //<- persistence receive pipeline
 
 	pid := actor.Spawn(props)
-	pid.Tell(&messages.RenameCommand{Name: "Acme Inc"})
-	pid.Tell(&messages.AddItemCommand{Item: "Banana"})
-	pid.Tell(&messages.AddItemCommand{Item: "Apple"})
-	pid.Tell(&messages.AddItemCommand{Item: "Orange"})
+	pid.Tell(&messages.DumpCommand{})
+	// pid.Tell(&messages.RenameCommand{Name: "Acme Inc"})
+	// pid.Tell(&messages.AddItemCommand{Item: "Banana"})
+	// pid.Tell(&messages.AddItemCommand{Item: "Apple"})
+	// pid.Tell(&messages.AddItemCommand{Item: "Orange"})
+
 	console.ReadLine()
 }

@@ -43,7 +43,7 @@ func formatSnapshotKey(actorName string, eventIndex int) string {
 }
 
 func (provider *Provider) GetEvents(actorName string, eventIndexStart int, callback func(event interface{})) {
-	q := gocb.NewN1qlQuery("SELECT b.* FROM `" + provider.bucketName + "` b WHERE meta(b).id >= $1 and meta(b).id <= $2 and snapshot=false")
+	q := gocb.NewN1qlQuery("SELECT b.* FROM `" + provider.bucketName + "` b WHERE meta(b).id >= $1 and meta(b).id <= $2")
 	var p []interface{}
 	p = append(p, formatEventKey(actorName, eventIndexStart))
 	p = append(p, formatEventKey(actorName, 9999999999))
@@ -62,7 +62,7 @@ func (provider *Provider) GetEvents(actorName string, eventIndexStart int, callb
 }
 
 func (provider *Provider) GetSnapshot(actorName string) (snapshot interface{}, eventIndex int, ok bool) {
-	q := gocb.NewN1qlQuery("SELECT b.* FROM `" + provider.bucketName + "` b WHERE meta(b).id >= $1 and meta(b).id <= $2 and snapshot=true order by b.eventIndex desc limit 1")
+	q := gocb.NewN1qlQuery("SELECT b.* FROM `" + provider.bucketName + "` b WHERE meta(b).id >= $1 and meta(b).id <= $2 order by b.eventIndex desc limit 1")
 	var p []interface{}
 	p = append(p, formatSnapshotKey(actorName, 0))
 	p = append(p, formatSnapshotKey(actorName, 9999999999))
@@ -100,7 +100,7 @@ func (provider *Provider) PersistEvent(actorName string, eventIndex int, event p
 		Type:       typeName,
 		Message:    bytes,
 		EventIndex: eventIndex,
-		Snapshot:   false,
+		DocType:    "event",
 	}
 	key := formatEventKey(actorName, eventIndex)
 	_, err = provider.bucket.Insert(key, envelope, 0)
@@ -120,7 +120,7 @@ func (provider *Provider) PersistSnapshot(actorName string, eventIndex int, snap
 		Type:       typeName,
 		Message:    bytes,
 		EventIndex: eventIndex,
-		Snapshot:   true,
+		DocType:    "snapshot",
 	}
 	key := formatSnapshotKey(actorName, eventIndex)
 	_, err = provider.bucket.Insert(key, envelope, 0)
@@ -133,7 +133,7 @@ type Envelope struct {
 	Type       string          `json:"type"`
 	Message    json.RawMessage `json:"event"`
 	EventIndex int             `json:"eventIndex"`
-	Snapshot   bool            `json:"snapshot"`
+	DocType    string          `json:"doctype"`
 }
 
 type Transcoder struct {

@@ -54,10 +54,8 @@ func (mixin *Mixin) init(provider Provider, context actor.Context) {
 
 	if snapshot, eventIndex, ok := provider.GetSnapshot(mixin.Name()); ok {
 		mixin.eventIndex = eventIndex
-		log.Println("Sending Snapshot")
 		context.Receive(snapshot)
 	}
-	log.Println("Sending Events")
 	mixin.provider.GetEvents(mixin.Name(), mixin.eventIndex, func(e interface{}) {
 		context.Receive(e)
 		mixin.eventIndex++
