@@ -60,11 +60,11 @@ func main() {
 			persistence.Using(cb)) //<- persistence receive pipeline
 
 	pid := actor.Spawn(props)
-	pid.Tell(&messages.DumpCommand{})
-	// pid.Tell(&messages.RenameCommand{Name: "Acme Inc"})
-	// pid.Tell(&messages.AddItemCommand{Item: "Banana"})
-	// pid.Tell(&messages.AddItemCommand{Item: "Apple"})
-	// pid.Tell(&messages.AddItemCommand{Item: "Orange"})
 
+	pid.Tell(&messages.RenameCommand{Name: "Acme Inc"})
+	pid.Tell(&messages.AddItemCommand{Item: "Banana"})
+	pid.Tell(&messages.AddItemCommand{Item: "Apple"})
+	pid.Tell(&messages.AddItemCommand{Item: "Orange"})
+	pid.Tell(&messages.DumpCommand{})
 	console.ReadLine()
 }
