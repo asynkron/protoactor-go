@@ -11,11 +11,12 @@ import (
 )
 
 type Provider struct {
-	bucket     *gocb.Bucket
-	bucketName string
+	bucket           *gocb.Bucket
+	bucketName       string
+	snapshotInterval int
 }
 
-func New(bucketName string, baseU string) *Provider {
+func New(bucketName string, baseU string, snapshotInterval int) *Provider {
 	c, err := gocb.Connect(baseU)
 	if err != nil {
 		log.Fatalf("Error connecting:  %v", err)
@@ -27,8 +28,9 @@ func New(bucketName string, baseU string) *Provider {
 	bucket.SetTranscoder(Transcoder{})
 
 	return &Provider{
-		bucket:     bucket,
-		bucketName: bucketName,
+		snapshotInterval: snapshotInterval,
+		bucket:           bucket,
+		bucketName:       bucketName,
 	}
 }
 
@@ -79,7 +81,7 @@ func (provider *Provider) GetSnapshot(actorName string) (snapshot interface{}, e
 	return nil, 0, false
 }
 func (provider *Provider) GetSnapshotInterval() int {
-	return 3
+	return provider.snapshotInterval
 }
 
 func unpackMessage(message Envelope) proto.Message {

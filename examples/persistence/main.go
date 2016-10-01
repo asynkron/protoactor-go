@@ -2,12 +2,13 @@ package main
 
 import (
 	"log"
+	"sync"
+	"time"
 
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/couchbase_persistence"
 	"github.com/AsynkronIT/gam/examples/persistence/messages"
 	"github.com/AsynkronIT/gam/persistence"
-	"github.com/AsynkronIT/goconsole"
 )
 
 type persistentActor struct {
@@ -21,7 +22,7 @@ func (self *persistentActor) Receive(context actor.Context) {
 
 	case *messages.RenameCommand: //command handler, you can have side effects here
 		event := &messages.RenamedEvent{Name: msg.Name}
-		log.Printf("Rename %v\n", msg.Name)
+		//log.Printf("Rename %v\n", msg.Name)
 		self.PersistReceive(event)
 
 	case *messages.RenamedEvent: //event handler, only mutate state here
@@ -29,7 +30,7 @@ func (self *persistentActor) Receive(context actor.Context) {
 
 	case *messages.AddItemCommand:
 		event := &messages.AddedItemEvent{Item: msg.Item}
-		log.Printf("Add item %v", msg.Item)
+		//log.Printf("Add item %v", msg.Item)
 		self.PersistReceive(event)
 
 	case *messages.AddedItemEvent:
@@ -43,6 +44,8 @@ func (self *persistentActor) Receive(context actor.Context) {
 
 	case *messages.State:
 		self.state = *msg
+	case *sync.WaitGroup:
+		msg.Done()
 	}
 }
 
@@ -52,7 +55,7 @@ func newPersistentActor() actor.Actor {
 
 func main() {
 
-	cb := couchbase_persistence.New("labb", "couchbase://localhost")
+	cb := couchbase_persistence.New("labb", "couchbase://localhost", 100)
 	props := actor.
 		FromProducer(newPersistentActor).
 		WithReceivers(
@@ -61,10 +64,23 @@ func main() {
 
 	pid := actor.Spawn(props)
 
-	pid.Tell(&messages.RenameCommand{Name: "Acme Inc"})
-	pid.Tell(&messages.AddItemCommand{Item: "Banana"})
-	pid.Tell(&messages.AddItemCommand{Item: "Apple"})
-	pid.Tell(&messages.AddItemCommand{Item: "Orange"})
-	pid.Tell(&messages.DumpCommand{})
-	console.ReadLine()
+	// pid.Tell(&messages.RenameCommand{Name: "Acme Inc"})
+	// pid.Tell(&messages.AddItemCommand{Item: "Banana"})
+	// pid.Tell(&messages.AddItemCommand{Item: "Apple"})
+	// pid.Tell(&messages.AddItemCommand{Item: "Orange"})
+	// pid.Tell(&messages.DumpCommand{})
+
+	log.Println("starting..")
+	var wg sync.WaitGroup
+	wg.Add(1)
+	start := time.Now()
+	for i := 0; i < 10000; i++ {
+		pid.Tell(&messages.RenameCommand{Name: "Acme Inc"})
+	}
+	pid.Tell(&wg)
+	wg.Wait()
+	elapsed := time.Since(start)
+	log.Printf("%s", elapsed)
+
+	//console.ReadLine()
 }
