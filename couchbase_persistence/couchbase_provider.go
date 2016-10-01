@@ -11,12 +11,13 @@ import (
 )
 
 type Provider struct {
+	async            bool
 	bucket           *gocb.Bucket
 	bucketName       string
 	snapshotInterval int
 }
 
-func New(bucketName string, baseU string, snapshotInterval int) *Provider {
+func New(bucketName string, baseU string, options ...CouchbaseOption) *Provider {
 	c, err := gocb.Connect(baseU)
 	if err != nil {
 		log.Fatalf("Error connecting:  %v", err)
@@ -27,8 +28,14 @@ func New(bucketName string, baseU string, snapshotInterval int) *Provider {
 	}
 	bucket.SetTranscoder(Transcoder{})
 
+	config := &couchbaseConfig{}
+	for _, option := range options {
+		option(config)
+	}
+
 	return &Provider{
-		snapshotInterval: snapshotInterval,
+		snapshotInterval: config.snapshotInterval,
+		async:            config.async,
 		bucket:           bucket,
 		bucketName:       bucketName,
 	}
@@ -93,19 +100,29 @@ func unpackMessage(message Envelope) proto.Message {
 }
 
 func (provider *Provider) PersistEvent(actorName string, eventIndex int, event proto.Message) {
+
 	typeName := proto.MessageName(event)
 	bytes, err := json.Marshal(event)
 	if err != nil {
 		log.Fatal(err)
 	}
+	key := formatEventKey(actorName, eventIndex)
 	envelope := &Envelope{
 		Type:       typeName,
 		Message:    bytes,
 		EventIndex: eventIndex,
 		DocType:    "event",
 	}
-	key := formatEventKey(actorName, eventIndex)
-	_, err = provider.bucket.Insert(key, envelope, 0)
+
+	if provider.async {
+		go provider.persistEvent(key, envelope)
+	} else {
+		provider.persistEvent(key, envelope)
+	}
+}
+
+func (provider *Provider) persistEvent(key string, envelope *Envelope) {
+	_, err := provider.bucket.Insert(key, envelope, 0)
 	if err != nil {
 		log.Println(key)
 		log.Fatal(err)
@@ -113,19 +130,28 @@ func (provider *Provider) PersistEvent(actorName string, eventIndex int, event p
 }
 
 func (provider *Provider) PersistSnapshot(actorName string, eventIndex int, snapshot proto.Message) {
+
 	typeName := proto.MessageName(snapshot)
 	bytes, err := json.Marshal(snapshot)
 	if err != nil {
 		log.Fatal(err)
 	}
+	key := formatSnapshotKey(actorName, eventIndex)
 	envelope := &Envelope{
 		Type:       typeName,
 		Message:    bytes,
 		EventIndex: eventIndex,
 		DocType:    "snapshot",
 	}
-	key := formatSnapshotKey(actorName, eventIndex)
-	_, err = provider.bucket.Insert(key, envelope, 0)
+	if provider.async {
+		go provider.persistSnapshot(key, envelope)
+	} else {
+		provider.persistSnapshot(key, envelope)
+	}
+}
+
+func (provider *Provider) persistSnapshot(key string, envelope *Envelope) {
+	_, err := provider.bucket.Insert(key, envelope, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -155,4 +181,23 @@ func (t Transcoder) Encode(value interface{}) ([]byte, uint32, error) {
 		return nil, 0, err
 	}
 	return bytes, 0, nil
+}
+
+type couchbaseConfig struct {
+	async            bool
+	snapshotInterval int
+}
+
+type CouchbaseOption func(*couchbaseConfig)
+
+func WithAsync() CouchbaseOption {
+	return func(config *couchbaseConfig) {
+		config.async = true
+	}
+}
+
+func WithSnapshot(interval int) CouchbaseOption {
+	return func(config *couchbaseConfig) {
+		config.snapshotInterval = interval
+	}
 }
