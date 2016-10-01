@@ -283,7 +283,14 @@ func (cell *actorCell) Spawn(props Props) *PID {
 }
 
 func (cell *actorCell) SpawnNamed(props Props, name string) *PID {
-	pid := spawn(name, props, cell.self)
+	var fullName string
+	if cell.parent != nil {
+		fullName = cell.parent.Id + "/" + name
+	} else {
+		fullName = name
+	}
+
+	pid := spawn(fullName, props, cell.self)
 	cell.children.Add(pid)
 	cell.Watch(pid)
 	return pid
