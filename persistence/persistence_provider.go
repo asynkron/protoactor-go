@@ -10,6 +10,7 @@ type Provider interface {
 }
 
 type ProviderState interface {
+	Restart()
 	GetSnapshotInterval() int
 	GetSnapshot(actorName string) (snapshot interface{}, eventIndex int, ok bool)
 	GetEvents(actorName string, eventIndexStart int, callback func(e interface{}))

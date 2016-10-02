@@ -18,7 +18,7 @@ type Provider struct {
 }
 
 func (provider *Provider) GetState() persistence.ProviderState {
-	return &ProviderState{
+	return &cbState{
 		Provider: provider,
 	}
 }
@@ -28,7 +28,7 @@ func New(bucketName string, baseU string, options ...CouchbaseOption) *Provider 
 	if err != nil {
 		log.Fatalf("Error connecting:  %v", err)
 	}
-	bucket, err := c.OpenBucket(bucketName, "")
+	bucket, err := c.OpenBucketWithMt(bucketName, "")
 	if err != nil {
 		log.Fatalf("Error getting bucket:  %v", err)
 	}
