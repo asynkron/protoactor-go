@@ -6,6 +6,10 @@ import (
 
 //Provider is the abstraction used for persistence
 type Provider interface {
+	GetState() ProviderState
+}
+
+type ProviderState interface {
 	GetSnapshotInterval() int
 	GetSnapshot(actorName string) (snapshot interface{}, eventIndex int, ok bool)
 	GetEvents(actorName string, eventIndexStart int, callback func(e interface{}))

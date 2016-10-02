@@ -14,10 +14,10 @@ type persistent interface {
 }
 
 type Mixin struct {
-	eventIndex int
-	provider   Provider
-	context    actor.Context
-	recovering bool
+	eventIndex    int
+	providerState ProviderState
+	context       actor.Context
+	recovering    bool
 }
 
 func (mixin *Mixin) Recovering() bool {
@@ -30,29 +30,29 @@ func (mixin *Mixin) Name() string {
 }
 func (mixin *Mixin) PersistReceive(message proto.Message) {
 
-	mixin.provider.PersistEvent(mixin.Name(), mixin.eventIndex, message)
+	mixin.providerState.PersistEvent(mixin.Name(), mixin.eventIndex, message)
 	mixin.eventIndex++
 	mixin.context.Receive(message)
-	if mixin.eventIndex%mixin.provider.GetSnapshotInterval() == 0 {
+	if mixin.eventIndex%mixin.providerState.GetSnapshotInterval() == 0 {
 		mixin.context.Receive(&RequestSnapshot{})
 	}
 }
 
 func (mixin *Mixin) PersistSnapshot(snapshot proto.Message) {
-	mixin.provider.PersistSnapshot(mixin.Name(), mixin.eventIndex, snapshot)
+	mixin.providerState.PersistSnapshot(mixin.Name(), mixin.eventIndex, snapshot)
 }
 
 func (mixin *Mixin) init(provider Provider, context actor.Context) {
 	mixin.eventIndex = 0
 	mixin.context = context
-	mixin.provider = provider
+	mixin.providerState = provider.GetState()
 	mixin.recovering = true
 
-	if snapshot, eventIndex, ok := provider.GetSnapshot(mixin.Name()); ok {
+	if snapshot, eventIndex, ok := mixin.providerState.GetSnapshot(mixin.Name()); ok {
 		mixin.eventIndex = eventIndex
 		context.Receive(snapshot)
 	}
-	mixin.provider.GetEvents(mixin.Name(), mixin.eventIndex, func(e interface{}) {
+	mixin.providerState.GetEvents(mixin.Name(), mixin.eventIndex, func(e interface{}) {
 		context.Receive(e)
 		mixin.eventIndex++
 	})
