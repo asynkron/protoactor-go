@@ -5,7 +5,7 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/gogo/protobuf/proto"
+	proto "github.com/golang/protobuf/proto"
 )
 
 type envelope struct {

@@ -43,11 +43,15 @@ func (mixin *Mixin) PersistSnapshot(snapshot proto.Message) {
 }
 
 func (mixin *Mixin) init(provider Provider, context actor.Context) {
+	if mixin.providerState == nil {
+		mixin.providerState = provider.GetState()
+	}
+
 	mixin.eventIndex = 0
 	mixin.context = context
-	mixin.providerState = provider.GetState()
 	mixin.recovering = true
 
+	mixin.providerState.Restart()
 	if snapshot, eventIndex, ok := mixin.providerState.GetSnapshot(mixin.Name()); ok {
 		mixin.eventIndex = eventIndex
 		context.Receive(snapshot)
