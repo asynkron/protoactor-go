@@ -21,6 +21,7 @@ func (state *cbState) Restart() {
 func (state *cbState) GetEvents(actorName string, eventIndexStart int, callback func(event interface{})) {
 	q := gocb.NewN1qlQuery("SELECT b.* FROM `" + state.bucketName + "` b WHERE meta(b).id >= $1 and meta(b).id <= $2")
 	q.Consistency(gocb.RequestPlus)
+
 	var p []interface{}
 	p = append(p, formatEventKey(actorName, eventIndexStart))
 	p = append(p, formatEventKey(actorName, 9999999999))
@@ -30,17 +31,25 @@ func (state *cbState) GetEvents(actorName string, eventIndexStart int, callback 
 		log.Fatalf("Error executing N1ql: %v", err)
 	}
 	defer rows.Close()
-	var row envelope
 
+	var row envelope
+	i := eventIndexStart
 	for rows.Next(&row) {
 		e := row.message()
+		if row.EventIndex != i {
+			log.Printf("%v, Invalid actor state, missing event %v", actorName, i)
+			return
+		}
 		callback(e)
+		i++
 	}
 }
 
 func (state *cbState) GetSnapshot(actorName string) (snapshot interface{}, eventIndex int, ok bool) {
 
 	q := gocb.NewN1qlQuery("SELECT b.* FROM `" + state.bucketName + "` b WHERE meta(b).id >= $1 and meta(b).id <= $2 order by b.eventIndex desc limit 1")
+	q.Consistency(gocb.RequestPlus)
+
 	var p []interface{}
 	p = append(p, formatSnapshotKey(actorName, 0))
 	p = append(p, formatSnapshotKey(actorName, 9999999999))
@@ -50,6 +59,7 @@ func (state *cbState) GetSnapshot(actorName string) (snapshot interface{}, event
 		log.Fatalf("Error executing N1ql: %v", err)
 	}
 	defer rows.Close()
+
 	var row envelope
 	if rows.Next(&row) {
 		return row.message(), row.EventIndex, true
@@ -63,30 +73,23 @@ func (provider *Provider) GetSnapshotInterval() int {
 func (state *cbState) PersistEvent(actorName string, eventIndex int, event proto.Message) {
 	key := formatEventKey(actorName, eventIndex)
 	envelope := newEnvelope(event, "event", eventIndex)
-	state.wg.Add(1)
-	persist := func() {
-		_, err := state.bucket.Insert(key, envelope, 0)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-		state.wg.Done()
-	}
-	if state.async {
-		state.writer.Tell(&write{fun: persist})
-	} else {
-		persist()
-	}
+	state.persistEnvelope(key, envelope)
 }
 
 func (state *cbState) PersistSnapshot(actorName string, eventIndex int, snapshot proto.Message) {
 	key := formatSnapshotKey(actorName, eventIndex)
 	envelope := newEnvelope(snapshot, "snapshot", eventIndex)
+	state.persistEnvelope(key, envelope)
+}
+
+func (state *cbState) persistEnvelope(key string, envelope *envelope) {
+	state.wg.Add(1)
 	persist := func() {
 		_, err := state.bucket.Insert(key, envelope, 0)
 		if err != nil {
 			log.Fatal(err)
 		}
+		state.wg.Done()
 	}
 	if state.async {
 		state.writer.Tell(&write{fun: persist})

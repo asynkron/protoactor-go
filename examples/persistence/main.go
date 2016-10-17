@@ -3,12 +3,12 @@ package main
 import (
 	"log"
 	"sync"
-	"time"
 
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/couchbase_persistence"
 	"github.com/AsynkronIT/gam/examples/persistence/messages"
 	"github.com/AsynkronIT/gam/persistence"
+	"github.com/AsynkronIT/goconsole"
 )
 
 type persistentActor struct {
@@ -65,7 +65,7 @@ func main() {
 			//	actor.MessageLogging,  //<- logging receive pipeline
 			persistence.Using(cb)) //<- persistence receive pipeline
 
-	pid := actor.Spawn(props)
+	actor.Spawn(props)
 
 	// pid.Tell(&messages.RenameCommand{Name: "Acme Inc"})
 	// pid.Tell(&messages.AddItemCommand{Item: "Banana"})
@@ -73,18 +73,18 @@ func main() {
 	// pid.Tell(&messages.AddItemCommand{Item: "Orange"})
 	// pid.Tell(&messages.DumpCommand{})
 
-	log.Println("starting..")
-	var wg sync.WaitGroup
-	wg.Add(1)
-	start := time.Now()
-	for i := 0; i < 10000; i++ {
-		pid.Tell(&messages.RenameCommand{Name: "Acme Inc"})
-	}
-	pid.Tell(&wg)
-	wg.Wait()
-	elapsed := time.Since(start)
-	log.Printf("%s", elapsed)
+	// log.Println("starting..")
+	// var wg sync.WaitGroup
+	// wg.Add(1)
+	// start := time.Now()
+	// for i := 0; i < 10000; i++ {
+	// 	pid.Tell(&messages.RenameCommand{Name: "Acme Inc"})
+	// }
+	// pid.Tell(&wg)
+	// wg.Wait()
+	// elapsed := time.Since(start)
+	// log.Printf("%s", elapsed)
 
-	time.Sleep(1 * time.Second)
-	//	console.ReadLine()
+	// time.Sleep(1 * time.Second)
+	console.ReadLine()
 }
