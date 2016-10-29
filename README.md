@@ -61,6 +61,9 @@ go get github.com/gogo/protobuf/proto
 go get github.com/gogo/protobuf/protoc-gen-gogo
 go get github.com/gogo/protobuf/gogoproto
 go get github.com/gogo/protobuf/protoc-gen-gofast
+#go get github.com/gogo/protobuf/protoc-gen-gogofast
+#go get github.com/gogo/protobuf/protoc-gen-gogofaster
+#go get github.com/gogo/protobuf/protoc-gen-gogoslick
 ```
 
 Finally, run the `make` tool in the package's root to generate the protobuf definitions and build the packages.
