@@ -22,7 +22,8 @@ func Get(id string, kind string) *actor.PID {
 	h := int(hash(id))
 	members := list.Members()
 	i := h % len(members)
-	_ = members[i]
-
-	return nil
+	member := members[i]
+	host := member.Name
+	remote := actor.NewPID(host, "cluster")
+	return remote
 }

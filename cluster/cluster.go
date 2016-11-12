@@ -3,16 +3,11 @@ package cluster
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/remoting"
 	"github.com/hashicorp/memberlist"
 )
-
-func nodeName(prefix string, port int) string {
-	h, _ := os.Hostname()
-	return fmt.Sprintf("%v_%v:%v", prefix, h, port)
-}
 
 var list *memberlist.Memberlist
 
@@ -25,11 +20,12 @@ func Start(ip string, join ...string) {
 	}
 	c.BindPort = p
 	c.BindAddr = h
-	c.Name = nodeName("member", c.BindPort)
+	c.Name = fmt.Sprintf("%v:%v", h, p+1)
 	gossiper := NewMemberlistGossiper(c.Name)
 	c.Delegate = gossiper
 
 	l, err := memberlist.Create(c)
+	remoting.Start(fmt.Sprintf("%v:%v", h, p+1))
 
 	if err != nil {
 		panic("Failed to create memberlist: " + err.Error())

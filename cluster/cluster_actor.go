@@ -18,8 +18,10 @@ type clusterActor struct {
 }
 
 func (state *clusterActor) Receive(context actor.Context) {
-	switch context.Message().(type) {
+	switch msg := context.Message().(type) {
 	case *actor.Started:
 		log.Println("Cluster actor started")
+	default:
+		log.Printf("Cluster got message %+v", msg)
 	}
 }

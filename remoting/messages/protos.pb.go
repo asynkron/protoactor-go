@@ -256,7 +256,7 @@ var _ grpc.ClientConn
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion3
+const _ = grpc.SupportPackageIsVersion4
 
 // Client API for Remoting service
 
@@ -353,7 +353,7 @@ var _Remoting_serviceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: fileDescriptorProtos,
+	Metadata: "messages/protos.proto",
 }
 
 func (m *MessageEnvelope) Marshal() (dAtA []byte, err error) {
