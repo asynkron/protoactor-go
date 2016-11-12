@@ -3,8 +3,12 @@ package cluster
 import (
 	"hash/fnv"
 	"log"
+	"sort"
+	"time"
 
 	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/cluster/messages"
+	"github.com/hashicorp/memberlist"
 )
 
 var nameLookup = make(map[string]actor.Props)
@@ -19,13 +23,45 @@ func Register(kind string, props actor.Props) {
 	nameLookup[kind] = props
 }
 
+type byName []*memberlist.Node
+
+func (s byName) Len() int {
+	return len(s)
+}
+func (s byName) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s byName) Less(i, j int) bool {
+	return s[i].Name < s[j].Name
+}
+
 func Get(id string, kind string) *actor.PID {
 	h := int(hash(id))
 	members := list.Members()
+	sort.Sort(byName(members))
 	i := h % len(members)
 	member := members[i]
 	host := member.Name
 	remote := actor.NewPID(host, "cluster")
-	log.Printf("Get Virtual %v %+v", id, remote)
-	return remote
+	future, response := actor.RequestResponsePID()
+
+	//request the pid of the "id" from the correct partition
+	req := &messages.ActorPidRequest{
+		Id:     id,
+		Sender: future,
+		Kind:   kind,
+	}
+	remote.Tell(req)
+
+	//await the response
+	res, err := response.ResultOrTimeout(5 * time.Second)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//unwrap the result
+	typed := res.(*messages.ActorPidResponse)
+	pid := typed.Pid
+	log.Printf("Get Virtual %v %+v", id, pid)
+	return pid
 }

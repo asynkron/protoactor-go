@@ -14,6 +14,8 @@ func (*type1) Receive(context actor.Context) {
 	switch context.Message().(type) {
 	case *actor.Started:
 		log.Println("type1 started")
+	case *HelloMessage:
+		log.Println("type1 got hello message!!!......")
 	}
 }
 
@@ -41,6 +43,7 @@ func newType2() actor.Actor {
 }
 
 func init() {
+	log.Println("Registering actors...")
 	cluster.Register(Type1, actor.FromProducer(newType1))
 	cluster.Register(Type2, actor.FromProducer(newType2))
 }
