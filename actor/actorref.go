@@ -1,5 +1,7 @@
 package actor
 
+import "log"
+
 type ActorRef interface {
 	Tell(message interface{})
 	SendSystemMessage(message SystemMessage)
@@ -42,7 +44,7 @@ type DeadLetterActorRef struct {
 var deadLetter ActorRef = new(DeadLetterActorRef)
 
 func (DeadLetterActorRef) Tell(message interface{}) {
-
+	log.Printf("Deadletter got %+v", message)
 }
 
 func (DeadLetterActorRef) SendSystemMessage(message SystemMessage) {

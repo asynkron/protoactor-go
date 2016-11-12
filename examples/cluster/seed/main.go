@@ -12,6 +12,6 @@ func main() {
 	cluster.Start("127.0.0.1:7711", "127.0.0.1:7711")
 	fmt.Println("Running")
 	pid := cluster.Get("myfirst", shared.Type1)
-	pid.Tell("hello")
+	pid.Tell(&shared.HelloMessage{})
 	console.ReadLine()
 }

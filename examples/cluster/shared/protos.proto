@@ -1,0 +1,4 @@
+syntax = "proto3";
+package shared;
+
+message HelloMessage {}

@@ -14,6 +14,6 @@ func main() {
 	fmt.Println("Running")
 	time.Sleep(10 * time.Second)
 	pid := cluster.Get("myfirst", shared.Type1)
-	pid.Tell("hello")
+	pid.Tell(&shared.HelloMessage{})
 	console.ReadLine()
 }

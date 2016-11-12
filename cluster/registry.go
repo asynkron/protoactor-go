@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"hash/fnv"
+	"log"
 
 	"github.com/AsynkronIT/gam/actor"
 )
@@ -25,5 +26,6 @@ func Get(id string, kind string) *actor.PID {
 	member := members[i]
 	host := member.Name
 	remote := actor.NewPID(host, "cluster")
+	log.Printf("Get Virtual %v %+v", id, remote)
 	return remote
 }

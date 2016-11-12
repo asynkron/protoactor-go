@@ -40,7 +40,7 @@ func newType2() actor.Actor {
 	return &type2{}
 }
 
-func int() {
+func init() {
 	cluster.Register(Type1, actor.FromProducer(newType1))
 	cluster.Register(Type2, actor.FromProducer(newType2))
 }
