@@ -5,7 +5,8 @@ import (
 
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/remoting/messages"
-	"github.com/golang/protobuf/proto"
+	proto "github.com/gogo/protobuf/proto"
+	//proto "github.com/golang/protobuf/proto"
 )
 
 func packMessage(message proto.Message, target *actor.PID) (*messages.MessageEnvelope, error) {

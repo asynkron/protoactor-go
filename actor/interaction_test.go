@@ -76,7 +76,7 @@ func (EchoBecomeActor) Other(context Context) {
 
 func TestActorCanBecome(t *testing.T) {
 	responsePID, result := RequestResponsePID()
-	actor := Spawn(FromProducer(NewEchoActor))
+	actor := Spawn(FromProducer(NewEchoBecomeActor))
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
 	actor.Tell(EchoMessage{Sender: responsePID})
@@ -112,7 +112,7 @@ func (*EchoUnbecomeActor) Other(context Context) {
 
 func TestActorCanUnbecome(t *testing.T) {
 	responsePID, result := RequestResponsePID()
-	actor := Spawn(FromProducer(NewEchoActor))
+	actor := Spawn(FromProducer(NewEchoUnbecomeActor))
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
 	actor.Tell(UnbecomeMessage{})
