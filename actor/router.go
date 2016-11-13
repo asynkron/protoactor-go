@@ -37,7 +37,7 @@ func spawnRouter(config RouterConfig, props Props, parent *PID) *PID {
 		state:  routerState,
 	}
 	proxyID := ProcessRegistry.getAutoId()
-	proxy := ProcessRegistry.registerPID(ref, proxyID)
+	proxy, _ := ProcessRegistry.registerPID(ref, proxyID)
 	return proxy
 }
 

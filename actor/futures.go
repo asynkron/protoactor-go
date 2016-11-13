@@ -10,7 +10,7 @@ func RequestResponsePID() (*PID, *Response) {
 		channel: make(chan interface{}, 1),
 	}
 	id := ProcessRegistry.getAutoId()
-	pid := ProcessRegistry.registerPID(ref, id)
+	pid, _ := ProcessRegistry.registerPID(ref, id)
 	return pid, ref
 }
 
