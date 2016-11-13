@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"log"
-	"math"
 	"math/rand"
 	"time"
 
@@ -39,17 +38,18 @@ func getRandom() *actor.PID {
 }
 
 func findClosest(id string) *memberlist.Node {
-	h := int(hash(id))
-	v := uint32(h % hashSize)
+	h := hash(id)
+	v := h % hashSize
 
 	members := list.Members()
-	bestV := uint32(math.MaxUint32)
+	bestV := hashSize
 	bestI := 0
 
+	//walk all members and find the node with the closest distance to the id hash
 	for i, n := range members {
 		nodeV := getNodeValue(n)
-		abs := delta(v, nodeV)
-		if abs < bestV {
+		d := delta(v, nodeV)
+		if d < bestV {
 			bestV = nodeV
 			bestI = i
 		}
