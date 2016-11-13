@@ -67,8 +67,6 @@ func Get(id string, kind string) *actor.PID {
 		if abs < bestV {
 			bestV = nodeV
 			bestI = i
-		} else {
-			log.Printf("not smaller")
 		}
 	}
 	log.Printf("Matching node value %v with node %v", v, bestV)
