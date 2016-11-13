@@ -4,7 +4,6 @@ import (
 	"hash/fnv"
 	"log"
 	"math/rand"
-	"sort"
 	"time"
 
 	"github.com/AsynkronIT/gam/actor"
@@ -24,22 +23,21 @@ func Register(kind string, props actor.Props) {
 	nameLookup[kind] = props
 }
 
-type byName []*memberlist.Node
+type byValue []*memberlist.Node
 
-func (s byName) Len() int {
+func (s byValue) Len() int {
 	return len(s)
 }
-func (s byName) Swap(i, j int) {
+func (s byValue) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
-func (s byName) Less(i, j int) bool {
-	return s[i].Name < s[j].Name
+func (s byValue) Less(i, j int) bool {
+	return getNodeValue(s[i]) < getNodeValue(s[j])
 }
 
 func getRandom() *actor.PID {
 	r := rand.Int()
 	members := list.Members()
-	sort.Sort(byName(members))
 	i := r % len(members)
 	member := members[i]
 	host := member.Name
@@ -48,10 +46,35 @@ func getRandom() *actor.PID {
 }
 func Get(id string, kind string) *actor.PID {
 	h := int(hash(id))
+	v := uint32(h % 32)
+
 	members := list.Members()
-	sort.Sort(byName(members))
-	i := h % len(members)
-	member := members[i]
+	//	sort.Sort(byValue(members))
+	bestV := uint32(9999)
+	bestI := 0
+
+	log.Printf("Member count %v", len(members))
+	log.Printf("Current hash %v", v)
+	for i, n := range members {
+		nodeV := getNodeValue(n)
+		log.Printf("Node %v value %v", n.Name, nodeV)
+
+		abs := nodeV - v
+		if v > nodeV {
+			abs = v - nodeV
+		}
+		log.Printf("abs %v %v %v", abs, nodeV, v)
+		if abs < bestV {
+			bestV = nodeV
+			bestI = i
+		} else {
+			log.Printf("not smaller")
+		}
+	}
+	log.Printf("Matching node value %v with node %v", v, bestV)
+
+	member := members[bestI]
+
 	host := member.Name
 	remote := actor.NewPID(host, "cluster")
 	future, response := actor.RequestResponsePID()

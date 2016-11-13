@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/gob"
 	"log"
 
@@ -10,14 +11,28 @@ import (
 
 type MemberlistGossiper struct {
 	nodeName string
+	meta     []byte
+	value    uint32
+}
+
+func getNodeValue(node *memberlist.Node) uint32 {
+	return binary.LittleEndian.Uint32(node.Meta)
+}
+
+func getNodeMeta(id string) (uint32, []byte) {
+	value := hash(id) % 32
+	bs := make([]byte, 4)
+	binary.LittleEndian.PutUint32(bs, value)
+	return value, bs
 }
 
 // NodeMeta is used to retrieve meta-data about the current node
 // when broadcasting an alive message. It's length is limited to
 // the given byte size. This metadata is available in the Node structure.
 func (g *MemberlistGossiper) NodeMeta(limit int) []byte {
-	log.Println("NodeMeta")
-	return nil
+
+	log.Printf("NodeMeta node %v value %v", g.nodeName, g.value)
+	return g.meta
 }
 
 // NotifyMsg is called when a user-data message is received.
@@ -65,5 +80,11 @@ func (g *MemberlistGossiper) MergeRemoteState(buf []byte, join bool) {
 }
 
 func NewMemberlistGossiper(nodeName string) memberlist.Delegate {
-	return &MemberlistGossiper{nodeName}
+
+	value, meta := getNodeMeta(nodeName)
+	return &MemberlistGossiper{
+		nodeName: nodeName,
+		meta:     meta,
+		value:    value,
+	}
 }
