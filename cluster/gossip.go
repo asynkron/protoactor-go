@@ -20,7 +20,7 @@ func getNodeValue(node *memberlist.Node) uint32 {
 }
 
 func getNodeMeta(id string) (uint32, []byte) {
-	value := hash(id) % 32
+	value := hash(id) % hashSize
 	bs := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bs, value)
 	return value, bs

@@ -11,6 +11,7 @@ import (
 
 var list *memberlist.Memberlist
 
+//Start the cluster and optionally join other nodes
 func Start(ip string, join ...string) {
 	c := memberlist.DefaultLocalConfig()
 	h, p := getAddress(ip)
@@ -42,10 +43,4 @@ func Start(ip string, join ...string) {
 
 	actor.SpawnNamed(actor.FromProducer(newClusterActor(list)), "cluster")
 	actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
-
-	// // Ask for members of the cluster
-	// for _, member := range list.Members() {
-	// 	log.Printf("Member: %s %s\n", member.Name, member.Addr)
-	// }
-
 }

@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"hash/fnv"
 	"log"
+	"math"
 	"math/rand"
 	"time"
 
@@ -13,12 +13,7 @@ import (
 
 var nameLookup = make(map[string]actor.Props)
 
-func hash(s string) uint32 {
-	h := fnv.New32a()
-	h.Write([]byte(s))
-	return h.Sum32()
-}
-
+//Register a known actor props by name
 func Register(kind string, props actor.Props) {
 	nameLookup[kind] = props
 }
@@ -40,30 +35,20 @@ func getRandom() *actor.PID {
 	members := list.Members()
 	i := r % len(members)
 	member := members[i]
-	host := member.Name
-	remote := actor.NewPID(host, "activator")
-	return remote
+	return activatorForNode(member)
 }
-func Get(id string, kind string) *actor.PID {
+
+func findClosest(id string) *memberlist.Node {
 	h := int(hash(id))
-	v := uint32(h % 32)
+	v := uint32(h % hashSize)
 
 	members := list.Members()
-	//	sort.Sort(byValue(members))
-	bestV := uint32(9999)
+	bestV := uint32(math.MaxUint32)
 	bestI := 0
 
-	log.Printf("Member count %v", len(members))
-	log.Printf("Current hash %v", v)
 	for i, n := range members {
 		nodeV := getNodeValue(n)
-		log.Printf("Node %v value %v", n.Name, nodeV)
-
-		abs := nodeV - v
-		if v > nodeV {
-			abs = v - nodeV
-		}
-		log.Printf("abs %v %v %v", abs, nodeV, v)
+		abs := delta(v, nodeV)
 		if abs < bestV {
 			bestV = nodeV
 			bestI = i
@@ -72,9 +57,24 @@ func Get(id string, kind string) *actor.PID {
 	log.Printf("Matching node value %v with node %v", v, bestV)
 
 	member := members[bestI]
+	return member
+}
 
-	host := member.Name
-	remote := actor.NewPID(host, "cluster")
+func clusterForNode(node *memberlist.Node) *actor.PID {
+	host := node.Name
+	pid := actor.NewPID(host, "cluster")
+	return pid
+}
+
+func activatorForNode(node *memberlist.Node) *actor.PID {
+	host := node.Name
+	pid := actor.NewPID(host, "activator")
+	return pid
+}
+
+//Get a PID to a virtual actor
+func Get(id string, kind string) *actor.PID {
+	remote := clusterForNode(findClosest(id))
 	future, response := actor.RequestResponsePID()
 
 	//request the pid of the "id" from the correct partition
