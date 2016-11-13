@@ -12,3 +12,14 @@ message ActorPidRequest {
 message ActorPidResponse {
     actor.PID pid = 1;
 }
+
+message ActorActivateRequest {
+    actor.PID sender = 1;
+    string id = 2;
+    string kind = 3;
+    
+}
+
+message ActorActivateResponse {
+    actor.PID pid = 1;
+}

@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"log"
+	"time"
 
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/cluster/messages"
@@ -29,9 +30,21 @@ func (state *clusterActor) Receive(context actor.Context) {
 	case *messages.ActorPidRequest:
 		pid := state.partition[msg.Id]
 		if pid == nil {
-			log.Printf("Cluster actor creating %v of type %v", msg.Id, msg.Kind)
-			props := nameLookup[msg.Kind]
-			pid = actor.SpawnNamed(props, msg.Id)
+
+			x, resp := actor.RequestResponsePID()
+			//get a random node
+			random := getRandom()
+
+			//send request
+			random.Tell(&messages.ActorActivateRequest{
+				Id:     msg.Id,
+				Kind:   msg.Kind,
+				Sender: x,
+			})
+
+			tmp, _ := resp.ResultOrTimeout(5 * time.Second)
+			typed := tmp.(*messages.ActorActivateResponse)
+			pid = typed.Pid
 			state.partition[msg.Id] = pid
 		}
 		response := &messages.ActorPidResponse{

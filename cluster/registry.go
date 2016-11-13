@@ -3,6 +3,7 @@ package cluster
 import (
 	"hash/fnv"
 	"log"
+	"math/rand"
 	"sort"
 	"time"
 
@@ -35,6 +36,16 @@ func (s byName) Less(i, j int) bool {
 	return s[i].Name < s[j].Name
 }
 
+func getRandom() *actor.PID {
+	r := rand.Int()
+	members := list.Members()
+	sort.Sort(byName(members))
+	i := r % len(members)
+	member := members[i]
+	host := member.Name
+	remote := actor.NewPID(host, "activator")
+	return remote
+}
 func Get(id string, kind string) *actor.PID {
 	h := int(hash(id))
 	members := list.Members()

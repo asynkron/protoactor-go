@@ -40,8 +40,8 @@ func Start(ip string, join ...string) {
 		}
 	}
 
-	props := actor.FromProducer(newClusterActor(list))
-	actor.SpawnNamed(props, "cluster")
+	actor.SpawnNamed(actor.FromProducer(newClusterActor(list)), "cluster")
+	actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
 
 	// // Ask for members of the cluster
 	// for _, member := range list.Members() {
