@@ -1,3 +1,5 @@
 package cluster
 
-const hashSize = 32
+import "math"
+
+const hashSize = uint32(math.MaxUint32)

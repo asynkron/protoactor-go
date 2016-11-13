@@ -11,11 +11,13 @@ func RequestResponsePID() (*PID, *Response) {
 	}
 	id := ProcessRegistry.getAutoId()
 	pid, _ := ProcessRegistry.registerPID(ref, id)
+	ref.pid = pid
 	return pid, ref
 }
 
 type Response struct {
 	channel chan interface{}
+	pid     *PID
 }
 
 func (ref *Response) Tell(message interface{}) {
@@ -27,6 +29,7 @@ func (ref *Response) ResultChannel() <-chan interface{} {
 }
 
 func (ref *Response) ResultOrTimeout(timeout time.Duration) (interface{}, error) {
+	defer ref.Stop()
 	select {
 	case res := <-ref.channel:
 		return res, nil
@@ -43,5 +46,6 @@ func (ref *Response) SendSystemMessage(message SystemMessage) {
 }
 
 func (ref *Response) Stop() {
+	ProcessRegistry.unregisterPID(ref.pid)
 	close(ref.channel)
 }
