@@ -30,7 +30,7 @@ func (pr *ProcessRegistryValue) getAutoId() string {
 	return id
 }
 
-func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef, id string) *PID {
+func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef, id string) (*PID, bool) {
 
 	pid := PID{
 		Host: pr.Host,
@@ -39,8 +39,12 @@ func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef, id string) *PID {
 
 	pr.rw.Lock()
 	defer pr.rw.Unlock()
+	_, found := pr.LocalPids[pid.Id]
+	if found {
+		return &pid, false
+	}
 	pr.LocalPids[pid.Id] = actorRef
-	return &pid
+	return &pid, true
 }
 
 func (pr *ProcessRegistryValue) unregisterPID(pid *PID) {
