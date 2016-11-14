@@ -15,12 +15,34 @@ type MemberlistGossiper struct {
 	value    uint32
 }
 
+type clusterNode struct {
+	*memberlist.Node
+	value uint32
+}
+
+func (n *clusterNode) delta(v uint32) uint32 {
+	d := delta(v, n.value)
+	return d
+}
+
+func members() []*clusterNode {
+	m := list.Members()
+	res := make([]*clusterNode, len(m))
+	for i, n := range m {
+		res[i] = &clusterNode{
+			Node:  n,
+			value: getNodeValue(n),
+		}
+	}
+	return res
+}
+
 func getNodeValue(node *memberlist.Node) uint32 {
 	return binary.LittleEndian.Uint32(node.Meta)
 }
 
 func getNodeMeta(id string) (uint32, []byte) {
-	value := hash(id) % hashSize
+	value := hash(id)
 	bs := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bs, value)
 	return value, bs

@@ -17,18 +17,6 @@ func Register(kind string, props actor.Props) {
 	nameLookup[kind] = props
 }
 
-type byValue []*memberlist.Node
-
-func (s byValue) Len() int {
-	return len(s)
-}
-func (s byValue) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-func (s byValue) Less(i, j int) bool {
-	return getNodeValue(s[i]) < getNodeValue(s[j])
-}
-
 func getRandom() *actor.PID {
 	r := rand.Int()
 	members := list.Members()
@@ -38,26 +26,23 @@ func getRandom() *actor.PID {
 }
 
 func findClosest(id string) *memberlist.Node {
-	h := hash(id)
-	v := h % hashSize
+	v := hash(id)
 
-	members := list.Members()
+	members := members()
 	bestV := hashSize
 	bestI := 0
 
 	//walk all members and find the node with the closest distance to the id hash
 	for i, n := range members {
-		nodeV := getNodeValue(n)
-		d := delta(v, nodeV)
-		if d < bestV {
-			bestV = nodeV
+		if n.delta(v) < bestV {
+			bestV = n.value
 			bestI = i
 		}
 	}
 	log.Printf("Matching node value %v with node %v", v, bestV)
 
 	member := members[bestI]
-	return member
+	return member.Node
 }
 
 func clusterForNode(node *memberlist.Node) *actor.PID {
