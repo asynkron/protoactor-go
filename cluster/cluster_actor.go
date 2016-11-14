@@ -6,20 +6,19 @@ import (
 
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/cluster/messages"
-	"github.com/hashicorp/memberlist"
 )
 
-func newClusterActor(list *memberlist.Memberlist) actor.ActorProducer {
+var clusterPid = actor.SpawnNamed(actor.FromProducer(newClusterActor()), "cluster")
+
+func newClusterActor() actor.ActorProducer {
 	return func() actor.Actor {
 		return &clusterActor{
-			list:      list,
 			partition: make(map[string]*actor.PID),
 		}
 	}
 }
 
 type clusterActor struct {
-	list      *memberlist.Memberlist
 	partition map[string]*actor.PID
 }
 
@@ -51,7 +50,10 @@ func (state *clusterActor) Receive(context actor.Context) {
 			Pid: pid,
 		}
 		msg.Sender.Tell(response)
-
+	case *clusterStatusJoin:
+		log.Printf("Node joined %v", msg.node.Name)
+	case *clusterStatusLeave:
+		log.Printf("Node left %v", msg.node.Name)
 	default:
 		log.Printf("Cluster got unknown message %+v", msg)
 	}

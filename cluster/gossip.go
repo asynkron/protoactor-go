@@ -12,29 +12,6 @@ import (
 type MemberlistGossiper struct {
 	nodeName string
 	meta     []byte
-	value    uint32
-}
-
-type clusterNode struct {
-	*memberlist.Node
-	value uint32
-}
-
-func (n *clusterNode) delta(v uint32) uint32 {
-	d := delta(v, n.value)
-	return d
-}
-
-func members() []*clusterNode {
-	m := list.Members()
-	res := make([]*clusterNode, len(m))
-	for i, n := range m {
-		res[i] = &clusterNode{
-			Node:  n,
-			value: getNodeValue(n),
-		}
-	}
-	return res
 }
 
 func getNodeValue(node *memberlist.Node) uint32 {
@@ -52,8 +29,6 @@ func getNodeMeta(id string) (uint32, []byte) {
 // when broadcasting an alive message. It's length is limited to
 // the given byte size. This metadata is available in the Node structure.
 func (g *MemberlistGossiper) NodeMeta(limit int) []byte {
-
-	log.Printf("NodeMeta node %v value %v", g.nodeName, g.value)
 	return g.meta
 }
 
@@ -80,7 +55,6 @@ func (g *MemberlistGossiper) GetBroadcasts(overhead, limit int) [][]byte {
 // data can be sent here. See MergeRemoteState as well. The `join`
 // boolean indicates this is for a join instead of a push/pull.
 func (g *MemberlistGossiper) LocalState(join bool) []byte {
-
 	log.Println("LocalState")
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
@@ -103,10 +77,9 @@ func (g *MemberlistGossiper) MergeRemoteState(buf []byte, join bool) {
 
 func NewMemberlistGossiper(nodeName string) memberlist.Delegate {
 
-	value, meta := getNodeMeta(nodeName)
+	_, meta := getNodeMeta(nodeName)
 	return &MemberlistGossiper{
 		nodeName: nodeName,
 		meta:     meta,
-		value:    value,
 	}
 }

@@ -10,6 +10,8 @@ import (
 type activator struct {
 }
 
+var activatorPid = actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
+
 func newActivatorActor() actor.ActorProducer {
 	return func() actor.Actor {
 		return &activator{}
