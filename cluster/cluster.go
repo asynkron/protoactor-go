@@ -34,6 +34,6 @@ func Start(ip string, join ...string) {
 		if err != nil {
 			panic("[CLUSTER] Failed to join cluster: " + err.Error())
 		}
-		time.Sleep(4 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
