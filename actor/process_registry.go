@@ -54,7 +54,7 @@ func (pr *ProcessRegistryValue) unregisterPID(pid *PID) {
 }
 
 func (pr *ProcessRegistryValue) fromPID(pid *PID) (ActorRef, bool) {
-	if pid.Host != pr.Host {
+	if pid.Host != "nonhost" && pid.Host != pr.Host {
 		for _, handler := range pr.RemoteHandlers {
 			ref, ok := handler(pid)
 			if ok {

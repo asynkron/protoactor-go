@@ -27,34 +27,49 @@ func (state *clusterActor) Receive(context actor.Context) {
 	case *actor.Started:
 		log.Println("Cluster actor started")
 	case *messages.ActorPidRequest:
-		pid := state.partition[msg.Id]
-		if pid == nil {
-
-			x, resp := actor.RequestResponsePID()
-			//get a random node
-			random := getRandom()
-
-			//send request
-			random.Tell(&messages.ActorActivateRequest{
-				Id:     msg.Id,
-				Kind:   msg.Kind,
-				Sender: x,
-			})
-
-			tmp, _ := resp.ResultOrTimeout(5 * time.Second)
-			typed := tmp.(*messages.ActorActivateResponse)
-			pid = typed.Pid
-			state.partition[msg.Id] = pid
-		}
-		response := &messages.ActorPidResponse{
-			Pid: pid,
-		}
-		msg.Sender.Tell(response)
+		state.actorPidRequest(msg)
 	case *clusterStatusJoin:
-		log.Printf("Node joined %v", msg.node.Name)
+		state.clusterStatusJoin(msg)
 	case *clusterStatusLeave:
-		log.Printf("Node left %v", msg.node.Name)
+		log.Printf("[STATUS] Node left %v", msg.node.Name)
 	default:
 		log.Printf("Cluster got unknown message %+v", msg)
+	}
+}
+
+func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest) {
+	pid := state.partition[msg.Id]
+	if pid == nil {
+
+		x, resp := actor.RequestResponsePID()
+		//get a random node
+		random := getRandom()
+
+		//send request
+		random.Tell(&messages.ActorActivateRequest{
+			Id:     msg.Id,
+			Kind:   msg.Kind,
+			Sender: x,
+		})
+
+		tmp, _ := resp.ResultOrTimeout(5 * time.Second)
+		typed := tmp.(*messages.ActorActivateResponse)
+		pid = typed.Pid
+		state.partition[msg.Id] = pid
+	}
+	response := &messages.ActorPidResponse{
+		Pid: pid,
+	}
+	msg.Sender.Tell(response)
+}
+
+func (state *clusterActor) clusterStatusJoin(msg *clusterStatusJoin) {
+	log.Printf("[STATUS] Node joined %v", msg.node.Name)
+	selfName := list.LocalNode().Name
+	for key := range state.partition {
+		c := findClosest(key)
+		if c.Name != selfName {
+			log.Printf("Node %v should take ownership of %v", c.Name, key)
+		}
 	}
 }

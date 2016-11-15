@@ -1,6 +1,10 @@
 package cluster
 
-import "github.com/hashicorp/memberlist"
+import (
+	"log"
+
+	"github.com/hashicorp/memberlist"
+)
 
 type eventDelegate struct {
 }
@@ -15,6 +19,7 @@ type clusterStatusLeave struct {
 
 func (*eventDelegate) NotifyJoin(node *memberlist.Node) {
 	cn := getClusterNode(node)
+	log.Println("Node joined....")
 	clusterPid.Tell(&clusterStatusJoin{node: cn})
 }
 
