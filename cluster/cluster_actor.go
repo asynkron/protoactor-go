@@ -34,11 +34,14 @@ func (state *clusterActor) Receive(context actor.Context) {
 	case *clusterStatusLeave:
 		log.Printf("[CLUSTER] Node left %v", msg.node.Name)
 	case *messages.TakeOwnership:
-		log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
-		state.partition[msg.Name] = msg.Pid
+		state.takeOwnership(msg)
 	default:
 		log.Printf("[CLUSTER] Cluster got unknown message %+v", msg)
 	}
+}
+func (state *clusterActor) takeOwnership(msg *messages.TakeOwnership) {
+	log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
+	state.partition[msg.Name] = msg.Pid
 }
 
 func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest) {
@@ -85,6 +88,8 @@ func (state *clusterActor) clusterStatusJoin(msg *clusterStatusJoin) {
 				Pid:  pid,
 				Name: key,
 			})
+			//we can safely delete this entry as the consisntent hash no longer points to us
+			delete(state.partition, key)
 		}
 	}
 }

@@ -1,8 +1,6 @@
 package cluster
 
-import (
-	"github.com/hashicorp/memberlist"
-)
+import "github.com/hashicorp/memberlist"
 
 func getMemberlistConfig(h string, p int, name string) *memberlist.Config {
 	c := memberlist.DefaultLocalConfig()
