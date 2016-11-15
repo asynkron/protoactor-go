@@ -27,21 +27,22 @@ func getRandom() *actor.PID {
 
 func findClosest(id string) *memberlist.Node {
 	v := hash(id)
-
+	log.Printf("Matching %v using hash %v", id, v)
 	members := members()
 	bestV := hashSize
 	bestI := 0
 
 	//walk all members and find the node with the closest distance to the id hash
 	for i, n := range members {
-		if n.delta(v) < bestV {
-			bestV = n.value
+		log.Printf("[CLUSTER] matching node %v, hash %v", n.Name, n.value)
+		if b := n.delta(v); b < bestV {
+			bestV = b
 			bestI = i
 		}
 	}
-	log.Printf("[CLUSTER] Matching node value %v with node %v", v, bestV)
 
 	member := members[bestI]
+	log.Printf("[CLUSTER] matched best %v", member.Name)
 	return member.Node
 }
 

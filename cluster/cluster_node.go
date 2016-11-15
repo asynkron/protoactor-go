@@ -5,7 +5,7 @@ import "github.com/hashicorp/memberlist"
 func getClusterNode(node *memberlist.Node) *clusterNode {
 	return &clusterNode{
 		Node:  node,
-		value: getNodeValue(node),
+		value: hash(node.Name),
 	}
 }
 
