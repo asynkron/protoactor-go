@@ -43,7 +43,6 @@ func newType2() actor.Actor {
 }
 
 func init() {
-	log.Println("Registering actors...")
 	cluster.Register(Type1, actor.FromProducer(newType1))
 	cluster.Register(Type2, actor.FromProducer(newType2))
 }

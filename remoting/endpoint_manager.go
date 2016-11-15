@@ -26,7 +26,7 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		state.connections = make(map[string]*actor.PID)
-		log.Println("Started EndpointManager")
+		log.Println("[REMOTING] Started EndpointManager")
 	case *messages.MessageEnvelope:
 		pid, ok := state.connections[msg.Target.Host]
 		if !ok {

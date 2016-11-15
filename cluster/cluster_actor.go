@@ -25,18 +25,18 @@ type clusterActor struct {
 func (state *clusterActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Println("Cluster actor started")
+		log.Println("[CLUSTER] Cluster actor started")
 	case *messages.ActorPidRequest:
 		state.actorPidRequest(msg)
 	case *clusterStatusJoin:
 		state.clusterStatusJoin(msg)
 	case *clusterStatusLeave:
-		log.Printf("[STATUS] Node left %v", msg.node.Name)
+		log.Printf("[CLUSTER] Node left %v", msg.node.Name)
 	case *messages.TakeOwnership:
-		log.Printf("Took ownerhip of %v", msg.Pid)
+		log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
 		state.partition[msg.Id] = msg.Pid
 	default:
-		log.Printf("Cluster got unknown message %+v", msg)
+		log.Printf("[CLUSTER] Cluster got unknown message %+v", msg)
 	}
 }
 
@@ -67,12 +67,12 @@ func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest) {
 }
 
 func (state *clusterActor) clusterStatusJoin(msg *clusterStatusJoin) {
-	log.Printf("[STATUS] Node joined %v", msg.node.Name)
+	log.Printf("[CLUSTER]  Node joined %v", msg.node.Name)
 	selfName := list.LocalNode().Name
 	for key := range state.partition {
 		c := findClosest(key)
 		if c.Name != selfName {
-			log.Printf("Node %v should take ownership of %v", c.Name, key)
+			log.Printf("[CLUSTER] Node %v should take ownership of %v", c.Name, key)
 			pid := state.partition[key]
 			owner := clusterForNode(c)
 			owner.Tell(&messages.TakeOwnership{

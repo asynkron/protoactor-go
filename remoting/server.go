@@ -29,7 +29,7 @@ func Start(host string, options ...RemotingOption) {
 
 	lis, err := net.Listen("tcp", host)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Fatalf("[REMOTING] failed to listen: %v", err)
 	}
 	config := defaultRemoteConfig()
 	for _, option := range options {
@@ -37,7 +37,6 @@ func Start(host string, options ...RemotingOption) {
 	}
 
 	host = lis.Addr().String()
-	log.Printf("Host is %v", host)
 	actor.ProcessRegistry.RegisterHostResolver(remoteHandler)
 	actor.ProcessRegistry.Host = host
 	props := actor.
@@ -48,6 +47,6 @@ func Start(host string, options ...RemotingOption) {
 
 	s := grpc.NewServer(config.serverOptions...)
 	messages.RegisterRemotingServer(s, &server{})
-	log.Printf("Starting GAM server on %v.", host)
+	log.Printf("[REMOTING] Starting GAM server on %v.", host)
 	go s.Serve(lis)
 }

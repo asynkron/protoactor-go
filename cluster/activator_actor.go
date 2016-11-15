@@ -21,9 +21,9 @@ func newActivatorActor() actor.ActorProducer {
 func (*activator) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Println("Activator actor started")
+		log.Println("[CLUSTER] Activator actor started")
 	case *messages.ActorActivateRequest:
-		log.Printf("Cluster actor creating %v of type %v", msg.Id, msg.Kind)
+		log.Printf("[CLUSTER] Cluster actor creating %v of type %v", msg.Id, msg.Kind)
 		props := nameLookup[msg.Kind]
 		pid := actor.SpawnNamed(props, msg.Id)
 		response := &messages.ActorActivateResponse{
@@ -31,6 +31,6 @@ func (*activator) Receive(context actor.Context) {
 		}
 		msg.Sender.Tell(response)
 	default:
-		log.Printf("Activator got unknown message %+v", msg)
+		log.Printf("[CLUSTER] Activator got unknown message %+v", msg)
 	}
 }

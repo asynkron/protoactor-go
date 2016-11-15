@@ -37,7 +37,6 @@ func (g *MemberlistGossiper) NodeMeta(limit int) []byte {
 // so would block the entire UDP packet receive loop. Additionally, the byte
 // slice may be modified after the call returns, so it should be copied if needed.
 func (g *MemberlistGossiper) NotifyMsg([]byte) {
-	log.Println("NotifyMsg")
 }
 
 // GetBroadcasts is called when user data messages can be broadcast.
@@ -55,7 +54,6 @@ func (g *MemberlistGossiper) GetBroadcasts(overhead, limit int) [][]byte {
 // data can be sent here. See MergeRemoteState as well. The `join`
 // boolean indicates this is for a join instead of a push/pull.
 func (g *MemberlistGossiper) LocalState(join bool) []byte {
-	log.Println("LocalState")
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(0)
@@ -72,7 +70,6 @@ func (g *MemberlistGossiper) LocalState(join bool) []byte {
 // remote side's LocalState call. The 'join'
 // boolean indicates this is for a join instead of a push/pull.
 func (g *MemberlistGossiper) MergeRemoteState(buf []byte, join bool) {
-	log.Println("MergeRemoteState")
 }
 
 func NewMemberlistGossiper(nodeName string) memberlist.Delegate {

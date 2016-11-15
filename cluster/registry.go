@@ -39,7 +39,7 @@ func findClosest(id string) *memberlist.Node {
 			bestI = i
 		}
 	}
-	log.Printf("Matching node value %v with node %v", v, bestV)
+	log.Printf("[CLUSTER] Matching node value %v with node %v", v, bestV)
 
 	member := members[bestI]
 	return member.Node
@@ -79,6 +79,6 @@ func Get(id string, kind string) *actor.PID {
 	//unwrap the result
 	typed := res.(*messages.ActorPidResponse)
 	pid := typed.Pid
-	log.Printf("Get Virtual %v %+v", id, pid)
+	log.Printf("[CLUSTER] Get Virtual %v %+v", id, pid)
 	return pid
 }

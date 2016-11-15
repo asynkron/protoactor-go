@@ -13,7 +13,7 @@ var list *memberlist.Memberlist
 //Start the cluster and optionally join other nodes
 func Start(ip string, join ...string) {
 	h, p := getAddress(ip)
-	log.Printf("Starting on %v:%v", h, p)
+	log.Printf("[CLUSTER] Starting on %v:%v", h, p)
 	if p == 0 {
 		p = findFreePort()
 	}
@@ -22,7 +22,7 @@ func Start(ip string, join ...string) {
 	l, err := memberlist.Create(c)
 
 	if err != nil {
-		panic("Failed to create memberlist: " + err.Error())
+		panic("[CLUSTER] Failed to create memberlist: " + err.Error())
 	}
 	list = l
 	remoting.Start(name)
@@ -31,7 +31,7 @@ func Start(ip string, join ...string) {
 		// Join an existing cluster by specifying at least one known member.
 		_, err = list.Join(join)
 		if err != nil {
-			panic("Failed to join cluster: " + err.Error())
+			panic("[CLUSTER] Failed to join cluster: " + err.Error())
 		}
 	}
 }

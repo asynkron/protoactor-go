@@ -3,8 +3,8 @@ package remoting
 import (
 	"log"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/AsynkronIT/gam/actor"
+	"github.com/gogo/protobuf/proto"
 )
 
 type remoteActorRef struct {
@@ -24,6 +24,6 @@ func (ref *remoteActorRef) Tell(message interface{}) {
 		envelope, _ := packMessage(msg, ref.pid)
 		endpointManagerPID.Tell(envelope)
 	default:
-		log.Printf("failed, trying to send non Proto %v message to %v", msg, ref.pid)
+		log.Printf("[REMOTING] failed, trying to send non Proto %v message to %v", msg, ref.pid)
 	}
 }
