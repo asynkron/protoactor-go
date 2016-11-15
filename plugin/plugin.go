@@ -2,13 +2,19 @@ package plugin
 
 import "github.com/AsynkronIT/gam/actor"
 
-func Use(f func(actor.Context)) func(context actor.Context) {
+type plugin interface {
+	OnStart(actor.Context)
+	OnOtherMessage(actor.Context, interface{})
+}
+
+func Use(plugin plugin) func(context actor.Context) {
 	return func(context actor.Context) {
-		switch context.Message().(type) {
+		switch msg := context.Message().(type) {
 		case *actor.Started:
-			f(context)
+			plugin.OnStart(context)
 			context.Next()
 		default:
+			plugin.OnOtherMessage(context, msg)
 			context.Next()
 		}
 	}
