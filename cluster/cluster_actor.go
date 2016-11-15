@@ -34,23 +34,24 @@ func (state *clusterActor) Receive(context actor.Context) {
 		log.Printf("[CLUSTER] Node left %v", msg.node.Name)
 	case *messages.TakeOwnership:
 		log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
-		state.partition[msg.Id] = msg.Pid
+		state.partition[msg.Name] = msg.Pid
 	default:
 		log.Printf("[CLUSTER] Cluster got unknown message %+v", msg)
 	}
 }
 
 func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest) {
-	pid := state.partition[msg.Id]
+	log.Printf("%+v", msg)
+	pid := state.partition[msg.Name]
 	if pid == nil {
-
 		x, resp := actor.RequestResponsePID()
 		//get a random node
 		random := getRandom()
 
 		//send request
+		log.Printf("[CLUSTER] Telling %v to create %v", random, msg.Name)
 		random.Tell(&messages.ActorActivateRequest{
-			Id:     msg.Id,
+			Name:   msg.Name,
 			Kind:   msg.Kind,
 			Sender: x,
 		})
@@ -58,7 +59,7 @@ func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest) {
 		tmp, _ := resp.ResultOrTimeout(5 * time.Second)
 		typed := tmp.(*messages.ActorActivateResponse)
 		pid = typed.Pid
-		state.partition[msg.Id] = pid
+		state.partition[msg.Name] = pid
 	}
 	response := &messages.ActorPidResponse{
 		Pid: pid,
@@ -76,8 +77,8 @@ func (state *clusterActor) clusterStatusJoin(msg *clusterStatusJoin) {
 			pid := state.partition[key]
 			owner := clusterForNode(c)
 			owner.Tell(&messages.TakeOwnership{
-				Pid: pid,
-				Id:  key,
+				Pid:  pid,
+				Name: key,
 			})
 		}
 	}

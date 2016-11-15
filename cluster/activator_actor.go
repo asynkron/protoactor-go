@@ -23,9 +23,9 @@ func (*activator) Receive(context actor.Context) {
 	case *actor.Started:
 		log.Println("[CLUSTER] Activator actor started")
 	case *messages.ActorActivateRequest:
-		log.Printf("[CLUSTER] Cluster actor creating %v of type %v", msg.Id, msg.Kind)
+		log.Printf("[CLUSTER] Cluster actor creating %v of type %v", msg.Name, msg.Kind)
 		props := nameLookup[msg.Kind]
-		pid := actor.SpawnNamed(props, msg.Id)
+		pid := actor.SpawnNamed(props, msg.Name)
 		response := &messages.ActorActivateResponse{
 			Pid: pid,
 		}

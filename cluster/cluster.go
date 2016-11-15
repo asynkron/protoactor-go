@@ -3,6 +3,7 @@ package cluster
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/AsynkronIT/gam/remoting"
 	"github.com/hashicorp/memberlist"
@@ -33,5 +34,6 @@ func Start(ip string, join ...string) {
 		if err != nil {
 			panic("[CLUSTER] Failed to join cluster: " + err.Error())
 		}
+		time.Sleep(4 * time.Second)
 	}
 }

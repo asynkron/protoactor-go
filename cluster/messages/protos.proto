@@ -4,7 +4,7 @@ import "github.com/AsynkronIT/gam/actor/protos.proto";
 
 message ActorPidRequest {
     actor.PID sender = 1;
-    string id = 2;
+    string name = 2;
     string kind = 3;
     
 }
@@ -15,7 +15,7 @@ message ActorPidResponse {
 
 message ActorActivateRequest {
     actor.PID sender = 1;
-    string id = 2;
+    string name = 2;
     string kind = 3;
     
 }
@@ -26,5 +26,5 @@ message ActorActivateResponse {
 
 message TakeOwnership {
     actor.PID pid = 1;
-    string id = 2;
+    string name = 2;
 }
