@@ -24,12 +24,15 @@ func (ref *Response) Tell(message interface{}) {
 	ref.channel <- message
 }
 
+func (ref *Response) Ask(message interface{}, sender *PID) {
+	ref.channel <- message
+}
+
 func (ref *Response) ResultChannel() <-chan interface{} {
 	return ref.channel
 }
 
 func (ref *Response) ResultOrTimeout(timeout time.Duration) (interface{}, error) {
-	defer ref.Stop()
 	select {
 	case res := <-ref.channel:
 		return res, nil

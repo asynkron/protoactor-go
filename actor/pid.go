@@ -5,6 +5,11 @@ func (pid *PID) Tell(message interface{}) {
 	ref.Tell(message)
 }
 
+func (pid *PID) Ask(message interface{}, sender *PID) {
+	ref, _ := ProcessRegistry.fromPID(pid)
+	ref.Ask(message, sender)
+}
+
 func (pid *PID) sendSystemMessage(message SystemMessage) {
 	ref, _ := ProcessRegistry.fromPID(pid)
 	ref.SendSystemMessage(message)

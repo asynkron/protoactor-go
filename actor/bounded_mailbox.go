@@ -7,17 +7,22 @@ import (
 	"github.com/Workiva/go-datastructures/queue"
 )
 
+type UserMessage struct {
+	message interface{}
+	sender *PID
+}
+
 type boundedMailbox struct {
 	throughput      int
 	userMailbox     *queue.RingBuffer
 	systemMailbox   *queue.RingBuffer
 	schedulerStatus int32
 	hasMoreMessages int32
-	userInvoke      func(interface{})
+	userInvoke      func(UserMessage)
 	systemInvoke    func(SystemMessage)
 }
 
-func (mailbox *boundedMailbox) PostUserMessage(message interface{}) {
+func (mailbox *boundedMailbox) PostUserMessage(message UserMessage) {
 	mailbox.userMailbox.Put(message)
 	mailbox.schedule()
 }
@@ -56,7 +61,7 @@ func (mailbox *boundedMailbox) processMessages() {
 				mailbox.systemInvoke(sys)
 			} else if mailbox.userMailbox.Len() > 0 {
 				userMsg, _ := mailbox.userMailbox.Get()
-				mailbox.userInvoke(userMsg)
+				mailbox.userInvoke(userMsg.(UserMessage))
 			} else {
 				done = true
 				break
@@ -89,7 +94,7 @@ func NewBoundedMailbox(throughput int, size int) MailboxProducer {
 	}
 }
 
-func (mailbox *boundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
+func (mailbox *boundedMailbox) RegisterHandlers(userInvoke func(UserMessage), systemInvoke func(SystemMessage)) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
 }

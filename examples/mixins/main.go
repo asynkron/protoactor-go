@@ -9,7 +9,7 @@ import (
 )
 
 type myActor struct {
-	pluggableMixin
+	NameAwareHolder
 }
 
 func (state *myActor) Receive(context actor.Context) {
@@ -20,28 +20,30 @@ func (state *myActor) Receive(context actor.Context) {
 	}
 }
 
-type pluggable interface {
+type NameAware interface {
 	SetName(name string)
 }
 
-type pluggableMixin struct {
+type NameAwareHolder struct {
 	name string
 }
 
-func (state *pluggableMixin) SetName(name string) {
+func (state *NameAwareHolder) SetName(name string) {
 	state.name = name
 }
 
-func pluggableInitializer(context actor.Context) {
-	if p, ok := context.Actor().(pluggable); ok {
+type NamerPlugin struct {}
+func (p *NamerPlugin) OnStart(ctx actor.Context) {
+	if p, ok := ctx.Actor().(NameAware); ok {
 		p.SetName("GAM")
 	}
 }
+func (p *NamerPlugin) OnMessage(ctx actor.Context, usrMsg interface{}) {}
 
 func main() {
 	props := actor.
 		FromInstance(&myActor{}).
-		WithReceivers(plugin.Use(pluggableInitializer))
+		WithReceivers(plugin.Use(&NamerPlugin{}))
 
 	pid := actor.Spawn(props)
 	pid.Tell("bar")
