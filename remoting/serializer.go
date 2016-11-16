@@ -9,7 +9,7 @@ import (
 	//proto "github.com/golang/protobuf/proto"
 )
 
-func packMessage(message proto.Message, target *actor.PID) (*messages.MessageEnvelope, error) {
+func packMessage(message proto.Message, target *actor.PID, sender *actor.PID) (*messages.MessageEnvelope, error) {
 	typeName := proto.MessageName(message)
 	bytes, err := proto.Marshal(message)
 	if err != nil {
@@ -19,6 +19,7 @@ func packMessage(message proto.Message, target *actor.PID) (*messages.MessageEnv
 		TypeName:    typeName,
 		MessageData: bytes,
 		Target:      target,
+		Sender:      sender,
 	}
 
 	return envelope, nil

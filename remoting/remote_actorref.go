@@ -21,7 +21,17 @@ func newRemoteActorRef(pid *actor.PID) actor.ActorRef {
 func (ref *remoteActorRef) Tell(message interface{}) {
 	switch msg := message.(type) {
 	case proto.Message:
-		envelope, _ := packMessage(msg, ref.pid)
+		envelope, _ := packMessage(msg, ref.pid, nil)
+		endpointManagerPID.Tell(envelope)
+	default:
+		log.Printf("[REMOTING] failed, trying to send non Proto %v message to %v", msg, ref.pid)
+	}
+}
+
+func (ref *remoteActorRef) Ask(message interface{}, sender *actor.PID) {
+	switch msg := message.(type) {
+	case proto.Message:
+		envelope, _ := packMessage(msg, ref.pid, sender)
 		endpointManagerPID.Tell(envelope)
 	default:
 		log.Printf("[REMOTING] failed, trying to send non Proto %v message to %v", msg, ref.pid)

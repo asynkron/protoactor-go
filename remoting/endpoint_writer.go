@@ -49,12 +49,8 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	envelopes := make([]*messages.MessageEnvelope, len(msg))
 
 	for i, tmp := range msg {
-		m, o := tmp.(actor.UserMessage)
-		if o {
-			envelopes[i] = m.Message.(*messages.MessageEnvelope)
-		} else {
-			log.Println("Not user message!!")
-		}
+		m := tmp.(actor.UserMessage)
+		envelopes[i] = m.Message.(*messages.MessageEnvelope)
 	}
 
 	batch := &messages.MessageBatch{
