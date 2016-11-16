@@ -9,7 +9,6 @@ import (
 )
 
 type Increment struct {
-	Sender *PID
 }
 
 type Incrementable interface {
@@ -29,24 +28,25 @@ func (counter *Counter) Increment() {
 }
 
 func (a *GorgeousActor) Receive(context Context) {
-	switch msg := context.Message().(type) {
+	switch context.Message().(type) {
 	case *Started:
 		log.Printf("Started %s", a)
 	case Increment:
 		log.Printf("Incrementing %v", a)
 		a.Increment()
-		msg.Sender.Tell(a.value)
+		context.Sender().Tell(a.value)
 	}
 }
 
 func TestLookupById(t *testing.T) {
 	ID := "UniqueID"
 	responsePID, result := RequestResponsePID()
+	defer result.Stop()
 	{
 		props := FromInstance(&GorgeousActor{Counter: Counter{value: 0}})
 		actor := SpawnNamed(props, ID)
 		defer actor.Stop()
-		actor.Tell(Increment{Sender: responsePID})
+		actor.Ask(Increment{}, responsePID)
 		value, err := result.ResultOrTimeout(testTimeout)
 		if err != nil {
 			assert.Fail(t, "timed out")
@@ -58,7 +58,7 @@ func TestLookupById(t *testing.T) {
 	{
 		props := FromInstance(&GorgeousActor{Counter: Counter{value: 0}})
 		actor := SpawnNamed(props, ID)
-		actor.Tell(Increment{Sender: responsePID})
+		actor.Ask(Increment{}, responsePID)
 		value, err := result.ResultOrTimeout(10 * time.Second)
 		if err != nil {
 			assert.Fail(t, "timed out")

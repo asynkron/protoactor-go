@@ -14,6 +14,8 @@ type Context interface {
 	Unwatch(*PID)
 	//Returns the currently processed message
 	Message() interface{}
+	//Returns the PID of actor that sent currently processed message
+	Sender() *PID
 	//Replaces the current Receive handler with a custom
 	Become(Receive)
 	//Stacks a new Receive handler ontop of the current
@@ -48,6 +50,10 @@ func (cell *actorCell) Message() interface{} {
 	return cell.message
 }
 
+func (cell *actorCell) Sender() *PID {
+	return cell.sender
+}
+
 func (cell *actorCell) Stash() {
 	if cell.stash == nil {
 		cell.stash = linkedliststack.New()
@@ -58,6 +64,7 @@ func (cell *actorCell) Stash() {
 
 type actorCell struct {
 	message        interface{}
+	sender         *PID
 	parent         *PID
 	self           *PID
 	actor          Actor
@@ -155,7 +162,7 @@ func (cell *actorCell) invokeSystemMessage(message SystemMessage) {
 
 func (cell *actorCell) handleStop(msg *stop) {
 	cell.stopping = true
-	cell.invokeUserMessage(&Stopping{})
+	cell.invokeUserMessage(UserMessage{message: &Stopping{}})
 	for _, child := range cell.children.Values() {
 		child.(*PID).Stop()
 	}
@@ -188,7 +195,7 @@ func (cell *actorCell) handleFailure(msg *failure) {
 
 func (cell *actorCell) handleRestart(msg *restart) {
 	cell.stopping = false
-	cell.invokeUserMessage(&Restarting{})
+	cell.invokeUserMessage(UserMessage{message: &Restarting{}})
 	for _, child := range cell.children.Values() {
 		child.(*PID).Stop()
 	}
@@ -210,25 +217,25 @@ func (cell *actorCell) tryRestartOrTerminate() {
 
 func (cell *actorCell) restart() {
 	cell.incarnateActor()
-	cell.invokeUserMessage(&Started{})
+	cell.invokeUserMessage(UserMessage{message: &Started{}})
 	if cell.stash != nil {
 		for !cell.stash.Empty() {
 			msg, _ := cell.stash.Pop()
-			cell.invokeUserMessage(msg)
+			cell.invokeUserMessage(msg.(UserMessage))
 		}
 	}
 }
 
 func (cell *actorCell) stopped() {
 	ProcessRegistry.unregisterPID(cell.self)
-	cell.invokeUserMessage(&Stopped{})
+	cell.invokeUserMessage(UserMessage{message: &Stopped{}})
 	otherStopped := &otherStopped{Who: cell.self}
 	for _, watcher := range cell.watchers.Values() {
 		watcher.(*PID).sendSystemMessage(otherStopped)
 	}
 }
 
-func (cell *actorCell) invokeUserMessage(message interface{}) {
+func (cell *actorCell) invokeUserMessage(md UserMessage) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("Recovering %v", r)
@@ -241,9 +248,9 @@ func (cell *actorCell) invokeUserMessage(message interface{}) {
 			}
 		}
 	}()
-
 	cell.receiveIndex = 0
-	cell.message = message
+	cell.message = md.message
+	cell.sender = md.sender
 	cell.Next()
 }
 

@@ -4,6 +4,7 @@ import "log"
 
 type ActorRef interface {
 	Tell(message interface{})
+	Ask(message interface{}, sender *PID)
 	SendSystemMessage(message SystemMessage)
 	Stop()
 }
@@ -19,7 +20,11 @@ func NewLocalActorRef(mailbox Mailbox) *LocalActorRef {
 }
 
 func (ref *LocalActorRef) Tell(message interface{}) {
-	ref.mailbox.PostUserMessage(message)
+	ref.mailbox.PostUserMessage(UserMessage{message: message})
+}
+
+func (ref *LocalActorRef) Ask(message interface{}, sender *PID) {
+	ref.mailbox.PostUserMessage(UserMessage{message: message, sender: sender})
 }
 
 func (ref *LocalActorRef) SendSystemMessage(message SystemMessage) {
@@ -45,6 +50,10 @@ var deadLetter ActorRef = new(DeadLetterActorRef)
 
 func (DeadLetterActorRef) Tell(message interface{}) {
 	log.Printf("Deadletter got %+v", message)
+}
+
+func (DeadLetterActorRef) Ask(message interface{}, sender *PID) {
+	log.Printf("Deadletter was asked %+v", message)
 }
 
 func (DeadLetterActorRef) SendSystemMessage(message SystemMessage) {
