@@ -8,8 +8,8 @@ import (
 )
 
 type UserMessage struct {
-	message interface{}
-	sender *PID
+	Message interface{}
+	Sender  *PID
 }
 
 type boundedMailbox struct {

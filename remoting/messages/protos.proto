@@ -6,6 +6,7 @@ message MessageEnvelope {
   string type_name = 1;
   bytes message_data = 2;
   actor.PID target = 3;
+  actor.PID sender = 4;
 }
 
 message MessageBatch {

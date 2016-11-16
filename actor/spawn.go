@@ -24,7 +24,7 @@ func spawn(id string, props Props, parent *PID) *PID {
 	if new {
 		mailbox.RegisterHandlers(cell.invokeUserMessage, cell.invokeSystemMessage)
 		cell.self = pid
-		cell.invokeUserMessage(UserMessage{message: &Started{}})
+		cell.invokeUserMessage(UserMessage{Message: &Started{}})
 	}
 
 	return pid

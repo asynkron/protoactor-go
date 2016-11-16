@@ -40,6 +40,10 @@ func (state *localActor) Receive(context actor.Context) {
 	}
 }
 
+type FakeMessage struct {
+	pid *actor.PID
+}
+
 func newLocalActor(start *sync.WaitGroup, stop *sync.WaitGroup, messageCount int) actor.ActorProducer {
 	return func() actor.Actor {
 		return &localActor{
@@ -66,7 +70,6 @@ func main() {
 
 	pid := actor.Spawn(props)
 
-	message := &messages.Ping{Sender: pid}
 	remote := actor.NewPID("127.0.0.1:8080", "remote")
 	remote.Tell(&messages.StartRemote{Sender: pid})
 
@@ -74,6 +77,7 @@ func main() {
 	start := time.Now()
 	log.Println("Starting to send")
 
+	message := &messages.Ping{Sender: pid}
 	for i := 0; i < messageCount; i++ {
 		remote.Tell(message)
 	}

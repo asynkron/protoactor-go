@@ -20,11 +20,11 @@ func NewLocalActorRef(mailbox Mailbox) *LocalActorRef {
 }
 
 func (ref *LocalActorRef) Tell(message interface{}) {
-	ref.mailbox.PostUserMessage(UserMessage{message: message})
+	ref.mailbox.PostUserMessage(UserMessage{Message: message})
 }
 
 func (ref *LocalActorRef) Ask(message interface{}, sender *PID) {
-	ref.mailbox.PostUserMessage(UserMessage{message: message, sender: sender})
+	ref.mailbox.PostUserMessage(UserMessage{Message: message, Sender: sender})
 }
 
 func (ref *LocalActorRef) SendSystemMessage(message SystemMessage) {
