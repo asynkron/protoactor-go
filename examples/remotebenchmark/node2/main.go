@@ -13,12 +13,15 @@ import (
 type remoteActor struct{}
 
 func (*remoteActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
+	switch context.Message().(type) {
 	case *messages.StartRemote:
 		log.Println("Starting")
-		msg.Sender.Tell(&messages.Start{})
+		if context.Sender() == nil {
+			log.Fatal("No sender")
+		}
+		context.Sender().Tell(&messages.Start{})
 	case *messages.Ping:
-		msg.Sender.Tell(&messages.Pong{})
+		context.Sender().Tell(&messages.Pong{})
 	}
 }
 

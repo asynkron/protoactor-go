@@ -19,7 +19,7 @@ package messages
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import actor "github.com/AsynkronIT/gam/actor"
+import _ "github.com/AsynkronIT/gam/actor"
 
 import strings "strings"
 import github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
@@ -48,34 +48,18 @@ func (*Start) ProtoMessage()               {}
 func (*Start) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{0} }
 
 type StartRemote struct {
-	Sender *actor.PID `protobuf:"bytes,1,opt,name=Sender,json=sender" json:"Sender,omitempty"`
 }
 
 func (m *StartRemote) Reset()                    { *m = StartRemote{} }
 func (*StartRemote) ProtoMessage()               {}
 func (*StartRemote) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{1} }
 
-func (m *StartRemote) GetSender() *actor.PID {
-	if m != nil {
-		return m.Sender
-	}
-	return nil
-}
-
 type Ping struct {
-	Sender *actor.PID `protobuf:"bytes,1,opt,name=Sender,json=sender" json:"Sender,omitempty"`
 }
 
 func (m *Ping) Reset()                    { *m = Ping{} }
 func (*Ping) ProtoMessage()               {}
 func (*Ping) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{2} }
-
-func (m *Ping) GetSender() *actor.PID {
-	if m != nil {
-		return m.Sender
-	}
-	return nil
-}
 
 type Pong struct {
 }
@@ -142,9 +126,6 @@ func (this *StartRemote) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !this.Sender.Equal(that1.Sender) {
-		return false
-	}
 	return true
 }
 func (this *Ping) Equal(that interface{}) bool {
@@ -170,9 +151,6 @@ func (this *Ping) Equal(that interface{}) bool {
 		}
 		return false
 	} else if this == nil {
-		return false
-	}
-	if !this.Sender.Equal(that1.Sender) {
 		return false
 	}
 	return true
@@ -217,11 +195,8 @@ func (this *StartRemote) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 5)
+	s := make([]string, 0, 4)
 	s = append(s, "&messages.StartRemote{")
-	if this.Sender != nil {
-		s = append(s, "Sender: "+fmt.Sprintf("%#v", this.Sender)+",\n")
-	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -229,11 +204,8 @@ func (this *Ping) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 5)
+	s := make([]string, 0, 4)
 	s = append(s, "&messages.Ping{")
-	if this.Sender != nil {
-		s = append(s, "Sender: "+fmt.Sprintf("%#v", this.Sender)+",\n")
-	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -305,16 +277,6 @@ func (m *StartRemote) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.Sender != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.Sender.Size()))
-		n1, err := m.Sender.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n1
-	}
 	return i, nil
 }
 
@@ -333,16 +295,6 @@ func (m *Ping) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.Sender != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.Sender.Size()))
-		n2, err := m.Sender.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n2
-	}
 	return i, nil
 }
 
@@ -400,20 +352,12 @@ func (m *Start) Size() (n int) {
 func (m *StartRemote) Size() (n int) {
 	var l int
 	_ = l
-	if m.Sender != nil {
-		l = m.Sender.Size()
-		n += 1 + l + sovProtos(uint64(l))
-	}
 	return n
 }
 
 func (m *Ping) Size() (n int) {
 	var l int
 	_ = l
-	if m.Sender != nil {
-		l = m.Sender.Size()
-		n += 1 + l + sovProtos(uint64(l))
-	}
 	return n
 }
 
@@ -450,7 +394,6 @@ func (this *StartRemote) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&StartRemote{`,
-		`Sender:` + strings.Replace(fmt.Sprintf("%v", this.Sender), "PID", "actor.PID", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -460,7 +403,6 @@ func (this *Ping) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&Ping{`,
-		`Sender:` + strings.Replace(fmt.Sprintf("%v", this.Sender), "PID", "actor.PID", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -561,39 +503,6 @@ func (m *StartRemote) Unmarshal(dAtA []byte) error {
 			return fmt.Errorf("proto: StartRemote: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Sender", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtos
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtos
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Sender == nil {
-				m.Sender = &actor.PID{}
-			}
-			if err := m.Sender.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipProtos(dAtA[iNdEx:])
@@ -644,39 +553,6 @@ func (m *Ping) Unmarshal(dAtA []byte) error {
 			return fmt.Errorf("proto: Ping: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Sender", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtos
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtos
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Sender == nil {
-				m.Sender = &actor.PID{}
-			}
-			if err := m.Sender.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipProtos(dAtA[iNdEx:])
@@ -856,18 +732,16 @@ var (
 func init() { proto.RegisterFile("protos.proto", fileDescriptorProtos) }
 
 var fileDescriptorProtos = []byte{
-	// 203 bytes of a gzipped FileDescriptorProto
+	// 168 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x28, 0xca, 0x2f,
 	0xc9, 0x2f, 0xd6, 0x03, 0x53, 0x42, 0x1c, 0xb9, 0xa9, 0xc5, 0xc5, 0x89, 0xe9, 0xa9, 0xc5, 0x52,
 	0x3a, 0xe9, 0x99, 0x25, 0x19, 0xa5, 0x49, 0x7a, 0xc9, 0xf9, 0xb9, 0xfa, 0x8e, 0xc5, 0x95, 0x79,
 	0xd9, 0x45, 0xf9, 0x79, 0x9e, 0x21, 0xfa, 0xe9, 0x89, 0xb9, 0xfa, 0x89, 0xc9, 0x25, 0xf9, 0x45,
-	0xfa, 0xc8, 0xfa, 0x94, 0xd8, 0xb9, 0x58, 0x83, 0x4b, 0x12, 0x8b, 0x4a, 0x94, 0x0c, 0xb9, 0xb8,
-	0xc1, 0x8c, 0xa0, 0xd4, 0xdc, 0xfc, 0x92, 0x54, 0x21, 0x25, 0x2e, 0xb6, 0xe0, 0xd4, 0xbc, 0x94,
-	0xd4, 0x22, 0x09, 0x46, 0x05, 0x46, 0x0d, 0x6e, 0x23, 0x2e, 0x3d, 0xb0, 0x66, 0xbd, 0x00, 0x4f,
-	0x97, 0x20, 0xb6, 0x62, 0xb0, 0x8c, 0x92, 0x16, 0x17, 0x4b, 0x40, 0x66, 0x5e, 0x3a, 0x51, 0x6a,
-	0xd9, 0xb8, 0x58, 0x02, 0xf2, 0xf3, 0xd2, 0x9d, 0x74, 0x2e, 0x3c, 0x94, 0x63, 0xb8, 0xf1, 0x50,
-	0x8e, 0xe1, 0xc3, 0x43, 0x39, 0xc6, 0x86, 0x47, 0x72, 0x8c, 0x2b, 0x1e, 0xc9, 0x31, 0x9e, 0x78,
-	0x24, 0xc7, 0x78, 0xe1, 0x91, 0x1c, 0xe3, 0x83, 0x47, 0x72, 0x8c, 0x2f, 0x1e, 0xc9, 0x31, 0x7c,
-	0x78, 0x24, 0xc7, 0x38, 0xe1, 0xb1, 0x1c, 0x43, 0x12, 0x1b, 0xd8, 0x91, 0xc6, 0x80, 0x00, 0x00,
-	0x00, 0xff, 0xff, 0x5b, 0x31, 0xdf, 0xfd, 0xec, 0x00, 0x00, 0x00,
+	0xfa, 0xc8, 0xfa, 0x94, 0xd8, 0xb9, 0x58, 0x83, 0x4b, 0x12, 0x8b, 0x4a, 0x94, 0x78, 0xb9, 0xb8,
+	0xc1, 0x8c, 0xa0, 0xd4, 0xdc, 0xfc, 0x92, 0x54, 0x25, 0x36, 0x2e, 0x96, 0x80, 0xcc, 0xbc, 0x74,
+	0x30, 0x9d, 0x9f, 0x97, 0xee, 0xa4, 0x73, 0xe1, 0xa1, 0x1c, 0xc3, 0x8d, 0x87, 0x72, 0x0c, 0x1f,
+	0x1e, 0xca, 0x31, 0x36, 0x3c, 0x92, 0x63, 0x5c, 0xf1, 0x48, 0x8e, 0xf1, 0xc4, 0x23, 0x39, 0xc6,
+	0x0b, 0x8f, 0xe4, 0x18, 0x1f, 0x3c, 0x92, 0x63, 0x7c, 0xf1, 0x48, 0x8e, 0xe1, 0xc3, 0x23, 0x39,
+	0xc6, 0x09, 0x8f, 0xe5, 0x18, 0x92, 0xd8, 0xc0, 0x86, 0x1b, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff,
+	0x87, 0xea, 0x4f, 0xb4, 0xa4, 0x00, 0x00, 0x00,
 }

@@ -20,7 +20,7 @@ func (s *server) Receive(stream messages.Remoting_ReceiveServer) error {
 		for _, envelope := range batch.Envelopes {
 			pid := envelope.Target
 			message := unpackMessage(envelope)
-			pid.Tell(message)
+			pid.Ask(message, envelope.Sender)
 		}
 	}
 }

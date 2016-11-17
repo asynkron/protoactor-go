@@ -71,15 +71,15 @@ func main() {
 	pid := actor.Spawn(props)
 
 	remote := actor.NewPID("127.0.0.1:8080", "remote")
-	remote.Tell(&messages.StartRemote{Sender: pid})
+	remote.Ask(&messages.StartRemote{}, pid)
 
 	wgStart.Wait()
 	start := time.Now()
 	log.Println("Starting to send")
 
-	message := &messages.Ping{Sender: pid}
+	message := &messages.Ping{}
 	for i := 0; i < messageCount; i++ {
-		remote.Tell(message)
+		remote.Ask(message, pid)
 	}
 
 	wgStop.Wait()
