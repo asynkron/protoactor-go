@@ -49,19 +49,19 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	envelopes := make([]*messages.MessageEnvelope, len(msg))
 
 	for i, tmp := range msg {
-		m := tmp.(actor.UserMessage)
-		envelopes[i] = m.Message.(*messages.MessageEnvelope)
+		envelopes[i] = tmp.(*messages.MessageEnvelope)
 	}
 
 	batch := &messages.MessageBatch{
 		Envelopes: envelopes,
 	}
-
 	err := state.stream.Send(batch)
 	if err != nil {
 		ctx.Stash()
-		log.Println("[REMOTING] Failed to send to host", state.host)
+		log.Println("[REMOTING] gRPC Failed to send to host", state.host)
 		panic("restart")
+		//log.Printf("[REMOTING] Endpoing writer %v failed to send, shutting down", ctx.Self())
+		//ctx.Self().Stop()
 	}
 }
 

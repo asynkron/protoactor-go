@@ -29,7 +29,8 @@ type endpointWriterMailbox struct {
 }
 
 func (mailbox *endpointWriterMailbox) PostUserMessage(message actor.UserMessage) {
-	mailbox.userMailbox.Push(message)
+	//batching mailbox only use the message part
+	mailbox.userMailbox.Push(message.Message)
 	mailbox.schedule()
 }
 

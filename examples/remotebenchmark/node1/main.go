@@ -33,10 +33,6 @@ func (state *localActor) Receive(context actor.Context) {
 	}
 }
 
-type FakeMessage struct {
-	pid *actor.PID
-}
-
 func newLocalActor(stop *sync.WaitGroup, messageCount int) actor.Producer {
 	return func() actor.Actor {
 		return &localActor{

@@ -20,11 +20,13 @@ func (s *server) Receive(stream messages.Remoting_ReceiveServer) error {
 		for _, envelope := range batch.Envelopes {
 			pid := envelope.Target
 			message := unpackMessage(envelope)
-			pid.Ask(message, envelope.Sender)
+			sender := envelope.Sender
+			pid.Ask(message, sender)
 		}
 	}
 }
 
+//Start the remoting server
 func Start(host string, options ...RemotingOption) {
 
 	lis, err := net.Listen("tcp", host)
