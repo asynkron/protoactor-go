@@ -11,16 +11,6 @@ message ActorPidResponse {
     actor.PID pid = 1;
 }
 
-message ActorActivateRequest {
-    string name = 1;
-    string kind = 2;
-    
-}
-
-message ActorActivateResponse {
-    actor.PID pid = 1;
-}
-
 message TakeOwnership {
     actor.PID pid = 1;
     string name = 2;

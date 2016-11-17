@@ -11,8 +11,6 @@
 	It has these top-level messages:
 		ActorPidRequest
 		ActorPidResponse
-		ActorActivateRequest
-		ActorActivateResponse
 		TakeOwnership
 */
 package messages
@@ -65,30 +63,6 @@ func (m *ActorPidResponse) GetPid() *actor.PID {
 	return nil
 }
 
-type ActorActivateRequest struct {
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-}
-
-func (m *ActorActivateRequest) Reset()                    { *m = ActorActivateRequest{} }
-func (*ActorActivateRequest) ProtoMessage()               {}
-func (*ActorActivateRequest) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{2} }
-
-type ActorActivateResponse struct {
-	Pid *actor.PID `protobuf:"bytes,1,opt,name=pid" json:"pid,omitempty"`
-}
-
-func (m *ActorActivateResponse) Reset()                    { *m = ActorActivateResponse{} }
-func (*ActorActivateResponse) ProtoMessage()               {}
-func (*ActorActivateResponse) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{3} }
-
-func (m *ActorActivateResponse) GetPid() *actor.PID {
-	if m != nil {
-		return m.Pid
-	}
-	return nil
-}
-
 type TakeOwnership struct {
 	Pid  *actor.PID `protobuf:"bytes,1,opt,name=pid" json:"pid,omitempty"`
 	Name string     `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
@@ -96,7 +70,7 @@ type TakeOwnership struct {
 
 func (m *TakeOwnership) Reset()                    { *m = TakeOwnership{} }
 func (*TakeOwnership) ProtoMessage()               {}
-func (*TakeOwnership) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{4} }
+func (*TakeOwnership) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{2} }
 
 func (m *TakeOwnership) GetPid() *actor.PID {
 	if m != nil {
@@ -108,8 +82,6 @@ func (m *TakeOwnership) GetPid() *actor.PID {
 func init() {
 	proto.RegisterType((*ActorPidRequest)(nil), "messages.ActorPidRequest")
 	proto.RegisterType((*ActorPidResponse)(nil), "messages.ActorPidResponse")
-	proto.RegisterType((*ActorActivateRequest)(nil), "messages.ActorActivateRequest")
-	proto.RegisterType((*ActorActivateResponse)(nil), "messages.ActorActivateResponse")
 	proto.RegisterType((*TakeOwnership)(nil), "messages.TakeOwnership")
 }
 func (this *ActorPidRequest) Equal(that interface{}) bool {
@@ -156,69 +128,6 @@ func (this *ActorPidResponse) Equal(that interface{}) bool {
 	that1, ok := that.(*ActorPidResponse)
 	if !ok {
 		that2, ok := that.(ActorPidResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return true
-		}
-		return false
-	} else if this == nil {
-		return false
-	}
-	if !this.Pid.Equal(that1.Pid) {
-		return false
-	}
-	return true
-}
-func (this *ActorActivateRequest) Equal(that interface{}) bool {
-	if that == nil {
-		if this == nil {
-			return true
-		}
-		return false
-	}
-
-	that1, ok := that.(*ActorActivateRequest)
-	if !ok {
-		that2, ok := that.(ActorActivateRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return true
-		}
-		return false
-	} else if this == nil {
-		return false
-	}
-	if this.Name != that1.Name {
-		return false
-	}
-	if this.Kind != that1.Kind {
-		return false
-	}
-	return true
-}
-func (this *ActorActivateResponse) Equal(that interface{}) bool {
-	if that == nil {
-		if this == nil {
-			return true
-		}
-		return false
-	}
-
-	that1, ok := that.(*ActorActivateResponse)
-	if !ok {
-		that2, ok := that.(ActorActivateResponse)
 		if ok {
 			that1 = &that2
 		} else {
@@ -288,29 +197,6 @@ func (this *ActorPidResponse) GoString() string {
 	}
 	s := make([]string, 0, 5)
 	s = append(s, "&messages.ActorPidResponse{")
-	if this.Pid != nil {
-		s = append(s, "Pid: "+fmt.Sprintf("%#v", this.Pid)+",\n")
-	}
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *ActorActivateRequest) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 6)
-	s = append(s, "&messages.ActorActivateRequest{")
-	s = append(s, "Name: "+fmt.Sprintf("%#v", this.Name)+",\n")
-	s = append(s, "Kind: "+fmt.Sprintf("%#v", this.Kind)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *ActorActivateResponse) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&messages.ActorActivateResponse{")
 	if this.Pid != nil {
 		s = append(s, "Pid: "+fmt.Sprintf("%#v", this.Pid)+",\n")
 	}
@@ -414,64 +300,6 @@ func (m *ActorPidResponse) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ActorActivateRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ActorActivateRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Name) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(len(m.Name)))
-		i += copy(dAtA[i:], m.Name)
-	}
-	if len(m.Kind) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(len(m.Kind)))
-		i += copy(dAtA[i:], m.Kind)
-	}
-	return i, nil
-}
-
-func (m *ActorActivateResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ActorActivateResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if m.Pid != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.Pid.Size()))
-		n2, err := m.Pid.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n2
-	}
-	return i, nil
-}
-
 func (m *TakeOwnership) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -491,11 +319,11 @@ func (m *TakeOwnership) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintProtos(dAtA, i, uint64(m.Pid.Size()))
-		n3, err := m.Pid.MarshalTo(dAtA[i:])
+		n2, err := m.Pid.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n3
+		i += n2
 	}
 	if len(m.Name) > 0 {
 		dAtA[i] = 0x12
@@ -557,30 +385,6 @@ func (m *ActorPidResponse) Size() (n int) {
 	return n
 }
 
-func (m *ActorActivateRequest) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Name)
-	if l > 0 {
-		n += 1 + l + sovProtos(uint64(l))
-	}
-	l = len(m.Kind)
-	if l > 0 {
-		n += 1 + l + sovProtos(uint64(l))
-	}
-	return n
-}
-
-func (m *ActorActivateResponse) Size() (n int) {
-	var l int
-	_ = l
-	if m.Pid != nil {
-		l = m.Pid.Size()
-		n += 1 + l + sovProtos(uint64(l))
-	}
-	return n
-}
-
 func (m *TakeOwnership) Size() (n int) {
 	var l int
 	_ = l
@@ -624,27 +428,6 @@ func (this *ActorPidResponse) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ActorPidResponse{`,
-		`Pid:` + strings.Replace(fmt.Sprintf("%v", this.Pid), "PID", "actor.PID", 1) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *ActorActivateRequest) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&ActorActivateRequest{`,
-		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
-		`Kind:` + fmt.Sprintf("%v", this.Kind) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *ActorActivateResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&ActorActivateResponse{`,
 		`Pid:` + strings.Replace(fmt.Sprintf("%v", this.Pid), "PID", "actor.PID", 1) + `,`,
 		`}`,
 	}, "")
@@ -804,197 +587,6 @@ func (m *ActorPidResponse) Unmarshal(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: ActorPidResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Pid", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtos
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtos
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Pid == nil {
-				m.Pid = &actor.PID{}
-			}
-			if err := m.Pid.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipProtos(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *ActorActivateRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtos
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ActorActivateRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ActorActivateRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtos
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthProtos
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Name = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtos
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthProtos
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Kind = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipProtos(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *ActorActivateResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtos
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ActorActivateResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ActorActivateResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1271,7 +863,7 @@ var (
 func init() { proto.RegisterFile("protos.proto", fileDescriptorProtos) }
 
 var fileDescriptorProtos = []byte{
-	// 262 bytes of a gzipped FileDescriptorProto
+	// 239 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x28, 0xca, 0x2f,
 	0xc9, 0x2f, 0xd6, 0x03, 0x53, 0x42, 0x1c, 0xb9, 0xa9, 0xc5, 0xc5, 0x89, 0xe9, 0xa9, 0xc5, 0x52,
 	0x3a, 0xe9, 0x99, 0x25, 0x19, 0xa5, 0x49, 0x7a, 0xc9, 0xf9, 0xb9, 0xfa, 0x8e, 0xc5, 0x95, 0x79,
@@ -1281,12 +873,10 @@ var fileDescriptorProtos = []byte{
 	0x1a, 0x9c, 0x41, 0x60, 0x36, 0x48, 0x2c, 0x3b, 0x33, 0x2f, 0x45, 0x82, 0x09, 0x22, 0x06, 0x62,
 	0x2b, 0x19, 0x70, 0x09, 0x20, 0xb4, 0x16, 0x17, 0xe4, 0xe7, 0x15, 0xa7, 0x0a, 0xc9, 0x70, 0x31,
 	0x17, 0x64, 0xa6, 0x80, 0xb5, 0x72, 0x1b, 0x71, 0xe9, 0x81, 0x2d, 0xd4, 0x0b, 0xf0, 0x74, 0x09,
-	0x02, 0x09, 0x2b, 0xd9, 0x71, 0x89, 0x80, 0x75, 0x38, 0x26, 0x97, 0x64, 0x96, 0x25, 0x96, 0xa4,
-	0x92, 0x6a, 0xa3, 0x29, 0x97, 0x28, 0x9a, 0x7e, 0xa2, 0xac, 0x75, 0xe4, 0xe2, 0x0d, 0x49, 0xcc,
-	0x4e, 0xf5, 0x2f, 0xcf, 0x4b, 0x2d, 0x2a, 0xce, 0xc8, 0x2c, 0xc0, 0xaf, 0x1c, 0xee, 0x1a, 0x26,
-	0x84, 0x6b, 0x9c, 0x74, 0x2e, 0x3c, 0x94, 0x63, 0xb8, 0xf1, 0x50, 0x8e, 0xe1, 0xc3, 0x43, 0x39,
-	0xc6, 0x86, 0x47, 0x72, 0x8c, 0x2b, 0x1e, 0xc9, 0x31, 0x9e, 0x78, 0x24, 0xc7, 0x78, 0xe1, 0x91,
-	0x1c, 0xe3, 0x83, 0x47, 0x72, 0x8c, 0x2f, 0x1e, 0xc9, 0x31, 0x7c, 0x78, 0x24, 0xc7, 0x38, 0xe1,
-	0xb1, 0x1c, 0x43, 0x12, 0x1b, 0x38, 0x6c, 0x8d, 0x01, 0x01, 0x00, 0x00, 0xff, 0xff, 0x00, 0xe9,
-	0x93, 0x2a, 0xa3, 0x01, 0x00, 0x00,
+	0x02, 0x09, 0x2b, 0x39, 0x72, 0xf1, 0x86, 0x24, 0x66, 0xa7, 0xfa, 0x97, 0xe7, 0xa5, 0x16, 0x15,
+	0x67, 0x64, 0x16, 0xe0, 0x57, 0x0e, 0x77, 0x08, 0x13, 0xc2, 0x21, 0x4e, 0x3a, 0x17, 0x1e, 0xca,
+	0x31, 0xdc, 0x78, 0x28, 0xc7, 0xf0, 0xe1, 0xa1, 0x1c, 0x63, 0xc3, 0x23, 0x39, 0xc6, 0x15, 0x8f,
+	0xe4, 0x18, 0x4f, 0x3c, 0x92, 0x63, 0xbc, 0xf0, 0x48, 0x8e, 0xf1, 0xc1, 0x23, 0x39, 0xc6, 0x17,
+	0x8f, 0xe4, 0x18, 0x3e, 0x3c, 0x92, 0x63, 0x9c, 0xf0, 0x58, 0x8e, 0x21, 0x89, 0x0d, 0xec, 0x49,
+	0x63, 0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 0x9c, 0x6c, 0x27, 0xc0, 0x2c, 0x01, 0x00, 0x00,
 }
