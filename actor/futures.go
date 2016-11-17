@@ -20,6 +20,7 @@ type Future struct {
 	pid     *PID
 }
 
+//PipeTo starts a go routine and waits for the `Future.Result()`, then sends the result to the given `PID`
 func (ref *Future) PipeTo(pid *PID) {
 	go func() {
 		res := ref.Result()
@@ -27,6 +28,7 @@ func (ref *Future) PipeTo(pid *PID) {
 	}()
 }
 
+//PID to the backing actor for the Future result
 func (ref *Future) PID() *PID {
 	return ref.pid
 }
