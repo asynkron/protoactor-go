@@ -7,14 +7,14 @@ func (pid *PID) Tell(message interface{}) {
 	ref.Tell(message)
 }
 
-func (pid *PID) Ask(message interface{}) (error, *Response) {
+func (pid *PID) Ask(message interface{}) (*Response, error) {
 	ref, found := ProcessRegistry.fromPID(pid)
 	if !found {
-		return fmt.Errorf("Unknown PID %s", pid), nil
+		return nil, fmt.Errorf("Unknown PID %s", pid)
 	}
 	pid, result := RequestResponsePID()
 	ref.Ask(message, pid)
-	return nil, result
+	return result, nil
 }
 
 func (pid *PID) sendSystemMessage(message SystemMessage) {
