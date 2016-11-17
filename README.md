@@ -17,7 +17,7 @@ Protobuf all the way.
 **Be fast** - Do not trade performance for magic API trickery.
 
 Ultra fast remoting, GAM currently manages to pass over **one million messages per second** between nodes using only two actors, while still preserving message order!
-This is more than three times more the new super advanced UDP based Artery transport for Scala Akka.
+This is three times more the new super advanced UDP based Artery transport for Scala Akka.
 
 ```text
 :> node1.exe
