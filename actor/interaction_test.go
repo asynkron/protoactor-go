@@ -24,7 +24,7 @@ func TestSpawnProducesActorRef(t *testing.T) {
 	assert.NotNil(t, actor)
 }
 
-type EchoMessage struct{ Sender *PID }
+type EchoMessage struct{}
 
 type EchoReplyMessage struct{}
 
@@ -35,17 +35,17 @@ func NewEchoActor() Actor {
 }
 
 func (*EchoActor) Receive(context Context) {
-	switch msg := context.Message().(type) {
+	switch context.Message().(type) {
 	case EchoMessage:
-		msg.Sender.Tell(EchoReplyMessage{})
+		context.Sender().Tell(EchoReplyMessage{})
 	}
 }
 
 func TestActorCanReplyToMessage(t *testing.T) {
-	responsePID, result := RequestResponsePID()
 	actor := Spawn(FromProducer(NewEchoActor))
 	defer actor.Stop()
-	actor.Tell(EchoMessage{Sender: responsePID})
+	result, _ := actor.Ask(EchoMessage{})
+	defer result.Stop()
 	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
 		return
@@ -68,18 +68,18 @@ func (state *EchoBecomeActor) Receive(context Context) {
 }
 
 func (EchoBecomeActor) Other(context Context) {
-	switch msg := context.Message().(type) {
+	switch context.Message().(type) {
 	case EchoMessage:
-		msg.Sender.Tell(EchoReplyMessage{})
+		context.Sender().Tell(EchoReplyMessage{})
 	}
 }
 
 func TestActorCanBecome(t *testing.T) {
-	responsePID, result := RequestResponsePID()
 	actor := Spawn(FromProducer(NewEchoBecomeActor))
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
-	actor.Tell(EchoMessage{Sender: responsePID})
+	result, _ := actor.Ask(EchoMessage{})
+	defer result.Stop()
 	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
 		return
@@ -95,11 +95,11 @@ func NewEchoUnbecomeActor() Actor {
 }
 
 func (state *EchoUnbecomeActor) Receive(context Context) {
-	switch msg := context.Message().(type) {
+	switch context.Message().(type) {
 	case BecomeMessage:
 		context.BecomeStacked(state.Other)
 	case EchoMessage:
-		msg.Sender.Tell(EchoReplyMessage{})
+		context.Sender().Tell(EchoReplyMessage{})
 	}
 }
 
@@ -111,12 +111,12 @@ func (*EchoUnbecomeActor) Other(context Context) {
 }
 
 func TestActorCanUnbecome(t *testing.T) {
-	responsePID, result := RequestResponsePID()
 	actor := Spawn(FromProducer(NewEchoUnbecomeActor))
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
 	actor.Tell(UnbecomeMessage{})
-	actor.Tell(EchoMessage{Sender: responsePID})
+	result, _ := actor.Ask(EchoMessage{})
+	defer result.Stop()
 	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
 		return
