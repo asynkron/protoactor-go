@@ -17,7 +17,6 @@ import "runtime"
 type localActor struct {
 	count        int
 	wgStop       *sync.WaitGroup
-	start        time.Time
 	messageCount int
 }
 
@@ -58,7 +57,7 @@ func main() {
 
 	props := actor.
 		FromProducer(newLocalActor(&wg, messageCount)).
-		WithMailbox(actor.NewBoundedMailbox(1000, 10000))
+		WithMailbox(actor.NewBoundedMailbox(1000, 1000))
 
 	pid := actor.Spawn(props)
 
