@@ -3,10 +3,8 @@ package messages;
 import "github.com/AsynkronIT/gam/actor/protos.proto";
 
 message ActorPidRequest {
-    actor.PID sender = 1;
-    string name = 2;
-    string kind = 3;
-    
+    string name = 1;
+    string kind = 2;
 }
 
 message ActorPidResponse {
@@ -14,9 +12,8 @@ message ActorPidResponse {
 }
 
 message ActorActivateRequest {
-    actor.PID sender = 1;
-    string name = 2;
-    string kind = 3;
+    string name = 1;
+    string kind = 2;
     
 }
 

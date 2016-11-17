@@ -28,7 +28,7 @@ func (state *clusterActor) Receive(context actor.Context) {
 	case *actor.Started:
 		log.Println("[CLUSTER] Cluster actor started")
 	case *messages.ActorPidRequest:
-		state.actorPidRequest(msg)
+		state.actorPidRequest(msg, context)
 	case *clusterStatusJoin:
 		state.clusterStatusJoin(msg)
 	case *clusterStatusLeave:
@@ -44,21 +44,20 @@ func (state *clusterActor) takeOwnership(msg *messages.TakeOwnership) {
 	state.partition[msg.Name] = msg.Pid
 }
 
-func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest) {
+func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest, context actor.Context) {
 
 	pid := state.partition[msg.Name]
 	if pid == nil {
-		resp := actor.NewFuture()
 		//get a random node
 		random := getRandom()
 
 		//send request
 		log.Printf("[CLUSTER] Telling %v to create %v", random, msg.Name)
-		random.Tell(&messages.ActorActivateRequest{
-			Name:   msg.Name,
-			Kind:   msg.Kind,
-			Sender: resp.PID(),
+		resp, _ := random.Ask(&messages.ActorActivateRequest{
+			Name: msg.Name,
+			Kind: msg.Kind,
 		})
+		defer resp.Stop()
 
 		tmp, _ := resp.ResultOrTimeout(5 * time.Second)
 		typed := tmp.(*messages.ActorActivateResponse)
@@ -68,7 +67,7 @@ func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest) {
 	response := &messages.ActorPidResponse{
 		Pid: pid,
 	}
-	msg.Sender.Tell(response)
+	context.Sender().Tell(response)
 }
 
 func (state *clusterActor) clusterStatusJoin(msg *clusterStatusJoin) {

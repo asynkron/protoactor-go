@@ -29,7 +29,7 @@ func (*activator) Receive(context actor.Context) {
 		response := &messages.ActorActivateResponse{
 			Pid: pid,
 		}
-		msg.Sender.Tell(response)
+		context.Sender().Tell(response)
 	default:
 		log.Printf("[CLUSTER] Activator got unknown message %+v", msg)
 	}
