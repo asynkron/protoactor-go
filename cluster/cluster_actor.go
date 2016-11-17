@@ -48,7 +48,7 @@ func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest) {
 
 	pid := state.partition[msg.Name]
 	if pid == nil {
-		x, resp := actor.RequestResponsePID()
+		resp := actor.NewFuture()
 		//get a random node
 		random := getRandom()
 
@@ -57,7 +57,7 @@ func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest) {
 		random.Tell(&messages.ActorActivateRequest{
 			Name:   msg.Name,
 			Kind:   msg.Kind,
-			Sender: x,
+			Sender: resp.PID(),
 		})
 
 		tmp, _ := resp.ResultOrTimeout(5 * time.Second)

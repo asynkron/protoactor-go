@@ -32,13 +32,14 @@ func (state *NameAwareHolder) SetName(name string) {
 	state.name = name
 }
 
-type NamerPlugin struct {}
+type NamerPlugin struct{}
+
 func (p *NamerPlugin) OnStart(ctx actor.Context) {
 	if p, ok := ctx.Actor().(NameAware); ok {
 		p.SetName("GAM")
 	}
 }
-func (p *NamerPlugin) OnMessage(ctx actor.Context, usrMsg interface{}) {}
+func (p *NamerPlugin) OnOtherMessage(ctx actor.Context, usrMsg interface{}) {}
 
 func main() {
 	props := actor.

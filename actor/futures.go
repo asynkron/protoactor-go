@@ -5,34 +5,38 @@ import (
 	"time"
 )
 
-func RequestResponsePID() (*PID, *Response) {
-	ref := &Response{
+func NewFuture() *Future {
+	ref := &Future{
 		channel: make(chan interface{}, 1),
 	}
 	id := ProcessRegistry.getAutoId()
 	pid, _ := ProcessRegistry.registerPID(ref, id)
 	ref.pid = pid
-	return pid, ref
+	return ref
 }
 
-type Response struct {
+type Future struct {
 	channel chan interface{}
 	pid     *PID
 }
 
-func (ref *Response) Tell(message interface{}) {
+func (ref *Future) PID() *PID {
+	return ref.pid
+}
+
+func (ref *Future) Tell(message interface{}) {
 	ref.channel <- message
 }
 
-func (ref *Response) Ask(message interface{}, sender *PID) {
+func (ref *Future) Ask(message interface{}, sender *PID) {
 	ref.channel <- message
 }
 
-func (ref *Response) ResultChannel() <-chan interface{} {
+func (ref *Future) ResultChannel() <-chan interface{} {
 	return ref.channel
 }
 
-func (ref *Response) ResultOrTimeout(timeout time.Duration) (interface{}, error) {
+func (ref *Future) ResultOrTimeout(timeout time.Duration) (interface{}, error) {
 	select {
 	case res := <-ref.channel:
 		return res, nil
@@ -41,14 +45,14 @@ func (ref *Response) ResultOrTimeout(timeout time.Duration) (interface{}, error)
 	}
 }
 
-func (ref *Response) Result() interface{} {
+func (ref *Future) Result() interface{} {
 	return <-ref.channel
 }
 
-func (ref *Response) SendSystemMessage(message SystemMessage) {
+func (ref *Future) SendSystemMessage(message SystemMessage) {
 }
 
-func (ref *Response) Stop() {
+func (ref *Future) Stop() {
 	ProcessRegistry.unregisterPID(ref.pid)
 	close(ref.channel)
 }

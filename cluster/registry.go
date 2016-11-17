@@ -58,12 +58,12 @@ func activatorForNode(node *memberlist.Node) *actor.PID {
 //Get a PID to a virtual actor
 func Get(name string, kind string) *actor.PID {
 	remote := clusterForNode(findClosest(name))
-	future, response := actor.RequestResponsePID()
+	response := actor.NewFuture()
 
 	//request the pid of the "id" from the correct partition
 	req := &messages.ActorPidRequest{
 		Name:   name,
-		Sender: future,
+		Sender: response.PID(),
 		Kind:   kind,
 	}
 	remote.Tell(req)

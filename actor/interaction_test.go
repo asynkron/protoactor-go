@@ -139,10 +139,10 @@ func NewEchoOnStartActor(replyTo *PID) func() Actor {
 }
 
 func TestActorCanReplyOnStarting(t *testing.T) {
-	responsePID, result := RequestResponsePID()
-	actor := Spawn(FromProducer(NewEchoOnStartActor(responsePID)))
+	future := NewFuture()
+	actor := Spawn(FromProducer(NewEchoOnStartActor(future.PID())))
 	defer actor.Stop()
-	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
+	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
 		return
 	}
@@ -164,10 +164,10 @@ func NewEchoOnStoppingActor(replyTo *PID) func() Actor {
 }
 
 func TestActorCanReplyOnStopping(t *testing.T) {
-	responsePID, result := RequestResponsePID()
-	actor := Spawn(FromProducer(NewEchoOnStoppingActor(responsePID)))
+	future := NewFuture()
+	actor := Spawn(FromProducer(NewEchoOnStoppingActor(future.PID())))
 	actor.Stop()
-	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
+	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
 		assert.Fail(t, "timed out")
 		return
 	}
@@ -193,15 +193,15 @@ func NewCreateChildActor() Actor {
 }
 
 func TestActorCanCreateChildren(t *testing.T) {
-	responsePID, result := RequestResponsePID()
+	future := NewFuture()
 	actor := Spawn(FromProducer(NewCreateChildActor))
 	defer actor.Stop()
 	expected := 10
 	for i := 0; i < expected; i++ {
 		actor.Tell(CreateChildMessage{})
 	}
-	actor.Tell(GetChildCountMessage{ReplyTo: responsePID})
-	response, err := result.ResultOrTimeout(testTimeout)
+	actor.Tell(GetChildCountMessage{ReplyTo: future.PID()})
+	response, err := future.ResultOrTimeout(testTimeout)
 	if err != nil {
 		assert.Fail(t, "timed out")
 		return
@@ -236,17 +236,19 @@ func NewCreateChildThenStopActor() Actor {
 }
 
 func TestActorCanStopChildren(t *testing.T) {
-	responsePID, result := RequestResponsePID()
-	responsePID2, result2 := RequestResponsePID()
+
 	actor := Spawn(FromProducer(NewCreateChildThenStopActor))
 	count := 10
 	for i := 0; i < count; i++ {
 		actor.Tell(CreateChildMessage{})
 	}
-	actor.Tell(GetChildCountMessage2{ReplyDirectly: responsePID, ReplyAfterStop: responsePID2})
+
+	future := NewFuture()
+	future2 := NewFuture()
+	actor.Tell(GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.pid})
 
 	//wait for the actor to reply to the first responsePID
-	_, err := result.ResultOrTimeout(testTimeout)
+	_, err := future.ResultOrTimeout(testTimeout)
 	if err != nil {
 		assert.Fail(t, "timed out")
 		return
@@ -256,7 +258,7 @@ func TestActorCanStopChildren(t *testing.T) {
 	actor.Stop()
 
 	//wait for the actor to stop and get the result from the stopped handler
-	response, err := result2.ResultOrTimeout(testTimeout)
+	response, err := future2.ResultOrTimeout(testTimeout)
 	if err != nil {
 		assert.Fail(t, "timed out")
 		return
