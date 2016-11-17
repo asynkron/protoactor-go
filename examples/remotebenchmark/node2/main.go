@@ -22,7 +22,7 @@ func (*remoteActor) Receive(context actor.Context) {
 	}
 }
 
-func newRemoteActor() actor.ActorProducer {
+func newRemoteActor() actor.Producer {
 	return func() actor.Actor {
 		return &remoteActor{}
 	}

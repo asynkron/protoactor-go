@@ -7,6 +7,7 @@ import (
 )
 
 type HostResolver func(*PID) (ActorRef, bool)
+
 type ProcessRegistryValue struct {
 	Host           string
 	LocalPids      map[string]ActorRef //maybe this should be replaced with something lockfree like ctrie instead

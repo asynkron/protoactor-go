@@ -2,6 +2,7 @@ package actor
 
 import "log"
 
+//ActorRef is an interface that defines the base contract for interaction of actors
 type ActorRef interface {
 	Tell(message interface{})
 	Ask(message interface{}, sender *PID)

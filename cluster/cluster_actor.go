@@ -10,7 +10,7 @@ import (
 
 var clusterPid = actor.SpawnNamed(actor.FromProducer(newClusterActor()), "cluster")
 
-func newClusterActor() actor.ActorProducer {
+func newClusterActor() actor.Producer {
 	return func() actor.Actor {
 		return &clusterActor{
 			partition: make(map[string]*actor.PID),

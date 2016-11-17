@@ -2,7 +2,7 @@ package actor
 
 //Props or properties of an actor, it defines how the actor should be created
 type Props struct {
-	actorProducer       ActorProducer
+	actorProducer       Producer
 	mailboxProducer     MailboxProducer
 	supervisionStrategy SupervisionStrategy
 	routerConfig        RouterConfig
@@ -58,7 +58,7 @@ func (props Props) WithPoolRouter(routerConfig PoolRouterConfig) Props {
 	return props
 }
 
-func FromProducer(actorProducer ActorProducer) Props {
+func FromProducer(actorProducer Producer) Props {
 	return Props{
 		actorProducer:   actorProducer,
 		mailboxProducer: nil,

@@ -44,7 +44,7 @@ type FakeMessage struct {
 	pid *actor.PID
 }
 
-func newLocalActor(start *sync.WaitGroup, stop *sync.WaitGroup, messageCount int) actor.ActorProducer {
+func newLocalActor(start *sync.WaitGroup, stop *sync.WaitGroup, messageCount int) actor.Producer {
 	return func() actor.Actor {
 		return &localActor{
 			wgStart:      start,

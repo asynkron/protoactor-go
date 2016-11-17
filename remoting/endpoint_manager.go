@@ -9,7 +9,7 @@ import (
 
 var endpointManagerPID *actor.PID
 
-func newEndpointManager(config *remotingConfig) actor.ActorProducer {
+func newEndpointManager(config *remotingConfig) actor.Producer {
 	return func() actor.Actor {
 		return &endpointManager{
 			config: config,

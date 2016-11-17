@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func newEndpointWriter(host string, config *remotingConfig) actor.ActorProducer {
+func newEndpointWriter(host string, config *remotingConfig) actor.Producer {
 	return func() actor.Actor {
 		return &endpointWriter{
 			host:   host,
