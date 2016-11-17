@@ -55,6 +55,10 @@ func (ref *Future) ResultOrTimeout(timeout time.Duration) (interface{}, error) {
 	}
 }
 
+func (ref *Future) Wait() {
+	<-ref.channel
+}
+
 func (ref *Future) Result() interface{} {
 	return <-ref.channel
 }

@@ -16,7 +16,6 @@ import "runtime"
 
 type localActor struct {
 	count        int
-	wgStart      *sync.WaitGroup
 	wgStop       *sync.WaitGroup
 	start        time.Time
 	messageCount int
@@ -24,9 +23,6 @@ type localActor struct {
 
 func (state *localActor) Receive(context actor.Context) {
 	switch context.Message().(type) {
-	case *actor.Started:
-		state.wgStart.Add(1)
-		state.wgStop.Add(1)
 	case *messages.Pong:
 		state.count++
 		if state.count%50000 == 0 {
@@ -35,8 +31,6 @@ func (state *localActor) Receive(context actor.Context) {
 		if state.count == state.messageCount {
 			state.wgStop.Done()
 		}
-	case *messages.Start:
-		state.wgStart.Done()
 	}
 }
 
@@ -44,10 +38,9 @@ type FakeMessage struct {
 	pid *actor.PID
 }
 
-func newLocalActor(start *sync.WaitGroup, stop *sync.WaitGroup, messageCount int) actor.Producer {
+func newLocalActor(stop *sync.WaitGroup, messageCount int) actor.Producer {
 	return func() actor.Actor {
 		return &localActor{
-			wgStart:      start,
 			wgStop:       stop,
 			messageCount: messageCount,
 		}
@@ -57,23 +50,24 @@ func newLocalActor(start *sync.WaitGroup, stop *sync.WaitGroup, messageCount int
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	var wgStop sync.WaitGroup
-	var wgStart sync.WaitGroup
+	var wg sync.WaitGroup
 
 	messageCount := 1000000
 
 	remoting.Start("127.0.0.1:8081")
 
 	props := actor.
-		FromProducer(newLocalActor(&wgStart, &wgStop, messageCount)).
+		FromProducer(newLocalActor(&wg, messageCount)).
 		WithMailbox(actor.NewBoundedMailbox(1000, 10000))
 
 	pid := actor.Spawn(props)
 
 	remote := actor.NewPID("127.0.0.1:8080", "remote")
-	remote.Ask(&messages.StartRemote{}, pid)
+	res, _ := remote.AskFuture(&messages.StartRemote{})
+	defer res.Stop()
+	res.Wait()
+	wg.Add(1)
 
-	wgStart.Wait()
 	start := time.Now()
 	log.Println("Starting to send")
 
@@ -82,7 +76,7 @@ func main() {
 		remote.Ask(message, pid)
 	}
 
-	wgStop.Wait()
+	wg.Wait()
 	elapsed := time.Since(start)
 	log.Printf("Elapsed %s", elapsed)
 
