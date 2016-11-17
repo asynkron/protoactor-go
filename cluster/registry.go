@@ -17,7 +17,7 @@ func Register(kind string, props actor.Props) {
 	nameLookup[kind] = props
 }
 
-func getRandom() *actor.PID {
+func getRandomActivator() *actor.PID {
 	r := rand.Int()
 	members := list.Members()
 	i := r % len(members)

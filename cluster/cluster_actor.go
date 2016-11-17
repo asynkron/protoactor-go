@@ -49,7 +49,7 @@ func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest, contex
 	pid := state.partition[msg.Name]
 	if pid == nil {
 		//get a random node
-		random := getRandom()
+		random := getRandomActivator()
 
 		//send request
 		log.Printf("[CLUSTER] Telling %v to create %v", random, msg.Name)
