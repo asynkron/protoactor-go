@@ -20,23 +20,23 @@ Ultra fast remoting, GAM currently manages to pass 800k+ messages per second bet
 
 ```text
 :> node1.exe
-2016/04/30 20:33:48 Host is 127.0.0.1:55567
-2016/04/30 20:33:48 Started EndpointManager
-2016/04/30 20:33:48 Starting GAM server on 127.0.0.1:55567.
-2016/04/30 20:33:48 Started EndpointWriter for host 127.0.0.1:8080
-2016/04/30 20:33:48 Connecting to host 127.0.0.1:8080
-2016/04/30 20:33:48 Connected to host 127.0.0.1:8080
-2016/04/30 20:33:48 Getting stream from host 127.0.0.1:8080
-2016/04/30 20:33:48 Got stream from host 127.0.0.1:8080
-2016/04/30 20:33:48 Starting to send
-2016/04/30 20:33:48 50000
-2016/04/30 20:33:48 100000
-...snip...
-2016/04/30 20:33:50 950000
-2016/04/30 20:33:50 1000000
-2016/04/30 20:33:50 Elapsed 2.4237125s
-
-2016/04/30 20:33:50 Msg per sec 825180 <---
+2016/11/17 14:57:26 [REMOTING] Started EndpointManager
+2016/11/17 14:57:26 [REMOTING] Starting GAM server on 127.0.0.1:8081.
+2016/11/17 14:57:26 [REMOTING] Started EndpointWriter for host 127.0.0.1:8080
+2016/11/17 14:57:26 [REMOTING] Connecting to host 127.0.0.1:8080
+2016/11/17 14:57:26 [REMOTING] Connected to host 127.0.0.1:8080
+2016/11/17 14:57:26 [REMOTING] Getting stream from host 127.0.0.1:8080
+2016/11/17 14:57:26 [REMOTING] Got stream from host 127.0.0.1:8080
+2016/11/17 14:57:26 Starting to send
+2016/11/17 14:57:26 50000
+2016/11/17 14:57:26 100000
+2016/11/17 14:57:26 150000
+... snip ...
+2016/11/17 14:57:28 900000
+2016/11/17 14:57:28 950000
+2016/11/17 14:57:28 1000000
+2016/11/17 14:57:28 Elapsed 1.8954982s
+2016/11/17 14:57:28 Msg per sec 1055131 <---
 ```
 
 ---
