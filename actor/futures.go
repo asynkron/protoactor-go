@@ -15,6 +15,7 @@ func NewFuture() *Future {
 	return ref
 }
 
+//Future is a struct carrying a response PID and a channel where the response is placed
 type Future struct {
 	channel chan interface{}
 	pid     *PID

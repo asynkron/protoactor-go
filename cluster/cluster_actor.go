@@ -53,7 +53,7 @@ func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest, contex
 
 		//send request
 		log.Printf("[CLUSTER] Telling %v to create %v", random, msg.Name)
-		resp, _ := random.Ask(msg)
+		resp, _ := random.AskFuture(msg)
 		defer resp.Stop()
 
 		tmp, _ := resp.ResultOrTimeout(5 * time.Second)
