@@ -152,7 +152,7 @@ type EchoOnStoppingActor struct{ replyTo *PID }
 
 func (state *EchoOnStoppingActor) Receive(context Context) {
 	switch context.Message().(type) {
-	case Stopping:
+	case *Stopping:
 		state.replyTo.Tell(EchoReplyMessage{})
 	}
 }
@@ -225,7 +225,7 @@ func (state *CreateChildThenStopActor) Receive(context Context) {
 	case GetChildCountMessage2:
 		msg.ReplyDirectly.Tell(true)
 		state.replyTo = msg.ReplyAfterStop
-	case Stopped:
+	case *Stopped:
 		reply := GetChildCountReplyMessage{ChildCount: len(context.Children())}
 		state.replyTo.Tell(reply)
 	}

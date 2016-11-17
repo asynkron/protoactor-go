@@ -45,7 +45,7 @@ func TestLookupById(t *testing.T) {
 		actor := SpawnNamed(props, ID)
 		defer actor.Stop()
 
-		err, result := actor.Ask(Increment{})
+		result, err := actor.Ask(Increment{})
 		defer result.Stop()
 		value, err := result.ResultOrTimeout(testTimeout)
 		if err != nil {
@@ -58,7 +58,7 @@ func TestLookupById(t *testing.T) {
 	{
 		props := FromInstance(&GorgeousActor{Counter: Counter{value: 0}})
 		actor := SpawnNamed(props, ID)
-		err, result := actor.Ask(Increment{})
+		result, err := actor.Ask(Increment{})
 		defer result.Stop()
 		value, err := result.ResultOrTimeout(10 * time.Second)
 		if err != nil {
