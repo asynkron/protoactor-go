@@ -2,11 +2,13 @@ package actor
 
 import "fmt"
 
+//Tell a message to a given PID
 func (pid *PID) Tell(message interface{}) {
 	ref, _ := ProcessRegistry.fromPID(pid)
 	ref.Tell(message)
 }
 
+//Ask a message to a given PID
 func (pid *PID) Ask(message interface{}) (*Future, error) {
 	ref, found := ProcessRegistry.fromPID(pid)
 	if !found {
@@ -22,6 +24,7 @@ func (pid *PID) sendSystemMessage(message SystemMessage) {
 	ref.SendSystemMessage(message)
 }
 
+//Stop the given PID
 func (pid *PID) Stop() {
 	ref, _ := ProcessRegistry.fromPID(pid)
 	ref.Stop()
@@ -37,6 +40,7 @@ func (pid *PID) resume() {
 	ref.(*LocalActorRef).Resume()
 }
 
+//NewPID returns a new instance of the PID struct
 func NewPID(host, id string) *PID {
 	return &PID{
 		Host: host,
@@ -44,6 +48,7 @@ func NewPID(host, id string) *PID {
 	}
 }
 
+//NewLocalPID returns a new instance of the PID struct with the host preset
 func NewLocalPID(id string) *PID {
 	return &PID{
 		Host: ProcessRegistry.Host,

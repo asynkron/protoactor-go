@@ -73,6 +73,7 @@ func (mailbox *unboundedMailbox) processMessages() {
 
 }
 
+//NewUnboundedMailbox creates an unbounded mailbox
 func NewUnboundedMailbox(throughput int) MailboxProducer {
 	return func() Mailbox {
 		userMailbox := goring.New(10)

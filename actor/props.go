@@ -1,5 +1,6 @@
 package actor
 
+//Props or properties of an actor, it defines how the actor should be created
 type Props struct {
 	actorProducer       ActorProducer
 	mailboxProducer     MailboxProducer

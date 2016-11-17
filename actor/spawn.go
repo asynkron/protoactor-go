@@ -1,11 +1,13 @@
 package actor
 
+//Spawn an actor with an auto generated id
 func Spawn(props Props) *PID {
 	id := ProcessRegistry.getAutoId()
 	pid := spawn(id, props, nil)
 	return pid
 }
 
+//SpawnNamed spawns a named actor
 func SpawnNamed(props Props, name string) *PID {
 	pid := spawn(name, props, nil)
 	return pid
