@@ -20,6 +20,13 @@ type Future struct {
 	pid     *PID
 }
 
+func (ref *Future) PipeTo(pid *PID) {
+	go func() {
+		res := ref.Result()
+		pid.Tell(res)
+	}()
+}
+
 func (ref *Future) PID() *PID {
 	return ref.pid
 }
