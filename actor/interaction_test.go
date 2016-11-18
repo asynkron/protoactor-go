@@ -266,3 +266,23 @@ func TestActorCanStopChildren(t *testing.T) {
 	//we should have 0 children when the actor is stopped
 	assert.Equal(t, 0, response.(GetChildCountReplyMessage).ChildCount)
 }
+
+func TestDeadLetterAfterStop(t *testing.T) {
+	actor := Spawn(FromProducer(NewBlackHoleActor))
+	done := false
+	sub := EventStream.Subscribe(func(msg interface{}) {
+		if deadLetter, ok := msg.(*DeadLetter); ok {
+			if deadLetter.PID == actor {
+				done = true
+			}
+		}
+	})
+	defer EventStream.Unsubscribe(sub)
+
+	actor.Stop()
+	time.Sleep(100 * time.Millisecond)
+
+	actor.Tell("hello")
+
+	assert.True(t, done)
+}
