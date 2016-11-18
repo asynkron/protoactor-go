@@ -5,7 +5,7 @@ import "fmt"
 //Tell a message to a given PID
 func (pid *PID) Tell(message interface{}) {
 	ref, _ := ProcessRegistry.fromPID(pid)
-	ref.Tell(message)
+	ref.Tell(pid, message)
 }
 
 //Ask a message to a given PID
@@ -14,7 +14,7 @@ func (pid *PID) Ask(message interface{}, sender *PID) error {
 	if !found {
 		return fmt.Errorf("Unknown PID %s", pid)
 	}
-	ref.Ask(message, sender)
+	ref.Ask(pid, message, sender)
 	return nil
 }
 
@@ -25,19 +25,19 @@ func (pid *PID) AskFuture(message interface{}) (*Future, error) {
 		return nil, fmt.Errorf("Unknown PID %s", pid)
 	}
 	future := NewFuture()
-	ref.Ask(message, future.PID())
+	ref.Ask(pid, message, future.PID())
 	return future, nil
 }
 
 func (pid *PID) sendSystemMessage(message SystemMessage) {
 	ref, _ := ProcessRegistry.fromPID(pid)
-	ref.SendSystemMessage(message)
+	ref.SendSystemMessage(pid, message)
 }
 
 //Stop the given PID
 func (pid *PID) Stop() {
 	ref, _ := ProcessRegistry.fromPID(pid)
-	ref.Stop()
+	ref.Stop(pid)
 }
 
 func (pid *PID) suspend() {

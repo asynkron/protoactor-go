@@ -4,10 +4,10 @@ import "log"
 
 //ActorRef is an interface that defines the base contract for interaction of actors
 type ActorRef interface {
-	Tell(message interface{})
-	Ask(message interface{}, sender *PID)
-	SendSystemMessage(message SystemMessage)
-	Stop()
+	Tell(pid *PID, message interface{})
+	Ask(pid *PID, message interface{}, sender *PID)
+	SendSystemMessage(pid *PID, message SystemMessage)
+	Stop(pid *PID)
 }
 
 type LocalActorRef struct {
@@ -20,20 +20,20 @@ func NewLocalActorRef(mailbox Mailbox) *LocalActorRef {
 	}
 }
 
-func (ref *LocalActorRef) Tell(message interface{}) {
+func (ref *LocalActorRef) Tell(pid *PID, message interface{}) {
 	ref.mailbox.PostUserMessage(UserMessage{Message: message})
 }
 
-func (ref *LocalActorRef) Ask(message interface{}, sender *PID) {
+func (ref *LocalActorRef) Ask(pid *PID, message interface{}, sender *PID) {
 	ref.mailbox.PostUserMessage(UserMessage{Message: message, Sender: sender})
 }
 
-func (ref *LocalActorRef) SendSystemMessage(message SystemMessage) {
+func (ref *LocalActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
 	ref.mailbox.PostSystemMessage(message)
 }
 
-func (ref *LocalActorRef) Stop() {
-	ref.SendSystemMessage(&stop{})
+func (ref *LocalActorRef) Stop(pid *PID) {
+	ref.SendSystemMessage(pid, &stop{})
 }
 
 func (ref *LocalActorRef) Suspend() {
@@ -49,16 +49,16 @@ type DeadLetterActorRef struct {
 
 var deadLetter ActorRef = new(DeadLetterActorRef)
 
-func (DeadLetterActorRef) Tell(message interface{}) {
-	log.Printf("Deadletter got %+v", message)
+func (DeadLetterActorRef) Tell(pid *PID, message interface{}) {
+	log.Printf("Deadletter for %v got %+v", pid, message)
 }
 
-func (DeadLetterActorRef) Ask(message interface{}, sender *PID) {
-	log.Printf("Deadletter was asked %+v", message)
+func (DeadLetterActorRef) Ask(pid *PID, message interface{}, sender *PID) {
+	log.Printf("Deadletter was %v asked %+v", pid, message)
 }
 
-func (DeadLetterActorRef) SendSystemMessage(message SystemMessage) {
+func (DeadLetterActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
 }
 
-func (DeadLetterActorRef) Stop() {
+func (DeadLetterActorRef) Stop(pid *PID) {
 }

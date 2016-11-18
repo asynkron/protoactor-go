@@ -18,7 +18,7 @@ func newRemoteActorRef(pid *actor.PID) actor.ActorRef {
 	}
 }
 
-func (ref *remoteActorRef) Tell(message interface{}) {
+func (ref *remoteActorRef) Tell(pid *actor.PID, message interface{}) {
 	switch msg := message.(type) {
 	case proto.Message:
 		envelope, _ := packMessage(msg, ref.pid, nil)
@@ -28,7 +28,7 @@ func (ref *remoteActorRef) Tell(message interface{}) {
 	}
 }
 
-func (ref *remoteActorRef) Ask(message interface{}, sender *actor.PID) {
+func (ref *remoteActorRef) Ask(pid *actor.PID, message interface{}, sender *actor.PID) {
 	switch msg := message.(type) {
 	case proto.Message:
 		envelope, _ := packMessage(msg, ref.pid, sender)
