@@ -39,19 +39,20 @@ func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef, id string) (*PID,
 	}
 
 	pr.rw.Lock()
-	defer pr.rw.Unlock()
 	_, found := pr.LocalPids[pid.Id]
 	if found {
+	    pr.rw.Unlock()
 		return &pid, false
 	}
 	pr.LocalPids[pid.Id] = actorRef
+	pr.rw.Unlock()
 	return &pid, true
 }
 
 func (pr *ProcessRegistryValue) unregisterPID(pid *PID) {
 	pr.rw.Lock()
-	defer pr.rw.Unlock()
 	delete(pr.LocalPids, pid.Id)
+	pr.rw.Unlock()
 }
 
 func (pr *ProcessRegistryValue) fromPID(pid *PID) (ActorRef, bool) {
@@ -66,11 +67,12 @@ func (pr *ProcessRegistryValue) fromPID(pid *PID) (ActorRef, bool) {
 		return deadLetter, false
 	}
 	pr.rw.RLock()
-	defer pr.rw.RUnlock()
 	ref, ok := pr.LocalPids[pid.Id]
 	if !ok {
 		//panic("Unknown PID")
+	    pr.rw.RUnlock()
 		return deadLetter, false
 	}
+	pr.rw.RUnlock()
 	return ref, true
 }
