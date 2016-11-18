@@ -280,8 +280,9 @@ func TestDeadLetterAfterStop(t *testing.T) {
 	defer EventStream.Unsubscribe(sub)
 
 	actor.Stop()
+	//stop is async, no clean way to wait for complete termination yet
 	time.Sleep(100 * time.Millisecond)
-
+	//send a message to the dead actor
 	actor.Tell("hello")
 
 	assert.True(t, done)

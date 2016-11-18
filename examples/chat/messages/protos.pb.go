@@ -18,11 +18,16 @@
 */
 package messages
 
-import proto "github.com/golang/protobuf/proto"
+import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
 import actor "github.com/AsynkronIT/gam/actor"
-import _ "github.com/gogo/protobuf/gogoproto"
+
+import strings "strings"
+import github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
+import sort "sort"
+import strconv "strconv"
+import reflect "reflect"
 
 import io "io"
 
@@ -33,14 +38,15 @@ var _ = math.Inf
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
-const _ = proto.ProtoPackageIsVersion1
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 type Connect struct {
 	Sender *actor.PID `protobuf:"bytes,1,opt,name=Sender,json=sender" json:"Sender,omitempty"`
 }
 
 func (m *Connect) Reset()                    { *m = Connect{} }
-func (m *Connect) String() string            { return proto.CompactTextString(m) }
 func (*Connect) ProtoMessage()               {}
 func (*Connect) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{0} }
 
@@ -56,7 +62,6 @@ type Connected struct {
 }
 
 func (m *Connected) Reset()                    { *m = Connected{} }
-func (m *Connected) String() string            { return proto.CompactTextString(m) }
 func (*Connected) ProtoMessage()               {}
 func (*Connected) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{1} }
 
@@ -66,7 +71,6 @@ type SayRequest struct {
 }
 
 func (m *SayRequest) Reset()                    { *m = SayRequest{} }
-func (m *SayRequest) String() string            { return proto.CompactTextString(m) }
 func (*SayRequest) ProtoMessage()               {}
 func (*SayRequest) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{2} }
 
@@ -76,7 +80,6 @@ type SayResponse struct {
 }
 
 func (m *SayResponse) Reset()                    { *m = SayResponse{} }
-func (m *SayResponse) String() string            { return proto.CompactTextString(m) }
 func (*SayResponse) ProtoMessage()               {}
 func (*SayResponse) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{3} }
 
@@ -86,7 +89,6 @@ type NickRequest struct {
 }
 
 func (m *NickRequest) Reset()                    { *m = NickRequest{} }
-func (m *NickRequest) String() string            { return proto.CompactTextString(m) }
 func (*NickRequest) ProtoMessage()               {}
 func (*NickRequest) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{4} }
 
@@ -96,7 +98,6 @@ type NickResponse struct {
 }
 
 func (m *NickResponse) Reset()                    { *m = NickResponse{} }
-func (m *NickResponse) String() string            { return proto.CompactTextString(m) }
 func (*NickResponse) ProtoMessage()               {}
 func (*NickResponse) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{5} }
 
@@ -108,26 +109,310 @@ func init() {
 	proto.RegisterType((*NickRequest)(nil), "messages.NickRequest")
 	proto.RegisterType((*NickResponse)(nil), "messages.NickResponse")
 }
-func (m *Connect) Marshal() (data []byte, err error) {
+func (this *Connect) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*Connect)
+	if !ok {
+		that2, ok := that.(Connect)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if !this.Sender.Equal(that1.Sender) {
+		return false
+	}
+	return true
+}
+func (this *Connected) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*Connected)
+	if !ok {
+		that2, ok := that.(Connected)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if this.Message != that1.Message {
+		return false
+	}
+	return true
+}
+func (this *SayRequest) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*SayRequest)
+	if !ok {
+		that2, ok := that.(SayRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if this.UserName != that1.UserName {
+		return false
+	}
+	if this.Message != that1.Message {
+		return false
+	}
+	return true
+}
+func (this *SayResponse) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*SayResponse)
+	if !ok {
+		that2, ok := that.(SayResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if this.UserName != that1.UserName {
+		return false
+	}
+	if this.Message != that1.Message {
+		return false
+	}
+	return true
+}
+func (this *NickRequest) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*NickRequest)
+	if !ok {
+		that2, ok := that.(NickRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if this.OldUserName != that1.OldUserName {
+		return false
+	}
+	if this.NewUserName != that1.NewUserName {
+		return false
+	}
+	return true
+}
+func (this *NickResponse) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*NickResponse)
+	if !ok {
+		that2, ok := that.(NickResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if this.OldUserName != that1.OldUserName {
+		return false
+	}
+	if this.NewUserName != that1.NewUserName {
+		return false
+	}
+	return true
+}
+func (this *Connect) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&messages.Connect{")
+	if this.Sender != nil {
+		s = append(s, "Sender: "+fmt.Sprintf("%#v", this.Sender)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *Connected) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&messages.Connected{")
+	s = append(s, "Message: "+fmt.Sprintf("%#v", this.Message)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *SayRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&messages.SayRequest{")
+	s = append(s, "UserName: "+fmt.Sprintf("%#v", this.UserName)+",\n")
+	s = append(s, "Message: "+fmt.Sprintf("%#v", this.Message)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *SayResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&messages.SayResponse{")
+	s = append(s, "UserName: "+fmt.Sprintf("%#v", this.UserName)+",\n")
+	s = append(s, "Message: "+fmt.Sprintf("%#v", this.Message)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *NickRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&messages.NickRequest{")
+	s = append(s, "OldUserName: "+fmt.Sprintf("%#v", this.OldUserName)+",\n")
+	s = append(s, "NewUserName: "+fmt.Sprintf("%#v", this.NewUserName)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *NickResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&messages.NickResponse{")
+	s = append(s, "OldUserName: "+fmt.Sprintf("%#v", this.OldUserName)+",\n")
+	s = append(s, "NewUserName: "+fmt.Sprintf("%#v", this.NewUserName)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func valueToGoStringProtos(v interface{}, typ string) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
+}
+func extensionToGoStringProtos(m github_com_gogo_protobuf_proto.Message) string {
+	e := github_com_gogo_protobuf_proto.GetUnsafeExtensionsMap(m)
+	if e == nil {
+		return "nil"
+	}
+	s := "proto.NewUnsafeXXX_InternalExtensions(map[int32]proto.Extension{"
+	keys := make([]int, 0, len(e))
+	for k := range e {
+		keys = append(keys, int(k))
+	}
+	sort.Ints(keys)
+	ss := []string{}
+	for _, k := range keys {
+		ss = append(ss, strconv.Itoa(k)+": "+e[int32(k)].GoString())
+	}
+	s += strings.Join(ss, ",") + "})"
+	return s
+}
+func (m *Connect) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *Connect) MarshalTo(data []byte) (int, error) {
+func (m *Connect) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if m.Sender != nil {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintProtos(data, i, uint64(m.Sender.Size()))
-		n1, err := m.Sender.MarshalTo(data[i:])
+		i = encodeVarintProtos(dAtA, i, uint64(m.Sender.Size()))
+		n1, err := m.Sender.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -136,175 +421,175 @@ func (m *Connect) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Connected) Marshal() (data []byte, err error) {
+func (m *Connected) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *Connected) MarshalTo(data []byte) (int, error) {
+func (m *Connected) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.Message) > 0 {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintProtos(data, i, uint64(len(m.Message)))
-		i += copy(data[i:], m.Message)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.Message)))
+		i += copy(dAtA[i:], m.Message)
 	}
 	return i, nil
 }
 
-func (m *SayRequest) Marshal() (data []byte, err error) {
+func (m *SayRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *SayRequest) MarshalTo(data []byte) (int, error) {
+func (m *SayRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.UserName) > 0 {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintProtos(data, i, uint64(len(m.UserName)))
-		i += copy(data[i:], m.UserName)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.UserName)))
+		i += copy(dAtA[i:], m.UserName)
 	}
 	if len(m.Message) > 0 {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintProtos(data, i, uint64(len(m.Message)))
-		i += copy(data[i:], m.Message)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.Message)))
+		i += copy(dAtA[i:], m.Message)
 	}
 	return i, nil
 }
 
-func (m *SayResponse) Marshal() (data []byte, err error) {
+func (m *SayResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *SayResponse) MarshalTo(data []byte) (int, error) {
+func (m *SayResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.UserName) > 0 {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintProtos(data, i, uint64(len(m.UserName)))
-		i += copy(data[i:], m.UserName)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.UserName)))
+		i += copy(dAtA[i:], m.UserName)
 	}
 	if len(m.Message) > 0 {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintProtos(data, i, uint64(len(m.Message)))
-		i += copy(data[i:], m.Message)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.Message)))
+		i += copy(dAtA[i:], m.Message)
 	}
 	return i, nil
 }
 
-func (m *NickRequest) Marshal() (data []byte, err error) {
+func (m *NickRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *NickRequest) MarshalTo(data []byte) (int, error) {
+func (m *NickRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.OldUserName) > 0 {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintProtos(data, i, uint64(len(m.OldUserName)))
-		i += copy(data[i:], m.OldUserName)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.OldUserName)))
+		i += copy(dAtA[i:], m.OldUserName)
 	}
 	if len(m.NewUserName) > 0 {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintProtos(data, i, uint64(len(m.NewUserName)))
-		i += copy(data[i:], m.NewUserName)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.NewUserName)))
+		i += copy(dAtA[i:], m.NewUserName)
 	}
 	return i, nil
 }
 
-func (m *NickResponse) Marshal() (data []byte, err error) {
+func (m *NickResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *NickResponse) MarshalTo(data []byte) (int, error) {
+func (m *NickResponse) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.OldUserName) > 0 {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintProtos(data, i, uint64(len(m.OldUserName)))
-		i += copy(data[i:], m.OldUserName)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.OldUserName)))
+		i += copy(dAtA[i:], m.OldUserName)
 	}
 	if len(m.NewUserName) > 0 {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintProtos(data, i, uint64(len(m.NewUserName)))
-		i += copy(data[i:], m.NewUserName)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.NewUserName)))
+		i += copy(dAtA[i:], m.NewUserName)
 	}
 	return i, nil
 }
 
-func encodeFixed64Protos(data []byte, offset int, v uint64) int {
-	data[offset] = uint8(v)
-	data[offset+1] = uint8(v >> 8)
-	data[offset+2] = uint8(v >> 16)
-	data[offset+3] = uint8(v >> 24)
-	data[offset+4] = uint8(v >> 32)
-	data[offset+5] = uint8(v >> 40)
-	data[offset+6] = uint8(v >> 48)
-	data[offset+7] = uint8(v >> 56)
+func encodeFixed64Protos(dAtA []byte, offset int, v uint64) int {
+	dAtA[offset] = uint8(v)
+	dAtA[offset+1] = uint8(v >> 8)
+	dAtA[offset+2] = uint8(v >> 16)
+	dAtA[offset+3] = uint8(v >> 24)
+	dAtA[offset+4] = uint8(v >> 32)
+	dAtA[offset+5] = uint8(v >> 40)
+	dAtA[offset+6] = uint8(v >> 48)
+	dAtA[offset+7] = uint8(v >> 56)
 	return offset + 8
 }
-func encodeFixed32Protos(data []byte, offset int, v uint32) int {
-	data[offset] = uint8(v)
-	data[offset+1] = uint8(v >> 8)
-	data[offset+2] = uint8(v >> 16)
-	data[offset+3] = uint8(v >> 24)
+func encodeFixed32Protos(dAtA []byte, offset int, v uint32) int {
+	dAtA[offset] = uint8(v)
+	dAtA[offset+1] = uint8(v >> 8)
+	dAtA[offset+2] = uint8(v >> 16)
+	dAtA[offset+3] = uint8(v >> 24)
 	return offset + 4
 }
-func encodeVarintProtos(data []byte, offset int, v uint64) int {
+func encodeVarintProtos(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
-		data[offset] = uint8(v&0x7f | 0x80)
+		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
-	data[offset] = uint8(v)
+	dAtA[offset] = uint8(v)
 	return offset + 1
 }
 func (m *Connect) Size() (n int) {
@@ -396,8 +681,80 @@ func sovProtos(x uint64) (n int) {
 func sozProtos(x uint64) (n int) {
 	return sovProtos(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *Connect) Unmarshal(data []byte) error {
-	l := len(data)
+func (this *Connect) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Connect{`,
+		`Sender:` + strings.Replace(fmt.Sprintf("%v", this.Sender), "PID", "actor.PID", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Connected) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Connected{`,
+		`Message:` + fmt.Sprintf("%v", this.Message) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SayRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SayRequest{`,
+		`UserName:` + fmt.Sprintf("%v", this.UserName) + `,`,
+		`Message:` + fmt.Sprintf("%v", this.Message) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SayResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SayResponse{`,
+		`UserName:` + fmt.Sprintf("%v", this.UserName) + `,`,
+		`Message:` + fmt.Sprintf("%v", this.Message) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *NickRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&NickRequest{`,
+		`OldUserName:` + fmt.Sprintf("%v", this.OldUserName) + `,`,
+		`NewUserName:` + fmt.Sprintf("%v", this.NewUserName) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *NickResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&NickResponse{`,
+		`OldUserName:` + fmt.Sprintf("%v", this.OldUserName) + `,`,
+		`NewUserName:` + fmt.Sprintf("%v", this.NewUserName) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func valueToStringProtos(v interface{}) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("*%v", pv)
+}
+func (m *Connect) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -409,7 +766,7 @@ func (m *Connect) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -437,7 +794,7 @@ func (m *Connect) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -454,13 +811,13 @@ func (m *Connect) Unmarshal(data []byte) error {
 			if m.Sender == nil {
 				m.Sender = &actor.PID{}
 			}
-			if err := m.Sender.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Sender.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipProtos(data[iNdEx:])
+			skippy, err := skipProtos(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -479,8 +836,8 @@ func (m *Connect) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *Connected) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *Connected) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -492,7 +849,7 @@ func (m *Connected) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -520,7 +877,7 @@ func (m *Connected) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -535,11 +892,11 @@ func (m *Connected) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Message = string(data[iNdEx:postIndex])
+			m.Message = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipProtos(data[iNdEx:])
+			skippy, err := skipProtos(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -558,8 +915,8 @@ func (m *Connected) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *SayRequest) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *SayRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -571,7 +928,7 @@ func (m *SayRequest) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -599,7 +956,7 @@ func (m *SayRequest) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -614,7 +971,7 @@ func (m *SayRequest) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.UserName = string(data[iNdEx:postIndex])
+			m.UserName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -628,7 +985,7 @@ func (m *SayRequest) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -643,11 +1000,11 @@ func (m *SayRequest) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Message = string(data[iNdEx:postIndex])
+			m.Message = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipProtos(data[iNdEx:])
+			skippy, err := skipProtos(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -666,8 +1023,8 @@ func (m *SayRequest) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *SayResponse) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *SayResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -679,7 +1036,7 @@ func (m *SayResponse) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -707,7 +1064,7 @@ func (m *SayResponse) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -722,7 +1079,7 @@ func (m *SayResponse) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.UserName = string(data[iNdEx:postIndex])
+			m.UserName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -736,7 +1093,7 @@ func (m *SayResponse) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -751,11 +1108,11 @@ func (m *SayResponse) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Message = string(data[iNdEx:postIndex])
+			m.Message = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipProtos(data[iNdEx:])
+			skippy, err := skipProtos(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -774,8 +1131,8 @@ func (m *SayResponse) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *NickRequest) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *NickRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -787,7 +1144,7 @@ func (m *NickRequest) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -815,7 +1172,7 @@ func (m *NickRequest) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -830,7 +1187,7 @@ func (m *NickRequest) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.OldUserName = string(data[iNdEx:postIndex])
+			m.OldUserName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -844,7 +1201,7 @@ func (m *NickRequest) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -859,11 +1216,11 @@ func (m *NickRequest) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.NewUserName = string(data[iNdEx:postIndex])
+			m.NewUserName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipProtos(data[iNdEx:])
+			skippy, err := skipProtos(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -882,8 +1239,8 @@ func (m *NickRequest) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *NickResponse) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *NickResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -895,7 +1252,7 @@ func (m *NickResponse) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -923,7 +1280,7 @@ func (m *NickResponse) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -938,7 +1295,7 @@ func (m *NickResponse) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.OldUserName = string(data[iNdEx:postIndex])
+			m.OldUserName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -952,7 +1309,7 @@ func (m *NickResponse) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -967,11 +1324,11 @@ func (m *NickResponse) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.NewUserName = string(data[iNdEx:postIndex])
+			m.NewUserName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipProtos(data[iNdEx:])
+			skippy, err := skipProtos(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -990,8 +1347,8 @@ func (m *NickResponse) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func skipProtos(data []byte) (n int, err error) {
-	l := len(data)
+func skipProtos(dAtA []byte) (n int, err error) {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		var wire uint64
@@ -1002,7 +1359,7 @@ func skipProtos(data []byte) (n int, err error) {
 			if iNdEx >= l {
 				return 0, io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -1020,7 +1377,7 @@ func skipProtos(data []byte) (n int, err error) {
 					return 0, io.ErrUnexpectedEOF
 				}
 				iNdEx++
-				if data[iNdEx-1] < 0x80 {
+				if dAtA[iNdEx-1] < 0x80 {
 					break
 				}
 			}
@@ -1037,7 +1394,7 @@ func skipProtos(data []byte) (n int, err error) {
 				if iNdEx >= l {
 					return 0, io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				length |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1060,7 +1417,7 @@ func skipProtos(data []byte) (n int, err error) {
 					if iNdEx >= l {
 						return 0, io.ErrUnexpectedEOF
 					}
-					b := data[iNdEx]
+					b := dAtA[iNdEx]
 					iNdEx++
 					innerWire |= (uint64(b) & 0x7F) << shift
 					if b < 0x80 {
@@ -1071,7 +1428,7 @@ func skipProtos(data []byte) (n int, err error) {
 				if innerWireType == 4 {
 					break
 				}
-				next, err := skipProtos(data[start:])
+				next, err := skipProtos(dAtA[start:])
 				if err != nil {
 					return 0, err
 				}
@@ -1095,24 +1452,27 @@ var (
 	ErrIntOverflowProtos   = fmt.Errorf("proto: integer overflow")
 )
 
+func init() { proto.RegisterFile("protos.proto", fileDescriptorProtos) }
+
 var fileDescriptorProtos = []byte{
-	// 279 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xac, 0x91, 0xc1, 0x4a, 0xc3, 0x40,
-	0x10, 0x86, 0xad, 0x87, 0x24, 0x9d, 0xed, 0x41, 0x72, 0x2a, 0x3d, 0x94, 0x12, 0x10, 0xbc, 0x34,
-	0x01, 0x7d, 0x83, 0xd6, 0x8b, 0x07, 0xa3, 0xa6, 0xf8, 0x00, 0x9b, 0x64, 0x5c, 0x83, 0xcd, 0x4e,
-	0xdd, 0x49, 0x10, 0xdf, 0xc4, 0x47, 0xf2, 0xe8, 0x23, 0x88, 0xbe, 0x88, 0x75, 0x37, 0xb5, 0xad,
-	0x47, 0xf1, 0x30, 0x24, 0x33, 0xf3, 0xcd, 0xc7, 0x0f, 0x0b, 0x83, 0x95, 0xa1, 0x86, 0x38, 0xb6,
-	0x9f, 0x30, 0xa8, 0x91, 0x59, 0x2a, 0xe4, 0xd1, 0x54, 0x55, 0xcd, 0x7d, 0x9b, 0xc7, 0x05, 0xd5,
-	0x89, 0x21, 0x85, 0x46, 0x2e, 0xb9, 0xd2, 0x2a, 0x51, 0xb2, 0x4e, 0x64, 0xd1, 0x90, 0x49, 0x76,
-	0x0f, 0xf7, 0x70, 0x45, 0x8a, 0xdc, 0x36, 0x6f, 0xef, 0x6c, 0x67, 0x1b, 0xfb, 0xe7, 0xf0, 0x68,
-	0x0a, 0xfe, 0x9c, 0xb4, 0xc6, 0xa2, 0x09, 0x23, 0xf0, 0x16, 0xa8, 0x4b, 0x34, 0xc3, 0xde, 0xa4,
-	0x77, 0x22, 0x4e, 0x21, 0xb6, 0xfa, 0xf8, 0xfa, 0xe2, 0x3c, 0xf3, 0xd8, 0x6e, 0xa2, 0x63, 0xe8,
-	0x77, 0x38, 0x96, 0xe1, 0x10, 0xfc, 0x4b, 0x97, 0xd2, 0x5e, 0xf4, 0x33, 0xbf, 0x0b, 0x1d, 0xcd,
-	0x00, 0x16, 0xf2, 0x39, 0xc3, 0xc7, 0x16, 0xb9, 0x09, 0x47, 0x10, 0xdc, 0x32, 0x9a, 0x54, 0xd6,
-	0x1b, 0x30, 0x68, 0xbb, 0x7e, 0xd7, 0x71, 0xb8, 0xef, 0x98, 0x83, 0xb0, 0x0e, 0x5e, 0x91, 0x66,
-	0xfc, 0xa3, 0xe4, 0x06, 0x44, 0x5a, 0x15, 0x0f, 0x9b, 0x24, 0x13, 0x10, 0x57, 0xcb, 0xf2, 0x97,
-	0x47, 0xd0, 0x76, 0xf4, 0x4d, 0xa4, 0xf8, 0xf4, 0x43, 0x38, 0x9d, 0xd0, 0xdb, 0x51, 0x94, 0xc1,
-	0xc0, 0x29, 0xbb, 0x60, 0xff, 0xe0, 0x9c, 0x1d, 0xbd, 0x7e, 0x8c, 0x7b, 0x6f, 0xeb, 0x7a, 0x5f,
-	0xd7, 0xcb, 0xe7, 0xf8, 0x20, 0xf7, 0xec, 0xf3, 0x9c, 0x7d, 0x05, 0x00, 0x00, 0xff, 0xff, 0x2c,
-	0x21, 0x3e, 0xe0, 0x16, 0x02, 0x00, 0x00,
+	// 293 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x28, 0xca, 0x2f,
+	0xc9, 0x2f, 0xd6, 0x03, 0x53, 0x42, 0x1c, 0xb9, 0xa9, 0xc5, 0xc5, 0x89, 0xe9, 0xa9, 0xc5, 0x52,
+	0x3a, 0xe9, 0x99, 0x25, 0x19, 0xa5, 0x49, 0x7a, 0xc9, 0xf9, 0xb9, 0xfa, 0x8e, 0xc5, 0x95, 0x79,
+	0xd9, 0x45, 0xf9, 0x79, 0x9e, 0x21, 0xfa, 0xe9, 0x89, 0xb9, 0xfa, 0x89, 0xc9, 0x25, 0xf9, 0x45,
+	0xfa, 0xc8, 0xfa, 0x94, 0x74, 0xb9, 0xd8, 0x9d, 0xf3, 0xf3, 0xf2, 0x52, 0x93, 0x4b, 0x84, 0x94,
+	0xb8, 0xd8, 0x82, 0x53, 0xf3, 0x52, 0x52, 0x8b, 0x24, 0x18, 0x15, 0x18, 0x35, 0xb8, 0x8d, 0xb8,
+	0xf4, 0xc0, 0xea, 0xf5, 0x02, 0x3c, 0x5d, 0x82, 0xd8, 0x8a, 0xc1, 0x32, 0x4a, 0xaa, 0x5c, 0x9c,
+	0x50, 0xe5, 0xa9, 0x29, 0x42, 0x12, 0x5c, 0xec, 0xbe, 0x10, 0x5b, 0xc1, 0x3a, 0x38, 0x83, 0xd8,
+	0xa1, 0x8e, 0x50, 0x72, 0xe2, 0xe2, 0x0a, 0x4e, 0xac, 0x0c, 0x4a, 0x2d, 0x2c, 0x4d, 0x2d, 0x2e,
+	0x11, 0x92, 0xe2, 0xe2, 0x08, 0x2d, 0x4e, 0x2d, 0xf2, 0x4b, 0xcc, 0x85, 0x29, 0xe4, 0x28, 0x85,
+	0xf2, 0x91, 0xcd, 0x60, 0x42, 0x35, 0xc3, 0x99, 0x8b, 0x1b, 0x6c, 0x46, 0x71, 0x41, 0x7e, 0x5e,
+	0x71, 0x2a, 0x99, 0x86, 0x04, 0x72, 0x71, 0xfb, 0x65, 0x26, 0x67, 0xc3, 0x5c, 0xa2, 0xc0, 0xc5,
+	0xed, 0x9f, 0x93, 0x82, 0x66, 0x0e, 0x77, 0x3e, 0x42, 0x08, 0xa4, 0xc2, 0x2f, 0xb5, 0x1c, 0xae,
+	0x02, 0x62, 0x1c, 0x77, 0x1e, 0x42, 0x48, 0x29, 0x88, 0x8b, 0x07, 0x62, 0x24, 0xd4, 0x61, 0x54,
+	0x30, 0xd3, 0x49, 0xe7, 0xc2, 0x43, 0x39, 0x86, 0x1b, 0x0f, 0xe5, 0x18, 0x3e, 0x3c, 0x94, 0x63,
+	0x6c, 0x78, 0x24, 0xc7, 0xb8, 0xe2, 0x91, 0x1c, 0xe3, 0x89, 0x47, 0x72, 0x8c, 0x17, 0x1e, 0xc9,
+	0x31, 0x3e, 0x78, 0x24, 0xc7, 0xf8, 0xe2, 0x91, 0x1c, 0xc3, 0x87, 0x47, 0x72, 0x8c, 0x13, 0x1e,
+	0xcb, 0x31, 0x24, 0xb1, 0x81, 0xa3, 0xce, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0xa5, 0x8f, 0xd2,
+	0x6b, 0x02, 0x02, 0x00, 0x00,
 }
