@@ -1,11 +1,14 @@
 package actor
 
-import "sync"
+import (
+	"log"
+	"sync"
+)
 
+type Action func(msg interface{})
 type Predicate func(msg interface{}) bool
 type subscription struct {
-	pid       *PID
-	predicate Predicate
+	action Action
 }
 
 type eventStream struct {
@@ -15,19 +18,32 @@ type eventStream struct {
 
 var EventStream = &eventStream{}
 
-func (es *eventStream) Subscribe(subscriber *PID, predicate Predicate) {
+func init() {
+	EventStream.Subscribe(func(msg interface{}) {
+		if deadLetter, ok := msg.(*DeadLetter); ok {
+			log.Printf("[DeadLetter] %v got %+v", deadLetter.PID, deadLetter.Message)
+		}
+	})
+}
+
+func (es *eventStream) Subscribe(action Action) {
 	es.Lock()
 	defer es.Unlock()
 	es.subscriptions = append(es.subscriptions, &subscription{
-		pid:       subscriber,
-		predicate: predicate,
+		action: action,
+	})
+}
+
+func (es *eventStream) SubscribePID(predicate Predicate, pid *PID) {
+	es.Subscribe(func(msg interface{}) {
+		if predicate(msg) {
+			pid.Tell(msg)
+		}
 	})
 }
 
 func (es *eventStream) Publish(message interface{}) {
 	for _, s := range es.subscriptions {
-		if s.predicate(message) {
-			s.pid.Tell(message)
-		}
+		s.action(message)
 	}
 }

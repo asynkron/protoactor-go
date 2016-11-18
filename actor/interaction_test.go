@@ -245,7 +245,7 @@ func TestActorCanStopChildren(t *testing.T) {
 
 	future := NewFuture()
 	future2 := NewFuture()
-	actor.Tell(GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.pid})
+	actor.Tell(GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.PID()})
 
 	//wait for the actor to reply to the first responsePID
 	_, err := future.ResultOrTimeout(testTimeout)

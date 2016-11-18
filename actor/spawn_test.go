@@ -30,7 +30,7 @@ func (counter *Counter) Increment() {
 func (a *GorgeousActor) Receive(context Context) {
 	switch context.Message().(type) {
 	case *Started:
-		log.Printf("Started %s", a)
+		log.Printf("Started %v", a)
 	case Increment:
 		log.Printf("Incrementing %v", a)
 		a.Increment()
