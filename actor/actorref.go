@@ -1,7 +1,5 @@
 package actor
 
-import "log"
-
 //ActorRef is an interface that defines the base contract for interaction of actors
 type ActorRef interface {
 	Tell(pid *PID, message interface{})
@@ -49,12 +47,23 @@ type DeadLetterActorRef struct {
 
 var deadLetter ActorRef = new(DeadLetterActorRef)
 
+type DeadLetter struct {
+	PID     *PID
+	Message interface{}
+}
+
 func (DeadLetterActorRef) Tell(pid *PID, message interface{}) {
-	log.Printf("Deadletter for %v got %+v", pid, message)
+	EventStream.Publish(&DeadLetter{
+		PID:     pid,
+		Message: message,
+	})
 }
 
 func (DeadLetterActorRef) Ask(pid *PID, message interface{}, sender *PID) {
-	log.Printf("Deadletter was %v asked %+v", pid, message)
+	EventStream.Publish(&DeadLetter{
+		PID:     pid,
+		Message: message,
+	})
 }
 
 func (DeadLetterActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
@@ -62,3 +71,5 @@ func (DeadLetterActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
 
 func (DeadLetterActorRef) Stop(pid *PID) {
 }
+
+//log.Printf("Deadletter for %v got %+v", pid, message)
