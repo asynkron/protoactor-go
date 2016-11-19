@@ -66,12 +66,12 @@ func Get(name string, kind string) *actor.PID {
 	}
 	response, err := remote.AskFuture(req, 5*time.Second)
 	if err != nil {
-		log.Fatalf("remote AskFuture failed %v", err)
+		log.Fatalf("[CLUSTER DEBUG] remote AskFuture failed %v", err)
 	}
 	//await the response
 	res, err := response.Result()
 	if err != nil {
-		log.Fatalf("response result failed %v", err)
+		log.Fatalf("[CLUSTER DEBUG] response result failed %v", err)
 	}
 
 	//unwrap the result
