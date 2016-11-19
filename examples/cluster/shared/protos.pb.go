@@ -9,7 +9,8 @@ It is generated from these files:
 	protos.proto
 
 It has these top-level messages:
-	HelloMessage
+	HelloRequest
+	HelloResponse
 */
 package shared
 
@@ -36,17 +37,27 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
-type HelloMessage struct {
+type HelloRequest struct {
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 }
 
-func (m *HelloMessage) Reset()                    { *m = HelloMessage{} }
-func (*HelloMessage) ProtoMessage()               {}
-func (*HelloMessage) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{0} }
+func (m *HelloRequest) Reset()                    { *m = HelloRequest{} }
+func (*HelloRequest) ProtoMessage()               {}
+func (*HelloRequest) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{0} }
+
+type HelloResponse struct {
+	Message string `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+}
+
+func (m *HelloResponse) Reset()                    { *m = HelloResponse{} }
+func (*HelloResponse) ProtoMessage()               {}
+func (*HelloResponse) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{1} }
 
 func init() {
-	proto.RegisterType((*HelloMessage)(nil), "shared.HelloMessage")
+	proto.RegisterType((*HelloRequest)(nil), "shared.HelloRequest")
+	proto.RegisterType((*HelloResponse)(nil), "shared.HelloResponse")
 }
-func (this *HelloMessage) Equal(that interface{}) bool {
+func (this *HelloRequest) Equal(that interface{}) bool {
 	if that == nil {
 		if this == nil {
 			return true
@@ -54,9 +65,9 @@ func (this *HelloMessage) Equal(that interface{}) bool {
 		return false
 	}
 
-	that1, ok := that.(*HelloMessage)
+	that1, ok := that.(*HelloRequest)
 	if !ok {
-		that2, ok := that.(HelloMessage)
+		that2, ok := that.(HelloRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -71,14 +82,58 @@ func (this *HelloMessage) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
+	if this.Name != that1.Name {
+		return false
+	}
 	return true
 }
-func (this *HelloMessage) GoString() string {
+func (this *HelloResponse) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*HelloResponse)
+	if !ok {
+		that2, ok := that.(HelloResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if this.Message != that1.Message {
+		return false
+	}
+	return true
+}
+func (this *HelloRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 4)
-	s = append(s, "&shared.HelloMessage{")
+	s := make([]string, 0, 5)
+	s = append(s, "&shared.HelloRequest{")
+	s = append(s, "Name: "+fmt.Sprintf("%#v", this.Name)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *HelloResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&shared.HelloResponse{")
+	s = append(s, "Message: "+fmt.Sprintf("%#v", this.Message)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -108,7 +163,7 @@ func extensionToGoStringProtos(m github_com_gogo_protobuf_proto.Message) string 
 	s += strings.Join(ss, ",") + "})"
 	return s
 }
-func (m *HelloMessage) Marshal() (dAtA []byte, err error) {
+func (m *HelloRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -118,11 +173,41 @@ func (m *HelloMessage) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *HelloMessage) MarshalTo(dAtA []byte) (int, error) {
+func (m *HelloRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
+	if len(m.Name) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.Name)))
+		i += copy(dAtA[i:], m.Name)
+	}
+	return i, nil
+}
+
+func (m *HelloResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HelloResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Message) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.Message)))
+		i += copy(dAtA[i:], m.Message)
+	}
 	return i, nil
 }
 
@@ -153,9 +238,23 @@ func encodeVarintProtos(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
-func (m *HelloMessage) Size() (n int) {
+func (m *HelloRequest) Size() (n int) {
 	var l int
 	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + sovProtos(uint64(l))
+	}
+	return n
+}
+
+func (m *HelloResponse) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Message)
+	if l > 0 {
+		n += 1 + l + sovProtos(uint64(l))
+	}
 	return n
 }
 
@@ -172,11 +271,22 @@ func sovProtos(x uint64) (n int) {
 func sozProtos(x uint64) (n int) {
 	return sovProtos(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (this *HelloMessage) String() string {
+func (this *HelloRequest) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&HelloMessage{`,
+	s := strings.Join([]string{`&HelloRequest{`,
+		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *HelloResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&HelloResponse{`,
+		`Message:` + fmt.Sprintf("%v", this.Message) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -189,7 +299,7 @@ func valueToStringProtos(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *HelloMessage) Unmarshal(dAtA []byte) error {
+func (m *HelloRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -212,12 +322,120 @@ func (m *HelloMessage) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: HelloMessage: wiretype end group for non-group")
+			return fmt.Errorf("proto: HelloRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: HelloMessage: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: HelloRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HelloResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HelloResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HelloResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Message = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipProtos(dAtA[iNdEx:])
@@ -347,12 +565,17 @@ var (
 func init() { proto.RegisterFile("protos.proto", fileDescriptorProtos) }
 
 var fileDescriptorProtos = []byte{
-	// 112 bytes of a gzipped FileDescriptorProto
+	// 185 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x28, 0xca, 0x2f,
-	0xc9, 0x2f, 0xd6, 0x03, 0x53, 0x42, 0x6c, 0xc5, 0x19, 0x89, 0x45, 0xa9, 0x29, 0x4a, 0x7c, 0x5c,
-	0x3c, 0x1e, 0xa9, 0x39, 0x39, 0xf9, 0xbe, 0xa9, 0xc5, 0xc5, 0x89, 0xe9, 0xa9, 0x4e, 0x3a, 0x17,
-	0x1e, 0xca, 0x31, 0xdc, 0x78, 0x28, 0xc7, 0xf0, 0xe1, 0xa1, 0x1c, 0x63, 0xc3, 0x23, 0x39, 0xc6,
-	0x15, 0x8f, 0xe4, 0x18, 0x4f, 0x3c, 0x92, 0x63, 0xbc, 0xf0, 0x48, 0x8e, 0xf1, 0xc1, 0x23, 0x39,
-	0xc6, 0x17, 0x8f, 0xe4, 0x18, 0x3e, 0x3c, 0x92, 0x63, 0x9c, 0xf0, 0x58, 0x8e, 0x21, 0x89, 0x0d,
-	0x6c, 0x98, 0x31, 0x20, 0x00, 0x00, 0xff, 0xff, 0xf0, 0xe1, 0x11, 0xaf, 0x5c, 0x00, 0x00, 0x00,
+	0xc9, 0x2f, 0xd6, 0x03, 0x53, 0x42, 0x6c, 0xc5, 0x19, 0x89, 0x45, 0xa9, 0x29, 0x4a, 0x4a, 0x5c,
+	0x3c, 0x1e, 0xa9, 0x39, 0x39, 0xf9, 0x41, 0xa9, 0x85, 0xa5, 0xa9, 0xc5, 0x25, 0x42, 0x42, 0x5c,
+	0x2c, 0x79, 0x89, 0xb9, 0xa9, 0x12, 0x8c, 0x0a, 0x8c, 0x1a, 0x9c, 0x41, 0x60, 0xb6, 0x92, 0x26,
+	0x17, 0x2f, 0x54, 0x4d, 0x71, 0x41, 0x7e, 0x5e, 0x71, 0xaa, 0x90, 0x04, 0x17, 0x7b, 0x6e, 0x6a,
+	0x71, 0x71, 0x62, 0x3a, 0x4c, 0x1d, 0x8c, 0x6b, 0xe4, 0xc4, 0xc5, 0x0a, 0x56, 0x2a, 0x64, 0xc9,
+	0xc5, 0x11, 0x9c, 0x58, 0x09, 0x61, 0x8b, 0xe8, 0x41, 0x2c, 0xd3, 0x43, 0xb6, 0x49, 0x4a, 0x14,
+	0x4d, 0x14, 0x62, 0xb6, 0x12, 0x83, 0x93, 0xce, 0x85, 0x87, 0x72, 0x0c, 0x37, 0x1e, 0xca, 0x31,
+	0x7c, 0x78, 0x28, 0xc7, 0xd8, 0xf0, 0x48, 0x8e, 0x71, 0xc5, 0x23, 0x39, 0xc6, 0x13, 0x8f, 0xe4,
+	0x18, 0x2f, 0x3c, 0x92, 0x63, 0x7c, 0xf0, 0x48, 0x8e, 0xf1, 0xc5, 0x23, 0x39, 0x86, 0x0f, 0x8f,
+	0xe4, 0x18, 0x27, 0x3c, 0x96, 0x63, 0x48, 0x62, 0x03, 0xfb, 0xc7, 0x18, 0x10, 0x00, 0x00, 0xff,
+	0xff, 0x77, 0x47, 0x4d, 0x02, 0xdf, 0x00, 0x00, 0x00,
 }
