@@ -16,13 +16,21 @@ It has these top-level messages:
 */
 package shared
 
-import log "log"
-import github_com_AsynkronIT_gam_cluster_grains "github.com/AsynkronIT/gam/cluster/grains"
-import github_com_AsynkronIT_gam_cluster "github.com/AsynkronIT/gam/cluster"
-import github_com_AsynkronIT_gam_actor "github.com/AsynkronIT/gam/actor"
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	log "log"
+	"time"
+
+	github_com_AsynkronIT_gam_cluster "github.com/AsynkronIT/gam/cluster"
+	github_com_AsynkronIT_gam_cluster_grains "github.com/AsynkronIT/gam/cluster/grains"
+
+	github_com_AsynkronIT_gam_actor "github.com/AsynkronIT/gam/actor"
+
+	proto "github.com/gogo/protobuf/proto"
+
+	fmt "fmt"
+
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -49,11 +57,23 @@ type HelloGrain struct {
 
 func (g *HelloGrain) SayHello(r *HelloRequest) *HelloResponse {
 	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id(), "Hello")
-	bytes, _ := proto.Marshal(r)
+	bytes, err := proto.Marshal(r)
+	if err != nil {
+		log.Fatal("aaaa")
+	}
 	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "SayHello", MessageData: bytes}
-	r0, _ := pid.AskFuture(gr, 1000)
-	r1, _ := r0.Result()
-	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)
+	r0, err := pid.AskFuture(gr, 5*time.Second)
+	if err != nil {
+		log.Fatal("bbb")
+	}
+	r1, err := r0.Result()
+	if err != nil {
+		log.Fatal("ccc")
+	}
+	r2, ok := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)
+	if !ok {
+		log.Fatal("conversion failed")
+	}
 	r3 := &HelloResponse{}
 	proto.Unmarshal(r2.MessageData, r3)
 	return r3
@@ -103,7 +123,10 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 		case "Add":
 			req := &AddRequest{}
 			proto.Unmarshal(msg.MessageData, req)
-			a.inner.Add(req)
+			r0 := a.inner.Add(req)
+			bytes, _ := proto.Marshal(r0)
+			resp := &github_com_AsynkronIT_gam_cluster_grains.GrainResponse{MessageData: bytes}
+			ctx.Sender().Tell(resp)
 		}
 	default:
 		log.Printf("Unknown message %v", msg)

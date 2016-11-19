@@ -64,17 +64,19 @@ func Get(name string, kind string) *actor.PID {
 		Name: name,
 		Kind: kind,
 	}
-	response, _ := remote.AskFuture(req, 5*time.Second)
+	response, err := remote.AskFuture(req, 5*time.Second)
+	if err != nil {
+		log.Fatalf("remote AskFuture failed %v", err)
+	}
 	//await the response
 	res, err := response.Result()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("response result failed %v", err)
 	}
 
 	//unwrap the result
 	typed := res.(*messages.ActorPidResponse)
 	pid := typed.Pid
 	log.Printf("[CLUSTER] Get Virtual %v %+v", name, pid)
-	log.Println("so far so good")
 	return pid
 }

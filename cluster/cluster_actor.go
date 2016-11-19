@@ -53,9 +53,14 @@ func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest, contex
 
 		//send request
 		log.Printf("[CLUSTER] Telling %v to create %v", random, msg.Name)
-		resp, _ := random.AskFuture(msg, 5*time.Second)
-
-		tmp, _ := resp.Result()
+		resp, err := random.AskFuture(msg, 5*time.Second)
+		if err != nil {
+			log.Fatalf("Actor PID Request failed %v", err)
+		}
+		tmp, err := resp.Result()
+		if err != nil {
+			log.Fatalf("Actor PID Request result failed %v", err)
+		}
 		typed := tmp.(*messages.ActorPidResponse)
 		pid = typed.Pid
 		state.partition[msg.Name] = pid
