@@ -178,8 +178,10 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		p.In()
 		for _, service := range file.GetService() {
 			serviceName := service.GetName()
+			factoryFieldName := "x" + generator.CamelCase(serviceName)
+			factoryFuncName := factoryFieldName + "Factory"
 			actorName := serviceName + "Actor"
-			p.P(cluster.Use(), `.Register("`, serviceName, `",`, actor.Use(), `.FromProducer(func() `, actor.Use(), `.Actor { return &`, actorName, `{} }))`)
+			p.P(cluster.Use(), `.Register("`, serviceName, `",`, actor.Use(), `.FromProducer(func() `, actor.Use(), `.Actor { return &`, actorName, `{inner: `, factoryFuncName, `()} }))`)
 		}
 		p.Out()
 		p.P("}")
