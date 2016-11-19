@@ -35,7 +35,7 @@ func HelloFactory(factory func() Hello) {
 }
 
 func GetHelloGrain(id string) *HelloGrain {
-	return &HelloGrain{inner: xHelloFactory()}
+	return &HelloGrain{}
 }
 
 type Hello interface {
@@ -50,8 +50,12 @@ type HelloGrain struct {
 func (g *HelloGrain) SayHello(r *HelloRequest) *HelloResponse {
 	bytes, _ := proto.Marshal(r)
 	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "SayHello", MessageData: bytes}
-	res, _ := g.pid.AskFuture(gr, 1000)
-	return res
+	r0, _ := g.pid.AskFuture(gr, 1000)
+	r1, _ := r0.Result()
+	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)
+	r3 := &HelloResponse{}
+	proto.Unmarshal(r2.MessageData, r3)
+	return r3
 }
 
 func (g *HelloGrain) SayHelloChan(r *HelloRequest) <-chan *HelloResponse {
@@ -64,8 +68,12 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest) <-chan *HelloResponse {
 func (g *HelloGrain) Add(r *AddRequest) *AddResponse {
 	bytes, _ := proto.Marshal(r)
 	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "Add", MessageData: bytes}
-	res, _ := g.pid.AskFuture(gr, 1000)
-	return res
+	r0, _ := g.pid.AskFuture(gr, 1000)
+	r1, _ := r0.Result()
+	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)
+	r3 := &AddResponse{}
+	proto.Unmarshal(r2.MessageData, r3)
+	return r3
 }
 
 func (g *HelloGrain) AddChan(r *AddRequest) <-chan *AddResponse {

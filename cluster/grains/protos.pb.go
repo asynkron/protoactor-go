@@ -10,6 +10,7 @@
 
 	It has these top-level messages:
 		GrainRequest
+		GrainResponse
 */
 package grains
 
@@ -47,8 +48,17 @@ func (m *GrainRequest) Reset()                    { *m = GrainRequest{} }
 func (*GrainRequest) ProtoMessage()               {}
 func (*GrainRequest) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{0} }
 
+type GrainResponse struct {
+	MessageData []byte `protobuf:"bytes,1,opt,name=message_data,json=messageData,proto3" json:"message_data,omitempty"`
+}
+
+func (m *GrainResponse) Reset()                    { *m = GrainResponse{} }
+func (*GrainResponse) ProtoMessage()               {}
+func (*GrainResponse) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{1} }
+
 func init() {
 	proto.RegisterType((*GrainRequest)(nil), "grains.GrainRequest")
+	proto.RegisterType((*GrainResponse)(nil), "grains.GrainResponse")
 }
 func (this *GrainRequest) Equal(that interface{}) bool {
 	if that == nil {
@@ -83,6 +93,36 @@ func (this *GrainRequest) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *GrainResponse) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*GrainResponse)
+	if !ok {
+		that2, ok := that.(GrainResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.MessageData, that1.MessageData) {
+		return false
+	}
+	return true
+}
 func (this *GrainRequest) GoString() string {
 	if this == nil {
 		return "nil"
@@ -90,6 +130,16 @@ func (this *GrainRequest) GoString() string {
 	s := make([]string, 0, 6)
 	s = append(s, "&grains.GrainRequest{")
 	s = append(s, "Method: "+fmt.Sprintf("%#v", this.Method)+",\n")
+	s = append(s, "MessageData: "+fmt.Sprintf("%#v", this.MessageData)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *GrainResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&grains.GrainResponse{")
 	s = append(s, "MessageData: "+fmt.Sprintf("%#v", this.MessageData)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -150,6 +200,30 @@ func (m *GrainRequest) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *GrainResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GrainResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.MessageData) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.MessageData)))
+		i += copy(dAtA[i:], m.MessageData)
+	}
+	return i, nil
+}
+
 func encodeFixed64Protos(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	dAtA[offset+1] = uint8(v >> 8)
@@ -191,6 +265,16 @@ func (m *GrainRequest) Size() (n int) {
 	return n
 }
 
+func (m *GrainResponse) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.MessageData)
+	if l > 0 {
+		n += 1 + l + sovProtos(uint64(l))
+	}
+	return n
+}
+
 func sovProtos(x uint64) (n int) {
 	for {
 		n++
@@ -210,6 +294,16 @@ func (this *GrainRequest) String() string {
 	}
 	s := strings.Join([]string{`&GrainRequest{`,
 		`Method:` + fmt.Sprintf("%v", this.Method) + `,`,
+		`MessageData:` + fmt.Sprintf("%v", this.MessageData) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *GrainResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&GrainResponse{`,
 		`MessageData:` + fmt.Sprintf("%v", this.MessageData) + `,`,
 		`}`,
 	}, "")
@@ -282,6 +376,87 @@ func (m *GrainRequest) Unmarshal(dAtA []byte) error {
 			m.Method = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MessageData", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MessageData = append(m.MessageData[:0], dAtA[iNdEx:postIndex]...)
+			if m.MessageData == nil {
+				m.MessageData = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GrainResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GrainResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GrainResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MessageData", wireType)
 			}
@@ -441,15 +616,16 @@ var (
 func init() { proto.RegisterFile("protos.proto", fileDescriptorProtos) }
 
 var fileDescriptorProtos = []byte{
-	// 159 bytes of a gzipped FileDescriptorProto
+	// 176 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x28, 0xca, 0x2f,
 	0xc9, 0x2f, 0xd6, 0x03, 0x53, 0x42, 0x6c, 0xe9, 0x45, 0x89, 0x99, 0x79, 0xc5, 0x4a, 0x9e, 0x5c,
 	0x3c, 0xee, 0x20, 0x56, 0x50, 0x6a, 0x61, 0x69, 0x6a, 0x71, 0x89, 0x90, 0x18, 0x17, 0x5b, 0x6e,
 	0x6a, 0x49, 0x46, 0x7e, 0x8a, 0x04, 0xa3, 0x02, 0xa3, 0x06, 0x67, 0x10, 0x94, 0x27, 0xa4, 0xc8,
 	0xc5, 0x93, 0x9b, 0x5a, 0x5c, 0x9c, 0x98, 0x9e, 0x1a, 0x9f, 0x92, 0x58, 0x92, 0x28, 0xc1, 0xa4,
-	0xc0, 0xa8, 0xc1, 0x13, 0xc4, 0x0d, 0x15, 0x73, 0x49, 0x2c, 0x49, 0x74, 0xd2, 0xb9, 0xf0, 0x50,
-	0x8e, 0xe1, 0xc6, 0x43, 0x39, 0x86, 0x0f, 0x0f, 0xe5, 0x18, 0x1b, 0x1e, 0xc9, 0x31, 0xae, 0x78,
-	0x24, 0xc7, 0x78, 0xe2, 0x91, 0x1c, 0xe3, 0x85, 0x47, 0x72, 0x8c, 0x0f, 0x1e, 0xc9, 0x31, 0xbe,
-	0x78, 0x24, 0xc7, 0xf0, 0xe1, 0x91, 0x1c, 0xe3, 0x84, 0xc7, 0x72, 0x0c, 0x49, 0x6c, 0x60, 0x77,
-	0x18, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff, 0x0e, 0x74, 0xc5, 0x46, 0x97, 0x00, 0x00, 0x00,
+	0xc0, 0xa8, 0xc1, 0x13, 0xc4, 0x0d, 0x15, 0x73, 0x49, 0x2c, 0x49, 0x54, 0x32, 0xe2, 0xe2, 0x85,
+	0x1a, 0x55, 0x5c, 0x90, 0x9f, 0x57, 0x9c, 0x8a, 0xa1, 0x87, 0x11, 0x43, 0x8f, 0x93, 0xce, 0x85,
+	0x87, 0x72, 0x0c, 0x37, 0x1e, 0xca, 0x31, 0x7c, 0x78, 0x28, 0xc7, 0xd8, 0xf0, 0x48, 0x8e, 0x71,
+	0xc5, 0x23, 0x39, 0xc6, 0x13, 0x8f, 0xe4, 0x18, 0x2f, 0x3c, 0x92, 0x63, 0x7c, 0xf0, 0x48, 0x8e,
+	0xf1, 0xc5, 0x23, 0x39, 0x86, 0x0f, 0x8f, 0xe4, 0x18, 0x27, 0x3c, 0x96, 0x63, 0x48, 0x62, 0x03,
+	0xbb, 0xdd, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0x86, 0x97, 0xd8, 0xfe, 0xcb, 0x00, 0x00, 0x00,
 }
