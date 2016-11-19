@@ -48,8 +48,9 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		*/
 		serviceName := service.GetName()
 		factoryFieldName := "x" + generator.CamelCase(serviceName)
+		factoryFuncName := factoryFieldName + "Factory"
 		grainName := serviceName + "Grain"
-		p.P("var ", factoryFieldName, "Factory func() ", serviceName)
+		p.P("var ", factoryFuncName, " func() ", serviceName)
 		p.P("")
 		p.P("func ", serviceName, "Factory(factory func() ", serviceName, ") {")
 		p.In()
@@ -67,7 +68,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		*/
 		p.P("func Get", grainName, " (id string) *", grainName, " {")
 		p.In()
-		p.P("return &", grainName, "{}")
+		p.P("return &", grainName, "{inner: ", factoryFuncName, "()}")
 		p.Out()
 		p.P("}")
 		p.P("")

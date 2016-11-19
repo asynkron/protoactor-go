@@ -31,7 +31,7 @@ func HelloFactory(factory func() Hello) {
 }
 
 func GetHelloGrain(id string) *HelloGrain {
-	return &HelloGrain{}
+	return &HelloGrain{inner: xHelloFactory()}
 }
 
 type Hello interface {
