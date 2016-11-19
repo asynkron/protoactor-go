@@ -48,7 +48,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		*/
 		serviceName := service.GetName()
 		factoryFieldName := "x" + generator.CamelCase(serviceName)
-
+		grainName := serviceName + "Grain"
 		p.P("var ", factoryFieldName, "Factory func() ", serviceName)
 		p.P("")
 		p.P("func ", serviceName, "Factory(factory func() ", serviceName, ") {")
@@ -57,6 +57,21 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		p.Out()
 		p.P("}")
 		p.P("")
+		/*
+		   func GetFooGrain(id string) FooGrain {
+		       fg := FooGrain{
+		           inner: fooFactory(),
+		       }
+		       return fg
+		   }
+		*/
+		p.P("func Get", grainName, " (id string) *", grainName, " {")
+		p.In()
+		p.P("return &", grainName, "{}")
+		p.Out()
+		p.P("}")
+		p.P("")
+
 		p.P("type ", serviceName, " interface {")
 		p.In()
 		for _, method := range service.GetMethod() {
@@ -67,7 +82,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		}
 		p.Out()
 		p.P("}")
-		grainName := serviceName + "Grain"
+
 		p.P("type ", grainName, " struct {")
 		p.In()
 		p.P(grains.Use(), ".GrainMixin")
@@ -86,6 +101,18 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.Out()
 			p.P("}")
 			p.Out()
+			p.P("")
+			p.In()
+			p.P("func (g *", grainName, ") ", methodName, "Chan (r *", inputType, ") <-chan *", outputType, " {")
+			p.In()
+			p.P("c := make(chan *", outputType, ", 1)")
+			p.P("defer close(c)")
+			p.P("c <- g.inner.", methodName, "(r)")
+			p.P("return c")
+			p.Out()
+			p.P("}")
+			p.Out()
+
 		}
 
 	}

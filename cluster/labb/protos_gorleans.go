@@ -30,6 +30,10 @@ func HelloFactory(factory func() Hello) {
 	xHelloFactory = factory
 }
 
+func GetHelloGrain(id string) *HelloGrain {
+	return &HelloGrain{}
+}
+
 type Hello interface {
 	SayHello(*HelloRequest) *HelloResponse
 }
@@ -40,4 +44,11 @@ type HelloGrain struct {
 
 func (g *HelloGrain) SayHello(r *HelloRequest) *HelloResponse {
 	return g.inner.SayHello(r)
+}
+
+func (g *HelloGrain) SayHelloChan(r *HelloRequest) <-chan *HelloResponse {
+	c := make(chan *HelloResponse, 1)
+	defer close(c)
+	c <- g.inner.SayHello(r)
+	return c
 }
