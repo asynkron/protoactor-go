@@ -117,14 +117,20 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 			req := &HelloRequest{}
 			proto.Unmarshal(msg.MessageData, req)
 			r0 := a.inner.SayHello(req)
-			bytes, _ := proto.Marshal(r0)
+			bytes, err := proto.Marshal(r0)
+			if err != nil {
+				log.Fatalf("[GEN] Marshal failed %v", err)
+			}
 			resp := &github_com_AsynkronIT_gam_cluster_grains.GrainResponse{MessageData: bytes}
 			ctx.Sender().Tell(resp)
 		case "Add":
 			req := &AddRequest{}
 			proto.Unmarshal(msg.MessageData, req)
 			r0 := a.inner.Add(req)
-			bytes, _ := proto.Marshal(r0)
+			bytes, err := proto.Marshal(r0)
+			if err != nil {
+				log.Fatalf("[GEN] Marshal failed %v", err)
+			}
 			resp := &github_com_AsynkronIT_gam_cluster_grains.GrainResponse{MessageData: bytes}
 			ctx.Sender().Tell(resp)
 		}
@@ -134,5 +140,5 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 }
 
 func init() {
-	github_com_AsynkronIT_gam_cluster.Register("Hello", github_com_AsynkronIT_gam_actor.FromProducer(func() github_com_AsynkronIT_gam_actor.Actor { return &HelloActor{} }))
+	github_com_AsynkronIT_gam_cluster.Register("Hello", github_com_AsynkronIT_gam_actor.FromProducer(func() github_com_AsynkronIT_gam_actor.Actor { return &HelloActor{inner: xHelloFactory()} }))
 }
