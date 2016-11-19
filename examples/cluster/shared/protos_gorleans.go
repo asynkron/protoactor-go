@@ -96,7 +96,10 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 		case "SayHello":
 			req := &HelloRequest{}
 			proto.Unmarshal(msg.MessageData, req)
-			a.inner.SayHello(req)
+			r0 := a.inner.SayHello(req)
+			bytes, _ := proto.Marshal(r0)
+			resp := &github_com_AsynkronIT_gam_cluster_grains.GrainResponse{MessageData: bytes}
+			ctx.Sender().Tell(resp)
 		case "Add":
 			req := &AddRequest{}
 			proto.Unmarshal(msg.MessageData, req)

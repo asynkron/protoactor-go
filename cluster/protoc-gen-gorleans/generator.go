@@ -62,14 +62,6 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		p.Out()
 		p.P("}")
 		p.P("")
-		/*
-		   func GetFooGrain(id string) FooGrain {
-		       fg := FooGrain{
-		           inner: fooFactory(),
-		       }
-		       return fg
-		   }
-		*/
 		p.P("func Get", grainName, " (id string) *", grainName, " {")
 		p.In()
 		p.P("return &HelloGrain{GrainMixin: ", grains.Use(), ".NewGrainMixin(id)}")
@@ -148,7 +140,11 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.In()
 			p.P(`req := &`, inputType, `{}`)
 			p.P(`proto.Unmarshal(msg.MessageData, req)`)
-			p.P(`a.inner.`, methodName, `(req)`)
+			p.P(`r0 := a.inner.`, methodName, `(req)`)
+			p.P(`bytes, _ := proto.Marshal(r0)`)
+			p.P(`resp := &`, grains.Use(), `.GrainResponse{MessageData: bytes}`)
+			p.P(`ctx.Sender().Tell(resp)`)
+
 			p.Out()
 			// methodName := method.GetName()
 			// inputType := removePackagePrefix(method.GetInputType(), file.PackageName())
