@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func NewFuture() *Future {
+func NewFuture(timeout time.Duration) *Future {
 	ref := &FutureActorRef{
 		channel: make(chan interface{}, 1),
 	}
@@ -14,13 +14,15 @@ func NewFuture() *Future {
 	ref.pid = pid
 
 	fut := &Future{
-		ref: ref,
+		ref:     ref,
+		timeout: timeout,
 	}
 	return fut
 }
 
 type Future struct {
-	ref *FutureActorRef
+	ref     *FutureActorRef
+	timeout time.Duration
 }
 
 //PID to the backing actor for the Future result
@@ -31,7 +33,7 @@ func (fut *Future) PID() *PID {
 //PipeTo starts a go routine and waits for the `Future.Result()`, then sends the result to the given `PID`
 func (ref *Future) PipeTo(pid *PID) {
 	go func() {
-		res := ref.Result()
+		res, _ := ref.Result()
 		pid.Tell(res)
 	}()
 }
@@ -40,11 +42,11 @@ func (fut *Future) ResultChannel() <-chan interface{} {
 	return fut.ref.channel
 }
 
-func (fut *Future) ResultOrTimeout(timeout time.Duration) (interface{}, error) {
+func (fut *Future) Result() (interface{}, error) {
 	select {
 	case res := <-fut.ref.channel:
 		return res, nil
-	case <-time.After(timeout):
+	case <-time.After(fut.timeout):
 		return nil, fmt.Errorf("Timeout")
 	}
 }
@@ -55,10 +57,6 @@ func (fut *Future) Stop() {
 
 func (fut *Future) Wait() {
 	<-fut.ref.channel
-}
-
-func (fut *Future) Result() interface{} {
-	return <-fut.ref.channel
 }
 
 //Future is a struct carrying a response PID and a channel where the response is placed

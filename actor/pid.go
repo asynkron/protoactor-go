@@ -1,6 +1,9 @@
 package actor
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 //Tell a message to a given PID
 func (pid *PID) Tell(message interface{}) {
@@ -19,12 +22,12 @@ func (pid *PID) Ask(message interface{}, sender *PID) error {
 }
 
 //Ask a message to a given PID
-func (pid *PID) AskFuture(message interface{}) (*Future, error) {
+func (pid *PID) AskFuture(message interface{}, timeout time.Duration) (*Future, error) {
 	ref, found := ProcessRegistry.fromPID(pid)
 	if !found {
 		return nil, fmt.Errorf("Unknown PID %s", pid)
 	}
-	future := NewFuture()
+	future := NewFuture(timeout)
 	ref.Ask(pid, message, future.PID())
 	return future, nil
 }

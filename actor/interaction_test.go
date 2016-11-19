@@ -44,9 +44,9 @@ func (*EchoActor) Receive(context Context) {
 func TestActorCanReplyToMessage(t *testing.T) {
 	actor := Spawn(FromProducer(NewEchoActor))
 	defer actor.Stop()
-	result, _ := actor.AskFuture(EchoMessage{})
+	result, _ := actor.AskFuture(EchoMessage{}, testTimeout)
 	defer result.Stop()
-	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
+	if _, err := result.Result(); err != nil {
 		assert.Fail(t, "timed out")
 		return
 	}
@@ -78,9 +78,9 @@ func TestActorCanBecome(t *testing.T) {
 	actor := Spawn(FromProducer(NewEchoBecomeActor))
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
-	result, _ := actor.AskFuture(EchoMessage{})
+	result, _ := actor.AskFuture(EchoMessage{}, testTimeout)
 	defer result.Stop()
-	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
+	if _, err := result.Result(); err != nil {
 		assert.Fail(t, "timed out")
 		return
 	}
@@ -115,9 +115,9 @@ func TestActorCanUnbecome(t *testing.T) {
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
 	actor.Tell(UnbecomeMessage{})
-	result, _ := actor.AskFuture(EchoMessage{})
+	result, _ := actor.AskFuture(EchoMessage{}, testTimeout)
 	defer result.Stop()
-	if _, err := result.ResultOrTimeout(testTimeout); err != nil {
+	if _, err := result.Result(); err != nil {
 		assert.Fail(t, "timed out")
 		return
 	}
@@ -139,10 +139,10 @@ func NewEchoOnStartActor(replyTo *PID) func() Actor {
 }
 
 func TestActorCanReplyOnStarting(t *testing.T) {
-	future := NewFuture()
+	future := NewFuture(testTimeout)
 	actor := Spawn(FromProducer(NewEchoOnStartActor(future.PID())))
 	defer actor.Stop()
-	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
+	if _, err := future.Result(); err != nil {
 		assert.Fail(t, "timed out")
 		return
 	}
@@ -164,10 +164,10 @@ func NewEchoOnStoppingActor(replyTo *PID) func() Actor {
 }
 
 func TestActorCanReplyOnStopping(t *testing.T) {
-	future := NewFuture()
+	future := NewFuture(testTimeout)
 	actor := Spawn(FromProducer(NewEchoOnStoppingActor(future.PID())))
 	actor.Stop()
-	if _, err := future.ResultOrTimeout(testTimeout); err != nil {
+	if _, err := future.Result(); err != nil {
 		assert.Fail(t, "timed out")
 		return
 	}
@@ -193,7 +193,7 @@ func NewCreateChildActor() Actor {
 }
 
 func TestActorCanCreateChildren(t *testing.T) {
-	future := NewFuture()
+	future := NewFuture(testTimeout)
 	actor := Spawn(FromProducer(NewCreateChildActor))
 	defer actor.Stop()
 	expected := 10
@@ -201,7 +201,7 @@ func TestActorCanCreateChildren(t *testing.T) {
 		actor.Tell(CreateChildMessage{})
 	}
 	actor.Tell(GetChildCountMessage{ReplyTo: future.PID()})
-	response, err := future.ResultOrTimeout(testTimeout)
+	response, err := future.Result()
 	if err != nil {
 		assert.Fail(t, "timed out")
 		return
@@ -243,12 +243,12 @@ func TestActorCanStopChildren(t *testing.T) {
 		actor.Tell(CreateChildMessage{})
 	}
 
-	future := NewFuture()
-	future2 := NewFuture()
+	future := NewFuture(testTimeout)
+	future2 := NewFuture(testTimeout)
 	actor.Tell(GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.PID()})
 
 	//wait for the actor to reply to the first responsePID
-	_, err := future.ResultOrTimeout(testTimeout)
+	_, err := future.Result()
 	if err != nil {
 		assert.Fail(t, "timed out")
 		return
@@ -258,7 +258,7 @@ func TestActorCanStopChildren(t *testing.T) {
 	actor.Stop()
 
 	//wait for the actor to stop and get the result from the stopped handler
-	response, err := future2.ResultOrTimeout(testTimeout)
+	response, err := future2.Result()
 	if err != nil {
 		assert.Fail(t, "timed out")
 		return

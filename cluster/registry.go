@@ -64,11 +64,11 @@ func Get(name string, kind string) *actor.PID {
 		Name: name,
 		Kind: kind,
 	}
-	response, _ := remote.AskFuture(req)
+	response, _ := remote.AskFuture(req, 5*time.Second)
 	defer response.Stop()
 
 	//await the response
-	res, err := response.ResultOrTimeout(5 * time.Second)
+	res, err := response.Result()
 	if err != nil {
 		log.Fatal(err)
 	}

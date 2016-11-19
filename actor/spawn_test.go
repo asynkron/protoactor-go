@@ -3,7 +3,6 @@ package actor
 import (
 	"log"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -45,9 +44,9 @@ func TestLookupById(t *testing.T) {
 		actor := SpawnNamed(props, ID)
 		defer actor.Stop()
 
-		result, err := actor.AskFuture(Increment{})
+		result, err := actor.AskFuture(Increment{}, testTimeout)
 		defer result.Stop()
-		value, err := result.ResultOrTimeout(testTimeout)
+		value, err := result.Result()
 		if err != nil {
 			assert.Fail(t, "timed out")
 			return
@@ -58,9 +57,9 @@ func TestLookupById(t *testing.T) {
 	{
 		props := FromInstance(&GorgeousActor{Counter: Counter{value: 0}})
 		actor := SpawnNamed(props, ID)
-		result, err := actor.AskFuture(Increment{})
+		result, err := actor.AskFuture(Increment{}, testTimeout)
 		defer result.Stop()
-		value, err := result.ResultOrTimeout(10 * time.Second)
+		value, err := result.Result()
 		if err != nil {
 			assert.Fail(t, "timed out")
 			return

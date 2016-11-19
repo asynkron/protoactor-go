@@ -28,11 +28,11 @@ func init() {
 
 func (es *eventStream) Subscribe(action Action) *Subscription {
 	es.Lock()
-	defer es.Unlock()
 	sub := &Subscription{
 		action: action,
 	}
 	es.subscriptions = append(es.subscriptions, sub)
+	es.Unlock()
 	return sub
 }
 
