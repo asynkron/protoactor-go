@@ -72,7 +72,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		*/
 		p.P("func Get", grainName, " (id string) *", grainName, " {")
 		p.In()
-		p.P("return &", grainName, "{}")
+		p.P("return &HelloGrain{GrainMixin: ", grains.Use(), ".NewGrainMixin(id)}")
 		p.Out()
 		p.P("}")
 		p.P("")

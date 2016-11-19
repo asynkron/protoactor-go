@@ -36,7 +36,7 @@ func HelloFactory(factory func() Hello) {
 }
 
 func GetHelloGrain(id string) *HelloGrain {
-	return &HelloGrain{}
+	return &HelloGrain{GrainMixin: github_com_AsynkronIT_gam_cluster_grains.NewGrainMixin(id)}
 }
 
 type Hello interface {
