@@ -3,20 +3,21 @@
 // DO NOT EDIT!
 
 /*
-Package main is a generated protocol buffer package.
+	Package grains is a generated protocol buffer package.
 
-It is generated from these files:
-	protos.proto
+	It is generated from these files:
+		protos.proto
 
-It has these top-level messages:
-	HelloRequest
-	HelloResponse
+	It has these top-level messages:
+		GrainRequest
 */
-package main
+package grains
 
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
+
+import bytes "bytes"
 
 import strings "strings"
 import github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
@@ -37,27 +38,19 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
-type HelloRequest struct {
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+type GrainRequest struct {
+	Method      string `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	MessageData []byte `protobuf:"bytes,2,opt,name=message_data,json=messageData,proto3" json:"message_data,omitempty"`
 }
 
-func (m *HelloRequest) Reset()                    { *m = HelloRequest{} }
-func (*HelloRequest) ProtoMessage()               {}
-func (*HelloRequest) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{0} }
-
-type HelloResponse struct {
-	Message string `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
-}
-
-func (m *HelloResponse) Reset()                    { *m = HelloResponse{} }
-func (*HelloResponse) ProtoMessage()               {}
-func (*HelloResponse) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{1} }
+func (m *GrainRequest) Reset()                    { *m = GrainRequest{} }
+func (*GrainRequest) ProtoMessage()               {}
+func (*GrainRequest) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{0} }
 
 func init() {
-	proto.RegisterType((*HelloRequest)(nil), "main.HelloRequest")
-	proto.RegisterType((*HelloResponse)(nil), "main.HelloResponse")
+	proto.RegisterType((*GrainRequest)(nil), "grains.GrainRequest")
 }
-func (this *HelloRequest) Equal(that interface{}) bool {
+func (this *GrainRequest) Equal(that interface{}) bool {
 	if that == nil {
 		if this == nil {
 			return true
@@ -65,9 +58,9 @@ func (this *HelloRequest) Equal(that interface{}) bool {
 		return false
 	}
 
-	that1, ok := that.(*HelloRequest)
+	that1, ok := that.(*GrainRequest)
 	if !ok {
-		that2, ok := that.(HelloRequest)
+		that2, ok := that.(GrainRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -82,58 +75,22 @@ func (this *HelloRequest) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.Name != that1.Name {
+	if this.Method != that1.Method {
+		return false
+	}
+	if !bytes.Equal(this.MessageData, that1.MessageData) {
 		return false
 	}
 	return true
 }
-func (this *HelloResponse) Equal(that interface{}) bool {
-	if that == nil {
-		if this == nil {
-			return true
-		}
-		return false
-	}
-
-	that1, ok := that.(*HelloResponse)
-	if !ok {
-		that2, ok := that.(HelloResponse)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return true
-		}
-		return false
-	} else if this == nil {
-		return false
-	}
-	if this.Message != that1.Message {
-		return false
-	}
-	return true
-}
-func (this *HelloRequest) GoString() string {
+func (this *GrainRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 5)
-	s = append(s, "&main.HelloRequest{")
-	s = append(s, "Name: "+fmt.Sprintf("%#v", this.Name)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *HelloResponse) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&main.HelloResponse{")
-	s = append(s, "Message: "+fmt.Sprintf("%#v", this.Message)+",\n")
+	s := make([]string, 0, 6)
+	s = append(s, "&grains.GrainRequest{")
+	s = append(s, "Method: "+fmt.Sprintf("%#v", this.Method)+",\n")
+	s = append(s, "MessageData: "+fmt.Sprintf("%#v", this.MessageData)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -163,7 +120,7 @@ func extensionToGoStringProtos(m github_com_gogo_protobuf_proto.Message) string 
 	s += strings.Join(ss, ",") + "})"
 	return s
 }
-func (m *HelloRequest) Marshal() (dAtA []byte, err error) {
+func (m *GrainRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -173,40 +130,22 @@ func (m *HelloRequest) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *HelloRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *GrainRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.Name) > 0 {
+	if len(m.Method) > 0 {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintProtos(dAtA, i, uint64(len(m.Name)))
-		i += copy(dAtA[i:], m.Name)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.Method)))
+		i += copy(dAtA[i:], m.Method)
 	}
-	return i, nil
-}
-
-func (m *HelloResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *HelloResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Message) > 0 {
-		dAtA[i] = 0xa
+	if len(m.MessageData) > 0 {
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintProtos(dAtA, i, uint64(len(m.Message)))
-		i += copy(dAtA[i:], m.Message)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.MessageData)))
+		i += copy(dAtA[i:], m.MessageData)
 	}
 	return i, nil
 }
@@ -238,20 +177,14 @@ func encodeVarintProtos(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
-func (m *HelloRequest) Size() (n int) {
+func (m *GrainRequest) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Name)
+	l = len(m.Method)
 	if l > 0 {
 		n += 1 + l + sovProtos(uint64(l))
 	}
-	return n
-}
-
-func (m *HelloResponse) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Message)
+	l = len(m.MessageData)
 	if l > 0 {
 		n += 1 + l + sovProtos(uint64(l))
 	}
@@ -271,22 +204,13 @@ func sovProtos(x uint64) (n int) {
 func sozProtos(x uint64) (n int) {
 	return sovProtos(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (this *HelloRequest) String() string {
+func (this *GrainRequest) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&HelloRequest{`,
-		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *HelloResponse) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&HelloResponse{`,
-		`Message:` + fmt.Sprintf("%v", this.Message) + `,`,
+	s := strings.Join([]string{`&GrainRequest{`,
+		`Method:` + fmt.Sprintf("%v", this.Method) + `,`,
+		`MessageData:` + fmt.Sprintf("%v", this.MessageData) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -299,7 +223,7 @@ func valueToStringProtos(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *HelloRequest) Unmarshal(dAtA []byte) error {
+func (m *GrainRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -322,15 +246,15 @@ func (m *HelloRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: HelloRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: GrainRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: HelloRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: GrainRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Method", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -355,63 +279,13 @@ func (m *HelloRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Name = string(dAtA[iNdEx:postIndex])
+			m.Method = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipProtos(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *HelloResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtos
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: HelloResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: HelloResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
+		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MessageData", wireType)
 			}
-			var stringLen uint64
+			var byteLen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtos
@@ -421,20 +295,22 @@ func (m *HelloResponse) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				byteLen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if byteLen < 0 {
 				return ErrInvalidLengthProtos
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + byteLen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Message = string(dAtA[iNdEx:postIndex])
+			m.MessageData = append(m.MessageData[:0], dAtA[iNdEx:postIndex]...)
+			if m.MessageData == nil {
+				m.MessageData = []byte{}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -565,17 +441,15 @@ var (
 func init() { proto.RegisterFile("protos.proto", fileDescriptorProtos) }
 
 var fileDescriptorProtos = []byte{
-	// 183 bytes of a gzipped FileDescriptorProto
+	// 159 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x28, 0xca, 0x2f,
-	0xc9, 0x2f, 0xd6, 0x03, 0x53, 0x42, 0x2c, 0xb9, 0x89, 0x99, 0x79, 0x4a, 0x4a, 0x5c, 0x3c, 0x1e,
-	0xa9, 0x39, 0x39, 0xf9, 0x41, 0xa9, 0x85, 0xa5, 0xa9, 0xc5, 0x25, 0x42, 0x42, 0x5c, 0x2c, 0x79,
-	0x89, 0xb9, 0xa9, 0x12, 0x8c, 0x0a, 0x8c, 0x1a, 0x9c, 0x41, 0x60, 0xb6, 0x92, 0x26, 0x17, 0x2f,
-	0x54, 0x4d, 0x71, 0x41, 0x7e, 0x5e, 0x71, 0xaa, 0x90, 0x04, 0x17, 0x7b, 0x6e, 0x6a, 0x71, 0x71,
-	0x62, 0x3a, 0x4c, 0x1d, 0x8c, 0x6b, 0x64, 0xc7, 0xc5, 0x0a, 0x56, 0x2a, 0x64, 0xca, 0xc5, 0x11,
-	0x9c, 0x58, 0x09, 0x61, 0x0b, 0xe9, 0x81, 0xac, 0xd2, 0x43, 0xb6, 0x47, 0x4a, 0x18, 0x45, 0x0c,
-	0x62, 0xae, 0x12, 0x83, 0x93, 0xce, 0x85, 0x87, 0x72, 0x0c, 0x37, 0x1e, 0xca, 0x31, 0x7c, 0x78,
-	0x28, 0xc7, 0xd8, 0xf0, 0x48, 0x8e, 0x71, 0xc5, 0x23, 0x39, 0xc6, 0x13, 0x8f, 0xe4, 0x18, 0x2f,
-	0x3c, 0x92, 0x63, 0x7c, 0xf0, 0x48, 0x8e, 0xf1, 0xc5, 0x23, 0x39, 0x86, 0x0f, 0x8f, 0xe4, 0x18,
-	0x27, 0x3c, 0x96, 0x63, 0x48, 0x62, 0x03, 0xfb, 0xc4, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0xf8,
-	0xa6, 0xa5, 0x51, 0xd9, 0x00, 0x00, 0x00,
+	0xc9, 0x2f, 0xd6, 0x03, 0x53, 0x42, 0x6c, 0xe9, 0x45, 0x89, 0x99, 0x79, 0xc5, 0x4a, 0x9e, 0x5c,
+	0x3c, 0xee, 0x20, 0x56, 0x50, 0x6a, 0x61, 0x69, 0x6a, 0x71, 0x89, 0x90, 0x18, 0x17, 0x5b, 0x6e,
+	0x6a, 0x49, 0x46, 0x7e, 0x8a, 0x04, 0xa3, 0x02, 0xa3, 0x06, 0x67, 0x10, 0x94, 0x27, 0xa4, 0xc8,
+	0xc5, 0x93, 0x9b, 0x5a, 0x5c, 0x9c, 0x98, 0x9e, 0x1a, 0x9f, 0x92, 0x58, 0x92, 0x28, 0xc1, 0xa4,
+	0xc0, 0xa8, 0xc1, 0x13, 0xc4, 0x0d, 0x15, 0x73, 0x49, 0x2c, 0x49, 0x74, 0xd2, 0xb9, 0xf0, 0x50,
+	0x8e, 0xe1, 0xc6, 0x43, 0x39, 0x86, 0x0f, 0x0f, 0xe5, 0x18, 0x1b, 0x1e, 0xc9, 0x31, 0xae, 0x78,
+	0x24, 0xc7, 0x78, 0xe2, 0x91, 0x1c, 0xe3, 0x85, 0x47, 0x72, 0x8c, 0x0f, 0x1e, 0xc9, 0x31, 0xbe,
+	0x78, 0x24, 0xc7, 0xf0, 0xe1, 0x91, 0x1c, 0xe3, 0x84, 0xc7, 0x72, 0x0c, 0x49, 0x6c, 0x60, 0x77,
+	0x18, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff, 0x0e, 0x74, 0xc5, 0x46, 0x97, 0x00, 0x00, 0x00,
 }

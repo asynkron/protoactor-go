@@ -1,0 +1,7 @@
+syntax = "proto3";
+package grains;
+
+message GrainRequest {
+  string method = 1;
+  bytes message_data = 2;
+}

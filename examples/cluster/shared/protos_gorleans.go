@@ -14,7 +14,9 @@ It has these top-level messages:
 */
 package shared
 
+import log "log"
 import github_com_AsynkronIT_gam_cluster_grains "github.com/AsynkronIT/gam/cluster/grains"
+import github_com_AsynkronIT_gam_actor "github.com/AsynkronIT/gam/actor"
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
@@ -51,4 +53,22 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest) <-chan *HelloResponse {
 	defer close(c)
 	c <- g.inner.SayHello(r)
 	return c
+}
+
+type HelloActor struct {
+	inner Hello
+}
+
+func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
+	switch msg := ctx.Message().(type) {
+	case *github_com_AsynkronIT_gam_cluster_grains.GrainRequest:
+		switch msg.Method {
+		case "SayHello":
+			req := &HelloRequest{}
+			proto.Unmarshal(msg.MessageData, req)
+			a.inner.SayHello(req)
+		}
+	default:
+		log.Printf("Unknown message %v", msg)
+	}
 }

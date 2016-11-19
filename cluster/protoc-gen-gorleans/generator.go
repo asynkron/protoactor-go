@@ -34,7 +34,9 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 
 	p.PluginImports = generator.NewPluginImports(p.Generator)
 	p.atleastOne = false
+	logg := p.NewImport("log")
 	grains := p.NewImport("github.com/AsynkronIT/gam/cluster/grains")
+	actor := p.NewImport("github.com/AsynkronIT/gam/actor")
 
 	p.localName = generator.FileName(file)
 
@@ -50,6 +52,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		factoryFieldName := "x" + generator.CamelCase(serviceName)
 		factoryFuncName := factoryFieldName + "Factory"
 		grainName := serviceName + "Grain"
+		actorName := serviceName + "Actor"
 		p.P("var ", factoryFuncName, " func() ", serviceName)
 		p.P("")
 		p.P("func ", serviceName, "Factory(factory func() ", serviceName, ") {")
@@ -115,7 +118,57 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.Out()
 
 		}
+		p.P("")
+		p.P("type ", actorName, " struct {")
+		p.In()
+		p.P("inner ", serviceName)
+		p.Out()
+		p.P("}")
+		p.P("")
+		p.P("func (a *", actorName, ") Receive(ctx ", actor.Use(), ".Context) {")
+		p.In()
+		p.P("switch msg := ctx.Message().(type) {")
+		p.In()
+		p.P("case *", grains.Use(), ".GrainRequest:")
+		p.In()
+		p.P("switch msg.Method {")
+		for _, method := range service.GetMethod() {
+			methodName := method.GetName()
+			inputType := removePackagePrefix(method.GetInputType(), file.PackageName())
+			//	outputType := removePackagePrefix(method.GetOutputType(), file.PackageName())
+			p.P(`case "`, methodName, `":`)
+			p.In()
+			p.P(`req := &`, inputType, `{}`)
+			p.P(`proto.Unmarshal(msg.MessageData, req)`)
+			p.P(`a.inner.`, methodName, `(req)`)
+			p.Out()
+			// methodName := method.GetName()
+			// inputType := removePackagePrefix(method.GetInputType(), file.PackageName())
+			// outputType := removePackagePrefix(method.GetOutputType(), file.PackageName())
+		}
+		p.P("}")
+		p.Out()
+		p.P("default:")
+		p.In()
+		p.P(logg.Use(), `.Printf("Unknown message %v", msg)`)
+		p.Out()
+		/*
+			case *grains.GrainRequest:
+					switch msg.Method {
+					case "SayHello":
+						req := &HelloRequest{}
+						proto.Unmarshal(msg.MessageData, req)
+						a.inner.SayHello(req)
 
+					}
+				default:
+					log.Printf("Unknown message %+v", msg)
+		*/
+
+		p.Out()
+		p.P("}")
+		p.Out()
+		p.P("}")
 	}
 }
 
