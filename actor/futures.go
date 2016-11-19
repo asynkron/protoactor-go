@@ -49,8 +49,12 @@ func (fut *Future) PID() *PID {
 //PipeTo starts a go routine and waits for the `Future.Result()`, then sends the result to the given `PID`
 func (ref *Future) PipeTo(pid *PID) {
 	go func() {
-		res, _ := ref.Result()
-		pid.Tell(res)
+		res, err := ref.Result()
+		if err != nil {
+			pid.Tell(err)
+		} else {
+			pid.Tell(res)
+		}
 	}()
 }
 
