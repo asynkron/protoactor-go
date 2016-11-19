@@ -11,6 +11,8 @@ It is generated from these files:
 It has these top-level messages:
 	HelloRequest
 	HelloResponse
+	AddRequest
+	AddResponse
 */
 package shared
 
@@ -38,6 +40,7 @@ func GetHelloGrain(id string) *HelloGrain {
 
 type Hello interface {
 	SayHello(*HelloRequest) *HelloResponse
+	Add(*AddRequest) *AddResponse
 }
 type HelloGrain struct {
 	github_com_AsynkronIT_gam_cluster_grains.GrainMixin
@@ -55,6 +58,17 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest) <-chan *HelloResponse {
 	return c
 }
 
+func (g *HelloGrain) Add(r *AddRequest) *AddResponse {
+	return g.inner.Add(r)
+}
+
+func (g *HelloGrain) AddChan(r *AddRequest) <-chan *AddResponse {
+	c := make(chan *AddResponse, 1)
+	defer close(c)
+	c <- g.inner.Add(r)
+	return c
+}
+
 type HelloActor struct {
 	inner Hello
 }
@@ -67,6 +81,10 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 			req := &HelloRequest{}
 			proto.Unmarshal(msg.MessageData, req)
 			a.inner.SayHello(req)
+		case "Add":
+			req := &AddRequest{}
+			proto.Unmarshal(msg.MessageData, req)
+			a.inner.Add(req)
 		}
 	default:
 		log.Printf("Unknown message %v", msg)
