@@ -45,7 +45,6 @@ func TestActorCanReplyToMessage(t *testing.T) {
 	actor := Spawn(FromProducer(NewEchoActor))
 	defer actor.Stop()
 	result, _ := actor.AskFuture(EchoMessage{}, testTimeout)
-	defer result.Stop()
 	if _, err := result.Result(); err != nil {
 		assert.Fail(t, "timed out")
 		return
@@ -79,7 +78,6 @@ func TestActorCanBecome(t *testing.T) {
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
 	result, _ := actor.AskFuture(EchoMessage{}, testTimeout)
-	defer result.Stop()
 	if _, err := result.Result(); err != nil {
 		assert.Fail(t, "timed out")
 		return
@@ -112,11 +110,9 @@ func (*EchoUnbecomeActor) Other(context Context) {
 
 func TestActorCanUnbecome(t *testing.T) {
 	actor := Spawn(FromProducer(NewEchoUnbecomeActor))
-	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
 	actor.Tell(UnbecomeMessage{})
 	result, _ := actor.AskFuture(EchoMessage{}, testTimeout)
-	defer result.Stop()
 	if _, err := result.Result(); err != nil {
 		assert.Fail(t, "timed out")
 		return

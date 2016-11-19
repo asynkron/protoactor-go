@@ -2,6 +2,7 @@ package actor
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -17,10 +18,25 @@ func NewFuture(timeout time.Duration) *Future {
 		ref:     ref,
 		timeout: timeout,
 	}
+	fut.wg.Add(1)
+	go func() {
+		select {
+		case res := <-fut.ref.channel:
+			fut.result = res
+		case <-time.After(fut.timeout):
+			fut.err = fmt.Errorf("Timeout")
+		}
+		fut.wg.Done()
+		fut.ref.Stop(fut.PID())
+	}()
+
 	return fut
 }
 
 type Future struct {
+	result  interface{}
+	err     error
+	wg      sync.WaitGroup
 	ref     *FutureActorRef
 	timeout time.Duration
 }
@@ -38,25 +54,13 @@ func (ref *Future) PipeTo(pid *PID) {
 	}()
 }
 
-func (fut *Future) ResultChannel() <-chan interface{} {
-	return fut.ref.channel
-}
-
 func (fut *Future) Result() (interface{}, error) {
-	select {
-	case res := <-fut.ref.channel:
-		return res, nil
-	case <-time.After(fut.timeout):
-		return nil, fmt.Errorf("Timeout")
-	}
-}
-
-func (fut *Future) Stop() {
-	fut.ref.Stop(fut.PID())
+	fut.wg.Wait()
+	return fut.result, fut.err
 }
 
 func (fut *Future) Wait() {
-	<-fut.ref.channel
+	fut.wg.Wait()
 }
 
 //Future is a struct carrying a response PID and a channel where the response is placed

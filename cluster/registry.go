@@ -65,7 +65,6 @@ func Get(name string, kind string) *actor.PID {
 		Kind: kind,
 	}
 	response, _ := remote.AskFuture(req, 5*time.Second)
-	defer response.Stop()
 
 	//await the response
 	res, err := response.Result()
