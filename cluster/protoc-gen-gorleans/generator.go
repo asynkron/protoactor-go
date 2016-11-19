@@ -36,6 +36,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 	p.atleastOne = false
 	logg := p.NewImport("log")
 	grains := p.NewImport("github.com/AsynkronIT/gam/cluster/grains")
+	cluster := p.NewImport("github.com/AsynkronIT/gam/cluster")
 	actor := p.NewImport("github.com/AsynkronIT/gam/actor")
 
 	p.localName = generator.FileName(file)
@@ -71,7 +72,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		*/
 		p.P("func Get", grainName, " (id string) *", grainName, " {")
 		p.In()
-		p.P("return &", grainName, "{inner: ", factoryFuncName, "()}")
+		p.P("return &", grainName, "{}")
 		p.Out()
 		p.P("}")
 		p.P("")
@@ -90,7 +91,6 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		p.P("type ", grainName, " struct {")
 		p.In()
 		p.P(grains.Use(), ".GrainMixin")
-		p.P("pid *", actor.Use(), ".PID")
 		p.Out()
 		p.P("}")
 		for _, method := range service.GetMethod() {
@@ -101,9 +101,10 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.In()
 			p.P("func (g *", grainName, ") ", methodName, " (r *", inputType, ") *", outputType, " {")
 			p.In()
+			p.P(`pid := `, cluster.Use(), `.Get(g.Id(),"`, serviceName, `")`)
 			p.P(`bytes, _ := proto.Marshal(r)`)
 			p.P(`gr := &`, grains.Use(), `.GrainRequest{Method: "`, methodName, `", MessageData: bytes}`)
-			p.P("r0,_ := g.pid.AskFuture(gr,1000)")
+			p.P("r0,_ := pid.AskFuture(gr,1000)")
 			p.P("r1, _ := r0.Result()")
 			p.P("r2, _ := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)")
 			p.P("r3 := &", outputType, "{}")
@@ -174,6 +175,16 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 
 		p.Out()
 		p.P("}")
+		p.Out()
+		p.P("}")
+		p.P("")
+		p.P("func init() {")
+		p.In()
+		for _, service := range file.GetService() {
+			serviceName := service.GetName()
+			actorName := serviceName + "Actor"
+			p.P(cluster.Use(), `.Register("`, serviceName, `",`, actor.Use(), `.FromProducer(func() `, actor.Use(), `.Actor { return &`, actorName, `{} }))`)
+		}
 		p.Out()
 		p.P("}")
 	}

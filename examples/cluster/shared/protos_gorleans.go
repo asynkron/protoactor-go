@@ -18,6 +18,7 @@ package shared
 
 import log "log"
 import github_com_AsynkronIT_gam_cluster_grains "github.com/AsynkronIT/gam/cluster/grains"
+import github_com_AsynkronIT_gam_cluster "github.com/AsynkronIT/gam/cluster"
 import github_com_AsynkronIT_gam_actor "github.com/AsynkronIT/gam/actor"
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
@@ -44,13 +45,13 @@ type Hello interface {
 }
 type HelloGrain struct {
 	github_com_AsynkronIT_gam_cluster_grains.GrainMixin
-	pid *github_com_AsynkronIT_gam_actor.PID
 }
 
 func (g *HelloGrain) SayHello(r *HelloRequest) *HelloResponse {
+	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id(), "Hello")
 	bytes, _ := proto.Marshal(r)
 	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "SayHello", MessageData: bytes}
-	r0, _ := g.pid.AskFuture(gr, 1000)
+	r0, _ := pid.AskFuture(gr, 1000)
 	r1, _ := r0.Result()
 	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)
 	r3 := &HelloResponse{}
@@ -66,9 +67,10 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest) <-chan *HelloResponse {
 }
 
 func (g *HelloGrain) Add(r *AddRequest) *AddResponse {
+	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id(), "Hello")
 	bytes, _ := proto.Marshal(r)
 	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "Add", MessageData: bytes}
-	r0, _ := g.pid.AskFuture(gr, 1000)
+	r0, _ := pid.AskFuture(gr, 1000)
 	r1, _ := r0.Result()
 	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)
 	r3 := &AddResponse{}
@@ -103,4 +105,8 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 	default:
 		log.Printf("Unknown message %v", msg)
 	}
+}
+
+func init() {
+	github_com_AsynkronIT_gam_cluster.Register("Hello", github_com_AsynkronIT_gam_actor.FromProducer(func() github_com_AsynkronIT_gam_actor.Actor { return &HelloActor{} }))
 }
