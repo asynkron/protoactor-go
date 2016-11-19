@@ -44,28 +44,34 @@ type Hello interface {
 }
 type HelloGrain struct {
 	github_com_AsynkronIT_gam_cluster_grains.GrainMixin
-	inner Hello
+	pid *github_com_AsynkronIT_gam_actor.PID
 }
 
 func (g *HelloGrain) SayHello(r *HelloRequest) *HelloResponse {
-	return g.inner.SayHello(r)
+	bytes, _ := proto.Marshal(r)
+	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "SayHello", MessageData: bytes}
+	res, _ := g.pid.AskFuture(gr, 1000)
+	return res
 }
 
 func (g *HelloGrain) SayHelloChan(r *HelloRequest) <-chan *HelloResponse {
 	c := make(chan *HelloResponse, 1)
 	defer close(c)
-	c <- g.inner.SayHello(r)
+	c <- g.SayHello(r)
 	return c
 }
 
 func (g *HelloGrain) Add(r *AddRequest) *AddResponse {
-	return g.inner.Add(r)
+	bytes, _ := proto.Marshal(r)
+	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "Add", MessageData: bytes}
+	res, _ := g.pid.AskFuture(gr, 1000)
+	return res
 }
 
 func (g *HelloGrain) AddChan(r *AddRequest) <-chan *AddResponse {
 	c := make(chan *AddResponse, 1)
 	defer close(c)
-	c <- g.inner.Add(r)
+	c <- g.Add(r)
 	return c
 }
 
