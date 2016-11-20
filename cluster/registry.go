@@ -57,25 +57,31 @@ func activatorForNode(node *memberlist.Node) *actor.PID {
 
 //Get a PID to a virtual actor
 func Get(name string, kind string) *actor.PID {
-	remote := clusterForNode(findClosest(name))
+	pid := cache.Get(name)
+	if pid == nil {
 
-	//request the pid of the "id" from the correct partition
-	req := &messages.ActorPidRequest{
-		Name: name,
-		Kind: kind,
-	}
-	response, err := remote.AskFuture(req, 5*time.Second)
-	if err != nil {
-		log.Fatalf("[CLUSTER DEBUG] remote AskFuture failed %v", err)
-	}
-	//await the response
-	res, err := response.Result()
-	if err != nil {
-		log.Fatalf("[CLUSTER DEBUG] response result failed %v", err)
-	}
+		remote := clusterForNode(findClosest(name))
 
-	//unwrap the result
-	typed := res.(*messages.ActorPidResponse)
-	pid := typed.Pid
+		//request the pid of the "id" from the correct partition
+		req := &messages.ActorPidRequest{
+			Name: name,
+			Kind: kind,
+		}
+		response, err := remote.AskFuture(req, 5*time.Second)
+		if err != nil {
+			log.Fatalf("[CLUSTER DEBUG] remote AskFuture failed %v", err)
+		}
+		//await the response
+		res, err := response.Result()
+		if err != nil {
+			log.Fatalf("[CLUSTER DEBUG] response result failed %v", err)
+		}
+
+		//unwrap the result
+		typed := res.(*messages.ActorPidResponse)
+		pid = typed.Pid
+		cache.Add(name, pid)
+		return pid
+	}
 	return pid
 }
