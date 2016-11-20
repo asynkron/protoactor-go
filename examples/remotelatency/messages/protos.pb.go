@@ -10,9 +10,8 @@ It is generated from these files:
 
 It has these top-level messages:
 	Start
-	StartRemote
+	Started
 	Ping
-	Pong
 */
 package messages
 
@@ -47,32 +46,25 @@ func (m *Start) Reset()                    { *m = Start{} }
 func (*Start) ProtoMessage()               {}
 func (*Start) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{0} }
 
-type StartRemote struct {
+type Started struct {
 }
 
-func (m *StartRemote) Reset()                    { *m = StartRemote{} }
-func (*StartRemote) ProtoMessage()               {}
-func (*StartRemote) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{1} }
+func (m *Started) Reset()                    { *m = Started{} }
+func (*Started) ProtoMessage()               {}
+func (*Started) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{1} }
 
 type Ping struct {
+	Time int64 `protobuf:"varint,1,opt,name=time,proto3" json:"time,omitempty"`
 }
 
 func (m *Ping) Reset()                    { *m = Ping{} }
 func (*Ping) ProtoMessage()               {}
 func (*Ping) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{2} }
 
-type Pong struct {
-}
-
-func (m *Pong) Reset()                    { *m = Pong{} }
-func (*Pong) ProtoMessage()               {}
-func (*Pong) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{3} }
-
 func init() {
 	proto.RegisterType((*Start)(nil), "messages.Start")
-	proto.RegisterType((*StartRemote)(nil), "messages.StartRemote")
+	proto.RegisterType((*Started)(nil), "messages.Started")
 	proto.RegisterType((*Ping)(nil), "messages.Ping")
-	proto.RegisterType((*Pong)(nil), "messages.Pong")
 }
 func (this *Start) Equal(that interface{}) bool {
 	if that == nil {
@@ -101,7 +93,7 @@ func (this *Start) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *StartRemote) Equal(that interface{}) bool {
+func (this *Started) Equal(that interface{}) bool {
 	if that == nil {
 		if this == nil {
 			return true
@@ -109,9 +101,9 @@ func (this *StartRemote) Equal(that interface{}) bool {
 		return false
 	}
 
-	that1, ok := that.(*StartRemote)
+	that1, ok := that.(*Started)
 	if !ok {
-		that2, ok := that.(StartRemote)
+		that2, ok := that.(Started)
 		if ok {
 			that1 = &that2
 		} else {
@@ -153,31 +145,7 @@ func (this *Ping) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	return true
-}
-func (this *Pong) Equal(that interface{}) bool {
-	if that == nil {
-		if this == nil {
-			return true
-		}
-		return false
-	}
-
-	that1, ok := that.(*Pong)
-	if !ok {
-		that2, ok := that.(Pong)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		if this == nil {
-			return true
-		}
-		return false
-	} else if this == nil {
+	if this.Time != that1.Time {
 		return false
 	}
 	return true
@@ -191,12 +159,12 @@ func (this *Start) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *StartRemote) GoString() string {
+func (this *Started) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 4)
-	s = append(s, "&messages.StartRemote{")
+	s = append(s, "&messages.Started{")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -204,17 +172,9 @@ func (this *Ping) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 4)
+	s := make([]string, 0, 5)
 	s = append(s, "&messages.Ping{")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *Pong) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 4)
-	s = append(s, "&messages.Pong{")
+	s = append(s, "Time: "+fmt.Sprintf("%#v", this.Time)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -262,7 +222,7 @@ func (m *Start) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *StartRemote) Marshal() (dAtA []byte, err error) {
+func (m *Started) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -272,7 +232,7 @@ func (m *StartRemote) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *StartRemote) MarshalTo(dAtA []byte) (int, error) {
+func (m *Started) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -295,24 +255,11 @@ func (m *Ping) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	return i, nil
-}
-
-func (m *Pong) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
+	if m.Time != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintProtos(dAtA, i, uint64(m.Time))
 	}
-	return dAtA[:n], nil
-}
-
-func (m *Pong) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
 	return i, nil
 }
 
@@ -349,7 +296,7 @@ func (m *Start) Size() (n int) {
 	return n
 }
 
-func (m *StartRemote) Size() (n int) {
+func (m *Started) Size() (n int) {
 	var l int
 	_ = l
 	return n
@@ -358,12 +305,9 @@ func (m *StartRemote) Size() (n int) {
 func (m *Ping) Size() (n int) {
 	var l int
 	_ = l
-	return n
-}
-
-func (m *Pong) Size() (n int) {
-	var l int
-	_ = l
+	if m.Time != 0 {
+		n += 1 + sovProtos(uint64(m.Time))
+	}
 	return n
 }
 
@@ -389,11 +333,11 @@ func (this *Start) String() string {
 	}, "")
 	return s
 }
-func (this *StartRemote) String() string {
+func (this *Started) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&StartRemote{`,
+	s := strings.Join([]string{`&Started{`,
 		`}`,
 	}, "")
 	return s
@@ -403,15 +347,7 @@ func (this *Ping) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&Ping{`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *Pong) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&Pong{`,
+		`Time:` + fmt.Sprintf("%v", this.Time) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -474,7 +410,7 @@ func (m *Start) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *StartRemote) Unmarshal(dAtA []byte) error {
+func (m *Started) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -497,10 +433,10 @@ func (m *StartRemote) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: StartRemote: wiretype end group for non-group")
+			return fmt.Errorf("proto: Started: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: StartRemote: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: Started: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:
@@ -553,56 +489,25 @@ func (m *Ping) Unmarshal(dAtA []byte) error {
 			return fmt.Errorf("proto: Ping: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := skipProtos(dAtA[iNdEx:])
-			if err != nil {
-				return err
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Time", wireType)
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
+			m.Time = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Time |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
 			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Pong) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtos
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Pong: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Pong: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := skipProtos(dAtA[iNdEx:])
@@ -732,16 +637,16 @@ var (
 func init() { proto.RegisterFile("protos.proto", fileDescriptorProtos) }
 
 var fileDescriptorProtos = []byte{
-	// 168 bytes of a gzipped FileDescriptorProto
+	// 176 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x28, 0xca, 0x2f,
 	0xc9, 0x2f, 0xd6, 0x03, 0x53, 0x42, 0x1c, 0xb9, 0xa9, 0xc5, 0xc5, 0x89, 0xe9, 0xa9, 0xc5, 0x52,
 	0x3a, 0xe9, 0x99, 0x25, 0x19, 0xa5, 0x49, 0x7a, 0xc9, 0xf9, 0xb9, 0xfa, 0x8e, 0xc5, 0x95, 0x79,
 	0xd9, 0x45, 0xf9, 0x79, 0x9e, 0x21, 0xfa, 0xe9, 0x89, 0xb9, 0xfa, 0x89, 0xc9, 0x25, 0xf9, 0x45,
-	0xfa, 0xc8, 0xfa, 0x94, 0xd8, 0xb9, 0x58, 0x83, 0x4b, 0x12, 0x8b, 0x4a, 0x94, 0x78, 0xb9, 0xb8,
-	0xc1, 0x8c, 0xa0, 0xd4, 0xdc, 0xfc, 0x92, 0x54, 0x25, 0x36, 0x2e, 0x96, 0x80, 0xcc, 0xbc, 0x74,
-	0x30, 0x9d, 0x9f, 0x97, 0xee, 0xa4, 0x73, 0xe1, 0xa1, 0x1c, 0xc3, 0x8d, 0x87, 0x72, 0x0c, 0x1f,
-	0x1e, 0xca, 0x31, 0x36, 0x3c, 0x92, 0x63, 0x5c, 0xf1, 0x48, 0x8e, 0xf1, 0xc4, 0x23, 0x39, 0xc6,
-	0x0b, 0x8f, 0xe4, 0x18, 0x1f, 0x3c, 0x92, 0x63, 0x7c, 0xf1, 0x48, 0x8e, 0xe1, 0xc3, 0x23, 0x39,
-	0xc6, 0x09, 0x8f, 0xe5, 0x18, 0x92, 0xd8, 0xc0, 0x86, 0x1b, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff,
-	0x87, 0xea, 0x4f, 0xb4, 0xa4, 0x00, 0x00, 0x00,
+	0xfa, 0xc8, 0xfa, 0x94, 0xd8, 0xb9, 0x58, 0x83, 0x4b, 0x12, 0x8b, 0x4a, 0x94, 0x38, 0xb9, 0xd8,
+	0xc1, 0x8c, 0xd4, 0x14, 0x25, 0x29, 0x2e, 0x96, 0x80, 0xcc, 0xbc, 0x74, 0x21, 0x21, 0x2e, 0x96,
+	0x92, 0xcc, 0xdc, 0x54, 0x09, 0x46, 0x05, 0x46, 0x0d, 0xe6, 0x20, 0x30, 0xdb, 0x49, 0xe7, 0xc2,
+	0x43, 0x39, 0x86, 0x1b, 0x0f, 0xe5, 0x18, 0x3e, 0x3c, 0x94, 0x63, 0x6c, 0x78, 0x24, 0xc7, 0xb8,
+	0xe2, 0x91, 0x1c, 0xe3, 0x89, 0x47, 0x72, 0x8c, 0x17, 0x1e, 0xc9, 0x31, 0x3e, 0x78, 0x24, 0xc7,
+	0xf8, 0xe2, 0x91, 0x1c, 0xc3, 0x87, 0x47, 0x72, 0x8c, 0x13, 0x1e, 0xcb, 0x31, 0x24, 0xb1, 0x81,
+	0x2d, 0x31, 0x06, 0x04, 0x00, 0x00, 0xff, 0xff, 0x80, 0xd4, 0x28, 0x6f, 0xac, 0x00, 0x00, 0x00,
 }
