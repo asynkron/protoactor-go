@@ -32,6 +32,9 @@ func main() {
 			Time: makeTimestamp(),
 		}
 		remote.Tell(message)
+		if i%1000 == 0 {
+			time.Sleep(500)
+		}
 	}
 	console.ReadLine()
 }

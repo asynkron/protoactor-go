@@ -14,6 +14,7 @@ import (
 
 type remoteActor struct {
 	i        int
+	start    int64
 	messages []int64
 }
 
@@ -34,10 +35,18 @@ func (state *remoteActor) Receive(context actor.Context) {
 	case *messages.Ping:
 		now := makeTimestamp()
 		latency := now - msg.Time
+		if state.i == 0 {
+			log.Println("starting")
+			state.start = makeTimestamp()
+		}
 
 		state.messages[state.i] = latency
 		state.i++
 		if state.i == 1000000 {
+			done := makeTimestamp()
+			delta := done - state.start
+			log.Printf("Test took %v ms", delta)
+
 			a := int64arr(state.messages)
 			sort.Sort(a)
 
