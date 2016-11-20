@@ -30,14 +30,29 @@ func (p *gorelans) Init(g *generator.Generator) {
 	p.Generator = g
 }
 
+func (p *gorelans) AddErrorHandler(infof string) {
+	p.P("if err != nil {")
+	p.In()
+	p.P(`log.Fatalf("`, infof, `", err)`)
+	p.Out()
+	p.P("}")
+}
+
+var logg generator.Single
+var time generator.Single
+var grains generator.Single
+var cluster generator.Single
+var actor generator.Single
+
 func (p *gorelans) Generate(file *generator.FileDescriptor) {
 
 	p.PluginImports = generator.NewPluginImports(p.Generator)
 	p.atleastOne = false
-	logg := p.NewImport("log")
-	grains := p.NewImport("github.com/AsynkronIT/gam/cluster/grains")
-	cluster := p.NewImport("github.com/AsynkronIT/gam/cluster")
-	actor := p.NewImport("github.com/AsynkronIT/gam/actor")
+	logg = p.NewImport("log")
+	time = p.NewImport("time")
+	grains = p.NewImport("github.com/AsynkronIT/gam/cluster/grains")
+	cluster = p.NewImport("github.com/AsynkronIT/gam/cluster")
+	actor = p.NewImport("github.com/AsynkronIT/gam/actor")
 
 	p.localName = generator.FileName(file)
 
@@ -94,10 +109,13 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.P("func (g *", grainName, ") ", methodName, " (r *", inputType, ") *", outputType, " {")
 			p.In()
 			p.P(`pid := `, cluster.Use(), `.Get(g.Id(),"`, serviceName, `")`)
-			p.P(`bytes, _ := proto.Marshal(r)`)
+			p.P(`bytes, err := proto.Marshal(r)`)
+			p.AddErrorHandler("[GRAIN] proto.Marshal failed %v")
 			p.P(`gr := &`, grains.Use(), `.GrainRequest{Method: "`, methodName, `", MessageData: bytes}`)
-			p.P("r0,_ := pid.AskFuture(gr,1000)")
-			p.P("r1, _ := r0.Result()")
+			p.P("r0,err := pid.AskFuture(gr,5 * ", time.Use(), ".Second)")
+			p.AddErrorHandler("[GRAIN] AskFuture failed %v")
+			p.P("r1, err := r0.Result()")
+			p.AddErrorHandler("[GRAIN] Await result failed %v")
 			p.P("r2, _ := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)")
 			p.P("r3 := &", outputType, "{}")
 			p.P("proto.Unmarshal(r2.MessageData, r3)")
@@ -141,7 +159,8 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.P(`req := &`, inputType, `{}`)
 			p.P(`proto.Unmarshal(msg.MessageData, req)`)
 			p.P(`r0 := a.inner.`, methodName, `(req)`)
-			p.P(`bytes, _ := proto.Marshal(r0)`)
+			p.P(`bytes, err := proto.Marshal(r0)`)
+			p.AddErrorHandler("[GRAIN] proto.Marshal failed %v")
 			p.P(`resp := &`, grains.Use(), `.GrainResponse{MessageData: bytes}`)
 			p.P(`ctx.Sender().Tell(resp)`)
 

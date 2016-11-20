@@ -77,6 +77,5 @@ func Get(name string, kind string) *actor.PID {
 	//unwrap the result
 	typed := res.(*messages.ActorPidResponse)
 	pid := typed.Pid
-	log.Printf("[CLUSTER] Get Virtual %v %+v", name, pid)
 	return pid
 }

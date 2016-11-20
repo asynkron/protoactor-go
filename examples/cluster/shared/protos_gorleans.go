@@ -17,6 +17,7 @@ It has these top-level messages:
 package shared
 
 import log "log"
+import time "time"
 import github_com_AsynkronIT_gam_cluster_grains "github.com/AsynkronIT/gam/cluster/grains"
 import github_com_AsynkronIT_gam_cluster "github.com/AsynkronIT/gam/cluster"
 import github_com_AsynkronIT_gam_actor "github.com/AsynkronIT/gam/actor"
@@ -49,10 +50,19 @@ type HelloGrain struct {
 
 func (g *HelloGrain) SayHello(r *HelloRequest) *HelloResponse {
 	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id(), "Hello")
-	bytes, _ := proto.Marshal(r)
+	bytes, err := proto.Marshal(r)
+	if err != nil {
+		log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+	}
 	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "SayHello", MessageData: bytes}
-	r0, _ := pid.AskFuture(gr, 1000)
-	r1, _ := r0.Result()
+	r0, err := pid.AskFuture(gr, 5*time.Second)
+	if err != nil {
+		log.Fatalf("[GRAIN] AskFuture failed %v", err)
+	}
+	r1, err := r0.Result()
+	if err != nil {
+		log.Fatalf("[GRAIN] Await result failed %v", err)
+	}
 	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)
 	r3 := &HelloResponse{}
 	proto.Unmarshal(r2.MessageData, r3)
@@ -68,10 +78,19 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest) <-chan *HelloResponse {
 
 func (g *HelloGrain) Add(r *AddRequest) *AddResponse {
 	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id(), "Hello")
-	bytes, _ := proto.Marshal(r)
+	bytes, err := proto.Marshal(r)
+	if err != nil {
+		log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+	}
 	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "Add", MessageData: bytes}
-	r0, _ := pid.AskFuture(gr, 1000)
-	r1, _ := r0.Result()
+	r0, err := pid.AskFuture(gr, 5*time.Second)
+	if err != nil {
+		log.Fatalf("[GRAIN] AskFuture failed %v", err)
+	}
+	r1, err := r0.Result()
+	if err != nil {
+		log.Fatalf("[GRAIN] Await result failed %v", err)
+	}
 	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)
 	r3 := &AddResponse{}
 	proto.Unmarshal(r2.MessageData, r3)
@@ -97,14 +116,20 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 			req := &HelloRequest{}
 			proto.Unmarshal(msg.MessageData, req)
 			r0 := a.inner.SayHello(req)
-			bytes, _ := proto.Marshal(r0)
+			bytes, err := proto.Marshal(r0)
+			if err != nil {
+				log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+			}
 			resp := &github_com_AsynkronIT_gam_cluster_grains.GrainResponse{MessageData: bytes}
 			ctx.Sender().Tell(resp)
 		case "Add":
 			req := &AddRequest{}
 			proto.Unmarshal(msg.MessageData, req)
 			r0 := a.inner.Add(req)
-			bytes, _ := proto.Marshal(r0)
+			bytes, err := proto.Marshal(r0)
+			if err != nil {
+				log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+			}
 			resp := &github_com_AsynkronIT_gam_cluster_grains.GrainResponse{MessageData: bytes}
 			ctx.Sender().Tell(resp)
 		}
