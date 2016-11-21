@@ -5,7 +5,7 @@
 GAM supports the classic actor model also found in Erlang and Akka.<br>
 Our cluster support however uses a different approach, **Virtual Actor Model**.
 
-This is model where each actor appears to *always exist*.
+This is a model where each actor appears to *always exist*.
 There is no lifecycle as in the classic actor model.
 You get a reference to the actor by asking for it's ID.
 
