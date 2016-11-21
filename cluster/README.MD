@@ -120,7 +120,8 @@ func main() {
 
 ### Can I use GAM Cluster in production?
 
-The GAM Cluster support is not production ready, it is very much experimental.
+The GAM Cluster support is in alpha version, thus not production ready.
+It is very much in flux.
 
 ### What about performance?
 
