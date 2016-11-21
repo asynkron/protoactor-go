@@ -2,8 +2,8 @@
 
 ## Massively distributed actors for GO
 
-GAM supports the classic actor model also found in Erlang and Akka.
-Our cluster support uses a different approach, **Virtual Actor Model**.
+GAM supports the classic actor model also found in Erlang and Akka.<br>
+Our cluster support however uses a different approach, **Virtual Actor Model**.
 
 This is model where each actor appears to *always exist*.
 There is no lifecycle as in the classic actor model.
