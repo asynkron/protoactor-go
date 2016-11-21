@@ -1,4 +1,4 @@
-# GAM Cluster - Virtual Actors
+# GAM Cluster - Virtual Actors (Alpha)
 
 ## Massively distributed actors for GO
 
