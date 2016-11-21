@@ -2,9 +2,9 @@ package actor
 
 import (
 	"fmt"
-	"time"
 	"log"
 	"reflect"
+	"time"
 )
 
 //Tell a message to a given PID
@@ -47,10 +47,9 @@ func (pid *PID) StopFuture() (*Future, error) {
 	}
 	future := NewFuture(10 * time.Second)
 
-	log.Printf("ref = %s", reflect.TypeOf(ref))
 	ref, ok := ref.(*LocalActorRef)
 	if !ok {
-		log.Fatalf("Ooops %s", reflect.TypeOf(ref))
+		log.Fatalf("[ACTOR] Trying to stop non local actorref %s", reflect.TypeOf(ref))
 	}
 
 	ref.Watch(future.PID())
