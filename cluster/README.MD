@@ -1,7 +1,8 @@
 # Virtual Actors
 
 GAM supports the classic actor model also found in Erlang and Akka.
-Our cluster support uses a different approach,  *Virtual Actor Model*.
+Our cluster support uses a different approach, **Virtual Actor Model**.
+
 This is model where each actor appears to *always exist*.
 There is no lifecycle as in the classic actor model.
 You get a reference to the actor by asking for it's ID.
@@ -112,3 +113,17 @@ func main() {
 	log.Printf("Message from grain %v", res.Message)
 }
 ```
+
+## FAQ
+
+### Can I use GAM Cluster in production?
+
+The GAM Cluster support is not production ready, it is very much experimental.
+
+### What about performance?
+
+GAM Remoting is able to pass 1 million+ messages per second on a standard dev machine.
+This is the same infrastructure used in GAM cluster.
+GAM Cluster however uses an RPC API, meaning it is Request/Response in nature.
+If you wait for a response for each call, the throughput will ofcourse be a lot less.
+Async Fire and forget for performance, Request/Response for simplicity.
