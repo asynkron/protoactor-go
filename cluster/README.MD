@@ -1,4 +1,6 @@
-# Virtual Actors
+# GAM Cluster - Virtual Actors
+
+## Massively distributed actors for GO
 
 GAM supports the classic actor model also found in Erlang and Akka.
 Our cluster support uses a different approach, **Virtual Actor Model**.
