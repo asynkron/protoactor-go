@@ -82,9 +82,12 @@ func (ref *FutureActorRef) Ask(pid *PID, message interface{}, sender *PID) {
 }
 
 func (ref *FutureActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
+	ref.channel <- message
 }
 
 func (ref *FutureActorRef) Stop(pid *PID) {
 	ProcessRegistry.unregisterPID(ref.pid)
 	close(ref.channel)
 }
+func (ref *FutureActorRef) Watch(pid *PID) {}
+func (ref *FutureActorRef) UnWatch(pid *PID) {}
