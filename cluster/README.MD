@@ -14,15 +14,12 @@ res := hello.SayHello(&shared.HelloRequest{Name: "GAM"})
 This will ask the cluster where the 'abc' actor is located.
 If it does not yet exist, it will be created for you.
 
-
-
 See Microsoft Orleans for more info about the Virtual Actor Model:
 [http://dotnet.github.io/orleans/](http://dotnet.github.io/orleans/)
 
 ## How to
 
 ## Protobuf IDL Definition
-
 
 Start by defining your messages and grain contracts.
 You do this by using Protobuf IDL files.
@@ -91,5 +88,27 @@ func (*hello) Add(r *AddRequest) *AddResponse {
 func init() {
 	//apply DI and setup logic
 	HelloFactory(func() Hello { return &hello{} })
+}
+```
+
+## Seed nodes
+
+```go
+func main() {
+    cluster.Start("127.0.0.1:7711")
+    console.ReadLine()
+}
+```
+
+## Member nodes
+
+```go
+func main() {
+	cluster.Start("127.0.0.1:0", "127.0.0.1:7711")
+
+    //get a reference to the virtual actor called "abc" of type Hello
+	hello := shared.GetHelloGrain("abc")
+	res := hello.SayHello(&shared.HelloRequest{Name: "GAM"})
+	log.Printf("Message from grain %v", res.Message)
 }
 ```
