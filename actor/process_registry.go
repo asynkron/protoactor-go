@@ -1,12 +1,10 @@
 package actor
 
 import (
-	"log"
 	"strconv"
-	"sync"
 	"sync/atomic"
 
-    "github.com/Workiva/go-datastructures/trie/ctrie"
+	"github.com/Workiva/go-datastructures/trie/ctrie"
 )
 
 type HostResolver func(*PID) (ActorRef, bool)
@@ -49,7 +47,7 @@ func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef, id string) (*PID,
 }
 
 func (pr *ProcessRegistryValue) unregisterPID(pid *PID) {
-    pr.LocalPids.Remove([]byte(pid.Id))
+	pr.LocalPids.Remove([]byte(pid.Id))
 }
 
 func (pr *ProcessRegistryValue) fromPID(pid *PID) (ActorRef, bool) {
@@ -69,10 +67,10 @@ func (pr *ProcessRegistryValue) fromPID(pid *PID) (ActorRef, bool) {
 		return deadLetter, false
 	}
 
-	if original, ok := ref.(ActorRef), ok{
+	if original, ok := ref.(ActorRef); ok {
 		return original, true
-    } else {
+	} else {
 		return deadLetter, false
-    }
+	}
 
 }
