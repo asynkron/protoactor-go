@@ -46,18 +46,19 @@ func (mailbox *unboundedMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages)
 
-	done := false
-	for !done {
+	done := 0
+	for done != 5 {
 		//process x messages in sequence, then exit
 		for i := 0; i < mailbox.throughput; i++ {
 			if sysMsg, ok := mailbox.systemMailbox.Pop(); ok {
+				done = 0
 				sys, _ := sysMsg.(SystemMessage)
 				mailbox.systemInvoke(sys)
 			} else if userMsg, ok := mailbox.userMailbox.Pop(); ok {
-
+				done = 0
 				mailbox.userInvoke(userMsg.(UserMessage))
 			} else {
-				done = true
+				done++
 				break
 			}
 		}
