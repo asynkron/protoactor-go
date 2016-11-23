@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package messages;
+
+import "github.com/AsynkronIT/gam/actor/protos.proto";
+
+message Ping {
+    actor.PID Sender = 1;
+	string User = 2; 
+}
+
+message Pong {}
+
