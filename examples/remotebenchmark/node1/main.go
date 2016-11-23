@@ -43,7 +43,7 @@ func newLocalActor(stop *sync.WaitGroup, messageCount int) actor.Producer {
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(runtime.NumCPU() * 1)
 
 	var wg sync.WaitGroup
 
@@ -53,7 +53,7 @@ func main() {
 
 	props := actor.
 		FromProducer(newLocalActor(&wg, messageCount)).
-		WithMailbox(actor.NewBoundedMailbox(1000, 1000))
+		WithMailbox(actor.NewBoundedMailbox(1000, 10000))
 
 	pid := actor.Spawn(props)
 

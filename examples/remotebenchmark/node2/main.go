@@ -32,13 +32,13 @@ func newRemoteActor() actor.Producer {
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(runtime.NumCPU() * 1)
 	runtime.GC()
 
 	remoting.Start("127.0.0.1:8080")
 	props := actor.
 		FromProducer(newRemoteActor()).
-		WithMailbox(actor.NewBoundedMailbox(1000, 10000))
+		WithMailbox(actor.NewBoundedMailbox(1000, 1000))
 
 	actor.SpawnNamed(props, "remote")
 

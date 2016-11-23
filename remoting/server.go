@@ -43,7 +43,7 @@ func Start(host string, options ...RemotingOption) {
 	actor.ProcessRegistry.Host = host
 	props := actor.
 		FromProducer(newEndpointManager(config)).
-		WithMailbox(actor.NewBoundedMailbox(1000, 100000))
+		WithMailbox(actor.NewBoundedMailbox(100, 200000))
 
 	endpointManagerPID = actor.Spawn(props)
 
