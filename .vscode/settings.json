@@ -1,0 +1,21 @@
+{
+  "files.exclude": {
+    "*.o": "explorerExcludedFiles",
+    "*.a": "explorerExcludedFiles",
+    "*.so": "explorerExcludedFiles",
+    "_obj": "explorerExcludedFiles",
+    "_test": "explorerExcludedFiles",
+    "*.[568vq]": "explorerExcludedFiles",
+    "[568vq].out": "explorerExcludedFiles",
+    "*.cgo1.go": "explorerExcludedFiles",
+    "*.cgo2.c": "explorerExcludedFiles",
+    "_cgo_defun.c": "explorerExcludedFiles",
+    "_cgo_gotypes.go": "explorerExcludedFiles",
+    "_cgo_export.*": "explorerExcludedFiles",
+    "_testmain.go": "explorerExcludedFiles",
+    "*.exe": "explorerExcludedFiles",
+    "*.test": "explorerExcludedFiles",
+    "*.prof": "explorerExcludedFiles",
+    ".idea/*": "explorerExcludedFiles"
+  }
+}

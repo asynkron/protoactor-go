@@ -243,7 +243,7 @@ func (cell *actorCell) stopped() {
 func (cell *actorCell) invokeUserMessage(md UserMessage) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[ACTOR] Recovering %v", r)
+			log.Printf("[ACTOR] Recovering from: %v", r)
 			failure := &failure{Reason: r, Who: cell.self}
 			if cell.parent == nil {
 				handleRootFailure(failure, defaultSupervisionStrategy)
