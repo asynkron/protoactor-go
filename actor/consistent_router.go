@@ -24,21 +24,12 @@ type ConsistentRouterState struct {
 	config  RouterConfig
 }
 
-func NewConsistentRouter(config RouterConfig) *ConsistentRouterState {
+func NewConsistentRouter(config RouterConfig, hasher Hasher) RouterState {
 	router := &ConsistentRouterState{
 		config: config,
-		hasher: NewHashring(),
+		hasher: hasher,
 	}
 	return router
-}
-
-func (state *ConsistentRouterState) WithHasher(hasher Hasher) RouterState {
-	state.hasher = hasher
-	return state
-}
-
-func (state *ConsistentRouterState) ToRouter() RouterState {
-	return state
 }
 
 func (state *ConsistentRouterState) SetRoutees(routees []*PID) {

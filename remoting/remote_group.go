@@ -1,6 +1,8 @@
 package remoting
 
 import (
+	"sync"
+
 	"github.com/AsynkronIT/gam/actor"
 )
 

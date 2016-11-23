@@ -34,7 +34,7 @@ func main() {
 			}).
 			WithStrategyProducer(func(config actor.GroupRouterConfig) actor.RouterState {
 				//return &actor.RoundRobinState{}
-				return actor.NewConsistentRouter(config).WithHasher(hashring.New()).ToRouter()
+				return actor.NewConsistentRouter(config, hashring.New())
 			}),
 	)
 

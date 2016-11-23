@@ -2,12 +2,11 @@ package main
 
 import (
 	"sync"
-	"time"
 
 	"log"
 
 	"github.com/AsynkronIT/gam/actor"
-	"skype.net/groupme/gam/model"
+	"github.com/AsynkronIT/gam/examples/remoterouting/messages"
 )
 
 type localActor struct {
@@ -20,7 +19,7 @@ func (state *localActor) Receive(context actor.Context) {
 	switch context.Message().(type) {
 	case *actor.Started:
 		state.wgStop.Add(1)
-	case *model.Pong:
+	case *messages.Pong:
 		state.count++
 		if state.count%50000 == 0 {
 			log.Println(state.count)
@@ -32,7 +31,7 @@ func (state *localActor) Receive(context actor.Context) {
 	}
 }
 
-func newLocalActor(stop *sync.WaitGroup, messageCount int) actor.ActorProducer {
+func newLocalActor(stop *sync.WaitGroup, messageCount int) actor.Producer {
 	return func() actor.Actor {
 		return &localActor{
 			wgStop:       stop,

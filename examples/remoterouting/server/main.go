@@ -4,7 +4,10 @@ import (
 	"flag"
 	"runtime"
 
+	"log"
+
 	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/examples/remoterouting/messages"
 	"github.com/AsynkronIT/gam/remoting"
 	console "github.com/AsynkronIT/goconsole"
 )
@@ -20,16 +23,13 @@ type remoteActor struct {
 
 func (a *remoteActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case *model.StartRemote:
-		log.Println("Starting")
-		msg.Sender.Tell(&model.Start{})
-	case *model.Ping:
+	case *messages.Ping:
 		log.Println(a.name, "got message")
-		msg.Sender.Tell(&model.Pong{})
+		msg.Sender.Tell(&messages.Pong{})
 	}
 }
 
-func newRemoteActor(name string) actor.ActorProducer {
+func newRemoteActor(name string) actor.Producer {
 	return func() actor.Actor {
 		return &remoteActor{
 			name: name,
