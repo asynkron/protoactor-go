@@ -19,10 +19,14 @@ func newRemoteActorRef(pid *actor.PID) actor.ActorRef {
 }
 
 func (ref *remoteActorRef) Tell(pid *actor.PID, message interface{}) {
-	ref.Ask(pid, message, nil)
+	ref.send(pid, message, nil)
 }
 
 func (ref *remoteActorRef) Ask(pid *actor.PID, message interface{}, sender *actor.PID) {
+	ref.send(pid, message, sender)
+}
+
+func (ref *remoteActorRef) send(pid *actor.PID, message interface{}, sender *actor.PID) {
 	switch msg := message.(type) {
 	case proto.Message:
 		envelope, _ := packMessage(msg, ref.pid, sender)
@@ -35,11 +39,11 @@ func (ref *remoteActorRef) Ask(pid *actor.PID, message interface{}, sender *acto
 func (ref *remoteActorRef) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
 	switch msg := message.(type) {
 	case *actor.Watch:
-		ref.Ask(pid, msg, nil)
+		ref.send(pid, msg, nil)
 	case *actor.Unwatch:
-		ref.Ask(pid, msg, nil)
+		ref.send(pid, msg, nil)
 	case *actor.Terminated:
-		ref.Ask(pid, msg, nil)
+		ref.send(pid, msg, nil)
 	default:
 		log.Printf("[REMOTING] failed, trying to send non Proto %v message to %v", msg, ref.pid)
 	}
