@@ -2,38 +2,28 @@ package actor
 
 //SystemMessage is a special type of messages passed to control the actor lifecycles
 type SystemMessage interface {
-	systemMessage()
+	SystemMessage()
 }
 
-func (*Stop) systemMessage() {}
+func (*Stop) SystemMessage() {}
 
-func (*Watch) systemMessage() {}
+func (*Watch) SystemMessage() {}
 
-func (*Unwatch) systemMessage() {}
+func (*Unwatch) SystemMessage() {}
 
-func (*Terminated) systemMessage() {}
+func (*Terminated) SystemMessage() {}
 
-func (*Failure) systemMessage() {}
+func (*Failure) SystemMessage() {}
 
-func (*Restart) systemMessage() {}
+func (*Restart) SystemMessage() {}
 
-func (*Resume) systemMessage() {}
+func (*Resume) SystemMessage() {}
 
 type Restart struct{}
 
 type Resume struct{}
 
 type Stop struct{}
-
-type Watch struct {
-	Watcher *PID
-}
-type Unwatch struct {
-	Watcher *PID
-}
-type Terminated struct {
-	Who *PID
-}
 
 type Failure struct {
 	Who    *PID

@@ -12,3 +12,14 @@ message Stopping {}
 message Stopped {}
 message PoisonPill {}
 message Started {}
+
+//system messages
+message Watch {
+	PID watcher = 1;
+}
+message Unwatch {
+	PID watcher = 1;
+}
+message Terminated {
+	PID who = 1;
+}
