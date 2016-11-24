@@ -5,18 +5,20 @@ import (
 	"sync"
 )
 
-type Action func(msg interface{})
-type Predicate func(msg interface{}) bool
-type Subscription struct {
-	action Action
-}
-
 type eventStream struct {
 	sync.RWMutex
 	subscriptions []*Subscription
 }
 
-var EventStream = &eventStream{}
+var (
+	EventStream = &eventStream{}
+)
+
+type Action func(msg interface{})
+type Predicate func(msg interface{}) bool
+type Subscription struct {
+	action Action
+}
 
 func init() {
 	EventStream.Subscribe(func(msg interface{}) {

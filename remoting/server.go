@@ -9,23 +9,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-type server struct{}
-
-func (s *server) Receive(stream messages.Remoting_ReceiveServer) error {
-	for {
-		batch, err := stream.Recv()
-		if err != nil {
-			return err
-		}
-		for _, envelope := range batch.Envelopes {
-			pid := envelope.Target
-			message := unpackMessage(envelope)
-			sender := envelope.Sender
-			pid.Ask(message, sender)
-		}
-	}
-}
-
 //Start the remoting server
 func Start(host string, options ...RemotingOption) {
 

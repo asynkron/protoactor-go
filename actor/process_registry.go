@@ -6,8 +6,6 @@ import (
 	"sync/atomic"
 )
 
-type HostResolver func(*PID) (ActorRef, bool)
-
 type ProcessRegistryValue struct {
 	Host           string
 	LocalPids      map[string]ActorRef //maybe this should be replaced with something lockfree like ctrie instead
@@ -16,11 +14,15 @@ type ProcessRegistryValue struct {
 	rw             sync.RWMutex
 }
 
-var ProcessRegistry = &ProcessRegistryValue{
-	Host:           "nonhost",
-	LocalPids:      make(map[string]ActorRef),
-	RemoteHandlers: make([]HostResolver, 0),
-}
+var (
+	ProcessRegistry = &ProcessRegistryValue{
+		Host:           "nonhost",
+		LocalPids:      make(map[string]ActorRef),
+		RemoteHandlers: make([]HostResolver, 0),
+	}
+)
+
+type HostResolver func(*PID) (ActorRef, bool)
 
 func (pr *ProcessRegistryValue) RegisterHostResolver(handler HostResolver) {
 	pr.RemoteHandlers = append(pr.RemoteHandlers, handler)
@@ -41,7 +43,7 @@ func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef, id string) (*PID,
 	pr.rw.Lock()
 	_, found := pr.LocalPids[pid.Id]
 	if found {
-	    pr.rw.Unlock()
+		pr.rw.Unlock()
 		return &pid, false
 	}
 	pr.LocalPids[pid.Id] = actorRef
@@ -70,7 +72,7 @@ func (pr *ProcessRegistryValue) fromPID(pid *PID) (ActorRef, bool) {
 	ref, ok := pr.LocalPids[pid.Id]
 	if !ok {
 		//panic("Unknown PID")
-	    pr.rw.RUnlock()
+		pr.rw.RUnlock()
 		return deadLetter, false
 	}
 	pr.rw.RUnlock()
