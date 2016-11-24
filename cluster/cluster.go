@@ -9,8 +9,6 @@ import (
 	"github.com/hashicorp/memberlist"
 )
 
-var list *memberlist.Memberlist
-
 //Start the cluster and optionally join other nodes
 func Start(ip string, join ...string) {
 	h, p := getAddress(ip)

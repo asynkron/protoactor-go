@@ -8,6 +8,11 @@ import (
 	"github.com/AsynkronIT/gam/cluster/messages"
 )
 
+func clusterForHost(host string) *actor.PID {
+	pid := actor.NewPID(host, "cluster")
+	return pid
+}
+
 var clusterPid = actor.SpawnNamed(actor.FromProducer(newClusterActor()), "cluster")
 
 func newClusterActor() actor.Producer {
@@ -32,7 +37,7 @@ func (state *clusterActor) Receive(context actor.Context) {
 	case *clusterStatusJoin:
 		state.clusterStatusJoin(msg)
 	case *clusterStatusLeave:
-		log.Printf("[CLUSTER] Node left %v", msg.node.Name)
+		log.Printf("[CLUSTER] Node left %v", msg.node.host)
 	case *messages.TakeOwnership:
 		state.takeOwnership(msg)
 	default:
@@ -72,24 +77,28 @@ func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest, contex
 }
 
 func (state *clusterActor) clusterStatusJoin(msg *clusterStatusJoin) {
-	log.Printf("[CLUSTER] Node joined %v", msg.node.Name)
+	log.Printf("[CLUSTER] Node joined %v", msg.node.host)
 	if list.LocalNode() == nil {
 		return
 	}
 
 	selfName := list.LocalNode().Name
-	for key := range state.partition {
-		c := findClosest(key)
-		if c.Name != selfName {
-			log.Printf("[CLUSTER] Giving ownership of %v to Node %v", key, c.Name)
-			pid := state.partition[key]
-			owner := clusterForNode(c)
-			owner.Tell(&messages.TakeOwnership{
-				Pid:  pid,
-				Name: key,
-			})
-			//we can safely delete this entry as the consisntent hash no longer points to us
-			delete(state.partition, key)
+	for actorId := range state.partition {
+		host := getNode(actorId)
+		if host != selfName {
+			state.transferOwnership(actorId, host)
 		}
 	}
+}
+
+func (state *clusterActor) transferOwnership(actorId string, host string) {
+	log.Printf("[CLUSTER] Giving ownership of %v to Node %v", actorId, host)
+	pid := state.partition[actorId]
+	owner := clusterForHost(host)
+	owner.Tell(&messages.TakeOwnership{
+		Pid:  pid,
+		Name: actorId,
+	})
+	//we can safely delete this entry as the consisntent hash no longer points to us
+	delete(state.partition, actorId)
 }

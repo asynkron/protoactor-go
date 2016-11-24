@@ -14,7 +14,7 @@ type Hashable interface {
 }
 
 type Hasher interface {
-	Hash(message Hashable) (string, error)
+	GetNode(message Hashable) (string, error)
 	SetNodes(nodes []string)
 }
 
@@ -56,7 +56,7 @@ func (state *ConsistentRouterState) Route(message interface{}) {
 
 	switch msg := message.(type) {
 	case Hashable:
-		node, err := state.hasher.Hash(msg)
+		node, err := state.hasher.GetNode(msg)
 		if err != nil {
 			log.Println("Consisten router failed to derminate node", err)
 			return

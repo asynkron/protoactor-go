@@ -2,10 +2,14 @@ package cluster
 
 import "github.com/hashicorp/memberlist"
 
-func getMemberlistConfig(h string, p int, name string) *memberlist.Config {
+var (
+	list *memberlist.Memberlist
+)
+
+func getMemberlistConfig(host string, port int, name string) *memberlist.Config {
 	c := memberlist.DefaultLocalConfig()
-	c.BindPort = p
-	c.BindAddr = h
+	c.BindPort = port
+	c.BindAddr = host
 	c.Name = name
 	c.Delegate = NewMemberlistGossiper(c.Name)
 	c.Events = newEventDelegate()

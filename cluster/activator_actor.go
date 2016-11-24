@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"log"
+	"math/rand"
 
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/cluster/messages"
@@ -11,6 +12,19 @@ type activator struct {
 }
 
 var activatorPid = actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
+
+func activatorForHost(host string) *actor.PID {
+	pid := actor.NewPID(host, "activator")
+	return pid
+}
+
+func getRandomActivator() *actor.PID {
+	r := rand.Int()
+	members := list.Members()
+	i := r % len(members)
+	member := members[i]
+	return activatorForHost(member.Name)
+}
 
 func newActivatorActor() actor.Producer {
 	return func() actor.Actor {
