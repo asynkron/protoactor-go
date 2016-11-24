@@ -36,16 +36,7 @@ func (ref *remoteActorRef) send(pid *actor.PID, message interface{}, sender *act
 }
 
 func (ref *remoteActorRef) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
-	switch msg := message.(type) {
-	case *actor.Watch:
-		ref.send(pid, msg, nil)
-	case *actor.Unwatch:
-		ref.send(pid, msg, nil)
-	case *actor.Terminated:
-		ref.send(pid, msg, nil)
-	default:
-		log.Printf("[REMOTING] failed, trying to send non Proto %v message to %v", msg, ref.pid)
-	}
+	ref.send(pid, message, nil)
 }
 
 func (ref *remoteActorRef) Stop(pid *actor.PID) {
