@@ -33,15 +33,15 @@ func (ref *LocalActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
 }
 
 func (ref *LocalActorRef) Stop(pid *PID) {
-	ref.SendSystemMessage(pid, &stop{})
+	ref.SendSystemMessage(pid, &Stop{})
 }
 
 func (ref *LocalActorRef) Watch(pid *PID) {
-	ref.SendSystemMessage(pid, &watch{Watcher: pid})
+	ref.SendSystemMessage(pid, &Watch{Watcher: pid})
 }
 
 func (ref *LocalActorRef) UnWatch(pid *PID) {
-	ref.SendSystemMessage(pid, &unwatch{Watcher: pid})
+	ref.SendSystemMessage(pid, &Unwatch{Watcher: pid})
 }
 
 func (ref *LocalActorRef) Suspend() {

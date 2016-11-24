@@ -1,18 +1,23 @@
 package main
 
 import (
+	"flag"
+	"os"
+	"runtime/pprof"
+
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/remoting"
 
 	"log"
 	"sync"
 
+	"runtime"
 	"time"
+
+	"github.com/AsynkronIT/gam/examples/remotebenchmark/messages"
 )
 
 // import "runtime/pprof"
-import "github.com/AsynkronIT/gam/examples/remotebenchmark/messages"
-import "runtime"
 
 type localActor struct {
 	count        int
@@ -42,7 +47,19 @@ func newLocalActor(stop *sync.WaitGroup, messageCount int) actor.Producer {
 	}
 }
 
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+
 func main() {
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	runtime.GOMAXPROCS(runtime.NumCPU() * 1)
 
 	var wg sync.WaitGroup

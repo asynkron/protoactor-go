@@ -5,39 +5,37 @@ type SystemMessage interface {
 	systemMessage()
 }
 
-type stop struct{}
+func (*Stop) systemMessage() {}
 
-func (*stop) systemMessage() {}
+func (*Watch) systemMessage() {}
 
-type watch struct {
+func (*Unwatch) systemMessage() {}
+
+func (*Terminated) systemMessage() {}
+
+func (*Failure) systemMessage() {}
+
+func (*Restart) systemMessage() {}
+
+func (*Resume) systemMessage() {}
+
+type Restart struct{}
+
+type Resume struct{}
+
+type Stop struct{}
+
+type Watch struct {
 	Watcher *PID
 }
-
-func (*watch) systemMessage() {}
-
-type unwatch struct {
+type Unwatch struct {
 	Watcher *PID
 }
-
-func (*unwatch) systemMessage() {}
-
-type otherStopped struct {
+type Terminated struct {
 	Who *PID
 }
 
-func (*otherStopped) systemMessage() {}
-
-type failure struct {
+type Failure struct {
 	Who    *PID
 	Reason interface{}
 }
-
-func (*failure) systemMessage() {}
-
-type restart struct{}
-
-func (*restart) systemMessage() {}
-
-type resume struct{}
-
-func (*resume) systemMessage() {}

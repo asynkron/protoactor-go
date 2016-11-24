@@ -147,24 +147,24 @@ func (cell *actorCell) invokeSystemMessage(message SystemMessage) {
 	switch msg := message.(interface{}).(type) {
 	default:
 		fmt.Printf("Unknown system message %T", msg)
-	case *stop:
+	case *Stop:
 		cell.handleStop(msg)
-	case *otherStopped:
+	case *Terminated:
 		cell.handleOtherStopped(msg)
-	case *watch:
+	case *Watch:
 		cell.watchers.Add(msg.Watcher)
-	case *unwatch:
+	case *Unwatch:
 		cell.watchers.Remove(msg.Watcher)
-	case *failure:
+	case *Failure:
 		cell.handleFailure(msg)
-	case *restart:
+	case *Restart:
 		cell.handleRestart(msg)
-	case *resume:
+	case *Resume:
 		cell.self.resume()
 	}
 }
 
-func (cell *actorCell) handleStop(msg *stop) {
+func (cell *actorCell) handleStop(msg *Stop) {
 	cell.stopping = true
 	cell.invokeUserMessage(UserMessage{Message: &Stopping{}})
 	for _, child := range cell.children.Values() {
@@ -173,21 +173,21 @@ func (cell *actorCell) handleStop(msg *stop) {
 	cell.tryRestartOrTerminate()
 }
 
-func (cell *actorCell) handleOtherStopped(msg *otherStopped) {
+func (cell *actorCell) handleOtherStopped(msg *Terminated) {
 	cell.children.Remove(msg.Who)
 	cell.watching.Remove(msg.Who)
 	cell.tryRestartOrTerminate()
 }
 
-func (cell *actorCell) handleFailure(msg *failure) {
+func (cell *actorCell) handleFailure(msg *Failure) {
 	directive := cell.supervisor.Handle(msg.Who, msg.Reason)
 	switch directive {
 	case ResumeDirective:
 		//resume the failing child
-		msg.Who.sendSystemMessage(&resume{})
+		msg.Who.sendSystemMessage(&Resume{})
 	case RestartDirective:
 		//restart the failing child
-		msg.Who.sendSystemMessage(&restart{})
+		msg.Who.sendSystemMessage(&Restart{})
 	case StopDirective:
 		//stop the failing child
 		msg.Who.Stop()
@@ -197,7 +197,7 @@ func (cell *actorCell) handleFailure(msg *failure) {
 	}
 }
 
-func (cell *actorCell) handleRestart(msg *restart) {
+func (cell *actorCell) handleRestart(msg *Restart) {
 	cell.stopping = false
 	cell.invokeUserMessage(UserMessage{Message: &Restarting{}})
 	for _, child := range cell.children.Values() {
@@ -234,7 +234,7 @@ func (cell *actorCell) restart() {
 func (cell *actorCell) stopped() {
 	ProcessRegistry.unregisterPID(cell.self)
 	cell.invokeUserMessage(UserMessage{Message: &Stopped{}})
-	otherStopped := &otherStopped{Who: cell.self}
+	otherStopped := &Terminated{Who: cell.self}
 	for _, watcher := range cell.watchers.Values() {
 		watcher.(*PID).sendSystemMessage(otherStopped)
 	}
@@ -244,7 +244,7 @@ func (cell *actorCell) invokeUserMessage(md UserMessage) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[ACTOR] Recovering from: %v", r)
-			failure := &failure{Reason: r, Who: cell.self}
+			failure := &Failure{Reason: r, Who: cell.self}
 			if cell.parent == nil {
 				handleRootFailure(failure, defaultSupervisionStrategy)
 			} else {
@@ -275,14 +275,14 @@ func (cell *actorCell) UnbecomeStacked() {
 }
 
 func (cell *actorCell) Watch(who *PID) {
-	who.sendSystemMessage(&watch{
+	who.sendSystemMessage(&Watch{
 		Watcher: cell.self,
 	})
 	cell.watching.Add(who)
 }
 
 func (cell *actorCell) Unwatch(who *PID) {
-	who.sendSystemMessage(&unwatch{
+	who.sendSystemMessage(&Unwatch{
 		Watcher: cell.self,
 	})
 	cell.watching.Remove(who)
@@ -307,15 +307,15 @@ func (cell *actorCell) SpawnNamed(props Props, name string) *PID {
 	return pid
 }
 
-func handleRootFailure(msg *failure, supervisor SupervisionStrategy) {
+func handleRootFailure(msg *Failure, supervisor SupervisionStrategy) {
 	directive := supervisor.Handle(msg.Who, msg.Reason)
 	switch directive {
 	case ResumeDirective:
 		//resume the fialing child
-		msg.Who.sendSystemMessage(&resume{})
+		msg.Who.sendSystemMessage(&Resume{})
 	case RestartDirective:
 		//restart the failing child
-		msg.Who.sendSystemMessage(&restart{})
+		msg.Who.sendSystemMessage(&Restart{})
 	case StopDirective:
 		//stop the failing child
 		msg.Who.Stop()

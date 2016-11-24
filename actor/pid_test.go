@@ -35,7 +35,7 @@ func TestStopFuture(t *testing.T) {
 		}
 		log.Printf("Res = %s", res)
 
-		stopped, ok := res.(*otherStopped)
+		stopped, ok := res.(*Terminated)
 		if !ok {
 			assert.Fail(t, "Cannot cast %s", reflect.TypeOf(res))
 			return
