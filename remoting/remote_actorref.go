@@ -9,7 +9,6 @@ import (
 
 type remoteActorRef struct {
 	pid *actor.PID
-	actor.ActorRef
 }
 
 func newRemoteActorRef(pid *actor.PID) actor.ActorRef {
