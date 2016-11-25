@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/gam/actor"
+	router "github.com/AsynkronIT/gam/routers"
 	"github.com/AsynkronIT/goconsole"
 )
 
@@ -18,14 +19,14 @@ func main() {
 		}
 	}
 	log.Println("Round robin routing:")
-	props := actor.FromFunc(act).WithPoolRouter(actor.NewRoundRobinPool(5))
+	props := actor.FromFunc(act).WithPoolRouter(router.NewRoundRobinPool(5))
 	pid := actor.Spawn(props)
 	for i := 0; i < 10; i++ {
 		pid.Tell(&myMessage{i})
 	}
 	time.Sleep(1 * time.Second)
 	log.Println("Random routing:")
-	props = actor.FromFunc(act).WithPoolRouter(actor.NewRandomPool(5))
+	props = actor.FromFunc(act).WithPoolRouter(router.NewRandomPool(5))
 	pid = actor.Spawn(props)
 	for i := 0; i < 10; i++ {
 		pid.Tell(&myMessage{i})
