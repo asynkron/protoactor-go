@@ -1,13 +1,12 @@
-package hashring
+package routing
 
 import (
-	"github.com/AsynkronIT/gam/routing"
 	"github.com/serialx/hashring"
 )
 
 type Hashring struct {
 	ring *hashring.HashRing
-	routing.Hasher
+	Hasher
 }
 
 func New() *Hashring {
@@ -15,14 +14,14 @@ func New() *Hashring {
 	return h
 }
 
-func (h *Hashring) GetNode(message routing.Hashable) (string, error) {
+func (h *Hashring) GetNode(message Hashable) (string, error) {
 	if h.ring == nil {
 		panic("Hashring is not initialized")
 	}
 	if key, ok := h.ring.GetNode(message.HashBy()); ok {
 		return key, nil
 	}
-	return "", routing.ErrorUnknownPartition
+	return "", ErrorUnknownPartition
 }
 
 func (h *Hashring) SetNodes(nodes []string) {
