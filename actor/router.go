@@ -80,3 +80,8 @@ func (ref *RouterActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
 func (ref *RouterActorRef) Stop(pid *PID) {
 	ref.SendSystemMessage(pid, &Stop{})
 }
+
+type RouterState interface {
+	Route(message interface{})
+	SetRoutees(routees []*PID)
+}
