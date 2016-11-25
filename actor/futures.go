@@ -11,7 +11,7 @@ func NewFuture(timeout time.Duration) *Future {
 		channel: make(chan interface{}, 1),
 	}
 	id := ProcessRegistry.getAutoId()
-	pid, _ := ProcessRegistry.registerPID(ref, id)
+	pid, _ := ProcessRegistry.add(ref, id)
 	ref.pid = pid
 
 	fut := &Future{
@@ -86,8 +86,8 @@ func (ref *FutureActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
 }
 
 func (ref *FutureActorRef) Stop(pid *PID) {
-	ProcessRegistry.unregisterPID(ref.pid)
+	ProcessRegistry.remove(ref.pid)
 	close(ref.channel)
 }
-func (ref *FutureActorRef) Watch(pid *PID) {}
+func (ref *FutureActorRef) Watch(pid *PID)   {}
 func (ref *FutureActorRef) UnWatch(pid *PID) {}

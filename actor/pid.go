@@ -9,13 +9,13 @@ import (
 
 //Tell a message to a given PID
 func (pid *PID) Tell(message interface{}) {
-	ref, _ := ProcessRegistry.fromPID(pid)
+	ref, _ := ProcessRegistry.get(pid)
 	ref.Tell(pid, message)
 }
 
 //Ask a message to a given PID
 func (pid *PID) Ask(message interface{}, sender *PID) error {
-	ref, found := ProcessRegistry.fromPID(pid)
+	ref, found := ProcessRegistry.get(pid)
 	if !found {
 		return fmt.Errorf("Unknown PID %s", pid)
 	}
@@ -25,7 +25,7 @@ func (pid *PID) Ask(message interface{}, sender *PID) error {
 
 //Ask a message to a given PID
 func (pid *PID) AskFuture(message interface{}, timeout time.Duration) (*Future, error) {
-	ref, found := ProcessRegistry.fromPID(pid)
+	ref, found := ProcessRegistry.get(pid)
 	if !found {
 		return nil, fmt.Errorf("Unknown PID %s", pid)
 	}
@@ -35,12 +35,12 @@ func (pid *PID) AskFuture(message interface{}, timeout time.Duration) (*Future, 
 }
 
 func (pid *PID) sendSystemMessage(message SystemMessage) {
-	ref, _ := ProcessRegistry.fromPID(pid)
+	ref, _ := ProcessRegistry.get(pid)
 	ref.SendSystemMessage(pid, message)
 }
 
 func (pid *PID) StopFuture() (*Future, error) {
-	ref, found := ProcessRegistry.fromPID(pid)
+	ref, found := ProcessRegistry.get(pid)
 
 	if !found {
 		return nil, fmt.Errorf("Unknown PID %s", pid)
@@ -61,17 +61,17 @@ func (pid *PID) StopFuture() (*Future, error) {
 
 //Stop the given PID
 func (pid *PID) Stop() {
-	ref, _ := ProcessRegistry.fromPID(pid)
+	ref, _ := ProcessRegistry.get(pid)
 	ref.Stop(pid)
 }
 
 func (pid *PID) suspend() {
-	ref, _ := ProcessRegistry.fromPID(pid)
+	ref, _ := ProcessRegistry.get(pid)
 	ref.(*LocalActorRef).Suspend()
 }
 
 func (pid *PID) resume() {
-	ref, _ := ProcessRegistry.fromPID(pid)
+	ref, _ := ProcessRegistry.get(pid)
 	ref.(*LocalActorRef).Resume()
 }
 

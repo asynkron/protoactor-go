@@ -34,7 +34,7 @@ func spawnRouter(config RouterConfig, props Props, parent *PID) *PID {
 		state:  routerState,
 	}
 	proxyID := ProcessRegistry.getAutoId()
-	proxy, _ := ProcessRegistry.registerPID(ref, proxyID)
+	proxy, _ := ProcessRegistry.add(ref, proxyID)
 	return proxy
 }
 
@@ -49,7 +49,7 @@ func (ref *RouterActorRef) Tell(pid *PID, message interface{}) {
 }
 
 func (ref *RouterActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
-	r, _ := ProcessRegistry.fromPID(ref.router)
+	r, _ := ProcessRegistry.get(ref.router)
 	r.SendSystemMessage(pid, message)
 }
 

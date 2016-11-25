@@ -34,7 +34,7 @@ func (pr *ProcessRegistryValue) getAutoId() string {
 	return id
 }
 
-func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef, id string) (*PID, bool) {
+func (pr *ProcessRegistryValue) add(actorRef ActorRef, id string) (*PID, bool) {
 
 	pid := PID{
 		Host: pr.Host,
@@ -49,11 +49,11 @@ func (pr *ProcessRegistryValue) registerPID(actorRef ActorRef, id string) (*PID,
 	return &pid, true
 }
 
-func (pr *ProcessRegistryValue) unregisterPID(pid *PID) {
+func (pr *ProcessRegistryValue) remove(pid *PID) {
 	pr.LocalPids.Remove(pid.Id)
 }
 
-func (pr *ProcessRegistryValue) fromPID(pid *PID) (ActorRef, bool) {
+func (pr *ProcessRegistryValue) get(pid *PID) (ActorRef, bool) {
 	if pid.Host != "nonhost" && pid.Host != pr.Host {
 		for _, handler := range pr.RemoteHandlers {
 			ref, ok := handler(pid)
@@ -61,7 +61,6 @@ func (pr *ProcessRegistryValue) fromPID(pid *PID) (ActorRef, bool) {
 				return ref, true
 			}
 		}
-		//panic("Unknown host or node")
 		return deadLetter, false
 	}
 	ref, ok := pr.LocalPids.Get(pid.Id)

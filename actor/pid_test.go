@@ -43,7 +43,7 @@ func TestStopFuture(t *testing.T) {
 
 		log.Printf("Received %s", stopped)
 
-		_, found := ProcessRegistry.LocalPids[actor.Id]
+		_, found := ProcessRegistry.get(actor)
 		assert.False(t, found)
 	}
 }

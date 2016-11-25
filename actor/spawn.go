@@ -21,7 +21,7 @@ func spawn(id string, props Props, parent *PID) *PID {
 	cell := NewActorCell(props, parent)
 	mailbox := props.ProduceMailbox()
 	ref := NewLocalActorRef(mailbox)
-	pid, new := ProcessRegistry.registerPID(ref, id)
+	pid, new := ProcessRegistry.add(ref, id)
 
 	if new {
 		mailbox.RegisterHandlers(cell.invokeUserMessage, cell.invokeSystemMessage)

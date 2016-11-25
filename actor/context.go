@@ -232,7 +232,7 @@ func (cell *actorCell) restart() {
 }
 
 func (cell *actorCell) stopped() {
-	ProcessRegistry.unregisterPID(cell.self)
+	ProcessRegistry.remove(cell.self)
 	cell.invokeUserMessage(UserMessage{Message: &Stopped{}})
 	otherStopped := &Terminated{Who: cell.self}
 	for _, watcher := range cell.watchers.Values() {
