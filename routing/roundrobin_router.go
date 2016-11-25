@@ -7,11 +7,11 @@ import (
 )
 
 type RoundRobinGroupRouter struct {
-	routees []*actor.PID
+	actor.GroupRouter
 }
 
 type RoundRobinPoolRouter struct {
-	poolSize int
+	actor.PoolRouter
 }
 
 type RoundRobinState struct {
@@ -25,11 +25,15 @@ func (state *RoundRobinState) SetRoutees(routees []*actor.PID) {
 }
 
 func NewRoundRobinGroup(routees ...*actor.PID) actor.GroupRouterConfig {
-	return &RoundRobinGroupRouter{routees: routees}
+	r := &RoundRobinGroupRouter{}
+	r.Routees = routees
+	return r
 }
 
 func NewRoundRobinPool(poolSize int) actor.PoolRouterConfig {
-	return &RoundRobinPoolRouter{poolSize: poolSize}
+	r := &RoundRobinPoolRouter{}
+	r.PoolSize = poolSize
+	return r
 }
 
 func (state *RoundRobinState) Route(message interface{}) {
@@ -49,28 +53,9 @@ func (config *RoundRobinGroupRouter) Create() actor.RouterState {
 	}
 }
 
-func (config *RoundRobinPoolRouter) PoolRouter()   {}
-func (config *RoundRobinGroupRouter) GroupRouter() {}
-
 func roundRobinRoutee(index *int32, routees []*actor.PID) *actor.PID {
 	i := int(atomic.AddInt32(index, 1))
 	mod := len(routees)
 	routee := routees[i%mod]
 	return routee
-}
-
-func (config *RoundRobinGroupRouter) OnStarted(context actor.Context, props actor.Props, router actor.RouterState) {
-	for _, r := range config.routees {
-		context.Watch(r)
-	}
-	router.SetRoutees(config.routees)
-}
-
-func (config *RoundRobinPoolRouter) OnStarted(context actor.Context, props actor.Props, router actor.RouterState) {
-	routees := make([]*actor.PID, config.poolSize)
-	for i := 0; i < config.poolSize; i++ {
-		pid := context.Spawn(props)
-		routees[i] = pid
-	}
-	router.SetRoutees(routees)
 }

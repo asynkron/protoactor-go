@@ -7,12 +7,36 @@ type RouterConfig interface {
 
 type GroupRouterConfig interface {
 	RouterConfig
-	GroupRouter()
 }
 
 type PoolRouterConfig interface {
 	RouterConfig
-	PoolRouter()
+}
+
+type GroupRouter struct {
+	RouterConfig
+	Routees []*PID
+}
+
+type PoolRouter struct {
+	RouterConfig
+	PoolSize int
+}
+
+func (config *GroupRouter) OnStarted(context Context, props Props, router RouterState) {
+	for _, r := range config.Routees {
+		context.Watch(r)
+	}
+	router.SetRoutees(config.Routees)
+}
+
+func (config *PoolRouter) OnStarted(context Context, props Props, router RouterState) {
+	routees := make([]*PID, config.PoolSize)
+	for i := 0; i < config.PoolSize; i++ {
+		pid := context.Spawn(props)
+		routees[i] = pid
+	}
+	router.SetRoutees(routees)
 }
 
 func spawnRouter(config RouterConfig, props Props, parent *PID) *PID {

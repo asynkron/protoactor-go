@@ -1,32 +1,22 @@
 package routing
 
 import (
-	"errors"
 	"log"
 
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/serialx/hashring"
 )
 
-var (
-	ErrorUnknownPartition = errors.New("Hasher doesn't return partition")
-)
-
 type Hashable interface {
 	HashBy() string
 }
 
-type Hasher interface {
-	GetNode(message Hashable) (string, error)
-	SetNodes(nodes []string)
-}
-
 type ConsistentHashGroupRouter struct {
-	routees []*actor.PID
+	actor.GroupRouter
 }
 
 type ConsistentHashPoolRouter struct {
-	poolSize int
+	actor.PoolRouter
 }
 
 type ConsistentHashRouterState struct {
@@ -52,11 +42,15 @@ func (state *ConsistentHashRouterState) SetRoutees(routees []*actor.PID) {
 }
 
 func NewConsistentHashPool(poolSize int) actor.PoolRouterConfig {
-	return &ConsistentHashPoolRouter{poolSize: poolSize}
+	r := &ConsistentHashPoolRouter{}
+	r.PoolSize = poolSize
+	return r
 }
 
 func NewConsistentHashGroup(routees ...*actor.PID) actor.GroupRouterConfig {
-	return &ConsistentHashGroupRouter{routees: routees}
+	r := &ConsistentHashGroupRouter{}
+	r.Routees = routees
+	return r
 }
 
 func (state *ConsistentHashRouterState) Route(message interface{}) {
@@ -89,23 +83,4 @@ func (config *ConsistentHashGroupRouter) Create() actor.RouterState {
 	return &ConsistentHashRouterState{
 		config: config,
 	}
-}
-
-func (config *ConsistentHashPoolRouter) PoolRouter()   {}
-func (config *ConsistentHashGroupRouter) GroupRouter() {}
-
-func (config *ConsistentHashGroupRouter) OnStarted(context actor.Context, props actor.Props, router actor.RouterState) {
-	for _, r := range config.routees {
-		context.Watch(r)
-	}
-	router.SetRoutees(config.routees)
-}
-
-func (config *ConsistentHashPoolRouter) OnStarted(context actor.Context, props actor.Props, router actor.RouterState) {
-	routees := make([]*actor.PID, config.poolSize)
-	for i := 0; i < config.poolSize; i++ {
-		pid := context.Spawn(props)
-		routees[i] = pid
-	}
-	router.SetRoutees(routees)
 }

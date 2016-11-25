@@ -7,11 +7,11 @@ import (
 )
 
 type RandomGroupRouter struct {
-	routees []*actor.PID
+	actor.GroupRouter
 }
 
 type RandomPoolRouter struct {
-	poolSize int
+	actor.PoolRouter
 }
 
 type RandomRouterState struct {
@@ -24,11 +24,15 @@ func (state *RandomRouterState) SetRoutees(routees []*actor.PID) {
 }
 
 func NewRandomPool(poolSize int) actor.PoolRouterConfig {
-	return &RandomPoolRouter{poolSize: poolSize}
+	r := &RandomPoolRouter{}
+	r.PoolSize = poolSize
+	return r
 }
 
 func NewRandomGroup(routees ...*actor.PID) actor.GroupRouterConfig {
-	return &RandomGroupRouter{routees: routees}
+	r := &RandomGroupRouter{}
+	r.Routees = routees
+	return r
 }
 
 func (state *RandomRouterState) Route(message interface{}) {
@@ -48,26 +52,7 @@ func (config *RandomGroupRouter) Create() actor.RouterState {
 	}
 }
 
-func (config *RandomPoolRouter) PoolRouter()   {}
-func (config *RandomGroupRouter) GroupRouter() {}
-
 func randomRoutee(routees []*actor.PID) *actor.PID {
 	routee := routees[rand.Intn(len(routees))]
 	return routee
-}
-
-func (config *RandomGroupRouter) OnStarted(context actor.Context, props actor.Props, router actor.RouterState) {
-	for _, r := range config.routees {
-		context.Watch(r)
-	}
-	router.SetRoutees(config.routees)
-}
-
-func (config *RandomPoolRouter) OnStarted(context actor.Context, props actor.Props, router actor.RouterState) {
-	routees := make([]*actor.PID, config.poolSize)
-	for i := 0; i < config.poolSize; i++ {
-		pid := context.Spawn(props)
-		routees[i] = pid
-	}
-	router.SetRoutees(routees)
 }
