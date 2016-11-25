@@ -21,7 +21,7 @@ func (s *server) Receive(stream messages.Remoting_ReceiveServer) error {
 			//if message is system message send it as sysmsg instead of usermsg
 
 			sender := envelope.Sender
-			pid.Ask(message, sender)
+			pid.TellWithSender(message, sender)
 		}
 	}
 }

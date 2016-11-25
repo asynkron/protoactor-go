@@ -25,7 +25,7 @@ func (state *RoundRobinState) SetRoutees(routees []*actor.PID) {
 
 func (state *RoundRobinState) RouteMessage(message interface{}, sender *actor.PID) {
 	pid := roundRobinRoutee(&state.index, state.routees)
-	pid.Ask(message, sender)
+	pid.TellWithSender(message, sender)
 }
 
 func NewRoundRobinGroup(routees ...*actor.PID) actor.GroupRouterConfig {

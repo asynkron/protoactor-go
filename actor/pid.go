@@ -14,7 +14,7 @@ func (pid *PID) Tell(message interface{}) {
 }
 
 //Ask a message to a given PID
-func (pid *PID) Ask(message interface{}, sender *PID) error {
+func (pid *PID) TellWithSender(message interface{}, sender *PID) error {
 	ref, found := ProcessRegistry.get(pid)
 	if !found {
 		return fmt.Errorf("Unknown PID %s", pid)

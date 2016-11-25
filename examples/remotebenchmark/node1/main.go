@@ -85,7 +85,7 @@ func main() {
 
 	message := &messages.Ping{}
 	for i := 0; i < messageCount; i++ {
-		remote.Ask(message, pid)
+		remote.TellWithSender(message, pid)
 	}
 
 	wg.Wait()
