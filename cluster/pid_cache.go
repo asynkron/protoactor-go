@@ -7,21 +7,21 @@ import (
 )
 
 type pidCache struct {
-	sync.RWMutex
+	lock  sync.RWMutex
 	Cache map[string]*actor.PID
 }
 
 func (c *pidCache) Get(key string) *actor.PID {
-	c.RLock()
+	c.lock.RLock()
 	pid := c.Cache[key]
-	c.RUnlock()
+	c.lock.RUnlock()
 	return pid
 }
 
 func (c *pidCache) Add(key string, pid *actor.PID) {
-	c.Lock()
+	c.lock.Lock()
 	c.Cache[key] = pid
-	c.Unlock()
+	c.lock.Unlock()
 }
 
 var cache = &pidCache{

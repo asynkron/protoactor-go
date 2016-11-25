@@ -8,7 +8,9 @@ import (
 	"github.com/AsynkronIT/gam/cluster/messages"
 )
 
-var nameLookup = make(map[string]actor.Props)
+var (
+	nameLookup = make(map[string]actor.Props)
+)
 
 //Register a known actor props by name
 func Register(kind string, props actor.Props) {

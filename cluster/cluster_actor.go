@@ -44,10 +44,6 @@ func (state *clusterActor) Receive(context actor.Context) {
 		log.Printf("[CLUSTER] Cluster got unknown message %+v", msg)
 	}
 }
-func (state *clusterActor) takeOwnership(msg *messages.TakeOwnership) {
-	log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
-	state.partition[msg.Name] = msg.Pid
-}
 
 func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest, context actor.Context) {
 
@@ -83,22 +79,27 @@ func (state *clusterActor) clusterStatusJoin(msg *clusterStatusJoin) {
 	}
 
 	selfName := list.LocalNode().Name
-	for actorId := range state.partition {
-		host := getNode(actorId)
+	for actorID := range state.partition {
+		host := getNode(actorID)
 		if host != selfName {
-			state.transferOwnership(actorId, host)
+			state.transferOwnership(actorID, host)
 		}
 	}
 }
 
-func (state *clusterActor) transferOwnership(actorId string, host string) {
-	log.Printf("[CLUSTER] Giving ownership of %v to Node %v", actorId, host)
-	pid := state.partition[actorId]
+func (state *clusterActor) transferOwnership(actorID string, host string) {
+	log.Printf("[CLUSTER] Giving ownership of %v to Node %v", actorID, host)
+	pid := state.partition[actorID]
 	owner := clusterForHost(host)
 	owner.Tell(&messages.TakeOwnership{
 		Pid:  pid,
-		Name: actorId,
+		Name: actorID,
 	})
 	//we can safely delete this entry as the consisntent hash no longer points to us
-	delete(state.partition, actorId)
+	delete(state.partition, actorID)
+}
+
+func (state *clusterActor) takeOwnership(msg *messages.TakeOwnership) {
+	log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
+	state.partition[msg.Name] = msg.Pid
 }
