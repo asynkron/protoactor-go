@@ -44,5 +44,12 @@ func main() {
 	for i := 0; i < 10; i++ {
 		pid.Tell(&myMessage{i})
 	}
+	time.Sleep(1 * time.Second)
+	log.Println("ConsistentHash routing:")
+	props = act.WithPoolRouter(routing.NewBroadcastPool(5))
+	pid = actor.Spawn(props)
+	for i := 0; i < 10; i++ {
+		pid.Tell(&myMessage{i})
+	}
 	console.ReadLine()
 }
