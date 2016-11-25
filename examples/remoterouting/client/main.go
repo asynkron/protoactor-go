@@ -12,7 +12,6 @@ import (
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/remoting"
 	"github.com/AsynkronIT/gam/routing"
-	"github.com/AsynkronIT/gam/routing/hashing/hashring"
 
 	"github.com/AsynkronIT/gam/examples/remoterouting/messages"
 
@@ -25,18 +24,10 @@ func main() {
 
 	remoting.Start("127.0.0.1:8100")
 
-	props := actor.FromGroupRouter(
-		remoting.NewRemoteGroupRouter("remote").
-			WithDestinationProducer(func(context actor.Context, router actor.RouterState) {
-				log.Println("Setting up routees")
-				router.SetRoutees(
-					remoting.CreateDestinations(context, "remote", []string{"127.0.0.1:8101", "127.0.0.1:8102"}),
-				)
-			}).
-			WithStrategyProducer(func(config actor.GroupRouterConfig) actor.RouterState {
-				return routing.NewConsistentRouter(config, hashring.New())
-			}),
-	)
+	p1 := actor.NewPID("127.0.0.1:8101", "remote")
+	p2 := actor.NewPID("127.0.0.1:8102", "remote")
+	router := routing.NewConsistentHashGroup(p1, p2)
+	props := actor.FromGroupRouter(router)
 
 	remote := actor.Spawn(props)
 

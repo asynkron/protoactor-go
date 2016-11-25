@@ -25,10 +25,6 @@ type remoteActor struct {
 func (a *remoteActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *messages.Ping:
-		a.count++
-		if a.count%10000 == 0 {
-			log.Println(a.name, "got", a.count, "messages")
-		}
 		msg.Sender.Tell(&messages.Pong{})
 	}
 }
