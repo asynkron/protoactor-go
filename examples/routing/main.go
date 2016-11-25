@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/AsynkronIT/gam/actor"
@@ -13,7 +13,7 @@ import (
 type myMessage struct{ i int }
 
 func (m *myMessage) HashBy() string {
-	return fmt.Sprintf("%v", m.i)
+	return strconv.Itoa(m.i)
 }
 
 func main() {
