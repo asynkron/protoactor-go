@@ -24,7 +24,7 @@ func (state *RoundRobinState) SetRoutees(routees []*actor.PID) {
 	state.routees = routees
 }
 
-func (state *RoundRobinState) Route(message interface{}) {
+func (state *RoundRobinState) RouteMessage(message interface{}) {
 	pid := roundRobinRoutee(&state.index, state.routees)
 	pid.Tell(message)
 }
@@ -41,11 +41,11 @@ func NewRoundRobinPool(poolSize int) actor.PoolRouterConfig {
 	return r
 }
 
-func (config *RoundRobinPoolRouter) Create() actor.RouterState {
+func (config *RoundRobinPoolRouter) CreateRouterState() actor.RouterState {
 	return &RoundRobinState{}
 }
 
-func (config *RoundRobinGroupRouter) Create() actor.RouterState {
+func (config *RoundRobinGroupRouter) CreateRouterState() actor.RouterState {
 	return &RoundRobinState{}
 }
 

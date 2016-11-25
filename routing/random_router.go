@@ -22,8 +22,10 @@ func (state *RandomRouterState) SetRoutees(routees []*actor.PID) {
 	state.routees = routees
 }
 
-func (state *RandomRouterState) Route(message interface{}) {
-	pid := randomRoutee(state.routees)
+func (state *RandomRouterState) RouteMessage(message interface{}) {
+	l := len(state.routees)
+	r := rand.Intn(l)
+	pid := state.routees[r]
 	pid.Tell(message)
 }
 
@@ -39,15 +41,10 @@ func NewRandomGroup(routees ...*actor.PID) actor.GroupRouterConfig {
 	return r
 }
 
-func (config *RandomPoolRouter) Create() actor.RouterState {
+func (config *RandomPoolRouter) CreateRouterState() actor.RouterState {
 	return &RandomRouterState{}
 }
 
-func (config *RandomGroupRouter) Create() actor.RouterState {
+func (config *RandomGroupRouter) CreateRouterState() actor.RouterState {
 	return &RandomRouterState{}
-}
-
-func randomRoutee(routees []*actor.PID) *actor.PID {
-	routee := routees[rand.Intn(len(routees))]
-	return routee
 }

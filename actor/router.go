@@ -2,7 +2,7 @@ package actor
 
 type RouterConfig interface {
 	OnStarted(context Context, props Props, router RouterState)
-	Create() RouterState
+	CreateRouterState() RouterState
 }
 
 type GroupRouterConfig interface {
@@ -43,7 +43,7 @@ func spawnRouter(config RouterConfig, props Props, parent *PID) *PID {
 	id := ProcessRegistry.getAutoId()
 	routeeProps := props
 	routeeProps.routerConfig = nil
-	routerState := config.Create()
+	routerState := config.CreateRouterState()
 
 	routerProps := FromFunc(func(context Context) {
 		switch context.Message().(type) {
@@ -69,7 +69,7 @@ type RouterActorRef struct {
 }
 
 func (ref *RouterActorRef) Tell(pid *PID, message interface{}) {
-	ref.state.Route(message)
+	ref.state.RouteMessage(message)
 }
 
 func (ref *RouterActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
@@ -82,6 +82,6 @@ func (ref *RouterActorRef) Stop(pid *PID) {
 }
 
 type RouterState interface {
-	Route(message interface{})
+	RouteMessage(message interface{})
 	SetRoutees(routees []*PID)
 }

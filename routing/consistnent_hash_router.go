@@ -37,7 +37,7 @@ func (state *ConsistentHashRouterState) SetRoutees(routees []*actor.PID) {
 	state.hashring = hashring.New(nodes)
 }
 
-func (state *ConsistentHashRouterState) Route(message interface{}) {
+func (state *ConsistentHashRouterState) RouteMessage(message interface{}) {
 	switch msg := message.(type) {
 	case Hashable:
 		key := msg.HashBy()
@@ -69,10 +69,10 @@ func NewConsistentHashGroup(routees ...*actor.PID) actor.GroupRouterConfig {
 	return r
 }
 
-func (config *ConsistentHashPoolRouter) Create() actor.RouterState {
+func (config *ConsistentHashPoolRouter) CreateRouterState() actor.RouterState {
 	return &ConsistentHashRouterState{}
 }
 
-func (config *ConsistentHashGroupRouter) Create() actor.RouterState {
+func (config *ConsistentHashGroupRouter) CreateRouterState() actor.RouterState {
 	return &ConsistentHashRouterState{}
 }

@@ -20,10 +20,10 @@ func NewRouterStateAsyncProxy(destination actor.RouterState) actor.RouterState {
 	return proxy
 }
 
-func (self *RouterStateAsyncProxy) Route(message interface{}) {
+func (self *RouterStateAsyncProxy) RouteMessage(message interface{}) {
 	self.rw.RLock()
 	defer self.rw.RUnlock()
-	self.destination.Route(message)
+	self.destination.RouteMessage(message)
 }
 
 func (self *RouterStateAsyncProxy) SetRoutees(routees []*actor.PID) {
@@ -62,7 +62,7 @@ func (self *RemoteGroupRouter) WithDestinationProducer(destinationProducer Desti
 	return self
 }
 
-func (self *RemoteGroupRouter) Create() actor.RouterState {
+func (self *RemoteGroupRouter) CreateRouterState() actor.RouterState {
 
 	var strategy actor.RouterState
 
