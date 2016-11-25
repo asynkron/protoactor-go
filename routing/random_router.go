@@ -22,11 +22,11 @@ func (state *RandomRouterState) SetRoutees(routees []*actor.PID) {
 	state.routees = routees
 }
 
-func (state *RandomRouterState) RouteMessage(message interface{}) {
+func (state *RandomRouterState) RouteMessage(message interface{}, sender *actor.PID) {
 	l := len(state.routees)
 	r := rand.Intn(l)
 	pid := state.routees[r]
-	pid.Tell(message)
+	pid.Ask(message, sender)
 }
 
 func NewRandomPool(poolSize int) actor.PoolRouterConfig {

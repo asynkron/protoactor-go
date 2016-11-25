@@ -37,7 +37,7 @@ func (state *ConsistentHashRouterState) SetRoutees(routees []*actor.PID) {
 	state.hashring = hashring.New(nodes)
 }
 
-func (state *ConsistentHashRouterState) RouteMessage(message interface{}) {
+func (state *ConsistentHashRouterState) RouteMessage(message interface{}, sender *actor.PID) {
 	switch msg := message.(type) {
 	case Hashable:
 		key := msg.HashBy()
@@ -48,7 +48,7 @@ func (state *ConsistentHashRouterState) RouteMessage(message interface{}) {
 			return
 		}
 		if routee, ok := state.routeeMap[node]; ok {
-			routee.Tell(msg)
+			routee.Ask(msg, sender)
 		} else {
 			log.Println("[ROUTING] Consisten router failed to resolve node", node)
 		}

@@ -65,11 +65,22 @@ func spawnRouter(config RouterConfig, props Props, parent *PID) *PID {
 type RouterActorRef struct {
 	router *PID
 	state  RouterState
-	ActorRef
 }
 
 func (ref *RouterActorRef) Tell(pid *PID, message interface{}) {
-	ref.state.RouteMessage(message)
+	ref.state.RouteMessage(message, nil)
+}
+
+func (ref *RouterActorRef) Ask(pid *PID, message interface{}, sender *PID) {
+	ref.state.RouteMessage(message, sender)
+}
+
+func (ref *RouterActorRef) Watch(pid *PID) {
+	ref.SendSystemMessage(pid, &Watch{Watcher: pid})
+}
+
+func (ref *RouterActorRef) UnWatch(pid *PID) {
+	ref.SendSystemMessage(pid, &Unwatch{Watcher: pid})
 }
 
 func (ref *RouterActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
@@ -82,6 +93,6 @@ func (ref *RouterActorRef) Stop(pid *PID) {
 }
 
 type RouterState interface {
-	RouteMessage(message interface{})
+	RouteMessage(message interface{}, sender *PID)
 	SetRoutees(routees []*PID)
 }

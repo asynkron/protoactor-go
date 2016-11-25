@@ -17,16 +17,15 @@ type RoundRobinPoolRouter struct {
 type RoundRobinState struct {
 	index   int32
 	routees []*actor.PID
-	//	config  actor.RouterConfig
 }
 
 func (state *RoundRobinState) SetRoutees(routees []*actor.PID) {
 	state.routees = routees
 }
 
-func (state *RoundRobinState) RouteMessage(message interface{}) {
+func (state *RoundRobinState) RouteMessage(message interface{}, sender *actor.PID) {
 	pid := roundRobinRoutee(&state.index, state.routees)
-	pid.Tell(message)
+	pid.Ask(message, sender)
 }
 
 func NewRoundRobinGroup(routees ...*actor.PID) actor.GroupRouterConfig {
