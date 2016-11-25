@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/gam/actor"
-	"github.com/AsynkronIT/gam/actor/hashing/hashring"
 	"github.com/AsynkronIT/gam/remoting"
+	"github.com/AsynkronIT/gam/routers/hashing/hashring"
 
 	"github.com/AsynkronIT/gam/examples/remoterouting/messages"
 
