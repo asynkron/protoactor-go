@@ -23,9 +23,9 @@ type remoteActor struct {
 }
 
 func (a *remoteActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
+	switch context.Message().(type) {
 	case *messages.Ping:
-		msg.Sender.Tell(&messages.Pong{})
+		context.Sender().Tell(&messages.Pong{})
 	}
 }
 
