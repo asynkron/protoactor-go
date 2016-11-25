@@ -11,7 +11,8 @@ import (
 
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/AsynkronIT/gam/remoting"
-	"github.com/AsynkronIT/gam/routers/hashing/hashring"
+	"github.com/AsynkronIT/gam/routing"
+	"github.com/AsynkronIT/gam/routing/hashing/hashring"
 
 	"github.com/AsynkronIT/gam/examples/remoterouting/messages"
 
@@ -34,7 +35,7 @@ func main() {
 			}).
 			WithStrategyProducer(func(config actor.GroupRouterConfig) actor.RouterState {
 				//return &actor.RoundRobinState{}
-				return actor.NewConsistentRouter(config, hashring.New())
+				return routing.NewConsistentRouter(config, hashring.New())
 			}),
 	)
 
