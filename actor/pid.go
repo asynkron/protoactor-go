@@ -14,10 +14,9 @@ func (pid *PID) Tell(message interface{}) {
 }
 
 //Ask a message to a given PID
-func (pid *PID) TellWithSender(message interface{}, sender *PID) error {
+func (pid *PID) TellWithSender(message interface{}, sender *PID) {
 	ref, _ := ProcessRegistry.get(pid)
 	ref.SendUserMessage(pid, message, sender)
-	return nil
 }
 
 //Ask a message to a given PID
