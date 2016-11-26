@@ -16,9 +16,6 @@ func (*remoteActor) Receive(context actor.Context) {
 	switch context.Message().(type) {
 	case *messages.StartRemote:
 		log.Println("Starting")
-		if context.Sender() == nil {
-			log.Fatal("No sender")
-		}
 		context.Respond(&messages.Start{})
 	case *messages.Ping:
 		context.Respond(&messages.Pong{})
