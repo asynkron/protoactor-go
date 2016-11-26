@@ -2,8 +2,7 @@ package actor
 
 //ActorRef is an interface that defines the base contract for interaction of actors
 type ActorRef interface {
-	Tell(pid *PID, message interface{})
-	Ask(pid *PID, message interface{}, sender *PID)
+	SendUserMessage(pid *PID, message interface{}, sender *PID)
 	SendSystemMessage(pid *PID, message SystemMessage)
 	Stop(pid *PID)
 	Watch(pid *PID)
@@ -20,11 +19,7 @@ func NewLocalActorRef(mailbox Mailbox) *LocalActorRef {
 	}
 }
 
-func (ref *LocalActorRef) Tell(pid *PID, message interface{}) {
-	ref.mailbox.PostUserMessage(UserMessage{Message: message})
-}
-
-func (ref *LocalActorRef) Ask(pid *PID, message interface{}, sender *PID) {
+func (ref *LocalActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	ref.mailbox.PostUserMessage(UserMessage{Message: message, Sender: sender})
 }
 

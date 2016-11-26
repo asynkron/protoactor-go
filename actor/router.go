@@ -67,11 +67,7 @@ type RouterActorRef struct {
 	state  RouterState
 }
 
-func (ref *RouterActorRef) Tell(pid *PID, message interface{}) {
-	ref.state.RouteMessage(message, nil)
-}
-
-func (ref *RouterActorRef) Ask(pid *PID, message interface{}, sender *PID) {
+func (ref *RouterActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	ref.state.RouteMessage(message, sender)
 }
 

@@ -73,11 +73,7 @@ type FutureActorRef struct {
 	pid     *PID
 }
 
-func (ref *FutureActorRef) Tell(pid *PID, message interface{}) {
-	ref.channel <- message
-}
-
-func (ref *FutureActorRef) Ask(pid *PID, message interface{}, sender *PID) {
+func (ref *FutureActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	ref.channel <- message
 }
 

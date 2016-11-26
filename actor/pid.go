@@ -10,16 +10,13 @@ import (
 //Tell a message to a given PID
 func (pid *PID) Tell(message interface{}) {
 	ref, _ := ProcessRegistry.get(pid)
-	ref.Tell(pid, message)
+	ref.SendUserMessage(pid, message, nil)
 }
 
 //Ask a message to a given PID
 func (pid *PID) TellWithSender(message interface{}, sender *PID) error {
-	ref, found := ProcessRegistry.get(pid)
-	if !found {
-		return fmt.Errorf("Unknown PID %s", pid)
-	}
-	ref.Ask(pid, message, sender)
+	ref, _ := ProcessRegistry.get(pid)
+	ref.SendUserMessage(pid, message, sender)
 	return nil
 }
 
@@ -30,7 +27,7 @@ func (pid *PID) AskFuture(message interface{}, timeout time.Duration) (*Future, 
 		return nil, fmt.Errorf("Unknown PID %s", pid)
 	}
 	future := NewFuture(timeout)
-	ref.Ask(pid, message, future.PID())
+	ref.SendUserMessage(pid, message, future.PID())
 	return future, nil
 }
 

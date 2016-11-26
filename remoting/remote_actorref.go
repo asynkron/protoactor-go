@@ -17,11 +17,7 @@ func newRemoteActorRef(pid *actor.PID) actor.ActorRef {
 	}
 }
 
-func (ref *remoteActorRef) Tell(pid *actor.PID, message interface{}) {
-	ref.send(pid, message, nil)
-}
-
-func (ref *remoteActorRef) Ask(pid *actor.PID, message interface{}, sender *actor.PID) {
+func (ref *remoteActorRef) SendUserMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
 	ref.send(pid, message, sender)
 }
 

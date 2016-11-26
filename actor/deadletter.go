@@ -11,14 +11,7 @@ type DeadLetter struct {
 	Message interface{}
 }
 
-func (*DeadLetterActorRef) Tell(pid *PID, message interface{}) {
-	EventStream.Publish(&DeadLetter{
-		PID:     pid,
-		Message: message,
-	})
-}
-
-func (*DeadLetterActorRef) Ask(pid *PID, message interface{}, sender *PID) {
+func (*DeadLetterActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	EventStream.Publish(&DeadLetter{
 		PID:     pid,
 		Message: message,
