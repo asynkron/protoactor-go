@@ -53,10 +53,9 @@ func (state *clusterActor) actorPidRequest(msg *ActorPidRequest, context actor.C
 
 		//send request
 		log.Printf("[CLUSTER] Telling %v to create %v", random, msg.Name)
-		resp := random.RequestFuture(msg, 5*time.Second)
-		tmp, err := resp.Result()
+		tmp, err := random.RequestFuture(msg, 5*time.Second).Result()
 		if err != nil {
-			log.Fatalf("Actor PID Request result failed %v", err)
+			log.Fatalf("[CLUSTER] Actor PID Request result failed %v", err)
 		}
 		typed := tmp.(*ActorPidResponse)
 		pid = typed.Pid
@@ -65,7 +64,7 @@ func (state *clusterActor) actorPidRequest(msg *ActorPidRequest, context actor.C
 	response := &ActorPidResponse{
 		Pid: pid,
 	}
-	context.Sender().Tell(response)
+	context.Respond(response)
 }
 
 func (state *clusterActor) clusterStatusJoin(msg *clusterStatusJoin) {

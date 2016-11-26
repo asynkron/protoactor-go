@@ -11,7 +11,7 @@ type EchoOnStartActor struct{ replyTo *PID }
 func (state *EchoOnStartActor) Receive(context Context) {
 	switch context.Message().(type) {
 	case *Started:
-		state.replyTo.Tell(EchoReplyMessage{})
+		state.replyTo.Tell(EchoResponse{})
 	}
 }
 
@@ -36,7 +36,7 @@ type EchoOnStoppingActor struct{ replyTo *PID }
 func (state *EchoOnStoppingActor) Receive(context Context) {
 	switch context.Message().(type) {
 	case *Stopping:
-		state.replyTo.Tell(EchoReplyMessage{})
+		state.replyTo.Tell(EchoResponse{})
 	}
 }
 

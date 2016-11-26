@@ -33,7 +33,7 @@ func (a *GorgeousActor) Receive(context Context) {
 	case Increment:
 		log.Printf("Incrementing %v", a)
 		a.Increment()
-		context.Sender().Tell(a.value)
+		context.Respond(a.value)
 	}
 }
 

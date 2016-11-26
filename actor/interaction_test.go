@@ -24,9 +24,9 @@ func TestSpawnProducesActorRef(t *testing.T) {
 	assert.NotNil(t, actor)
 }
 
-type EchoMessage struct{}
+type EchoRequest struct{}
 
-type EchoReplyMessage struct{}
+type EchoResponse struct{}
 
 type EchoActor struct{}
 
@@ -36,16 +36,16 @@ func NewEchoActor() Actor {
 
 func (*EchoActor) Receive(context Context) {
 	switch context.Message().(type) {
-	case EchoMessage:
-		context.Sender().Tell(EchoReplyMessage{})
+	case EchoRequest:
+		context.Respond(EchoResponse{})
 	}
 }
 
 func TestActorCanReplyToMessage(t *testing.T) {
 	actor := Spawn(FromProducer(NewEchoActor))
 	defer actor.Stop()
-	result := actor.RequestFuture(EchoMessage{}, testTimeout)
-	if _, err := result.Result(); err != nil {
+	err := actor.RequestFuture(EchoRequest{}, testTimeout).Wait()
+	if err != nil {
 		assert.Fail(t, "timed out")
 		return
 	}

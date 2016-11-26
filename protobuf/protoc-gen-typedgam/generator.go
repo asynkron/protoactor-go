@@ -159,7 +159,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.P(`bytes, err := proto.Marshal(r0)`)
 			p.AddErrorHandler("[GRAIN] proto.Marshal failed %v")
 			p.P(`resp := &`, cluster.Use(), `.GrainResponse{MessageData: bytes}`)
-			p.P(`ctx.Sender().Tell(resp)`)
+			p.P(`ctx.Respond(resp)`)
 
 			p.Out()
 

@@ -114,7 +114,7 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 				log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 			}
 			resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
-			ctx.Sender().Tell(resp)
+			ctx.Respond(resp)
 		case "Add":
 			req := &AddRequest{}
 			proto.Unmarshal(msg.MessageData, req)
@@ -124,7 +124,7 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 				log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 			}
 			resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
-			ctx.Sender().Tell(resp)
+			ctx.Respond(resp)
 		}
 	default:
 		log.Printf("Unknown message %v", msg)

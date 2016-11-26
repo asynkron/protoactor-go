@@ -23,8 +23,8 @@ func (state *EchoBecomeActor) Receive(context Context) {
 
 func (EchoBecomeActor) Other(context Context) {
 	switch context.Message().(type) {
-	case EchoMessage:
-		context.Sender().Tell(EchoReplyMessage{})
+	case EchoRequest:
+		context.Respond(EchoResponse{})
 	}
 }
 
@@ -32,7 +32,7 @@ func TestActorCanBecome(t *testing.T) {
 	actor := Spawn(FromProducer(NewEchoBecomeActor))
 	defer actor.Stop()
 	actor.Tell(BecomeMessage{})
-	result := actor.RequestFuture(EchoMessage{}, testTimeout)
+	result := actor.RequestFuture(EchoRequest{}, testTimeout)
 	if _, err := result.Result(); err != nil {
 		assert.Fail(t, "timed out")
 		return
@@ -51,8 +51,8 @@ func (state *EchoUnbecomeActor) Receive(context Context) {
 	switch context.Message().(type) {
 	case BecomeMessage:
 		context.BecomeStacked(state.Other)
-	case EchoMessage:
-		context.Sender().Tell(EchoReplyMessage{})
+	case EchoRequest:
+		context.Respond(EchoResponse{})
 	}
 }
 
@@ -67,7 +67,7 @@ func TestActorCanUnbecome(t *testing.T) {
 	actor := Spawn(FromProducer(NewEchoUnbecomeActor))
 	actor.Tell(BecomeMessage{})
 	actor.Tell(UnbecomeMessage{})
-	result := actor.RequestFuture(EchoMessage{}, testTimeout)
+	result := actor.RequestFuture(EchoRequest{}, testTimeout)
 	if _, err := result.Result(); err != nil {
 		assert.Fail(t, "timed out")
 		return

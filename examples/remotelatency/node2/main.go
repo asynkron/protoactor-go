@@ -31,7 +31,7 @@ func (a int64arr) Less(i, j int) bool { return a[i] < a[j] }
 func (state *remoteActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *messages.Start:
-		context.Sender().Tell(&messages.Started{})
+		context.Respond(&messages.Started{})
 	case *messages.Ping:
 		now := makeTimestamp()
 		latency := now - msg.Time
