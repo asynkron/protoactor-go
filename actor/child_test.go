@@ -7,17 +7,17 @@ import (
 )
 
 type CreateChildMessage struct{}
-type GetChildCountMessage struct{ ReplyTo *PID }
+type GetChildCountMessage struct{}
 type GetChildCountReplyMessage struct{ ChildCount int }
 type CreateChildActor struct{}
 
 func (*CreateChildActor) Receive(context Context) {
-	switch msg := context.Message().(type) {
+	switch context.Message().(type) {
 	case CreateChildMessage:
 		context.Spawn(FromProducer(NewBlackHoleActor))
 	case GetChildCountMessage:
 		reply := GetChildCountReplyMessage{ChildCount: len(context.Children())}
-		msg.ReplyTo.Tell(reply)
+		context.Respond(reply)
 	}
 }
 
@@ -26,15 +26,13 @@ func NewCreateChildActor() Actor {
 }
 
 func TestActorCanCreateChildren(t *testing.T) {
-	future := NewFuture(testTimeout)
 	actor := Spawn(FromProducer(NewCreateChildActor))
 	defer actor.Stop()
 	expected := 10
 	for i := 0; i < expected; i++ {
 		actor.Tell(CreateChildMessage{})
 	}
-	actor.Tell(GetChildCountMessage{ReplyTo: future.PID()})
-	response, err := future.Result()
+	response, err := actor.RequestFuture(GetChildCountMessage{}, testTimeout).Result()
 	if err != nil {
 		assert.Fail(t, "timed out")
 		return
@@ -81,7 +79,7 @@ func TestActorCanStopChildren(t *testing.T) {
 	actor.Tell(GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.PID()})
 
 	//wait for the actor to reply to the first responsePID
-	_, err := future.Result()
+	err := future.Wait()
 	if err != nil {
 		assert.Fail(t, "timed out")
 		return

@@ -55,7 +55,7 @@ func (g *HelloGrain) SayHello(r *HelloRequest) *HelloResponse {
 		log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 	}
 	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "SayHello", MessageData: bytes}
-	r0 := pid.AskFuture(gr, 5*time.Second)
+	r0 := pid.RequestFuture(gr, 5*time.Second)
 	r1, err := r0.Result()
 	if err != nil {
 		log.Fatalf("[GRAIN] Await result failed %v", err)
@@ -80,7 +80,7 @@ func (g *HelloGrain) Add(r *AddRequest) *AddResponse {
 		log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 	}
 	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "Add", MessageData: bytes}
-	r0 := pid.AskFuture(gr, 5*time.Second)
+	r0 := pid.RequestFuture(gr, 5*time.Second)
 	r1, err := r0.Result()
 	if err != nil {
 		log.Fatalf("[GRAIN] Await result failed %v", err)

@@ -44,7 +44,7 @@ func (*EchoActor) Receive(context Context) {
 func TestActorCanReplyToMessage(t *testing.T) {
 	actor := Spawn(FromProducer(NewEchoActor))
 	defer actor.Stop()
-	result := actor.AskFuture(EchoMessage{}, testTimeout)
+	result := actor.RequestFuture(EchoMessage{}, testTimeout)
 	if _, err := result.Result(); err != nil {
 		assert.Fail(t, "timed out")
 		return

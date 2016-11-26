@@ -63,11 +63,12 @@ func (fut *Future) Result() (interface{}, error) {
 	return fut.result, fut.err
 }
 
-func (fut *Future) Wait() {
+func (fut *Future) Wait() error {
 	fut.wg.Wait()
+	return fut.err
 }
 
-//Future is a struct carrying a response PID and a channel where the response is placed
+//FutureActorRef is a struct carrying a response PID and a channel where the response is placed
 type FutureActorRef struct {
 	channel chan interface{}
 	pid     *PID

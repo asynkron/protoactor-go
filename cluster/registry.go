@@ -30,7 +30,7 @@ func Get(name string, kind string) *actor.PID {
 			Name: name,
 			Kind: kind,
 		}
-		response := remote.AskFuture(req, 5*time.Second)
+		response := remote.RequestFuture(req, 5*time.Second)
 
 		//await the response
 		res, err := response.Result()

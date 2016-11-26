@@ -25,7 +25,7 @@ func main() {
 
 	remote := actor.NewPID("127.0.0.1:8080", "remote")
 	remote.
-		AskFuture(&messages.Start{}, 5*time.Second).
+		RequestFuture(&messages.Start{}, 5*time.Second).
 		Wait()
 
 	for i := 0; i < messageCount; i++ {

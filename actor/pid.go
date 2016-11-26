@@ -18,8 +18,8 @@ func (pid *PID) Request(message interface{}, respondTo *PID) {
 	ref.SendUserMessage(pid, message, respondTo)
 }
 
-//Ask a message to a given PID
-func (pid *PID) AskFuture(message interface{}, timeout time.Duration) *Future {
+//RequestFuture sends a message to a given PID and returns a Future
+func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Future {
 	ref, _ := ProcessRegistry.get(pid)
 
 	future := NewFuture(timeout)

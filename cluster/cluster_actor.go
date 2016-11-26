@@ -54,7 +54,7 @@ func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest, contex
 
 		//send request
 		log.Printf("[CLUSTER] Telling %v to create %v", random, msg.Name)
-		resp := random.AskFuture(msg, 5*time.Second)
+		resp := random.RequestFuture(msg, 5*time.Second)
 		tmp, err := resp.Result()
 		if err != nil {
 			log.Fatalf("Actor PID Request result failed %v", err)
