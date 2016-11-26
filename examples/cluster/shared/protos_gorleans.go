@@ -18,7 +18,6 @@ package shared
 
 import log "log"
 import time "time"
-import github_com_AsynkronIT_gam_cluster_grains "github.com/AsynkronIT/gam/cluster/grains"
 import github_com_AsynkronIT_gam_cluster "github.com/AsynkronIT/gam/cluster"
 import github_com_AsynkronIT_gam_actor "github.com/AsynkronIT/gam/actor"
 import proto "github.com/gogo/protobuf/proto"
@@ -37,7 +36,7 @@ func HelloFactory(factory func() Hello) {
 }
 
 func GetHelloGrain(id string) *HelloGrain {
-	return &HelloGrain{GrainMixin: github_com_AsynkronIT_gam_cluster_grains.NewGrainMixin(id)}
+	return &HelloGrain{Id: id}
 }
 
 type Hello interface {
@@ -45,22 +44,22 @@ type Hello interface {
 	Add(*AddRequest) *AddResponse
 }
 type HelloGrain struct {
-	github_com_AsynkronIT_gam_cluster_grains.GrainMixin
+	Id string
 }
 
 func (g *HelloGrain) SayHello(r *HelloRequest) *HelloResponse {
-	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id(), "Hello")
+	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id, "Hello")
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 	}
-	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "SayHello", MessageData: bytes}
+	gr := &github_com_AsynkronIT_gam_cluster.GrainRequest{Method: "SayHello", MessageData: bytes}
 	r0 := pid.RequestFuture(gr, 5*time.Second)
 	r1, err := r0.Result()
 	if err != nil {
 		log.Fatalf("[GRAIN] Await result failed %v", err)
 	}
-	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)
+	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster.GrainResponse)
 	r3 := &HelloResponse{}
 	proto.Unmarshal(r2.MessageData, r3)
 	return r3
@@ -74,18 +73,18 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest) <-chan *HelloResponse {
 }
 
 func (g *HelloGrain) Add(r *AddRequest) *AddResponse {
-	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id(), "Hello")
+	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id, "Hello")
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 	}
-	gr := &github_com_AsynkronIT_gam_cluster_grains.GrainRequest{Method: "Add", MessageData: bytes}
+	gr := &github_com_AsynkronIT_gam_cluster.GrainRequest{Method: "Add", MessageData: bytes}
 	r0 := pid.RequestFuture(gr, 5*time.Second)
 	r1, err := r0.Result()
 	if err != nil {
 		log.Fatalf("[GRAIN] Await result failed %v", err)
 	}
-	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)
+	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster.GrainResponse)
 	r3 := &AddResponse{}
 	proto.Unmarshal(r2.MessageData, r3)
 	return r3
@@ -104,7 +103,7 @@ type HelloActor struct {
 
 func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *github_com_AsynkronIT_gam_cluster_grains.GrainRequest:
+	case *github_com_AsynkronIT_gam_cluster.GrainRequest:
 		switch msg.Method {
 		case "SayHello":
 			req := &HelloRequest{}
@@ -114,7 +113,7 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 			if err != nil {
 				log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 			}
-			resp := &github_com_AsynkronIT_gam_cluster_grains.GrainResponse{MessageData: bytes}
+			resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
 			ctx.Sender().Tell(resp)
 		case "Add":
 			req := &AddRequest{}
@@ -124,7 +123,7 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 			if err != nil {
 				log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 			}
-			resp := &github_com_AsynkronIT_gam_cluster_grains.GrainResponse{MessageData: bytes}
+			resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
 			ctx.Sender().Tell(resp)
 		}
 	default:

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/gam/actor"
-	"github.com/AsynkronIT/gam/cluster/messages"
 )
 
 func clusterForHost(host string) *actor.PID {
@@ -32,20 +31,20 @@ func (state *clusterActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
 		log.Println("[CLUSTER] Cluster actor started")
-	case *messages.ActorPidRequest:
+	case *ActorPidRequest:
 		state.actorPidRequest(msg, context)
 	case *clusterStatusJoin:
 		state.clusterStatusJoin(msg)
 	case *clusterStatusLeave:
 		log.Printf("[CLUSTER] Node left %v", msg.node.host)
-	case *messages.TakeOwnership:
+	case *TakeOwnership:
 		state.takeOwnership(msg)
 	default:
 		log.Printf("[CLUSTER] Cluster got unknown message %+v", msg)
 	}
 }
 
-func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest, context actor.Context) {
+func (state *clusterActor) actorPidRequest(msg *ActorPidRequest, context actor.Context) {
 
 	pid := state.partition[msg.Name]
 	if pid == nil {
@@ -59,11 +58,11 @@ func (state *clusterActor) actorPidRequest(msg *messages.ActorPidRequest, contex
 		if err != nil {
 			log.Fatalf("Actor PID Request result failed %v", err)
 		}
-		typed := tmp.(*messages.ActorPidResponse)
+		typed := tmp.(*ActorPidResponse)
 		pid = typed.Pid
 		state.partition[msg.Name] = pid
 	}
-	response := &messages.ActorPidResponse{
+	response := &ActorPidResponse{
 		Pid: pid,
 	}
 	context.Sender().Tell(response)
@@ -88,7 +87,7 @@ func (state *clusterActor) transferOwnership(actorID string, host string) {
 	log.Printf("[CLUSTER] Giving ownership of %v to Node %v", actorID, host)
 	pid := state.partition[actorID]
 	owner := clusterForHost(host)
-	owner.Tell(&messages.TakeOwnership{
+	owner.Tell(&TakeOwnership{
 		Pid:  pid,
 		Name: actorID,
 	})
@@ -96,7 +95,7 @@ func (state *clusterActor) transferOwnership(actorID string, host string) {
 	delete(state.partition, actorID)
 }
 
-func (state *clusterActor) takeOwnership(msg *messages.TakeOwnership) {
+func (state *clusterActor) takeOwnership(msg *TakeOwnership) {
 	log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
 	state.partition[msg.Name] = msg.Pid
 }

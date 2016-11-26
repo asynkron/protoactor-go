@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/gam/actor"
-	"github.com/AsynkronIT/gam/cluster/messages"
 )
 
 var (
@@ -26,7 +25,7 @@ func Get(name string, kind string) *actor.PID {
 		remote := clusterForHost(host)
 
 		//request the pid of the "id" from the correct partition
-		req := &messages.ActorPidRequest{
+		req := &ActorPidRequest{
 			Name: name,
 			Kind: kind,
 		}
@@ -39,7 +38,7 @@ func Get(name string, kind string) *actor.PID {
 		}
 
 		//unwrap the result
-		typed := res.(*messages.ActorPidResponse)
+		typed := res.(*ActorPidResponse)
 		pid = typed.Pid
 		cache.Add(name, pid)
 		return pid

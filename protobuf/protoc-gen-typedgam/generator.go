@@ -40,7 +40,6 @@ func (p *gorelans) AddErrorHandler(infof string) {
 
 var logg generator.Single
 var time generator.Single
-var grains generator.Single
 var cluster generator.Single
 var actor generator.Single
 
@@ -50,7 +49,6 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 	p.atleastOne = false
 	logg = p.NewImport("log")
 	time = p.NewImport("time")
-	grains = p.NewImport("github.com/AsynkronIT/gam/cluster/grains")
 	cluster = p.NewImport("github.com/AsynkronIT/gam/cluster")
 	actor = p.NewImport("github.com/AsynkronIT/gam/actor")
 
@@ -79,7 +77,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		p.P("")
 		p.P("func Get", grainName, " (id string) *", grainName, " {")
 		p.In()
-		p.P("return &HelloGrain{GrainMixin: ", grains.Use(), ".NewGrainMixin(id)}")
+		p.P("return &HelloGrain{Id:id}")
 		p.Out()
 		p.P("}")
 		p.P("")
@@ -97,7 +95,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 
 		p.P("type ", grainName, " struct {")
 		p.In()
-		p.P(grains.Use(), ".GrainMixin")
+		p.P("Id string")
 		p.Out()
 		p.P("}")
 		for _, method := range service.GetMethod() {
@@ -108,14 +106,14 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.In()
 			p.P("func (g *", grainName, ") ", methodName, " (r *", inputType, ") *", outputType, " {")
 			p.In()
-			p.P(`pid := `, cluster.Use(), `.Get(g.Id(),"`, serviceName, `")`)
+			p.P(`pid := `, cluster.Use(), `.Get(g.Id,"`, serviceName, `")`)
 			p.P(`bytes, err := proto.Marshal(r)`)
 			p.AddErrorHandler("[GRAIN] proto.Marshal failed %v")
-			p.P(`gr := &`, grains.Use(), `.GrainRequest{Method: "`, methodName, `", MessageData: bytes}`)
+			p.P(`gr := &`, cluster.Use(), `.GrainRequest{Method: "`, methodName, `", MessageData: bytes}`)
 			p.P("r0 := pid.RequestFuture(gr,5 * ", time.Use(), ".Second)")
 			p.P("r1, err := r0.Result()")
 			p.AddErrorHandler("[GRAIN] Await result failed %v")
-			p.P("r2, _ := r1.(*github_com_AsynkronIT_gam_cluster_grains.GrainResponse)")
+			p.P("r2, _ := r1.(*", cluster.Use(), ".GrainResponse)")
 			p.P("r3 := &", outputType, "{}")
 			p.P("proto.Unmarshal(r2.MessageData, r3)")
 			p.P("return r3")
@@ -146,7 +144,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		p.In()
 		p.P("switch msg := ctx.Message().(type) {")
 		p.In()
-		p.P("case *", grains.Use(), ".GrainRequest:")
+		p.P("case *", cluster.Use(), ".GrainRequest:")
 		p.In()
 		p.P("switch msg.Method {")
 		for _, method := range service.GetMethod() {
@@ -160,13 +158,11 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.P(`r0 := a.inner.`, methodName, `(req)`)
 			p.P(`bytes, err := proto.Marshal(r0)`)
 			p.AddErrorHandler("[GRAIN] proto.Marshal failed %v")
-			p.P(`resp := &`, grains.Use(), `.GrainResponse{MessageData: bytes}`)
+			p.P(`resp := &`, cluster.Use(), `.GrainResponse{MessageData: bytes}`)
 			p.P(`ctx.Sender().Tell(resp)`)
 
 			p.Out()
-			// methodName := method.GetName()
-			// inputType := removePackagePrefix(method.GetInputType(), file.PackageName())
-			// outputType := removePackagePrefix(method.GetOutputType(), file.PackageName())
+
 		}
 		p.P("}")
 		p.Out()
@@ -174,19 +170,6 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		p.In()
 		p.P(logg.Use(), `.Printf("Unknown message %v", msg)`)
 		p.Out()
-		/*
-			case *grains.GrainRequest:
-					switch msg.Method {
-					case "SayHello":
-						req := &HelloRequest{}
-						proto.Unmarshal(msg.MessageData, req)
-						a.inner.SayHello(req)
-
-					}
-				default:
-					log.Printf("Unknown message %+v", msg)
-		*/
-
 		p.Out()
 		p.P("}")
 		p.Out()
