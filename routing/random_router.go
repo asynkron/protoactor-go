@@ -26,7 +26,7 @@ func (state *RandomRouterState) RouteMessage(message interface{}, sender *actor.
 	l := len(state.routees)
 	r := rand.Intn(l)
 	pid := state.routees[r]
-	pid.TellWithSender(message, sender)
+	pid.Request(message, sender)
 }
 
 func NewRandomPool(poolSize int) actor.PoolRouterConfig {

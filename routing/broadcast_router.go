@@ -20,7 +20,7 @@ func (state *BroadcastRouterState) SetRoutees(routees []*actor.PID) {
 
 func (state *BroadcastRouterState) RouteMessage(message interface{}, sender *actor.PID) {
 	for _, m := range state.routees {
-		m.TellWithSender(message, sender)
+		m.Request(message, sender)
 	}
 }
 

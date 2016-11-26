@@ -17,8 +17,6 @@ import (
 	"github.com/AsynkronIT/gam/examples/remotebenchmark/messages"
 )
 
-// import "runtime/pprof"
-
 type localActor struct {
 	count        int
 	wgStop       *sync.WaitGroup
@@ -87,7 +85,7 @@ func main() {
 
 	message := &messages.Ping{}
 	for i := 0; i < messageCount; i++ {
-		remote.TellWithSender(message, pid)
+		remote.Request(message, pid)
 	}
 
 	wg.Wait()

@@ -13,9 +13,9 @@ func (pid *PID) Tell(message interface{}) {
 }
 
 //Ask a message to a given PID
-func (pid *PID) TellWithSender(message interface{}, sender *PID) {
+func (pid *PID) Request(message interface{}, respondTo *PID) {
 	ref, _ := ProcessRegistry.get(pid)
-	ref.SendUserMessage(pid, message, sender)
+	ref.SendUserMessage(pid, message, respondTo)
 }
 
 //Ask a message to a given PID

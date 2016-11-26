@@ -47,7 +47,7 @@ func main() {
 
 	for i := 0; i < messageCount; i++ {
 		message := &messages.Ping{User: fmt.Sprintf("User_%d", i)}
-		remote.TellWithSender(message, pid)
+		remote.Request(message, pid)
 	}
 
 	wgStop.Wait()

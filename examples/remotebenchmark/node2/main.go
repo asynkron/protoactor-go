@@ -19,9 +19,9 @@ func (*remoteActor) Receive(context actor.Context) {
 		if context.Sender() == nil {
 			log.Fatal("No sender")
 		}
-		context.Sender().Tell(&messages.Start{})
+		context.Respond(&messages.Start{})
 	case *messages.Ping:
-		context.Sender().Tell(&messages.Pong{})
+		context.Respond(&messages.Pong{})
 	}
 }
 

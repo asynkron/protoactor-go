@@ -48,7 +48,7 @@ func (state *ConsistentHashRouterState) RouteMessage(message interface{}, sender
 			return
 		}
 		if routee, ok := state.routeeMap[node]; ok {
-			routee.TellWithSender(msg, sender)
+			routee.Request(msg, sender)
 		} else {
 			log.Println("[ROUTING] Consisten router failed to resolve node", node)
 		}

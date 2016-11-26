@@ -38,6 +38,9 @@ type Context interface {
 	//Stashes the current message
 	Stash()
 
+	//Respond to the current Sender()
+	Respond(response interface{})
+
 	//the actor instance
 	Actor() Actor
 }
@@ -286,6 +289,13 @@ func (cell *actorCell) Unwatch(who *PID) {
 		Watcher: cell.self,
 	})
 	cell.watching.Remove(who)
+}
+
+func (cell *actorCell) Respond(response interface{}) {
+	if cell.Sender() == nil {
+		log.Fatal("[ACTOR] No sender")
+	}
+	cell.Sender().Tell(response)
 }
 
 func (cell *actorCell) Spawn(props Props) *PID {
