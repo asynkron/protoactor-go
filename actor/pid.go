@@ -1,7 +1,6 @@
 package actor
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 	"time"
@@ -20,14 +19,12 @@ func (pid *PID) TellWithSender(message interface{}, sender *PID) {
 }
 
 //Ask a message to a given PID
-func (pid *PID) AskFuture(message interface{}, timeout time.Duration) (*Future, error) {
-	ref, found := ProcessRegistry.get(pid)
-	if !found {
-		return nil, fmt.Errorf("Unknown PID %s", pid)
-	}
+func (pid *PID) AskFuture(message interface{}, timeout time.Duration) *Future {
+	ref, _ := ProcessRegistry.get(pid)
+
 	future := NewFuture(timeout)
 	ref.SendUserMessage(pid, message, future.PID())
-	return future, nil
+	return future
 }
 
 func (pid *PID) sendSystemMessage(message SystemMessage) {
@@ -35,12 +32,9 @@ func (pid *PID) sendSystemMessage(message SystemMessage) {
 	ref.SendSystemMessage(pid, message)
 }
 
-func (pid *PID) StopFuture() (*Future, error) {
-	ref, found := ProcessRegistry.get(pid)
+func (pid *PID) StopFuture() *Future {
+	ref, _ := ProcessRegistry.get(pid)
 
-	if !found {
-		return nil, fmt.Errorf("Unknown PID %s", pid)
-	}
 	future := NewFuture(10 * time.Second)
 
 	ref, ok := ref.(*LocalActorRef)
@@ -52,7 +46,7 @@ func (pid *PID) StopFuture() (*Future, error) {
 
 	ref.Stop(pid)
 
-	return future, nil
+	return future
 }
 
 //Stop the given PID

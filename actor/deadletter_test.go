@@ -18,7 +18,7 @@ func TestDeadLetterAfterStop(t *testing.T) {
 	})
 	defer EventStream.Unsubscribe(sub)
 
-	stop, _ := actor.StopFuture()
+	stop := actor.StopFuture()
 	stop.Wait()
 
 	actor.Tell("hello")

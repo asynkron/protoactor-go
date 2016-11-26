@@ -22,11 +22,7 @@ func TestStopFuture(t *testing.T) {
 		props := FromInstance(&ShortLivingActor{})
 		actor := SpawnNamed(props, ID)
 
-		fut, err := actor.StopFuture()
-		if err != nil {
-			assert.Fail(t, "Cannot stop actor %s", err)
-			return
-		}
+		fut := actor.StopFuture()
 
 		res, errR := fut.Result()
 		if errR != nil {

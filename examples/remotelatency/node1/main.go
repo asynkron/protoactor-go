@@ -24,8 +24,9 @@ func main() {
 	remoting.Start("127.0.0.1:8081", remoting.WithBatchSize(10000))
 
 	remote := actor.NewPID("127.0.0.1:8080", "remote")
-	res, _ := remote.AskFuture(&messages.Start{}, 5*time.Second)
-	res.Wait()
+	remote.
+		AskFuture(&messages.Start{}, 5*time.Second).
+		Wait()
 
 	for i := 0; i < messageCount; i++ {
 		message := &messages.Ping{

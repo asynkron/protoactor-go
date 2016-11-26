@@ -30,10 +30,8 @@ func Get(name string, kind string) *actor.PID {
 			Name: name,
 			Kind: kind,
 		}
-		response, err := remote.AskFuture(req, 5*time.Second)
-		if err != nil {
-			log.Fatalf("[CLUSTER DEBUG] remote AskFuture failed %v", err)
-		}
+		response := remote.AskFuture(req, 5*time.Second)
+
 		//await the response
 		res, err := response.Result()
 		if err != nil {
