@@ -14,13 +14,11 @@ func main() {
 	timeout := 1 * time.Second
 
 	hello := shared.GetHelloGrain("abc")
-	c := hello.SayHelloChan(&shared.HelloRequest{Name: "GAM"}, timeout)
-	res := <-c //channel 
-	if res.Err != nil {
-		log.Fatal(res.Err)
-	} else {
-		log.Printf("Message from grain %v", res.Value.Message)
+	res, err := hello.SayHello(&shared.HelloRequest{Name: "GAM"}, timeout)
+	if err != nil {
+		log.Fatal(err)
 	}
+	log.Printf("Message from SayHello: %v", res.Message)
 
 	res2, err := hello.Add(&shared.AddRequest{A: 123, B: 456}, timeout)
 	if err != nil {
