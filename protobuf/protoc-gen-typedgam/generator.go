@@ -96,7 +96,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			methodName := method.GetName()
 			inputType := removePackagePrefix(method.GetInputType(), file.PackageName())
 			outputType := removePackagePrefix(method.GetOutputType(), file.PackageName())
-			p.P(methodName, "(*", inputType, ") *", outputType)
+			p.P(methodName, "(*", inputType, ") (*", outputType, ", error)")
 		}
 		p.Out()
 		p.P("}")
@@ -164,12 +164,17 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.P(`case "`, methodName, `":`)
 			p.In()
 			p.P(`req := &`, inputType, `{}`)
-			p.P(`proto.Unmarshal(msg.MessageData, req)`)
-			p.P(`r0 := a.inner.`, methodName, `(req)`)
+			p.P(`err := proto.Unmarshal(msg.MessageData, req)`)
+			p.AddErrorHandler("[GRAIN] proto.Unmarshal failed %v")
+			p.P(`r0, err := a.inner.`, methodName, `(req)`)
+			p.P(`if err == nil {`)
+			p.In()
 			p.P(`bytes, err := proto.Marshal(r0)`)
 			p.AddErrorHandler("[GRAIN] proto.Marshal failed %v")
 			p.P(`resp := &`, cluster.Use(), `.GrainResponse{MessageData: bytes}`)
 			p.P(`ctx.Respond(resp)`)
+			p.Out()
+			p.P(`}`)
 
 			p.Out()
 

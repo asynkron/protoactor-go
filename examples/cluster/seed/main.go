@@ -13,6 +13,7 @@ func main() {
 	cluster.Start("127.0.0.1:7711")
 	timeout := 1 * time.Second
 	hello := shared.GetHelloGrain("abc")
+
 	res, err := hello.SayHello(&shared.HelloRequest{Name: "Roger"}, timeout)
 	if err != nil {
 		log.Fatal(err)

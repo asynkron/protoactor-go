@@ -40,8 +40,8 @@ func GetHelloGrain(id string) *HelloGrain {
 }
 
 type Hello interface {
-	SayHello(*HelloRequest) *HelloResponse
-	Add(*AddRequest) *AddResponse
+	SayHello(*HelloRequest) (*HelloResponse, error)
+	Add(*AddRequest) (*AddResponse, error)
 }
 type HelloGrain struct {
 	Id string
@@ -99,24 +99,34 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 		switch msg.Method {
 		case "SayHello":
 			req := &HelloRequest{}
-			proto.Unmarshal(msg.MessageData, req)
-			r0 := a.inner.SayHello(req)
-			bytes, err := proto.Marshal(r0)
+			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+				log.Fatalf("[GRAIN] proto.Unmarshal failed %v", err)
 			}
-			resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
-			ctx.Respond(resp)
+			r0, err := a.inner.SayHello(req)
+			if err == nil {
+				bytes, err := proto.Marshal(r0)
+				if err != nil {
+					log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+				}
+				resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
+				ctx.Respond(resp)
+			}
 		case "Add":
 			req := &AddRequest{}
-			proto.Unmarshal(msg.MessageData, req)
-			r0 := a.inner.Add(req)
-			bytes, err := proto.Marshal(r0)
+			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+				log.Fatalf("[GRAIN] proto.Unmarshal failed %v", err)
 			}
-			resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
-			ctx.Respond(resp)
+			r0, err := a.inner.Add(req)
+			if err == nil {
+				bytes, err := proto.Marshal(r0)
+				if err != nil {
+					log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+				}
+				resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
+				ctx.Respond(resp)
+			}
 		}
 	default:
 		log.Printf("Unknown message %v", msg)
