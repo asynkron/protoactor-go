@@ -97,9 +97,11 @@ func (g *HelloGrain) SayHello(r *HelloRequest, timeout time.Duration) (*HelloRes
 
 func (g *HelloGrain) SayHelloChan(r *HelloRequest, timeout time.Duration) <-chan *HelloResponseFuture {
 	c := make(chan *HelloResponseFuture, 1)
-	defer close(c)
-	res, err := g.SayHello(r, timeout)
-	c <- &HelloResponseFuture{Value: res, Err: err}
+	go func() {
+		defer close(c)
+		res, err := g.SayHello(r, timeout)
+		c <- &HelloResponseFuture{Value: res, Err: err}
+	}()
 	return c
 }
 
@@ -132,9 +134,11 @@ func (g *HelloGrain) Add(r *AddRequest, timeout time.Duration) (*AddResponse, er
 
 func (g *HelloGrain) AddChan(r *AddRequest, timeout time.Duration) <-chan *AddResponseFuture {
 	c := make(chan *AddResponseFuture, 1)
-	defer close(c)
-	res, err := g.Add(r, timeout)
-	c <- &AddResponseFuture{Value: res, Err: err}
+	go func() {
+		defer close(c)
+		res, err := g.Add(r, timeout)
+		c <- &AddResponseFuture{Value: res, Err: err}
+	}()
 	return c
 }
 

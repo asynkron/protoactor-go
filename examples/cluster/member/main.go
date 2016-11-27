@@ -15,7 +15,7 @@ func main() {
 
 	hello := shared.GetHelloGrain("abc")
 	c := hello.SayHelloChan(&shared.HelloRequest{Name: "GAM"}, timeout)
-	res := <-c
+	res := <-c //channel 
 	if res.Err != nil {
 		log.Fatal(res.Err)
 	} else {
