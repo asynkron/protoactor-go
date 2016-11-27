@@ -7,30 +7,30 @@ import (
 	"github.com/AsynkronIT/gam/actor"
 )
 
-func clusterForHost(host string) *actor.PID {
-	pid := actor.NewPID(host, "cluster")
+func partitionForHost(host string) *actor.PID {
+	pid := actor.NewPID(host, "partition")
 	return pid
 }
 
-var clusterPid = actor.SpawnNamed(actor.FromProducer(newClusterActor()), "cluster")
+var partitionPid = actor.SpawnNamed(actor.FromProducer(newClusterActor()), "partition")
 
 func newClusterActor() actor.Producer {
 	return func() actor.Actor {
-		return &clusterActor{
+		return &partitionActor{
 			partition: make(map[string]*actor.PID),
 		}
 	}
 }
 
-type clusterActor struct {
+type partitionActor struct {
 	partition map[string]*actor.PID
 }
 
-func (state *clusterActor) Receive(context actor.Context) {
+func (state *partitionActor) Receive(context actor.Context) {
 	//log.Printf("%+v", context.Message())
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Println("[CLUSTER] Cluster actor started")
+		log.Println("[CLUSTER] Partition actor started")
 	case *ActorPidRequest:
 		state.actorPidRequest(msg, context)
 	case *clusterStatusJoin:
@@ -40,11 +40,11 @@ func (state *clusterActor) Receive(context actor.Context) {
 	case *TakeOwnership:
 		state.takeOwnership(msg)
 	default:
-		log.Printf("[CLUSTER] Cluster got unknown message %+v", msg)
+		log.Printf("[CLUSTER] Partition got unknown message %+v", msg)
 	}
 }
 
-func (state *clusterActor) actorPidRequest(msg *ActorPidRequest, context actor.Context) {
+func (state *partitionActor) actorPidRequest(msg *ActorPidRequest, context actor.Context) {
 
 	pid := state.partition[msg.Name]
 	if pid == nil {
@@ -67,7 +67,7 @@ func (state *clusterActor) actorPidRequest(msg *ActorPidRequest, context actor.C
 	context.Respond(response)
 }
 
-func (state *clusterActor) clusterStatusJoin(msg *clusterStatusJoin) {
+func (state *partitionActor) clusterStatusJoin(msg *clusterStatusJoin) {
 	log.Printf("[CLUSTER] Node joined %v", msg.node.host)
 	if list.LocalNode() == nil {
 		return
@@ -82,10 +82,10 @@ func (state *clusterActor) clusterStatusJoin(msg *clusterStatusJoin) {
 	}
 }
 
-func (state *clusterActor) transferOwnership(actorID string, host string) {
+func (state *partitionActor) transferOwnership(actorID string, host string) {
 	log.Printf("[CLUSTER] Giving ownership of %v to Node %v", actorID, host)
 	pid := state.partition[actorID]
-	owner := clusterForHost(host)
+	owner := partitionForHost(host)
 	owner.Tell(&TakeOwnership{
 		Pid:  pid,
 		Name: actorID,
@@ -94,7 +94,7 @@ func (state *clusterActor) transferOwnership(actorID string, host string) {
 	delete(state.partition, actorID)
 }
 
-func (state *clusterActor) takeOwnership(msg *TakeOwnership) {
+func (state *partitionActor) takeOwnership(msg *TakeOwnership) {
 	log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
 	state.partition[msg.Name] = msg.Pid
 }

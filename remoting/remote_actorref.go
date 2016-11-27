@@ -24,7 +24,7 @@ func (ref *remoteActorRef) SendUserMessage(pid *actor.PID, message interface{}, 
 func (ref *remoteActorRef) send(pid *actor.PID, message interface{}, sender *actor.PID) {
 	switch msg := message.(type) {
 	case proto.Message:
-		envelope, _ := packMessage(msg, ref.pid, sender)
+		envelope, _ := serialize(msg, ref.pid, sender)
 		endpointManagerPID.Tell(envelope)
 	default:
 		log.Printf("[REMOTING] failed, trying to send non Proto %v message to %v", msg, ref.pid)

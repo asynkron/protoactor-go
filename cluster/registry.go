@@ -22,23 +22,25 @@ func Get(name string, kind string) *actor.PID {
 	if pid == nil {
 
 		host := getNode(name)
-		remote := clusterForHost(host)
+		remote := partitionForHost(host)
 
 		//request the pid of the "id" from the correct partition
 		req := &ActorPidRequest{
 			Name: name,
 			Kind: kind,
 		}
-		response := remote.RequestFuture(req, 5*time.Second)
 
 		//await the response
-		res, err := response.Result()
+		res, err := remote.RequestFuture(req, 5*time.Second).Result()
 		if err != nil {
-			log.Fatalf("[CLUSTER DEBUG] response result failed %v", err)
+			log.Fatalf("[CLUSTER] ActorPidRequest for '%v' timed out, failure %v", name, err)
 		}
 
 		//unwrap the result
-		typed := res.(*ActorPidResponse)
+		typed, ok := res.(*ActorPidResponse)
+		if !ok {
+			log.Fatalf("[CLUSTER] ActorPidRequest for '%v' returned incorrect response, expected ActorPidResponse", name)
+		}
 		pid = typed.Pid
 		cache.Add(name, pid)
 		return pid

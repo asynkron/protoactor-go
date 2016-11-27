@@ -15,12 +15,12 @@ type clusterStatusLeave struct {
 
 func (*eventDelegate) NotifyJoin(node *memberlist.Node) {
 	cn := newClusterNode(node.Name)
-	clusterPid.Tell(&clusterStatusJoin{node: cn})
+	partitionPid.Tell(&clusterStatusJoin{node: cn})
 }
 
 func (*eventDelegate) NotifyLeave(node *memberlist.Node) {
 	cn := newClusterNode(node.Name)
-	clusterPid.Tell(&clusterStatusLeave{node: cn})
+	partitionPid.Tell(&clusterStatusLeave{node: cn})
 }
 
 func (*eventDelegate) NotifyUpdate(node *memberlist.Node) {

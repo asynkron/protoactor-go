@@ -36,7 +36,7 @@ func (*activator) Receive(context actor.Context) {
 	case *actor.Started:
 		log.Println("[CLUSTER] Activator actor started")
 	case *ActorPidRequest:
-		log.Printf("[CLUSTER] Cluster actor creating %v of type %v", msg.Name, msg.Kind)
+		log.Printf("[CLUSTER] Activator actor creating %v of type %v", msg.Name, msg.Kind)
 		props := nameLookup[msg.Kind]
 		//pid := actor.SpawnNamed(props.WithReceivers(plugin.Use(&PassivationPlugin{Duration: 5 * time.Second})), msg.Name)
 		pid := actor.SpawnNamed(props, msg.Name)
