@@ -8,6 +8,6 @@ func main() {
 	req := command.Read()
 	p := NewGorleans()
 	p.Overwrite()
-	resp := command.GeneratePlugin(req, p, "_gorleans.go")
+	resp := command.GeneratePlugin(req, p, "_typedgam.go")
 	command.Write(resp)
 }

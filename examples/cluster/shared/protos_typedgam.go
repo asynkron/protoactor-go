@@ -47,54 +47,46 @@ type HelloGrain struct {
 	Id string
 }
 
-func (g *HelloGrain) SayHello(r *HelloRequest) *HelloResponse {
+func (g *HelloGrain) SayHello(r *HelloRequest, timeout time.Duration) (*HelloResponse, error) {
 	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id, "Hello")
 	bytes, err := proto.Marshal(r)
 	if err != nil {
-		log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+		return nil, err
 	}
 	gr := &github_com_AsynkronIT_gam_cluster.GrainRequest{Method: "SayHello", MessageData: bytes}
-	r0 := pid.RequestFuture(gr, 5*time.Second)
+	r0 := pid.RequestFuture(gr, timeout)
 	r1, err := r0.Result()
 	if err != nil {
-		log.Fatalf("[GRAIN] Await result failed %v", err)
+		return nil, err
 	}
 	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster.GrainResponse)
 	r3 := &HelloResponse{}
-	proto.Unmarshal(r2.MessageData, r3)
-	return r3
+	err = proto.Unmarshal(r2.MessageData, r3)
+	if err != nil {
+		return nil, err
+	}
+	return r3, nil
 }
 
-func (g *HelloGrain) SayHelloChan(r *HelloRequest) <-chan *HelloResponse {
-	c := make(chan *HelloResponse, 1)
-	defer close(c)
-	c <- g.SayHello(r)
-	return c
-}
-
-func (g *HelloGrain) Add(r *AddRequest) *AddResponse {
+func (g *HelloGrain) Add(r *AddRequest, timeout time.Duration) (*AddResponse, error) {
 	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id, "Hello")
 	bytes, err := proto.Marshal(r)
 	if err != nil {
-		log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+		return nil, err
 	}
 	gr := &github_com_AsynkronIT_gam_cluster.GrainRequest{Method: "Add", MessageData: bytes}
-	r0 := pid.RequestFuture(gr, 5*time.Second)
+	r0 := pid.RequestFuture(gr, timeout)
 	r1, err := r0.Result()
 	if err != nil {
-		log.Fatalf("[GRAIN] Await result failed %v", err)
+		return nil, err
 	}
 	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster.GrainResponse)
 	r3 := &AddResponse{}
-	proto.Unmarshal(r2.MessageData, r3)
-	return r3
-}
-
-func (g *HelloGrain) AddChan(r *AddRequest) <-chan *AddResponse {
-	c := make(chan *AddResponse, 1)
-	defer close(c)
-	c <- g.Add(r)
-	return c
+	err = proto.Unmarshal(r2.MessageData, r3)
+	if err != nil {
+		return nil, err
+	}
+	return r3, nil
 }
 
 type HelloActor struct {
