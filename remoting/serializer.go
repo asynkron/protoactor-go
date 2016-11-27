@@ -1,6 +1,7 @@
 package remoting
 
 import (
+	"log"
 	"reflect"
 
 	"github.com/AsynkronIT/gam/actor"
@@ -11,6 +12,7 @@ import (
 
 func packMessage(message proto.Message, target *actor.PID, sender *actor.PID) (*messages.MessageEnvelope, error) {
 	typeName := proto.MessageName(message)
+	ensureGoGo(typeName)
 	bytes, err := proto.Marshal(message)
 	if err != nil {
 		return nil, err
@@ -26,9 +28,22 @@ func packMessage(message proto.Message, target *actor.PID, sender *actor.PID) (*
 }
 
 func unpackMessage(message *messages.MessageEnvelope) proto.Message {
-	t := proto.MessageType(message.TypeName).Elem()
+
+	ensureGoGo(message.TypeName)
+	t1 := proto.MessageType(message.TypeName)
+	if t1 == nil {
+		log.Fatalf("[REMOTING] Unknown message type name '%v'", message.TypeName)
+	}
+	t := t1.Elem()
+
 	intPtr := reflect.New(t)
 	instance := intPtr.Interface().(proto.Message)
 	proto.Unmarshal(message.MessageData, instance)
 	return instance
+}
+
+func ensureGoGo(typeName string) {
+	if typeName == "" {
+		log.Fatalf("[REMOTING] Message type name is empty string, make sure you have generated the Proto contacts with GOGO Proto")
+	}
 }

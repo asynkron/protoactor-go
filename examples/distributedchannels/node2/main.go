@@ -18,8 +18,7 @@ func main() {
 
 	//create an actor receiving messages and pushing them onto the channel
 	props := actor.FromFunc(func(context actor.Context) {
-		switch msg := context.Message().(type) {
-		case *messages.MyMessage:
+		if msg, ok := context.Message().(*messages.MyMessage); ok {
 			channel <- msg
 		}
 	})
