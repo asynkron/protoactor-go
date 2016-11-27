@@ -27,7 +27,6 @@ type partitionActor struct {
 }
 
 func (state *partitionActor) Receive(context actor.Context) {
-	//log.Printf("%+v", context.Message())
 	switch msg := context.Message().(type) {
 	case *actor.Started:
 		log.Println("[CLUSTER] Partition actor started")
