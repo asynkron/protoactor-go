@@ -50,6 +50,7 @@ var logg generator.Single
 var time generator.Single
 var cluster generator.Single
 var actor generator.Single
+var errors generator.Single
 
 func (p *gorelans) Generate(file *generator.FileDescriptor) {
 
@@ -57,6 +58,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 	p.atleastOne = false
 	logg = p.NewImport("log")
 	time = p.NewImport("time")
+	errors = p.NewImport("errors")
 	cluster = p.NewImport("github.com/AsynkronIT/gam/cluster")
 	actor = p.NewImport("github.com/AsynkronIT/gam/actor")
 
@@ -121,11 +123,23 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.P("r0 := pid.RequestFuture(gr, timeout)")
 			p.P("r1, err := r0.Result()")
 			p.AddErrorReturn()
-			p.P("r2, _ := r1.(*", cluster.Use(), ".GrainResponse)")
+			p.P(`switch r2 := r1.(type) {`)
+			p.P("case *", cluster.Use(), ".GrainResponse:")
+			p.In()
 			p.P("r3 := &", outputType, "{}")
 			p.P("err = proto.Unmarshal(r2.MessageData, r3)")
 			p.AddErrorReturn()
 			p.P("return r3, nil")
+			p.Out()
+			p.P("case *", cluster.Use(), ".GrainErrorResponse:")
+			p.In()
+			p.P("return nil, ", errors.Use(), ".New(r2.Err)")
+			p.Out()
+			p.P("default:")
+			p.In()
+			p.P(`return nil, errors.New("Unknown response")`)
+			p.Out()
+			p.P("}")
 			p.Out()
 			p.P("}")
 			p.Out()
@@ -172,6 +186,11 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.P(`bytes, err := proto.Marshal(r0)`)
 			p.AddErrorHandler("[GRAIN] proto.Marshal failed %v")
 			p.P(`resp := &`, cluster.Use(), `.GrainResponse{MessageData: bytes}`)
+			p.P(`ctx.Respond(resp)`)
+			p.Out()
+			p.P(`} else {`)
+			p.In()
+			p.P(`resp := &github_com_AsynkronIT_gam_cluster.GrainErrorResponse{Err: err.Error()}`)
 			p.P(`ctx.Respond(resp)`)
 			p.Out()
 			p.P(`}`)

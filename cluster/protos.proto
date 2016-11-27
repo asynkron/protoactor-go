@@ -24,3 +24,7 @@ message GrainRequest {
 message GrainResponse {
   bytes message_data = 1;
 }
+
+message GrainErrorResponse {
+    string err = 1;
+}

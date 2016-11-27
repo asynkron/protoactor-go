@@ -18,6 +18,7 @@ package shared
 
 import log "log"
 import time "time"
+import errors "errors"
 import github_com_AsynkronIT_gam_cluster "github.com/AsynkronIT/gam/cluster"
 import github_com_AsynkronIT_gam_actor "github.com/AsynkronIT/gam/actor"
 import proto "github.com/gogo/protobuf/proto"
@@ -59,13 +60,19 @@ func (g *HelloGrain) SayHello(r *HelloRequest, timeout time.Duration) (*HelloRes
 	if err != nil {
 		return nil, err
 	}
-	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster.GrainResponse)
-	r3 := &HelloResponse{}
-	err = proto.Unmarshal(r2.MessageData, r3)
-	if err != nil {
-		return nil, err
+	switch r2 := r1.(type) {
+	case *github_com_AsynkronIT_gam_cluster.GrainResponse:
+		r3 := &HelloResponse{}
+		err = proto.Unmarshal(r2.MessageData, r3)
+		if err != nil {
+			return nil, err
+		}
+		return r3, nil
+	case *github_com_AsynkronIT_gam_cluster.GrainErrorResponse:
+		return nil, errors.New(r2.Err)
+	default:
+		return nil, errors.New("Unknown response")
 	}
-	return r3, nil
 }
 
 func (g *HelloGrain) Add(r *AddRequest, timeout time.Duration) (*AddResponse, error) {
@@ -80,13 +87,19 @@ func (g *HelloGrain) Add(r *AddRequest, timeout time.Duration) (*AddResponse, er
 	if err != nil {
 		return nil, err
 	}
-	r2, _ := r1.(*github_com_AsynkronIT_gam_cluster.GrainResponse)
-	r3 := &AddResponse{}
-	err = proto.Unmarshal(r2.MessageData, r3)
-	if err != nil {
-		return nil, err
+	switch r2 := r1.(type) {
+	case *github_com_AsynkronIT_gam_cluster.GrainResponse:
+		r3 := &AddResponse{}
+		err = proto.Unmarshal(r2.MessageData, r3)
+		if err != nil {
+			return nil, err
+		}
+		return r3, nil
+	case *github_com_AsynkronIT_gam_cluster.GrainErrorResponse:
+		return nil, errors.New(r2.Err)
+	default:
+		return nil, errors.New("Unknown response")
 	}
-	return r3, nil
 }
 
 type HelloActor struct {
@@ -111,6 +124,9 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 				}
 				resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
 				ctx.Respond(resp)
+			} else {
+				resp := &github_com_AsynkronIT_gam_cluster.GrainErrorResponse{Err: err.Error()}
+				ctx.Respond(resp)
 			}
 		case "Add":
 			req := &AddRequest{}
@@ -125,6 +141,9 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 					log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 				}
 				resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
+				ctx.Respond(resp)
+			} else {
+				resp := &github_com_AsynkronIT_gam_cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 			}
 		}
