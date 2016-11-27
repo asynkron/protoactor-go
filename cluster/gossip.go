@@ -44,7 +44,7 @@ func (g *MemberlistGossiper) LocalState(join bool) []byte {
 func (g *MemberlistGossiper) MergeRemoteState(buf []byte, join bool) {
 }
 
-func NewMemberlistGossiper(nodeName string) memberlist.Delegate {
+func newMemberlistGossiper(nodeName string) memberlist.Delegate {
 
 	return &MemberlistGossiper{}
 }

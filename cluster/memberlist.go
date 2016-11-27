@@ -11,7 +11,7 @@ func getMemberlistConfig(host string, port int, name string) *memberlist.Config 
 	c.BindPort = port
 	c.BindAddr = host
 	c.Name = name
-	c.Delegate = NewMemberlistGossiper(c.Name)
+	c.Delegate = newMemberlistGossiper(c.Name)
 	c.Events = newEventDelegate()
 	return c
 }
