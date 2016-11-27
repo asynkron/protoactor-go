@@ -63,6 +63,16 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 	actor = p.NewImport("github.com/AsynkronIT/gam/actor")
 
 	p.localName = generator.FileName(file)
+	for _, message := range file.GetMessageType() {
+		messageName := message.GetName()
+		p.P("type ", messageName, "Future struct {")
+		p.In()
+		p.P("Value	*", messageName)
+		p.P("Err	error")
+		p.Out()
+		p.P("}")
+		p.P("")
+	}
 
 	for _, service := range file.GetService() {
 		/*
@@ -144,17 +154,17 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.P("}")
 			p.Out()
 			p.P("")
-			// p.In()
-			// p.P("func (g *", grainName, ") ", methodName, "Chan (r *", inputType, ", timeout ", time.Use(), ".Duration) <-chan *", outputType, " {")
-			// p.In()
-			// p.P("c := make(chan *", outputType, ", 1)")
-			// p.P("defer close(c)")
-			// p.P("res, err := g.", methodName, "(r, timeout)")
-			// p.P("c <- res")
-			// p.P("return c")
-			// p.Out()
-			// p.P("}")
-			// p.Out()
+			p.In()
+			p.P("func (g *", grainName, ") ", methodName, "Chan (r *", inputType, ", timeout ", time.Use(), ".Duration) <-chan *", outputType, "Future {")
+			p.In()
+			p.P("c := make(chan *", outputType, "Future, 1)")
+			p.P("defer close(c)")
+			p.P("res, err := g.", methodName, "(r, timeout)")
+			p.P("c <- &", outputType, "Future { Value: res, Err: err}")
+			p.P("return c")
+			p.Out()
+			p.P("}")
+			p.Out()
 
 		}
 		p.P("")

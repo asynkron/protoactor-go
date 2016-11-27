@@ -30,6 +30,26 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+type HelloRequestFuture struct {
+	Value *HelloRequest
+	Err   error
+}
+
+type HelloResponseFuture struct {
+	Value *HelloResponse
+	Err   error
+}
+
+type AddRequestFuture struct {
+	Value *AddRequest
+	Err   error
+}
+
+type AddResponseFuture struct {
+	Value *AddResponse
+	Err   error
+}
+
 var xHelloFactory func() Hello
 
 func HelloFactory(factory func() Hello) {
@@ -75,6 +95,14 @@ func (g *HelloGrain) SayHello(r *HelloRequest, timeout time.Duration) (*HelloRes
 	}
 }
 
+func (g *HelloGrain) SayHelloChan(r *HelloRequest, timeout time.Duration) <-chan *HelloResponseFuture {
+	c := make(chan *HelloResponseFuture, 1)
+	defer close(c)
+	res, err := g.SayHello(r, timeout)
+	c <- &HelloResponseFuture{Value: res, Err: err}
+	return c
+}
+
 func (g *HelloGrain) Add(r *AddRequest, timeout time.Duration) (*AddResponse, error) {
 	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id, "Hello")
 	bytes, err := proto.Marshal(r)
@@ -100,6 +128,14 @@ func (g *HelloGrain) Add(r *AddRequest, timeout time.Duration) (*AddResponse, er
 	default:
 		return nil, errors.New("Unknown response")
 	}
+}
+
+func (g *HelloGrain) AddChan(r *AddRequest, timeout time.Duration) <-chan *AddResponseFuture {
+	c := make(chan *AddResponseFuture, 1)
+	defer close(c)
+	res, err := g.Add(r, timeout)
+	c <- &AddResponseFuture{Value: res, Err: err}
+	return c
 }
 
 type HelloActor struct {
