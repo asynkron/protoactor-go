@@ -9,22 +9,42 @@ import (
 	console "github.com/AsynkronIT/goconsole"
 )
 
+const (
+	timeout = 1 * time.Second
+)
+
 func main() {
 	cluster.Start("127.0.0.1:0", "127.0.0.1:7711")
-	timeout := 1 * time.Second
+	sync()
+	async()
 
+	console.ReadLine()
+}
+
+func sync() {
 	hello := shared.GetHelloGrain("abc")
 	res, err := hello.SayHello(&shared.HelloRequest{Name: "GAM"}, timeout)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("Message from SayHello: %v", res.Message)
+}
 
-	res2, err := hello.Add(&shared.AddRequest{A: 123, B: 456}, timeout)
-	if err != nil {
-		log.Fatal(err)
+func async() {
+	hello := shared.GetHelloGrain("abc")
+	c := hello.AddChan(&shared.AddRequest{A: 123, B: 456}, timeout)
+	t := time.NewTicker(1 * time.Millisecond)
+
+	for {
+		select {
+		case <-t.C:
+			log.Println("Tick..") //this might not happen if res returns fast enough
+		case res := <-c:
+			if res.Err != nil {
+				log.Fatal(res.Err)
+			}
+			log.Printf("Result is %v", res.Value.Result)
+			return
+		}
 	}
-	log.Printf("Result is %v", res2.Result)
-
-	console.ReadLine()
 }

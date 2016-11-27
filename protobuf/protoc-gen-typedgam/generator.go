@@ -157,7 +157,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.In()
 			p.P("func (g *", grainName, ") ", methodName, "Chan (r *", inputType, ", timeout ", time.Use(), ".Duration) <-chan *", outputType, "Future {")
 			p.In()
-			p.P("c := make(chan *", outputType, "Future, 1)")
+			p.P("c := make(chan *", outputType, "Future)")
 			p.P("go func() {")
 			p.In()
 			p.P("defer close(c)")

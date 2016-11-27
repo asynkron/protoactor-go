@@ -9,9 +9,17 @@ import (
 	console "github.com/AsynkronIT/goconsole"
 )
 
+const (
+	timeout = 1 * time.Second
+)
+
 func main() {
 	cluster.Start("127.0.0.1:7711")
-	timeout := 1 * time.Second
+
+	console.ReadLine()
+}
+
+func sync() {
 	hello := shared.GetHelloGrain("abc")
 
 	res, err := hello.SayHello(&shared.HelloRequest{Name: "Roger"}, timeout)
@@ -19,5 +27,4 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("Message from grain %v", res.Message)
-	console.ReadLine()
 }
