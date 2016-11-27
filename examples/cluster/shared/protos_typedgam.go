@@ -105,6 +105,22 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest, timeout time.Duration) <-chan
 	return c
 }
 
+func (g *HelloGrain) SayHelloChan2(r *HelloRequest, timeout time.Duration) (<-chan *HelloResponse, <-chan error) {
+	c := make(chan *HelloResponse)
+	e := make(chan error)
+	go func() {
+		defer close(c)
+		defer close(e)
+		res, err := g.SayHello(r, timeout)
+		if err != nil {
+			e <- err
+		} else {
+			c <- res
+		}
+	}()
+	return c, e
+}
+
 func (g *HelloGrain) Add(r *AddRequest, timeout time.Duration) (*AddResponse, error) {
 	pid := github_com_AsynkronIT_gam_cluster.Get(g.Id, "Hello")
 	bytes, err := proto.Marshal(r)
@@ -140,6 +156,24 @@ func (g *HelloGrain) AddChan(r *AddRequest, timeout time.Duration) <-chan *AddRe
 		c <- &AddResponseFuture{Value: res, Err: err}
 	}()
 	return c
+}
+
+func (g *HelloGrain) AddChan2(r *AddRequest, timeout time.Duration) (<-chan *AddResponse, <-chan error) {
+	c := make(chan *AddResponse)
+	e := make(chan error)
+	go func() {
+		defer close(c)
+		defer close(e)
+
+		res, err := g.Add(r, timeout)
+		time.Sleep(1 * time.Second)
+		if err != nil {
+			e <- err
+		} else {
+			c <- res
+		}
+	}()
+	return c, e
 }
 
 type HelloActor struct {
