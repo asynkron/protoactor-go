@@ -1,35 +1,15 @@
 package cluster
 
-import (
-	"bytes"
-	"encoding/binary"
-	"encoding/gob"
-	"log"
-
-	"github.com/hashicorp/memberlist"
-)
+import "github.com/hashicorp/memberlist"
 
 type MemberlistGossiper struct {
-	nodeName string
-	meta     []byte
-}
-
-func getNodeValue(node *memberlist.Node) uint32 {
-	return binary.LittleEndian.Uint32(node.Meta)
-}
-
-func getNodeMeta(id string) (uint32, []byte) {
-	value := hash(id)
-	bs := make([]byte, 4)
-	binary.LittleEndian.PutUint32(bs, value)
-	return value, bs
 }
 
 // NodeMeta is used to retrieve meta-data about the current node
 // when broadcasting an alive message. It's length is limited to
 // the given byte size. This metadata is available in the Node structure.
 func (g *MemberlistGossiper) NodeMeta(limit int) []byte {
-	return g.meta
+	return nil
 }
 
 // NotifyMsg is called when a user-data message is received.
@@ -54,15 +34,7 @@ func (g *MemberlistGossiper) GetBroadcasts(overhead, limit int) [][]byte {
 // data can be sent here. See MergeRemoteState as well. The `join`
 // boolean indicates this is for a join instead of a push/pull.
 func (g *MemberlistGossiper) LocalState(join bool) []byte {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(0)
-	if err != nil {
-		log.Println("err encoding counter:", err.Error())
-		return nil
-	}
-
-	return buf.Bytes()
+	return nil
 }
 
 // MergeRemoteState is invoked after a TCP Push/Pull. This is the
@@ -74,9 +46,5 @@ func (g *MemberlistGossiper) MergeRemoteState(buf []byte, join bool) {
 
 func NewMemberlistGossiper(nodeName string) memberlist.Delegate {
 
-	_, meta := getNodeMeta(nodeName)
-	return &MemberlistGossiper{
-		nodeName: nodeName,
-		meta:     meta,
-	}
+	return &MemberlistGossiper{}
 }

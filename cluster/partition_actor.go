@@ -7,12 +7,14 @@ import (
 	"github.com/AsynkronIT/gam/actor"
 )
 
+var (
+	partitionPid = actor.SpawnNamed(actor.FromProducer(newClusterActor()), "partition")
+)
+
 func partitionForHost(host string) *actor.PID {
 	pid := actor.NewPID(host, "partition")
 	return pid
 }
-
-var partitionPid = actor.SpawnNamed(actor.FromProducer(newClusterActor()), "partition")
 
 func newClusterActor() actor.Producer {
 	return func() actor.Actor {
@@ -29,7 +31,7 @@ type partitionActor struct {
 func (state *partitionActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Println("[CLUSTER] Partition actor started")
+		log.Println("[CLUSTER] Partition started")
 	case *ActorPidRequest:
 		state.actorPidRequest(msg, context)
 	case *clusterStatusJoin:

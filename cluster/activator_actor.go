@@ -7,10 +7,12 @@ import (
 	"github.com/AsynkronIT/gam/actor"
 )
 
+var (
+	activatorPid = actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
+)
+
 type activator struct {
 }
-
-var activatorPid = actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
 
 func activatorForHost(host string) *actor.PID {
 	pid := actor.NewPID(host, "activator")
@@ -34,9 +36,9 @@ func newActivatorActor() actor.Producer {
 func (*activator) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Println("[CLUSTER] Activator actor started")
+		log.Println("[CLUSTER] Activator started")
 	case *ActorPidRequest:
-		log.Printf("[CLUSTER] Activator actor creating %v of type %v", msg.Name, msg.Kind)
+		log.Printf("[CLUSTER] Activator creating %v of type %v", msg.Name, msg.Kind)
 		props := nameLookup[msg.Kind]
 		//pid := actor.SpawnNamed(props.WithReceivers(plugin.Use(&PassivationPlugin{Duration: 5 * time.Second})), msg.Name)
 		pid := actor.SpawnNamed(props, msg.Name)
