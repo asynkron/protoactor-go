@@ -30,26 +30,6 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-type HelloRequestFuture struct {
-	Value *HelloRequest
-	Err   error
-}
-
-type HelloResponseFuture struct {
-	Value *HelloResponse
-	Err   error
-}
-
-type AddRequestFuture struct {
-	Value *AddRequest
-	Err   error
-}
-
-type AddResponseFuture struct {
-	Value *AddResponse
-	Err   error
-}
-
 var xHelloFactory func() Hello
 
 func HelloFactory(factory func() Hello) {
@@ -95,17 +75,7 @@ func (g *HelloGrain) SayHello(r *HelloRequest, timeout time.Duration) (*HelloRes
 	}
 }
 
-func (g *HelloGrain) SayHelloChan(r *HelloRequest, timeout time.Duration) <-chan *HelloResponseFuture {
-	c := make(chan *HelloResponseFuture)
-	go func() {
-		defer close(c)
-		res, err := g.SayHello(r, timeout)
-		c <- &HelloResponseFuture{Value: res, Err: err}
-	}()
-	return c
-}
-
-func (g *HelloGrain) SayHelloChan2(r *HelloRequest, timeout time.Duration) (<-chan *HelloResponse, <-chan error) {
+func (g *HelloGrain) SayHelloChan(r *HelloRequest, timeout time.Duration) (<-chan *HelloResponse, <-chan error) {
 	c := make(chan *HelloResponse)
 	e := make(chan error)
 	go func() {
@@ -148,25 +118,13 @@ func (g *HelloGrain) Add(r *AddRequest, timeout time.Duration) (*AddResponse, er
 	}
 }
 
-func (g *HelloGrain) AddChan(r *AddRequest, timeout time.Duration) <-chan *AddResponseFuture {
-	c := make(chan *AddResponseFuture)
-	go func() {
-		defer close(c)
-		res, err := g.Add(r, timeout)
-		c <- &AddResponseFuture{Value: res, Err: err}
-	}()
-	return c
-}
-
-func (g *HelloGrain) AddChan2(r *AddRequest, timeout time.Duration) (<-chan *AddResponse, <-chan error) {
+func (g *HelloGrain) AddChan(r *AddRequest, timeout time.Duration) (<-chan *AddResponse, <-chan error) {
 	c := make(chan *AddResponse)
 	e := make(chan error)
 	go func() {
 		defer close(c)
 		defer close(e)
-
 		res, err := g.Add(r, timeout)
-		time.Sleep(1 * time.Second)
 		if err != nil {
 			e <- err
 		} else {

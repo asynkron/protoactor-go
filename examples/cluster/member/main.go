@@ -32,7 +32,7 @@ func sync() {
 
 func async() {
 	hello := shared.GetHelloGrain("abc")
-	c, e := hello.AddChan2(&shared.AddRequest{A: 123, B: 456}, timeout)
+	c, e := hello.AddChan(&shared.AddRequest{A: 123, B: 456}, timeout)
 
 	for {
 		select {
