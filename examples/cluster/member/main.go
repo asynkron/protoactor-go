@@ -33,11 +33,10 @@ func sync() {
 func async() {
 	hello := shared.GetHelloGrain("abc")
 	c, e := hello.AddChan2(&shared.AddRequest{A: 123, B: 456}, timeout)
-	t := time.NewTicker(100 * time.Millisecond)
 
 	for {
 		select {
-		case <-t.C:
+		case <-time.After(100 * time.Millisecond):
 			log.Println("Tick..") //this might not happen if res returns fast enough
 		case err := <-e:
 			log.Fatal(err)
