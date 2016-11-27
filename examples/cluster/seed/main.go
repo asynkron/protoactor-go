@@ -15,11 +15,6 @@ const (
 
 func main() {
 	cluster.Start("127.0.0.1:7711")
-
-	console.ReadLine()
-}
-
-func sync() {
 	hello := shared.GetHelloGrain("abc")
 
 	res, err := hello.SayHello(&shared.HelloRequest{Name: "Roger"}, timeout)
@@ -27,4 +22,6 @@ func sync() {
 		log.Fatal(err)
 	}
 	log.Printf("Message from grain %v", res.Message)
+	console.ReadLine()
 }
+

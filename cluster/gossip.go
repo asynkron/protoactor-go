@@ -2,13 +2,13 @@ package cluster
 
 import "github.com/hashicorp/memberlist"
 
-type MemberlistGossiper struct {
+type memberlistGossiper struct {
 }
 
 // NodeMeta is used to retrieve meta-data about the current node
 // when broadcasting an alive message. It's length is limited to
 // the given byte size. This metadata is available in the Node structure.
-func (g *MemberlistGossiper) NodeMeta(limit int) []byte {
+func (g *memberlistGossiper) NodeMeta(limit int) []byte {
 	return nil
 }
 
@@ -16,7 +16,7 @@ func (g *MemberlistGossiper) NodeMeta(limit int) []byte {
 // Care should be taken that this method does not block, since doing
 // so would block the entire UDP packet receive loop. Additionally, the byte
 // slice may be modified after the call returns, so it should be copied if needed.
-func (g *MemberlistGossiper) NotifyMsg([]byte) {
+func (g *memberlistGossiper) NotifyMsg([]byte) {
 }
 
 // GetBroadcasts is called when user data messages can be broadcast.
@@ -24,7 +24,7 @@ func (g *MemberlistGossiper) NotifyMsg([]byte) {
 // overhead as provided with a limit on the total byte size allowed.
 // The total byte size of the resulting data to send must not exceed
 // the limit.
-func (g *MemberlistGossiper) GetBroadcasts(overhead, limit int) [][]byte {
+func (g *memberlistGossiper) GetBroadcasts(overhead, limit int) [][]byte {
 	//log.Println("GetBroadcasts")
 	return nil
 }
@@ -33,7 +33,7 @@ func (g *MemberlistGossiper) GetBroadcasts(overhead, limit int) [][]byte {
 // the remote side in addition to the membership information. Any
 // data can be sent here. See MergeRemoteState as well. The `join`
 // boolean indicates this is for a join instead of a push/pull.
-func (g *MemberlistGossiper) LocalState(join bool) []byte {
+func (g *memberlistGossiper) LocalState(join bool) []byte {
 	return nil
 }
 
@@ -41,10 +41,10 @@ func (g *MemberlistGossiper) LocalState(join bool) []byte {
 // state received from the remote side and is the result of the
 // remote side's LocalState call. The 'join'
 // boolean indicates this is for a join instead of a push/pull.
-func (g *MemberlistGossiper) MergeRemoteState(buf []byte, join bool) {
+func (g *memberlistGossiper) MergeRemoteState(buf []byte, join bool) {
 }
 
 func newMemberlistGossiper(nodeName string) memberlist.Delegate {
 
-	return &MemberlistGossiper{}
+	return &memberlistGossiper{}
 }

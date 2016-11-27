@@ -140,6 +140,8 @@ type HelloActor struct {
 
 func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 	switch msg := ctx.Message().(type) {
+	case *github_com_AsynkronIT_gam_actor.Stopped:
+
 	case *github_com_AsynkronIT_gam_cluster.GrainRequest:
 		switch msg.Method {
 		case "SayHello":
