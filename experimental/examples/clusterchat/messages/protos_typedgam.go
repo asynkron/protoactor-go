@@ -39,7 +39,7 @@ func ChatServerFactory(factory func() ChatServer) {
 }
 
 func GetChatServerGrain(id string) *ChatServerGrain {
-	return &ChatServerGrainGrain{Id: id}
+	return &ChatServerGrain{Id: id}
 }
 
 type ChatServer interface {

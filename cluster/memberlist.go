@@ -1,6 +1,10 @@
 package cluster
 
-import "github.com/hashicorp/memberlist"
+import (
+	"io/ioutil"
+
+	"github.com/hashicorp/memberlist"
+)
 
 var (
 	list *memberlist.Memberlist
@@ -13,5 +17,7 @@ func getMemberlistConfig(host string, port int, name string) *memberlist.Config 
 	c.Name = name
 	c.Delegate = newMemberlistGossiper(c.Name)
 	c.Events = newEventDelegate()
+	c.Logger = nil
+	c.LogOutput = ioutil.Discard
 	return c
 }
