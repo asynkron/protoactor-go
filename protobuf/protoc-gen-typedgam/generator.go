@@ -200,7 +200,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.In()
 			p.P("defer close(c)")
 			p.P("defer close(e)")
-			p.P("res, err := g.", methodName, "(r, options)")
+			p.P("res, err := g.", methodName, "(r, options...)")
 			p.P("if err != nil {")
 			p.In()
 			p.P("e <- err")
