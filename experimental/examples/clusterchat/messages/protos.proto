@@ -1,0 +1,37 @@
+syntax = "proto3";
+package messages;
+import "github.com/AsynkronIT/gam/actor/protos.proto";
+
+message ConnectRequest {
+    actor.PID ClientStreamPID = 1;
+}
+
+message ConnectResponse {
+    string Message = 1;
+}
+
+message SayRequest {
+    string UserName = 1;
+    string Message = 2;
+}
+
+message SayResponse {
+    string UserName = 1;
+    string Message = 2;
+}
+
+message NickRequest {
+    string OldUserName = 1;
+    string NewUserName = 2;
+}
+
+message NickResponse {
+    string OldUserName = 1;
+    string NewUserName = 2;
+}
+
+service ChatServer {
+    rpc Connect (ConnectRequest) returns (ConnectResponse){}
+    rpc Say (SayRequest) returns (SayResponse){}
+    rpc Nick (NickRequest) returns (NickResponse){}
+}

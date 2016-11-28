@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+
 func TestReceiveFromStream(t *testing.T) {
 	s := NewUntypedStream()
 	go func() {

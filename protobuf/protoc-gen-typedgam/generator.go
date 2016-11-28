@@ -99,7 +99,7 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		p.P("")
 		p.P("func Get", grainName, " (id string) *", grainName, " {")
 		p.In()
-		p.P("return &HelloGrain{Id:id}")
+		p.P("return &", grainName, "{Id:id}")
 		p.Out()
 		p.P("}")
 		p.P("")
