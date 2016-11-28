@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/gam/cluster"
+	"github.com/AsynkronIT/gam/cluster/grain"
 	"github.com/AsynkronIT/gam/examples/cluster/shared"
 	console "github.com/AsynkronIT/goconsole"
 )
@@ -23,7 +24,8 @@ func main() {
 
 func sync() {
 	hello := shared.GetHelloGrain("abc")
-	res, err := hello.SayHello(&shared.HelloRequest{Name: "GAM"})
+	options := []grain.GrainCallOption{grain.WithTimeout(5 * time.Second), grain.WithRetry(5)}
+	res, err := hello.SayHello(&shared.HelloRequest{Name: "GAM"}, options...)
 	if err != nil {
 		log.Fatal(err)
 	}
