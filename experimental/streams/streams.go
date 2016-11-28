@@ -3,7 +3,7 @@ package streams
 import "github.com/AsynkronIT/gam/actor"
 
 type UntypedStream struct {
-	c   <-chan interface{}
+	c   chan interface{}
 	pid *actor.PID
 }
 
@@ -13,6 +13,11 @@ func (s *UntypedStream) C() <-chan interface{} {
 
 func (s *UntypedStream) PID() *actor.PID {
 	return s.pid
+}
+
+func (s *UntypedStream) Close() {
+	s.pid.Stop()
+	close(s.c)
 }
 
 func NewUntypedStream() *UntypedStream {
