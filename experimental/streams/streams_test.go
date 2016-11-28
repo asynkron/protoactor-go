@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLookupById(t *testing.T) {
+func TestReceiveFromStream(t *testing.T) {
 	s := NewUntypedStream()
 	go s.PID().Tell("hello")
 	res := <-s.C()
