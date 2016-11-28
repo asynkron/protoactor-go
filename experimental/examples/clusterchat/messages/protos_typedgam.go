@@ -11,10 +11,9 @@ It is generated from these files:
 It has these top-level messages:
 	ConnectRequest
 	ConnectResponse
+	Unit
 	SayRequest
-	SayResponse
 	NickRequest
-	NickResponse
 */
 package messages
 
@@ -40,13 +39,13 @@ func ChatServerFactory(factory func() ChatServer) {
 }
 
 func GetChatServerGrain(id string) *ChatServerGrain {
-	return &ChatServerGrain{Id: id}
+	return &ChatServerGrainGrain{Id: id}
 }
 
 type ChatServer interface {
 	Connect(*ConnectRequest) (*ConnectResponse, error)
-	Say(*SayRequest) (*SayResponse, error)
-	Nick(*NickRequest) (*NickResponse, error)
+	Say(*SayRequest) (*Unit, error)
+	Nick(*NickRequest) (*Unit, error)
 }
 type ChatServerGrain struct {
 	Id string
@@ -107,9 +106,9 @@ func (g *ChatServerGrain) ConnectChan(r *ConnectRequest, options ...github_com_A
 	return c, e
 }
 
-func (g *ChatServerGrain) Say(r *SayRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (*SayResponse, error) {
+func (g *ChatServerGrain) Say(r *SayRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (*Unit, error) {
 	conf := github_com_AsynkronIT_gam_cluster_grain.ApplyGrainCallOptions(options)
-	var res *SayResponse
+	var res *Unit
 	var err error
 	for i := 0; i < conf.RetryCount; i++ {
 		err = func() error {
@@ -126,7 +125,7 @@ func (g *ChatServerGrain) Say(r *SayRequest, options ...github_com_AsynkronIT_ga
 			}
 			switch r2 := r1.(type) {
 			case *github_com_AsynkronIT_gam_cluster.GrainResponse:
-				r3 := &SayResponse{}
+				r3 := &Unit{}
 				err = proto.Unmarshal(r2.MessageData, r3)
 				if err != nil {
 					return err
@@ -146,8 +145,8 @@ func (g *ChatServerGrain) Say(r *SayRequest, options ...github_com_AsynkronIT_ga
 	return nil, err
 }
 
-func (g *ChatServerGrain) SayChan(r *SayRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (<-chan *SayResponse, <-chan error) {
-	c := make(chan *SayResponse)
+func (g *ChatServerGrain) SayChan(r *SayRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (<-chan *Unit, <-chan error) {
+	c := make(chan *Unit)
 	e := make(chan error)
 	go func() {
 		defer close(c)
@@ -162,9 +161,9 @@ func (g *ChatServerGrain) SayChan(r *SayRequest, options ...github_com_AsynkronI
 	return c, e
 }
 
-func (g *ChatServerGrain) Nick(r *NickRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (*NickResponse, error) {
+func (g *ChatServerGrain) Nick(r *NickRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (*Unit, error) {
 	conf := github_com_AsynkronIT_gam_cluster_grain.ApplyGrainCallOptions(options)
-	var res *NickResponse
+	var res *Unit
 	var err error
 	for i := 0; i < conf.RetryCount; i++ {
 		err = func() error {
@@ -181,7 +180,7 @@ func (g *ChatServerGrain) Nick(r *NickRequest, options ...github_com_AsynkronIT_
 			}
 			switch r2 := r1.(type) {
 			case *github_com_AsynkronIT_gam_cluster.GrainResponse:
-				r3 := &NickResponse{}
+				r3 := &Unit{}
 				err = proto.Unmarshal(r2.MessageData, r3)
 				if err != nil {
 					return err
@@ -201,8 +200,8 @@ func (g *ChatServerGrain) Nick(r *NickRequest, options ...github_com_AsynkronIT_
 	return nil, err
 }
 
-func (g *ChatServerGrain) NickChan(r *NickRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (<-chan *NickResponse, <-chan error) {
-	c := make(chan *NickResponse)
+func (g *ChatServerGrain) NickChan(r *NickRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (<-chan *Unit, <-chan error) {
+	c := make(chan *Unit)
 	e := make(chan error)
 	go func() {
 		defer close(c)

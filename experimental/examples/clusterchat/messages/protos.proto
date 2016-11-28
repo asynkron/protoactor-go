@@ -10,12 +10,10 @@ message ConnectResponse {
     string Message = 1;
 }
 
-message SayRequest {
-    string UserName = 1;
-    string Message = 2;
-}
+message Unit {}
 
-message SayResponse {
+
+message SayRequest {
     string UserName = 1;
     string Message = 2;
 }
@@ -25,13 +23,8 @@ message NickRequest {
     string NewUserName = 2;
 }
 
-message NickResponse {
-    string OldUserName = 1;
-    string NewUserName = 2;
-}
-
 service ChatServer {
     rpc Connect (ConnectRequest) returns (ConnectResponse){}
-    rpc Say (SayRequest) returns (SayResponse){}
-    rpc Nick (NickRequest) returns (NickResponse){}
+    rpc Say (SayRequest) returns (Unit){}
+    rpc Nick (NickRequest) returns (Unit){}
 }

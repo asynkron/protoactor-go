@@ -6,14 +6,14 @@ type chatServer struct {
 	clients []*actor.PID
 }
 
-func (server *chatServer) Say(r *SayRequest) (*SayResponse, error) {
+func (server *chatServer) Say(r *SayRequest) (*Unit, error) {
 	server.broadcast(r)
-	return &SayResponse{}, nil
+	return &Unit{}, nil
 }
 
-func (server *chatServer) Nick(r *NickRequest) (*NickResponse, error) {
+func (server *chatServer) Nick(r *NickRequest) (*Unit, error) {
 	server.broadcast(r)
-	return &NickResponse{}, nil
+	return &Unit{}, nil
 }
 
 func (server *chatServer) Connect(r *ConnectRequest) (*ConnectResponse, error) {
