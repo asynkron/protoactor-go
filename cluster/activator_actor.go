@@ -39,7 +39,7 @@ func (*activator) Receive(context actor.Context) {
 		log.Println("[CLUSTER] Activator started")
 	case *ActorPidRequest:
 		props := nameLookup[msg.Kind]
-		pid := actor.SpawnNamed(props, msg.Name)
+		pid := actor.SpawnNamed(props, "Grain$"+msg.Name)
 		response := &ActorPidResponse{
 			Pid: pid,
 		}
