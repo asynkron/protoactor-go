@@ -96,14 +96,14 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...grain.GrainCallOpt
 	c := make(chan *HelloResponse)
 	e := make(chan error)
 	go func() {
-		defer close(c)
-		defer close(e)
 		res, err := g.SayHello(r, options...)
 		if err != nil {
 			e <- err
 		} else {
 			c <- res
 		}
+		close(c)
+		close(e)
 	}()
 	return c, e
 }
@@ -154,14 +154,14 @@ func (g *HelloGrain) AddChan(r *AddRequest, options ...grain.GrainCallOption) (<
 	c := make(chan *AddResponse)
 	e := make(chan error)
 	go func() {
-		defer close(c)
-		defer close(e)
 		res, err := g.Add(r, options...)
 		if err != nil {
 			e <- err
 		} else {
 			c <- res
 		}
+		close(c)
+		close(e)
 	}()
 	return c, e
 }
@@ -228,3 +228,21 @@ func init() {
 	}))
 
 }
+
+// type hello struct {
+// }
+
+// func (*hello) SayHello(r *HelloRequest) (*HelloResponse, error) {
+// 	return &HelloResponse{}, nil
+// }
+
+// func (*hello) Add(r *AddRequest) (*AddResponse, error) {
+// 	return &AddResponse{}, nil
+// }
+
+// func init() {
+// 	//apply DI and setup logic
+
+// 	HelloFactory(func() Hello { return &hello{} })
+
+// }

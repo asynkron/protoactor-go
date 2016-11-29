@@ -127,4 +127,28 @@ func init() {
 		}
 		})		)
 	{{ end }}	
-}`
+}
+
+
+{{ range $service := .Services}}
+// type {{ $service.PascalName }} struct {
+// }
+{{ range $method := $service.Methods}}
+// func (*{{ $service.PascalName }}) {{ $method.Name }}(r *{{ $method.Input.Name }}) (*{{ $method.Output.Name }}, error) {
+// 	return &{{ $method.Output.Name }}{}, nil
+// }
+{{ end }}
+{{ end }}
+
+// func init() {
+// 	//apply DI and setup logic
+{{ range $service := .Services}}
+// 	{{ $service.Name }}Factory(func() {{ $service.Name }} { return &{{ $service.PascalName }}{} })
+{{ end }}
+// }
+
+
+
+
+
+`

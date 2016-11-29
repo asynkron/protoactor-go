@@ -1,6 +1,11 @@
 package main
 
-import "github.com/gogo/protobuf/protoc-gen-gogo/generator"
+import (
+	"bytes"
+	"strings"
+
+	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
+)
 
 type ProtoFile struct {
 	PackageName string
@@ -9,16 +14,19 @@ type ProtoFile struct {
 }
 
 type ProtoMessage struct {
-	Name string
+	Name       string
+	PascalName string
 }
 
 type ProtoService struct {
-	Name    string
-	Methods []*ProtoMethod
+	Name       string
+	PascalName string
+	Methods    []*ProtoMethod
 }
 
 type ProtoMethod struct {
 	Name         string
+	PascalName   string
 	InputStream  bool
 	Input        *ProtoMessage
 	OutputStream bool
@@ -33,6 +41,7 @@ func ProtoAst(file *generator.FileDescriptor) *ProtoFile {
 	for _, message := range file.GetMessageType() {
 		m := &ProtoMessage{}
 		m.Name = message.GetName()
+		m.PascalName = MakeFirstLowerCase(m.Name)
 		pkg.Messages = append(pkg.Messages, m)
 		messages[m.Name] = m
 	}
@@ -40,11 +49,13 @@ func ProtoAst(file *generator.FileDescriptor) *ProtoFile {
 	for _, service := range file.GetService() {
 		s := &ProtoService{}
 		s.Name = service.GetName()
+		s.PascalName = MakeFirstLowerCase(s.Name)
 		pkg.Services = append(pkg.Services, s)
 
 		for _, method := range service.GetMethod() {
 			m := &ProtoMethod{}
 			m.Name = method.GetName()
+			m.PascalName = MakeFirstLowerCase(m.Name)
 			//		m.InputStream = *method.ClientStreaming
 			//		m.OutputStream = *method.ServerStreaming
 			input := removePackagePrefix(method.GetInputType(), pkg.PackageName)
@@ -55,4 +66,18 @@ func ProtoAst(file *generator.FileDescriptor) *ProtoFile {
 		}
 	}
 	return pkg
+}
+
+func MakeFirstLowerCase(s string) string {
+
+	if len(s) < 2 {
+		return strings.ToLower(s)
+	}
+
+	bts := []byte(s)
+
+	lc := bytes.ToLower([]byte{bts[0]})
+	rest := bts[1:]
+
+	return string(bytes.Join([][]byte{lc, rest}, nil))
 }
