@@ -16,14 +16,19 @@ It has these top-level messages:
 */
 package shared
 
-import log "log"
-import errors "errors"
-import github_com_AsynkronIT_gam_cluster "github.com/AsynkronIT/gam/cluster"
-import github_com_AsynkronIT_gam_cluster_grain "github.com/AsynkronIT/gam/cluster/grain"
-import github_com_AsynkronIT_gam_actor "github.com/AsynkronIT/gam/actor"
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	errors "errors"
+	log "log"
+
+	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/cluster"
+	"github.com/AsynkronIT/gam/cluster/grain"
+	proto "github.com/gogo/protobuf/proto"
+
+	fmt "fmt"
+
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -42,19 +47,20 @@ func GetHelloGrain(id string) *HelloGrain {
 
 type Hello interface {
 	SayHello(*HelloRequest) (*HelloResponse, error)
+
 	Add(*AddRequest) (*AddResponse, error)
 }
 type HelloGrain struct {
 	Id string
 }
 
-func (g *HelloGrain) SayHello(r *HelloRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (*HelloResponse, error) {
-	conf := github_com_AsynkronIT_gam_cluster_grain.ApplyGrainCallOptions(options)
+func (g *HelloGrain) SayHello(r *HelloRequest, options ...grain.GrainCallOption) (*HelloResponse, error) {
+	conf := grain.ApplyGrainCallOptions(options)
 	var res *HelloResponse
 	var err error
 	for i := 0; i < conf.RetryCount; i++ {
 		err = func() error {
-			pid, err := github_com_AsynkronIT_gam_cluster.Get(g.Id, "Hello")
+			pid, err := cluster.Get(g.Id, "Hello")
 			if err != nil {
 				return err
 			}
@@ -62,14 +68,14 @@ func (g *HelloGrain) SayHello(r *HelloRequest, options ...github_com_AsynkronIT_
 			if err != nil {
 				return err
 			}
-			gr := &github_com_AsynkronIT_gam_cluster.GrainRequest{Method: "SayHello", MessageData: bytes}
+			gr := &cluster.GrainRequest{Method: "SayHello", MessageData: bytes}
 			r0 := pid.RequestFuture(gr, conf.Timeout)
 			r1, err := r0.Result()
 			if err != nil {
 				return err
 			}
 			switch r2 := r1.(type) {
-			case *github_com_AsynkronIT_gam_cluster.GrainResponse:
+			case *cluster.GrainResponse:
 				r3 := &HelloResponse{}
 				err = proto.Unmarshal(r2.MessageData, r3)
 				if err != nil {
@@ -77,7 +83,7 @@ func (g *HelloGrain) SayHello(r *HelloRequest, options ...github_com_AsynkronIT_
 				}
 				res = r3
 				return nil
-			case *github_com_AsynkronIT_gam_cluster.GrainErrorResponse:
+			case *cluster.GrainErrorResponse:
 				return errors.New(r2.Err)
 			default:
 				return errors.New("Unknown response")
@@ -90,7 +96,7 @@ func (g *HelloGrain) SayHello(r *HelloRequest, options ...github_com_AsynkronIT_
 	return nil, err
 }
 
-func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (<-chan *HelloResponse, <-chan error) {
+func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...grain.GrainCallOption) (<-chan *HelloResponse, <-chan error) {
 	c := make(chan *HelloResponse)
 	e := make(chan error)
 	go func() {
@@ -106,13 +112,13 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...github_com_Asynkro
 	return c, e
 }
 
-func (g *HelloGrain) Add(r *AddRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (*AddResponse, error) {
-	conf := github_com_AsynkronIT_gam_cluster_grain.ApplyGrainCallOptions(options)
+func (g *HelloGrain) Add(r *AddRequest, options ...grain.GrainCallOption) (*AddResponse, error) {
+	conf := grain.ApplyGrainCallOptions(options)
 	var res *AddResponse
 	var err error
 	for i := 0; i < conf.RetryCount; i++ {
 		err = func() error {
-			pid, err := github_com_AsynkronIT_gam_cluster.Get(g.Id, "Hello")
+			pid, err := cluster.Get(g.Id, "Hello")
 			if err != nil {
 				return err
 			}
@@ -120,14 +126,14 @@ func (g *HelloGrain) Add(r *AddRequest, options ...github_com_AsynkronIT_gam_clu
 			if err != nil {
 				return err
 			}
-			gr := &github_com_AsynkronIT_gam_cluster.GrainRequest{Method: "Add", MessageData: bytes}
+			gr := &cluster.GrainRequest{Method: "Add", MessageData: bytes}
 			r0 := pid.RequestFuture(gr, conf.Timeout)
 			r1, err := r0.Result()
 			if err != nil {
 				return err
 			}
 			switch r2 := r1.(type) {
-			case *github_com_AsynkronIT_gam_cluster.GrainResponse:
+			case *cluster.GrainResponse:
 				r3 := &AddResponse{}
 				err = proto.Unmarshal(r2.MessageData, r3)
 				if err != nil {
@@ -135,7 +141,7 @@ func (g *HelloGrain) Add(r *AddRequest, options ...github_com_AsynkronIT_gam_clu
 				}
 				res = r3
 				return nil
-			case *github_com_AsynkronIT_gam_cluster.GrainErrorResponse:
+			case *cluster.GrainErrorResponse:
 				return errors.New(r2.Err)
 			default:
 				return errors.New("Unknown response")
@@ -148,7 +154,7 @@ func (g *HelloGrain) Add(r *AddRequest, options ...github_com_AsynkronIT_gam_clu
 	return nil, err
 }
 
-func (g *HelloGrain) AddChan(r *AddRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (<-chan *AddResponse, <-chan error) {
+func (g *HelloGrain) AddChan(r *AddRequest, options ...grain.GrainCallOption) (<-chan *AddResponse, <-chan error) {
 	c := make(chan *AddResponse)
 	e := make(chan error)
 	go func() {
@@ -168,10 +174,11 @@ type HelloActor struct {
 	inner Hello
 }
 
-func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
+func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *github_com_AsynkronIT_gam_cluster.GrainRequest:
+	case *cluster.GrainRequest:
 		switch msg.Method {
+
 		case "SayHello":
 			req := &HelloRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
@@ -184,12 +191,13 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 				if err != nil {
 					log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 				}
-				resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
+				resp := &cluster.GrainResponse{MessageData: bytes}
 				ctx.Respond(resp)
 			} else {
-				resp := &github_com_AsynkronIT_gam_cluster.GrainErrorResponse{Err: err.Error()}
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 			}
+
 		case "Add":
 			req := &AddRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
@@ -202,18 +210,21 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 				if err != nil {
 					log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 				}
-				resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
+				resp := &cluster.GrainResponse{MessageData: bytes}
 				ctx.Respond(resp)
 			} else {
-				resp := &github_com_AsynkronIT_gam_cluster.GrainErrorResponse{Err: err.Error()}
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 			}
+
 		}
 	default:
-		//log.Printf("Unknown message %v", msg)
+		log.Printf("Unknown message %v", msg)
 	}
 }
 
 func init() {
-	github_com_AsynkronIT_gam_cluster.Register("Hello", github_com_AsynkronIT_gam_actor.FromProducer(func() github_com_AsynkronIT_gam_actor.Actor { return &HelloActor{inner: xHelloFactory()} }))
+
+	cluster.Register("Hello", actor.FromProducer(func() actor.Actor { return &HelloActor{inner: xHelloFactory()} }))
+
 }

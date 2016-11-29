@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"log"
 	"strings"
+	"text/template"
 
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 )
@@ -55,6 +58,168 @@ var errors generator.Single
 
 func (p *gorelans) Generate(file *generator.FileDescriptor) {
 
+	pkg := &ProtoFile{}
+	pkg.PackageName = file.PackageName()
+	messages := make(map[string]*ProtoMessage)
+	for _, message := range file.GetMessageType() {
+		m := &ProtoMessage{}
+		m.Name = message.GetName()
+		pkg.Messages = append(pkg.Messages, m)
+		messages[m.Name] = m
+	}
+
+	for _, service := range file.GetService() {
+		s := &ProtoService{}
+		s.Name = service.GetName()
+		pkg.Services = append(pkg.Services, s)
+
+		for _, method := range service.GetMethod() {
+			m := &ProtoMethod{}
+			m.Name = method.GetName()
+			//		m.InputStream = *method.ClientStreaming
+			//		m.OutputStream = *method.ServerStreaming
+			input := removePackagePrefix(method.GetInputType(), pkg.PackageName)
+			output := removePackagePrefix(method.GetOutputType(), pkg.PackageName)
+			m.Input = messages[input]
+			m.Output = messages[output]
+			s.Methods = append(s.Methods, m)
+		}
+	}
+
+	t := template.New("hello template")
+	t, _ = t.Parse(`
+
+{{ range $service := .Services}}	
+var x{{ $service.Name }}Factory func() {{ $service.Name }}
+
+func {{ $service.Name }}Factory(factory func() {{ $service.Name }}) {
+	x{{ $service.Name }}Factory = factory
+}
+
+func Get{{ $service.Name }}Grain(id string) *{{ $service.Name }}Grain {
+	return &{{ $service.Name }}Grain{Id: id}
+}
+
+type {{ $service.Name }} interface {
+	{{ range $method := $service.Methods}}	
+	{{ $method.Name }}(*{{ $method.Input.Name }}) (*{{ $method.Output.Name }}, error)
+	{{ end }}	
+}
+type {{ $service.Name }}Grain struct {
+	Id string
+}
+
+{{ range $method := $service.Methods}}	
+func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }}, options ...grain.GrainCallOption) (*{{ $method.Output.Name }}, error) {
+	conf := grain.ApplyGrainCallOptions(options)
+	var res *{{ $method.Output.Name }}
+	var err error
+	for i := 0; i < conf.RetryCount; i++ {
+		err = func() error {
+			pid, err := cluster.Get(g.Id, "{{ $service.Name }}")
+			if err != nil {
+				return err
+			}
+			bytes, err := proto.Marshal(r)
+			if err != nil {
+				return err
+			}
+			gr := &cluster.GrainRequest{Method: "{{ $method.Name }}", MessageData: bytes}
+			r0 := pid.RequestFuture(gr, conf.Timeout)
+			r1, err := r0.Result()
+			if err != nil {
+				return err
+			}
+			switch r2 := r1.(type) {
+			case *cluster.GrainResponse:
+				r3 := &{{ $method.Output.Name }}{}
+				err = proto.Unmarshal(r2.MessageData, r3)
+				if err != nil {
+					return err
+				}
+				res = r3
+				return nil
+			case *cluster.GrainErrorResponse:
+				return errors.New(r2.Err)
+			default:
+				return errors.New("Unknown response")
+			}
+		}()
+		if err == nil {
+			return res, nil
+		}
+	}
+	return nil, err
+}
+
+func (g *{{ $service.Name }}Grain) {{ $method.Name }}Chan(r *{{ $method.Input.Name }}, options ...grain.GrainCallOption) (<-chan *{{ $method.Output.Name }}, <-chan error) {
+	c := make(chan *{{ $method.Output.Name }})
+	e := make(chan error)
+	go func() {
+		defer close(c)
+		defer close(e)
+		res, err := g.{{ $method.Name }}(r, options...)
+		if err != nil {
+			e <- err
+		} else {
+			c <- res
+		}
+	}()
+	return c, e
+}
+{{ end }}	
+
+type {{ $service.Name }}Actor struct {
+	inner {{ $service.Name }}
+}
+
+func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
+	switch msg := ctx.Message().(type) {
+	case *cluster.GrainRequest:
+		switch msg.Method {
+		{{ range $method := $service.Methods}}	
+		case "{{ $method.Name }}":
+			req := &{{ $method.Input.Name }}{}
+			err := proto.Unmarshal(msg.MessageData, req)
+			if err != nil {
+				log.Fatalf("[GRAIN] proto.Unmarshal failed %v", err)
+			}
+			r0, err := a.inner.{{ $method.Name }}(req)
+			if err == nil {
+				bytes, err := proto.Marshal(r0)
+				if err != nil {
+					log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+				}
+				resp := &cluster.GrainResponse{MessageData: bytes}
+				ctx.Respond(resp)
+			} else {
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				ctx.Respond(resp)
+			}
+		{{ end }}
+		}
+	default:
+		log.Printf("Unknown message %v", msg)
+	}
+}
+
+{{ end }}	
+
+
+func init() {
+	{{ range $service := .Services}}
+	cluster.Register("{{ $service.Name }}", actor.FromProducer(func() actor.Actor { return &{{ $service.Name }}Actor{inner: x{{ $service.Name }}Factory()} }))
+	{{ end }}	
+}
+
+	
+	`)
+
+	var doc bytes.Buffer
+	t.Execute(&doc, pkg)
+	s := doc.String()
+	log.Println(s)
+
 	p.PluginImports = generator.NewPluginImports(p.Generator)
 	p.atleastOne = false
 	logg = p.NewImport("log")
@@ -65,25 +230,9 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 	actor = p.NewImport("github.com/AsynkronIT/gam/actor")
 
 	p.localName = generator.FileName(file)
-	// for _, message := range file.GetMessageType() {
-	// 	messageName := message.GetName()
-	// 	p.P("type ", messageName, "Future struct {")
-	// 	p.In()
-	// 	p.P("Value	*", messageName)
-	// 	p.P("Err	error")
-	// 	p.Out()
-	// 	p.P("}")
-	// 	p.P("")
-	// }
 
 	for _, service := range file.GetService() {
-		/*
-		   var fooFactory func() Foo
 
-		   func FooFactory(factory func() Foo) {
-		   	fooFactory = factory
-		   }
-		*/
 		serviceName := service.GetName()
 		factoryFieldName := "x" + generator.CamelCase(serviceName)
 		factoryFuncName := factoryFieldName + "Factory"
@@ -174,22 +323,6 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 			p.Out()
 			p.P("}")
 			p.Out()
-			// p.P("")
-			// p.In()
-			// p.P("func (g *", grainName, ") ", methodName, "Chan (r *", inputType, ", timeout ", time.Use(), ".Duration) <-chan *", outputType, "Future {")
-			// p.In()
-			// p.P("c := make(chan *", outputType, "Future)")
-			// p.P("go func() {")
-			// p.In()
-			// p.P("defer close(c)")
-			// p.P("res, err := g.", methodName, "(r, timeout)")
-			// p.P("c <- &", outputType, "Future { Value: res, Err: err}")
-			// p.Out()
-			// p.P("}()")
-			// p.P("return c")
-			// p.Out()
-			// p.P("}")
-			// p.Out()
 			p.P("")
 			p.In()
 			p.P("func (g *", grainName, ") ", methodName, "Chan (r *", inputType, ", options ...", grain.Use(), ".GrainCallOption) (<-chan *", outputType, ", <-chan error) {")
@@ -235,7 +368,6 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 		for _, method := range service.GetMethod() {
 			methodName := method.GetName()
 			inputType := removePackagePrefix(method.GetInputType(), file.PackageName())
-			//	outputType := removePackagePrefix(method.GetOutputType(), file.PackageName())
 			p.P(`case "`, methodName, `":`)
 			p.In()
 			p.P(`req := &`, inputType, `{}`)
