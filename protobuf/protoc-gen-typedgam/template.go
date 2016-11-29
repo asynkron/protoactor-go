@@ -25,39 +25,36 @@ type {{ $service.Name }}Grain struct {
 {{ range $method := $service.Methods}}	
 func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }}, options ...grain.GrainCallOption) (*{{ $method.Output.Name }}, error) {
 	conf := grain.ApplyGrainCallOptions(options)
-	var res *{{ $method.Output.Name }}
-	var err error
-	for i := 0; i < conf.RetryCount; i++ {
-		err = func() error {
+	fun := func() (*{{ $method.Output.Name }}, error) {
 			pid, err := cluster.Get(g.Id, "{{ $service.Name }}")
 			if err != nil {
-				return err
+				return nil, err
 			}
 			bytes, err := proto.Marshal(r)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			gr := &cluster.GrainRequest{Method: "{{ $method.Name }}", MessageData: bytes}
-			r0 := pid.RequestFuture(gr, conf.Timeout)
-			r1, err := r0.Result()
+			r1, err := pid.RequestFuture(gr, conf.Timeout).Result()
 			if err != nil {
-				return err
+				return nil, err
 			}
 			switch r2 := r1.(type) {
 			case *cluster.GrainResponse:
 				r3 := &{{ $method.Output.Name }}{}
 				err = proto.Unmarshal(r2.MessageData, r3)
 				if err != nil {
-					return err
+					return nil, err
 				}
-				res = r3
-				return nil
+				return r3, nil
 			case *cluster.GrainErrorResponse:
-				return errors.New(r2.Err)
+				return nil, errors.New(r2.Err)
 			default:
-				return errors.New("Unknown response")
+				return nil, errors.New("Unknown response")
 			}
-		}()
+		}
+	for i := 0; i < conf.RetryCount; i++ {
+		res, err := fun()
 		if err == nil {
 			return res, nil
 		}
