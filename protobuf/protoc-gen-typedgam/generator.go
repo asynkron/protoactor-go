@@ -58,10 +58,6 @@ func (p *gorelans) Generate(file *generator.FileDescriptor) {
 	t.Execute(&doc, pkg)
 	s := doc.String()
 
-	p.PluginImports = generator.NewPluginImports(p.Generator)
-
-	p.atleastOne = false
-
 	p.localName = generator.FileName(file)
 	p.P(s)
 }
