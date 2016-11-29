@@ -53,10 +53,11 @@ func (state *partitionActor) actorPidRequest(msg *ActorPidRequest, context actor
 		random := getRandomActivator()
 
 		//send request
-		log.Printf("[CLUSTER] Telling %v to create %v", random, msg.Name)
+		//		log.Printf("[CLUSTER] Telling %v to create %v", random, msg.Name)
 		tmp, err := random.RequestFuture(msg, 5*time.Second).Result()
 		if err != nil {
-			log.Fatalf("[CLUSTER] Actor PID Request result failed %v", err)
+			log.Printf("[CLUSTER] Actor PID Request result failed %v on node %v", err, random.Host)
+			return
 		}
 		typed := tmp.(*ActorPidResponse)
 		pid = typed.Pid

@@ -17,7 +17,7 @@ func Register(kind string, props actor.Props) {
 }
 
 //Get a PID to a virtual actor
-func Get(name string, kind string) *actor.PID {
+func Get(name string, kind string) (*actor.PID, error) {
 	pid := cache.Get(name)
 	if pid == nil {
 
@@ -33,7 +33,8 @@ func Get(name string, kind string) *actor.PID {
 		//await the response
 		res, err := remote.RequestFuture(req, 5*time.Second).Result()
 		if err != nil {
-			log.Fatalf("[CLUSTER] ActorPidRequest for '%v' timed out, failure %v", name, err)
+			log.Printf("[CLUSTER] ActorPidRequest for '%v' timed out, failure %v", name, err)
+			return nil, err
 		}
 
 		//unwrap the result
@@ -43,7 +44,7 @@ func Get(name string, kind string) *actor.PID {
 		}
 		pid = typed.Pid
 		cache.Add(name, pid)
-		return pid
+		return pid, nil
 	}
-	return pid
+	return pid, nil
 }

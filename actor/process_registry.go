@@ -30,7 +30,8 @@ func (pr *ProcessRegistryValue) RegisterHostResolver(handler HostResolver) {
 }
 
 func (pr *ProcessRegistryValue) getAutoId() string {
-	id := strconv.FormatUint(atomic.AddUint64(&pr.SequenceID, 1), 16)
+	counter := atomic.AddUint64(&pr.SequenceID, 1)
+	id := "$" + strconv.FormatUint(counter, 16)
 	return id
 }
 

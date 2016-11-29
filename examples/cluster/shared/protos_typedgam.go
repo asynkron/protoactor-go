@@ -54,7 +54,10 @@ func (g *HelloGrain) SayHello(r *HelloRequest, options ...github_com_AsynkronIT_
 	var err error
 	for i := 0; i < conf.RetryCount; i++ {
 		err = func() error {
-			pid := github_com_AsynkronIT_gam_cluster.Get(g.Id, "Hello")
+			pid, err := github_com_AsynkronIT_gam_cluster.Get(g.Id, "Hello")
+			if err != nil {
+				return err
+			}
 			bytes, err := proto.Marshal(r)
 			if err != nil {
 				return err
@@ -109,7 +112,10 @@ func (g *HelloGrain) Add(r *AddRequest, options ...github_com_AsynkronIT_gam_clu
 	var err error
 	for i := 0; i < conf.RetryCount; i++ {
 		err = func() error {
-			pid := github_com_AsynkronIT_gam_cluster.Get(g.Id, "Hello")
+			pid, err := github_com_AsynkronIT_gam_cluster.Get(g.Id, "Hello")
+			if err != nil {
+				return err
+			}
 			bytes, err := proto.Marshal(r)
 			if err != nil {
 				return err
@@ -204,7 +210,7 @@ func (a *HelloActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 			}
 		}
 	default:
-		log.Printf("Unknown message %v", msg)
+		//log.Printf("Unknown message %v", msg)
 	}
 }
 

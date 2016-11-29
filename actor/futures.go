@@ -2,16 +2,23 @@ package actor
 
 import (
 	"fmt"
+	"log"
 	"sync"
 	"time"
 )
 
 func NewFuture(timeout time.Duration) *Future {
 	ref := &FutureActorRef{
-		channel: make(chan interface{}, 1),
+		channel: make(chan interface{}),
 	}
 	id := ProcessRegistry.getAutoId()
-	pid, _ := ProcessRegistry.add(ref, id)
+
+	pid, ok := ProcessRegistry.add(ref, id)
+
+	if !ok {
+		log.Printf("[ACTOR] Failed to register future actorref '%v'", id)
+		log.Println(id)
+	}
 	ref.pid = pid
 
 	fut := &Future{

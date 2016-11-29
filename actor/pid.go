@@ -20,7 +20,10 @@ func (pid *PID) Request(message interface{}, respondTo *PID) {
 
 //RequestFuture sends a message to a given PID and returns a Future
 func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Future {
-	ref, _ := ProcessRegistry.get(pid)
+	ref, ok := ProcessRegistry.get(pid)
+	if !ok {
+		log.Fatalf("[ACTOR] Failed to register future actor with id %v", pid.Id)
+	}
 
 	future := NewFuture(timeout)
 	ref.SendUserMessage(pid, message, future.PID())
