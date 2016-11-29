@@ -7,8 +7,8 @@ type hello struct {
 	grain.Grain
 }
 
-func (*hello) SayHello(r *HelloRequest) (*HelloResponse, error) {
-	return &HelloResponse{Message: "hello " + r.Name}, nil
+func (h *hello) SayHello(r *HelloRequest) (*HelloResponse, error) {
+	return &HelloResponse{Message: "hello " + r.Name + " from " + h.ID()}, nil
 }
 
 func (*hello) Add(r *AddRequest) (*AddResponse, error) {

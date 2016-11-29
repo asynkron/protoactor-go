@@ -91,7 +91,8 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		a.inner = x{{ $service.Name }}Factory()
-		a.inner.Init("abc")
+		id := ctx.Self().Id
+		a.inner.Init(id[6:len(id)])
 	case *cluster.GrainRequest:
 		switch msg.Method {
 		{{ range $method := $service.Methods}}	

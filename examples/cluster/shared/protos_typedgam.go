@@ -176,7 +176,8 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		a.inner = xHelloFactory()
-		a.inner.Init("abc")
+		id := ctx.Self().Id
+		a.inner.Init(id[6:len(id)])
 	case *cluster.GrainRequest:
 		switch msg.Method {
 
@@ -233,10 +234,7 @@ func init() {
 }
 
 // type hello struct {
-//	id	string
-// }
-// func (state *hello) Init(id string) {
-// 	state.id = id
+//	grain.Grain
 // }
 
 // func (*hello) SayHello(r *HelloRequest) (*HelloResponse, error) {
