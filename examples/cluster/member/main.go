@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -30,6 +31,12 @@ func sync() {
 		log.Fatal(err)
 	}
 	log.Printf("Message from SayHello: %v", res.Message)
+	log.Println("Starting")
+	for i := 0; i < 100000; i++ {
+		x := shared.GetHelloGrain(fmt.Sprintf("hello%v", i))
+		x.SayHello(&shared.HelloRequest{Name: "GAM"})
+	}
+	log.Println("Done")
 }
 
 func async() {
