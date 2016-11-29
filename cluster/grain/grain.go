@@ -2,6 +2,18 @@ package grain
 
 import "time"
 
+type Grain struct {
+	id string
+}
+
+func (g *Grain) ID() string {
+	return g.id
+}
+
+func (g *Grain) Init(id string) {
+	g.id = id
+}
+
 type GrainCallOption func(*GrainCallConfig)
 
 type GrainCallConfig struct {

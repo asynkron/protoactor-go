@@ -38,22 +38,24 @@ func HelloFactory(factory func() Hello) {
 }
 
 func GetHelloGrain(id string) *HelloGrain {
-	return &HelloGrain{Id: id}
+	return &HelloGrain{ID: id}
 }
 
 type Hello interface {
+	Init(id string)
+
 	SayHello(*HelloRequest) (*HelloResponse, error)
 
 	Add(*AddRequest) (*AddResponse, error)
 }
 type HelloGrain struct {
-	Id string
+	ID string
 }
 
 func (g *HelloGrain) SayHello(r *HelloRequest, options ...grain.GrainCallOption) (*HelloResponse, error) {
 	conf := grain.ApplyGrainCallOptions(options)
 	fun := func() (*HelloResponse, error) {
-		pid, err := cluster.Get(g.Id, "Hello")
+		pid, err := cluster.Get(g.ID, "Hello")
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +113,7 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...grain.GrainCallOpt
 func (g *HelloGrain) Add(r *AddRequest, options ...grain.GrainCallOption) (*AddResponse, error) {
 	conf := grain.ApplyGrainCallOptions(options)
 	fun := func() (*AddResponse, error) {
-		pid, err := cluster.Get(g.Id, "Hello")
+		pid, err := cluster.Get(g.ID, "Hello")
 		if err != nil {
 			return nil, err
 		}
@@ -172,6 +174,9 @@ type HelloActor struct {
 
 func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
+	case *actor.Started:
+		a.inner = xHelloFactory()
+		a.inner.Init("abc")
 	case *cluster.GrainRequest:
 		switch msg.Method {
 
@@ -222,14 +227,16 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 func init() {
 
 	cluster.Register("Hello", actor.FromProducer(func() actor.Actor {
-		return &HelloActor{
-			inner: xHelloFactory(),
-		}
+		return &HelloActor{}
 	}))
 
 }
 
 // type hello struct {
+//	id	string
+// }
+// func (state *hello) Init(id string) {
+// 	state.id = id
 // }
 
 // func (*hello) SayHello(r *HelloRequest) (*HelloResponse, error) {

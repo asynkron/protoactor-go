@@ -1,7 +1,10 @@
 package shared
 
+import "github.com/AsynkronIT/gam/cluster/grain"
+
 //a Go struct implementing the Hello interface
 type hello struct {
+	grain.Grain
 }
 
 func (*hello) SayHello(r *HelloRequest) (*HelloResponse, error) {

@@ -10,23 +10,24 @@ func {{ $service.Name }}Factory(factory func() {{ $service.Name }}) {
 }
 
 func Get{{ $service.Name }}Grain(id string) *{{ $service.Name }}Grain {
-	return &{{ $service.Name }}Grain{Id: id}
+	return &{{ $service.Name }}Grain{ID: id}
 }
 
 type {{ $service.Name }} interface {
+	Init(id string)
 	{{ range $method := $service.Methods}}	
 	{{ $method.Name }}(*{{ $method.Input.Name }}) (*{{ $method.Output.Name }}, error)
 	{{ end }}	
 }
 type {{ $service.Name }}Grain struct {
-	Id string
+	ID string
 }
 
 {{ range $method := $service.Methods}}	
 func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }}, options ...grain.GrainCallOption) (*{{ $method.Output.Name }}, error) {
 	conf := grain.ApplyGrainCallOptions(options)
 	fun := func() (*{{ $method.Output.Name }}, error) {
-			pid, err := cluster.Get(g.Id, "{{ $service.Name }}")
+			pid, err := cluster.Get(g.ID, "{{ $service.Name }}")
 			if err != nil {
 				return nil, err
 			}
@@ -88,6 +89,9 @@ type {{ $service.Name }}Actor struct {
 
 func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
+	case *actor.Started:
+		a.inner = x{{ $service.Name }}Factory()
+		a.inner.Init("abc")
 	case *cluster.GrainRequest:
 		switch msg.Method {
 		{{ range $method := $service.Methods}}	
@@ -122,9 +126,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 func init() {
 	{{ range $service := .Services}}
 	cluster.Register("{{ $service.Name }}", actor.FromProducer(func() actor.Actor { 
-		return &{{ $service.Name }}Actor {
-			inner: x{{ $service.Name }}Factory(),
-		}
+		return &{{ $service.Name }}Actor {}
 		})		)
 	{{ end }}	
 }
@@ -132,6 +134,7 @@ func init() {
 
 {{ range $service := .Services}}
 // type {{ $service.PascalName }} struct {
+//	grain.Grain
 // }
 {{ range $method := $service.Methods}}
 // func (*{{ $service.PascalName }}) {{ $method.Name }}(r *{{ $method.Input.Name }}) (*{{ $method.Output.Name }}, error) {
