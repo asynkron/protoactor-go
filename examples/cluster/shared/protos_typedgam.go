@@ -221,6 +221,10 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 
 func init() {
 
-	cluster.Register("Hello", actor.FromProducer(func() actor.Actor { return &HelloActor{inner: xHelloFactory()} }))
+	cluster.Register("Hello", actor.FromProducer(func() actor.Actor {
+		return &HelloActor{
+			inner: xHelloFactory(),
+		}
+	}))
 
 }
