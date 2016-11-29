@@ -34,27 +34,30 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }
 			if err != nil {
 				return nil, err
 			}
-			gr := &cluster.GrainRequest{Method: "{{ $method.Name }}", MessageData: bytes}
-			r1, err := pid.RequestFuture(gr, conf.Timeout).Result()
+			request := &cluster.GrainRequest{Method: "{{ $method.Name }}", MessageData: bytes}
+			response, err := pid.RequestFuture(request, conf.Timeout).Result()
 			if err != nil {
 				return nil, err
 			}
-			switch r2 := r1.(type) {
+			switch msg := response.(type) {
 			case *cluster.GrainResponse:
-				r3 := &{{ $method.Output.Name }}{}
-				err = proto.Unmarshal(r2.MessageData, r3)
+				result := &{{ $method.Output.Name }}{}
+				err = proto.Unmarshal(msg.MessageData, result)
 				if err != nil {
 					return nil, err
 				}
-				return r3, nil
+				return result, nil
 			case *cluster.GrainErrorResponse:
-				return nil, errors.New(r2.Err)
+				return nil, errors.New(msg.Err)
 			default:
 				return nil, errors.New("Unknown response")
 			}
 		}
+	
+	var res *{{ $method.Output.Name }}
+	var err error
 	for i := 0; i < conf.RetryCount; i++ {
-		res, err := fun()
+		res, err = fun()
 		if err == nil {
 			return res, nil
 		}
@@ -66,14 +69,14 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}Chan(r *{{ $method.Input.Na
 	c := make(chan *{{ $method.Output.Name }})
 	e := make(chan error)
 	go func() {
-		defer close(c)
-		defer close(e)
 		res, err := g.{{ $method.Name }}(r, options...)
 		if err != nil {
 			e <- err
 		} else {
 			c <- res
 		}
+		close(c)
+		close(e)
 	}()
 	return c, e
 }

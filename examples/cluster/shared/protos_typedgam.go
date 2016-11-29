@@ -52,40 +52,39 @@ type HelloGrain struct {
 
 func (g *HelloGrain) SayHello(r *HelloRequest, options ...grain.GrainCallOption) (*HelloResponse, error) {
 	conf := grain.ApplyGrainCallOptions(options)
-	var res *HelloResponse
-	var err error
-	fun := func() error {
+	fun := func() (*HelloResponse, error) {
 		pid, err := cluster.Get(g.Id, "Hello")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		bytes, err := proto.Marshal(r)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		gr := &cluster.GrainRequest{Method: "SayHello", MessageData: bytes}
-		r0 := pid.RequestFuture(gr, conf.Timeout)
-		r1, err := r0.Result()
+		request := &cluster.GrainRequest{Method: "SayHello", MessageData: bytes}
+		response, err := pid.RequestFuture(request, conf.Timeout).Result()
 		if err != nil {
-			return err
+			return nil, err
 		}
-		switch r2 := r1.(type) {
+		switch msg := response.(type) {
 		case *cluster.GrainResponse:
-			r3 := &HelloResponse{}
-			err = proto.Unmarshal(r2.MessageData, r3)
+			result := &HelloResponse{}
+			err = proto.Unmarshal(msg.MessageData, result)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			res = r3
-			return nil
+			return result, nil
 		case *cluster.GrainErrorResponse:
-			return errors.New(r2.Err)
+			return nil, errors.New(msg.Err)
 		default:
-			return errors.New("Unknown response")
+			return nil, errors.New("Unknown response")
 		}
 	}
+
+	var res *HelloResponse
+	var err error
 	for i := 0; i < conf.RetryCount; i++ {
-		err = fun()
+		res, err = fun()
 		if err == nil {
 			return res, nil
 		}
@@ -111,40 +110,39 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...grain.GrainCallOpt
 
 func (g *HelloGrain) Add(r *AddRequest, options ...grain.GrainCallOption) (*AddResponse, error) {
 	conf := grain.ApplyGrainCallOptions(options)
-	var res *AddResponse
-	var err error
-	fun := func() error {
+	fun := func() (*AddResponse, error) {
 		pid, err := cluster.Get(g.Id, "Hello")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		bytes, err := proto.Marshal(r)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		gr := &cluster.GrainRequest{Method: "Add", MessageData: bytes}
-		r0 := pid.RequestFuture(gr, conf.Timeout)
-		r1, err := r0.Result()
+		request := &cluster.GrainRequest{Method: "Add", MessageData: bytes}
+		response, err := pid.RequestFuture(request, conf.Timeout).Result()
 		if err != nil {
-			return err
+			return nil, err
 		}
-		switch r2 := r1.(type) {
+		switch msg := response.(type) {
 		case *cluster.GrainResponse:
-			r3 := &AddResponse{}
-			err = proto.Unmarshal(r2.MessageData, r3)
+			result := &AddResponse{}
+			err = proto.Unmarshal(msg.MessageData, result)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			res = r3
-			return nil
+			return result, nil
 		case *cluster.GrainErrorResponse:
-			return errors.New(r2.Err)
+			return nil, errors.New(msg.Err)
 		default:
-			return errors.New("Unknown response")
+			return nil, errors.New("Unknown response")
 		}
 	}
+
+	var res *AddResponse
+	var err error
 	for i := 0; i < conf.RetryCount; i++ {
-		err = fun()
+		res, err = fun()
 		if err == nil {
 			return res, nil
 		}
