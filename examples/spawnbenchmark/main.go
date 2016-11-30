@@ -1,47 +1,88 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"log"
-	"os"
-	"runtime/pprof"
 	"time"
 
 	"github.com/AsynkronIT/gam/actor"
-	"github.com/AsynkronIT/goconsole"
 )
 
-type hello struct{ Who string }
-type helloActor struct{}
+func skynet(c chan int, num int, size int, div int) {
+	if size == 1 {
+		c <- num
+		return
+	}
 
-func (state *helloActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case *hello:
-		fmt.Printf("Hello %v\n", msg.Who)
+	rc := make(chan int)
+	var sum int
+	for i := 0; i < div; i++ {
+		subNum := num + i*(size/div)
+		go skynet(rc, subNum, size/div, div)
+	}
+	for i := 0; i < div; i++ {
+		sum += <-rc
+	}
+	c <- sum
+}
+
+type request struct {
+	num  int64
+	size int64
+	div  int64
+}
+
+var (
+	props = actor.FromProducer(newState)
+)
+
+type state struct {
+	sum     int64
+	replies int64
+	replyTo *actor.PID
+}
+
+func newState() actor.Actor {
+	return &state{}
+}
+
+func (s *state) Receive(ctx actor.Context) {
+	switch msg := ctx.Message().(type) {
+	case int64:
+		s.sum += msg
+		s.replies--
+		if s.replies == 0 {
+			s.replyTo.Tell(s.sum)
+		}
+	case *request:
+		if msg.size == 1 {
+			ctx.Respond(msg.num)
+			return
+		}
+
+		s.replies = msg.div
+		s.replyTo = ctx.Sender()
+		for i := int64(0); i < msg.div; i++ {
+			subNum := msg.num + i*(msg.size/msg.div)
+			child := ctx.Spawn(props)
+			child.Request(&request{
+				num:  subNum,
+				size: msg.size / msg.div,
+				div:  msg.div,
+			}, ctx.Self())
+		}
 	}
 }
 
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-
 func main() {
-	flag.Parse()
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
-
-	props := actor.FromInstance(&helloActor{}).WithMailbox(actor.NewUnboundedMailbox(10))
-	s := time.Now()
-	for i := 0; i < 1000000; i++ {
-		actor.Spawn(props)
-	}
-	log.Println(time.Since(s))
+	start := time.Now()
 	pid := actor.Spawn(props)
-	pid.Tell(&hello{Who: "Roger"})
-	console.ReadLine()
+	res, _ := pid.RequestFuture(&request{
+		num:  0,
+		size: 1000000,
+		div:  10,
+	}, 10*time.Second).Result()
+	result := res.(int64)
+
+	took := time.Since(start)
+	fmt.Printf("Result: %d in %d ms.\n", result, took.Nanoseconds()/1e6)
 }

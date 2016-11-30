@@ -42,12 +42,8 @@ func (pr *ProcessRegistryValue) add(actorRef ActorRef, id string) (*PID, bool) {
 		Id:   id,
 	}
 
-	_, found := pr.LocalPids.Get(pid.Id)
-	if found {
-		return &pid, false
-	}
-	pr.LocalPids.Set(pid.Id, actorRef)
-	return &pid, true
+	found := pr.LocalPids.SetIfAbsent(pid.Id, actorRef)
+	return &pid, found
 }
 
 func (pr *ProcessRegistryValue) remove(pid *PID) {
