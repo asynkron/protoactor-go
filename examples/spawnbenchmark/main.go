@@ -1,7 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
+	"os"
+	"runtime/pprof"
 	"time"
 
 	"github.com/AsynkronIT/gam/actor"
@@ -38,12 +42,12 @@ func (s *state) Receive(ctx actor.Context) {
 		s.replies = msg.div
 		s.replyTo = ctx.Sender()
 		for i := 0; i < msg.div; i++ {
-			ctx.Spawn(props).
-				Request(&request{
-					num:  msg.num + i*(msg.size/msg.div),
-					size: msg.size / msg.div,
-					div:  msg.div,
-				}, ctx.Self())
+			child := ctx.Spawn(props)
+			child.Request(&request{
+				num:  msg.num + i*(msg.size/msg.div),
+				size: msg.size / msg.div,
+				div:  msg.div,
+			}, ctx.Self())
 		}
 	case int:
 		s.sum += msg
@@ -54,7 +58,18 @@ func (s *state) Receive(ctx actor.Context) {
 	}
 }
 
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+
 func main() {
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 	start := time.Now()
 	pid := actor.Spawn(props)
 	res, _ := pid.RequestFuture(&request{
