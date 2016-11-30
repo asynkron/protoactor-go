@@ -83,6 +83,9 @@ type actorCell struct {
 }
 
 func (cell *actorCell) Children() []*PID {
+	if cell.children == nil {
+		cell.children = hashset.New() //TODO: initialize in one place only..
+	}
 	values := cell.children.Values()
 	children := make([]*PID, len(values))
 	for i, child := range values {
@@ -106,9 +109,9 @@ func NewActorCell(props Props, parent *PID) *actorCell {
 		props:          props,
 		supervisor:     props.Supervisor(),
 		behavior:       linkedliststack.New(),
-		children:       hashset.New(),
-		watchers:       hashset.New(),
-		watching:       hashset.New(),
+		children:       nil,
+		watchers:       nil,
+		watching:       nil,
 		userMessage:    nil,
 		receivePlugins: append(props.receivePluins, AutoReceive),
 	}
@@ -155,9 +158,14 @@ func (cell *actorCell) invokeSystemMessage(message SystemMessage) {
 	case *Terminated:
 		cell.handleOtherStopped(msg)
 	case *Watch:
+		if cell.watchers == nil {
+			cell.watchers = hashset.New()
+		}
 		cell.watchers.Add(msg.Watcher)
 	case *Unwatch:
-		cell.watchers.Remove(msg.Watcher)
+		if cell.watchers != nil {
+			cell.watchers.Remove(msg.Watcher)
+		}
 	case *Failure:
 		cell.handleFailure(msg)
 	case *Restart:
@@ -170,15 +178,21 @@ func (cell *actorCell) invokeSystemMessage(message SystemMessage) {
 func (cell *actorCell) handleStop(msg *Stop) {
 	cell.stopping = true
 	cell.invokeUserMessage(UserMessage{Message: &Stopping{}})
-	for _, child := range cell.children.Values() {
-		child.(*PID).Stop()
+	if cell.children != nil {
+		for _, child := range cell.children.Values() {
+			child.(*PID).Stop()
+		}
 	}
 	cell.tryRestartOrTerminate()
 }
 
 func (cell *actorCell) handleOtherStopped(msg *Terminated) {
-	cell.children.Remove(msg.Who)
-	cell.watching.Remove(msg.Who)
+	if cell.children != nil {
+		cell.children.Remove(msg.Who)
+	}
+	if cell.watching != nil {
+		cell.watching.Remove(msg.Who)
+	}
 	cell.tryRestartOrTerminate()
 }
 
@@ -203,15 +217,20 @@ func (cell *actorCell) handleFailure(msg *Failure) {
 func (cell *actorCell) handleRestart(msg *Restart) {
 	cell.stopping = false
 	cell.invokeUserMessage(UserMessage{Message: &Restarting{}})
-	for _, child := range cell.children.Values() {
-		child.(*PID).Stop()
+	if cell.children != nil {
+		for _, child := range cell.children.Values() {
+			child.(*PID).Stop()
+		}
 	}
 	cell.tryRestartOrTerminate()
 }
 
 func (cell *actorCell) tryRestartOrTerminate() {
-	if !cell.children.Empty() {
-		return
+
+	if cell.children != nil {
+		if !cell.children.Empty() {
+			return
+		}
 	}
 
 	if !cell.stopping {
@@ -238,8 +257,10 @@ func (cell *actorCell) stopped() {
 	ProcessRegistry.remove(cell.self)
 	cell.invokeUserMessage(UserMessage{Message: &Stopped{}})
 	otherStopped := &Terminated{Who: cell.self}
-	for _, watcher := range cell.watchers.Values() {
-		watcher.(*PID).sendSystemMessage(otherStopped)
+	if cell.watchers != nil {
+		for _, watcher := range cell.watchers.Values() {
+			watcher.(*PID).sendSystemMessage(otherStopped)
+		}
 	}
 }
 
@@ -281,6 +302,9 @@ func (cell *actorCell) Watch(who *PID) {
 	who.sendSystemMessage(&Watch{
 		Watcher: cell.self,
 	})
+	if cell.watching == nil {
+		cell.watching = hashset.New()
+	}
 	cell.watching.Add(who)
 }
 
@@ -288,7 +312,9 @@ func (cell *actorCell) Unwatch(who *PID) {
 	who.sendSystemMessage(&Unwatch{
 		Watcher: cell.self,
 	})
-	cell.watching.Remove(who)
+	if cell.watching != nil {
+		cell.watching.Remove(who)
+	}
 }
 
 func (cell *actorCell) Respond(response interface{}) {
@@ -312,6 +338,9 @@ func (cell *actorCell) SpawnNamed(props Props, name string) *PID {
 	}
 
 	pid := spawn(fullName, props, cell.self)
+	if cell.children == nil {
+		cell.children = hashset.New()
+	}
 	cell.children.Add(pid)
 	cell.Watch(pid)
 	return pid
