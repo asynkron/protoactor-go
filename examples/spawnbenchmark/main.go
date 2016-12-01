@@ -42,7 +42,7 @@ func (s *state) Receive(ctx actor.Context) {
 		s.replies = msg.div
 		s.replyTo = ctx.Sender()
 		for i := 0; i < msg.div; i++ {
-			child := ctx.Spawn(props)
+			child := actor.Spawn(props)
 			child.Request(&request{
 				num:  msg.num + i*(msg.size/msg.div),
 				size: msg.size / msg.div,
