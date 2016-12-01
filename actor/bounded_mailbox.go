@@ -67,7 +67,9 @@ func (mailbox *boundedMailbox) processMessages() {
 				break
 			}
 		}
-		runtime.Gosched()
+		if !done {
+			runtime.Gosched()
+		}
 	}
 
 	//set mailbox to idle
