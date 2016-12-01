@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/emirpasic/gods/sets/hashset"
+	"github.com/AsynkronIT/gam/actor/cheapset"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 )
 
@@ -73,9 +73,9 @@ type actorCell struct {
 	props          Props
 	supervisor     SupervisionStrategy
 	behavior       *linkedliststack.Stack
-	children       *hashset.Set
-	watchers       *hashset.Set
-	watching       *hashset.Set
+	children       *cheapset.Set
+	watchers       *cheapset.Set
+	watching       *cheapset.Set
 	stash          *linkedliststack.Stack
 	receivePlugins []Receive
 	receiveIndex   int
@@ -84,7 +84,7 @@ type actorCell struct {
 
 func (cell *actorCell) Children() []*PID {
 	if cell.children == nil {
-		cell.children = hashset.New() //TODO: initialize in one place only..
+		cell.children = cheapset.New() //TODO: initialize in one place only..
 	}
 	values := cell.children.Values()
 	children := make([]*PID, len(values))
@@ -156,10 +156,10 @@ func (cell *actorCell) invokeSystemMessage(message SystemMessage) {
 	case *Stop:
 		cell.handleStop(msg)
 	case *Terminated:
-		cell.handleOtherStopped(msg)
+		cell.handleTerminated(msg)
 	case *Watch:
 		if cell.watchers == nil {
-			cell.watchers = hashset.New()
+			cell.watchers = cheapset.New()
 		}
 		cell.watchers.Add(msg.Watcher)
 	case *Unwatch:
@@ -186,7 +186,7 @@ func (cell *actorCell) handleStop(msg *Stop) {
 	cell.tryRestartOrTerminate()
 }
 
-func (cell *actorCell) handleOtherStopped(msg *Terminated) {
+func (cell *actorCell) handleTerminated(msg *Terminated) {
 	if cell.children != nil {
 		cell.children.Remove(msg.Who)
 	}
@@ -303,7 +303,7 @@ func (cell *actorCell) Watch(who *PID) {
 		Watcher: cell.self,
 	})
 	if cell.watching == nil {
-		cell.watching = hashset.New()
+		cell.watching = cheapset.New()
 	}
 	cell.watching.Add(who)
 }
@@ -339,7 +339,7 @@ func (cell *actorCell) SpawnNamed(props Props, name string) *PID {
 
 	pid := spawn(fullName, props, cell.self)
 	if cell.children == nil {
-		cell.children = hashset.New()
+		cell.children = cheapset.New()
 	}
 	cell.children.Add(pid)
 	cell.Watch(pid)
