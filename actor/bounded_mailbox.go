@@ -18,11 +18,11 @@ type boundedMailbox struct {
 	systemMailbox   *queue.RingBuffer
 	schedulerStatus int32
 	hasMoreMessages int32
-	userInvoke      func(UserMessage)
+	userInvoke      func(interface{})
 	systemInvoke    func(SystemMessage)
 }
 
-func (mailbox *boundedMailbox) PostUserMessage(message UserMessage) {
+func (mailbox *boundedMailbox) PostUserMessage(message interface{}) {
 	mailbox.userMailbox.Put(message)
 	mailbox.schedule()
 }
@@ -61,7 +61,7 @@ func (mailbox *boundedMailbox) processMessages() {
 				mailbox.systemInvoke(sys)
 			} else if mailbox.userMailbox.Len() > 0 {
 				userMsg, _ := mailbox.userMailbox.Get()
-				mailbox.userInvoke(userMsg.(UserMessage))
+				mailbox.userInvoke(userMsg.(interface{}))
 			} else {
 				done = true
 				break
@@ -96,7 +96,7 @@ func NewBoundedMailbox(throughput int, size int) MailboxProducer {
 	}
 }
 
-func (mailbox *boundedMailbox) RegisterHandlers(userInvoke func(UserMessage), systemInvoke func(SystemMessage)) {
+func (mailbox *boundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
 }

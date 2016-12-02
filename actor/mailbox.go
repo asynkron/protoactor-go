@@ -2,11 +2,11 @@ package actor
 
 type MailboxProducer func() Mailbox
 type Mailbox interface {
-	PostUserMessage(message UserMessage)
+	PostUserMessage(message interface{})
 	PostSystemMessage(message SystemMessage)
 	Suspend()
 	Resume()
-	RegisterHandlers(userInvoke func(UserMessage), systemInvoke func(SystemMessage))
+	RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage))
 }
 
 const (

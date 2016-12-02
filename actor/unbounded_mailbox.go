@@ -14,11 +14,11 @@ type unboundedMailbox struct {
 	systemMailbox   *goring.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
-	userInvoke      func(UserMessage)
+	userInvoke      func(interface{})
 	systemInvoke    func(SystemMessage)
 }
 
-func (mailbox *unboundedMailbox) PostUserMessage(message UserMessage) {
+func (mailbox *unboundedMailbox) PostUserMessage(message interface{}) {
 	mailbox.userMailbox.Push(message)
 	mailbox.schedule()
 }
@@ -55,7 +55,7 @@ func (mailbox *unboundedMailbox) processMessages() {
 				sys, _ := sysMsg.(SystemMessage)
 				mailbox.systemInvoke(sys)
 			} else if userMsg, ok := mailbox.userMailbox.Pop(); ok {
-				mailbox.userInvoke(userMsg.(UserMessage))
+				mailbox.userInvoke(userMsg.(interface{}))
 			} else {
 				done = true
 				break
@@ -92,7 +92,7 @@ func NewUnboundedMailbox(throughput int) MailboxProducer {
 	}
 }
 
-func (mailbox *unboundedMailbox) RegisterHandlers(userInvoke func(UserMessage), systemInvoke func(SystemMessage)) {
+func (mailbox *unboundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
 }

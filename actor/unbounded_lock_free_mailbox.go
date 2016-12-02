@@ -13,11 +13,11 @@ type unboundedLockfreeMailbox struct {
 	systemMailbox   *lfqueue.LockfreeQueue
 	schedulerStatus int32
 	hasMoreMessages int32
-	userInvoke      func(UserMessage)
+	userInvoke      func(interface{})
 	systemInvoke    func(SystemMessage)
 }
 
-func (mailbox *unboundedLockfreeMailbox) PostUserMessage(message UserMessage) {
+func (mailbox *unboundedLockfreeMailbox) PostUserMessage(message interface{}) {
 	mailbox.userMailbox.Push(message)
 	mailbox.schedule()
 }
@@ -54,7 +54,7 @@ func (mailbox *unboundedLockfreeMailbox) processMessages() {
 				sys, _ := sysMsg.(SystemMessage)
 				mailbox.systemInvoke(sys)
 			} else if userMsg := mailbox.userMailbox.Pop(); userMsg != nil {
-				mailbox.userInvoke(userMsg.(UserMessage))
+				mailbox.userInvoke(userMsg)
 			} else {
 				done = true
 				break
@@ -90,7 +90,7 @@ func NewUnboundedLockfreeMailbox(throughput int) MailboxProducer {
 	}
 }
 
-func (mailbox *unboundedLockfreeMailbox) RegisterHandlers(userInvoke func(UserMessage), systemInvoke func(SystemMessage)) {
+func (mailbox *unboundedLockfreeMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
 }

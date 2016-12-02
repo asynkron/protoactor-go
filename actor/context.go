@@ -34,7 +34,7 @@ type Context interface {
 	//Executes the next middleware or base Receive handler
 	Next()
 	//Invoke a custom User message synchronously
-	Receive(UserMessage)
+	Receive(interface{})
 	//Stashes the current message
 	Stash()
 
@@ -50,11 +50,19 @@ func (cell *actorCell) Actor() Actor {
 }
 
 func (cell *actorCell) Message() interface{} {
-	return cell.userMessage.Message
+	userMessage, ok := cell.message.(*UserMessage)
+	if ok {
+		return userMessage.Message
+	}
+	return cell.message
 }
 
 func (cell *actorCell) Sender() *PID {
-	return cell.userMessage.Sender
+	userMessage, ok := cell.message.(*UserMessage)
+	if ok {
+		return userMessage.Sender
+	}
+	return nil
 }
 
 func (cell *actorCell) Stash() {
@@ -62,11 +70,11 @@ func (cell *actorCell) Stash() {
 		cell.stash = linkedliststack.New()
 	}
 
-	cell.stash.Push(cell.userMessage)
+	cell.stash.Push(cell.message)
 }
 
 type actorCell struct {
-	userMessage    *UserMessage
+	message        interface{}
 	parent         *PID
 	self           *PID
 	actor          Actor
@@ -112,23 +120,23 @@ func NewActorCell(props Props, parent *PID) *actorCell {
 		children:       nil,
 		watchers:       nil,
 		watching:       nil,
-		userMessage:    nil,
+		message:        nil,
 		receivePlugins: append(props.receivePluins, AutoReceive),
 	}
 	cell.incarnateActor()
 	return &cell
 }
 
-func (cell *actorCell) Receive(userMessage UserMessage) {
+func (cell *actorCell) Receive(message interface{}) {
 	i := cell.receiveIndex
-	m := cell.userMessage
+	m := cell.message
 
 	cell.receiveIndex = 0
-	cell.userMessage = &userMessage
+	cell.message = &message
 	cell.Next()
 
 	cell.receiveIndex = i
-	cell.userMessage = m
+	cell.message = m
 }
 
 func (cell *actorCell) Next() {
@@ -177,7 +185,7 @@ func (cell *actorCell) invokeSystemMessage(message SystemMessage) {
 
 func (cell *actorCell) handleStop(msg *Stop) {
 	cell.stopping = true
-	cell.invokeUserMessage(UserMessage{Message: &Stopping{}})
+	cell.invokeUserMessage(&Stopping{})
 	if cell.children != nil {
 		for _, child := range cell.children.Values() {
 			child.(*PID).Stop()
@@ -216,7 +224,7 @@ func (cell *actorCell) handleFailure(msg *Failure) {
 
 func (cell *actorCell) handleRestart(msg *Restart) {
 	cell.stopping = false
-	cell.invokeUserMessage(UserMessage{Message: &Restarting{}})
+	cell.invokeUserMessage(&Restarting{})
 	if cell.children != nil {
 		for _, child := range cell.children.Values() {
 			child.(*PID).Stop()
@@ -243,19 +251,18 @@ func (cell *actorCell) tryRestartOrTerminate() {
 
 func (cell *actorCell) restart() {
 	cell.incarnateActor()
-	cell.invokeUserMessage(UserMessage{Message: &Started{}})
+	cell.invokeUserMessage(&Started{})
 	if cell.stash != nil {
 		for !cell.stash.Empty() {
 			msg, _ := cell.stash.Pop()
-			pu := msg.(*UserMessage)
-			cell.invokeUserMessage(*pu)
+			cell.invokeUserMessage(msg)
 		}
 	}
 }
 
 func (cell *actorCell) stopped() {
 	ProcessRegistry.remove(cell.self)
-	cell.invokeUserMessage(UserMessage{Message: &Stopped{}})
+	cell.invokeUserMessage(&Stopped{})
 	otherStopped := &Terminated{Who: cell.self}
 	if cell.watchers != nil {
 		for _, watcher := range cell.watchers.Values() {
@@ -264,7 +271,7 @@ func (cell *actorCell) stopped() {
 	}
 }
 
-func (cell *actorCell) invokeUserMessage(md UserMessage) {
+func (cell *actorCell) invokeUserMessage(md interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[ACTOR] Recovering from: %v", r)
@@ -278,7 +285,7 @@ func (cell *actorCell) invokeUserMessage(md UserMessage) {
 		}
 	}()
 	cell.receiveIndex = 0
-	cell.userMessage = &md
+	cell.message = md
 	cell.Next()
 }
 

@@ -23,14 +23,14 @@ type endpointWriterMailbox struct {
 	systemMailbox   *goring.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
-	userInvoke      func(actor.UserMessage)
+	userInvoke      func(interface{})
 	systemInvoke    func(actor.SystemMessage)
 	batchSize       int
 }
 
-func (mailbox *endpointWriterMailbox) PostUserMessage(message actor.UserMessage) {
+func (mailbox *endpointWriterMailbox) PostUserMessage(message interface{}) {
 	//batching mailbox only use the message part
-	mailbox.userMailbox.Push(message.Message)
+	mailbox.userMailbox.Push(message)
 	mailbox.schedule()
 }
 
@@ -67,7 +67,7 @@ func (mailbox *endpointWriterMailbox) processMessages() {
 			mailbox.systemInvoke(first)
 		} else if userMsg, ok := mailbox.userMailbox.PopMany(batchSize); ok {
 			//pack the batch in a user message
-			mailbox.userInvoke(actor.UserMessage{Message: userMsg})
+			mailbox.userInvoke(userMsg)
 		} else {
 			done = true
 			break
@@ -100,7 +100,7 @@ func newEndpointWriterMailbox(batchSize, initialSize int) actor.MailboxProducer 
 	}
 }
 
-func (mailbox *endpointWriterMailbox) RegisterHandlers(userInvoke func(actor.UserMessage), systemInvoke func(actor.SystemMessage)) {
+func (mailbox *endpointWriterMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(actor.SystemMessage)) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
 }
