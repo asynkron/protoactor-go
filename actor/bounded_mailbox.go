@@ -7,7 +7,7 @@ import (
 	"github.com/Workiva/go-datastructures/queue"
 )
 
-type UserMessage struct {
+type Request struct {
 	Message interface{}
 	Sender  *PID
 }

@@ -50,7 +50,7 @@ func (cell *actorCell) Actor() Actor {
 }
 
 func (cell *actorCell) Message() interface{} {
-	userMessage, ok := cell.message.(*UserMessage)
+	userMessage, ok := cell.message.(*Request)
 	if ok {
 		return userMessage.Message
 	}
@@ -58,7 +58,7 @@ func (cell *actorCell) Message() interface{} {
 }
 
 func (cell *actorCell) Sender() *PID {
-	userMessage, ok := cell.message.(*UserMessage)
+	userMessage, ok := cell.message.(*Request)
 	if ok {
 		return userMessage.Sender
 	}

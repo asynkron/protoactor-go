@@ -21,7 +21,7 @@ func NewLocalActorRef(mailbox Mailbox) *LocalActorRef {
 
 func (ref *LocalActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	if sender != nil {
-		ref.mailbox.PostUserMessage(&UserMessage{Message: message, Sender: sender})
+		ref.mailbox.PostUserMessage(&Request{Message: message, Sender: sender})
 	} else {
 		ref.mailbox.PostUserMessage(message)
 	}

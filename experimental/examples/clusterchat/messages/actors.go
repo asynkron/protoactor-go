@@ -1,8 +1,12 @@
 package messages
 
-import "github.com/AsynkronIT/gam/actor"
+import (
+	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/cluster/grain"
+)
 
 type chatServer struct {
+	grain.Grain
 	clients []*actor.PID
 }
 

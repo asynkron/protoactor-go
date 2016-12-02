@@ -17,11 +17,12 @@ It has these top-level messages:
 */
 package messages
 
-import log "log"
 import errors "errors"
-import github_com_AsynkronIT_gam_cluster "github.com/AsynkronIT/gam/cluster"
-import github_com_AsynkronIT_gam_cluster_grain "github.com/AsynkronIT/gam/cluster/grain"
-import github_com_AsynkronIT_gam_actor "github.com/AsynkronIT/gam/actor"
+import log "log"
+import actor "github.com/AsynkronIT/gam/actor"
+import cluster "github.com/AsynkronIT/gam/cluster"
+import grain "github.com/AsynkronIT/gam/cluster/grain"
+
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
@@ -39,50 +40,57 @@ func ChatServerFactory(factory func() ChatServer) {
 }
 
 func GetChatServerGrain(id string) *ChatServerGrain {
-	return &ChatServerGrain{Id: id}
+	return &ChatServerGrain{ID: id}
 }
 
 type ChatServer interface {
+	Init(id string)
+
 	Connect(*ConnectRequest) (*ConnectResponse, error)
+
 	Say(*SayRequest) (*Unit, error)
+
 	Nick(*NickRequest) (*Unit, error)
 }
 type ChatServerGrain struct {
-	Id string
+	ID string
 }
 
-func (g *ChatServerGrain) Connect(r *ConnectRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (*ConnectResponse, error) {
-	conf := github_com_AsynkronIT_gam_cluster_grain.ApplyGrainCallOptions(options)
+func (g *ChatServerGrain) Connect(r *ConnectRequest, options ...grain.GrainCallOption) (*ConnectResponse, error) {
+	conf := grain.ApplyGrainCallOptions(options)
+	fun := func() (*ConnectResponse, error) {
+		pid, err := cluster.Get(g.ID, "ChatServer")
+		if err != nil {
+			return nil, err
+		}
+		bytes, err := proto.Marshal(r)
+		if err != nil {
+			return nil, err
+		}
+		request := &cluster.GrainRequest{Method: "Connect", MessageData: bytes}
+		response, err := pid.RequestFuture(request, conf.Timeout).Result()
+		if err != nil {
+			return nil, err
+		}
+		switch msg := response.(type) {
+		case *cluster.GrainResponse:
+			result := &ConnectResponse{}
+			err = proto.Unmarshal(msg.MessageData, result)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		case *cluster.GrainErrorResponse:
+			return nil, errors.New(msg.Err)
+		default:
+			return nil, errors.New("Unknown response")
+		}
+	}
+
 	var res *ConnectResponse
 	var err error
 	for i := 0; i < conf.RetryCount; i++ {
-		err = func() error {
-			pid := github_com_AsynkronIT_gam_cluster.Get(g.Id, "ChatServer")
-			bytes, err := proto.Marshal(r)
-			if err != nil {
-				return err
-			}
-			gr := &github_com_AsynkronIT_gam_cluster.GrainRequest{Method: "Connect", MessageData: bytes}
-			r0 := pid.RequestFuture(gr, conf.Timeout)
-			r1, err := r0.Result()
-			if err != nil {
-				return err
-			}
-			switch r2 := r1.(type) {
-			case *github_com_AsynkronIT_gam_cluster.GrainResponse:
-				r3 := &ConnectResponse{}
-				err = proto.Unmarshal(r2.MessageData, r3)
-				if err != nil {
-					return err
-				}
-				res = r3
-				return nil
-			case *github_com_AsynkronIT_gam_cluster.GrainErrorResponse:
-				return errors.New(r2.Err)
-			default:
-				return errors.New("Unknown response")
-			}
-		}()
+		res, err = fun()
 		if err == nil {
 			return res, nil
 		}
@@ -90,54 +98,57 @@ func (g *ChatServerGrain) Connect(r *ConnectRequest, options ...github_com_Asynk
 	return nil, err
 }
 
-func (g *ChatServerGrain) ConnectChan(r *ConnectRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (<-chan *ConnectResponse, <-chan error) {
+func (g *ChatServerGrain) ConnectChan(r *ConnectRequest, options ...grain.GrainCallOption) (<-chan *ConnectResponse, <-chan error) {
 	c := make(chan *ConnectResponse)
 	e := make(chan error)
 	go func() {
-		defer close(c)
-		defer close(e)
 		res, err := g.Connect(r, options...)
 		if err != nil {
 			e <- err
 		} else {
 			c <- res
 		}
+		close(c)
+		close(e)
 	}()
 	return c, e
 }
 
-func (g *ChatServerGrain) Say(r *SayRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (*Unit, error) {
-	conf := github_com_AsynkronIT_gam_cluster_grain.ApplyGrainCallOptions(options)
+func (g *ChatServerGrain) Say(r *SayRequest, options ...grain.GrainCallOption) (*Unit, error) {
+	conf := grain.ApplyGrainCallOptions(options)
+	fun := func() (*Unit, error) {
+		pid, err := cluster.Get(g.ID, "ChatServer")
+		if err != nil {
+			return nil, err
+		}
+		bytes, err := proto.Marshal(r)
+		if err != nil {
+			return nil, err
+		}
+		request := &cluster.GrainRequest{Method: "Say", MessageData: bytes}
+		response, err := pid.RequestFuture(request, conf.Timeout).Result()
+		if err != nil {
+			return nil, err
+		}
+		switch msg := response.(type) {
+		case *cluster.GrainResponse:
+			result := &Unit{}
+			err = proto.Unmarshal(msg.MessageData, result)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		case *cluster.GrainErrorResponse:
+			return nil, errors.New(msg.Err)
+		default:
+			return nil, errors.New("Unknown response")
+		}
+	}
+
 	var res *Unit
 	var err error
 	for i := 0; i < conf.RetryCount; i++ {
-		err = func() error {
-			pid := github_com_AsynkronIT_gam_cluster.Get(g.Id, "ChatServer")
-			bytes, err := proto.Marshal(r)
-			if err != nil {
-				return err
-			}
-			gr := &github_com_AsynkronIT_gam_cluster.GrainRequest{Method: "Say", MessageData: bytes}
-			r0 := pid.RequestFuture(gr, conf.Timeout)
-			r1, err := r0.Result()
-			if err != nil {
-				return err
-			}
-			switch r2 := r1.(type) {
-			case *github_com_AsynkronIT_gam_cluster.GrainResponse:
-				r3 := &Unit{}
-				err = proto.Unmarshal(r2.MessageData, r3)
-				if err != nil {
-					return err
-				}
-				res = r3
-				return nil
-			case *github_com_AsynkronIT_gam_cluster.GrainErrorResponse:
-				return errors.New(r2.Err)
-			default:
-				return errors.New("Unknown response")
-			}
-		}()
+		res, err = fun()
 		if err == nil {
 			return res, nil
 		}
@@ -145,54 +156,57 @@ func (g *ChatServerGrain) Say(r *SayRequest, options ...github_com_AsynkronIT_ga
 	return nil, err
 }
 
-func (g *ChatServerGrain) SayChan(r *SayRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (<-chan *Unit, <-chan error) {
+func (g *ChatServerGrain) SayChan(r *SayRequest, options ...grain.GrainCallOption) (<-chan *Unit, <-chan error) {
 	c := make(chan *Unit)
 	e := make(chan error)
 	go func() {
-		defer close(c)
-		defer close(e)
 		res, err := g.Say(r, options...)
 		if err != nil {
 			e <- err
 		} else {
 			c <- res
 		}
+		close(c)
+		close(e)
 	}()
 	return c, e
 }
 
-func (g *ChatServerGrain) Nick(r *NickRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (*Unit, error) {
-	conf := github_com_AsynkronIT_gam_cluster_grain.ApplyGrainCallOptions(options)
+func (g *ChatServerGrain) Nick(r *NickRequest, options ...grain.GrainCallOption) (*Unit, error) {
+	conf := grain.ApplyGrainCallOptions(options)
+	fun := func() (*Unit, error) {
+		pid, err := cluster.Get(g.ID, "ChatServer")
+		if err != nil {
+			return nil, err
+		}
+		bytes, err := proto.Marshal(r)
+		if err != nil {
+			return nil, err
+		}
+		request := &cluster.GrainRequest{Method: "Nick", MessageData: bytes}
+		response, err := pid.RequestFuture(request, conf.Timeout).Result()
+		if err != nil {
+			return nil, err
+		}
+		switch msg := response.(type) {
+		case *cluster.GrainResponse:
+			result := &Unit{}
+			err = proto.Unmarshal(msg.MessageData, result)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		case *cluster.GrainErrorResponse:
+			return nil, errors.New(msg.Err)
+		default:
+			return nil, errors.New("Unknown response")
+		}
+	}
+
 	var res *Unit
 	var err error
 	for i := 0; i < conf.RetryCount; i++ {
-		err = func() error {
-			pid := github_com_AsynkronIT_gam_cluster.Get(g.Id, "ChatServer")
-			bytes, err := proto.Marshal(r)
-			if err != nil {
-				return err
-			}
-			gr := &github_com_AsynkronIT_gam_cluster.GrainRequest{Method: "Nick", MessageData: bytes}
-			r0 := pid.RequestFuture(gr, conf.Timeout)
-			r1, err := r0.Result()
-			if err != nil {
-				return err
-			}
-			switch r2 := r1.(type) {
-			case *github_com_AsynkronIT_gam_cluster.GrainResponse:
-				r3 := &Unit{}
-				err = proto.Unmarshal(r2.MessageData, r3)
-				if err != nil {
-					return err
-				}
-				res = r3
-				return nil
-			case *github_com_AsynkronIT_gam_cluster.GrainErrorResponse:
-				return errors.New(r2.Err)
-			default:
-				return errors.New("Unknown response")
-			}
-		}()
+		res, err = fun()
 		if err == nil {
 			return res, nil
 		}
@@ -200,18 +214,18 @@ func (g *ChatServerGrain) Nick(r *NickRequest, options ...github_com_AsynkronIT_
 	return nil, err
 }
 
-func (g *ChatServerGrain) NickChan(r *NickRequest, options ...github_com_AsynkronIT_gam_cluster_grain.GrainCallOption) (<-chan *Unit, <-chan error) {
+func (g *ChatServerGrain) NickChan(r *NickRequest, options ...grain.GrainCallOption) (<-chan *Unit, <-chan error) {
 	c := make(chan *Unit)
 	e := make(chan error)
 	go func() {
-		defer close(c)
-		defer close(e)
 		res, err := g.Nick(r, options...)
 		if err != nil {
 			e <- err
 		} else {
 			c <- res
 		}
+		close(c)
+		close(e)
 	}()
 	return c, e
 }
@@ -220,10 +234,15 @@ type ChatServerActor struct {
 	inner ChatServer
 }
 
-func (a *ChatServerActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
+func (a *ChatServerActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *github_com_AsynkronIT_gam_cluster.GrainRequest:
+	case *actor.Started:
+		a.inner = xChatServerFactory()
+		id := ctx.Self().Id
+		a.inner.Init(id[6:len(id)])
+	case *cluster.GrainRequest:
 		switch msg.Method {
+
 		case "Connect":
 			req := &ConnectRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
@@ -236,12 +255,13 @@ func (a *ChatServerActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 				if err != nil {
 					log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 				}
-				resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
+				resp := &cluster.GrainResponse{MessageData: bytes}
 				ctx.Respond(resp)
 			} else {
-				resp := &github_com_AsynkronIT_gam_cluster.GrainErrorResponse{Err: err.Error()}
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 			}
+
 		case "Say":
 			req := &SayRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
@@ -254,12 +274,13 @@ func (a *ChatServerActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 				if err != nil {
 					log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 				}
-				resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
+				resp := &cluster.GrainResponse{MessageData: bytes}
 				ctx.Respond(resp)
 			} else {
-				resp := &github_com_AsynkronIT_gam_cluster.GrainErrorResponse{Err: err.Error()}
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 			}
+
 		case "Nick":
 			req := &NickRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
@@ -272,12 +293,13 @@ func (a *ChatServerActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 				if err != nil {
 					log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 				}
-				resp := &github_com_AsynkronIT_gam_cluster.GrainResponse{MessageData: bytes}
+				resp := &cluster.GrainResponse{MessageData: bytes}
 				ctx.Respond(resp)
 			} else {
-				resp := &github_com_AsynkronIT_gam_cluster.GrainErrorResponse{Err: err.Error()}
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 			}
+
 		}
 	default:
 		log.Printf("Unknown message %v", msg)
@@ -285,5 +307,32 @@ func (a *ChatServerActor) Receive(ctx github_com_AsynkronIT_gam_actor.Context) {
 }
 
 func init() {
-	github_com_AsynkronIT_gam_cluster.Register("ChatServer", github_com_AsynkronIT_gam_actor.FromProducer(func() github_com_AsynkronIT_gam_actor.Actor { return &ChatServerActor{inner: xChatServerFactory()} }))
+
+	cluster.Register("ChatServer", actor.FromProducer(func() actor.Actor {
+		return &ChatServerActor{}
+	}))
+
 }
+
+// type chatServer struct {
+//	grain.Grain
+// }
+
+// func (*chatServer) Connect(r *ConnectRequest) (*ConnectResponse, error) {
+// 	return &ConnectResponse{}, nil
+// }
+
+// func (*chatServer) Say(r *SayRequest) (*Unit, error) {
+// 	return &Unit{}, nil
+// }
+
+// func (*chatServer) Nick(r *NickRequest) (*Unit, error) {
+// 	return &Unit{}, nil
+// }
+
+// func init() {
+// 	//apply DI and setup logic
+
+// 	ChatServerFactory(func() ChatServer { return &chatServer{} })
+
+// }

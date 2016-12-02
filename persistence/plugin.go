@@ -32,9 +32,9 @@ func (mixin *Mixin) PersistReceive(message proto.Message) {
 
 	mixin.providerState.PersistEvent(mixin.Name(), mixin.eventIndex, message)
 	mixin.eventIndex++
-	mixin.context.Receive(actor.UserMessage{Message: message})
+	mixin.context.Receive( message)
 	if mixin.eventIndex%mixin.providerState.GetSnapshotInterval() == 0 {
-		mixin.context.Receive(actor.UserMessage{Message: &RequestSnapshot{}})
+		mixin.context.Receive( &RequestSnapshot{})
 	}
 }
 
@@ -54,12 +54,12 @@ func (mixin *Mixin) init(provider Provider, context actor.Context) {
 	mixin.providerState.Restart()
 	if snapshot, eventIndex, ok := mixin.providerState.GetSnapshot(mixin.Name()); ok {
 		mixin.eventIndex = eventIndex
-		context.Receive(actor.UserMessage{Message: snapshot})
+		context.Receive(snapshot)
 	}
 	mixin.providerState.GetEvents(mixin.Name(), mixin.eventIndex, func(e interface{}) {
-		context.Receive(actor.UserMessage{Message: e})
+		context.Receive( e)
 		mixin.eventIndex++
 	})
 	mixin.recovering = false
-	context.Receive(actor.UserMessage{Message: &ReplayComplete{}})
+	context.Receive( &ReplayComplete{})
 }
