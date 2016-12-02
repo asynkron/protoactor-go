@@ -15,15 +15,17 @@ func main() {
 	runtime.GC()
 
 	remoting.Start("127.0.0.1:8080")
+	var sender *actor.PID
 	props := actor.
 		FromFunc(
 			func(context actor.Context) {
-				switch context.Message().(type) {
+				switch msg := context.Message().(type) {
 				case *messages.StartRemote:
 					log.Println("Starting")
+					sender = msg.Sender
 					context.Respond(&messages.Start{})
 				case *messages.Ping:
-					context.Respond(&messages.Pong{})
+					sender.Tell(&messages.Pong{})
 				}
 			}).
 		WithMailbox(actor.NewBoundedMailbox(1000, 1000))

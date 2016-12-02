@@ -75,7 +75,9 @@ func main() {
 
 	remote := actor.NewPID("127.0.0.1:8080", "remote")
 	remote.
-		RequestFuture(&messages.StartRemote{}, 5*time.Second).
+		RequestFuture(&messages.StartRemote{
+			Sender: pid,
+		}, 5*time.Second).
 		Wait()
 
 	wg.Add(1)
@@ -85,7 +87,7 @@ func main() {
 
 	message := &messages.Ping{}
 	for i := 0; i < messageCount; i++ {
-		remote.Request(message, pid)
+		remote.Tell(message)
 	}
 
 	wg.Wait()

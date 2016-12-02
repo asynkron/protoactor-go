@@ -3,6 +3,8 @@ package messages;
 import "github.com/AsynkronIT/gam/actor/protos.proto";
 
 message Start {}
-message StartRemote {}
+message StartRemote {
+    actor.PID Sender = 1;
+}
 message Ping {}
 message Pong {}
