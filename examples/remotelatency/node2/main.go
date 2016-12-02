@@ -79,7 +79,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	runtime.GC()
 
-	remoting.Start("127.0.0.1:8080", remoting.WithBatchSize(10000))
+	remoting.Start("127.0.0.1:8080", remoting.WithEndpointWriterBatchSize(10000))
 	props := actor.
 		FromProducer(newRemoteActor()).
 		WithMailbox(actor.NewBoundedMailbox(1000, 1000))

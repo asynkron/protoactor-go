@@ -65,7 +65,7 @@ func (mailbox *endpointWriterMailbox) processMessages() {
 
 			first := sysMsg.(actor.SystemMessage)
 			mailbox.systemInvoke(first)
-		} else if userMsg, ok := mailbox.userMailbox.PopMany(batchSize); ok {
+		} else if userMsg, ok := mailbox.userMailbox.PopMany(uint64(batchSize)); ok {
 			//pack the batch in a user message
 			mailbox.userInvoke(userMsg)
 		} else {
@@ -90,7 +90,7 @@ func (mailbox *endpointWriterMailbox) processMessages() {
 func newEndpointWriterMailbox(batchSize, initialSize int) actor.MailboxProducer {
 
 	return func() actor.Mailbox {
-		userMailbox := goring.New(initialSize)
+		userMailbox := goring.New(uint64(initialSize))
 		systemMailbox := goring.New(10)
 		mailbox := endpointWriterMailbox{
 			userMailbox:     userMailbox,

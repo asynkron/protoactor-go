@@ -21,7 +21,7 @@ func main() {
 
 	messageCount := 1000000
 
-	remoting.Start("127.0.0.1:8081", remoting.WithBatchSize(10000))
+	remoting.Start("127.0.0.1:8081", remoting.WithEndpointWriterBatchSize(10000))
 
 	remote := actor.NewPID("127.0.0.1:8080", "remote")
 	remote.
