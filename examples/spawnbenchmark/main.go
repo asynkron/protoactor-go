@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"runtime/pprof"
 	"time"
 
@@ -70,6 +71,9 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GC()
+
 	start := time.Now()
 	pid := actor.Spawn(props)
 	res, _ := pid.RequestFuture(&request{
