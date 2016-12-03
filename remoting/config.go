@@ -9,8 +9,8 @@ func defaultRemoteConfig() *remotingConfig {
 		dialOptions:              []grpc.DialOption{grpc.WithInsecure()},
 		endpointWriterBatchSize:  1000,
 		endpointManagerBatchSize: 1000,
-		endpointWriterQueueSize:  2000000,
-		endpointManagerQueueSize: 2000000,
+		endpointWriterQueueSize:  1000000,
+		endpointManagerQueueSize: 1000000,
 	}
 }
 
