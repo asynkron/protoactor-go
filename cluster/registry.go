@@ -9,12 +9,12 @@ import (
 	"github.com/AsynkronIT/gam/remoting"
 )
 
-func getRandomActivator() *actor.PID {
+func getRandomActivator() string {
 	r := rand.Int()
 	members := list.Members()
 	i := r % len(members)
 	member := members[i]
-	return remoting.ActivatorForHost(member.Name)
+	return member.Name
 }
 
 //Get a PID to a virtual actor

@@ -34,7 +34,7 @@ func (state *partitionActor) Receive(context actor.Context) {
 	case *actor.Started:
 		log.Println("[CLUSTER] Partition started")
 	case *remoting.ActorPidRequest:
-		state.actorPidRequest(msg, context)
+		state.spawn(msg, context)
 	case *clusterStatusJoin:
 		state.clusterStatusJoin(msg)
 	case *clusterStatusLeave:
@@ -46,22 +46,18 @@ func (state *partitionActor) Receive(context actor.Context) {
 	}
 }
 
-func (state *partitionActor) actorPidRequest(msg *remoting.ActorPidRequest, context actor.Context) {
+func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.Context) {
 
 	pid := state.partition[msg.Name]
 	if pid == nil {
 		//get a random node
 		random := getRandomActivator()
-
-		//send request
-		//		log.Printf("[CLUSTER] Telling %v to create %v", random, msg.Name)
-		tmp, err := random.RequestFuture(msg, 5*time.Second).Result()
+		var err error
+		pid, err = remoting.Spawn(random, msg.Name, msg.Kind, 5*time.Second)
 		if err != nil {
-			log.Printf("[CLUSTER] Actor PID Request result failed %v on node %v", err, random.Host)
+			log.Printf("[CLUSTER] Partition failed to spawn '%v' of kind '%v' on host '%v'", msg.Name, msg.Kind, random)
 			return
 		}
-		typed := tmp.(*remoting.ActorPidResponse)
-		pid = typed.Pid
 		state.partition[msg.Name] = pid
 	}
 	response := &remoting.ActorPidResponse{
