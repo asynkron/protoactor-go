@@ -2,6 +2,7 @@ package remoting
 
 import (
 	"log"
+	"reflect"
 
 	"github.com/AsynkronIT/gam/actor"
 	"github.com/gogo/protobuf/proto"
@@ -27,7 +28,7 @@ func (ref *remoteActorRef) send(pid *actor.PID, message interface{}, sender *act
 		envelope, _ := serialize(msg, ref.pid, sender)
 		endpointManagerPID.Tell(envelope)
 	default:
-		log.Printf("[REMOTING] failed, trying to send non Proto %v message to %v", msg, ref.pid)
+		log.Printf("[REMOTING] failed, trying to send non Proto %s message to %v", reflect.TypeOf(msg), ref.pid)
 	}
 }
 
