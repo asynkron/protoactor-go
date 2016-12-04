@@ -10,7 +10,7 @@ func (s *server) Receive(stream Remoting_ReceiveServer) error {
 	for {
 		batch, err := stream.Recv()
 		if err != nil {
-			log.Println("[REMOTING] Endpoint reader failed to read")
+			log.Printf("[REMOTING] Endpoint reader failed to read. %v", err)
 			return err
 		}
 		for _, envelope := range batch.Envelopes {
