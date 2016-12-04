@@ -46,6 +46,7 @@ func newLocalActor(stop *sync.WaitGroup, messageCount int) actor.Producer {
 }
 
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+var blockProfile = flag.String("blockprof", "", "execute contention profiling and save results here")
 
 func main() {
 	flag.Parse()
@@ -56,6 +57,18 @@ func main() {
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
+	}
+
+	// Check for lock contention profiling
+	if *blockProfile != "" {
+		prof, err := os.Create(*blockProfile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		runtime.SetBlockProfileRate(1)
+		defer func() {
+			pprof.Lookup("block").WriteTo(prof, 0)
+		}()
 	}
 
 	runtime.GOMAXPROCS(runtime.NumCPU() * 1)
@@ -69,7 +82,7 @@ func main() {
 
 	props := actor.
 		FromProducer(newLocalActor(&wg, messageCount)).
-		WithMailbox(actor.NewBoundedMailbox(1000, 10000))
+		WithMailbox(actor.NewBoundedMailbox(1000000, 1000000))
 
 	pid := actor.Spawn(props)
 
