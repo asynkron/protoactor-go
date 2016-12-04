@@ -2,13 +2,11 @@ package remoting
 
 import (
 	"log"
-
-	"github.com/AsynkronIT/gam/remoting/messages"
 )
 
 type server struct{}
 
-func (s *server) Receive(stream messages.Remoting_ReceiveServer) error {
+func (s *server) Receive(stream Remoting_ReceiveServer) error {
 	for {
 		batch, err := stream.Recv()
 		if err != nil {

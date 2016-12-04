@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/remoting"
 )
 
 var (
@@ -32,7 +33,7 @@ func (state *partitionActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
 		log.Println("[CLUSTER] Partition started")
-	case *ActorPidRequest:
+	case *remoting.ActorPidRequest:
 		state.actorPidRequest(msg, context)
 	case *clusterStatusJoin:
 		state.clusterStatusJoin(msg)
@@ -45,7 +46,7 @@ func (state *partitionActor) Receive(context actor.Context) {
 	}
 }
 
-func (state *partitionActor) actorPidRequest(msg *ActorPidRequest, context actor.Context) {
+func (state *partitionActor) actorPidRequest(msg *remoting.ActorPidRequest, context actor.Context) {
 
 	pid := state.partition[msg.Name]
 	if pid == nil {
@@ -59,11 +60,11 @@ func (state *partitionActor) actorPidRequest(msg *ActorPidRequest, context actor
 			log.Printf("[CLUSTER] Actor PID Request result failed %v on node %v", err, random.Host)
 			return
 		}
-		typed := tmp.(*ActorPidResponse)
+		typed := tmp.(*remoting.ActorPidResponse)
 		pid = typed.Pid
 		state.partition[msg.Name] = pid
 	}
-	response := &ActorPidResponse{
+	response := &remoting.ActorPidResponse{
 		Pid: pid,
 	}
 	context.Respond(response)

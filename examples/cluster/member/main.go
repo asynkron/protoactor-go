@@ -32,7 +32,7 @@ func sync() {
 	}
 	log.Printf("Message from SayHello: %v", res.Message)
 	log.Println("Starting")
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 10000; i++ {
 		x := shared.GetHelloGrain(fmt.Sprintf("hello%v", i))
 		x.SayHello(&shared.HelloRequest{Name: "GAM"})
 	}

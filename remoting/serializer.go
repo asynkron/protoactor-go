@@ -5,19 +5,18 @@ import (
 	"reflect"
 
 	"github.com/AsynkronIT/gam/actor"
-	"github.com/AsynkronIT/gam/remoting/messages"
 	proto "github.com/gogo/protobuf/proto"
 	//proto "github.com/golang/protobuf/proto"
 )
 
-func serialize(message proto.Message, target *actor.PID, sender *actor.PID) (*messages.MessageEnvelope, error) {
+func serialize(message proto.Message, target *actor.PID, sender *actor.PID) (*MessageEnvelope, error) {
 	typeName := proto.MessageName(message)
 	ensureGoGo(typeName)
 	bytes, err := proto.Marshal(message)
 	if err != nil {
 		return nil, err
 	}
-	envelope := &messages.MessageEnvelope{
+	envelope := &MessageEnvelope{
 		TypeName:    typeName,
 		MessageData: bytes,
 		Target:      target,
@@ -27,7 +26,7 @@ func serialize(message proto.Message, target *actor.PID, sender *actor.PID) (*me
 	return envelope, nil
 }
 
-func deserialize(message *messages.MessageEnvelope) proto.Message {
+func deserialize(message *MessageEnvelope) proto.Message {
 
 	ensureGoGo(message.TypeName)
 	t1 := proto.MessageType(message.TypeName)

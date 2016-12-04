@@ -1,5 +1,5 @@
 syntax = "proto3";
-package messages;
+package remoting;
 import "github.com/AsynkronIT/gam/actor/protos.proto";
 
 message MessageEnvelope {
@@ -7,6 +7,15 @@ message MessageEnvelope {
   bytes message_data = 2;
   actor.PID target = 3;
   actor.PID sender = 4;
+}
+
+message ActorPidRequest {
+    string name = 1;
+    string kind = 2;
+}
+
+message ActorPidResponse {
+    actor.PID pid = 1;
 }
 
 message MessageBatch {

@@ -2,18 +2,19 @@ package cluster
 
 import (
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/AsynkronIT/gam/actor"
+	"github.com/AsynkronIT/gam/remoting"
 )
 
-var (
-	nameLookup = make(map[string]actor.Props)
-)
-
-//Register a known actor props by name
-func Register(kind string, props actor.Props) {
-	nameLookup[kind] = props
+func getRandomActivator() *actor.PID {
+	r := rand.Int()
+	members := list.Members()
+	i := r % len(members)
+	member := members[i]
+	return remoting.ActivatorForHost(member.Name)
 }
 
 //Get a PID to a virtual actor
@@ -25,7 +26,7 @@ func Get(name string, kind string) (*actor.PID, error) {
 		remote := partitionForHost(host)
 
 		//request the pid of the "id" from the correct partition
-		req := &ActorPidRequest{
+		req := &remoting.ActorPidRequest{
 			Name: name,
 			Kind: kind,
 		}
@@ -38,7 +39,7 @@ func Get(name string, kind string) (*actor.PID, error) {
 		}
 
 		//unwrap the result
-		typed, ok := res.(*ActorPidResponse)
+		typed, ok := res.(*remoting.ActorPidResponse)
 		if !ok {
 			log.Fatalf("[CLUSTER] ActorPidRequest for '%v' returned incorrect response, expected ActorPidResponse", name)
 		}

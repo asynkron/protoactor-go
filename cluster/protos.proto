@@ -2,14 +2,7 @@ syntax = "proto3";
 package cluster;
 import "github.com/AsynkronIT/gam/actor/protos.proto";
 
-message ActorPidRequest {
-    string name = 1;
-    string kind = 2;
-}
 
-message ActorPidResponse {
-    actor.PID pid = 1;
-}
 
 message TakeOwnership {
     actor.PID pid = 1;

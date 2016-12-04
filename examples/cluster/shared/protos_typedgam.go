@@ -16,15 +16,22 @@ It has these top-level messages:
 */
 package shared
 
-import errors "errors"
-import log "log"
-import actor "github.com/AsynkronIT/gam/actor"
-import cluster "github.com/AsynkronIT/gam/cluster"
-import grain "github.com/AsynkronIT/gam/cluster/grain"
+import (
+	errors "errors"
+	log "log"
 
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
+	actor "github.com/AsynkronIT/gam/actor"
+	cluster "github.com/AsynkronIT/gam/cluster"
+	"github.com/AsynkronIT/gam/remoting"
+
+	grain "github.com/AsynkronIT/gam/cluster/grain"
+
+	proto "github.com/gogo/protobuf/proto"
+
+	fmt "fmt"
+
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -227,7 +234,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 
 func init() {
 
-	cluster.Register("Hello", actor.FromProducer(func() actor.Actor {
+	remoting.Register("Hello", actor.FromProducer(func() actor.Actor {
 		return &HelloActor{}
 	}))
 

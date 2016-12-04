@@ -1,30 +1,27 @@
-package cluster
+package remoting
 
 import (
 	"log"
-	"math/rand"
 
 	"github.com/AsynkronIT/gam/actor"
 )
 
 var (
+	nameLookup   = make(map[string]actor.Props)
 	activatorPid = actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
 )
+
+//Register a known actor props by name
+func Register(kind string, props actor.Props) {
+	nameLookup[kind] = props
+}
 
 type activator struct {
 }
 
-func activatorForHost(host string) *actor.PID {
+func ActivatorForHost(host string) *actor.PID {
 	pid := actor.NewPID(host, "activator")
 	return pid
-}
-
-func getRandomActivator() *actor.PID {
-	r := rand.Int()
-	members := list.Members()
-	i := r % len(members)
-	member := members[i]
-	return activatorForHost(member.Name)
 }
 
 func newActivatorActor() actor.Producer {
@@ -39,7 +36,7 @@ func (*activator) Receive(context actor.Context) {
 		log.Println("[CLUSTER] Activator started")
 	case *ActorPidRequest:
 		props := nameLookup[msg.Kind]
-		pid := actor.SpawnNamed(props, "Grain$"+msg.Name)
+		pid := actor.SpawnNamed(props, "Remote$"+msg.Name)
 		response := &ActorPidResponse{
 			Pid: pid,
 		}

@@ -5,7 +5,6 @@ import (
 	"net"
 
 	"github.com/AsynkronIT/gam/actor"
-	"github.com/AsynkronIT/gam/remoting/messages"
 	"google.golang.org/grpc"
 )
 
@@ -31,7 +30,7 @@ func Start(host string, options ...RemotingOption) {
 	endpointManagerPID = actor.Spawn(props)
 
 	s := grpc.NewServer(config.serverOptions...)
-	messages.RegisterRemotingServer(s, &server{})
+	RegisterRemotingServer(s, &server{})
 	log.Printf("[REMOTING] Starting GAM server on %v.", host)
 	go s.Serve(lis)
 }
