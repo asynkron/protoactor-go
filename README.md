@@ -1,3 +1,7 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/AsynkronIT/gam)](https://goreportcard.com/report/github.com/AsynkronIT/gam) 
+[![GoDoc](https://godoc.org/github.com/AsynkronIT/gam?status.svg)](https://godoc.org/github.com/AsynkronIT/gam)
+
+
 # Go Actor Model
 
 GAM is a MVP Actor Model framework for Go.
