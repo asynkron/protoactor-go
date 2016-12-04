@@ -1,0 +1,8 @@
+syntax = "proto3";
+package messages;
+import "github.com/AsynkronIT/gam/actor/protos.proto";
+
+message HelloRequest {}
+message HelloResponse {
+    string Message=1;
+}

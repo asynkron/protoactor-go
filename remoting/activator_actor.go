@@ -1,7 +1,9 @@
 package remoting
 
 import (
+	"errors"
 	"log"
+	"time"
 
 	"github.com/AsynkronIT/gam/actor"
 )
@@ -22,6 +24,23 @@ type activator struct {
 func ActivatorForHost(host string) *actor.PID {
 	pid := actor.NewPID(host, "activator")
 	return pid
+}
+
+func RemoteActivate(host string, name string, kind string, timeout time.Duration) (*actor.PID, error) {
+	activator := ActivatorForHost(host)
+	res, err := activator.RequestFuture(&ActorPidRequest{
+		Name: name,
+		Kind: kind,
+	}, timeout).Result()
+	if err != nil {
+		return nil, errors.New("[REMOTING] Remote activating timed out")
+	}
+	switch msg := res.(type) {
+	case *ActorPidResponse:
+		return msg.Pid, nil
+	default:
+		return nil, errors.New("[REMOTING] Unknown response when remote activating")
+	}
 }
 
 func newActivatorActor() actor.Producer {
