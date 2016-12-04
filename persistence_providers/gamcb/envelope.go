@@ -1,4 +1,4 @@
-package couchbase_persistence
+package gamcb
 
 import (
 	"encoding/json"

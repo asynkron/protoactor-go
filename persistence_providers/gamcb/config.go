@@ -1,4 +1,4 @@
-package couchbase_persistence
+package gamcb
 
 type couchbaseConfig struct {
 	async            bool

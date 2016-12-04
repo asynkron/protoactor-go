@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	"github.com/AsynkronIT/gam/actor"
-	"github.com/AsynkronIT/gam/couchbase_persistence"
 	"github.com/AsynkronIT/gam/examples/persistence/messages"
 	"github.com/AsynkronIT/gam/persistence"
+	"github.com/AsynkronIT/gam/persistence_providers/gamcb"
 	"github.com/AsynkronIT/goconsole"
 )
 
@@ -55,9 +55,9 @@ func newPersistentActor() actor.Actor {
 
 func main() {
 
-	cb := couchbase_persistence.New("labb", "couchbase://localhost",
-		couchbase_persistence.WithAsync(),
-		couchbase_persistence.WithSnapshot(100))
+	cb := gamcb.New("labb", "couchbase://localhost",
+		gamcb.WithAsync(),
+		gamcb.WithSnapshot(100))
 
 	props := actor.
 		FromProducer(newPersistentActor).
