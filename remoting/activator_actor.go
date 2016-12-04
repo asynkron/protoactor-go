@@ -26,7 +26,7 @@ func ActivatorForHost(host string) *actor.PID {
 	return pid
 }
 
-func RemoteActivate(host string, name string, kind string, timeout time.Duration) (*actor.PID, error) {
+func Spawn(host string, name string, kind string, timeout time.Duration) (*actor.PID, error) {
 	activator := ActivatorForHost(host)
 	res, err := activator.RequestFuture(&ActorPidRequest{
 		Name: name,
