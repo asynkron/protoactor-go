@@ -8,7 +8,6 @@ import (
 )
 
 type unboundedMailbox struct {
-	repeat          int
 	throughput      int
 	userMailbox     *goring.Queue
 	systemMailbox   *goring.Queue
@@ -55,7 +54,7 @@ func (mailbox *unboundedMailbox) processMessages() {
 				sys, _ := sysMsg.(SystemMessage)
 				mailbox.systemInvoke(sys)
 			} else if userMsg, ok := mailbox.userMailbox.Pop(); ok {
-				mailbox.userInvoke(userMsg.(interface{}))
+				mailbox.userInvoke(userMsg)
 			} else {
 				done = true
 				break
@@ -81,7 +80,6 @@ func NewUnboundedMailbox(throughput int) MailboxProducer {
 		userMailbox := goring.New(10)
 		systemMailbox := goring.New(10)
 		mailbox := unboundedMailbox{
-			repeat:          1,
 			throughput:      throughput,
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
