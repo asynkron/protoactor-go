@@ -93,7 +93,7 @@ func main() {
 
 	clientProps := actor.
 		FromProducer(newLocalActor(&wg, messageCount)).
-		WithMailbox(actor.NewUnboundedMailbox(100))
+		WithMailbox(actor.NewUnboundedMailbox(1000))
 
 	echoProps := actor.
 		FromFunc(
@@ -103,11 +103,11 @@ func main() {
 					msg.replyTo.Tell(msg)
 				}
 			}).
-		WithMailbox(actor.NewUnboundedMailbox(100))
+		WithMailbox(actor.NewUnboundedMailbox(1000))
 
 	clients := make([]*actor.PID, 0)
 	echos := make([]*actor.PID, 0)
-	clientCount := runtime.NumCPU()
+	clientCount := runtime.NumCPU() * 2
 	for i := 0; i < clientCount; i++ {
 		client := actor.Spawn(clientProps)
 		echo := actor.Spawn(echoProps)

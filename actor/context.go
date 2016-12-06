@@ -3,6 +3,7 @@ package actor
 import (
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/AsynkronIT/gam/actor/cheapset"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
@@ -274,7 +275,7 @@ func (cell *actorCell) stopped() {
 func (cell *actorCell) invokeUserMessage(md interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[ACTOR] Recovering from: %v", r)
+			log.Printf("[ACTOR] '%v' Recovering from: %v", cell.debugString(), r)
 			failure := &Failure{Reason: r, Who: cell.self}
 			if cell.parent == nil {
 				handleRootFailure(failure, defaultSupervisionStrategy)
@@ -351,6 +352,10 @@ func (cell *actorCell) SpawnNamed(props Props, name string) *PID {
 	cell.children.Add(pid)
 	cell.Watch(pid)
 	return pid
+}
+
+func (cell *actorCell) debugString() string {
+	return fmt.Sprintf("%v/%v:%v", cell.self.Host, cell.self.Id, reflect.TypeOf(cell.actor))
 }
 
 func handleRootFailure(msg *Failure, supervisor SupervisionStrategy) {

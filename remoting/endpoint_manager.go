@@ -32,7 +32,7 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 			props := actor.
 				FromProducer(newEndpointWriter(msg.Target.Host, state.config)).
 				WithMailbox(newEndpointWriterMailbox(state.config.endpointWriterBatchSize, state.config.endpointWriterQueueSize))
-			pid = actor.Spawn(props)
+			pid = ctx.Spawn(props)
 			state.connections[msg.Target.Host] = pid
 		}
 		pid.Tell(msg)

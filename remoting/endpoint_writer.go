@@ -25,12 +25,18 @@ type endpointWriter struct {
 }
 
 func (state *endpointWriter) initialize() {
+	err := state.initializeInternal()
+	if err != nil {
+		log.Printf("[REMOTING] EndpointWriter failed to connect to %v, err: %v", state.host, err)
+	}
+}
+
+func (state *endpointWriter) initializeInternal() error {
 	log.Println("[REMOTING] Started EndpointWriter for host", state.host)
 	log.Println("[REMOTING] Connecting to host", state.host)
 	conn, err := grpc.Dial(state.host, state.config.dialOptions...)
-
 	if err != nil {
-		log.Fatalf("[REMOTING] Failed to connect to host %v: %v", state.host, err)
+		return err
 	}
 	log.Println("[REMOTING] Connected to host", state.host)
 	state.conn = conn
@@ -38,10 +44,11 @@ func (state *endpointWriter) initialize() {
 	log.Println("[REMOTING] Getting stream from host", state.host)
 	stream, err := c.Receive(context.Background(), state.config.callOptions...)
 	if err != nil {
-		log.Fatalf("[REMOTING] Failed to get stream from host %v: %v", state.host, err)
+		return err
 	}
 	log.Println("[REMOTING] Got stream from host", state.host)
 	state.stream = stream
+	return nil
 }
 
 func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context) {
