@@ -52,7 +52,7 @@ func newActivatorActor() actor.Producer {
 func (*activator) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Println("[CLUSTER] Activator started")
+		log.Println("[REMOTING] Activator started")
 	case *ActorPidRequest:
 		props := nameLookup[msg.Kind]
 		pid := actor.SpawnNamed(props, "Remote$"+msg.Name)
