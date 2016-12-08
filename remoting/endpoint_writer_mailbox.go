@@ -23,9 +23,10 @@ type endpointWriterMailbox struct {
 	systemMailbox   *goring.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
-	userInvoke      func(interface{})
-	systemInvoke    func(actor.SystemMessage)
+	userInvoke      actor.ReceiveUserMessage
+	systemInvoke    actor.ReceiveSystemMessage
 	batchSize       int
+	dispatcher      actor.Dispatcher
 }
 
 func (mailbox *endpointWriterMailbox) PostUserMessage(message interface{}) {
@@ -42,7 +43,7 @@ func (mailbox *endpointWriterMailbox) PostSystemMessage(message actor.SystemMess
 func (mailbox *endpointWriterMailbox) schedule() {
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
 	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, mailboxIdle, mailboxRunning) {
-		go mailbox.processMessages()
+		mailbox.dispatcher.Dispatch(mailbox.processMessages)
 	}
 }
 
@@ -103,7 +104,8 @@ func newEndpointWriterMailbox(batchSize, initialSize int) actor.MailboxProducer 
 	}
 }
 
-func (mailbox *endpointWriterMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(actor.SystemMessage)) {
+func (mailbox *endpointWriterMailbox) RegisterHandlers(userInvoke actor.ReceiveUserMessage, systemInvoke actor.ReceiveSystemMessage, dispatcher actor.Dispatcher) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
+	mailbox.dispatcher = dispatcher
 }

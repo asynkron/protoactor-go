@@ -13,8 +13,9 @@ type unboundedMailbox struct {
 	systemMailbox   *goring.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
-	userInvoke      func(interface{})
-	systemInvoke    func(SystemMessage)
+	userInvoke      ReceiveUserMessage
+	systemInvoke    ReceiveSystemMessage
+	dispatcher      Dispatcher
 }
 
 func (mailbox *unboundedMailbox) PostUserMessage(message interface{}) {
@@ -30,7 +31,7 @@ func (mailbox *unboundedMailbox) PostSystemMessage(message SystemMessage) {
 func (mailbox *unboundedMailbox) schedule() {
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
 	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, mailboxIdle, mailboxRunning) {
-		go mailbox.processMessages()
+		mailbox.dispatcher.Dispatch(mailbox.processMessages)
 	}
 }
 
@@ -90,7 +91,8 @@ func NewUnboundedMailbox(throughput int) MailboxProducer {
 	}
 }
 
-func (mailbox *unboundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
+func (mailbox *unboundedMailbox) RegisterHandlers(userInvoke ReceiveUserMessage, systemInvoke ReceiveSystemMessage, dispatcher Dispatcher) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
+	mailbox.dispatcher = dispatcher
 }

@@ -7,8 +7,15 @@ type Props struct {
 	supervisionStrategy SupervisionStrategy
 	routerConfig        RouterConfig
 	receivePluins       []Receive
+	dispatcher          Dispatcher
 }
 
+func (props Props) Dispatcher() Dispatcher {
+	if props.dispatcher == nil {
+		return defaultDispatcher
+	}
+	return props.dispatcher
+}
 func (props Props) RouterConfig() RouterConfig {
 	return props.routerConfig
 }
@@ -50,11 +57,14 @@ func (props Props) WithSupervisor(supervisor SupervisionStrategy) Props {
 }
 
 func (props Props) WithPoolRouter(routerConfig PoolRouterConfig) Props {
-	if props.routerConfig != nil {
-		panic("The props already have a router")
-	}
 	//pass by value, we only modify the copy
 	props.routerConfig = routerConfig
+	return props
+}
+
+func (props Props) WithDispatcher(dispatcher Dispatcher) Props {
+	//pass by value, we only modify the copy
+	props.dispatcher = dispatcher
 	return props
 }
 

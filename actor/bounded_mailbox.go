@@ -18,8 +18,9 @@ type boundedMailbox struct {
 	systemMailbox   *queue.RingBuffer
 	schedulerStatus int32
 	hasMoreMessages int32
-	userInvoke      func(interface{})
-	systemInvoke    func(SystemMessage)
+	userInvoke      ReceiveUserMessage
+	systemInvoke    ReceiveSystemMessage
+	dispatcher      Dispatcher
 }
 
 func (mailbox *boundedMailbox) PostUserMessage(message interface{}) {
@@ -35,7 +36,7 @@ func (mailbox *boundedMailbox) PostSystemMessage(message SystemMessage) {
 func (mailbox *boundedMailbox) schedule() {
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
 	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, mailboxIdle, mailboxRunning) {
-		go mailbox.processMessages()
+		mailbox.dispatcher.Dispatch(mailbox.processMessages)
 	}
 }
 
@@ -96,7 +97,8 @@ func NewBoundedMailbox(throughput int, size int) MailboxProducer {
 	}
 }
 
-func (mailbox *boundedMailbox) RegisterHandlers(userInvoke func(interface{}), systemInvoke func(SystemMessage)) {
+func (mailbox *boundedMailbox) RegisterHandlers(userInvoke ReceiveUserMessage, systemInvoke ReceiveSystemMessage, dispatcher Dispatcher) {
 	mailbox.userInvoke = userInvoke
 	mailbox.systemInvoke = systemInvoke
+	mailbox.dispatcher = dispatcher
 }
