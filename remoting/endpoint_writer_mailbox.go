@@ -59,7 +59,6 @@ func (mailbox *endpointWriterMailbox) processMessages() {
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages)
 	batchSize := mailbox.batchSize
 	done := false
-
 	for !done {
 		if sysMsg, ok := mailbox.systemMailbox.Pop(); ok {
 

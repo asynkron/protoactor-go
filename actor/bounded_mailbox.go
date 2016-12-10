@@ -4,15 +4,13 @@ import (
 	"runtime"
 	"sync/atomic"
 
+	"github.com/AsynkronIT/gam/actor/lfqueue"
 	"github.com/Workiva/go-datastructures/queue"
 )
 
-
-
 type boundedMailbox struct {
-	throughput      int
 	userMailbox     *queue.RingBuffer
-	systemMailbox   *queue.RingBuffer
+	systemMailbox   *lfqueue.LockfreeQueue
 	schedulerStatus int32
 	hasMoreMessages int32
 	invoker         MessageInvoker
@@ -25,7 +23,7 @@ func (mailbox *boundedMailbox) PostUserMessage(message interface{}) {
 }
 
 func (mailbox *boundedMailbox) PostSystemMessage(message SystemMessage) {
-	mailbox.systemMailbox.Put(message)
+	mailbox.systemMailbox.Push(message)
 	mailbox.schedule()
 }
 
@@ -47,13 +45,12 @@ func (mailbox *boundedMailbox) Resume() {
 func (mailbox *boundedMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages)
-
+	t := mailbox.dispatcher.Throughput()
 	done := false
 	for !done {
 		//process x messages in sequence, then exit
-		for i := 0; i < mailbox.throughput; i++ {
-			if mailbox.systemMailbox.Len() > 0 {
-				sysMsg, _ := mailbox.systemMailbox.Get()
+		for i := 0; i < t; i++ {
+			if sysMsg := mailbox.systemMailbox.Pop(); sysMsg != nil {
 				sys, _ := sysMsg.(SystemMessage)
 				mailbox.invoker.InvokeSystemMessage(sys)
 			} else if mailbox.userMailbox.Len() > 0 {
@@ -78,12 +75,11 @@ func (mailbox *boundedMailbox) processMessages() {
 
 }
 
-func NewBoundedMailbox(throughput int, size int) MailboxProducer {
+func NewBoundedMailbox(size int) MailboxProducer {
 	return func() Mailbox {
 		userMailbox := queue.NewRingBuffer(uint64(size))
-		systemMailbox := queue.NewRingBuffer(100)
+		systemMailbox := lfqueue.NewLockfreeQueue()
 		mailbox := boundedMailbox{
-			throughput:      throughput,
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
 			hasMoreMessages: mailboxHasNoMessages,

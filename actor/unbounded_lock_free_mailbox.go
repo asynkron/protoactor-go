@@ -8,7 +8,6 @@ import (
 )
 
 type unboundedLockfreeMailbox struct {
-	throughput      int
 	userMailbox     *lfqueue.LockfreeQueue
 	systemMailbox   *lfqueue.LockfreeQueue
 	schedulerStatus int32
@@ -45,11 +44,11 @@ func (mailbox *unboundedLockfreeMailbox) Resume() {
 func (mailbox *unboundedLockfreeMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages)
-
+	t := mailbox.dispatcher.Throughput()
 	done := false
 	for !done {
 		//process x messages in sequence, then exit
-		for i := 0; i < mailbox.throughput; i++ {
+		for i := 0; i < t; i++ {
 			if sysMsg := mailbox.systemMailbox.Pop(); sysMsg != nil {
 				sys, _ := sysMsg.(SystemMessage)
 				mailbox.invoker.InvokeSystemMessage(sys)
@@ -75,12 +74,11 @@ func (mailbox *unboundedLockfreeMailbox) processMessages() {
 }
 
 //NewUnboundedLockfreeMailbox creates an unbounded mailbox
-func NewUnboundedLockfreeMailbox(throughput int) MailboxProducer {
+func NewUnboundedLockfreeMailbox() MailboxProducer {
 	return func() Mailbox {
 		userMailbox := lfqueue.NewLockfreeQueue()
 		systemMailbox := lfqueue.NewLockfreeQueue()
 		mailbox := unboundedLockfreeMailbox{
-			throughput:      throughput,
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
 			hasMoreMessages: mailboxHasNoMessages,

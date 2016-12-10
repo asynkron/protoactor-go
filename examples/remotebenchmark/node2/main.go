@@ -28,7 +28,7 @@ func main() {
 					sender.Tell(&messages.Pong{})
 				}
 			}).
-		WithMailbox(actor.NewBoundedMailbox(1000000, 1000000))
+		WithMailbox(actor.NewBoundedMailbox(1000000))
 
 	actor.SpawnNamed(props, "remote")
 

@@ -33,7 +33,7 @@ func (props Props) Supervisor() SupervisionStrategy {
 
 func (props Props) ProduceMailbox() Mailbox {
 	if props.mailboxProducer == nil {
-		return NewUnboundedMailbox(100)()
+		return NewUnboundedMailbox()()
 	}
 	return props.mailboxProducer()
 }

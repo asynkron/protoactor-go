@@ -4,13 +4,13 @@ import (
 	"runtime"
 	"sync/atomic"
 
+	"github.com/AsynkronIT/gam/actor/lfqueue"
 	"github.com/AsynkronIT/goring"
 )
 
 type unboundedMailbox struct {
-	throughput      int
 	userMailbox     *goring.Queue
-	systemMailbox   *goring.Queue
+	systemMailbox   *lfqueue.LockfreeQueue
 	schedulerStatus int32
 	hasMoreMessages int32
 	invoker         MessageInvoker
@@ -45,12 +45,13 @@ func (mailbox *unboundedMailbox) Resume() {
 func (mailbox *unboundedMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages)
-
+	t := mailbox.dispatcher.Throughput()
 	done := false
 	for !done {
 		//process x messages in sequence, then exit
-		for i := 0; i < mailbox.throughput; i++ {
-			if sysMsg, ok := mailbox.systemMailbox.Pop(); ok {
+		for i := 0; i < t; i++ {
+
+			if sysMsg := mailbox.systemMailbox.Pop(); sysMsg != nil {
 				sys, _ := sysMsg.(SystemMessage)
 				mailbox.invoker.InvokeSystemMessage(sys)
 			} else if userMsg, ok := mailbox.userMailbox.Pop(); ok {
@@ -75,12 +76,11 @@ func (mailbox *unboundedMailbox) processMessages() {
 }
 
 //NewUnboundedMailbox creates an unbounded mailbox
-func NewUnboundedMailbox(throughput int) MailboxProducer {
+func NewUnboundedMailbox() MailboxProducer {
 	return func() Mailbox {
 		userMailbox := goring.New(10)
-		systemMailbox := goring.New(10)
+		systemMailbox := lfqueue.NewLockfreeQueue()
 		mailbox := unboundedMailbox{
-			throughput:      throughput,
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
 			hasMoreMessages: mailboxHasNoMessages,
