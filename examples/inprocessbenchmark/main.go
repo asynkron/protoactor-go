@@ -103,7 +103,7 @@ func main() {
 					msg.replyTo.Tell(msg)
 				}
 			}).
-		WithMailbox(actor.NewUnboundedMailbox(1000))
+		WithMailbox(actor.NewUnboundedMailbox(100000))
 
 	clients := make([]*actor.PID, 0)
 	echos := make([]*actor.PID, 0)

@@ -9,6 +9,16 @@ import (
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 )
 
+type Request struct {
+	Message interface{}
+	Sender  *PID
+}
+
+type MessageInvoker interface {
+	InvokeSystemMessage(SystemMessage)
+	InvokeUserMessage(interface{})
+}
+
 type Context interface {
 	//Subscribes to ???
 	Watch(*PID)
@@ -158,7 +168,7 @@ func (cell *actorCell) incarnateActor() {
 	cell.Become(actor.Receive)
 }
 
-func (cell *actorCell) invokeSystemMessage(message SystemMessage) {
+func (cell *actorCell) InvokeSystemMessage(message SystemMessage) {
 	switch msg := message.(interface{}).(type) {
 	default:
 		fmt.Printf("Unknown system message %T", msg)
@@ -186,7 +196,7 @@ func (cell *actorCell) invokeSystemMessage(message SystemMessage) {
 
 func (cell *actorCell) handleStop(msg *Stop) {
 	cell.stopping = true
-	cell.invokeUserMessage(&Stopping{})
+	cell.InvokeUserMessage(&Stopping{})
 	if cell.children != nil {
 		for _, child := range cell.children.Values() {
 			child.(*PID).Stop()
@@ -225,7 +235,7 @@ func (cell *actorCell) handleFailure(msg *Failure) {
 
 func (cell *actorCell) handleRestart(msg *Restart) {
 	cell.stopping = false
-	cell.invokeUserMessage(&Restarting{})
+	cell.InvokeUserMessage(&Restarting{})
 	if cell.children != nil {
 		for _, child := range cell.children.Values() {
 			child.(*PID).Stop()
@@ -252,18 +262,18 @@ func (cell *actorCell) tryRestartOrTerminate() {
 
 func (cell *actorCell) restart() {
 	cell.incarnateActor()
-	cell.invokeUserMessage(&Started{})
+	cell.InvokeUserMessage(&Started{})
 	if cell.stash != nil {
 		for !cell.stash.Empty() {
 			msg, _ := cell.stash.Pop()
-			cell.invokeUserMessage(msg)
+			cell.InvokeUserMessage(msg)
 		}
 	}
 }
 
 func (cell *actorCell) stopped() {
 	ProcessRegistry.remove(cell.self)
-	cell.invokeUserMessage(&Stopped{})
+	cell.InvokeUserMessage(&Stopped{})
 	otherStopped := &Terminated{Who: cell.self}
 	if cell.watchers != nil {
 		for _, watcher := range cell.watchers.Values() {
@@ -272,7 +282,7 @@ func (cell *actorCell) stopped() {
 	}
 }
 
-func (cell *actorCell) invokeUserMessage(md interface{}) {
+func (cell *actorCell) InvokeUserMessage(md interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[ACTOR] '%v' Recovering from: %v", cell.debugString(), r)

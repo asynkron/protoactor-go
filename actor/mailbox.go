@@ -10,7 +10,7 @@ type Mailbox interface {
 	PostSystemMessage(message SystemMessage)
 	Suspend()
 	Resume()
-	RegisterHandlers(userInvoke ReceiveUserMessage, systemInvoke ReceiveSystemMessage, dispatcher Dispatcher)
+	RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher)
 }
 
 const (

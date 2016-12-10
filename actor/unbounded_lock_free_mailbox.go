@@ -13,8 +13,7 @@ type unboundedLockfreeMailbox struct {
 	systemMailbox   *lfqueue.LockfreeQueue
 	schedulerStatus int32
 	hasMoreMessages int32
-	userInvoke      ReceiveUserMessage
-	systemInvoke    ReceiveSystemMessage
+	invoker         MessageInvoker
 	dispatcher      Dispatcher
 }
 
@@ -31,7 +30,7 @@ func (mailbox *unboundedLockfreeMailbox) PostSystemMessage(message SystemMessage
 func (mailbox *unboundedLockfreeMailbox) schedule() {
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
 	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, mailboxIdle, mailboxRunning) {
-		mailbox.dispatcher.Dispatch(mailbox.processMessages)
+		mailbox.dispatcher.Schedule(mailbox.processMessages)
 	}
 }
 
@@ -53,9 +52,9 @@ func (mailbox *unboundedLockfreeMailbox) processMessages() {
 		for i := 0; i < mailbox.throughput; i++ {
 			if sysMsg := mailbox.systemMailbox.Pop(); sysMsg != nil {
 				sys, _ := sysMsg.(SystemMessage)
-				mailbox.systemInvoke(sys)
+				mailbox.invoker.InvokeSystemMessage(sys)
 			} else if userMsg := mailbox.userMailbox.Pop(); userMsg != nil {
-				mailbox.userInvoke(userMsg)
+				mailbox.invoker.InvokeUserMessage(userMsg)
 			} else {
 				done = true
 				break
@@ -91,8 +90,7 @@ func NewUnboundedLockfreeMailbox(throughput int) MailboxProducer {
 	}
 }
 
-func (mailbox *unboundedLockfreeMailbox) RegisterHandlers(userInvoke ReceiveUserMessage, systemInvoke ReceiveSystemMessage, dispatcher Dispatcher) {
-	mailbox.userInvoke = userInvoke
-	mailbox.systemInvoke = systemInvoke
+func (mailbox *unboundedLockfreeMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
+	mailbox.invoker = invoker
 	mailbox.dispatcher = dispatcher
 }

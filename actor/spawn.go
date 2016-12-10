@@ -24,9 +24,9 @@ func spawn(id string, props Props, parent *PID) *PID {
 	pid, new := ProcessRegistry.add(ref, id)
 
 	if new {
-		mailbox.RegisterHandlers(cell.invokeUserMessage, cell.invokeSystemMessage, props.Dispatcher())
+		mailbox.RegisterHandlers(cell, props.Dispatcher())
 		cell.self = pid
-		cell.invokeUserMessage(&Started{})
+		cell.InvokeUserMessage(&Started{})
 	}
 
 	return pid

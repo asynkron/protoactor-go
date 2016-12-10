@@ -23,8 +23,7 @@ type endpointWriterMailbox struct {
 	systemMailbox   *goring.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
-	userInvoke      actor.ReceiveUserMessage
-	systemInvoke    actor.ReceiveSystemMessage
+	invoker         actor.MessageInvoker
 	batchSize       int
 	dispatcher      actor.Dispatcher
 }
@@ -43,7 +42,7 @@ func (mailbox *endpointWriterMailbox) PostSystemMessage(message actor.SystemMess
 func (mailbox *endpointWriterMailbox) schedule() {
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
 	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, mailboxIdle, mailboxRunning) {
-		mailbox.dispatcher.Dispatch(mailbox.processMessages)
+		mailbox.dispatcher.Schedule(mailbox.processMessages)
 	}
 }
 
@@ -64,11 +63,10 @@ func (mailbox *endpointWriterMailbox) processMessages() {
 	for !done {
 		if sysMsg, ok := mailbox.systemMailbox.Pop(); ok {
 
-			first := sysMsg.(actor.SystemMessage)
-			mailbox.systemInvoke(first)
+			sys := sysMsg.(actor.SystemMessage)
+			mailbox.invoker.InvokeSystemMessage(sys)
 		} else if userMsg, ok := mailbox.userMailbox.PopMany(int64(batchSize)); ok {
-			//pack the batch in a user message
-			mailbox.userInvoke(userMsg)
+			mailbox.invoker.InvokeUserMessage(userMsg)
 		} else {
 			done = true
 			break
@@ -104,8 +102,7 @@ func newEndpointWriterMailbox(batchSize, initialSize int) actor.MailboxProducer 
 	}
 }
 
-func (mailbox *endpointWriterMailbox) RegisterHandlers(userInvoke actor.ReceiveUserMessage, systemInvoke actor.ReceiveSystemMessage, dispatcher actor.Dispatcher) {
-	mailbox.userInvoke = userInvoke
-	mailbox.systemInvoke = systemInvoke
+func (mailbox *endpointWriterMailbox) RegisterHandlers(invoker actor.MessageInvoker, dispatcher actor.Dispatcher) {
+	mailbox.invoker = invoker
 	mailbox.dispatcher = dispatcher
 }

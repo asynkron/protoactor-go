@@ -7,10 +7,7 @@ import (
 	"github.com/Workiva/go-datastructures/queue"
 )
 
-type Request struct {
-	Message interface{}
-	Sender  *PID
-}
+
 
 type boundedMailbox struct {
 	throughput      int
@@ -18,8 +15,7 @@ type boundedMailbox struct {
 	systemMailbox   *queue.RingBuffer
 	schedulerStatus int32
 	hasMoreMessages int32
-	userInvoke      ReceiveUserMessage
-	systemInvoke    ReceiveSystemMessage
+	invoker         MessageInvoker
 	dispatcher      Dispatcher
 }
 
@@ -36,7 +32,7 @@ func (mailbox *boundedMailbox) PostSystemMessage(message SystemMessage) {
 func (mailbox *boundedMailbox) schedule() {
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
 	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, mailboxIdle, mailboxRunning) {
-		mailbox.dispatcher.Dispatch(mailbox.processMessages)
+		mailbox.dispatcher.Schedule(mailbox.processMessages)
 	}
 }
 
@@ -59,10 +55,10 @@ func (mailbox *boundedMailbox) processMessages() {
 			if mailbox.systemMailbox.Len() > 0 {
 				sysMsg, _ := mailbox.systemMailbox.Get()
 				sys, _ := sysMsg.(SystemMessage)
-				mailbox.systemInvoke(sys)
+				mailbox.invoker.InvokeSystemMessage(sys)
 			} else if mailbox.userMailbox.Len() > 0 {
 				userMsg, _ := mailbox.userMailbox.Get()
-				mailbox.userInvoke(userMsg.(interface{}))
+				mailbox.invoker.InvokeUserMessage(userMsg)
 			} else {
 				done = true
 				break
@@ -97,8 +93,7 @@ func NewBoundedMailbox(throughput int, size int) MailboxProducer {
 	}
 }
 
-func (mailbox *boundedMailbox) RegisterHandlers(userInvoke ReceiveUserMessage, systemInvoke ReceiveSystemMessage, dispatcher Dispatcher) {
-	mailbox.userInvoke = userInvoke
-	mailbox.systemInvoke = systemInvoke
+func (mailbox *boundedMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
+	mailbox.invoker = invoker
 	mailbox.dispatcher = dispatcher
 }
