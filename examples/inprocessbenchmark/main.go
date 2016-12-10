@@ -89,50 +89,63 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	messageCount := 10000000
+	messageCount := 1000000
+	tps := []int{300, 400, 500, 600, 700, 800, 900}
+	log.Println("Dispatcher Throughput			Elapsed Time			Messages per sec")
+	for _, tp := range tps {
 
-	clientProps := actor.
-		FromProducer(newLocalActor(&wg, messageCount)).
-		WithMailbox(actor.NewUnboundedMailbox(1000))
+		d := actor.NewDefaultDispatcher(tp)
 
-	echoProps := actor.
-		FromFunc(
-			func(context actor.Context) {
-				switch msg := context.Message().(type) {
-				case *Msg:
-					msg.replyTo.Tell(msg)
-				}
-			}).
-		WithMailbox(actor.NewUnboundedMailbox(100000))
+		clientProps := actor.
+			FromProducer(newLocalActor(&wg, messageCount)).
+			WithMailbox(actor.NewUnboundedMailbox()).
+			WithDispatcher(d)
 
-	clients := make([]*actor.PID, 0)
-	echos := make([]*actor.PID, 0)
-	clientCount := runtime.NumCPU() * 2
-	for i := 0; i < clientCount; i++ {
-		client := actor.Spawn(clientProps)
-		echo := actor.Spawn(echoProps)
-		clients = append(clients, client)
-		echos = append(echos, echo)
-		wg.Add(1)
+		echoProps := actor.
+			FromFunc(
+				func(context actor.Context) {
+					switch msg := context.Message().(type) {
+					case *Msg:
+						msg.replyTo.Tell(msg)
+					}
+				}).
+			WithMailbox(actor.NewUnboundedMailbox()).
+			WithDispatcher(d)
+
+		clients := make([]*actor.PID, 0)
+		echos := make([]*actor.PID, 0)
+		clientCount := runtime.NumCPU() * 2
+		for i := 0; i < clientCount; i++ {
+			client := actor.Spawn(clientProps)
+			echo := actor.Spawn(echoProps)
+			clients = append(clients, client)
+			echos = append(echos, echo)
+			wg.Add(1)
+		}
+		start := time.Now()
+
+		for i := 0; i < clientCount; i++ {
+			client := clients[i]
+			echo := echos[i]
+
+			client.Tell(&Start{
+				Sender: echo,
+			})
+		}
+
+		wg.Wait()
+		elapsed := time.Since(start)
+		x := int(float32(messageCount*2*clientCount) / (float32(elapsed) / float32(time.Second)))
+		log.Printf("			%v			%s			%v", tp, elapsed, x)
+		for i := 0; i < clientCount; i++ {
+			client := clients[i]
+			client.StopFuture().Wait()
+			echo := echos[i]
+			echo.StopFuture().Wait()
+		}
+		runtime.GC()
+		time.Sleep(2 * time.Second)
 	}
-	start := time.Now()
-	log.Println("Starting to send")
-
-	for i := 0; i < clientCount; i++ {
-		client := clients[i]
-		echo := echos[i]
-
-		client.Tell(&Start{
-			Sender: echo,
-		})
-	}
-
-	wg.Wait()
-	elapsed := time.Since(start)
-	log.Printf("Elapsed %s", elapsed)
-
-	x := int(float32(messageCount*2*clientCount) / (float32(elapsed) / float32(time.Second)))
-	log.Printf("Msg per sec %v", x)
 
 	// f, err := os.Create("memprofile")
 	// if err != nil {

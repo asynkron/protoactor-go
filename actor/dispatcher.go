@@ -25,15 +25,22 @@ var (
 	}
 )
 
+func NewDefaultDispatcher(throughput int) Dispatcher {
+	return &goroutineDispatcher{
+		throughput: throughput,
+	}
+}
+
 type poolDispatcher struct {
 	pool       *grpool.Pool
 	throughput int
 }
 
-func NewPoolDispatcher(workers int, queueSize int) Dispatcher {
+func NewPoolDispatcher(workers int, queueSize int, throughput int) Dispatcher {
 	pool := grpool.NewPool(workers, queueSize)
 	d := &poolDispatcher{
-		pool: pool,
+		pool:       pool,
+		throughput: throughput,
 	}
 	return d
 }
