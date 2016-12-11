@@ -99,6 +99,7 @@ type actorCell struct {
 	receivePlugins []Receive
 	receiveIndex   int
 	stopping       bool
+	restarting     bool
 }
 
 func (cell *actorCell) Children() []*PID {
@@ -164,6 +165,8 @@ func (cell *actorCell) Next() {
 }
 func (cell *actorCell) incarnateActor() {
 	actor := cell.props.ProduceActor()
+	cell.restarting = false
+	cell.stopping = false
 	cell.actor = actor
 	cell.Become(actor.Receive)
 }
@@ -194,8 +197,22 @@ func (cell *actorCell) InvokeSystemMessage(message SystemMessage) {
 	}
 }
 
+func (cell *actorCell) handleRestart(msg *Restart) {
+	cell.stopping = false
+	cell.restarting = true
+	cell.InvokeUserMessage(&Restarting{})
+	if cell.children != nil {
+		for _, child := range cell.children.Values() {
+			child.(*PID).Stop()
+		}
+	}
+	cell.tryRestartOrTerminate()
+}
+
+//I am stopping
 func (cell *actorCell) handleStop(msg *Stop) {
 	cell.stopping = true
+	cell.restarting = false
 	cell.InvokeUserMessage(&Stopping{})
 	if cell.children != nil {
 		for _, child := range cell.children.Values() {
@@ -205,6 +222,7 @@ func (cell *actorCell) handleStop(msg *Stop) {
 	cell.tryRestartOrTerminate()
 }
 
+//child stopped, check if we can stop or restart (if needed)
 func (cell *actorCell) handleTerminated(msg *Terminated) {
 	if cell.children != nil {
 		cell.children.Remove(msg.Who)
@@ -212,6 +230,7 @@ func (cell *actorCell) handleTerminated(msg *Terminated) {
 	if cell.watching != nil {
 		cell.watching.Remove(msg.Who)
 	}
+
 	cell.tryRestartOrTerminate()
 }
 
@@ -233,17 +252,6 @@ func (cell *actorCell) handleFailure(msg *Failure) {
 	}
 }
 
-func (cell *actorCell) handleRestart(msg *Restart) {
-	cell.stopping = false
-	cell.InvokeUserMessage(&Restarting{})
-	if cell.children != nil {
-		for _, child := range cell.children.Values() {
-			child.(*PID).Stop()
-		}
-	}
-	cell.tryRestartOrTerminate()
-}
-
 func (cell *actorCell) tryRestartOrTerminate() {
 
 	if cell.children != nil {
@@ -252,12 +260,14 @@ func (cell *actorCell) tryRestartOrTerminate() {
 		}
 	}
 
-	if !cell.stopping {
+	if cell.restarting {
 		cell.restart()
 		return
 	}
 
-	cell.stopped()
+	if cell.stopping {
+		cell.stopped()
+	}
 }
 
 func (cell *actorCell) restart() {
