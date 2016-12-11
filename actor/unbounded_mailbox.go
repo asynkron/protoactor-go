@@ -9,12 +9,8 @@ import (
 )
 
 type unboundedMailbox struct {
-	userMailbox     *goring.Queue
-	systemMailbox   *lfqueue.LockfreeQueue
-	schedulerStatus int32
-	hasMoreMessages int32
-	invoker         MessageInvoker
-	dispatcher      Dispatcher
+	userMailbox *goring.Queue
+	mailboxBase
 }
 
 func (mailbox *unboundedMailbox) PostUserMessage(message interface{}) {
@@ -43,10 +39,11 @@ func (mailbox *unboundedMailbox) processMessages() {
 		//process x messages in sequence, then exit
 		for i := 0; i < t; i++ {
 
-			if sysMsg := mailbox.systemMailbox.Pop(); sysMsg != nil {
-				sys, _ := sysMsg.(SystemMessage)
-				mailbox.invoker.InvokeSystemMessage(sys)
-			} else if userMsg, ok := mailbox.userMailbox.Pop(); ok {
+			if mailbox.ConsumeSystemMessages() {
+				continue
+			}
+
+			if userMsg, ok := mailbox.userMailbox.Pop(); ok {
 				mailbox.invoker.InvokeUserMessage(userMsg)
 			} else {
 				done = true
@@ -73,10 +70,13 @@ func NewUnboundedMailbox() MailboxProducer {
 		userMailbox := goring.New(10)
 		systemMailbox := lfqueue.NewLockfreeQueue()
 		mailbox := unboundedMailbox{
-			userMailbox:     userMailbox,
-			systemMailbox:   systemMailbox,
-			hasMoreMessages: mailboxHasNoMessages,
-			schedulerStatus: mailboxIdle,
+			userMailbox: userMailbox,
+
+			mailboxBase: mailboxBase{
+				hasMoreMessages: mailboxHasNoMessages,
+				schedulerStatus: mailboxIdle,
+				systemMailbox:   systemMailbox,
+			},
 		}
 		return &mailbox
 	}

@@ -7,13 +7,27 @@ import (
 	"github.com/AsynkronIT/gam/actor/lfqueue"
 )
 
-type unboundedLockfreeMailbox struct {
-	userMailbox     *lfqueue.LockfreeQueue
+type mailboxBase struct {
 	systemMailbox   *lfqueue.LockfreeQueue
 	schedulerStatus int32
 	hasMoreMessages int32
 	invoker         MessageInvoker
 	dispatcher      Dispatcher
+}
+
+func (m *mailboxBase) ConsumeSystemMessages() bool {
+	if sysMsg := m.systemMailbox.Pop(); sysMsg != nil {
+		sys, _ := sysMsg.(SystemMessage)
+		m.invoker.InvokeSystemMessage(sys)
+		return true
+	}
+	return false
+}
+
+type unboundedLockfreeMailbox struct {
+	userMailbox *lfqueue.LockfreeQueue
+
+	mailboxBase
 }
 
 func (mailbox *unboundedLockfreeMailbox) PostUserMessage(message interface{}) {
@@ -41,10 +55,11 @@ func (mailbox *unboundedLockfreeMailbox) processMessages() {
 	for !done {
 		//process x messages in sequence, then exit
 		for i := 0; i < t; i++ {
-			if sysMsg := mailbox.systemMailbox.Pop(); sysMsg != nil {
-				sys, _ := sysMsg.(SystemMessage)
-				mailbox.invoker.InvokeSystemMessage(sys)
-			} else if userMsg := mailbox.userMailbox.Pop(); userMsg != nil {
+			if mailbox.ConsumeSystemMessages() {
+				continue
+			}
+
+			if userMsg := mailbox.userMailbox.Pop(); userMsg != nil {
 				mailbox.invoker.InvokeUserMessage(userMsg)
 			} else {
 				done = true
@@ -71,10 +86,13 @@ func NewUnboundedLockfreeMailbox() MailboxProducer {
 		userMailbox := lfqueue.NewLockfreeQueue()
 		systemMailbox := lfqueue.NewLockfreeQueue()
 		mailbox := unboundedLockfreeMailbox{
-			userMailbox:     userMailbox,
-			systemMailbox:   systemMailbox,
-			hasMoreMessages: mailboxHasNoMessages,
-			schedulerStatus: mailboxIdle,
+			userMailbox: userMailbox,
+
+			mailboxBase: mailboxBase{
+				hasMoreMessages: mailboxHasNoMessages,
+				schedulerStatus: mailboxIdle,
+				systemMailbox:   systemMailbox,
+			},
 		}
 		return &mailbox
 	}

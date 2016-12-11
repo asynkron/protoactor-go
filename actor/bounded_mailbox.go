@@ -9,12 +9,8 @@ import (
 )
 
 type boundedMailbox struct {
-	userMailbox     *queue.RingBuffer
-	systemMailbox   *lfqueue.LockfreeQueue
-	schedulerStatus int32
-	hasMoreMessages int32
-	invoker         MessageInvoker
-	dispatcher      Dispatcher
+	userMailbox *queue.RingBuffer
+	mailboxBase
 }
 
 func (mailbox *boundedMailbox) PostUserMessage(message interface{}) {
@@ -42,10 +38,11 @@ func (mailbox *boundedMailbox) processMessages() {
 	for !done {
 		//process x messages in sequence, then exit
 		for i := 0; i < t; i++ {
-			if sysMsg := mailbox.systemMailbox.Pop(); sysMsg != nil {
-				sys, _ := sysMsg.(SystemMessage)
-				mailbox.invoker.InvokeSystemMessage(sys)
-			} else if mailbox.userMailbox.Len() > 0 {
+			if mailbox.ConsumeSystemMessages() {
+				continue
+			}
+
+			if mailbox.userMailbox.Len() > 0 {
 				userMsg, _ := mailbox.userMailbox.Get()
 				mailbox.invoker.InvokeUserMessage(userMsg)
 			} else {
@@ -72,10 +69,12 @@ func NewBoundedMailbox(size int) MailboxProducer {
 		userMailbox := queue.NewRingBuffer(uint64(size))
 		systemMailbox := lfqueue.NewLockfreeQueue()
 		mailbox := boundedMailbox{
-			userMailbox:     userMailbox,
-			systemMailbox:   systemMailbox,
-			hasMoreMessages: mailboxHasNoMessages,
-			schedulerStatus: mailboxIdle,
+			userMailbox: userMailbox,
+			mailboxBase: mailboxBase{
+				systemMailbox:   systemMailbox,
+				hasMoreMessages: mailboxHasNoMessages,
+				schedulerStatus: mailboxIdle,
+			},
 		}
 		return &mailbox
 	}
