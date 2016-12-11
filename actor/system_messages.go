@@ -17,11 +17,15 @@ func (*Failure) SystemMessage() {}
 
 func (*Restart) SystemMessage() {}
 
-func (*Resume) SystemMessage() {}
+func (*ResumeMailbox) SystemMessage() {}
+
+func (*SuspendMailbox) SystemMessage() {}
 
 type Restart struct{}
 
-type Resume struct{}
+type ResumeMailbox struct{}
+
+type SuspendMailbox struct{}
 
 type Stop struct{}
 

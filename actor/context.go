@@ -192,8 +192,6 @@ func (cell *actorCell) InvokeSystemMessage(message SystemMessage) {
 		cell.handleFailure(msg)
 	case *Restart:
 		cell.handleRestart(msg)
-	case *Resume:
-		cell.self.resume()
 	}
 }
 
@@ -239,7 +237,7 @@ func (cell *actorCell) handleFailure(msg *Failure) {
 	switch directive {
 	case ResumeDirective:
 		//resume the failing child
-		msg.Who.sendSystemMessage(&Resume{})
+		msg.Who.sendSystemMessage(&ResumeMailbox{})
 	case RestartDirective:
 		//restart the failing child
 		msg.Who.sendSystemMessage(&Restart{})
@@ -300,7 +298,7 @@ func (cell *actorCell) InvokeUserMessage(md interface{}) {
 			if cell.parent == nil {
 				handleRootFailure(failure, defaultSupervisionStrategy)
 			} else {
-				cell.self.suspend()
+				cell.self.sendSystemMessage(&SuspendMailbox{})
 				cell.parent.sendSystemMessage(failure)
 			}
 		}
@@ -383,7 +381,7 @@ func handleRootFailure(msg *Failure, supervisor SupervisionStrategy) {
 	switch directive {
 	case ResumeDirective:
 		//resume the fialing child
-		msg.Who.sendSystemMessage(&Resume{})
+		msg.Who.sendSystemMessage(&ResumeMailbox{})
 	case RestartDirective:
 		//restart the failing child
 		msg.Who.sendSystemMessage(&Restart{})
