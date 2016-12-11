@@ -13,6 +13,7 @@ type mailboxBase struct {
 	hasMoreMessages int32
 	invoker         MessageInvoker
 	dispatcher      Dispatcher
+	suspended       bool
 }
 
 func (m *mailboxBase) ConsumeSystemMessages() bool {
@@ -20,7 +21,9 @@ func (m *mailboxBase) ConsumeSystemMessages() bool {
 		sys, _ := sysMsg.(SystemMessage)
 		switch sys.(type) {
 		case *SuspendMailbox:
+			m.suspended = true
 		case *ResumeMailbox:
+			m.suspended = false
 		}
 
 		m.invoker.InvokeSystemMessage(sys)
@@ -64,11 +67,13 @@ func (mailbox *unboundedLockfreeMailbox) processMessages() {
 				continue
 			}
 
-			if userMsg := mailbox.userMailbox.Pop(); userMsg != nil {
-				mailbox.invoker.InvokeUserMessage(userMsg)
-			} else {
-				done = true
-				break
+			if !mailbox.suspended {
+				if userMsg := mailbox.userMailbox.Pop(); userMsg != nil {
+					mailbox.invoker.InvokeUserMessage(userMsg)
+				} else {
+					done = true
+					break
+				}
 			}
 		}
 		if !done {

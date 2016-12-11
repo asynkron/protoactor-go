@@ -42,12 +42,14 @@ func (mailbox *boundedMailbox) processMessages() {
 				continue
 			}
 
-			if mailbox.userMailbox.Len() > 0 {
-				userMsg, _ := mailbox.userMailbox.Get()
-				mailbox.invoker.InvokeUserMessage(userMsg)
-			} else {
-				done = true
-				break
+			if !mailbox.suspended {
+				if mailbox.userMailbox.Len() > 0 {
+					userMsg, _ := mailbox.userMailbox.Get()
+					mailbox.invoker.InvokeUserMessage(userMsg)
+				} else {
+					done = true
+					break
+				}
 			}
 		}
 		if !done {

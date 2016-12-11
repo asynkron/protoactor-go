@@ -43,11 +43,13 @@ func (mailbox *unboundedMailbox) processMessages() {
 				continue
 			}
 
-			if userMsg, ok := mailbox.userMailbox.Pop(); ok {
-				mailbox.invoker.InvokeUserMessage(userMsg)
-			} else {
-				done = true
-				break
+			if !mailbox.suspended {
+				if userMsg, ok := mailbox.userMailbox.Pop(); ok {
+					mailbox.invoker.InvokeUserMessage(userMsg)
+				} else {
+					done = true
+					break
+				}
 			}
 		}
 		if !done {
