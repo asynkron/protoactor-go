@@ -18,6 +18,11 @@ type mailboxBase struct {
 func (m *mailboxBase) ConsumeSystemMessages() bool {
 	if sysMsg := m.systemMailbox.Pop(); sysMsg != nil {
 		sys, _ := sysMsg.(SystemMessage)
+		switch sys.(type) {
+		case *SuspendMailbox:
+		case *ResumeMailbox:
+		}
+
 		m.invoker.InvokeSystemMessage(sys)
 		return true
 	}
