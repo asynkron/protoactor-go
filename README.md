@@ -4,6 +4,8 @@
 
 # Go Actor Model
 
+[![Join the chat at https://gitter.im/gam-chat/Lobby](https://badges.gitter.im/gam-chat/Lobby.svg)](https://gitter.im/gam-chat/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 GAM is a MVP Actor Model framework for Go.
 
 Design principles:
