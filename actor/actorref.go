@@ -42,11 +42,3 @@ func (ref *LocalActorRef) Watch(pid *PID) {
 func (ref *LocalActorRef) UnWatch(pid *PID) {
 	ref.SendSystemMessage(pid, &Unwatch{Watcher: pid})
 }
-
-func (ref *LocalActorRef) Suspend() {
-	ref.mailbox.Suspend()
-}
-
-func (ref *LocalActorRef) Resume() {
-	ref.mailbox.Resume()
-}

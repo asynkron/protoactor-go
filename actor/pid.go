@@ -58,16 +58,6 @@ func (pid *PID) Stop() {
 	ref.Stop(pid)
 }
 
-func (pid *PID) suspend() {
-	ref, _ := ProcessRegistry.get(pid)
-	ref.(*LocalActorRef).Suspend()
-}
-
-func (pid *PID) resume() {
-	ref, _ := ProcessRegistry.get(pid)
-	ref.(*LocalActorRef).Resume()
-}
-
 //NewPID returns a new instance of the PID struct
 func NewPID(host, id string) *PID {
 	return &PID{
