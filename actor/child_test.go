@@ -97,3 +97,34 @@ func TestActorCanStopChildren(t *testing.T) {
 	//we should have 0 children when the actor is stopped
 	assert.Equal(t, 0, response.(GetChildCountResponse).ChildCount)
 }
+
+type receiveFn func(Context)
+
+func (fn receiveFn) Receive(ctx Context) {
+	fn(ctx)
+}
+
+var nullReceive receiveFn = func(Context) {}
+
+func TestActorReceivesTerminatedFromWatched(t *testing.T) {
+	child := Spawn(FromInstance(nullReceive))
+	future := NewFuture(testTimeout)
+	var r receiveFn = func(c Context) {
+		switch msg := c.Message().(type) {
+		case *Started:
+			c.Watch(child)
+
+		case *Terminated:
+			ac := c.(*actorCell)
+			if msg.Who.Equal(child) && ac.watching.Empty() {
+				future.PID().Tell(true)
+			}
+		}
+	}
+
+	Spawn(FromInstance(r))
+	child.Stop()
+
+	_, err := future.Result()
+	assert.NoError(t, err, "timed out")
+}

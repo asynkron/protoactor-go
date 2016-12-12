@@ -229,6 +229,7 @@ func (cell *actorCell) handleTerminated(msg *Terminated) {
 		cell.watching.Remove(msg.Who)
 	}
 
+	cell.InvokeUserMessage(msg)
 	cell.tryRestartOrTerminate()
 }
 
