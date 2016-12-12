@@ -1,6 +1,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/AsynkronIT/gam)](https://goreportcard.com/report/github.com/AsynkronIT/gam) 
 [![GoDoc](https://godoc.org/github.com/AsynkronIT/gam?status.svg)](https://godoc.org/github.com/AsynkronIT/gam)
 
+[Slack chat](https://gophers.slack.com/messages/gam)
 
 # Go Actor Model
 

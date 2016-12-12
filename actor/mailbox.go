@@ -1,5 +1,12 @@
 package actor
 
+import (
+	"runtime"
+	"sync/atomic"
+
+	"github.com/AsynkronIT/gam/actor/lfqueue"
+)
+
 type ReceiveUserMessage func(interface{})
 type ReceiveSystemMessage func(SystemMessage)
 
@@ -19,3 +26,86 @@ const (
 	mailboxHasNoMessages   int32 = iota
 	mailboxHasMoreMessages int32 = iota
 )
+
+type DefaultMailbox struct {
+	userMailbox     MailboxQueue
+	systemMailbox   *lfqueue.LockfreeQueue
+	schedulerStatus int32
+	hasMoreMessages int32
+	invoker         MessageInvoker
+	dispatcher      Dispatcher
+	suspended       bool
+}
+
+func (m *DefaultMailbox) ConsumeSystemMessages() bool {
+	if sysMsg := m.systemMailbox.Pop(); sysMsg != nil {
+		sys, _ := sysMsg.(SystemMessage)
+		switch sys.(type) {
+		case *SuspendMailbox:
+			m.suspended = true
+		case *ResumeMailbox:
+			m.suspended = false
+		}
+
+		m.invoker.InvokeSystemMessage(sys)
+		return true
+	}
+	return false
+}
+
+func (m *DefaultMailbox) PostUserMessage(message interface{}) {
+	m.userMailbox.Push(message)
+	m.schedule()
+}
+
+func (m *DefaultMailbox) PostSystemMessage(message SystemMessage) {
+	m.systemMailbox.Push(message)
+	m.schedule()
+}
+
+func (m *DefaultMailbox) schedule() {
+	atomic.StoreInt32(&m.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
+	if atomic.CompareAndSwapInt32(&m.schedulerStatus, mailboxIdle, mailboxRunning) {
+		m.dispatcher.Schedule(m.processMessages)
+	}
+}
+
+func (m *DefaultMailbox) processMessages() {
+	//we are about to start processing messages, we can safely reset the message flag of the mailbox
+	atomic.StoreInt32(&m.hasMoreMessages, mailboxHasNoMessages)
+	t := m.dispatcher.Throughput()
+	done := false
+	for !done {
+		//process x messages in sequence, then exit
+		for i := 0; i < t; i++ {
+			if m.ConsumeSystemMessages() {
+				continue
+			}
+
+			if !m.suspended {
+				if userMsg := m.userMailbox.Pop(); userMsg != nil {
+					m.invoker.InvokeUserMessage(userMsg)
+				} else {
+					done = true
+					break
+				}
+			}
+		}
+		if !done {
+			runtime.Gosched()
+		}
+	}
+
+	//set mailbox to idle
+	atomic.StoreInt32(&m.schedulerStatus, mailboxIdle)
+	//check if there are still messages to process (sent after the message loop ended)
+	if atomic.SwapInt32(&m.hasMoreMessages, mailboxHasNoMessages) == mailboxHasMoreMessages {
+		m.schedule()
+	}
+
+}
+
+func (mailbox *DefaultMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
+	mailbox.invoker = invoker
+	mailbox.dispatcher = dispatcher
+}

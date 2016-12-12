@@ -41,7 +41,7 @@ func NewRemote(bind, name string) {
 	remoting.Start(bind)
 	props := actor.
 		FromProducer(newRemoteActor(name)).
-		WithMailbox(actor.NewBoundedMailbox(1000, 10000))
+		WithMailbox(actor.NewBoundedMailbox(10000))
 
 	actor.SpawnNamed(props, "remote")
 

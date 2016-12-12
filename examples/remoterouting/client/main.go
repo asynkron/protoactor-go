@@ -37,7 +37,7 @@ func main() {
 
 	props = actor.
 		FromProducer(newLocalActor(&wgStop, messageCount)).
-		WithMailbox(actor.NewBoundedMailbox(1000, 10000))
+		WithMailbox(actor.NewBoundedMailbox(10000))
 
 	pid := actor.Spawn(props)
 

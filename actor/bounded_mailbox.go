@@ -1,88 +1,40 @@
 package actor
 
 import (
-	"runtime"
-	"sync/atomic"
-
 	"github.com/AsynkronIT/gam/actor/lfqueue"
 	"github.com/Workiva/go-datastructures/queue"
 )
 
-type boundedMailbox struct {
+type boundedMailboxQueue struct {
 	userMailbox *queue.RingBuffer
-	mailboxBase
 }
 
-func (mailbox *boundedMailbox) PostUserMessage(message interface{}) {
-	mailbox.userMailbox.Put(message)
-	mailbox.schedule()
+func (q *boundedMailboxQueue) Push(m interface{}) {
+	q.userMailbox.Put(m)
 }
 
-func (mailbox *boundedMailbox) PostSystemMessage(message SystemMessage) {
-	mailbox.systemMailbox.Push(message)
-	mailbox.schedule()
-}
-
-func (mailbox *boundedMailbox) schedule() {
-	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
-	if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, mailboxIdle, mailboxRunning) {
-		mailbox.dispatcher.Schedule(mailbox.processMessages)
+func (q *boundedMailboxQueue) Pop() interface{} {
+	if q.userMailbox.Len() > 0 {
+		m, _ := q.userMailbox.Get()
+		return m
 	}
+	return nil
 }
 
-func (mailbox *boundedMailbox) processMessages() {
-	//we are about to start processing messages, we can safely reset the message flag of the mailbox
-	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages)
-	t := mailbox.dispatcher.Throughput()
-	done := false
-	for !done {
-		//process x messages in sequence, then exit
-		for i := 0; i < t; i++ {
-			if mailbox.ConsumeSystemMessages() {
-				continue
-			}
-
-			if !mailbox.suspended {
-				if mailbox.userMailbox.Len() > 0 {
-					userMsg, _ := mailbox.userMailbox.Get()
-					mailbox.invoker.InvokeUserMessage(userMsg)
-				} else {
-					done = true
-					break
-				}
-			}
-		}
-		if !done {
-			runtime.Gosched()
-		}
-	}
-
-	//set mailbox to idle
-	atomic.StoreInt32(&mailbox.schedulerStatus, mailboxIdle)
-	//check if there are still messages to process (sent after the message loop ended)
-	if atomic.SwapInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages) == mailboxHasMoreMessages {
-		mailbox.schedule()
-	}
-
-}
-
+//NewUnboundedMailbox creates an unbounded mailbox
 func NewBoundedMailbox(size int) MailboxProducer {
 	return func() Mailbox {
-		userMailbox := queue.NewRingBuffer(uint64(size))
-		systemMailbox := lfqueue.NewLockfreeQueue()
-		mailbox := boundedMailbox{
-			userMailbox: userMailbox,
-			mailboxBase: mailboxBase{
-				systemMailbox:   systemMailbox,
-				hasMoreMessages: mailboxHasNoMessages,
-				schedulerStatus: mailboxIdle,
-			},
+		q := &boundedMailboxQueue{
+			userMailbox: queue.NewRingBuffer(uint64(size)),
 		}
+		systemMailbox := lfqueue.NewLockfreeQueue()
+		mailbox := DefaultMailbox{
+			hasMoreMessages: mailboxHasNoMessages,
+			schedulerStatus: mailboxIdle,
+			systemMailbox:   systemMailbox,
+			userMailbox:     q,
+		}
+
 		return &mailbox
 	}
-}
-
-func (mailbox *boundedMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
-	mailbox.invoker = invoker
-	mailbox.dispatcher = dispatcher
 }

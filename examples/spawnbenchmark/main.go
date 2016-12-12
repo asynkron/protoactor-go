@@ -19,7 +19,7 @@ type request struct {
 }
 
 var (
-	props = actor.FromProducer(newState).WithMailbox(actor.NewUnboundedLockfreeMailbox(10))
+	props = actor.FromProducer(newState).WithMailbox(actor.NewUnboundedLockfreeMailbox())
 )
 
 type state struct {
