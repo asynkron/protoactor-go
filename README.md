@@ -1,7 +1,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/AsynkronIT/gam)](https://goreportcard.com/report/github.com/AsynkronIT/gam) 
 [![GoDoc](https://godoc.org/github.com/AsynkronIT/gam?status.svg)](https://godoc.org/github.com/AsynkronIT/gam)
 
-[Slack chat](https://gophers.slack.com/messages/gam)
+[![Join the chat at https://gitter.im/AsynkronIT/gam](https://badges.gitter.im/AsynkronIT/gam.svg)](https://gitter.im/AsynkronIT/gam?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 
 # Go Actor Model
 
@@ -22,7 +23,7 @@ Protobuf all the way.
 **Be fast** - Do not trade performance for magic API trickery.
 
 Ultra fast remoting, GAM currently manages to pass over **two million messages per second** between nodes using only two actors, while still preserving message order!
-This is three times more the new super advanced UDP based Artery transport for Scala Akka.
+This is six times more the new super advanced UDP based Artery transport for Scala Akka.
 
 ```text
 :> node1.exe
