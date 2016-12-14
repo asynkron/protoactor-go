@@ -24,6 +24,7 @@ func Start(ip string, join ...string) {
 	if err != nil {
 		panic("[CLUSTER] Failed to create memberlist: " + err.Error())
 	}
+	spawnPartitionActor()
 	list = l
 	remoting.Start(name)
 

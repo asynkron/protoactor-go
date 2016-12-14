@@ -10,8 +10,12 @@ import (
 
 var (
 	nameLookup   = make(map[string]actor.Props)
-	activatorPid = actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
+	activatorPid *actor.PID
 )
+
+func spawnActivatorActor() {
+	activatorPid = actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
+}
 
 //Register a known actor props by name
 func Register(kind string, props actor.Props) {

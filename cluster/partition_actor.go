@@ -9,8 +9,12 @@ import (
 )
 
 var (
-	partitionPid = actor.SpawnNamed(actor.FromProducer(newClusterActor()), "partition")
+	partitionPid *actor.PID
 )
+
+func spawnPartitionActor() {
+	partitionPid = actor.SpawnNamed(actor.FromProducer(newClusterActor()), "partition")
+}
 
 func partitionForHost(host string) *actor.PID {
 	pid := actor.NewPID(host, "partition")
