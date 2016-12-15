@@ -10,7 +10,15 @@ This is a powerful concept that is behind other features like Finite State Machi
 
 > **Note:**<br /> When you change the actor behavior, the new behaviour will take effect for all subsequent messages 
 until the behaviour is changed again. The current message will continue processing with the existing behaviour. 
-You can use [Stashing](Stashing Messages) to reprocess the current message with the new behavior.
+You can use Stashing to reprocess the current message with the new behavior.
+
+## API
+
+The API to change behaviors is available to the actor instance is very simple:
+
+* `Become` - Replaces the message handler with the specified delegate;
+* `BecomeStacked` - Adds the specified message handler to the top of the behavior stack, while maintaining the previous ones;
+* `UnbecomeStacked` - Reverts to the previous message handler from the stack (only works with BecomeStacked);
 
 ```go
 ...
@@ -19,6 +27,7 @@ type Become struct{}
 type Hello struct{ Who string }
 type BecomeActor struct{}
 
+//this is our first behavior
 func (state *BecomeActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case Hello:
@@ -27,6 +36,7 @@ func (state *BecomeActor) Receive(context actor.Context) {
 	}
 }
 
+//this is our second behavior
 func (state *BecomeActor) Other(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case Hello:
