@@ -20,6 +20,8 @@ func Start(host string, options ...RemotingOption) {
 		option(config)
 	}
 
+	spawnActivatorActor()
+
 	host = lis.Addr().String()
 	actor.ProcessRegistry.RegisterHostResolver(remoteHandler)
 	actor.ProcessRegistry.Host = host
