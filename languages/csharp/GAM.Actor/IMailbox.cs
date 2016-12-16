@@ -1,5 +1,5 @@
 ﻿// //-----------------------------------------------------------------------
-// // <copyright file="Mailbox.cs" company="Asynkron HB">
+// // <copyright file="IMailbox.cs" company="Asynkron HB">
 // //     Copyright (C) 2015-2016 Asynkron HB All rights reserved
 // // </copyright>
 // //-----------------------------------------------------------------------
@@ -22,7 +22,14 @@ namespace GAM
         public const int MailboxHasMoreMessages = 1;
     }
 
-    public class DefaultMailbox
+    public interface IMailbox
+    {
+        void PostUserMessage(object msg);
+        void PostSystemMessage(SystemMessage sys);
+        void RegisterHandlers(IMessageInvoker  invoker, IDispatcher dispatcher);
+    }
+
+    public class DefaultMailbox : IMailbox
     {
         private readonly ConcurrentQueue<SystemMessage> _systemMessages = new ConcurrentQueue<SystemMessage>();
         private readonly ConcurrentQueue<object> _userMessages = new ConcurrentQueue<object>();
@@ -95,6 +102,12 @@ namespace GAM
         {
             _systemMessages.Enqueue(sys);
             Schedule();
+        }
+
+        public void RegisterHandlers(IMessageInvoker  invoker, IDispatcher dispatcher)
+        {
+            _invoker = invoker;
+            _dispatcher = dispatcher;
         }
     }
 }

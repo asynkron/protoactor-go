@@ -17,4 +17,6 @@ namespace GAM
     public sealed class ResumeMailbox : SystemMessage
     {
     }
+
+    public sealed class Started { }
 }

@@ -55,7 +55,8 @@
     <Compile Include="Context.cs" />
     <Compile Include="Delegates.cs" />
     <Compile Include="Dispatcher.cs" />
-    <Compile Include="Mailbox.cs" />
+    <Compile Include="LocalActorRef.cs" />
+    <Compile Include="IMailbox.cs" />
     <Compile Include="Messages.cs" />
     <Compile Include="ProcessRegistry.cs" />
     <Compile Include="Props.cs" />

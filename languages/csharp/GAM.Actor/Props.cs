@@ -4,14 +4,15 @@
 // // </copyright>
 // //-----------------------------------------------------------------------
 
+using System;
+
 namespace GAM
 {
-    public delegate IActor ActorProducer();
 
     public sealed class Props
     {
-        private ActorProducer _actorProducer;
-        private IDispatcher _dispatcher;
+        private Func<IActor> _actorProducer;
+        private Func<IMailbox> _mailboxProducer;
 
         public Props WithDispatcher(IDispatcher dispatcher)
         {
@@ -19,13 +20,18 @@ namespace GAM
         }
 
 
-        public Props Copy(ActorProducer producer = null, IDispatcher dispatcher = null)
+        public Props Copy(Func<IActor> producer = null, IDispatcher dispatcher = null, Func<IMailbox> mailboxProducer = null )
         {
             return new Props()
             {
                 _actorProducer = producer ?? _actorProducer,
-                _dispatcher = dispatcher ?? _dispatcher,
+                Dispatcher = dispatcher ?? Dispatcher,
+                _mailboxProducer = mailboxProducer ?? _mailboxProducer,
             };
         }
+
+        public Func<IMailbox> MailboxProducer => _mailboxProducer;
+
+        public IDispatcher Dispatcher { get; private set; }
     }
 }

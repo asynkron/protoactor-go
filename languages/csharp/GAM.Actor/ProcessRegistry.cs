@@ -4,28 +4,42 @@
 // // </copyright>
 // //-----------------------------------------------------------------------
 
+using System;
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace GAM
 {
     public class ProcessRegistry
     {
-        private readonly ConcurrentDictionary<PID, ActorRef> _localActorRefs = new ConcurrentDictionary<PID, ActorRef>();
+        private readonly ConcurrentDictionary<string, ActorRef> _localActorRefs = new ConcurrentDictionary<string, ActorRef>();
         public static ProcessRegistry Instance { get; } = new ProcessRegistry();
 
         public ActorRef Get(PID pid)
         {
             ActorRef aref;
-            if (_localActorRefs.TryGetValue(pid, out aref))
+            if (_localActorRefs.TryGetValue(pid.Id, out aref))
             {
                 return aref;
             }
             return null;
         }
 
-        public bool Add(PID pid, ActorRef aref)
+        public Tuple<PID,bool> TryAdd(string id, ActorRef aref)
         {
-            return _localActorRefs.TryAdd(pid, aref);
+            var pid = new PID()
+            {
+                Id = id,
+            };
+            bool ok = _localActorRefs.TryAdd(pid.Id, aref);
+            return Tuple.Create(pid, ok);
+        }
+
+        private int _sequenceID;
+        internal string GetAutoId()
+        {
+            var counter = Interlocked.Increment(ref _sequenceID);
+            return "$" + counter;
         }
     }
 }

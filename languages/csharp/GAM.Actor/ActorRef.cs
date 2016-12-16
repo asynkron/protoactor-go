@@ -10,6 +10,7 @@ namespace GAM
 {
     public class PID
     {
+        public string Id { get; set; }
     }
 
     public class Request
