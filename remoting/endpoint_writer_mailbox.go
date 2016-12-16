@@ -58,31 +58,26 @@ func (mailbox *endpointWriterMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages)
 	batchSize := mailbox.batchSize
-	done := false
-	for !done {
+process:
+	for {
 		if sysMsg, ok := mailbox.systemMailbox.Pop(); ok {
-
 			sys := sysMsg.(actor.SystemMessage)
 			mailbox.invoker.InvokeSystemMessage(sys)
 		} else if userMsg, ok := mailbox.userMailbox.PopMany(int64(batchSize)); ok {
 			mailbox.invoker.InvokeUserMessage(userMsg)
 		} else {
-			done = true
-			break
+			break process
 		}
 
-		if !done {
-			runtime.Gosched()
-		}
+		runtime.Gosched()
 	}
 
-	//set mailbox to idle
-	atomic.StoreInt32(&mailbox.schedulerStatus, mailboxIdle)
 	//check if there are still messages to process (sent after the message loop ended)
 	if atomic.SwapInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages) == mailboxHasMoreMessages {
-		mailbox.schedule()
+		goto process
 	}
-
+	//set mailbox to idle
+	atomic.StoreInt32(&mailbox.schedulerStatus, mailboxIdle)
 }
 
 func newEndpointWriterMailbox(batchSize, initialSize int) actor.MailboxProducer {

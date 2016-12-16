@@ -73,36 +73,36 @@ func (m *DefaultMailbox) schedule() {
 func (m *DefaultMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&m.hasMoreMessages, mailboxHasNoMessages)
-	t := m.dispatcher.Throughput()
-	done := false
-	for !done {
-		//process x messages in sequence, then exit
-		for i := 0; i < t; i++ {
-			if m.ConsumeSystemMessages() {
-				continue
-			}
-
-			if !m.suspended {
-				if userMsg := m.userMailbox.Pop(); userMsg != nil {
-					m.invoker.InvokeUserMessage(userMsg)
-				} else {
-					done = true
-					break
-				}
-			}
-		}
-		if !done {
+	i, t := 0, m.dispatcher.Throughput()
+process:
+	for {
+		if i > t {
+			i = 0
 			runtime.Gosched()
 		}
+
+		i++
+
+		if m.ConsumeSystemMessages() {
+			continue
+		} else if m.suspended {
+			// exit processing is suspended and no system messages were processed
+			break process
+		}
+
+		if userMsg := m.userMailbox.Pop(); userMsg != nil {
+			m.invoker.InvokeUserMessage(userMsg)
+		} else {
+			break process
+		}
 	}
 
-	//set mailbox to idle
-	atomic.StoreInt32(&m.schedulerStatus, mailboxIdle)
 	//check if there are still messages to process (sent after the message loop ended)
 	if atomic.SwapInt32(&m.hasMoreMessages, mailboxHasNoMessages) == mailboxHasMoreMessages {
-		m.schedule()
+		goto process
 	}
-
+	//set mailbox to idle
+	atomic.StoreInt32(&m.schedulerStatus, mailboxIdle)
 }
 
 func (mailbox *DefaultMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
