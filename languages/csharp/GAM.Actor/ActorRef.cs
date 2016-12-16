@@ -6,7 +6,7 @@
 
 using System.Threading.Tasks;
 
-namespace GAM.Actor
+namespace GAM
 {
     public class PID
     {

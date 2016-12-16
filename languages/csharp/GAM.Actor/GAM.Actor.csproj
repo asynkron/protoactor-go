@@ -50,13 +50,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Actor.cs" />
     <Compile Include="ActorRef.cs" />
     <Compile Include="Context.cs" />
     <Compile Include="Delegates.cs" />
+    <Compile Include="Dispatcher.cs" />
     <Compile Include="Mailbox.cs" />
+    <Compile Include="Messages.cs" />
     <Compile Include="ProcessRegistry.cs" />
     <Compile Include="Props.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SupervisionStrategy.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

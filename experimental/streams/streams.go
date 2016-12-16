@@ -25,6 +25,7 @@ func NewUntypedStream() *UntypedStream {
 	props := actor.FromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
 		case actor.AutoReceiveMessage:
+		case actor.SystemMessage: //ignore terminate
 		default:
 			c <- msg
 		}

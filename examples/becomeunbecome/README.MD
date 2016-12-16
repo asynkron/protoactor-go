@@ -32,7 +32,7 @@ func (state *BecomeActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case Hello:
 		fmt.Printf("Hello %v\n", msg.Who)
-		context.Become(state.Other)
+		context.Become(state.Other) //switch to the second behavior
 	}
 }
 

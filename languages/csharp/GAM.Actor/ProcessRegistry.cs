@@ -6,7 +6,7 @@
 
 using System.Collections.Concurrent;
 
-namespace GAM.Actor
+namespace GAM
 {
     public class ProcessRegistry
     {

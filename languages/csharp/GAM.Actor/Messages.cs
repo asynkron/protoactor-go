@@ -1,12 +1,20 @@
 ﻿// //-----------------------------------------------------------------------
-// // <copyright file="Delegates.cs" company="Asynkron HB">
+// // <copyright file="Messages.cs" company="Asynkron HB">
 // //     Copyright (C) 2015-2016 Asynkron HB All rights reserved
 // // </copyright>
 // //-----------------------------------------------------------------------
 
-using System.Threading.Tasks;
-
 namespace GAM
 {
-    public delegate Task Receive(Context ctx);
+    public abstract class SystemMessage
+    {
+    }
+
+    public sealed class SuspendMailbox : SystemMessage
+    {
+    }
+
+    public sealed class ResumeMailbox : SystemMessage
+    {
+    }
 }
