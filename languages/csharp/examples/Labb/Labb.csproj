@@ -50,9 +50,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\GAM.Actor\GAM.Actor.csproj">
-      <Project>{ad37b1d3-a23e-4e2b-86fc-394e03a54726}</Project>
-      <Name>GAM.Actor</Name>
+    <ProjectReference Include="..\..\src\GAM\GAM.csproj">
+      <Project>{c036f196-0aa6-4c3d-b340-93a922461b54}</Project>
+      <Name>GAM</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -16,6 +16,12 @@ namespace GAM
             reff.Tell(message);
         }
         public string Id { get; set; }
+
+        public void SendSystemMessage(SuspendMailbox suspendMailbox)
+        {
+            var reff = ProcessRegistry.Instance.Get(this);
+            //TODO: send system message
+        }
     }
 
     public class Request

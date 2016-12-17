@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GAM.Remoting", "src\GAM.Remoting\GAM.Remoting.csproj", "{C5B136C4-6EBD-4694-9664-0072DE878296}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{771514F1-12AE-4A26-89CB-2646D3EF7034}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{59DCCC96-DDAF-469F-9E8E-9BC733285082}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Labb", "examples\Labb\Labb.csproj", "{ABADF472-0EDE-4EC0-8AC1-B8612EFF76FE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GAM", "src\GAM\GAM.csproj", "{C036F196-0AA6-4C3D-B340-93A922461B54}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C5B136C4-6EBD-4694-9664-0072DE878296}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5B136C4-6EBD-4694-9664-0072DE878296}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5B136C4-6EBD-4694-9664-0072DE878296}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5B136C4-6EBD-4694-9664-0072DE878296}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABADF472-0EDE-4EC0-8AC1-B8612EFF76FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABADF472-0EDE-4EC0-8AC1-B8612EFF76FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABADF472-0EDE-4EC0-8AC1-B8612EFF76FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABADF472-0EDE-4EC0-8AC1-B8612EFF76FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C036F196-0AA6-4C3D-B340-93A922461B54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C036F196-0AA6-4C3D-B340-93A922461B54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C036F196-0AA6-4C3D-B340-93A922461B54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C036F196-0AA6-4C3D-B340-93A922461B54}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C5B136C4-6EBD-4694-9664-0072DE878296} = {771514F1-12AE-4A26-89CB-2646D3EF7034}
+		{ABADF472-0EDE-4EC0-8AC1-B8612EFF76FE} = {59DCCC96-DDAF-469F-9E8E-9BC733285082}
+		{C036F196-0AA6-4C3D-B340-93A922461B54} = {771514F1-12AE-4A26-89CB-2646D3EF7034}
+	EndGlobalSection
+EndGlobal

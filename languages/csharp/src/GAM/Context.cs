@@ -4,6 +4,7 @@
 // // </copyright>
 // //-----------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -63,10 +64,25 @@ namespace GAM
 
         public async Task InvokeUserMessageAsync(object msg)
         {
-            _receiveIndex = 0;
-            Message = msg;
+            try
+            {
+                _receiveIndex = 0;
+                Message = msg;
 
-            await NextAsync();
+                await NextAsync();
+            }
+            catch (Exception x)
+            {
+                if (Parent == null)
+                {
+
+                }
+                else
+                {
+                    Self.SendSystemMessage(new SuspendMailbox());
+                }
+                //handle supervision
+            }
         }
 
         public PID[] Children()
