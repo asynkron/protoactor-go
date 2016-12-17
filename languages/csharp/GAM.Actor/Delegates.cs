@@ -8,5 +8,5 @@ using System.Threading.Tasks;
 
 namespace GAM
 {
-    public delegate Task Receive(Context ctx);
+    public delegate Task ReceiveAsync(Context ctx);
 }

@@ -24,7 +24,7 @@ namespace GAM
         PID[] Children();
         object Message { get; }
         void Stash();
-        void Next();
+        Task NextAsync();
     }
 
     public class Context : IMessageInvoker, IContext
@@ -32,7 +32,7 @@ namespace GAM
         private IActor _actor;
         private HashSet<PID> _children;
         private int _receiveIndex;
-        private Receive[] _receivePlugins;
+        private ReceiveAsync[] _receivePlugins;
         private bool _restarting;
         private Stack<object> _stash;
         private bool _stopping;
@@ -40,12 +40,17 @@ namespace GAM
         private HashSet<PID> _watchers;
         private HashSet<PID> _watching;
 
+        private async Task ActorReceiveAsync(IContext ctx)
+        {
+            await _actor.ReceiveAsync(ctx);
+        }
 
         public Context(Props props, PID parent)
         {
+
             Parent = parent;
             Props = props;
-            _receivePlugins = null; //props.ReceivePlugins
+            _receivePlugins = new ReceiveAsync[] {}; 
             _watchers = null;
             _watching = null;
             Message = null;
@@ -58,8 +63,10 @@ namespace GAM
 
         public async Task InvokeUserMessageAsync(object msg)
         {
+            _receiveIndex = 0;
             Message = msg;
-            await _actor.ReceiveAsync(this);
+
+            await NextAsync();
         }
 
         public PID[] Children()
@@ -80,9 +87,20 @@ namespace GAM
             _stash.Push(Message);
         }
 
-        public void Next()
+        public async Task NextAsync()
         {
-            throw new System.NotImplementedException();
+            ReceiveAsync receive;
+            if (_receiveIndex < _receivePlugins.Length)
+            {
+                receive = _receivePlugins[_receiveIndex];
+                _receiveIndex++;
+            }
+            else
+            {
+                receive = ActorReceiveAsync;
+            }
+
+            await receive(this);
         }
     }
 }
