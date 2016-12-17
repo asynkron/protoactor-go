@@ -10,6 +10,10 @@ namespace GAM
     {
     }
 
+    public abstract class AutoReceiveMessage
+    {
+    }
+
     public sealed class SuspendMailbox : SystemMessage
     {
     }
@@ -18,5 +22,5 @@ namespace GAM
     {
     }
 
-    public sealed class Started { }
+    public sealed class Started : AutoReceiveMessage { }
 }

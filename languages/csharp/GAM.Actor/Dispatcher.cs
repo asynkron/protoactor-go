@@ -18,6 +18,10 @@ namespace GAM
 
     public sealed class ThreadPoolDispatcher : IDispatcher
     {
+        public ThreadPoolDispatcher()
+        {
+            this.Throughput = 300;
+        }
         public void Schedule(Func<Task> runner)
         {
             ThreadPool.QueueUserWorkItem(_ => runner());

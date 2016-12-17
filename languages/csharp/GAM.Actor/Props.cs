@@ -25,13 +25,16 @@ namespace GAM
             return new Props()
             {
                 _actorProducer = producer ?? _actorProducer,
-                Dispatcher = dispatcher ?? Dispatcher,
+                _dispatcher = dispatcher ?? Dispatcher,
                 _mailboxProducer = mailboxProducer ?? _mailboxProducer,
             };
         }
 
-        public Func<IMailbox> MailboxProducer => _mailboxProducer;
+        public Func<IActor> Producer => _actorProducer;
+        public Func<IMailbox> MailboxProducer => _mailboxProducer ??( () => new DefaultMailbox());
 
-        public IDispatcher Dispatcher { get; private set; }
+        private IDispatcher _dispatcher;
+
+        public IDispatcher Dispatcher => _dispatcher ?? new ThreadPoolDispatcher();
     }
 }

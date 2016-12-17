@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GAM.Actor", "..\GAM.Actor\G
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GAM.Remoting", "GAM.Remoting\GAM.Remoting.csproj", "{C5B136C4-6EBD-4694-9664-0072DE878296}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Labb", "Labb\Labb.csproj", "{ABADF472-0EDE-4EC0-8AC1-B8612EFF76FE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{C5B136C4-6EBD-4694-9664-0072DE878296}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C5B136C4-6EBD-4694-9664-0072DE878296}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C5B136C4-6EBD-4694-9664-0072DE878296}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABADF472-0EDE-4EC0-8AC1-B8612EFF76FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABADF472-0EDE-4EC0-8AC1-B8612EFF76FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABADF472-0EDE-4EC0-8AC1-B8612EFF76FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABADF472-0EDE-4EC0-8AC1-B8612EFF76FE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

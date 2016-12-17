@@ -10,6 +10,11 @@ namespace GAM
 {
     public class PID
     {
+        public void Tell(object message)
+        {
+            var reff = ProcessRegistry.Instance.Get(this);
+            reff.Tell(message);
+        }
         public string Id { get; set; }
     }
 

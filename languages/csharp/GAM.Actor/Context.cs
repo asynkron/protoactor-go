@@ -49,6 +49,7 @@ namespace GAM
             _watchers = null;
             _watching = null;
             Message = null;
+            _actor = props.Producer();
         }
 
         public void InvokeSystemMessage(SystemMessage msg)
@@ -57,7 +58,8 @@ namespace GAM
 
         public async Task InvokeUserMessageAsync(object msg)
         {
-            await Task.Yield();
+            Message = msg;
+            await _actor.ReceiveAsync(this);
         }
 
         public PID[] Children()
