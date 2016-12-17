@@ -1,8 +1,8 @@
-﻿// //-----------------------------------------------------------------------
-// // <copyright file="Messages.cs" company="Asynkron HB">
-// //     Copyright (C) 2015-2016 Asynkron HB All rights reserved
-// // </copyright>
-// //-----------------------------------------------------------------------
+﻿// -----------------------------------------------------------------------
+//  <copyright file="Messages.cs" company="Asynkron HB">
+//      Copyright (C) 2015-2016 Asynkron HB All rights reserved
+//  </copyright>
+// -----------------------------------------------------------------------
 
 namespace GAM
 {

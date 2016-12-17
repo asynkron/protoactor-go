@@ -1,8 +1,8 @@
-﻿// //-----------------------------------------------------------------------
-// // <copyright file="Actor.cs" company="Asynkron HB">
-// //     Copyright (C) 2015-2016 Asynkron HB All rights reserved
-// // </copyright>
-// //-----------------------------------------------------------------------
+﻿// -----------------------------------------------------------------------
+//  <copyright file="Actor.cs" company="Asynkron HB">
+//      Copyright (C) 2015-2016 Asynkron HB All rights reserved
+//  </copyright>
+// -----------------------------------------------------------------------
 
 using System;
 using System.Threading.Tasks;
@@ -12,6 +12,7 @@ namespace GAM
     public static class Actor
     {
         public static readonly Task Done = Task.FromResult(0);
+
         public static Props FromProducer(Func<IActor> producer)
         {
             return new Props().Copy(producer = producer);

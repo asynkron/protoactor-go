@@ -1,8 +1,8 @@
-﻿// //-----------------------------------------------------------------------
-// // <copyright file="Dispatcher.cs" company="Asynkron HB">
-// //     Copyright (C) 2015-2016 Asynkron HB All rights reserved
-// // </copyright>
-// //-----------------------------------------------------------------------
+﻿// -----------------------------------------------------------------------
+//  <copyright file="Dispatcher.cs" company="Asynkron HB">
+//      Copyright (C) 2015-2016 Asynkron HB All rights reserved
+//  </copyright>
+// -----------------------------------------------------------------------
 
 using System;
 using System.Threading;
@@ -20,12 +20,12 @@ namespace GAM
     {
         public ThreadPoolDispatcher()
         {
-            this.Throughput = 300;
+            Throughput = 300;
         }
 
         public void Schedule(Func<Task> runner)
         {
-            ThreadPool.QueueUserWorkItem(_ => runner());
+            ThreadPool.QueueUserWorkItem(_ => runner(), null);
         }
 
         public int Throughput { get; set; }
