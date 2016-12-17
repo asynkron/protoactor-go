@@ -8,11 +8,17 @@ using System;
 
 namespace GAM
 {
-
     public sealed class Props
     {
         private Func<IActor> _actorProducer;
+
+        private IDispatcher _dispatcher;
         private Func<IMailbox> _mailboxProducer;
+
+        public Func<IActor> Producer => _actorProducer;
+        public Func<IMailbox> MailboxProducer => _mailboxProducer ?? (() => new DefaultMailbox());
+
+        public IDispatcher Dispatcher => _dispatcher ?? new ThreadPoolDispatcher();
 
         public Props WithDispatcher(IDispatcher dispatcher)
         {
@@ -20,7 +26,8 @@ namespace GAM
         }
 
 
-        public Props Copy(Func<IActor> producer = null, IDispatcher dispatcher = null, Func<IMailbox> mailboxProducer = null )
+        public Props Copy(Func<IActor> producer = null, IDispatcher dispatcher = null,
+            Func<IMailbox> mailboxProducer = null)
         {
             return new Props()
             {
@@ -29,12 +36,5 @@ namespace GAM
                 _mailboxProducer = mailboxProducer ?? _mailboxProducer,
             };
         }
-
-        public Func<IActor> Producer => _actorProducer;
-        public Func<IMailbox> MailboxProducer => _mailboxProducer ??( () => new DefaultMailbox());
-
-        private IDispatcher _dispatcher;
-
-        public IDispatcher Dispatcher => _dispatcher ?? new ThreadPoolDispatcher();
     }
 }

@@ -26,7 +26,7 @@ namespace GAM
     {
         void PostUserMessage(object msg);
         void PostSystemMessage(SystemMessage sys);
-        void RegisterHandlers(IMessageInvoker  invoker, IDispatcher dispatcher);
+        void RegisterHandlers(IMessageInvoker invoker, IDispatcher dispatcher);
     }
 
     public class DefaultMailbox : IMailbox
@@ -40,12 +40,29 @@ namespace GAM
         private int _status = MailboxStatus.Idle;
         private bool _suspended;
 
+        public void PostUserMessage(object msg)
+        {
+            _userMessages.Enqueue(msg);
+            Schedule();
+        }
+
+        public void PostSystemMessage(SystemMessage sys)
+        {
+            _systemMessages.Enqueue(sys);
+            Schedule();
+        }
+
+        public void RegisterHandlers(IMessageInvoker invoker, IDispatcher dispatcher)
+        {
+            _invoker = invoker;
+            _dispatcher = dispatcher;
+        }
+
         private async Task RunAsync()
         {
             //we are about to process all enqueued messages
             Interlocked.Exchange(ref _hasMoreMessages, MailboxMessages.MailboxHasNoMessages);
             var t = _dispatcher.Throughput;
-
 
             for (var i = 0; i < t; i++)
             {
@@ -72,6 +89,10 @@ namespace GAM
                 {
                     await _invoker.InvokeUserMessageAsync(msg);
                 }
+                else
+                {
+                    break;
+                }
             }
 
             Interlocked.Exchange(ref _status, MailboxStatus.Idle);
@@ -90,24 +111,6 @@ namespace GAM
             {
                 _dispatcher.Schedule(RunAsync);
             }
-        }
-
-        public void PostUserMessage(object msg)
-        {
-            _userMessages.Enqueue(msg);
-            Schedule();
-        }
-
-        public void PostSystemMessage(SystemMessage sys)
-        {
-            _systemMessages.Enqueue(sys);
-            Schedule();
-        }
-
-        public void RegisterHandlers(IMessageInvoker  invoker, IDispatcher dispatcher)
-        {
-            _invoker = invoker;
-            _dispatcher = dispatcher;
         }
     }
 }

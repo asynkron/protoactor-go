@@ -1,7 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿// //-----------------------------------------------------------------------
+// // <copyright file="Futures.cs" company="Asynkron HB">
+// //     Copyright (C) 2015-2016 Asynkron HB All rights reserved
+// // </copyright>
+// //-----------------------------------------------------------------------
+
 using System.Threading.Tasks;
 
 namespace GAM
@@ -23,8 +25,8 @@ namespace GAM
                 _tcs.TrySetResult((T) msg);
                 context.Self.Stop();
             }
-            
-            return Task.FromResult(0);
+
+            return Actor.Done;
         }
     }
 }

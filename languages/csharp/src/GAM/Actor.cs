@@ -11,6 +11,7 @@ namespace GAM
 {
     public static class Actor
     {
+        public static readonly Task Done = Task.FromResult(0);
         public static Props FromProducer(Func<IActor> producer)
         {
             return new Props().Copy(producer = producer);
@@ -33,12 +34,12 @@ namespace GAM
             var mailbox = props.MailboxProducer();
             var dispatcher = props.Dispatcher;
             var reff = new LocalActorRef(mailbox);
-            var res = ProcessRegistry.Instance.TryAdd(name,reff);
+            var res = ProcessRegistry.Instance.TryAdd(name, reff);
             if (res.Item2)
             {
                 mailbox.RegisterHandlers(ctx, dispatcher);
                 ctx.Self = res.Item1;
-                ctx.InvokeUserMessageAsync(new Started ());
+                ctx.InvokeUserMessageAsync(new Started());
             }
             return res.Item1;
         }

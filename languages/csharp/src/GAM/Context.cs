@@ -21,17 +21,24 @@ namespace GAM
     {
         PID Parent { get; }
         PID Self { get; }
+
         Props Props { get; }
-        PID[] Children();
         object Message { get; }
+        PID Sender { get; }
+
+        void Respond(object msg);
+        PID[] Children();
+
         void Stash();
         Task NextAsync();
+        PID Spawn(Props props);
     }
 
     public class Context : IMessageInvoker, IContext
     {
         private IActor _actor;
         private HashSet<PID> _children;
+        private object _message;
         private int _receiveIndex;
         private ReceiveAsync[] _receivePlugins;
         private bool _restarting;
@@ -41,48 +48,15 @@ namespace GAM
         private HashSet<PID> _watchers;
         private HashSet<PID> _watching;
 
-        private async Task ActorReceiveAsync(IContext ctx)
-        {
-            await _actor.ReceiveAsync(ctx);
-        }
-
         public Context(Props props, PID parent)
         {
-
             Parent = parent;
             Props = props;
-            _receivePlugins = new ReceiveAsync[] {}; 
+            _receivePlugins = new ReceiveAsync[] {};
             _watchers = null;
             _watching = null;
             Message = null;
             _actor = props.Producer();
-        }
-
-        public void InvokeSystemMessage(SystemMessage msg)
-        {
-        }
-
-        public async Task InvokeUserMessageAsync(object msg)
-        {
-            try
-            {
-                _receiveIndex = 0;
-                Message = msg;
-
-                await NextAsync();
-            }
-            catch (Exception x)
-            {
-                if (Parent == null)
-                {
-
-                }
-                else
-                {
-                    Self.SendSystemMessage(new SuspendMailbox());
-                }
-                //handle supervision
-            }
         }
 
         public PID[] Children()
@@ -93,7 +67,19 @@ namespace GAM
         public PID Parent { get; }
         public PID Self { get; internal set; }
         public Props Props { get; }
-        public object Message { get; private set; }
+
+        public object Message
+        {
+            get
+            {
+                var r = _message as Request;
+                return r != null ? r.Message : _message;
+            }
+            private set { _message = value; }
+        }
+
+        public PID Sender => (_message as Request)?.Sender;
+
         public void Stash()
         {
             if (_stash == null)
@@ -117,6 +103,76 @@ namespace GAM
             }
 
             await receive(this);
+        }
+
+        public void Respond(object msg)
+        {
+            Sender.Tell(msg);
+        }
+
+        public PID Spawn(Props props)
+        {
+            var id = ProcessRegistry.Instance.GetAutoId();
+
+            return SpawnNamed(props, id);
+        }
+
+        public void InvokeSystemMessage(SystemMessage msg)
+        {
+        }
+
+        public async Task InvokeUserMessageAsync(object msg)
+        {
+            try
+            {
+                _receiveIndex = 0;
+                Message = msg;
+
+                await NextAsync();
+            }
+            catch (Exception x)
+            {
+                if (Parent == null)
+                {
+                }
+                else
+                {
+                    Self.SendSystemMessage(new SuspendMailbox());
+                }
+                //handle supervision
+            }
+        }
+
+        private async Task ActorReceiveAsync(IContext ctx)
+        {
+            await _actor.ReceiveAsync(ctx);
+        }
+
+        public PID SpawnNamed(Props props, string name)
+        {
+            string fullname;
+            if (Parent != null)
+            {
+                fullname = Parent.Id + "/" + name;
+            }
+            else
+            {
+                fullname = name;
+            }
+
+            var pid = Actor.spawn(props, fullname, Self);
+            if (_children == null)
+            {
+                _children = new HashSet<PID>();
+            }
+            _children.Add(pid);
+            Watch(pid);
+            return pid;
+        }
+
+        private void Watch(PID who)
+        {
+            who.SendSystemMessage(new Watch(Self));
         }
     }
 }

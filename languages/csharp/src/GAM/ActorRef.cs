@@ -10,12 +10,13 @@ namespace GAM
 {
     public class PID
     {
+        public string Id { get; set; }
+
         public void Tell(object message)
         {
             var reff = ProcessRegistry.Instance.Get(this);
             reff.Tell(message);
         }
-        public string Id { get; set; }
 
         public void SendSystemMessage(SystemMessage sys)
         {
@@ -28,12 +29,12 @@ namespace GAM
             Tell(new Request(message, sender));
         }
 
-        public async Task<T> RequestAsync<T>(object message, PID sender)
+        public async Task<T> RequestAsync<T>(object message)
         {
             var tsc = new TaskCompletionSource<T>();
             var p = Actor.FromProducer(() => new FutureActor<T>(tsc));
             var fpid = Actor.Spawn(p);
-            fpid.Tell(new Request(message,sender));
+            Tell(new Request(message, fpid));
             await tsc.Task;
             return tsc.Task.Result;
         }
@@ -67,16 +68,16 @@ namespace GAM
         }
 
         public abstract void SendSystemMessage(PID pid, SystemMessage sys);
-
     }
 
     public class LocalActorRef : ActorRef
     {
-        public IMailbox Mailbox { get; }
         public LocalActorRef(IMailbox mailbox)
         {
             Mailbox = mailbox;
         }
+
+        public IMailbox Mailbox { get; }
 
         public override void Tell(object message)
         {

@@ -22,9 +22,21 @@ namespace GAM
     {
     }
 
+    public sealed class Watch : SystemMessage
+    {
+        public Watch(PID watcher)
+        {
+            Watcher = watcher;
+        }
+
+        public PID Watcher { get; }
+    }
+
     public sealed class Stop : SystemMessage
     {
     }
 
-    public sealed class Started : AutoReceiveMessage { }
+    public sealed class Started : AutoReceiveMessage
+    {
+    }
 }
