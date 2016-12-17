@@ -17,10 +17,31 @@ namespace GAM
         }
         public string Id { get; set; }
 
-        public void SendSystemMessage(SuspendMailbox suspendMailbox)
+        public void SendSystemMessage(SystemMessage sys)
         {
             var reff = ProcessRegistry.Instance.Get(this);
-            //TODO: send system message
+            reff.SendSystemMessage(this, sys);
+        }
+
+        public void Request(object message, PID sender)
+        {
+            Tell(new Request(message, sender));
+        }
+
+        public async Task<T> RequestAsync<T>(object message, PID sender)
+        {
+            var tsc = new TaskCompletionSource<T>();
+            var p = Actor.FromProducer(() => new FutureActor<T>(tsc));
+            var fpid = Actor.Spawn(p);
+            fpid.Tell(new Request(message,sender));
+            await tsc.Task;
+            return tsc.Task.Result;
+        }
+
+        public void Stop()
+        {
+            var reff = ProcessRegistry.Instance.Get(this);
+            reff.Stop(this);
         }
     }
 
@@ -39,18 +60,32 @@ namespace GAM
     public abstract class ActorRef
     {
         public abstract void Tell(object message);
-    }
 
-    public static class ActorRefExtensions
-    {
-        public static void Request(this ActorRef self, object message, PID sender)
+        public void Stop(PID pid)
         {
-            self.Tell(new Request(message, sender));
+            SendSystemMessage(pid, new Stop());
         }
 
-        public static Task<T> RequestAsync<T>(this ActorRef self, object message, PID sender)
+        public abstract void SendSystemMessage(PID pid, SystemMessage sys);
+
+    }
+
+    public class LocalActorRef : ActorRef
+    {
+        public IMailbox Mailbox { get; }
+        public LocalActorRef(IMailbox mailbox)
         {
-            return null;
+            Mailbox = mailbox;
+        }
+
+        public override void Tell(object message)
+        {
+            Mailbox.PostUserMessage(message);
+        }
+
+        public override void SendSystemMessage(PID pid, SystemMessage sys)
+        {
+            Mailbox.PostSystemMessage(sys);
         }
     }
 }

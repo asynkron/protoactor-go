@@ -22,5 +22,9 @@ namespace GAM
     {
     }
 
+    public sealed class Stop : SystemMessage
+    {
+    }
+
     public sealed class Started : AutoReceiveMessage { }
 }
