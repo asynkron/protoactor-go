@@ -47,6 +47,8 @@ namespace GAM
         private SupervisionStrategy _supervisionStrategy;
         private HashSet<PID> _watchers;
         private HashSet<PID> _watching;
+        private bool _isRestarting;
+        private bool _isStopping;
 
         public Context(Props props, PID parent)
         {
@@ -121,8 +123,59 @@ namespace GAM
         {
             if (msg is Stop)
             {
-                ProcessRegistry.Instance.Remove(Self);
+                HandleStop();
             }
+        }
+
+        private void HandleStop()
+        {
+            _isRestarting = false;
+            _isStopping = true;
+            //this is intentional
+            InvokeUserMessageAsync(Stopping.Instance).Wait();
+            if (_children != null)
+            {
+                foreach (var child in _children)
+                {
+                    child.Stop();
+                }
+            }
+            TryRestartOrTerminate();
+        }
+
+        private void TryRestartOrTerminate()
+        {
+            if (_children != null)
+            {
+                if (_children.Count > 0)
+                {
+                    return;
+                }
+            }
+
+            if (_restarting)
+            {
+                Restart();
+                return;
+            }
+
+            if (_stopping)
+            {
+                Stopped();
+            }
+        }
+
+        private void Stopped()
+        {
+           ProcessRegistry.Instance.Remove(Self);
+            //This is intentional
+            InvokeUserMessageAsync(GAM.Stopped.Instance).Wait();
+            //Notify watchers
+        }
+
+        private void Restart()
+        {
+            throw new NotImplementedException();
         }
 
         public async Task InvokeUserMessageAsync(object msg)

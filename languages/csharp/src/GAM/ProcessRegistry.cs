@@ -12,8 +12,8 @@ namespace GAM
 {
     public class ProcessRegistry
     {
-        private readonly HashedConcurrentDictionary.Partition _localActorRefs =
-            new HashedConcurrentDictionary.Partition();
+        private readonly HashedConcurrentDictionary _localActorRefs =
+            new HashedConcurrentDictionary();
 
         private int _sequenceID;
         public static ProcessRegistry Instance { get; } = new ProcessRegistry();
