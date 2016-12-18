@@ -8,10 +8,9 @@ using System.Threading.Tasks;
 
 namespace GAM
 {
-    public class PID
+    public partial class PID
     {
         internal ActorRef Ref { get; set; }
-        public string Id { get; set; }
 
         public void Tell(object message)
         {

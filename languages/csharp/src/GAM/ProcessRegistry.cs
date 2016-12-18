@@ -42,7 +42,7 @@ namespace GAM
         public void Remove(PID pid)
         {
             ActorRef aref;
-            _localActorRefs.TryRemove(pid.Id, out aref);
+            _localActorRefs.Remove(pid.Id);
         }
 
         internal string GetAutoId()

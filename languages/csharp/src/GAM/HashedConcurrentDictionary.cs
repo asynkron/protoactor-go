@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace GAM
 {
@@ -43,22 +44,32 @@ namespace GAM
         public bool TryAdd(string key, ActorRef reff)
         {
             var p = GetPartition(key);
-            return p.TryAdd(key, reff);
+            lock (p)
+            {
+                p.Add(key, reff);
+                return true;
+            }
         }
 
         public bool TryGetValue(string key, out ActorRef aref)
         {
             var p = GetPartition(key);
-            return p.TryGetValue(key, out aref);
+            lock (p)
+            {
+                return p.TryGetValue(key, out aref);
+            }
         }
 
-        public bool TryRemove(string key, out ActorRef aref)
+        public void Remove(string key)
         {
             var p = GetPartition(key);
-            return p.TryRemove(key, out aref);
+            lock (p)
+            {
+                p.Remove(key);
+            }
         }
 
-        public class Partition : ConcurrentDictionary<string, ActorRef>
+        public class Partition : Dictionary<string, ActorRef>
         {
         }
     }

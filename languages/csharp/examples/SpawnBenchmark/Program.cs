@@ -43,7 +43,7 @@ namespace SpawnBenchmark
                 ReplyTo = context.Sender;
                 for (var i = 0; i < r.Div; i++)
                 {
-                    var child = context.Spawn(props);
+                    var child = Actor.Spawn(props);
                     child.Request(new Request
                     {
                         Num = r.Num + i*(r.Size/r.Div),
