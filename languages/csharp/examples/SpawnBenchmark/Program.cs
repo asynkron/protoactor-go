@@ -48,6 +48,7 @@ namespace SpawnBenchmark
                             Div = r.Div
                         }, context.Self);
                     }
+
                     return Actor.Done;
                 case Int64 i:
                     Sum += i;
@@ -69,12 +70,14 @@ namespace SpawnBenchmark
         {
             var pid = Actor.Spawn(MyActor.props);
             var sw = Stopwatch.StartNew();
-            var res = pid.RequestAsync<long>(new Request
+            var t = pid.RequestAsync<long>(new Request
             {
                 Num = 0,
                 Size = 1000000,
                 Div = 10
-            }).Result;
+            });
+            t.ConfigureAwait(false);
+            var res = t.Result;
             Console.WriteLine(sw.Elapsed);
 
             Console.WriteLine(res);

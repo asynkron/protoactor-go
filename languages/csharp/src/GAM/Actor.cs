@@ -15,7 +15,7 @@ namespace GAM
 
         public static Props FromProducer(Func<IActor> producer)
         {
-            return new Props().Copy(producer = producer);
+            return new Props().Copy(producer: producer);
         }
 
         public static PID Spawn(Props props)
@@ -36,11 +36,13 @@ namespace GAM
             var dispatcher = props.Dispatcher;
             var reff = new LocalActorRef(mailbox);
             var (pid,ok) = ProcessRegistry.Instance.TryAdd(name, reff);
+            pid.Ref = reff;
             if (ok)
             {
                 mailbox.RegisterHandlers(ctx, dispatcher);
                 ctx.Self = pid;
-                ctx.InvokeUserMessageAsync(new Started());
+                //this is on purpose, Started is synchronous to its parent
+                ctx.InvokeUserMessageAsync(new Started()).Wait();
             }
             return pid;
         }

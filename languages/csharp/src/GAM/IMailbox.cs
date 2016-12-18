@@ -60,7 +60,6 @@ namespace GAM
 
         private async Task RunAsync()
         {
-            //we are about to process all enqueued messages
             Interlocked.Exchange(ref _hasMoreMessages, MailboxMessages.MailboxHasNoMessages);
             var t = _dispatcher.Throughput;
 
