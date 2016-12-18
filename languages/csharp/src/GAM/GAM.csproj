@@ -63,8 +63,10 @@
     <Compile Include="Actor.cs" />
     <Compile Include="ActorRef.cs" />
     <Compile Include="Context.cs" />
+    <Compile Include="DeadLetter.cs" />
     <Compile Include="Delegates.cs" />
     <Compile Include="Dispatcher.cs" />
+    <Compile Include="EventStream.cs" />
     <Compile Include="Futures.cs" />
     <Compile Include="HashedConcurrentDictionary.cs" />
     <Compile Include="IMailbox.cs" />

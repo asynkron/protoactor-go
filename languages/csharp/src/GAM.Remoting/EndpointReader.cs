@@ -16,9 +16,10 @@ namespace GAM.Remoting
             {
                 foreach (var envelope in batch.Envelopes)
                 {
-
-                    var o = Serialization.Deserialize(envelope.TypeName, envelope.MessageData);
-                    Console.WriteLine(envelope.ToString());
+                    var target = envelope.Target;
+                    var sender = envelope.Sender;
+                    var message = Serialization.Deserialize(envelope.TypeName, envelope.MessageData);
+                    target.Request(message,sender);
                 }
                
                 return Actor.Done;

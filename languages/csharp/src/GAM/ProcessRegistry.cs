@@ -25,7 +25,7 @@ namespace GAM
             {
                 return aref;
             }
-            return null;
+            return DeadLetterActorRef.Instance;
         }
 
         public ValueTuple<PID, bool> TryAdd(string id, ActorRef aref)
