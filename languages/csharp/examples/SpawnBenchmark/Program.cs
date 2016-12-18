@@ -36,6 +36,7 @@ namespace SpawnBenchmark
                 if (r.Size == 1)
                 {
                     context.Respond(r.Num);
+                    context.Self.Stop();
                     return Actor.Done;
                 }
                 Replies = r.Div;

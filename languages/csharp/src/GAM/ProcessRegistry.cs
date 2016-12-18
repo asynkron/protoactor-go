@@ -39,6 +39,12 @@ namespace GAM
             return ValueTuple.Create(pid, ok);
         }
 
+        public void Remove(PID pid)
+        {
+            ActorRef aref;
+            _localActorRefs.TryRemove(pid.Id, out aref);
+        }
+
         internal string GetAutoId()
         {
             var counter = Interlocked.Increment(ref _sequenceID);

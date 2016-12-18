@@ -119,6 +119,10 @@ namespace GAM
 
         public void InvokeSystemMessage(SystemMessage msg)
         {
+            if (msg is Stop)
+            {
+                ProcessRegistry.Instance.Remove(Self);
+            }
         }
 
         public async Task InvokeUserMessageAsync(object msg)

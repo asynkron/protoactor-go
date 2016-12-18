@@ -38,5 +38,6 @@ namespace GAM
 
     public sealed class Started : AutoReceiveMessage
     {
+        public static readonly Started Instance = new Started();
     }
 }

@@ -43,7 +43,7 @@ namespace GAM
                 mailbox.RegisterHandlers(ctx, dispatcher);
                 ctx.Self = pid;
                 //this is on purpose, Started is synchronous to its parent
-                ctx.InvokeUserMessageAsync(new Started()).Wait();
+                ctx.InvokeUserMessageAsync(Started.Instance).Wait();
             }
             return pid;
         }
