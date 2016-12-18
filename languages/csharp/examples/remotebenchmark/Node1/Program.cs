@@ -9,6 +9,7 @@ namespace Node1
     public class EchoActor : IActor
     {
         private PID _sender;
+     //   private int counter = 0;
         public Task ReceiveAsync(IContext context)
         {
             var msg = context.Message;
@@ -23,6 +24,11 @@ namespace Node1
 
             if (msg is Ping)
             {
+              //  counter++;
+                //if (counter%100000 == 0)
+                //{
+                //    Console.WriteLine(counter);
+                //}
                 _sender.Tell(new Pong());
                 return Actor.Done;
             }
