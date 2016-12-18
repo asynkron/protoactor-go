@@ -58,6 +58,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Protos.g.cs" />
     <Compile Include="ProtosGrpc.cs" />
+    <Compile Include="RemotingSystem.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
