@@ -69,6 +69,10 @@
       <Project>{c5b136c4-6ebd-4694-9664-0072de878296}</Project>
       <Name>GAM.Remoting</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\src\GAM\GAM.csproj">
+      <Project>{C036F196-0AA6-4C3D-B340-93A922461B54}</Project>
+      <Name>GAM</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Messages\Messages.csproj">
       <Project>{e36b82ba-d7d2-42f7-a946-462573bae266}</Project>
       <Name>Messages</Name>

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 
@@ -10,25 +6,19 @@ namespace GAM.Remoting
 {
     public static class Serialization
     {
-        private static Dictionary<string, MessageParser> _typeLookup;
-        public static void Init()
+        private static readonly Dictionary<string, MessageParser> TypeLookup = new Dictionary<string, MessageParser>();
+        static Serialization()
         {
-            var fileDescriptors =
-                (from asm in AppDomain.CurrentDomain.GetAssemblies()
-                    from type in asm.GetTypes()
-                    where type.Name == "ProtosReflection"
-                    let prop = type.GetProperty("Descriptor")
-                    select (FileDescriptor) prop.GetValue(null)).ToArray();
+            RegisterFileDescriptor(GAM.ProtosReflection.Descriptor);
+            RegisterFileDescriptor(GAM.Remoting.ProtosReflection.Descriptor);
+        }
 
-            _typeLookup = new Dictionary<string, MessageParser>();
-            foreach (var fd in fileDescriptors)
+        public static void RegisterFileDescriptor(FileDescriptor fd)
+        {
+            foreach (var msg in fd.MessageTypes)
             {
-                foreach (var msg in fd.MessageTypes)
-                {
-                    var name = fd.Package + "." + msg.Name;
-                    var parser = (MessageParser)msg.ClrType.GetProperty("Parser").GetValue(null);
-                    _typeLookup.Add(name, parser);
-                }
+                var name = fd.Package + "." + msg.Name;
+                TypeLookup.Add(name, msg.Parser);
             }
         }
 
@@ -39,7 +29,7 @@ namespace GAM.Remoting
 
         public static object Deserialize(string typeName, ByteString bytes)
         {
-            var parser = _typeLookup[typeName];
+            var parser = TypeLookup[typeName];
             var o = parser.ParseFrom(bytes);
             return o;
         }

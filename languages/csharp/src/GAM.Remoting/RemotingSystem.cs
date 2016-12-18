@@ -5,9 +5,6 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using Google.Protobuf.Reflection;
 using Grpc.Core;
 
 namespace GAM.Remoting
@@ -18,7 +15,6 @@ namespace GAM.Remoting
 
         public static void Start(string host, int port)
         {
-            Serialization.Init();
             var addr = host + ":" + port;
             ProcessRegistry.Instance.Host = addr;
 
