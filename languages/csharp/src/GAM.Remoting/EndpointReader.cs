@@ -16,6 +16,8 @@ namespace GAM.Remoting
             {
                 foreach (var envelope in batch.Envelopes)
                 {
+
+                    var o = Serialization.Deserialize(envelope.TypeName, envelope.MessageData);
                     Console.WriteLine(envelope.ToString());
                 }
                

@@ -59,6 +59,7 @@
     <Compile Include="Protos.g.cs" />
     <Compile Include="ProtosGrpc.cs" />
     <Compile Include="RemotingSystem.cs" />
+    <Compile Include="Serialization.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
