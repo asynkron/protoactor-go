@@ -89,7 +89,7 @@ namespace GAM
             _stash.Push(Message);
         }
 
-        public async Task NextAsync()
+        public Task NextAsync()
         {
             ReceiveAsync receive;
             if (_receiveIndex < _receivePlugins.Length)
@@ -102,7 +102,7 @@ namespace GAM
                 receive = ActorReceiveAsync;
             }
 
-            await receive(this);
+            return receive(this);
         }
 
         public void Respond(object msg)
@@ -143,9 +143,9 @@ namespace GAM
             }
         }
 
-        private async Task ActorReceiveAsync(IContext ctx)
+        private Task ActorReceiveAsync(IContext ctx)
         {
-            await _actor.ReceiveAsync(ctx);
+            return _actor.ReceiveAsync(ctx);
         }
 
         public PID SpawnNamed(Props props, string name)
@@ -160,7 +160,7 @@ namespace GAM
                 fullname = name;
             }
 
-            var pid = Actor.spawn(props, fullname, Self);
+            var pid = Actor.InternalSpawn(props, fullname, Self);
             if (_children == null)
             {
                 _children = new HashSet<PID>();

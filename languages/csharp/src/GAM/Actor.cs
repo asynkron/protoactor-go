@@ -21,28 +21,28 @@ namespace GAM
         public static PID Spawn(Props props)
         {
             var name = ProcessRegistry.Instance.GetAutoId();
-            return spawn(props, name, null);
+            return InternalSpawn(props, name, null);
         }
 
         public static PID SpawnNamed(Props props, string name)
         {
-            return spawn(props, name, null);
+            return InternalSpawn(props, name, null);
         }
 
-        internal static PID spawn(Props props, string name, PID parent)
+        internal static PID InternalSpawn(Props props, string name, PID parent)
         {
             var ctx = new Context(props, parent);
             var mailbox = props.MailboxProducer();
             var dispatcher = props.Dispatcher;
             var reff = new LocalActorRef(mailbox);
-            var res = ProcessRegistry.Instance.TryAdd(name, reff);
-            if (res.Item2)
+            var (pid,ok) = ProcessRegistry.Instance.TryAdd(name, reff);
+            if (ok)
             {
                 mailbox.RegisterHandlers(ctx, dispatcher);
-                ctx.Self = res.Item1;
+                ctx.Self = pid;
                 ctx.InvokeUserMessageAsync(new Started());
             }
-            return res.Item1;
+            return pid;
         }
     }
 

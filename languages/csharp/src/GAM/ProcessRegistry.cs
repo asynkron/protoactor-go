@@ -12,8 +12,8 @@ namespace GAM
 {
     public class ProcessRegistry
     {
-        private readonly ConcurrentDictionary<string, ActorRef> _localActorRefs =
-            new ConcurrentDictionary<string, ActorRef>();
+        private readonly HashedConcurrentDictionary.Partition _localActorRefs =
+            new HashedConcurrentDictionary.Partition();
 
         private int _sequenceID;
         public static ProcessRegistry Instance { get; } = new ProcessRegistry();
@@ -28,14 +28,14 @@ namespace GAM
             return null;
         }
 
-        public Tuple<PID, bool> TryAdd(string id, ActorRef aref)
+        public (PID, bool) TryAdd(string id, ActorRef aref)
         {
             var pid = new PID()
             {
                 Id = id,
             };
             var ok = _localActorRefs.TryAdd(pid.Id, aref);
-            return Tuple.Create(pid, ok);
+            return (pid, ok);
         }
 
         internal string GetAutoId()

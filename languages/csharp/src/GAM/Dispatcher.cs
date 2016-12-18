@@ -25,7 +25,7 @@ namespace GAM
 
         public void Schedule(Func<Task> runner)
         {
-            ThreadPool.QueueUserWorkItem(_ => runner(), null);
+            Task.Factory.StartNew(runner);
         }
 
         public int Throughput { get; set; }

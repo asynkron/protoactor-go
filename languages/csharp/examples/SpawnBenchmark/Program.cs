@@ -8,6 +8,7 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using GAM;
+using System.Threading;
 
 namespace SpawnBenchmark
 {
@@ -23,43 +24,42 @@ namespace SpawnBenchmark
         public static Props props = Actor.FromProducer(() => new MyActor());
         private long Replies;
         private PID ReplyTo;
-
         private long Sum;
 
         public Task ReceiveAsync(IContext context)
         {
-            var msg = context.Message;
-            if (msg is Request)
+            switch (context.Message)
             {
-                var r = (Request) msg;
-                if (r.Size == 1)
-                {
-                    context.Respond(r.Num);
-                    return Actor.Done;
-                }
-                Replies = r.Div;
-                ReplyTo = context.Sender;
-                for (var i = 0; i < r.Div; i++)
-                {
-                    var child = context.Spawn(props);
-                    child.Request(new Request
+                case Request r:
+                    if (r.Size == 1)
                     {
-                        Num = r.Num + i*(r.Size/r.Div),
-                        Size = r.Size/r.Div,
-                        Div = r.Div
-                    }, context.Self);
-                }
+                        context.Respond(r.Num);
+                        return Actor.Done;
+                    }
+                    Replies = r.Div;
+                    ReplyTo = context.Sender;
+                    for (var i = 0; i < r.Div; i++)
+                    {
+                        var child = context.Spawn(props);
+                        child.Request(new Request
+                        {
+                            Num = r.Num + i * (r.Size / r.Div),
+                            Size = r.Size / r.Div,
+                            Div = r.Div
+                        }, context.Self);
+                    }
+                    return Actor.Done;
+                case Int64 i:
+                    Sum += i;
+                    Replies--;
+                    if (Replies == 0)
+                    {
+                        ReplyTo.Tell(Sum);
+                    }
+                    return Actor.Done;
+                default:
+                    return Actor.Done;
             }
-            if (msg is long)
-            {
-                Sum += (long) msg;
-                Replies--;
-                if (Replies == 0)
-                {
-                    ReplyTo.Tell(Sum);
-                }
-            }
-            return Actor.Done;
         }
     }
 
