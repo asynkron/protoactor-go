@@ -5,7 +5,6 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Collections.Concurrent;
 using System.Threading;
 
 namespace GAM
@@ -15,11 +14,17 @@ namespace GAM
         private readonly HashedConcurrentDictionary _localActorRefs =
             new HashedConcurrentDictionary();
 
-        private int _sequenceID;
+        private int _sequenceId;
         public static ProcessRegistry Instance { get; } = new ProcessRegistry();
+
+        public string Host { get; set; } = "nonhost";
 
         public ActorRef Get(PID pid)
         {
+            if (pid.Host != "nonhost" && pid.Host != Host)
+            {
+            }
+
             ActorRef aref;
             if (_localActorRefs.TryGetValue(pid.Id, out aref))
             {
@@ -41,13 +46,12 @@ namespace GAM
 
         public void Remove(PID pid)
         {
-            ActorRef aref;
             _localActorRefs.Remove(pid.Id);
         }
 
         internal string GetAutoId()
         {
-            var counter = Interlocked.Increment(ref _sequenceID);
+            var counter = Interlocked.Increment(ref _sequenceId);
             return "$" + counter;
         }
     }

@@ -19,6 +19,8 @@ namespace GAM.Remoting
         public static void Start(string host, int port)
         {
             Serialization.Init();
+            var addr = host + ":" + port;
+            ProcessRegistry.Instance.Host = addr;
 
             server = new Server
             {
@@ -27,7 +29,7 @@ namespace GAM.Remoting
             };
             server.Start();
 
-            Console.WriteLine("[REMOTING] Starting GAM server on {0}:{1}", host, port);
+            Console.WriteLine("[REMOTING] Starting GAM server on {0}", addr);
         }
     }
 }

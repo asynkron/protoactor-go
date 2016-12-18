@@ -10,7 +10,7 @@ namespace GAM.Remoting
 {
     public static class Serialization
     {
-        private static Dictionary<string, Type> _typeLookup;
+        private static Dictionary<string, MessageParser> _typeLookup;
         public static void Init()
         {
             var fileDescriptors =
@@ -20,13 +20,14 @@ namespace GAM.Remoting
                     let prop = type.GetProperty("Descriptor")
                     select (FileDescriptor) prop.GetValue(null)).ToArray();
 
-            _typeLookup = new Dictionary<string, Type>();
+            _typeLookup = new Dictionary<string, MessageParser>();
             foreach (var fd in fileDescriptors)
             {
                 foreach (var msg in fd.MessageTypes)
                 {
                     var name = fd.Package + "." + msg.Name;
-                    _typeLookup.Add(name, msg.ClrType);
+                    var parser = (MessageParser)msg.ClrType.GetProperty("Parser").GetValue(null);
+                    _typeLookup.Add(name, parser);
                 }
             }
         }
@@ -38,11 +39,8 @@ namespace GAM.Remoting
 
         public static object Deserialize(string typeName, ByteString bytes)
         {
-            //HACK, fix this..
-            var type = _typeLookup[typeName];
-            var parser = type.GetProperty("Parser").GetValue(null);
-            var parseFrom = parser.GetType().GetMethod("ParseFrom",new Type[] {typeof(ByteString)});
-            var o = parseFrom.Invoke(parser, new object[] {bytes});
+            var parser = _typeLookup[typeName];
+            var o = parser.ParseFrom(bytes);
             return o;
         }
     }
