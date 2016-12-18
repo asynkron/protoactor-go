@@ -78,7 +78,7 @@
   <ItemGroup>
     <None Include="build.bat" />
     <None Include="packages.config" />
-    <None Include="protos.proto" />
+    <None Include="Protos.proto" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\..\packages\Grpc.Core.1.0.1\build\net45\Grpc.Core.targets" Condition="Exists('..\..\packages\Grpc.Core.1.0.1\build\net45\Grpc.Core.targets')" />

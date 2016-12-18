@@ -1,0 +1,11 @@
+﻿syntax = "proto3";
+package messages;
+option csharp_namespace = "Messages";
+import "github.com/AsynkronIT/gam/languages/csharp/src/GAM/Protos.proto";
+
+message Start {}
+message StartRemote {
+    actor.PID Sender = 1;
+}
+message Ping {}
+message Pong {}
