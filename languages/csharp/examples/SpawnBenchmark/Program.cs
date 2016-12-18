@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using GAM;
 using System.Threading;
+using System.Collections.Concurrent;
 
 namespace SpawnBenchmark
 {
@@ -28,39 +29,41 @@ namespace SpawnBenchmark
 
         public Task ReceiveAsync(IContext context)
         {
-            switch (context.Message)
+            var msg = context.Message;
+            var r = msg as Request;
+            if (r != null)
             {
-                case Request r:
-                    if (r.Size == 1)
+                if (r.Size == 1)
+                {
+                    context.Respond(r.Num);
+                    return Actor.Done;
+                }
+                Replies = r.Div;
+                ReplyTo = context.Sender;
+                for (var i = 0; i < r.Div; i++)
+                {
+                    var child = context.Spawn(props);
+                    child.Request(new Request
                     {
-                        context.Respond(r.Num);
-                        return Actor.Done;
-                    }
-                    Replies = r.Div;
-                    ReplyTo = context.Sender;
-                    for (var i = 0; i < r.Div; i++)
-                    {
-                        var child = context.Spawn(props);
-                        child.Request(new Request
-                        {
-                            Num = r.Num + i * (r.Size / r.Div),
-                            Size = r.Size / r.Div,
-                            Div = r.Div
-                        }, context.Self);
-                    }
+                        Num = r.Num + i*(r.Size/r.Div),
+                        Size = r.Size/r.Div,
+                        Div = r.Div
+                    }, context.Self);
+                }
 
-                    return Actor.Done;
-                case Int64 i:
-                    Sum += i;
-                    Replies--;
-                    if (Replies == 0)
-                    {
-                        ReplyTo.Tell(Sum);
-                    }
-                    return Actor.Done;
-                default:
-                    return Actor.Done;
+                return Actor.Done;
             }
+            if (msg is Int64)
+            {
+                Sum += (Int64)msg;
+                Replies--;
+                if (Replies == 0)
+                {
+                    ReplyTo.Tell(Sum);
+                }
+                return Actor.Done;
+            }
+            return Actor.Done;
         }
     }
 
@@ -79,9 +82,8 @@ namespace SpawnBenchmark
             t.ConfigureAwait(false);
             var res = t.Result;
             Console.WriteLine(sw.Elapsed);
-
             Console.WriteLine(res);
-            Console.ReadLine();
+         //   Console.ReadLine();
         }
     }
 }

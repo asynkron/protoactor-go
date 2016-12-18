@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26014.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GAM.Remoting", "src\GAM.Remoting\GAM.Remoting.csproj", "{C5B136C4-6EBD-4694-9664-0072DE878296}"
 EndProject
@@ -15,10 +15,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GAM", "src\GAM\GAM.csproj",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpawnBenchmark", "examples\SpawnBenchmark\SpawnBenchmark.csproj", "{1E773156-B0DA-40C1-B910-40D22F3B5C0D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PingPongBenchmark", "examples\PingPongBenchmark\PingPongBenchmark.csproj", "{5FF8A2FF-C690-407F-8FF6-7B461B7A6DF2}"
+EndProject
 Global
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -40,6 +39,10 @@ Global
 		{1E773156-B0DA-40C1-B910-40D22F3B5C0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1E773156-B0DA-40C1-B910-40D22F3B5C0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1E773156-B0DA-40C1-B910-40D22F3B5C0D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5FF8A2FF-C690-407F-8FF6-7B461B7A6DF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FF8A2FF-C690-407F-8FF6-7B461B7A6DF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FF8A2FF-C690-407F-8FF6-7B461B7A6DF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FF8A2FF-C690-407F-8FF6-7B461B7A6DF2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -49,5 +52,6 @@ Global
 		{ABADF472-0EDE-4EC0-8AC1-B8612EFF76FE} = {59DCCC96-DDAF-469F-9E8E-9BC733285082}
 		{C036F196-0AA6-4C3D-B340-93A922461B54} = {771514F1-12AE-4A26-89CB-2646D3EF7034}
 		{1E773156-B0DA-40C1-B910-40D22F3B5C0D} = {59DCCC96-DDAF-469F-9E8E-9BC733285082}
+		{5FF8A2FF-C690-407F-8FF6-7B461B7A6DF2} = {59DCCC96-DDAF-469F-9E8E-9BC733285082}
 	EndGlobalSection
 EndGlobal

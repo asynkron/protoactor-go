@@ -25,7 +25,7 @@ namespace GAM
 
         public void Schedule(Func<Task> runner)
         {
-            Task.Factory.StartNew(runner);
+           Task.Factory.StartNew(runner,TaskCreationOptions.None);
         }
 
         public int Throughput { get; set; }

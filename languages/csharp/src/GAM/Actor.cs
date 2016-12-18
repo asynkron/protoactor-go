@@ -35,8 +35,9 @@ namespace GAM
             var mailbox = props.MailboxProducer();
             var dispatcher = props.Dispatcher;
             var reff = new LocalActorRef(mailbox);
-            var (pid,ok) = ProcessRegistry.Instance.TryAdd(name, reff);
-            pid.Ref = reff;
+            var res = ProcessRegistry.Instance.TryAdd(name, reff);
+            var pid = res.Item1;
+            var ok = res.Item2;
             if (ok)
             {
                 mailbox.RegisterHandlers(ctx, dispatcher);

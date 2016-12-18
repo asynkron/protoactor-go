@@ -16,12 +16,6 @@ namespace GAM
         public const int Busy = 1;
     }
 
-    internal static class MailboxMessages
-    {
-        public const int MailboxHasNoMessages = 0;
-        public const int MailboxHasMoreMessages = 1;
-    }
-
     public interface IMailbox
     {
         void PostUserMessage(object msg);
@@ -34,7 +28,7 @@ namespace GAM
         private readonly ConcurrentQueue<SystemMessage> _systemMessages = new ConcurrentQueue<SystemMessage>();
         private readonly ConcurrentQueue<object> _userMessages = new ConcurrentQueue<object>();
         private IDispatcher _dispatcher;
-        private int _hasMoreMessages = MailboxMessages.MailboxHasNoMessages;
+        private volatile bool _hasMoreMessages;
         private IMessageInvoker _invoker;
 
         private int _status = MailboxStatus.Idle;
@@ -60,7 +54,7 @@ namespace GAM
 
         private async Task RunAsync()
         {
-            Interlocked.Exchange(ref _hasMoreMessages, MailboxMessages.MailboxHasNoMessages);
+            _hasMoreMessages = false;
             var t = _dispatcher.Throughput;
 
             for (var i = 0; i < t; i++)
@@ -96,8 +90,7 @@ namespace GAM
 
             Interlocked.Exchange(ref _status, MailboxStatus.Idle);
 
-            if (Interlocked.Exchange(ref _hasMoreMessages, MailboxMessages.MailboxHasNoMessages) ==
-                MailboxMessages.MailboxHasMoreMessages)
+            if (_hasMoreMessages)
             {
                 Schedule();
             }
@@ -105,7 +98,7 @@ namespace GAM
 
         protected void Schedule()
         {
-            Interlocked.Exchange(ref _hasMoreMessages, MailboxMessages.MailboxHasMoreMessages);
+            _hasMoreMessages = true;
             if (Interlocked.Exchange(ref _status, MailboxStatus.Busy) == MailboxStatus.Idle)
             {
                 _dispatcher.Schedule(RunAsync);

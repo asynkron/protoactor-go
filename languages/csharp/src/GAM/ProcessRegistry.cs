@@ -28,14 +28,15 @@ namespace GAM
             return null;
         }
 
-        public (PID, bool) TryAdd(string id, ActorRef aref)
+        public ValueTuple<PID, bool> TryAdd(string id, ActorRef aref)
         {
             var pid = new PID()
             {
                 Id = id,
+                Ref = aref, //cache aref lookup
             };
             var ok = _localActorRefs.TryAdd(pid.Id, aref);
-            return (pid, ok);
+            return ValueTuple.Create(pid, ok);
         }
 
         internal string GetAutoId()
