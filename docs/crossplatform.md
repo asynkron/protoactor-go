@@ -23,7 +23,7 @@ Protobuf all the way.
 **Be fast** - Do not trade performance for magic API trickery.
 
 Ultra fast remoting, GAM currently manages to pass over **two million messages per second** between nodes using only two actors, while still preserving message order!
-This is six times more the new super advanced UDP based Artery transport for Scala Akka.
+This is six times more the new super advanced UDP based Artery transport for Scala Akka, and 30 times faster than Akka.NET.
 
 ## Sourcecode
 
@@ -38,7 +38,7 @@ In Akka.NET we created our own thread pool, our own networking layer, our own se
 This was all fun and challenging, it is however my firm opinion that this is the wrong way to go about things.
 
 **If possible, software should be composed, not built**, only add code to glue existing pieces together.
-This yields a much better time to market, and allows you to focus on solving the actual problem at hand, in this case concurrency and distributed programming.
+This yields a much better time to market, and allows us to focus on solving the actual problem at hand, in this case concurrency and distributed programming.
 
 GAM builds on existing technologies, Protobuf for serialization, gRPC streams for network transport.
 This ensures cross platform compatibility, network protocol version tolerance and battle proven stability.
