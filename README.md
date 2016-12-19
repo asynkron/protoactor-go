@@ -13,6 +13,13 @@ But be aware that the API might change over time until 1.0.
 
 The C# implementation is fresh out of the bakery, thus unstable and in alpha version.
 
+## Sourcecode
+
+The C# implementation can be found here [https://github.com/AsynkronIT/gam/tree/dev/languages/csharp](https://github.com/AsynkronIT/gam/tree/dev/languages/csharp)
+
+And the Go implementation here [https://github.com/AsynkronIT/gam](https://github.com/AsynkronIT/gam)
+
+
 ## Design principles:
 
 **Minimalistic API** -
@@ -42,12 +49,6 @@ This is six times more the new super advanced UDP based Artery transport for Sca
 2016/12/02 14:30:10 Elapsed 999.9985ms
 2016/12/02 14:30:10 Msg per sec 2000003 <--
 ```
-
-## Sourcecode
-
-The C# implementation can be found here [https://github.com/AsynkronIT/gam/tree/dev/languages/csharp](https://github.com/AsynkronIT/gam/tree/dev/languages/csharp)
-
-And the Go implementation here [https://github.com/AsynkronIT/gam](https://github.com/AsynkronIT/gam)
 
 ## History
 
