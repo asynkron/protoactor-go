@@ -5,12 +5,15 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace GAM
 {
     public class ProcessRegistry
     {
+        private readonly IList<Func<PID, ActorRef>> _hostResolvers = new List<Func<PID, ActorRef>>();
+
         private readonly HashedConcurrentDictionary _localActorRefs =
             new HashedConcurrentDictionary();
 
@@ -19,10 +22,24 @@ namespace GAM
 
         public string Host { get; set; } = "nonhost";
 
+        public void RegisterHostResolver(Func<PID, ActorRef> resolver)
+        {
+            _hostResolvers.Add(resolver);
+        }
+
         public ActorRef Get(PID pid)
         {
             if (pid.Host != "nonhost" && pid.Host != Host)
             {
+                foreach (var resolver in _hostResolvers)
+                {
+                    var reff = resolver(pid);
+                    if (reff != null)
+                    {
+                        return reff;
+                    }
+                }
+                throw new NotSupportedException("Unknown host");
             }
 
             ActorRef aref;

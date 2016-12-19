@@ -28,7 +28,9 @@ namespace GAM.Remoting
                 PID pid;
                 if (!_connections.TryGetValue(env.Target.Host, out pid))
                 {
-                    var props = Actor.FromProducer(() => new EndpointWriter(env.Target.Host));
+                    var props =
+                        Actor.FromProducer(() => new EndpointWriter(env.Target.Host))
+                            .WithMailbox(() => new EndpointWriterMailbox());
                     pid = context.Spawn(props);
                     _connections.Add(env.Target.Host, pid);
                 }

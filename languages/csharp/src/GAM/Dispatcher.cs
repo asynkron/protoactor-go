@@ -5,7 +5,6 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace GAM
@@ -25,7 +24,7 @@ namespace GAM
 
         public void Schedule(Func<Task> runner)
         {
-           Task.Factory.StartNew(runner,TaskCreationOptions.None);
+            Task.Factory.StartNew(runner, TaskCreationOptions.None);
         }
 
         public int Throughput { get; set; }

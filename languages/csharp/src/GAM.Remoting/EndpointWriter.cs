@@ -4,6 +4,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Grpc.Core;
 
@@ -15,6 +16,7 @@ namespace GAM.Remoting
         private Channel _channel;
         private Remoting.RemotingClient _client;
         private AsyncClientStreamingCall<MessageBatch, Unit> _stream;
+        private IClientStreamWriter<MessageBatch> _streamWriter;
 
         public EndpointWriter(string host)
         {
@@ -36,18 +38,19 @@ namespace GAM.Remoting
             {
                 await RestartingAsync();
             }
-            if (msg is MessageEnvelope[])
+            if (msg is IEnumerable<MessageEnvelope>)
             {
-                var envelopes = msg as MessageEnvelope[];
+                var envelopes = msg as IEnumerable<MessageEnvelope>;
                 await SendEnvelopesAsync(envelopes);
             }
         }
 
-        private async Task SendEnvelopesAsync(MessageEnvelope[] envelopes)
+        private async Task SendEnvelopesAsync(IEnumerable<MessageEnvelope> envelopes)
         {
             var batch = new MessageBatch();
             batch.Envelopes.AddRange(envelopes);
-            await _stream.RequestStream.WriteAsync(batch);
+
+            await _streamWriter.WriteAsync(batch);
         }
 
         private async Task RestartingAsync()
@@ -65,6 +68,7 @@ namespace GAM.Remoting
             _channel = new Channel(_host, ChannelCredentials.Insecure);
             _client = new Remoting.RemotingClient(_channel);
             _stream = _client.Receive();
+            _streamWriter = _stream.RequestStream;
             return Actor.Done;
         }
     }

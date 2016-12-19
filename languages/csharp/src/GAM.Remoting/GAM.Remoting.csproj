@@ -57,6 +57,7 @@
     <Compile Include="EndpointManager.cs" />
     <Compile Include="EndpointReader.cs" />
     <Compile Include="EndpointWriter.cs" />
+    <Compile Include="EndpointWriterMailbox.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Protos.g.cs" />
     <Compile Include="ProtosGrpc.cs" />

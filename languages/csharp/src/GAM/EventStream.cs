@@ -11,7 +11,7 @@ namespace GAM
 {
     public class EventStream
     {
-        public static readonly  EventStream Instance = new EventStream();
+        public static readonly EventStream Instance = new EventStream();
 
         private readonly ConcurrentDictionary<Guid, Action<object>> _subscriptions =
             new ConcurrentDictionary<Guid, Action<object>>();

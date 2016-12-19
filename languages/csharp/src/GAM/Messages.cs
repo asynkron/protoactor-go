@@ -14,22 +14,20 @@ namespace GAM
     {
     }
 
-    public  sealed partial class SuspendMailbox : SystemMessage
+    public sealed partial class SuspendMailbox : SystemMessage
     {
     }
 
-    public  sealed partial class ResumeMailbox : SystemMessage
+    public sealed partial class ResumeMailbox : SystemMessage
     {
     }
 
-    public  sealed partial class Watch : SystemMessage
+    public sealed partial class Watch : SystemMessage
     {
         public Watch(PID watcher)
         {
             Watcher = watcher;
         }
-
-      
     }
 
     public sealed partial class Stop : SystemMessage

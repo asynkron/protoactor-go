@@ -76,7 +76,7 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	messageCount := 10000000
+	messageCount := 1000000
 
 	remoting.Start("127.0.0.1:8081")
 

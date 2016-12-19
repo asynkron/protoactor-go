@@ -18,6 +18,7 @@ namespace GAM.Remoting
         {
             var addr = host + ":" + port;
             ProcessRegistry.Instance.Host = addr;
+            ProcessRegistry.Instance.RegisterHostResolver(pid => new RemoteActorRef(pid));
 
             server = new Server
             {

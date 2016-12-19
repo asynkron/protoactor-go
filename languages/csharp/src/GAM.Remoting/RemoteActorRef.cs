@@ -1,22 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// -----------------------------------------------------------------------
+//  <copyright file="RemoteActorRef.cs" company="Asynkron HB">
+//      Copyright (C) 2015-2016 Asynkron HB All rights reserved
+//  </copyright>
+// -----------------------------------------------------------------------
+
+using System;
 using Google.Protobuf;
 
 namespace GAM.Remoting
 {
     public class RemoteActorRef : ActorRef
     {
-        public override void SendUserMessage(PID pid, object message,PID sender)
+        private readonly PID _pid;
+
+        public RemoteActorRef(PID pid)
         {
-            Send(pid,message,sender);
+            _pid = pid;
+        }
+
+        public override void SendUserMessage(PID pid, object message, PID sender)
+        {
+            Send(pid, message, sender);
         }
 
         public override void SendSystemMessage(PID pid, SystemMessage sys)
         {
-            Send(pid,sys,null);
+            Send(pid, sys, null);
         }
 
         private void Send(PID pid, object msg, PID sender)
@@ -26,7 +35,7 @@ namespace GAM.Remoting
                 var imsg = (IMessage) msg;
                 var env = new MessageEnvelope
                 {
-                    Target = pid,
+                    Target = _pid,
                     Sender = sender,
                     MessageData = Serialization.Serialize(imsg),
                     TypeName = imsg.Descriptor.File.Package + "." + imsg.Descriptor.Name
@@ -35,7 +44,7 @@ namespace GAM.Remoting
             }
             else
             {
-                throw new NotSupportedException("Non protobuf message");   
+                throw new NotSupportedException("Non protobuf message");
             }
         }
     }

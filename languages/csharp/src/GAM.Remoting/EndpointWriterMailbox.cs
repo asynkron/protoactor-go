@@ -1,14 +1,15 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="IMailbox.cs" company="Asynkron HB">
+//  <copyright file="EndpointWriterMailbox.cs" company="Asynkron HB">
 //      Copyright (C) 2015-2016 Asynkron HB All rights reserved
 //  </copyright>
 // -----------------------------------------------------------------------
 
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace GAM
+namespace GAM.Remoting
 {
     internal static class MailboxStatus
     {
@@ -16,18 +17,12 @@ namespace GAM
         public const int Busy = 1;
     }
 
-    public interface IMailbox
-    {
-        void PostUserMessage(object msg);
-        void PostSystemMessage(SystemMessage sys);
-        void RegisterHandlers(IMessageInvoker invoker, IDispatcher dispatcher);
-    }
-
-    public class DefaultMailbox : IMailbox
+    public class EndpointWriterMailbox : IMailbox
     {
         private readonly ConcurrentQueue<SystemMessage> _systemMessages = new ConcurrentQueue<SystemMessage>();
         private readonly ConcurrentQueue<object> _userMessages = new ConcurrentQueue<object>();
         private IDispatcher _dispatcher;
+        private volatile bool _hasMoreMessages;
         private IMessageInvoker _invoker;
 
         private int _status = MailboxStatus.Idle;
@@ -53,38 +48,44 @@ namespace GAM
 
         private async Task RunAsync()
         {
+            _hasMoreMessages = false;
             var t = _dispatcher.Throughput;
+            var batch = new List<MessageEnvelope>();
 
-            for (var i = 0; i < t; i++)
+            SystemMessage sys;
+            if (_systemMessages.TryDequeue(out sys))
             {
-                SystemMessage sys;
-                if (_systemMessages.TryDequeue(out sys))
+                if (sys is SuspendMailbox)
                 {
-                    if (sys is SuspendMailbox)
-                    {
-                        _suspended = true;
-                    }
-                    if (sys is ResumeMailbox)
-                    {
-                        _suspended = false;
-                    }
-                    _invoker.InvokeSystemMessage(sys);
-                    continue;
+                    _suspended = true;
                 }
-                if (_suspended)
+                if (sys is ResumeMailbox)
                 {
-                    break;
+                    _suspended = false;
                 }
+                _invoker.InvokeSystemMessage(sys);
+            }
+            if (!_suspended)
+            {
                 object msg;
-                if (_userMessages.TryDequeue(out msg))
+                batch.Clear();
+                while (_userMessages.TryDequeue(out msg))
                 {
-                    await _invoker.InvokeUserMessageAsync(msg);
+                    batch.Add((MessageEnvelope) msg);
+                    if (batch.Count > 1000)
+                    {
+                        break;
+                    }
                 }
-                else
+
+
+                if (batch.Count > 0)
                 {
-                    break;
+                    _hasMoreMessages = true;
+                    await _invoker.InvokeUserMessageAsync(batch);
                 }
             }
+
 
             Interlocked.Exchange(ref _status, MailboxStatus.Idle);
 
@@ -96,6 +97,7 @@ namespace GAM
 
         protected void Schedule()
         {
+            _hasMoreMessages = true;
             if (Interlocked.Exchange(ref _status, MailboxStatus.Busy) == MailboxStatus.Idle)
             {
                 _dispatcher.Schedule(RunAsync);

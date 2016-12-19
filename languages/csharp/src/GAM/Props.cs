@@ -36,5 +36,10 @@ namespace GAM
                 _mailboxProducer = mailboxProducer ?? _mailboxProducer,
             };
         }
+
+        public Props WithMailbox(Func<IMailbox> mailboxProducer)
+        {
+            return Copy(mailboxProducer: mailboxProducer);
+        }
     }
 }

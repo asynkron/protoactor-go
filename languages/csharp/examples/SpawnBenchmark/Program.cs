@@ -8,8 +8,6 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using GAM;
-using System.Threading;
-using System.Collections.Concurrent;
 
 namespace SpawnBenchmark
 {
@@ -56,7 +54,7 @@ namespace SpawnBenchmark
             }
             if (msg is Int64)
             {
-                Sum += (Int64)msg;
+                Sum += (Int64) msg;
                 Replies--;
                 if (Replies == 0)
                 {
@@ -84,7 +82,7 @@ namespace SpawnBenchmark
             var res = t.Result;
             Console.WriteLine(sw.Elapsed);
             Console.WriteLine(res);
-         //   Console.ReadLine();
+            //   Console.ReadLine();
         }
     }
 }

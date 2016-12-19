@@ -33,6 +33,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Google.Protobuf, Version=3.1.0.0, Culture=neutral, PublicKeyToken=a7d26565bac4d604, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\Google.Protobuf.3.1.0\lib\net45\Google.Protobuf.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -48,11 +52,16 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\GAM.Remoting\GAM.Remoting.csproj">
       <Project>{c5b136c4-6ebd-4694-9664-0072de878296}</Project>
       <Name>GAM.Remoting</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\src\GAM\GAM.csproj">
+      <Project>{c036f196-0aa6-4c3d-b340-93a922461b54}</Project>
+      <Name>GAM</Name>
     </ProjectReference>
     <ProjectReference Include="..\Messages\Messages.csproj">
       <Project>{e36b82ba-d7d2-42f7-a946-462573bae266}</Project>

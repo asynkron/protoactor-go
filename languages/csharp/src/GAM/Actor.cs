@@ -15,7 +15,7 @@ namespace GAM
 
         public static Props FromProducer(Func<IActor> producer)
         {
-            return new Props().Copy(producer: producer);
+            return new Props().Copy(producer);
         }
 
         public static PID Spawn(Props props)

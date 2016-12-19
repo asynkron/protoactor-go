@@ -38,6 +38,8 @@ namespace GAM
     {
         private IActor _actor;
         private HashSet<PID> _children;
+        private bool _isRestarting;
+        private bool _isStopping;
         private object _message;
         private int _receiveIndex;
         private ReceiveAsync[] _receivePlugins;
@@ -47,8 +49,6 @@ namespace GAM
         private SupervisionStrategy _supervisionStrategy;
         private HashSet<PID> _watchers;
         private HashSet<PID> _watching;
-        private bool _isRestarting;
-        private bool _isStopping;
 
         public Context(Props props, PID parent)
         {
@@ -127,6 +127,28 @@ namespace GAM
             }
         }
 
+        public async Task InvokeUserMessageAsync(object msg)
+        {
+            try
+            {
+                _receiveIndex = 0;
+                Message = msg;
+
+                await NextAsync();
+            }
+            catch (Exception x)
+            {
+                if (Parent == null)
+                {
+                }
+                else
+                {
+                    Self.SendSystemMessage(new SuspendMailbox());
+                }
+                //handle supervision
+            }
+        }
+
         private void HandleStop()
         {
             _isRestarting = false;
@@ -167,7 +189,7 @@ namespace GAM
 
         private void Stopped()
         {
-           ProcessRegistry.Instance.Remove(Self);
+            ProcessRegistry.Instance.Remove(Self);
             //This is intentional
             InvokeUserMessageAsync(GAM.Stopped.Instance).Wait();
             //Notify watchers
@@ -176,28 +198,6 @@ namespace GAM
         private void Restart()
         {
             throw new NotImplementedException();
-        }
-
-        public async Task InvokeUserMessageAsync(object msg)
-        {
-            try
-            {
-                _receiveIndex = 0;
-                Message = msg;
-
-                await NextAsync();
-            }
-            catch (Exception x)
-            {
-                if (Parent == null)
-                {
-                }
-                else
-                {
-                    Self.SendSystemMessage(new SuspendMailbox());
-                }
-                //handle supervision
-            }
         }
 
         private Task ActorReceiveAsync(IContext ctx)

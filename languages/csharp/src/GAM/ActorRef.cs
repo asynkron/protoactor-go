@@ -15,7 +15,7 @@ namespace GAM
         public void Tell(object message)
         {
             var reff = Ref ?? ProcessRegistry.Instance.Get(this);
-            reff.SendUserMessage(this,message,null);
+            reff.SendUserMessage(this, message, null);
         }
 
         public void SendSystemMessage(SystemMessage sys)
@@ -60,7 +60,7 @@ namespace GAM
 
     public abstract class ActorRef
     {
-        public abstract void SendUserMessage(PID pid,object message,PID sender);
+        public abstract void SendUserMessage(PID pid, object message, PID sender);
 
         public void Stop(PID pid)
         {
@@ -79,11 +79,11 @@ namespace GAM
 
         public IMailbox Mailbox { get; }
 
-        public override void SendUserMessage(PID pid,object message, PID sender)
+        public override void SendUserMessage(PID pid, object message, PID sender)
         {
             if (sender != null)
             {
-                Mailbox.PostUserMessage(new Request(message,sender));
+                Mailbox.PostUserMessage(new Request(message, sender));
                 return;
             }
 

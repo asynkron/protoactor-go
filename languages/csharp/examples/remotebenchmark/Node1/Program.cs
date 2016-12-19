@@ -1,15 +1,22 @@
-﻿using System;
+﻿// -----------------------------------------------------------------------
+//  <copyright file="Program.cs" company="Asynkron HB">
+//      Copyright (C) 2015-2016 Asynkron HB All rights reserved
+//  </copyright>
+// -----------------------------------------------------------------------
+
+using System;
 using System.Threading.Tasks;
 using GAM;
 using GAM.Remoting;
 using Messages;
+using ProtosReflection = Messages.ProtosReflection;
 
 namespace Node1
 {
     public class EchoActor : IActor
     {
         private PID _sender;
-     //   private int counter = 0;
+        //   private int counter = 0;
         public Task ReceiveAsync(IContext context)
         {
             var msg = context.Message;
@@ -24,7 +31,7 @@ namespace Node1
 
             if (msg is Ping)
             {
-              //  counter++;
+                //  counter++;
                 //if (counter%100000 == 0)
                 //{
                 //    Console.WriteLine(counter);
@@ -35,12 +42,13 @@ namespace Node1
             return Actor.Done;
         }
     }
+
     class Program
     {
         static void Main(string[] args)
         {
-            Serialization.RegisterFileDescriptor(Messages.ProtosReflection.Descriptor);
-            RemotingSystem.Start("127.0.0.1",8080);
+            Serialization.RegisterFileDescriptor(ProtosReflection.Descriptor);
+            RemotingSystem.Start("127.0.0.1", 8080);
             var props = Actor.FromProducer(() => new EchoActor());
             var pid = Actor.SpawnNamed(props, "remote");
             Console.ReadLine();

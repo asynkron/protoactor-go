@@ -1,4 +1,10 @@
-﻿using System.Collections.Generic;
+﻿// -----------------------------------------------------------------------
+//  <copyright file="Serialization.cs" company="Asynkron HB">
+//      Copyright (C) 2015-2016 Asynkron HB All rights reserved
+//  </copyright>
+// -----------------------------------------------------------------------
+
+using System.Collections.Generic;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 
@@ -7,10 +13,11 @@ namespace GAM.Remoting
     public static class Serialization
     {
         private static readonly Dictionary<string, MessageParser> TypeLookup = new Dictionary<string, MessageParser>();
+
         static Serialization()
         {
             RegisterFileDescriptor(GAM.ProtosReflection.Descriptor);
-            RegisterFileDescriptor(GAM.Remoting.ProtosReflection.Descriptor);
+            RegisterFileDescriptor(ProtosReflection.Descriptor);
         }
 
         public static void RegisterFileDescriptor(FileDescriptor fd)
