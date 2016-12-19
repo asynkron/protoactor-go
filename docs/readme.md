@@ -48,5 +48,3 @@ By being cross platform, your organization is no longer tied into a specific pla
 This can be done while still allowing actor based services to communicate between platforms.
 
 Reinvent by not reinventing.
-
-//Roger
