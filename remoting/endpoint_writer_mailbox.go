@@ -72,12 +72,16 @@ process:
 		runtime.Gosched()
 	}
 
-	//check if there are still messages to process (sent after the message loop ended)
-	if atomic.SwapInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages) == mailboxHasMoreMessages {
-		goto process
-	}
-	//set mailbox to idle
+	// set mailbox to idle
 	atomic.StoreInt32(&mailbox.schedulerStatus, mailboxIdle)
+
+	// check if there are still messages to process (sent after the message loop ended)
+	if atomic.SwapInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages) == mailboxHasMoreMessages {
+		// try setting the mailbox back to running
+		if atomic.CompareAndSwapInt32(&mailbox.schedulerStatus, mailboxIdle, mailboxRunning) {
+			goto process
+		}
+	}
 }
 
 func newEndpointWriterMailbox(batchSize, initialSize int) actor.MailboxProducer {
