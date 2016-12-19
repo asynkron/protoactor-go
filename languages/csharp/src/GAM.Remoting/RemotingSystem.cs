@@ -12,6 +12,7 @@ namespace GAM.Remoting
     public static class RemotingSystem
     {
         private static Server server;
+        public static PID EndpointManagerPid { get; private set; }
 
         public static void Start(string host, int port)
         {
@@ -24,6 +25,8 @@ namespace GAM.Remoting
                 Ports = {new ServerPort(host, port, ServerCredentials.Insecure)}
             };
             server.Start();
+            var emProps = Actor.FromProducer(() => new EndpointManager());
+            EndpointManagerPid = Actor.Spawn(emProps);
 
             Console.WriteLine("[REMOTING] Starting GAM server on {0}", addr);
         }

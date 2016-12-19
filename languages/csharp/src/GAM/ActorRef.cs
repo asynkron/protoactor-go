@@ -15,7 +15,7 @@ namespace GAM
         public void Tell(object message)
         {
             var reff = Ref ?? ProcessRegistry.Instance.Get(this);
-            reff.SendUserMessage(this,message);
+            reff.SendUserMessage(this,message,null);
         }
 
         public void SendSystemMessage(SystemMessage sys)
@@ -26,7 +26,8 @@ namespace GAM
 
         public void Request(object message, PID sender)
         {
-            Tell(new Request(message, sender));
+            var reff = Ref ?? ProcessRegistry.Instance.Get(this);
+            reff.SendUserMessage(this, message, sender);
         }
 
         public Task<T> RequestAsync<T>(object message)
@@ -59,7 +60,7 @@ namespace GAM
 
     public abstract class ActorRef
     {
-        public abstract void SendUserMessage(PID pid,object message);
+        public abstract void SendUserMessage(PID pid,object message,PID sender);
 
         public void Stop(PID pid)
         {
@@ -78,8 +79,14 @@ namespace GAM
 
         public IMailbox Mailbox { get; }
 
-        public override void SendUserMessage(PID pid,object message)
+        public override void SendUserMessage(PID pid,object message, PID sender)
         {
+            if (sender != null)
+            {
+                Mailbox.PostUserMessage(new Request(message,sender));
+                return;
+            }
+
             Mailbox.PostUserMessage(message);
         }
 

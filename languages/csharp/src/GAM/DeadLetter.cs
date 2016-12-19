@@ -17,7 +17,7 @@ namespace GAM
     public class DeadLetterActorRef : ActorRef
     {
         public static readonly  DeadLetterActorRef Instance = new DeadLetterActorRef();
-        public override void SendUserMessage(PID pid,object message)
+        public override void SendUserMessage(PID pid,object message, PID sender)
         {
            EventStream.Instance.Publish(new DeadLetter(pid,message));
         }

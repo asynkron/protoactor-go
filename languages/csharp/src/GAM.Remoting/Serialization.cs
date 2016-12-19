@@ -22,9 +22,9 @@ namespace GAM.Remoting
             }
         }
 
-        public static byte[] Serialize(IMessage message)
+        public static ByteString Serialize(IMessage message)
         {
-            return message.ToByteArray();
+            return message.ToByteString();
         }
 
         public static object Deserialize(string typeName, ByteString bytes)

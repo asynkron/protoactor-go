@@ -1,16 +1,71 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿// -----------------------------------------------------------------------
+//  <copyright file="EndpointWriter.cs" company="Asynkron HB">
+//      Copyright (C) 2015-2016 Asynkron HB All rights reserved
+//  </copyright>
+// -----------------------------------------------------------------------
+
 using System.Threading.Tasks;
+using Grpc.Core;
 
 namespace GAM.Remoting
 {
     public class EndpointWriter : IActor
     {
-        public Task ReceiveAsync(IContext context)
+        private readonly string _host;
+        private Channel _channel;
+        private Remoting.RemotingClient _client;
+        private AsyncClientStreamingCall<MessageBatch, Unit> _stream;
+
+        public EndpointWriter(string host)
         {
-            throw new NotImplementedException();
+            _host = host;
+        }
+
+        public async Task ReceiveAsync(IContext context)
+        {
+            var msg = context.Message;
+            if (msg is Started)
+            {
+                await StartedAsync();
+            }
+            if (msg is Stopped)
+            {
+                await StoppedAsync();
+            }
+            if (msg is Restarting)
+            {
+                await RestartingAsync();
+            }
+            if (msg is MessageEnvelope[])
+            {
+                var envelopes = msg as MessageEnvelope[];
+                await SendEnvelopesAsync(envelopes);
+            }
+        }
+
+        private async Task SendEnvelopesAsync(MessageEnvelope[] envelopes)
+        {
+            var batch = new MessageBatch();
+            batch.Envelopes.AddRange(envelopes);
+            await _stream.RequestStream.WriteAsync(batch);
+        }
+
+        private async Task RestartingAsync()
+        {
+            await _channel.ShutdownAsync();
+        }
+
+        private async Task StoppedAsync()
+        {
+            await _channel.ShutdownAsync();
+        }
+
+        private Task StartedAsync()
+        {
+            _channel = new Channel(_host, ChannelCredentials.Insecure);
+            _client = new Remoting.RemotingClient(_channel);
+            _stream = _client.Receive();
+            return Actor.Done;
         }
     }
 }
