@@ -39,8 +39,7 @@ func (config *PoolRouter) OnStarted(context Context, props Props, router RouterS
 	router.SetRoutees(routees)
 }
 
-func spawnRouter(config RouterConfig, props Props, parent *PID) *PID {
-	id := ProcessRegistry.getAutoId()
+func spawnRouter(id string, config RouterConfig, props Props, parent *PID) *PID {
 	routeeProps := props
 	routeeProps.routerConfig = nil
 	routerState := config.CreateRouterState()
