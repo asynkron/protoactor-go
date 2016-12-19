@@ -97,12 +97,16 @@ process:
 		}
 	}
 
-	//check if there are still messages to process (sent after the message loop ended)
-	if atomic.SwapInt32(&m.hasMoreMessages, mailboxHasNoMessages) == mailboxHasMoreMessages {
-		goto process
-	}
-	//set mailbox to idle
+	// set mailbox to idle
 	atomic.StoreInt32(&m.schedulerStatus, mailboxIdle)
+
+	// check if there are still messages to process (sent after the message loop ended)
+	if atomic.SwapInt32(&m.hasMoreMessages, mailboxHasNoMessages) == mailboxHasMoreMessages {
+		// try setting the mailbox back to running
+		if atomic.CompareAndSwapInt32(&m.schedulerStatus, mailboxIdle, mailboxRunning) {
+			goto process
+		}
+	}
 }
 
 func (mailbox *DefaultMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
