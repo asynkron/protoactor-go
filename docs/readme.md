@@ -34,8 +34,8 @@ And the Go implementation here [https://github.com/AsynkronIT/gam](https://githu
 ## History
 
 As the creator of the Akka.NET project, I have come to some distinct conclusions while being involved in that project.
-In Akka.NET we created our own thread pool, our own networking layer, our own serialization support, our own configuration support etc etc.
-This was all fun and challenging, it is however my firm opinion that this is the wrong way to go about things.
+In Akka.NET we created our own thread pool, our own networking layer, our own serialization support, our own configuration support etc. etc.
+This was all fun and challenging, it is however now my firm opinion that this is the wrong way to go about things.
 
 **If possible, software should be composed, not built**, only add code to glue existing pieces together.
 This yields a much better time to market, and allows us to focus on solving the actual problem at hand, in this case concurrency and distributed programming.
