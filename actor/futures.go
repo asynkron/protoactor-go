@@ -33,9 +33,10 @@ func NewFuture(timeout time.Duration) *Future {
 }
 
 type Future struct {
-	done   bool
 	pid    *PID
 	cond   *sync.Cond
+	// protected by cond
+	done   bool
 	result interface{}
 	err    error
 	t      *time.Timer
