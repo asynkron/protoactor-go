@@ -1,62 +1,56 @@
 package actor
 
 import (
-	"fmt"
+	"errors"
 	"log"
 	"sync"
 	"time"
 )
 
+var (
+	ErrTimeout = errors.New("timeout")
+)
+
 func NewFuture(timeout time.Duration) *Future {
-	ref := &FutureActorRef{
-		channel: make(chan interface{}),
-	}
+	fut := &Future{cond: sync.NewCond(&sync.Mutex{})}
+
+	ref := &FutureActorRef{f: fut}
 	id := ProcessRegistry.getAutoId()
 
 	pid, ok := ProcessRegistry.add(ref, id)
-
 	if !ok {
 		log.Printf("[ACTOR] Failed to register future actorref '%v'", id)
 		log.Println(id)
 	}
-	ref.pid = pid
 
-	fut := &Future{
-		ref:     ref,
-		timeout: timeout,
-	}
-	fut.wg.Add(1)
-	go func() {
-		select {
-		case res := <-fut.ref.channel:
-			fut.result = res
-		case <-time.After(fut.timeout):
-			fut.err = fmt.Errorf("Timeout")
-		}
-		fut.wg.Done()
-		fut.ref.Stop(fut.PID())
-	}()
+	fut.pid = pid
+	fut.t = time.AfterFunc(timeout, func() {
+		fut.err = ErrTimeout
+		ref.Stop(pid)
+	})
 
 	return fut
 }
 
 type Future struct {
-	result  interface{}
-	err     error
-	wg      sync.WaitGroup
-	ref     *FutureActorRef
-	timeout time.Duration
+	pid    *PID
+	cond   *sync.Cond
+	// protected by cond
+	done   bool
+	result interface{}
+	err    error
+	t      *time.Timer
 }
 
-//PID to the backing actor for the Future result
-func (fut *Future) PID() *PID {
-	return fut.ref.pid
+// PID to the backing actor for the Future result
+func (f *Future) PID() *PID {
+	return f.pid
 }
 
-//PipeTo starts a go routine and waits for the `Future.Result()`, then sends the result to the given `PID`
-func (ref *Future) PipeTo(pid *PID) {
+// PipeTo starts a go routine and waits for the `Future.Result()`, then sends the result to the given `PID`
+func (f *Future) PipeTo(pid *PID) {
 	go func() {
-		res, err := ref.Result()
+		res, err := f.Result()
 		if err != nil {
 			pid.Tell(err)
 		} else {
@@ -65,33 +59,53 @@ func (ref *Future) PipeTo(pid *PID) {
 	}()
 }
 
-func (fut *Future) Result() (interface{}, error) {
-	fut.wg.Wait()
-	return fut.result, fut.err
+func (f *Future) wait() {
+	f.cond.L.Lock()
+	if !f.done {
+		f.cond.Wait()
+	}
+	f.cond.L.Unlock()
 }
 
-func (fut *Future) Wait() error {
-	fut.wg.Wait()
-	return fut.err
+func (f *Future) Result() (interface{}, error) {
+	f.wait()
+	return f.result, f.err
 }
 
-//FutureActorRef is a struct carrying a response PID and a channel where the response is placed
+func (f *Future) Wait() error {
+	f.wait()
+	return f.err
+}
+
+// FutureActorRef is a struct carrying a response PID and a channel where the response is placed
 type FutureActorRef struct {
-	channel chan interface{}
-	pid     *PID
+	f *Future
 }
 
 func (ref *FutureActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
-	ref.channel <- message
+	ref.f.result = message
+	ref.Stop(pid)
 }
 
 func (ref *FutureActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
-	ref.channel <- message
+	ref.f.result = message
+	ref.Stop(pid)
 }
 
 func (ref *FutureActorRef) Stop(pid *PID) {
-	ProcessRegistry.remove(ref.pid)
-	close(ref.channel)
+	ref.f.cond.L.Lock()
+	if ref.f.done {
+		ref.f.cond.L.Unlock()
+		return
+	}
+
+	ref.f.done = true
+	ref.f.t.Stop()
+	ProcessRegistry.remove(pid)
+
+	ref.f.cond.L.Unlock()
+	ref.f.cond.Signal()
 }
+
 func (ref *FutureActorRef) Watch(pid *PID)   {}
 func (ref *FutureActorRef) UnWatch(pid *PID) {}
