@@ -32,6 +32,10 @@ namespace GAM
         void Stash();
         Task NextAsync();
         PID Spawn(Props props);
+
+        void Become(ReceiveAsync receive);
+        void BecomeStacked(ReceiveAsync receive);
+        void UnbecomeStacked();
     }
 
     public class Context : IMessageInvoker, IContext
@@ -49,6 +53,7 @@ namespace GAM
         private SupervisionStrategy _supervisionStrategy;
         private HashSet<PID> _watchers;
         private HashSet<PID> _watching;
+        private Stack<ReceiveAsync> _behavior;
 
         public Context(Props props, PID parent)
         {
@@ -59,6 +64,8 @@ namespace GAM
             _watching = null;
             Message = null;
             _actor = props.Producer();
+            _behavior = new Stack<ReceiveAsync>();
+            _behavior.Push(ActorReceiveAsync);
         }
 
         public PID[] Children()
@@ -101,7 +108,8 @@ namespace GAM
             }
             else
             {
-                receive = ActorReceiveAsync;
+                var func = _behavior.Peek();
+                receive = func;
             }
 
             return receive(this);
@@ -117,6 +125,24 @@ namespace GAM
             var id = ProcessRegistry.Instance.GetAutoId();
 
             return SpawnNamed(props, id);
+        }
+
+        public void Become(ReceiveAsync receive)
+        {
+            _behavior.Clear();
+            _behavior.Push(receive);
+        }
+
+        public void BecomeStacked(ReceiveAsync receive)
+        {
+            _behavior.Push(receive);
+        }
+
+        public void UnbecomeStacked()
+        {
+            if(_behavior.Count <= 1)
+                throw new Exception("Can not unbecome actor base behaviour");
+            _behavior.Pop();
         }
 
         public void InvokeSystemMessage(SystemMessage msg)
