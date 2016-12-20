@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 type CreateChildMessage struct{}
@@ -127,4 +128,25 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 
 	_, err := future.Result()
 	assert.NoError(t, err, "timed out")
+}
+
+func TestFutureDoesTimeout(t *testing.T) {
+	pid := Spawn(FromInstance(nullReceive))
+	_, err := pid.RequestFuture("", time.Millisecond).Result()
+	assert.EqualError(t, err, ErrTimeout.Error())
+}
+
+func TestFutureDoesNotTimeout(t *testing.T) {
+	var r receiveFn = func(c Context) {
+		if _, ok := c.Message().(string); !ok {
+			return
+		}
+
+		time.Sleep(50 * time.Millisecond)
+		c.Respond("foo")
+	}
+	pid := Spawn(FromInstance(r))
+	reply, err := pid.RequestFuture("", 2*time.Second).Result()
+	assert.NoError(t, err)
+	assert.Equal(t, "foo", reply)
 }
