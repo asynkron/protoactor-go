@@ -56,6 +56,7 @@ namespace GAM
             {
                 Id = id,
                 Ref = aref, //cache aref lookup
+                Host = "nonhost" // local
             };
             var ok = _localActorRefs.TryAdd(pid.Id, aref);
             return ValueTuple.Create(pid, ok);
