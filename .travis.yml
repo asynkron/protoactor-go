@@ -5,6 +5,7 @@ before_install:
   - go get github.com/Workiva/go-datastructures
   - go get github.com/emirpasic/gods/sets/hashset
   - go get github.com/emirpasic/gods/stacks/linkedliststack
+  - go get github.com/ivpusic/grpool
   - go get github.com/gogo/protobuf/proto
   - go get github.com/gogo/protobuf/protoc-gen-gogo
   - go get github.com/gogo/protobuf/gogoproto
