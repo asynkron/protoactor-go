@@ -15,6 +15,15 @@ func TestBehaviorStack_Len(t *testing.T) {
 	assert.Len(t, bs, 2)
 }
 
+func TestBehaviorStack_Push(t *testing.T) {
+	var bs behaviorStack
+	assert.Len(t, bs, 0)
+	bs.Push(func(Context) {})
+	assert.Len(t, bs, 1)
+	bs.Push(func(Context) {})
+	assert.Len(t, bs, 2)
+}
+
 func TestBehaviorStack_Clear(t *testing.T) {
 	var bs behaviorStack
 	bs.Push(func(Context) {})
