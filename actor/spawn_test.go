@@ -1,7 +1,6 @@
 package actor
 
 import (
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,9 +28,7 @@ func (counter *Counter) Increment() {
 func (a *GorgeousActor) Receive(context Context) {
 	switch context.Message().(type) {
 	case *Started:
-		log.Printf("Started %v", a)
 	case Increment:
-		log.Printf("Incrementing %v", a)
 		a.Increment()
 		context.Respond(a.value)
 	}

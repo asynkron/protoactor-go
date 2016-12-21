@@ -99,14 +99,6 @@ func TestActorCanStopChildren(t *testing.T) {
 	assert.Equal(t, 0, response.(GetChildCountResponse).ChildCount)
 }
 
-type receiveFn func(Context)
-
-func (fn receiveFn) Receive(ctx Context) {
-	fn(ctx)
-}
-
-var nullReceive receiveFn = func(Context) {}
-
 func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 	child := Spawn(FromInstance(nullReceive))
 	future := NewFuture(testTimeout)

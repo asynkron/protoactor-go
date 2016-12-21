@@ -1,10 +1,8 @@
 package actor
 
 import (
-	"testing"
-
-	"log"
 	"reflect"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,15 +27,12 @@ func TestStopFuture(t *testing.T) {
 			assert.Fail(t, "Failed to wait stop actor %s", errR)
 			return
 		}
-		log.Printf("Res = %s", res)
 
-		stopped, ok := res.(*Terminated)
+		_, ok := res.(*Terminated)
 		if !ok {
 			assert.Fail(t, "Cannot cast %s", reflect.TypeOf(res))
 			return
 		}
-
-		log.Printf("Received %s", stopped)
 
 		_, found := ProcessRegistry.get(actor)
 		assert.False(t, found)
