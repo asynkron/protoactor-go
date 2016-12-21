@@ -22,4 +22,3 @@ before_install:
 
 script:
   - go test ./...
-  - make
