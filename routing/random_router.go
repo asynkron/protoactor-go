@@ -22,6 +22,10 @@ func (state *RandomRouterState) SetRoutees(routees []*actor.PID) {
 	state.routees = routees
 }
 
+func (state *RandomRouterState) GetRoutees() []*actor.PID {
+	return state.routees
+}
+
 func (state *RandomRouterState) RouteMessage(message interface{}, sender *actor.PID) {
 	l := len(state.routees)
 	r := rand.Intn(l)

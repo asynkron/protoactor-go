@@ -1,9 +1,11 @@
 syntax = "proto3";
 package actor;
 
+import "google/protobuf/any.proto";
+
 message PID {
-  string Host = 1;
-  string Id = 2;
+    string Host = 1;
+    string Id = 2;
 }
 
 //user messages
@@ -13,13 +15,36 @@ message Stopped {}
 message PoisonPill {}
 message Started {}
 
+// router management messages
+message RouterAddRoutee {
+    actor.PID PID = 1;
+}
+
+message RouterRemoveRoutee {
+    actor.PID PID = 1;
+}
+
+message RouterAdjustPoolSize {
+    int32 change = 1;
+}
+
+message RouterGetRoutees {}
+
+message RouterRoutees {
+    repeated actor.PID PIDs = 1;
+}
+
+//message RouterBroadcast {
+//    google.protobuf.Any message = 1;
+//}
+
 //system messages
 message Watch {
-	PID watcher = 1;
+    PID watcher = 1;
 }
 message Unwatch {
-	PID watcher = 1;
+    PID watcher = 1;
 }
 message Terminated {
-	PID who = 1;
+    PID who = 1;
 }

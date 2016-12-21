@@ -45,7 +45,7 @@ func main() {
 		pid.Tell(&myMessage{i})
 	}
 	time.Sleep(1 * time.Second)
-	log.Println("ConsistentHash routing:")
+	log.Println("BroadcastPool routing:")
 	props = act.WithPoolRouter(routing.NewBroadcastPool(5))
 	pid = actor.Spawn(props)
 	for i := 0; i < 10; i++ {

@@ -37,6 +37,14 @@ func (state *ConsistentHashRouterState) SetRoutees(routees []*actor.PID) {
 	state.hashring = hashring.New(nodes)
 }
 
+func (state *ConsistentHashRouterState) GetRoutees() []*actor.PID {
+	var routees []*actor.PID
+	for _, v := range state.routeeMap {
+		routees = append(routees, v)
+	}
+	return routees
+}
+
 func (state *ConsistentHashRouterState) RouteMessage(message interface{}, sender *actor.PID) {
 	switch msg := message.(type) {
 	case Hashable:
@@ -56,6 +64,11 @@ func (state *ConsistentHashRouterState) RouteMessage(message interface{}, sender
 		log.Println("[ROUTING] Unknown message", msg)
 	}
 }
+
+func (state *ConsistentHashRouterState) InvokeRouterManagementMessage(msg actor.RouterManagementMessage, sender *actor.PID) {
+
+}
+
 
 func NewConsistentHashPool(poolSize int) actor.PoolRouterConfig {
 	r := &ConsistentHashPoolRouter{}

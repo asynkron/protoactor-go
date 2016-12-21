@@ -15,6 +15,11 @@ It has these top-level messages:
 	Stopped
 	PoisonPill
 	Started
+	RouterAddRoutee
+	RouterRemoveRoutee
+	RouterAdjustPoolSize
+	RouterGetRoutees
+	RouterRoutees
 	Watch
 	Unwatch
 	Terminated
@@ -24,6 +29,7 @@ package actor
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
+import _ "github.com/gogo/protobuf/types"
 
 import strings "strings"
 import github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
@@ -45,8 +51,8 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 type PID struct {
-	Host string `protobuf:"bytes,1,opt,name=Host,json=host,proto3" json:"Host,omitempty"`
-	Id   string `protobuf:"bytes,2,opt,name=Id,json=id,proto3" json:"Id,omitempty"`
+	Host string `protobuf:"bytes,1,opt,name=Host,proto3" json:"Host,omitempty"`
+	Id   string `protobuf:"bytes,2,opt,name=Id,proto3" json:"Id,omitempty"`
 }
 
 func (m *PID) Reset()                    { *m = PID{} }
@@ -89,13 +95,75 @@ func (m *Started) Reset()                    { *m = Started{} }
 func (*Started) ProtoMessage()               {}
 func (*Started) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{5} }
 
+// router management messages
+type RouterAddRoutee struct {
+	PID *PID `protobuf:"bytes,1,opt,name=PID" json:"PID,omitempty"`
+}
+
+func (m *RouterAddRoutee) Reset()                    { *m = RouterAddRoutee{} }
+func (*RouterAddRoutee) ProtoMessage()               {}
+func (*RouterAddRoutee) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{6} }
+
+func (m *RouterAddRoutee) GetPID() *PID {
+	if m != nil {
+		return m.PID
+	}
+	return nil
+}
+
+type RouterRemoveRoutee struct {
+	PID *PID `protobuf:"bytes,1,opt,name=PID" json:"PID,omitempty"`
+}
+
+func (m *RouterRemoveRoutee) Reset()                    { *m = RouterRemoveRoutee{} }
+func (*RouterRemoveRoutee) ProtoMessage()               {}
+func (*RouterRemoveRoutee) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{7} }
+
+func (m *RouterRemoveRoutee) GetPID() *PID {
+	if m != nil {
+		return m.PID
+	}
+	return nil
+}
+
+type RouterAdjustPoolSize struct {
+	Change int32 `protobuf:"varint,1,opt,name=change,proto3" json:"change,omitempty"`
+}
+
+func (m *RouterAdjustPoolSize) Reset()                    { *m = RouterAdjustPoolSize{} }
+func (*RouterAdjustPoolSize) ProtoMessage()               {}
+func (*RouterAdjustPoolSize) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{8} }
+
+type RouterGetRoutees struct {
+}
+
+func (m *RouterGetRoutees) Reset()                    { *m = RouterGetRoutees{} }
+func (*RouterGetRoutees) ProtoMessage()               {}
+func (*RouterGetRoutees) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{9} }
+
+type RouterRoutees struct {
+	PIDs []*PID `protobuf:"bytes,1,rep,name=PIDs" json:"PIDs,omitempty"`
+}
+
+func (m *RouterRoutees) Reset()                    { *m = RouterRoutees{} }
+func (*RouterRoutees) ProtoMessage()               {}
+func (*RouterRoutees) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{10} }
+
+func (m *RouterRoutees) GetPIDs() []*PID {
+	if m != nil {
+		return m.PIDs
+	}
+	return nil
+}
+
+// system messages
 type Watch struct {
 	Watcher *PID `protobuf:"bytes,1,opt,name=watcher" json:"watcher,omitempty"`
 }
 
 func (m *Watch) Reset()                    { *m = Watch{} }
 func (*Watch) ProtoMessage()               {}
-func (*Watch) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{6} }
+func (*Watch) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{11} }
 
 func (m *Watch) GetWatcher() *PID {
 	if m != nil {
@@ -110,7 +178,7 @@ type Unwatch struct {
 
 func (m *Unwatch) Reset()                    { *m = Unwatch{} }
 func (*Unwatch) ProtoMessage()               {}
-func (*Unwatch) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{7} }
+func (*Unwatch) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{12} }
 
 func (m *Unwatch) GetWatcher() *PID {
 	if m != nil {
@@ -125,7 +193,7 @@ type Terminated struct {
 
 func (m *Terminated) Reset()                    { *m = Terminated{} }
 func (*Terminated) ProtoMessage()               {}
-func (*Terminated) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{8} }
+func (*Terminated) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{13} }
 
 func (m *Terminated) GetWho() *PID {
 	if m != nil {
@@ -141,6 +209,11 @@ func init() {
 	proto.RegisterType((*Stopped)(nil), "actor.Stopped")
 	proto.RegisterType((*PoisonPill)(nil), "actor.PoisonPill")
 	proto.RegisterType((*Started)(nil), "actor.Started")
+	proto.RegisterType((*RouterAddRoutee)(nil), "actor.RouterAddRoutee")
+	proto.RegisterType((*RouterRemoveRoutee)(nil), "actor.RouterRemoveRoutee")
+	proto.RegisterType((*RouterAdjustPoolSize)(nil), "actor.RouterAdjustPoolSize")
+	proto.RegisterType((*RouterGetRoutees)(nil), "actor.RouterGetRoutees")
+	proto.RegisterType((*RouterRoutees)(nil), "actor.RouterRoutees")
 	proto.RegisterType((*Watch)(nil), "actor.Watch")
 	proto.RegisterType((*Unwatch)(nil), "actor.Unwatch")
 	proto.RegisterType((*Terminated)(nil), "actor.Terminated")
@@ -313,6 +386,158 @@ func (this *Started) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *RouterAddRoutee) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*RouterAddRoutee)
+	if !ok {
+		that2, ok := that.(RouterAddRoutee)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if !this.PID.Equal(that1.PID) {
+		return false
+	}
+	return true
+}
+func (this *RouterRemoveRoutee) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*RouterRemoveRoutee)
+	if !ok {
+		that2, ok := that.(RouterRemoveRoutee)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if !this.PID.Equal(that1.PID) {
+		return false
+	}
+	return true
+}
+func (this *RouterAdjustPoolSize) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*RouterAdjustPoolSize)
+	if !ok {
+		that2, ok := that.(RouterAdjustPoolSize)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if this.Change != that1.Change {
+		return false
+	}
+	return true
+}
+func (this *RouterGetRoutees) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*RouterGetRoutees)
+	if !ok {
+		that2, ok := that.(RouterGetRoutees)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *RouterRoutees) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*RouterRoutees)
+	if !ok {
+		that2, ok := that.(RouterRoutees)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if len(this.PIDs) != len(that1.PIDs) {
+		return false
+	}
+	for i := range this.PIDs {
+		if !this.PIDs[i].Equal(that1.PIDs[i]) {
+			return false
+		}
+	}
+	return true
+}
 func (this *Watch) Equal(that interface{}) bool {
 	if that == nil {
 		if this == nil {
@@ -456,6 +681,61 @@ func (this *Started) GoString() string {
 	}
 	s := make([]string, 0, 4)
 	s = append(s, "&actor.Started{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *RouterAddRoutee) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&actor.RouterAddRoutee{")
+	if this.PID != nil {
+		s = append(s, "PID: "+fmt.Sprintf("%#v", this.PID)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *RouterRemoveRoutee) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&actor.RouterRemoveRoutee{")
+	if this.PID != nil {
+		s = append(s, "PID: "+fmt.Sprintf("%#v", this.PID)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *RouterAdjustPoolSize) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&actor.RouterAdjustPoolSize{")
+	s = append(s, "Change: "+fmt.Sprintf("%#v", this.Change)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *RouterGetRoutees) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 4)
+	s = append(s, "&actor.RouterGetRoutees{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *RouterRoutees) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&actor.RouterRoutees{")
+	if this.PIDs != nil {
+		s = append(s, "PIDs: "+fmt.Sprintf("%#v", this.PIDs)+",\n")
+	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -641,6 +921,133 @@ func (m *Started) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *RouterAddRoutee) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RouterAddRoutee) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.PID != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProtos(dAtA, i, uint64(m.PID.Size()))
+		n1, err := m.PID.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n1
+	}
+	return i, nil
+}
+
+func (m *RouterRemoveRoutee) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RouterRemoveRoutee) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.PID != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProtos(dAtA, i, uint64(m.PID.Size()))
+		n2, err := m.PID.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n2
+	}
+	return i, nil
+}
+
+func (m *RouterAdjustPoolSize) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RouterAdjustPoolSize) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Change != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintProtos(dAtA, i, uint64(m.Change))
+	}
+	return i, nil
+}
+
+func (m *RouterGetRoutees) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RouterGetRoutees) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
+func (m *RouterRoutees) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RouterRoutees) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.PIDs) > 0 {
+		for _, msg := range m.PIDs {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintProtos(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
 func (m *Watch) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -660,11 +1067,11 @@ func (m *Watch) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintProtos(dAtA, i, uint64(m.Watcher.Size()))
-		n1, err := m.Watcher.MarshalTo(dAtA[i:])
+		n3, err := m.Watcher.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n1
+		i += n3
 	}
 	return i, nil
 }
@@ -688,11 +1095,11 @@ func (m *Unwatch) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintProtos(dAtA, i, uint64(m.Watcher.Size()))
-		n2, err := m.Watcher.MarshalTo(dAtA[i:])
+		n4, err := m.Watcher.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n2
+		i += n4
 	}
 	return i, nil
 }
@@ -716,11 +1123,11 @@ func (m *Terminated) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintProtos(dAtA, i, uint64(m.Who.Size()))
-		n3, err := m.Who.MarshalTo(dAtA[i:])
+		n5, err := m.Who.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n3
+		i += n5
 	}
 	return i, nil
 }
@@ -793,6 +1200,53 @@ func (m *PoisonPill) Size() (n int) {
 func (m *Started) Size() (n int) {
 	var l int
 	_ = l
+	return n
+}
+
+func (m *RouterAddRoutee) Size() (n int) {
+	var l int
+	_ = l
+	if m.PID != nil {
+		l = m.PID.Size()
+		n += 1 + l + sovProtos(uint64(l))
+	}
+	return n
+}
+
+func (m *RouterRemoveRoutee) Size() (n int) {
+	var l int
+	_ = l
+	if m.PID != nil {
+		l = m.PID.Size()
+		n += 1 + l + sovProtos(uint64(l))
+	}
+	return n
+}
+
+func (m *RouterAdjustPoolSize) Size() (n int) {
+	var l int
+	_ = l
+	if m.Change != 0 {
+		n += 1 + sovProtos(uint64(m.Change))
+	}
+	return n
+}
+
+func (m *RouterGetRoutees) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
+func (m *RouterRoutees) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.PIDs) > 0 {
+		for _, e := range m.PIDs {
+			l = e.Size()
+			n += 1 + l + sovProtos(uint64(l))
+		}
+	}
 	return n
 }
 
@@ -891,6 +1345,55 @@ func (this *Started) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&Started{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *RouterAddRoutee) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&RouterAddRoutee{`,
+		`PID:` + strings.Replace(fmt.Sprintf("%v", this.PID), "PID", "PID", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *RouterRemoveRoutee) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&RouterRemoveRoutee{`,
+		`PID:` + strings.Replace(fmt.Sprintf("%v", this.PID), "PID", "PID", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *RouterAdjustPoolSize) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&RouterAdjustPoolSize{`,
+		`Change:` + fmt.Sprintf("%v", this.Change) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *RouterGetRoutees) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&RouterGetRoutees{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *RouterRoutees) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&RouterRoutees{`,
+		`PIDs:` + strings.Replace(fmt.Sprintf("%v", this.PIDs), "PID", "PID", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1291,6 +1794,372 @@ func (m *Started) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *RouterAddRoutee) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RouterAddRoutee: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RouterAddRoutee: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PID", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PID == nil {
+				m.PID = &PID{}
+			}
+			if err := m.PID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RouterRemoveRoutee) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RouterRemoveRoutee: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RouterRemoveRoutee: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PID", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PID == nil {
+				m.PID = &PID{}
+			}
+			if err := m.PID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RouterAdjustPoolSize) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RouterAdjustPoolSize: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RouterAdjustPoolSize: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Change", wireType)
+			}
+			m.Change = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Change |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RouterGetRoutees) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RouterGetRoutees: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RouterGetRoutees: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RouterRoutees) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RouterRoutees: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RouterRoutees: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PIDs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PIDs = append(m.PIDs, &PID{})
+			if err := m.PIDs[len(m.PIDs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *Watch) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1648,21 +2517,28 @@ var (
 func init() { proto.RegisterFile("protos.proto", fileDescriptorProtos) }
 
 var fileDescriptorProtos = []byte{
-	// 251 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x28, 0xca, 0x2f,
-	0xc9, 0x2f, 0xd6, 0x03, 0x53, 0x42, 0xac, 0x89, 0xc9, 0x25, 0xf9, 0x45, 0x4a, 0x9a, 0x5c, 0xcc,
-	0x01, 0x9e, 0x2e, 0x42, 0x42, 0x5c, 0x2c, 0x1e, 0xf9, 0xc5, 0x25, 0x12, 0x8c, 0x0a, 0x8c, 0x1a,
-	0x9c, 0x41, 0x2c, 0x19, 0xf9, 0xc5, 0x25, 0x42, 0x7c, 0x5c, 0x4c, 0x9e, 0x29, 0x12, 0x4c, 0x60,
-	0x11, 0xa6, 0xcc, 0x14, 0x25, 0x1e, 0x2e, 0xae, 0xa0, 0xd4, 0xe2, 0x92, 0xc4, 0xa2, 0x92, 0xcc,
-	0xbc, 0x74, 0x25, 0x2e, 0x2e, 0x8e, 0xe0, 0x92, 0xfc, 0x82, 0x02, 0x10, 0x9b, 0x93, 0x8b, 0x1d,
-	0xcc, 0x4e, 0x05, 0x2b, 0x0a, 0xc8, 0xcf, 0x2c, 0xce, 0xcf, 0x0b, 0xc8, 0xcc, 0xc9, 0x81, 0x48,
-	0x24, 0x16, 0x95, 0xa4, 0xa6, 0x28, 0xe9, 0x72, 0xb1, 0x86, 0x27, 0x96, 0x24, 0x67, 0x08, 0xa9,
-	0x70, 0xb1, 0x97, 0x83, 0x18, 0xa9, 0x45, 0x60, 0xdb, 0xb8, 0x8d, 0xb8, 0xf4, 0xc0, 0x4e, 0xd1,
-	0x0b, 0xf0, 0x74, 0x09, 0x82, 0x49, 0x29, 0xe9, 0x73, 0xb1, 0x87, 0xe6, 0x95, 0x93, 0xa0, 0x41,
-	0x8b, 0x8b, 0x2b, 0x24, 0xb5, 0x28, 0x37, 0x33, 0x2f, 0xb1, 0x24, 0x35, 0x45, 0x48, 0x86, 0x8b,
-	0xb9, 0x3c, 0x23, 0x1f, 0x8b, 0x7a, 0x90, 0xb0, 0x93, 0xce, 0x85, 0x87, 0x72, 0x0c, 0x37, 0x1e,
-	0xca, 0x31, 0x7c, 0x78, 0x28, 0xc7, 0xd8, 0xf0, 0x48, 0x8e, 0x71, 0xc5, 0x23, 0x39, 0xc6, 0x13,
-	0x8f, 0xe4, 0x18, 0x2f, 0x3c, 0x92, 0x63, 0x7c, 0xf0, 0x48, 0x8e, 0xf1, 0xc5, 0x23, 0x39, 0x86,
-	0x0f, 0x8f, 0xe4, 0x18, 0x27, 0x3c, 0x96, 0x63, 0x48, 0x62, 0x03, 0x07, 0x98, 0x31, 0x20, 0x00,
-	0x00, 0xff, 0xff, 0x41, 0x5a, 0x26, 0xaf, 0x40, 0x01, 0x00, 0x00,
+	// 360 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x94, 0x92, 0xcf, 0x4a, 0xeb, 0x40,
+	0x14, 0xc6, 0x33, 0xfd, 0x7b, 0x7b, 0x6e, 0xef, 0x55, 0x06, 0x91, 0x2a, 0x32, 0x94, 0xc1, 0x85,
+	0x8a, 0x26, 0x50, 0x9f, 0x40, 0x29, 0x68, 0x76, 0x21, 0x55, 0x5c, 0xa7, 0xcd, 0x98, 0x44, 0xd2,
+	0x9c, 0x92, 0x4c, 0x0d, 0xba, 0xf2, 0x11, 0x7c, 0x0c, 0x1f, 0xc5, 0x65, 0x97, 0x2e, 0xed, 0xb8,
+	0x71, 0xd9, 0x47, 0x90, 0x4c, 0xda, 0x8d, 0x74, 0xa1, 0xab, 0x7c, 0xf9, 0xce, 0xf7, 0xf1, 0x3b,
+	0x1c, 0x06, 0xda, 0x93, 0x14, 0x25, 0x66, 0xa6, 0xfe, 0xd0, 0xba, 0x37, 0x92, 0x98, 0xee, 0xee,
+	0x04, 0x88, 0x41, 0x2c, 0x2c, 0x6d, 0x0e, 0xa7, 0xb7, 0x96, 0x97, 0x3c, 0x94, 0x09, 0x7e, 0x08,
+	0x55, 0xc7, 0xee, 0x53, 0x0a, 0xb5, 0x4b, 0xcc, 0x64, 0x87, 0x74, 0xc9, 0x41, 0xcb, 0xd5, 0x9a,
+	0xfe, 0x87, 0x8a, 0xed, 0x77, 0x2a, 0xda, 0xa9, 0xd8, 0x3e, 0x6f, 0x03, 0xb8, 0x22, 0x93, 0x5e,
+	0x2a, 0xa3, 0x24, 0xe0, 0x00, 0x7f, 0x06, 0x12, 0x27, 0x93, 0x42, 0xb7, 0xa0, 0xa9, 0xb5, 0xd0,
+	0x21, 0x07, 0xa3, 0x0c, 0x13, 0x27, 0x8a, 0xe3, 0x72, 0xe0, 0xa5, 0x52, 0xf8, 0xdc, 0x82, 0x0d,
+	0x17, 0xa7, 0x52, 0xa4, 0x67, 0xbe, 0xaf, 0x85, 0xa0, 0x7b, 0x9a, 0xad, 0x99, 0x7f, 0x7b, 0x60,
+	0xea, 0x5d, 0x4d, 0xc7, 0xee, 0xbb, 0x85, 0xcd, 0x7b, 0x40, 0xcb, 0x82, 0x2b, 0xc6, 0x78, 0x2f,
+	0x7e, 0xd4, 0x31, 0x61, 0x6b, 0x05, 0xb9, 0x9b, 0x66, 0xd2, 0x41, 0x8c, 0x07, 0xd1, 0xa3, 0xa0,
+	0xdb, 0xd0, 0x18, 0x85, 0x5e, 0x12, 0x08, 0x5d, 0xac, 0xbb, 0xcb, 0x3f, 0x4e, 0x61, 0xb3, 0xcc,
+	0x5f, 0x08, 0x59, 0x02, 0x32, 0x6e, 0xc1, 0xbf, 0x25, 0xb7, 0x34, 0x28, 0x83, 0x9a, 0x63, 0xf7,
+	0xb3, 0x0e, 0xe9, 0x56, 0xbf, 0x31, 0xb5, 0xcf, 0x4f, 0xa0, 0x7e, 0xe3, 0xc9, 0x51, 0x48, 0xf7,
+	0xa1, 0x99, 0x17, 0x42, 0xa4, 0x6b, 0xf6, 0x5b, 0x8d, 0xb8, 0x05, 0xcd, 0xeb, 0x24, 0xff, 0x45,
+	0xe1, 0x08, 0xe0, 0x4a, 0xa4, 0xe3, 0x28, 0xf1, 0xa4, 0xf0, 0x8b, 0x03, 0xe4, 0x21, 0xae, 0x3b,
+	0x40, 0x1e, 0xe2, 0xf9, 0xf1, 0x6c, 0xce, 0x8c, 0xb7, 0x39, 0x33, 0x16, 0x73, 0x46, 0x9e, 0x14,
+	0x23, 0x2f, 0x8a, 0x91, 0x57, 0xc5, 0xc8, 0x4c, 0x31, 0xf2, 0xae, 0x18, 0xf9, 0x54, 0xcc, 0x58,
+	0x28, 0x46, 0x9e, 0x3f, 0x98, 0x31, 0x6c, 0xe8, 0x37, 0x70, 0xfa, 0x15, 0x00, 0x00, 0xff, 0xff,
+	0x1b, 0x60, 0x8f, 0xad, 0x35, 0x02, 0x00, 0x00,
 }

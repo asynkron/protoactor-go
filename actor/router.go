@@ -44,11 +44,10 @@ func spawnRouter(id string, config RouterConfig, props Props, parent *PID) *PID 
 	routeeProps.routerConfig = nil
 	routerState := config.CreateRouterState()
 
-	routerProps := FromFunc(func(context Context) {
-		switch context.Message().(type) {
-		case *Started:
-			config.OnStarted(context, routeeProps, routerState)
-		}
+	routerProps := FromInstance(&routerActor{
+		props:  routeeProps,
+		config: config,
+		state:  routerState,
 	})
 
 	routerId := ProcessRegistry.getAutoId()
@@ -68,7 +67,12 @@ type RouterActorRef struct {
 }
 
 func (ref *RouterActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
-	ref.state.RouteMessage(message, sender)
+	if _, ok := message.(RouterManagementMessage); ok {
+		r, _ := ProcessRegistry.get(ref.router)
+		r.SendUserMessage(pid, message, sender)
+	} else {
+		ref.state.RouteMessage(message, sender)
+	}
 }
 
 func (ref *RouterActorRef) Watch(pid *PID) {
@@ -91,4 +95,5 @@ func (ref *RouterActorRef) Stop(pid *PID) {
 type RouterState interface {
 	RouteMessage(message interface{}, sender *PID)
 	SetRoutees(routees []*PID)
+	GetRoutees() []*PID
 }

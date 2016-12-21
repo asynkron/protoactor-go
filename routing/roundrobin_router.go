@@ -23,6 +23,10 @@ func (state *RoundRobinState) SetRoutees(routees []*actor.PID) {
 	state.routees = routees
 }
 
+func (state *RoundRobinState) GetRoutees() []*actor.PID {
+	return state.routees
+}
+
 func (state *RoundRobinState) RouteMessage(message interface{}, sender *actor.PID) {
 	pid := roundRobinRoutee(&state.index, state.routees)
 	pid.Request(message, sender)

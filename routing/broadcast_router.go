@@ -18,6 +18,10 @@ func (state *BroadcastRouterState) SetRoutees(routees []*actor.PID) {
 	state.routees = routees
 }
 
+func (state *BroadcastRouterState) GetRoutees() []*actor.PID {
+	return state.routees
+}
+
 func (state *BroadcastRouterState) RouteMessage(message interface{}, sender *actor.PID) {
 	for _, m := range state.routees {
 		m.Request(message, sender)

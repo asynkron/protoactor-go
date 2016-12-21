@@ -14,7 +14,7 @@ PROTO_FILES := $(shell find . -path "./languages" -prune -o -type f -name '*.pro
 PROTO_GEN_FILES = $(patsubst %.proto, %.pb.go, $(PROTO_FILES))
 
 # Protobuf generator
-PROTO_MAKER := protoc --gogoslick_out=plugins=grpc:.
+PROTO_MAKER := protoc --gogoslick_out=Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types,plugins=grpc:.
 
 protogen: $(PROTO_GEN_FILES)
 
