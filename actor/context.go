@@ -91,7 +91,7 @@ type actorCell struct {
 	actor          Actor
 	props          Props
 	supervisor     SupervisionStrategy
-	behavior       *linkedliststack.Stack
+	behavior       behaviorStack
 	children       *cheapset.Set
 	watchers       *cheapset.Set
 	watching       *cheapset.Set
@@ -123,16 +123,12 @@ func (cell *actorCell) Parent() *PID {
 }
 
 func NewActorCell(props Props, parent *PID) *actorCell {
-
+	bs := make(behaviorStack, 0, 8)
 	cell := actorCell{
 		parent:         parent,
 		props:          props,
 		supervisor:     props.Supervisor(),
-		behavior:       linkedliststack.New(),
-		children:       nil,
-		watchers:       nil,
-		watching:       nil,
-		message:        nil,
+		behavior:       bs,
 		receivePlugins: append(props.receivePluins, AutoReceive),
 	}
 	cell.incarnateActor()
@@ -157,8 +153,7 @@ func (cell *actorCell) Next() {
 		receive = cell.receivePlugins[cell.receiveIndex]
 		cell.receiveIndex++
 	} else {
-		tmp, _ := cell.behavior.Peek()
-		receive = tmp.(Receive)
+		receive, _ = cell.behavior.Peek()
 	}
 
 	receive(cell)
@@ -319,7 +314,7 @@ func (cell *actorCell) BecomeStacked(behavior Receive) {
 }
 
 func (cell *actorCell) UnbecomeStacked() {
-	if cell.behavior.Size() <= 1 {
+	if cell.behavior.Len() <= 1 {
 		panic("Can not unbecome actor base behavior")
 	}
 	cell.behavior.Pop()
