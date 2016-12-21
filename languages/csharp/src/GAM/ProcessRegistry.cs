@@ -12,6 +12,7 @@ namespace GAM
 {
     public class ProcessRegistry
     {
+        private const string NoHost = "nonhost";
         private readonly IList<Func<PID, ActorRef>> _hostResolvers = new List<Func<PID, ActorRef>>();
 
         private readonly HashedConcurrentDictionary _localActorRefs =
@@ -20,7 +21,7 @@ namespace GAM
         private int _sequenceId;
         public static ProcessRegistry Instance { get; } = new ProcessRegistry();
 
-        public string Host { get; set; } = "nonhost";
+        public string Host { get; set; } = NoHost;
 
         public void RegisterHostResolver(Func<PID, ActorRef> resolver)
         {
@@ -56,7 +57,7 @@ namespace GAM
             {
                 Id = id,
                 Ref = aref, //cache aref lookup
-                Host = "nonhost" // local
+                Host = Host // local
             };
             var ok = _localActorRefs.TryAdd(pid.Id, aref);
             return ValueTuple.Create(pid, ok);
