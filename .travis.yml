@@ -1,7 +1,7 @@
 language: go
 before_install:
   - go get -v github.com/golang/lint/golint
-  - go get 
+  - go get github.com/gogo/AsynkronIT/goring
   - go get github.com/gogo/protobuf/proto
   - go get github.com/gogo/protobuf/protoc-gen-gogo
   - go get github.com/gogo/protobuf/gogoproto
