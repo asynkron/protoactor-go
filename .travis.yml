@@ -7,6 +7,7 @@ before_install:
   - go get github.com/Workiva/go-datastructures
   - go get github.com/hashicorp/memberlist
   - go get github.com/serialx/hashring
+  - go get github.com/couchbase/gocb
   - go get github.com/emirpasic/gods/sets/hashset
   - go get github.com/emirpasic/gods/stacks/linkedliststack
   - go get github.com/ivpusic/grpool
