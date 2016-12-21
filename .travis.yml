@@ -2,7 +2,8 @@ language: go
 before_install:
   - go get -v github.com/golang/lint/golint
   - go get github.com/AsynkronIT/goring
-  - go get github.com/Workiva/go-datastructures/queue
+  - go get github.com/Workiva/go-datastructures
+  - go get github.com/emirpasic/gods
   - go get github.com/gogo/protobuf/proto
   - go get github.com/gogo/protobuf/protoc-gen-gogo
   - go get github.com/gogo/protobuf/gogoproto
