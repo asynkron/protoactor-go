@@ -50,14 +50,15 @@ func spawnRouter(id string, config RouterConfig, props Props, parent *PID) *PID 
 			config.OnStarted(context, routeeProps, routerState)
 		}
 	})
-	router := spawn(id, routerProps, parent)
+
+	routerId := ProcessRegistry.getAutoId()
+	router := spawn(routerId, routerProps, parent)
 
 	ref := &RouterActorRef{
 		router: router,
 		state:  routerState,
 	}
-	proxyID := ProcessRegistry.getAutoId()
-	proxy, _ := ProcessRegistry.add(ref, proxyID)
+	proxy, _ := ProcessRegistry.add(ref, id)
 	return proxy
 }
 
