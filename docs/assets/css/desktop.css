@@ -1,0 +1,74 @@
+@import url(default.css);
+
+header, footer {
+	background-attachment: fixed;
+}
+
+#post-info {
+	width: 700px;
+	left: 50%;
+	margin-left: -350px;
+	bottom: 100px;
+}
+
+#post-info h1 {
+	font-weight: bold;
+	font-size: 44px;
+	line-height: 44px;
+}
+
+#article, #comments {
+	width: 700px;
+	padding: 50px 0px;
+	left: 50%;
+	margin-left: -350px;
+}
+
+#bg-video {
+	position: absolute;
+	bottom: 0px;
+	right: 0px;
+	min-width: 100%;
+	min-height: 100%;
+	width: auto;
+	height: auto;
+	z-index: 0;
+	overflow: hidden;
+}
+
+.menu {
+	position: fixed;
+}
+
+.menu:hover, .menu:active  {
+	background-color: #1a1a1a;
+}
+
+.menu-content {
+	width: 125px;
+	top: 47px;
+	left: 12px;
+	padding-top: 5px;
+	padding-bottom: 20px;
+	padding-left: 20px;
+	padding-right: 20px;
+	position: fixed;
+}
+
+.menu-title {
+	display: none;
+}
+
+.pagination, #post-list {
+	width: 700px;
+	left: 50%;
+	margin-left: -350px;
+}
+
+.copyright {
+	right: 20px;
+}
+
+table {
+	width: 100%;
+}

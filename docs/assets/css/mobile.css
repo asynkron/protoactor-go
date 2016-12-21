@@ -1,0 +1,100 @@
+@import url(default.css);
+header, footer {
+	background-attachment: scroll;
+}
+
+h1 {
+	margin-top: 30px;
+	font-size: 32px;
+}
+
+h2 {
+	margin-top: 25px;
+	font-size: 28px;
+}
+
+#post-info {
+	width: 90%;
+	left: 5%;
+	margin-left: 0px;
+	bottom: 100px;
+}
+
+#post-info h1 {
+	font-weight: bold;
+	font-size: 30px;
+	line-height: 30px;
+}
+
+#article, #comments {
+	width: 90%;
+	padding: 50px 5%;
+	left: 0px;
+	margin-left: 0px;
+}
+
+#bg-video {
+	display: none;
+}
+
+.social-links {
+	display: none;
+}
+
+.menu {
+	position: absolute;
+}
+
+.menu-content {
+	display: block;
+	width: 100%;
+	top: 0px;
+	left: 0px;
+	padding: 10px 0 20px 0;
+	position: relative;
+}
+
+.menu-title {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-size: 14px;
+	color: #b5b5b5;
+}
+
+.pagination, #post-list {
+	width: 90%;
+	padding: 0px 5%;
+	left: 0px;
+	margin-left: 0px;
+}
+
+.pagination {
+	padding-top: 30px;
+}
+
+.older-posts, .newer-posts {
+	visibility: hidden;
+	margin: -5px 5%;
+}
+
+.older-posts:after {
+	visibility: visible;
+	font-size: 22px;
+	content: "→";
+}
+
+.newer-posts:before {
+	visibility: visible;
+	font-size: 22px;
+	content: "←";
+}
+
+.copyright {
+	width: 100%;
+	text-align: center;
+	float: left;
+}
+
+table {
+	display: block;
+	overflow: auto;
+}

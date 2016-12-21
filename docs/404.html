@@ -1,0 +1,17 @@
+---
+layout: fullscreen
+title: "404"
+image:
+    url: /assets/images/luke.png
+---
+
+<div id="post-info">
+	<p id="404" style="text-align: center; color: #fff; opacity: .75; font-weight: bold;">404</p>
+	<h2 style="text-align: center;">This page has just discovered that Darth Vader is his father and ran away to not be found. Go back to the homepage.</h2>
+</div>
+<div id="nav-icon" style="bottom: 50px;">
+	<a href="{{ site.url }}{{ site.baseurl }}"><span class="genericon genericon-home"></span></a>
+</div>
+<p class="copyright">&copy;{{ site.time | date: "%Y" }}, <a href="{{ site.copyright.url }}" target="_blank">{{ site.copyright.author }}</a>. <a href="{{ site.copyright.type_url }}" target="_blank">{{ site.copyright.type_title }}</a>.</p>
+<script src="{{ site.baseurl }}/assets/js/jquery.fittext.js"></script>
+<script type="text/javascript">jQuery("#404").fitText(0.18, { maxFontSize: '350px' })</script>

@@ -1,50 +1,35 @@
-# Cross platform actors
+#Thinny - The Infinite's Nymphet
 
-Introducing cross platform actor support between Go and C#.
 
-Can I use this?
-The Go implementation is still in beta, there are users using GAM for Go in production already.
-But be aware that the API might change over time until 1.0.
+----
 
-The C# implementation is fresh out of the bakery, thus unstable and in alpha version.
+###Attention
 
-## Design principles:
+I'm no longer maintaining this repository.
 
-**Minimalistic API** -
-The API should be small and easy to use.
-Avoid enterprisey JVM like containers and configurations.
+If you want to add something, feel free to send a pull request, which I'll see if it's okay and merge.
 
-**Build on existing technologies** - There are already a lot of great tech for e.g. networking and clustering, build on those.
-e.g. gRPC streams for networking, Consul.IO for clustering.
+----
 
-**Pass data, not objects** - Serialization is an explicit concern, don't try to hide it.
-Protobuf all the way.
+##Installation
+1. Clone the repo: `git clone https://github.com/camporez/Thinny.git Thinny`
+2. Open the folder: `cd Thinny`
+3. Install the dependencies: `bundle install`
+4. Build the website: `bundle exec jekyll serve`
 
-**Be fast** - Do not trade performance for magic API trickery.
+##About
+Thinny is a beautiful theme for [Jekyll](http://jekyllrb.com/).
 
-Ultra fast remoting, GAM currently manages to pass over **two million messages per second** between nodes using only two actors, while still preserving message order!
-This is six times more the new super advanced UDP based Artery transport for Scala Akka, and 30 times faster than Akka.NET.
+(if you're looking for the [Ghost](http://ghost.org) release of the theme, check [this page](https://github.com/camporez/Thinny/releases/tag/v0.3-alexandra))
 
-## Sourcecode
+##Demo
+[![Preview image](https://f.cloud.github.com/assets/5755892/2002329/bdb5a052-85ed-11e3-8e00-a892910b6917.png)](http://camporez.github.io/)
+The above image is a preview of how the post header looks on Thinny.
 
-The C# implementation can be found here [https://github.com/AsynkronIT/gam/tree/dev/languages/csharp](https://github.com/AsynkronIT/gam/tree/dev/languages/csharp)
+A live demo is available [on my personal blog](http://camporez.github.io/).
 
-And the Go implementation here [https://github.com/AsynkronIT/gam](https://github.com/AsynkronIT/gam)
+##More information
+Read the blog post [here](http://camporez.github.io/blog/thinny-2/).
 
-## History
-
-As the creator of the Akka.NET project, I have come to some distinct conclusions while being involved in that project.
-In Akka.NET we created our own thread pool, our own networking layer, our own serialization support, our own configuration support etc. etc.
-This was all fun and challenging, it is however now my firm opinion that this is the wrong way to go about things.
-
-**If possible, software should be composed, not built**, only add code to glue existing pieces together.
-This yields a much better time to market, and allows us to focus on solving the actual problem at hand, in this case concurrency and distributed programming.
-
-GAM builds on existing technologies, Protobuf for serialization, gRPC streams for network transport.
-This ensures cross platform compatibility, network protocol version tolerance and battle proven stability.
-
-Another extremely important factor here is business agility and having an exit strategy.
-By being cross platform, your organization is no longer tied into a specific platform, if you are migrating from .NET to Go, 
-This can be done while still allowing actor based services to communicate between platforms.
-
-Reinvent by not reinventing.
+##Reporting issues
+You can report an issue or request a feature [here](http://github.com/camporez/Thinny/issues) or on [twitter](http://twitter.com/iancamporez).
