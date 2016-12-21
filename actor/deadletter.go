@@ -33,6 +33,6 @@ func (ref *DeadLetterActorRef) Watch(pid *PID) {
 	ref.SendSystemMessage(pid, &Watch{Watcher: pid})
 }
 
-func (ref *DeadLetterActorRef) UnWatch(pid *PID) {
+func (ref *DeadLetterActorRef) Unwatch(pid *PID) {
 	ref.SendSystemMessage(pid, &Unwatch{Watcher: pid})
 }

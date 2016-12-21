@@ -75,7 +75,7 @@ func (ref *RouterActorRef) Watch(pid *PID) {
 	ref.SendSystemMessage(pid, &Watch{Watcher: pid})
 }
 
-func (ref *RouterActorRef) UnWatch(pid *PID) {
+func (ref *RouterActorRef) Unwatch(pid *PID) {
 	ref.SendSystemMessage(pid, &Unwatch{Watcher: pid})
 }
 

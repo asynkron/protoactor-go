@@ -44,6 +44,6 @@ func (ref *remoteActorRef) Watch(pid *actor.PID) {
 	ref.SendSystemMessage(pid, &actor.Watch{Watcher: pid})
 }
 
-func (ref *remoteActorRef) UnWatch(pid *actor.PID) {
+func (ref *remoteActorRef) Unwatch(pid *actor.PID) {
 	ref.SendSystemMessage(pid, &actor.Unwatch{Watcher: pid})
 }

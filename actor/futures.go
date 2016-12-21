@@ -108,4 +108,4 @@ func (ref *FutureActorRef) Stop(pid *PID) {
 }
 
 func (ref *FutureActorRef) Watch(pid *PID)   {}
-func (ref *FutureActorRef) UnWatch(pid *PID) {}
+func (ref *FutureActorRef) Unwatch(pid *PID) {}

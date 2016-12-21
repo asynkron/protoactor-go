@@ -6,7 +6,7 @@ type ActorRef interface {
 	SendSystemMessage(pid *PID, message SystemMessage)
 	Stop(pid *PID)
 	Watch(pid *PID)
-	UnWatch(pid *PID)
+	Unwatch(pid *PID)
 }
 
 type LocalActorRef struct {
@@ -39,6 +39,6 @@ func (ref *LocalActorRef) Watch(pid *PID) {
 	ref.SendSystemMessage(pid, &Watch{Watcher: pid})
 }
 
-func (ref *LocalActorRef) UnWatch(pid *PID) {
+func (ref *LocalActorRef) Unwatch(pid *PID) {
 	ref.SendSystemMessage(pid, &Unwatch{Watcher: pid})
 }
