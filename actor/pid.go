@@ -3,6 +3,7 @@ package actor
 import (
 	"log"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -56,6 +57,28 @@ func (pid *PID) StopFuture() *Future {
 func (pid *PID) Stop() {
 	ref, _ := ProcessRegistry.get(pid)
 	ref.Stop(pid)
+}
+
+func pidFromKey(key string, p *PID) {
+	i := strings.IndexByte(key, ':')
+	if i == -1 {
+		p.Host = ProcessRegistry.Host
+		p.Id = key
+	} else {
+		p.Host = key[:i]
+		p.Id = key[i+1:]
+	}
+}
+
+func (pid *PID) key() string {
+	if pid.Host == ProcessRegistry.Host {
+		return pid.Id
+	}
+	return pid.Host + ":" + pid.Id
+}
+
+func (pid *PID) Empty() bool {
+	return pid.Host == "" && pid.Id == ""
 }
 
 //NewPID returns a new instance of the PID struct
