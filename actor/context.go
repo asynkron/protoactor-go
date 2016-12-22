@@ -5,7 +5,6 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/AsynkronIT/gam/actor/cheapset"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 )
 
@@ -92,9 +91,9 @@ type actorCell struct {
 	props          Props
 	supervisor     SupervisionStrategy
 	behavior       behaviorStack
-	children       *cheapset.Set
-	watchers       *cheapset.Set
-	watching       *cheapset.Set
+	children       PIDSet
+	watchers       PIDSet
+	watching       PIDSet
 	stash          *linkedliststack.Stack
 	receivePlugins []Receive
 	receiveIndex   int
@@ -103,15 +102,11 @@ type actorCell struct {
 }
 
 func (cell *actorCell) Children() []*PID {
-	if cell.children == nil {
-		cell.children = cheapset.New() //TODO: initialize in one place only..
-	}
-	values := cell.children.Values()
-	children := make([]*PID, len(values))
-	for i, child := range values {
-		children[i] = child.(*PID)
-	}
-	return children
+	r := make([]*PID, cell.children.Len())
+	cell.children.ForEach(func(i int, p PID) {
+		r[i] = &p
+	})
+	return r
 }
 
 func (cell *actorCell) Self() *PID {
@@ -140,7 +135,7 @@ func (cell *actorCell) Receive(message interface{}) {
 	m := cell.message
 
 	cell.receiveIndex = 0
-	cell.message = &message
+	cell.message = message
 	cell.Next()
 
 	cell.receiveIndex = i
@@ -175,14 +170,9 @@ func (cell *actorCell) InvokeSystemMessage(message SystemMessage) {
 	case *Terminated:
 		cell.handleTerminated(msg)
 	case *Watch:
-		if cell.watchers == nil {
-			cell.watchers = cheapset.New()
-		}
 		cell.watchers.Add(msg.Watcher)
 	case *Unwatch:
-		if cell.watchers != nil {
-			cell.watchers.Remove(msg.Watcher)
-		}
+		cell.watchers.Remove(msg.Watcher)
 	case *Failure:
 		cell.handleFailure(msg)
 	case *Restart:
@@ -194,11 +184,9 @@ func (cell *actorCell) handleRestart(msg *Restart) {
 	cell.stopping = false
 	cell.restarting = true
 	cell.InvokeUserMessage(&Restarting{})
-	if cell.children != nil {
-		for _, child := range cell.children.Values() {
-			child.(*PID).Stop()
-		}
-	}
+	cell.children.ForEach(func(i int, pid PID) {
+		pid.Stop()
+	})
 	cell.tryRestartOrTerminate()
 }
 
@@ -207,22 +195,16 @@ func (cell *actorCell) handleStop(msg *Stop) {
 	cell.stopping = true
 	cell.restarting = false
 	cell.InvokeUserMessage(&Stopping{})
-	if cell.children != nil {
-		for _, child := range cell.children.Values() {
-			child.(*PID).Stop()
-		}
-	}
+	cell.children.ForEach(func(i int, pid PID) {
+		pid.Stop()
+	})
 	cell.tryRestartOrTerminate()
 }
 
 //child stopped, check if we can stop or restart (if needed)
 func (cell *actorCell) handleTerminated(msg *Terminated) {
-	if cell.children != nil {
-		cell.children.Remove(msg.Who)
-	}
-	if cell.watching != nil {
-		cell.watching.Remove(msg.Who)
-	}
+	cell.children.Remove(msg.Who)
+	cell.watching.Remove(msg.Who)
 
 	cell.InvokeUserMessage(msg)
 	cell.tryRestartOrTerminate()
@@ -247,11 +229,8 @@ func (cell *actorCell) handleFailure(msg *Failure) {
 }
 
 func (cell *actorCell) tryRestartOrTerminate() {
-
-	if cell.children != nil {
-		if !cell.children.Empty() {
-			return
-		}
+	if !cell.children.Empty() {
+		return
 	}
 
 	if cell.restarting {
@@ -279,11 +258,9 @@ func (cell *actorCell) stopped() {
 	ProcessRegistry.remove(cell.self)
 	cell.InvokeUserMessage(&Stopped{})
 	otherStopped := &Terminated{Who: cell.self}
-	if cell.watchers != nil {
-		for _, watcher := range cell.watchers.Values() {
-			watcher.(*PID).sendSystemMessage(otherStopped)
-		}
-	}
+	cell.watchers.ForEach(func(i int, pid PID) {
+		pid.sendSystemMessage(otherStopped)
+	})
 }
 
 func (cell *actorCell) InvokeUserMessage(md interface{}) {
@@ -324,9 +301,6 @@ func (cell *actorCell) Watch(who *PID) {
 	who.sendSystemMessage(&Watch{
 		Watcher: cell.self,
 	})
-	if cell.watching == nil {
-		cell.watching = cheapset.New()
-	}
 	cell.watching.Add(who)
 }
 
@@ -334,9 +308,7 @@ func (cell *actorCell) Unwatch(who *PID) {
 	who.sendSystemMessage(&Unwatch{
 		Watcher: cell.self,
 	})
-	if cell.watching != nil {
-		cell.watching.Remove(who)
-	}
+	cell.watching.Remove(who)
 }
 
 func (cell *actorCell) Respond(response interface{}) {
@@ -360,9 +332,6 @@ func (cell *actorCell) SpawnNamed(props Props, name string) *PID {
 	}
 
 	pid := spawn(fullName, props, cell.self)
-	if cell.children == nil {
-		cell.children = cheapset.New()
-	}
 	cell.children.Add(pid)
 	cell.Watch(pid)
 	return pid
