@@ -288,7 +288,7 @@ func (cell *actorCell) InvokeUserMessage(md interface{}) {
 func (cell *actorCell) AutoReceiveOrUser() {
 	switch cell.Message().(type) {
 	case *PoisonPill:
-		panic("Poison Pill")
+		cell.self.Stop()
 	default:
 		receive, _ := cell.behavior.Peek()
 		receive(cell)
