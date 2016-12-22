@@ -13,6 +13,12 @@ func (a *routerActor) Receive(context Context) {
 
 	case *RouterAddRoutee:
 		r := a.state.GetRoutees()
+		for _, other := range r {
+			if other.Equal(m.PID) {
+				return
+			}
+		}
+		context.Watch(m.PID)
 		r = append(r, m.PID)
 		a.state.SetRoutees(r)
 
@@ -24,6 +30,7 @@ func (a *routerActor) Receive(context Context) {
 				r[i] = r[l]
 				r[l] = nil
 				r = r[:l]
+				context.Unwatch(m.PID)
 				break
 			}
 		}
