@@ -15,21 +15,23 @@ type RandomPoolRouter struct {
 }
 
 type RandomRouterState struct {
-	routees []*actor.PID
+	routees *actor.PIDSet
+	values []actor.PID
 }
 
-func (state *RandomRouterState) SetRoutees(routees []*actor.PID) {
+func (state *RandomRouterState) SetRoutees(routees *actor.PIDSet) {
 	state.routees = routees
+	state.values = routees.Values()
 }
 
-func (state *RandomRouterState) GetRoutees() []*actor.PID {
+func (state *RandomRouterState) GetRoutees() *actor.PIDSet {
 	return state.routees
 }
 
 func (state *RandomRouterState) RouteMessage(message interface{}, sender *actor.PID) {
-	l := len(state.routees)
+	l := len(state.values)
 	r := rand.Intn(l)
-	pid := state.routees[r]
+	pid := state.values[r]
 	pid.Request(message, sender)
 }
 
@@ -41,7 +43,7 @@ func NewRandomPool(poolSize int) actor.PoolRouterConfig {
 
 func NewRandomGroup(routees ...*actor.PID) actor.GroupRouterConfig {
 	r := &RandomGroupRouter{}
-	r.Routees = routees
+	r.Routees = actor.NewPIDSet(routees...)
 	return r
 }
 

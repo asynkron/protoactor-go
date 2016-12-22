@@ -7,6 +7,14 @@ type PIDSet struct {
 	m map[string]struct{}
 }
 
+func NewPIDSet(pids ...*PID) *PIDSet {
+	var s PIDSet
+	for _, pid := range pids {
+		s.Add(pid)
+	}
+	return &s
+}
+
 func (p *PIDSet) indexOf(v *PID) int {
 	for i, pid := range p.s {
 		if v.key() == pid {

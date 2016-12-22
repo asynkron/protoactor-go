@@ -19,8 +19,10 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 		})
 	child := Spawn(FromInstance(a))
 
+	s1 := NewPIDSet(child)
+
 	rs := new(testRouterState)
-	rs.On("SetRoutees", []*PID{child})
+	rs.On("SetRoutees", s1)
 	rs.On("RouteMessage", "hello", mock.Anything)
 
 	grc := newGroupRouterConfig(child)
@@ -41,7 +43,7 @@ type testGroupRouter struct {
 
 func newGroupRouterConfig(routees ...*PID) *testGroupRouter {
 	r := new(testGroupRouter)
-	r.Routees = routees
+	r.Routees = NewPIDSet(routees...)
 	return r
 }
 
@@ -52,22 +54,22 @@ func (m *testGroupRouter) CreateRouterState() RouterState {
 
 type testRouterState struct {
 	mock.Mock
-	routees []*PID
+	routees *PIDSet
 }
 
-func (m *testRouterState) SetRoutees(routees []*PID) {
+func (m *testRouterState) SetRoutees(routees *PIDSet) {
 	m.Called(routees)
 	m.routees = routees
 }
 
 func (m *testRouterState) RouteMessage(message interface{}, sender *PID) {
 	m.Called(message, sender)
-	for _, pid := range m.routees {
+	m.routees.ForEach(func(i int, pid PID) {
 		pid.Request(message, sender)
-	}
+	})
 }
 
-func (m *testRouterState) GetRoutees() []*PID {
+func (m *testRouterState) GetRoutees() *PIDSet {
 	args := m.Called()
-	return args.Get(0).([]*PID)
+	return args.Get(0).(*PIDSet)
 }

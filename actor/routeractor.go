@@ -13,41 +13,37 @@ func (a *routerActor) Receive(context Context) {
 
 	case *RouterAddRoutee:
 		r := a.state.GetRoutees()
-		for _, other := range r {
-			if other.Equal(m.PID) {
-				return
-			}
+		if r.Contains(m.PID) {
+			return
 		}
 		context.Watch(m.PID)
-		r = append(r, m.PID)
+		r.Add(m.PID)
 		a.state.SetRoutees(r)
 
 	case *RouterRemoveRoutee:
 		r := a.state.GetRoutees()
-		for i, pid := range r {
-			if pid.Equal(m.PID) {
-				l := len(r) - 1
-				r[i] = r[l]
-				r[l] = nil
-				r = r[:l]
-				context.Unwatch(m.PID)
-				break
-			}
+		if !r.Contains(m.PID) {
+			return
 		}
-		if len(r) == 0 {
-			r = nil
-		}
+
+		context.Unwatch(m.PID)
+		r.Remove(m.PID)
 		a.state.SetRoutees(r)
 
 	case *RouterBroadcastMessage:
 		msg := m.Message
 		sender := context.Sender()
-		r := a.state.GetRoutees()
-		for _, pid := range r {
+		a.state.GetRoutees().ForEach(func(i int, pid PID) {
 			pid.Request(msg, sender)
-		}
+		})
 
 	case *RouterGetRoutees:
-		context.Sender().Tell(&RouterRoutees{a.state.GetRoutees()})
+		r := a.state.GetRoutees()
+		routees := make([]*PID, r.Len())
+		r.ForEach(func(i int, pid PID) {
+			routees[i] = &pid
+		})
+
+		context.Sender().Tell(&RouterRoutees{routees})
 	}
 }
