@@ -124,7 +124,7 @@ func NewActorCell(props Props, parent *PID) *actorCell {
 		props:          props,
 		supervisor:     props.Supervisor(),
 		behavior:       bs,
-		receivePlugins: append(props.receivePluins, AutoReceive),
+		receivePlugins: props.receivePluins,
 	}
 	cell.incarnateActor()
 	return &cell
@@ -143,15 +143,13 @@ func (cell *actorCell) Receive(message interface{}) {
 }
 
 func (cell *actorCell) Next() {
-	var receive Receive
 	if cell.receiveIndex < len(cell.receivePlugins) {
-		receive = cell.receivePlugins[cell.receiveIndex]
+		receive := cell.receivePlugins[cell.receiveIndex]
 		cell.receiveIndex++
+		receive(cell)
 	} else {
-		receive, _ = cell.behavior.Peek()
+		cell.AutoReceiveOrUser()
 	}
-
-	receive(cell)
 }
 func (cell *actorCell) incarnateActor() {
 	actor := cell.props.ProduceActor()
@@ -278,7 +276,23 @@ func (cell *actorCell) InvokeUserMessage(md interface{}) {
 	}()
 	cell.receiveIndex = 0
 	cell.message = md
-	cell.Next()
+
+	//optimize fast path, remove next from profiler flow
+	if cell.receivePlugins == nil {
+		cell.AutoReceiveOrUser()
+	} else {
+		cell.Next()
+	}
+}
+
+func (cell *actorCell) AutoReceiveOrUser() {
+	switch cell.Message().(type) {
+	case *PoisonPill:
+		panic("Poison Pill")
+	default:
+		receive, _ := cell.behavior.Peek()
+		receive(cell)
+	}
 }
 
 func (cell *actorCell) Become(behavior Receive) {
