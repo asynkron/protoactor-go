@@ -3,6 +3,9 @@ package actor
 type behaviorStack []Receive
 
 func (b *behaviorStack) Clear() {
+	if len(*b) == 0 {
+		return
+	}
 	*b = (*b)[:0]
 }
 
