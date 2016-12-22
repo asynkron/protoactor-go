@@ -10,3 +10,7 @@ type Actor interface {
 
 //Receive is a function that receives an actor context
 type Receive func(Context)
+
+func (f Receive) Receive(context Context) {
+	f(context)
+}

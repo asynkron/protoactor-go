@@ -1,20 +1,15 @@
 package actor
 
 import (
-	"github.com/stretchr/testify/mock"
 	"io/ioutil"
 	"log"
 	"sync/atomic"
 	"time"
+
+	"github.com/stretchr/testify/mock"
 )
 
-type receiveFn func(Context)
-
-func (fn receiveFn) Receive(ctx Context) {
-	fn(ctx)
-}
-
-var nullReceive receiveFn = func(Context) {}
+var nullReceive Receive = func(Context) {}
 
 func init() {
 	// discard all logging in tests

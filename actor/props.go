@@ -77,13 +77,7 @@ func FromProducer(actorProducer Producer) Props {
 }
 
 func FromFunc(receive Receive) Props {
-	a := &emptyActor{
-		receive: receive,
-	}
-	p := FromProducer(func() Actor {
-		return a
-	})
-	return p
+	return FromInstance(receive)
 }
 
 func FromInstance(template Actor) Props {

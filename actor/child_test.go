@@ -102,7 +102,7 @@ func TestActorCanStopChildren(t *testing.T) {
 func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 	child := Spawn(FromInstance(nullReceive))
 	future := NewFuture(testTimeout)
-	var r receiveFn = func(c Context) {
+	var r Receive = func(c Context) {
 		switch msg := c.Message().(type) {
 		case *Started:
 			c.Watch(child)
@@ -129,7 +129,7 @@ func TestFutureDoesTimeout(t *testing.T) {
 }
 
 func TestFutureDoesNotTimeout(t *testing.T) {
-	var r receiveFn = func(c Context) {
+	var r Receive = func(c Context) {
 		if _, ok := c.Message().(string); !ok {
 			return
 		}
