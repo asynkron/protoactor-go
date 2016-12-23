@@ -19,39 +19,55 @@ type MessageInvoker interface {
 }
 
 type Context interface {
-	//Subscribes to ???
+	// Watch registers the actor as a monitor for the specified PID
 	Watch(*PID)
+
+	// Unwatch unregisters the actor as a monitor for the specified PID
 	Unwatch(*PID)
-	//Returns the currently processed message
+
+	// Message returns the current message to be processed
 	Message() interface{}
-	//Returns the PID of actor that sent currently processed message
+
+	// Sender returns the PID of actor that sent currently processed message
 	Sender() *PID
-	//Replaces the current Receive handler with a custom
+
+	// Become replaces the actors current Receive handler with a new handler
 	Become(Receive)
-	//Stacks a new Receive handler ontop of the current
+
+	// BecomeStacked pushes a new Receive handler on the current handler stack
 	BecomeStacked(Receive)
+
+	// UnbecomeStacked reverts to the previous Receive handler
 	UnbecomeStacked()
-	//Returns the PID for the current actor
+
+	// Self returns the PID for the current actor
 	Self() *PID
-	//Returns the PID for the current actors parent
+
+	// Parent returns the PID for the current actors parent
 	Parent() *PID
-	//Spawns a child actor using the given Props
+
+	// Spawn spawns a child actor using the given Props
 	Spawn(Props) *PID
-	//Spawns a named child actor using the given Props
+
+	// SpawnNamed spawns a named child actor using the given Props
 	SpawnNamed(Props, string) *PID
-	//Returns a slice of the current actors children
+
+	// Returns a slice of the current actors children
 	Children() []*PID
-	//Executes the next middleware or base Receive handler
+
+	// Next performs the next middleware or base Receive handler
 	Next()
-	//Invoke a custom User message synchronously
+
+	// Receive processes a custom user message synchronously
 	Receive(interface{})
-	//Stashes the current message
+
+	// Stash stashes the current message on a stack for reprocessing when the actor restarts
 	Stash()
 
-	//Respond to the current Sender()
+	// Respond sends a response to the to the current `Sender`
 	Respond(response interface{})
 
-	//the actor instance
+	// Actor returns the actor associated with this context
 	Actor() Actor
 }
 
