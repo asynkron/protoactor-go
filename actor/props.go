@@ -6,7 +6,7 @@ type Props struct {
 	mailboxProducer     MailboxProducer
 	supervisionStrategy SupervisionStrategy
 	routerConfig        RouterConfig
-	receivePluins       []Receive
+	receivePlugins      []Receive
 	dispatcher          Dispatcher
 }
 
@@ -40,7 +40,7 @@ func (props Props) ProduceMailbox() Mailbox {
 
 func (props Props) WithReceivers(plugin ...Receive) Props {
 	//pass by value, we only modify the copy
-	props.receivePluins = append(props.receivePluins, plugin...)
+	props.receivePlugins = append(props.receivePlugins, plugin...)
 	return props
 }
 

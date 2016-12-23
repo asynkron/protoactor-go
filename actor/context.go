@@ -140,7 +140,7 @@ func NewActorCell(props Props, parent *PID) *actorCell {
 		props:          props,
 		supervisor:     props.Supervisor(),
 		behavior:       bs,
-		receivePlugins: props.receivePluins,
+		receivePlugins: props.receivePlugins,
 	}
 	cell.incarnateActor()
 	return &cell
