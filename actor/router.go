@@ -15,7 +15,7 @@ type PoolRouterConfig interface {
 
 type GroupRouter struct {
 	RouterConfig
-	Routees []*PID
+	Routees *PIDSet
 }
 
 type PoolRouter struct {
@@ -24,19 +24,18 @@ type PoolRouter struct {
 }
 
 func (config *GroupRouter) OnStarted(context Context, props Props, router RouterState) {
-	for _, r := range config.Routees {
-		context.Watch(r)
-	}
+	config.Routees.ForEach(func(i int, pid PID) {
+		context.Watch(&pid)
+	})
 	router.SetRoutees(config.Routees)
 }
 
 func (config *PoolRouter) OnStarted(context Context, props Props, router RouterState) {
-	routees := make([]*PID, config.PoolSize)
+	var routees PIDSet
 	for i := 0; i < config.PoolSize; i++ {
-		pid := context.Spawn(props)
-		routees[i] = pid
+		routees.Add(context.Spawn(props))
 	}
-	router.SetRoutees(routees)
+	router.SetRoutees(&routees)
 }
 
 func spawnRouter(id string, config RouterConfig, props Props, parent *PID) *PID {
@@ -94,6 +93,6 @@ func (ref *RouterActorRef) Stop(pid *PID) {
 
 type RouterState interface {
 	RouteMessage(message interface{}, sender *PID)
-	SetRoutees(routees []*PID)
-	GetRoutees() []*PID
+	SetRoutees(routees *PIDSet)
+	GetRoutees() *PIDSet
 }

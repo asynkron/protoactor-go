@@ -24,25 +24,25 @@ type ConsistentHashRouterState struct {
 	routeeMap map[string]*actor.PID
 }
 
-func (state *ConsistentHashRouterState) SetRoutees(routees []*actor.PID) {
+func (state *ConsistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 	//lookup from node name to PID
 	state.routeeMap = make(map[string]*actor.PID)
-	nodes := make([]string, len(routees))
-	for i, pid := range routees {
+	nodes := make([]string, routees.Len())
+	routees.ForEach(func(i int, pid actor.PID) {
 		nodeName := pid.Host + "@" + pid.Id
 		nodes[i] = nodeName
-		state.routeeMap[nodeName] = pid
-	}
+		state.routeeMap[nodeName] = &pid
+	})
 	//initialize hashring for mapping message keys to node names
 	state.hashring = hashring.New(nodes)
 }
 
-func (state *ConsistentHashRouterState) GetRoutees() []*actor.PID {
-	var routees []*actor.PID
+func (state *ConsistentHashRouterState) GetRoutees() *actor.PIDSet {
+	var routees actor.PIDSet
 	for _, v := range state.routeeMap {
-		routees = append(routees, v)
+		routees.Add(v)
 	}
-	return routees
+	return &routees
 }
 
 func (state *ConsistentHashRouterState) RouteMessage(message interface{}, sender *actor.PID) {
@@ -78,7 +78,7 @@ func NewConsistentHashPool(poolSize int) actor.PoolRouterConfig {
 
 func NewConsistentHashGroup(routees ...*actor.PID) actor.GroupRouterConfig {
 	r := &ConsistentHashGroupRouter{}
-	r.Routees = routees
+	r.Routees = actor.NewPIDSet(routees...)
 	return r
 }
 

@@ -11,21 +11,21 @@ type BroadcastPoolRouter struct {
 }
 
 type BroadcastRouterState struct {
-	routees []*actor.PID
+	routees *actor.PIDSet
 }
 
-func (state *BroadcastRouterState) SetRoutees(routees []*actor.PID) {
+func (state *BroadcastRouterState) SetRoutees(routees *actor.PIDSet) {
 	state.routees = routees
 }
 
-func (state *BroadcastRouterState) GetRoutees() []*actor.PID {
+func (state *BroadcastRouterState) GetRoutees() *actor.PIDSet {
 	return state.routees
 }
 
 func (state *BroadcastRouterState) RouteMessage(message interface{}, sender *actor.PID) {
-	for _, m := range state.routees {
-		m.Request(message, sender)
-	}
+	state.routees.ForEach(func(i int, pid actor.PID) {
+		pid.Request(message, sender)
+	})
 }
 
 func NewBroadcastPool(poolSize int) actor.PoolRouterConfig {
@@ -36,7 +36,7 @@ func NewBroadcastPool(poolSize int) actor.PoolRouterConfig {
 
 func NewBroadcastGroup(routees ...*actor.PID) actor.GroupRouterConfig {
 	r := &BroadcastGroupRouter{}
-	r.Routees = routees
+	r.Routees = actor.NewPIDSet(routees...)
 	return r
 }
 
