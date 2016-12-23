@@ -1,7 +1,6 @@
 package actor
 
 import (
-	"strconv"
 	"sync/atomic"
 
 	cmap "github.com/orcaman/concurrent-map"
@@ -26,13 +25,33 @@ type HostResolver func(*PID) (ActorRef, bool)
 
 func (pr *ProcessRegistryValue) RegisterHostResolver(handler HostResolver) {
 	pr.RemoteHandlers = append(pr.RemoteHandlers, handler)
+}
 
+const (
+	digits = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~+"
+)
+
+func uint64ToId(u uint64) string {
+	var buf [13]byte
+	i := 13
+	// base is power of 2: use shifts and masks instead of / and %
+	for u >= 64 {
+		i--
+		buf[i] = digits[uintptr(u)&0x3f]
+		u >>= 6
+	}
+	// u < base
+	i--
+	buf[i] = digits[uintptr(u)]
+	i--
+	buf[i] = '$'
+
+	return string(buf[i:])
 }
 
 func (pr *ProcessRegistryValue) getAutoId() string {
 	counter := atomic.AddUint64(&pr.SequenceID, 1)
-	id := "$" + strconv.FormatUint(counter, 16)
-	return id
+	return uint64ToId(counter)
 }
 
 func (pr *ProcessRegistryValue) add(actorRef ActorRef, id string) (*PID, bool) {
