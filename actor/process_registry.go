@@ -14,8 +14,10 @@ type ProcessRegistryValue struct {
 }
 
 var (
+	localHost = "nonhost"
+
 	ProcessRegistry = &ProcessRegistryValue{
-		Host:           "nonhost",
+		Host:           localHost,
 		LocalPids:      cmap.New(),
 		RemoteHandlers: make([]HostResolver, 0),
 	}
@@ -70,7 +72,7 @@ func (pr *ProcessRegistryValue) remove(pid *PID) {
 }
 
 func (pr *ProcessRegistryValue) get(pid *PID) (ActorRef, bool) {
-	if pid.Host != "nonhost" && pid.Host != pr.Host {
+	if pid.Host != localHost && pid.Host != pr.Host {
 		for _, handler := range pr.RemoteHandlers {
 			ref, ok := handler(pid)
 			if ok {
@@ -81,7 +83,6 @@ func (pr *ProcessRegistryValue) get(pid *PID) (ActorRef, bool) {
 	}
 	ref, ok := pr.LocalPids.Get(pid.Id)
 	if !ok {
-		//panic("Unknown PID")
 		return deadLetter, false
 	}
 	return ref.(ActorRef), true
