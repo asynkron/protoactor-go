@@ -21,13 +21,15 @@ func (*ResumeMailbox) SystemMessage() {}
 
 func (*SuspendMailbox) SystemMessage() {}
 
+//TODO: add cause and action?
 type Restart struct{}
+
+//TODO: add cause and action?
+type Stop struct{}
 
 type ResumeMailbox struct{}
 
 type SuspendMailbox struct{}
-
-type Stop struct{}
 
 type Failure struct {
 	Who    *PID

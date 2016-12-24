@@ -37,6 +37,8 @@ namespace GAM
                     var reff = resolver(pid);
                     if (reff != null)
                     {
+                        //this is racy but it doesnt matter
+                        pid.Ref = reff;
                         return reff;
                     }
                 }
