@@ -29,14 +29,9 @@ func NewUnboundedMailbox() MailboxProducer {
 		q := &unboundedMailboxQueue{
 			userMailbox: goring.New(10),
 		}
-		systemMailbox := lfqueue.NewLockfreeQueue()
-		mailbox := DefaultMailbox{
-			hasMoreMessages: mailboxHasNoMessages,
-			schedulerStatus: mailboxIdle,
-			systemMailbox:   systemMailbox,
-			userMailbox:     q,
+		return &DefaultMailbox{
+			systemMailbox: lfqueue.NewLockfreeQueue(),
+			userMailbox:   q,
 		}
-
-		return &mailbox
 	}
 }
