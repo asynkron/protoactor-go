@@ -109,7 +109,7 @@ process:
 	}
 }
 
-func (mailbox *DefaultMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
-	mailbox.invoker = invoker
-	mailbox.dispatcher = dispatcher
+func (m *DefaultMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
+	m.invoker = invoker
+	m.dispatcher = dispatcher
 }
