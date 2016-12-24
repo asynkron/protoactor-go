@@ -267,6 +267,10 @@ func (cell *actorCell) handleTerminated(msg *Terminated) {
 	cell.tryRestartOrTerminate()
 }
 
+//TODO: this can really be done async, not blocking current actor
+//this would allow us to do backoff strategies w/o affecting this actor
+//possibly move all of the below logic into the supervisor Handle.
+//and let specific supervisors decide how to schedule restarts
 func (cell *actorCell) handleFailure(msg *Failure) {
 	directive := cell.props.Supervisor().Handle(msg.Who, msg.Reason)
 	switch directive {
