@@ -21,7 +21,9 @@ func (q *unboundedMailboxQueue) Pop() interface{} {
 	return nil
 }
 
-//NewUnboundedMailbox creates an unbounded mailbox
+var defaultMailboxProducer = NewUnboundedMailbox()
+
+// NewUnboundedMailbox creates an unbounded mailbox
 func NewUnboundedMailbox() MailboxProducer {
 	return func() Mailbox {
 		q := &unboundedMailboxQueue{
