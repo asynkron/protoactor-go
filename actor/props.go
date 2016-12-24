@@ -26,7 +26,7 @@ func (props Props) ProduceActor() Actor {
 
 func (props Props) Supervisor() SupervisionStrategy {
 	if props.supervisionStrategy == nil {
-		return DefaultSupervisionStrategy()
+		return defaultSupervisionStrategy
 	}
 	return props.supervisionStrategy
 }
