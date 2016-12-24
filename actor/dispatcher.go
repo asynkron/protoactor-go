@@ -5,26 +5,20 @@ type Dispatcher interface {
 	Throughput() int
 }
 
-type goroutineDispatcher struct {
-	throughput int
-}
+type goroutineDispatcher int
 
-func (*goroutineDispatcher) Schedule(runner MailboxRunner) {
+func (goroutineDispatcher) Schedule(runner MailboxRunner) {
 	go runner()
 }
 
-func (d *goroutineDispatcher) Throughput() int {
-	return d.throughput
+func (d goroutineDispatcher) Throughput() int {
+	return int(d)
 }
 
 var (
-	defaultDispatcher = &goroutineDispatcher{
-		throughput: 300,
-	}
+	defaultDispatcher = goroutineDispatcher(300)
 )
 
 func NewDefaultDispatcher(throughput int) Dispatcher {
-	return &goroutineDispatcher{
-		throughput: throughput,
-	}
+	return goroutineDispatcher(throughput)
 }
