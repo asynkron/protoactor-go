@@ -94,6 +94,14 @@ func (m *mockContext) Message() interface{} {
 	return args.Get(0)
 }
 
+func (m *mockContext) SetReceiveTimeout(d time.Duration) {
+	m.Called(d)
+}
+func (m *mockContext) ReceiveTimeout() time.Duration {
+	args := m.Called()
+	return args.Get(0).(time.Duration)
+}
+
 func (m *mockContext) Sender() *PID {
 	args := m.Called()
 	return args.Get(0).(*PID)

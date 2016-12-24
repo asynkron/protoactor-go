@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"time"
 
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 )
@@ -27,6 +28,13 @@ type Context interface {
 
 	// Message returns the current message to be processed
 	Message() interface{}
+
+	// SetReceiveTimeout sets the inactivity timeout, after which a ReceiveTimeout message will be sent to the actor.
+	// A duration of less than 1ms will disable the inactivity timer.
+	SetReceiveTimeout(d time.Duration)
+
+	// ReceiveTimeout returns the current timeout
+	ReceiveTimeout() time.Duration
 
 	// Sender returns the PID of actor that sent currently processed message
 	Sender() *PID
@@ -99,22 +107,60 @@ func (cell *actorCell) Stash() {
 	cell.stash.Push(cell.message)
 }
 
+func (cell *actorCell) cancelTimer() {
+	if cell.t != nil {
+		cell.t.Stop()
+		cell.t = nil
+	}
+}
+
+func (cell *actorCell) receiveTimeoutHandler() {
+	cell.self.Request(&ReceiveTimeout{}, nil)
+}
+
+func (cell *actorCell) SetReceiveTimeout(d time.Duration) {
+	if d == cell.receiveTimeout {
+		return
+	}
+	if cell.t != nil {
+		cell.t.Stop()
+	}
+
+	if d < time.Millisecond {
+		// anything less than than 1 millisecond is set to zero
+		d = 0
+	}
+
+	cell.receiveTimeout = d
+	if d > 0 {
+		if cell.t == nil {
+			cell.t = time.AfterFunc(d, cell.receiveTimeoutHandler)
+		} else {
+			cell.t.Reset(d)
+		}
+	}
+}
+
+func (cell *actorCell) ReceiveTimeout() time.Duration {
+	return cell.receiveTimeout
+}
+
 type actorCell struct {
 	message        interface{}
 	parent         *PID
 	self           *PID
 	actor          Actor
 	props          Props
-	supervisor     SupervisionStrategy
 	behavior       behaviorStack
 	children       PIDSet
 	watchers       PIDSet
 	watching       PIDSet
 	stash          *linkedliststack.Stack
-	receivePlugins []Receive
 	receiveIndex   int
 	stopping       bool
 	restarting     bool
+	receiveTimeout time.Duration
+	t              *time.Timer
 }
 
 func (cell *actorCell) Children() []*PID {
@@ -134,16 +180,13 @@ func (cell *actorCell) Parent() *PID {
 }
 
 func NewActorCell(props Props, parent *PID) *actorCell {
-	bs := make(behaviorStack, 0, 8)
-	cell := actorCell{
-		parent:         parent,
-		props:          props,
-		supervisor:     props.Supervisor(),
-		behavior:       bs,
-		receivePlugins: props.receivePlugins,
+	cell := &actorCell{
+		parent:   parent,
+		props:    props,
+		behavior: make(behaviorStack, 0, 8),
 	}
 	cell.incarnateActor()
-	return &cell
+	return cell
 }
 
 func (cell *actorCell) Receive(message interface{}) {
@@ -159,8 +202,8 @@ func (cell *actorCell) Receive(message interface{}) {
 }
 
 func (cell *actorCell) Next() {
-	if cell.receiveIndex < len(cell.receivePlugins) {
-		receive := cell.receivePlugins[cell.receiveIndex]
+	if cell.receiveIndex < len(cell.props.receivePlugins) {
+		receive := cell.props.receivePlugins[cell.receiveIndex]
 		cell.receiveIndex++
 		receive(cell)
 	} else {
@@ -225,7 +268,7 @@ func (cell *actorCell) handleTerminated(msg *Terminated) {
 }
 
 func (cell *actorCell) handleFailure(msg *Failure) {
-	directive := cell.supervisor.Handle(msg.Who, msg.Reason)
+	directive := cell.props.Supervisor().Handle(msg.Who, msg.Reason)
 	switch directive {
 	case ResumeDirective:
 		//resume the failing child
@@ -243,6 +286,12 @@ func (cell *actorCell) handleFailure(msg *Failure) {
 }
 
 func (cell *actorCell) tryRestartOrTerminate() {
+	if cell.t != nil {
+		cell.t.Stop()
+		cell.t = nil
+		cell.receiveTimeout = 0
+	}
+
 	if !cell.children.Empty() {
 		return
 	}
@@ -293,11 +342,24 @@ func (cell *actorCell) InvokeUserMessage(md interface{}) {
 	cell.receiveIndex = 0
 	cell.message = md
 
+	influenceTimeout := true
+	if cell.receiveTimeout > 0 {
+		_, influenceTimeout = md.(NotInfluenceReceiveTimeout)
+		influenceTimeout = !influenceTimeout
+		if influenceTimeout {
+			cell.t.Stop()
+		}
+	}
+
 	//optimize fast path, remove next from profiler flow
-	if cell.receivePlugins == nil {
+	if cell.props.receivePlugins == nil {
 		cell.AutoReceiveOrUser()
 	} else {
 		cell.Next()
+	}
+
+	if cell.receiveTimeout > 0 && influenceTimeout {
+		cell.t.Reset(cell.receiveTimeout)
 	}
 }
 
