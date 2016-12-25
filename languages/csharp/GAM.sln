@@ -20,6 +20,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SpawnBenchmark", "examples\SpawnBenchmark\SpawnBenchmark.csproj", "{76BA8256-C071-4353-B5A3-FA0E4BC444EF}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SpawnBenchmark", "SpawnBenchmark", "{9EA30F02-E35A-4EB2-80D9-1C64ED4613C4}"
+	ProjectSection(SolutionItems) = preProject
+		runtimeconfig.template.json = runtimeconfig.template.json
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

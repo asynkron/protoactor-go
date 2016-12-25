@@ -8,6 +8,9 @@
     <EmbeddedResource Include="**\*.resx" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="runtimeconfig.template.json" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.1.0" />
     <PackageReference Include="NETStandard.Library" Version="1.6" />
     <PackageReference Include="System.ValueTuple" Version="4.3.0" />

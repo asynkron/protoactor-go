@@ -267,26 +267,9 @@ func (cell *actorCell) handleTerminated(msg *Terminated) {
 	cell.tryRestartOrTerminate()
 }
 
-//TODO: this can really be done async, not blocking current actor
-//this would allow us to do backoff strategies w/o affecting this actor
-//possibly move all of the below logic into the supervisor Handle.
-//and let specific supervisors decide how to schedule restarts
+//offload the supervision completely to the supervisor strategy
 func (cell *actorCell) handleFailure(msg *Failure) {
-	directive := cell.props.Supervisor().Handle(msg.Who, msg.Reason)
-	switch directive {
-	case ResumeDirective:
-		//resume the failing child
-		msg.Who.sendSystemMessage(&ResumeMailbox{})
-	case RestartDirective:
-		//restart the failing child
-		msg.Who.sendSystemMessage(&Restart{})
-	case StopDirective:
-		//stop the failing child
-		msg.Who.Stop()
-	case EscalateDirective:
-		//send failure to parent
-		cell.parent.sendSystemMessage(msg)
-	}
+	cell.props.Supervisor().HandleFailure(cell, cell.Children(), msg.Who, msg.Reason)
 }
 
 func (cell *actorCell) tryRestartOrTerminate() {
@@ -438,19 +421,5 @@ func (cell *actorCell) debugString() string {
 }
 
 func handleRootFailure(msg *Failure, supervisor SupervisionStrategy) {
-	directive := supervisor.Handle(msg.Who, msg.Reason)
-	switch directive {
-	case ResumeDirective:
-		//resume the fialing child
-		msg.Who.sendSystemMessage(&ResumeMailbox{})
-	case RestartDirective:
-		//restart the failing child
-		msg.Who.sendSystemMessage(&Restart{})
-	case StopDirective:
-		//stop the failing child
-		msg.Who.Stop()
-	case EscalateDirective:
-		//send failure to parent
-		panic("Can not escalate root level failures")
-	}
+	supervisor.HandleFailure(nil, nil, msg.Who, msg.Reason)
 }
