@@ -22,7 +22,7 @@ func (q *boundedMailboxQueue) Pop() interface{} {
 }
 
 // NewBoundedMailbox creates an unbounded mailbox
-func NewBoundedMailbox(size int) MailboxProducer {
+func NewBoundedMailbox(size int, mailboxStats ...MailboxStatistics) MailboxProducer {
 	return func() Mailbox {
 		q := &boundedMailboxQueue{
 			userMailbox: queue.NewRingBuffer(uint64(size)),
@@ -30,6 +30,7 @@ func NewBoundedMailbox(size int) MailboxProducer {
 		return &DefaultMailbox{
 			systemMailbox: lfqueue.NewLockfreeQueue(),
 			userMailbox:   q,
+			mailboxStats:  mailboxStats,
 		}
 	}
 }
