@@ -17,9 +17,8 @@ var (
 	localHost = "nonhost"
 
 	ProcessRegistry = &ProcessRegistryValue{
-		Host:           localHost,
-		LocalPids:      cmap.New(),
-		RemoteHandlers: make([]HostResolver, 0),
+		Host:      localHost,
+		LocalPids: cmap.New(),
 	}
 )
 
