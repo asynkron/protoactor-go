@@ -11,6 +11,7 @@ type ReceiveUserMessage func(interface{})
 type ReceiveSystemMessage func(SystemMessage)
 
 type MailboxStatistics interface {
+	MailboxStarted()
 	MessagePosted(message interface{})
 	MessageReceived(message interface{})
 	MailboxEmpty()
@@ -136,4 +137,9 @@ process:
 func (m *DefaultMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
 	m.invoker = invoker
 	m.dispatcher = dispatcher
+	if m.mailboxStats != nil {
+		for _, ms := range m.mailboxStats {
+			ms.MailboxStarted()
+		}
+	}
 }
