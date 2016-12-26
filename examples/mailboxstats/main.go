@@ -9,6 +9,9 @@ import (
 
 type mailboxLogger struct{}
 
+func (m *mailboxLogger) MailboxStarted() {
+	log.Printf("Mailbox started")
+}
 func (m *mailboxLogger) MessagePosted(msg interface{}) {
 	log.Printf("Message posted %v", msg)
 }
