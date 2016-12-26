@@ -39,8 +39,9 @@ func (strategy *OneForOneStrategy) HandleFailure(parentCtx Context, allChildren 
 		child.Stop()
 	case EscalateDirective:
 		//send failure to parent
-		//TODO: this is not enough, we need to fail the parentCtx. suspending the mailbox
-		//and then escalate upwards
+		//supervisor mailbox
+		parentCtx.Self().sendSystemMessage(&SuspendMailbox{})
+		//escalate failure upwards
 		parentCtx.Parent().sendSystemMessage(&Failure{Reason: reason, Who: child})
 	}
 }

@@ -321,6 +321,8 @@ func (cell *actorCell) InvokeUserMessage(md interface{}) {
 			if cell.parent == nil {
 				handleRootFailure(failure, defaultSupervisionStrategy)
 			} else {
+				//TODO: Akka recursively suspends all children also on failure
+				//Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
 				cell.self.sendSystemMessage(&SuspendMailbox{})
 				cell.parent.sendSystemMessage(failure)
 			}

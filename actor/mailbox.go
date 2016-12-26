@@ -10,6 +10,12 @@ import (
 type ReceiveUserMessage func(interface{})
 type ReceiveSystemMessage func(SystemMessage)
 
+type MailboxStatistics interface {
+	MessagePosted(message interface{})
+	MessageReceived(message interface{})
+	MailboxEmpty()
+}
+
 type MailboxRunner func()
 type MailboxProducer func() Mailbox
 type Mailbox interface {
@@ -36,6 +42,7 @@ type DefaultMailbox struct {
 	invoker         MessageInvoker
 	dispatcher      Dispatcher
 	suspended       bool
+	mailboxStats    []MailboxStatistics
 }
 
 func (m *DefaultMailbox) ConsumeSystemMessages() bool {
@@ -55,6 +62,11 @@ func (m *DefaultMailbox) ConsumeSystemMessages() bool {
 }
 
 func (m *DefaultMailbox) PostUserMessage(message interface{}) {
+	if m.mailboxStats != nil {
+		for _, ms := range m.mailboxStats {
+			ms.MessagePosted(message)
+		}
+	}
 	m.userMailbox.Push(message)
 	m.schedule()
 }
@@ -93,6 +105,11 @@ process:
 
 		if userMsg := m.userMailbox.Pop(); userMsg != nil {
 			m.invoker.InvokeUserMessage(userMsg)
+			if m.mailboxStats != nil {
+				for _, ms := range m.mailboxStats {
+					ms.MessageReceived(userMsg)
+				}
+			}
 		} else {
 			break process
 		}
@@ -106,6 +123,12 @@ process:
 		// try setting the mailbox back to running
 		if atomic.CompareAndSwapInt32(&m.schedulerStatus, mailboxIdle, mailboxRunning) {
 			goto process
+		}
+	}
+
+	if m.mailboxStats != nil {
+		for _, ms := range m.mailboxStats {
+			ms.MailboxEmpty()
 		}
 	}
 }
