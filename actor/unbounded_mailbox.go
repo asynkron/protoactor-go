@@ -24,7 +24,7 @@ func (q *unboundedMailboxQueue) Pop() interface{} {
 var defaultMailboxProducer = NewUnboundedMailbox()
 
 // NewUnboundedMailbox creates an unbounded mailbox
-func NewUnboundedMailbox() MailboxProducer {
+func NewUnboundedMailbox(mailboxStats ...MailboxStatistics) MailboxProducer {
 	return func() Mailbox {
 		q := &unboundedMailboxQueue{
 			userMailbox: goring.New(10),
@@ -32,6 +32,7 @@ func NewUnboundedMailbox() MailboxProducer {
 		return &DefaultMailbox{
 			systemMailbox: lfqueue.NewLockfreeQueue(),
 			userMailbox:   q,
+			mailboxStats:  mailboxStats,
 		}
 	}
 }
