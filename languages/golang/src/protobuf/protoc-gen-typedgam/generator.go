@@ -40,9 +40,9 @@ func (g *gorelans) GenerateImports(file *generator.FileDescriptor) {
 
 	g.PrintImport("errors", "errors")
 	g.PrintImport("log", "log")
-	g.PrintImport("actor", "github.com/AsynkronIT/protoactor/actor")
-	g.PrintImport("cluster", "github.com/AsynkronIT/protoactor/cluster")
-	g.PrintImport("grain", "github.com/AsynkronIT/protoactor/cluster/grain")
+	g.PrintImport("actor", "github.com/AsynkronIT/protoactor/languages/golang/src/actor")
+	g.PrintImport("cluster", "github.com/AsynkronIT/protoactor/languages/golang/src/cluster")
+	g.PrintImport("grain", "github.com/AsynkronIT/protoactor/languages/golang/src/grain")
 
 	g.P()
 }
