@@ -20,10 +20,10 @@ import (
 	errors "errors"
 	log "log"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
-	"github.com/AsynkronIT/gam/languages/golang/src/cluster"
-	"github.com/AsynkronIT/gam/languages/golang/src/cluster/grain"
-	"github.com/AsynkronIT/gam/languages/golang/src/remoting"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/cluster"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/cluster/grain"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/remoting"
 	proto "github.com/gogo/protobuf/proto"
 
 	fmt "fmt"

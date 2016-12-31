@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor/lfqueue"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor/lfqueue"
 )
 
 type ReceiveUserMessage func(interface{})

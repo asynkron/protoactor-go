@@ -5,8 +5,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
-	"github.com/AsynkronIT/gam/languages/golang/src/remoting"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/remoting"
 )
 
 func getRandomActivator() string {

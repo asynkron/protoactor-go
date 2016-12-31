@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
 	"github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 )
 
 type hello struct{ Who string }

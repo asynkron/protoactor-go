@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
-	"github.com/AsynkronIT/gam/languages/golang/src/routing"
 	console "github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/routing"
 )
 
 type myMessage struct{ i int }

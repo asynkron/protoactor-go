@@ -1,6 +1,6 @@
 syntax = "proto3";
 package cluster;
-import "github.com/AsynkronIT/gam/actor/protos.proto";
+import "github.com/AsynkronIT/protoactor/actor/protos.proto";
 
 message TakeOwnership {
     actor.PID pid = 1;

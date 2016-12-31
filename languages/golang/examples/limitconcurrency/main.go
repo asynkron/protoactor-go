@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
-	"github.com/AsynkronIT/gam/languages/golang/src/routing"
 	"github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/routing"
 )
 
 type workItem struct{ i int }

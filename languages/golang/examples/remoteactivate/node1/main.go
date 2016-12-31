@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AsynkronIT/gam/languages/golang/examples/remoteactivate/messages"
-	"github.com/AsynkronIT/gam/languages/golang/src/remoting"
 	console "github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor/languages/golang/examples/remoteactivate/messages"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/remoting"
 )
 
 func main() {

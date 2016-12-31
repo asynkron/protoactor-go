@@ -3,8 +3,8 @@ package main
 import (
 	"sync"
 
-	"github.com/AsynkronIT/gam/languages/golang/examples/remoterouting/messages"
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/examples/remoterouting/messages"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 
 	"log"
 )

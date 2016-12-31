@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
 	console "github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 )
 
 //sent to producer to request more work

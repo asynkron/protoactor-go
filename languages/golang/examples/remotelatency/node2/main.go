@@ -6,10 +6,10 @@ import (
 	"sort"
 	"time"
 
-	"github.com/AsynkronIT/gam/languages/golang/examples/remotelatency/messages"
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
-	"github.com/AsynkronIT/gam/languages/golang/src/remoting"
 	"github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor/languages/golang/examples/remotelatency/messages"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/remoting"
 )
 
 type remoteActor struct {

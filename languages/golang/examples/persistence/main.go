@@ -4,11 +4,11 @@ import (
 	"log"
 	"sync"
 
-	"github.com/AsynkronIT/gam/languages/golang/examples/persistence/messages"
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
-	"github.com/AsynkronIT/gam/languages/golang/src/persistence"
-	"github.com/AsynkronIT/gam/languages/golang/src/persistence_providers/gamcb"
 	"github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor/languages/golang/examples/persistence/messages"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/persistence"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/persistence_providers/gamcb"
 )
 
 type persistentActor struct {

@@ -3,7 +3,7 @@ package routing
 import (
 	"sync/atomic"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 )
 
 type RoundRobinGroupRouter struct {

@@ -5,10 +5,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/AsynkronIT/gam/languages/golang/examples/cluster/shared"
-	"github.com/AsynkronIT/gam/languages/golang/src/cluster"
-	"github.com/AsynkronIT/gam/languages/golang/src/cluster/grain"
 	console "github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor/languages/golang/examples/cluster/shared"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/cluster"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/cluster/grain"
 )
 
 const (

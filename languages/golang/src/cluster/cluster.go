@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/remoting"
 	"github.com/AsynkronIT/gonet"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/remoting"
 	"github.com/hashicorp/memberlist"
 )
 

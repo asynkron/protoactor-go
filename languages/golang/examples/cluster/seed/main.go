@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
-	"github.com/AsynkronIT/gam/languages/golang/examples/cluster/shared"
-	"github.com/AsynkronIT/gam/languages/golang/src/cluster"
 	console "github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor/languages/golang/examples/cluster/shared"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/cluster"
 )
 
 func main() {

@@ -21,7 +21,7 @@ package messages
 import (
 	fmt "fmt"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 	proto "github.com/gogo/protobuf/proto"
 
 	math "math"

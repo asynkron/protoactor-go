@@ -1,7 +1,7 @@
 package persistence
 
 import (
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 	proto "github.com/golang/protobuf/proto"
 )
 

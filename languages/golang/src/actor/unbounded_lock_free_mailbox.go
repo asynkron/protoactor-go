@@ -1,6 +1,6 @@
 package actor
 
-import "github.com/AsynkronIT/gam/languages/golang/src/actor/lfqueue"
+import "github.com/AsynkronIT/protoactor/languages/golang/src/actor/lfqueue"
 
 // NewUnboundedLockfreeMailbox creates an unbounded, lock-free mailbox
 func NewUnboundedLockfreeMailbox(mailboxStats ...MailboxStatistics) MailboxProducer {

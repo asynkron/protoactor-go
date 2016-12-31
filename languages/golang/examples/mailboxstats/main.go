@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
 	console "github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 )
 
 type mailboxLogger struct{}

@@ -1,6 +1,6 @@
 package plugin
 
-import "github.com/AsynkronIT/gam/languages/golang/src/actor"
+import "github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 
 type plugin interface {
 	OnStart(actor.Context)

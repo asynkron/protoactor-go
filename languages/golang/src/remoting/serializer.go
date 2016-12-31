@@ -4,7 +4,7 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 	proto "github.com/gogo/protobuf/proto"
 	//proto "github.com/golang/protobuf/proto"
 )

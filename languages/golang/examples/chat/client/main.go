@@ -4,10 +4,10 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/AsynkronIT/gam/languages/golang/examples/chat/messages"
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
-	"github.com/AsynkronIT/gam/languages/golang/src/remoting"
 	"github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor/languages/golang/examples/chat/messages"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/remoting"
 )
 
 func main() {

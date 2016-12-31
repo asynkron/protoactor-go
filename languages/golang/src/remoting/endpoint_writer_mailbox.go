@@ -3,8 +3,8 @@ package remoting
 import (
 	"sync/atomic"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
 	"github.com/AsynkronIT/goring"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 
 	"runtime"
 )

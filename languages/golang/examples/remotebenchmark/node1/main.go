@@ -5,9 +5,9 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/AsynkronIT/gam/languages/golang/examples/remotebenchmark/messages"
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
-	"github.com/AsynkronIT/gam/languages/golang/src/remoting"
+	"github.com/AsynkronIT/protoactor/languages/golang/examples/remotebenchmark/messages"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/remoting"
 
 	"log"
 	"sync"

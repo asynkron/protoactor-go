@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor/cheapset"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor/cheapset"
 	"github.com/stretchr/testify/assert"
 )
 

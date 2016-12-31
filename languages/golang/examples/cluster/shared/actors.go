@@ -1,6 +1,6 @@
 package shared
 
-import "github.com/AsynkronIT/gam/languages/golang/src/cluster/grain"
+import "github.com/AsynkronIT/protoactor/languages/golang/src/cluster/grain"
 
 //a Go struct implementing the Hello interface
 type hello struct {

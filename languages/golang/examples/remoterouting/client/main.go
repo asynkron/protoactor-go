@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AsynkronIT/gam/examples/remoterouting/messages"
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
-	"github.com/AsynkronIT/gam/languages/golang/src/remoting"
-	"github.com/AsynkronIT/gam/languages/golang/src/routing"
+	"github.com/AsynkronIT/protoactor/examples/remoterouting/messages"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/remoting"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/routing"
 
 	console "github.com/AsynkronIT/goconsole"
 )

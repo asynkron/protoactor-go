@@ -3,7 +3,7 @@ package remoting
 import (
 	"log"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"

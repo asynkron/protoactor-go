@@ -4,7 +4,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/AsynkronIT/gam/languages/golang/src/actor"
+	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 
 	"google.golang.org/grpc"
 )
