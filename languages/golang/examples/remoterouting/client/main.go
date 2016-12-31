@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AsynkronIT/protoactor/examples/remoterouting/messages"
+	"github.com/AsynkronIT/protoactor/languages/golang/examples/remoterouting/messages"
 	"github.com/AsynkronIT/protoactor/languages/golang/src/actor"
 	"github.com/AsynkronIT/protoactor/languages/golang/src/remoting"
 	"github.com/AsynkronIT/protoactor/languages/golang/src/routing"
