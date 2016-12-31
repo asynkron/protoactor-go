@@ -1,6 +1,6 @@
 package streams
 
-import "github.com/AsynkronIT/gam/actor"
+import "github.com/AsynkronIT/gam/languages/golang/src/actor"
 
 type UntypedStream struct {
 	c   chan interface{}
