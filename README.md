@@ -1,6 +1,6 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/AsynkronIT/gam)](https://goreportcard.com/report/github.com/AsynkronIT/gam) 
-[![GoDoc](https://godoc.org/github.com/AsynkronIT/gam?status.svg)](https://godoc.org/github.com/AsynkronIT/gam)
-[![Build Status](https://travis-ci.org/AsynkronIT/gam.svg?branch=dev)](https://travis-ci.org/AsynkronIT/gam)
+[![Go Report Card](https://goreportcard.com/badge/github.com/AsynkronIT/protoactor-go)](https://goreportcard.com/report/github.com/AsynkronIT/protoactor-go) 
+[![GoDoc](https://godoc.org/github.com/AsynkronIT/protoactor-go?status.svg)](https://godoc.org/github.com/AsynkronIT/protoactor-go)
+[![Build Status](https://travis-ci.org/AsynkronIT/protoactor-go.svg?branch=dev)](https://travis-ci.org/AsynkronIT/protoactor-go)
 
 [![Join the chat at https://gitter.im/AsynkronIT/gam](https://badges.gitter.im/AsynkronIT/gam.svg)](https://gitter.im/AsynkronIT/gam?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -16,9 +16,9 @@ The C# implementation is fresh out of the bakery, thus unstable and in alpha ver
 
 ## Sourcecode
 
-The C# implementation can be found here [https://github.com/AsynkronIT/gam/tree/dev/languages/csharp](https://github.com/AsynkronIT/gam/tree/dev/languages/csharp)
+The C# implementation can be found here [https://github.com/AsynkronIT/protoactor-dotnet](https://github.com/AsynkronIT/protoactor-dotnet)
 
-And the Go implementation here [https://github.com/AsynkronIT/gam](https://github.com/AsynkronIT/gam)
+And the Go implementation here [https://github.com/AsynkronIT/protoactor-go](https://github.com/AsynkronIT/protoactor-go)
 
 
 ## Design principles:
