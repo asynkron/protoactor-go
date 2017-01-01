@@ -12,14 +12,10 @@ Can I use this?
 The Go implementation is still in beta, there are users using GAM for Go in production already.
 But be aware that the API might change over time until 1.0.
 
-The C# implementation is fresh out of the bakery, thus unstable and in alpha version.
-
-## Sourcecode
+## Sourcecode - Go
+This is the Go repository for Proto Actor.
 
 The C# implementation can be found here [https://github.com/AsynkronIT/protoactor-dotnet](https://github.com/AsynkronIT/protoactor-dotnet)
-
-And the Go implementation here [https://github.com/AsynkronIT/protoactor-go](https://github.com/AsynkronIT/protoactor-go)
-
 
 ## Design principles:
 
