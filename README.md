@@ -2,14 +2,14 @@
 [![GoDoc](https://godoc.org/github.com/AsynkronIT/protoactor-go?status.svg)](https://godoc.org/github.com/AsynkronIT/protoactor-go)
 [![Build Status](https://travis-ci.org/AsynkronIT/protoactor-go.svg?branch=dev)](https://travis-ci.org/AsynkronIT/protoactor-go)
 
-[![Join the chat at https://gitter.im/AsynkronIT/gam](https://badges.gitter.im/AsynkronIT/gam.svg)](https://gitter.im/AsynkronIT/gam?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/AsynkronIT/Proto Actor](https://badges.gitter.im/AsynkronIT/Proto Actor.svg)](https://gitter.im/AsynkronIT/Proto Actor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # Cross platform actors
 
 Introducing cross platform actor support between Go and C#.
 
 Can I use this?
-The Go implementation is still in beta, there are users using GAM for Go in production already.
+The Go implementation is still in beta, there are users using Proto Actor for Go in production already.
 But be aware that the API might change over time until 1.0.
 
 ## Sourcecode - Go
@@ -31,7 +31,7 @@ Protobuf all the way.
 
 **Be fast** - Do not trade performance for magic API trickery.
 
-Ultra fast remoting, GAM currently manages to pass over **two million messages per second** between nodes using only two actors, while still preserving message order!
+Ultra fast remoting, Proto Actor currently manages to pass over **two million messages per second** between nodes using only two actors, while still preserving message order!
 This is six times more the new super advanced UDP based Artery transport for Scala Akka, and 30 times faster than Akka.NET.
 
 ```text
@@ -56,7 +56,7 @@ This was all fun and challenging, it is however now my firm opinion that this is
 **If possible, software should be composed, not built**, only add code to glue existing pieces together.
 This yields a much better time to market, and allows us to focus on solving the actual problem at hand, in this case concurrency and distributed programming.
 
-GAM builds on existing technologies, Protobuf for serialization, gRPC streams for network transport.
+Proto Actor builds on existing technologies, Protobuf for serialization, gRPC streams for network transport.
 This ensures cross platform compatibility, network protocol version tolerance and battle proven stability.
 
 Another extremely important factor here is business agility and having an exit strategy.
@@ -155,7 +155,7 @@ func main() {
 
 ## Lifecycle events
 
-Unlike Akka, GAM uses messages for lifecycle events instead of OOP method overrides
+Unlike Akka, Proto Actor uses messages for lifecycle events instead of OOP method overrides
 
 ```go
 type Hello struct{ Who string }
@@ -196,7 +196,7 @@ func main() {
 
 Root actors are supervised by the `actor.DefaultSupervisionStrategy()`, which always issues a `actor.RestartDirective` for failing actors
 Child actors are supervised by their parents.
-Parents can customize their child supervisor strategy using `gam.Props`
+Parents can customize their child supervisor strategy using `Proto Actor.Props`
 
 ### Example
 
@@ -258,7 +258,7 @@ func main() {
 
 ## Networking / Remoting
 
-GAM's networking layer is built as a thin wrapper ontop of gRPC and message serialization is built on Protocol Buffers<br/>
+Proto Actor's networking layer is built as a thin wrapper ontop of gRPC and message serialization is built on Protocol Buffers<br/>
 
 ### Example
 
