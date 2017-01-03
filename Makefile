@@ -9,7 +9,7 @@ build: protogen
 # {{{ Protobuf
 
 # Protobuf definitions
-PROTO_FILES := $(shell find . -path "./languages" -prune -o -type f -name '*.proto' -print)
+PROTO_FILES := $(shell find . \( -path "./languages" -o -path "./specification" \) -prune -o -type f -name '*.proto' -print)
 # Protobuf Go files
 PROTO_GEN_FILES = $(patsubst %.proto, %.pb.go, $(PROTO_FILES))
 
