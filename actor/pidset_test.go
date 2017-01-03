@@ -13,6 +13,17 @@ func TestPIDSet_Empty(t *testing.T) {
 	assert.True(t, s.Empty())
 }
 
+func TestPIDSet_Clear(t *testing.T) {
+	var s PIDSet
+	s.Add(NewLocalPID("p1"))
+	s.Add(NewLocalPID("p2"))
+	s.Add(NewLocalPID("p3"))
+	assert.Equal(t, 3, s.Len())
+	s.Clear()
+	assert.True(t, s.Empty())
+	assert.Len(t, s.s, 0)
+}
+
 func TestPIDSet_AddSmall(t *testing.T) {
 	var s PIDSet
 	p1 := NewLocalPID("p1")
