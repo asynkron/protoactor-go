@@ -6,6 +6,10 @@ func (b *behaviorStack) Clear() {
 	if len(*b) == 0 {
 		return
 	}
+
+	for i := range *b {
+		(*b)[i] = nil
+	}
 	*b = (*b)[:0]
 }
 
