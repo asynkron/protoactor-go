@@ -269,7 +269,14 @@ func (cell *actorCell) handleTerminated(msg *Terminated) {
 
 //offload the supervision completely to the supervisor strategy
 func (cell *actorCell) handleFailure(msg *Failure) {
-	cell.props.Supervisor().HandleFailure(cell, cell.Children(), msg.Who, msg.Reason)
+	cell.props.Supervisor().HandleFailure(cell, msg.Who, msg.Reason)
+}
+
+func (cell *actorCell) EscalateFailure(who *PID, reason interface{}) {
+	//suspend self
+	cell.Self().sendSystemMessage(&SuspendMailbox{})
+	//send failure to parent
+	cell.Parent().sendSystemMessage(&Failure{Reason: reason, Who: who})
 }
 
 func (cell *actorCell) tryRestartOrTerminate() {
@@ -319,7 +326,7 @@ func (cell *actorCell) InvokeUserMessage(md interface{}) {
 			log.Printf("[ACTOR] '%v' Recovering from: %v", cell.debugString(), r)
 			failure := &Failure{Reason: r, Who: cell.self}
 			if cell.parent == nil {
-				handleRootFailure(failure, defaultSupervisionStrategy)
+				handleRootFailure(failure)
 			} else {
 				//TODO: Akka recursively suspends all children also on failure
 				//Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
@@ -422,6 +429,6 @@ func (cell *actorCell) debugString() string {
 	return fmt.Sprintf("%v/%v:%v", cell.self.Host, cell.self.Id, reflect.TypeOf(cell.actor))
 }
 
-func handleRootFailure(msg *Failure, supervisor SupervisionStrategy) {
-	supervisor.HandleFailure(nil, nil, msg.Who, msg.Reason)
+func handleRootFailure(msg *Failure) {
+	defaultSupervisionStrategy.HandleFailure(nil, msg.Who, msg.Reason)
 }

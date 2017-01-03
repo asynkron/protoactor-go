@@ -15,7 +15,7 @@ type Decider func(child *PID, cause interface{}) Directive
 //Instead of letting the parent keep track of child restart stats.
 //this info could actually go into each actor, sending it back to the parent as part of the Failure message
 type SupervisionStrategy interface {
-	HandleFailure(parentCtx Context, allChildren []*PID, child *PID, cause interface{})
+	HandleFailure(supervisor Supervisor, child *PID, cause interface{})
 }
 
 type OneForOneStrategy struct {
@@ -24,7 +24,12 @@ type OneForOneStrategy struct {
 	decider                     Decider
 }
 
-func (strategy *OneForOneStrategy) HandleFailure(parentCtx Context, allChildren []*PID, child *PID, reason interface{}) {
+type Supervisor interface {
+	Children() []*PID
+	EscalateFailure(who *PID, reason interface{})
+}
+
+func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *PID, reason interface{}) {
 	directive := strategy.decider(child, reason)
 
 	switch directive {
@@ -40,9 +45,7 @@ func (strategy *OneForOneStrategy) HandleFailure(parentCtx Context, allChildren 
 	case EscalateDirective:
 		//send failure to parent
 		//supervisor mailbox
-		parentCtx.Self().sendSystemMessage(&SuspendMailbox{})
-		//escalate failure upwards
-		parentCtx.Parent().sendSystemMessage(&Failure{Reason: reason, Who: child})
+		supervisor.EscalateFailure(child, reason)
 	}
 }
 
