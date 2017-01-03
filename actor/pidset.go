@@ -84,6 +84,14 @@ func (p *PIDSet) Len() int {
 	return len(p.m)
 }
 
+func (p *PIDSet) Clear() {
+	if p.m == nil {
+		p.s = p.s[:0]
+	} else {
+		p.m = nil
+	}
+}
+
 func (p *PIDSet) Empty() bool {
 	return p.Len() == 0
 }
