@@ -8,6 +8,6 @@ func main() {
 	p := NewGorleans()
 	p.Overwrite()
 
-	resp := command.GeneratePlugin(req, p, "_typedgam.go")
+	resp := command.GeneratePlugin(req, p, "_protoactor.go")
 	command.Write(resp)
 }
