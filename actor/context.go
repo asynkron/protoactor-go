@@ -309,6 +309,7 @@ func (cell *actorCell) restart() {
 			cell.InvokeUserMessage(msg)
 		}
 	}
+	cell.self.sendSystemMessage(&ResumeMailbox{})
 }
 
 func (cell *actorCell) stopped() {

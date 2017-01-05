@@ -5,6 +5,7 @@ import (
 
 	"github.com/AsynkronIT/goring"
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/actor/lfqueue"
 
 	"runtime"
 )
@@ -20,12 +21,13 @@ const (
 
 type endpointWriterMailbox struct {
 	userMailbox     *goring.Queue
-	systemMailbox   *goring.Queue
+	systemMailbox   *lfqueue.LockfreeQueue
 	schedulerStatus int32
 	hasMoreMessages int32
 	invoker         actor.MessageInvoker
 	batchSize       int
 	dispatcher      actor.Dispatcher
+	suspended       bool
 }
 
 func (mailbox *endpointWriterMailbox) PostUserMessage(message interface{}) {
@@ -54,16 +56,36 @@ func (mailbox *endpointWriterMailbox) Resume() {
 
 }
 
+func (m *endpointWriterMailbox) ConsumeSystemMessages() bool {
+	if sysMsg := m.systemMailbox.Pop(); sysMsg != nil {
+		sys, _ := sysMsg.(actor.SystemMessage)
+		switch sys.(type) {
+		case *actor.SuspendMailbox:
+			m.suspended = true
+		case *actor.ResumeMailbox:
+			m.suspended = false
+		}
+
+		m.invoker.InvokeSystemMessage(sys)
+		return true
+	}
+	return false
+}
+
 func (mailbox *endpointWriterMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&mailbox.hasMoreMessages, mailboxHasNoMessages)
 	batchSize := mailbox.batchSize
 process:
 	for {
-		if sysMsg, ok := mailbox.systemMailbox.Pop(); ok {
-			sys := sysMsg.(actor.SystemMessage)
-			mailbox.invoker.InvokeSystemMessage(sys)
-		} else if userMsg, ok := mailbox.userMailbox.PopMany(int64(batchSize)); ok {
+		if mailbox.ConsumeSystemMessages() {
+			continue
+		} else if mailbox.suspended {
+			// exit processing is suspended and no system messages were processed
+			break process
+		}
+
+		if userMsg, ok := mailbox.userMailbox.PopMany(int64(batchSize)); ok {
 			mailbox.invoker.InvokeUserMessage(userMsg)
 		} else {
 			break process
@@ -88,7 +110,7 @@ func newEndpointWriterMailbox(batchSize, initialSize int) actor.MailboxProducer 
 
 	return func() actor.Mailbox {
 		userMailbox := goring.New(int64(initialSize))
-		systemMailbox := goring.New(10)
+		systemMailbox := lfqueue.NewLockfreeQueue()
 		mailbox := endpointWriterMailbox{
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
