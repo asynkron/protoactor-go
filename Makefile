@@ -1,4 +1,4 @@
-.PHONY: all
+.PHONY: all test
 
 all: build
 
@@ -30,3 +30,12 @@ clean: protoclean
 protoclean:
 	rm -rf $(PROTO_GEN_FILES)
 # }}} Cleanup end
+
+# {{{ test
+
+PACKAGES := $(shell go list ./... | grep -v "/examples/")
+
+test:
+	go test $(PACKAGES)
+
+# }}} test
