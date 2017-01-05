@@ -9,12 +9,14 @@ var (
 type DeadLetter struct {
 	PID     *PID
 	Message interface{}
+	Sender  *PID
 }
 
 func (*DeadLetterActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	EventStream.Publish(&DeadLetter{
 		PID:     pid,
 		Message: message,
+		Sender:  sender,
 	})
 }
 
