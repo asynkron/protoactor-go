@@ -19,12 +19,13 @@ func Start(ip string, join ...string) {
 	}
 	name := fmt.Sprintf("%v:%v", h, p+1)
 	c := getMemberlistConfig(h, p, name)
+	spawnPartitionActor()
 	l, err := memberlist.Create(c)
 
 	if err != nil {
 		panic("[CLUSTER] Failed to create memberlist: " + err.Error())
 	}
-	spawnPartitionActor()
+
 	list = l
 	remoting.Start(name)
 

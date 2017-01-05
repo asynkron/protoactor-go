@@ -9,6 +9,7 @@ It is generated from these files:
 	protos.proto
 
 It has these top-level messages:
+	Unit
 	HelloRequest
 	HelloResponse
 	AddRequest
@@ -16,20 +17,15 @@ It has these top-level messages:
 */
 package shared
 
-import (
-	errors "errors"
-	log "log"
+import errors "errors"
+import log "log"
+import actor "github.com/AsynkronIT/protoactor-go/actor"
+import remoting "github.com/AsynkronIT/protoactor-go/remoting"
+import cluster "github.com/AsynkronIT/protoactor-go/cluster"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/grain"
-	"github.com/AsynkronIT/protoactor-go/remoting"
-	proto "github.com/gogo/protobuf/proto"
-
-	fmt "fmt"
-
-	math "math"
-)
+import proto "github.com/gogo/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -52,13 +48,15 @@ type Hello interface {
 	SayHello(*HelloRequest) (*HelloResponse, error)
 
 	Add(*AddRequest) (*AddResponse, error)
+
+	VoidFunc(*AddRequest) (*Unit, error)
 }
 type HelloGrain struct {
 	ID string
 }
 
-func (g *HelloGrain) SayHello(r *HelloRequest, options ...grain.GrainCallOption) (*HelloResponse, error) {
-	conf := grain.ApplyGrainCallOptions(options)
+func (g *HelloGrain) SayHello(r *HelloRequest, options ...cluster.GrainCallOption) (*HelloResponse, error) {
+	conf := cluster.ApplyGrainCallOptions(options)
 	fun := func() (*HelloResponse, error) {
 		pid, err := cluster.Get(g.ID, "Hello")
 		if err != nil {
@@ -99,7 +97,7 @@ func (g *HelloGrain) SayHello(r *HelloRequest, options ...grain.GrainCallOption)
 	return nil, err
 }
 
-func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...grain.GrainCallOption) (<-chan *HelloResponse, <-chan error) {
+func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...cluster.GrainCallOption) (<-chan *HelloResponse, <-chan error) {
 	c := make(chan *HelloResponse)
 	e := make(chan error)
 	go func() {
@@ -115,8 +113,8 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...grain.GrainCallOpt
 	return c, e
 }
 
-func (g *HelloGrain) Add(r *AddRequest, options ...grain.GrainCallOption) (*AddResponse, error) {
-	conf := grain.ApplyGrainCallOptions(options)
+func (g *HelloGrain) Add(r *AddRequest, options ...cluster.GrainCallOption) (*AddResponse, error) {
+	conf := cluster.ApplyGrainCallOptions(options)
 	fun := func() (*AddResponse, error) {
 		pid, err := cluster.Get(g.ID, "Hello")
 		if err != nil {
@@ -157,11 +155,69 @@ func (g *HelloGrain) Add(r *AddRequest, options ...grain.GrainCallOption) (*AddR
 	return nil, err
 }
 
-func (g *HelloGrain) AddChan(r *AddRequest, options ...grain.GrainCallOption) (<-chan *AddResponse, <-chan error) {
+func (g *HelloGrain) AddChan(r *AddRequest, options ...cluster.GrainCallOption) (<-chan *AddResponse, <-chan error) {
 	c := make(chan *AddResponse)
 	e := make(chan error)
 	go func() {
 		res, err := g.Add(r, options...)
+		if err != nil {
+			e <- err
+		} else {
+			c <- res
+		}
+		close(c)
+		close(e)
+	}()
+	return c, e
+}
+
+func (g *HelloGrain) VoidFunc(r *AddRequest, options ...cluster.GrainCallOption) (*Unit, error) {
+	conf := cluster.ApplyGrainCallOptions(options)
+	fun := func() (*Unit, error) {
+		pid, err := cluster.Get(g.ID, "Hello")
+		if err != nil {
+			return nil, err
+		}
+		bytes, err := proto.Marshal(r)
+		if err != nil {
+			return nil, err
+		}
+		request := &cluster.GrainRequest{Method: "VoidFunc", MessageData: bytes}
+		response, err := pid.RequestFuture(request, conf.Timeout).Result()
+		if err != nil {
+			return nil, err
+		}
+		switch msg := response.(type) {
+		case *cluster.GrainResponse:
+			result := &Unit{}
+			err = proto.Unmarshal(msg.MessageData, result)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		case *cluster.GrainErrorResponse:
+			return nil, errors.New(msg.Err)
+		default:
+			return nil, errors.New("Unknown response")
+		}
+	}
+
+	var res *Unit
+	var err error
+	for i := 0; i < conf.RetryCount; i++ {
+		res, err = fun()
+		if err == nil {
+			return res, nil
+		}
+	}
+	return nil, err
+}
+
+func (g *HelloGrain) VoidFuncChan(r *AddRequest, options ...cluster.GrainCallOption) (<-chan *Unit, <-chan error) {
+	c := make(chan *Unit)
+	e := make(chan error)
+	go func() {
+		res, err := g.VoidFunc(r, options...)
 		if err != nil {
 			e <- err
 		} else {
@@ -224,6 +280,25 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 			}
 
+		case "VoidFunc":
+			req := &AddRequest{}
+			err := proto.Unmarshal(msg.MessageData, req)
+			if err != nil {
+				log.Fatalf("[GRAIN] proto.Unmarshal failed %v", err)
+			}
+			r0, err := a.inner.VoidFunc(req)
+			if err == nil {
+				bytes, err := proto.Marshal(r0)
+				if err != nil {
+					log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+				}
+				resp := &cluster.GrainResponse{MessageData: bytes}
+				ctx.Respond(resp)
+			} else {
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				ctx.Respond(resp)
+			}
+
 		}
 	default:
 		log.Printf("Unknown message %v", msg)
@@ -239,7 +314,7 @@ func init() {
 }
 
 // type hello struct {
-//	grain.Grain
+//	cluster.Grain
 // }
 
 // func (*hello) SayHello(r *HelloRequest) (*HelloResponse, error) {
@@ -248,6 +323,10 @@ func init() {
 
 // func (*hello) Add(r *AddRequest) (*AddResponse, error) {
 // 	return &AddResponse{}, nil
+// }
+
+// func (*hello) VoidFunc(r *AddRequest) (*Unit, error) {
+// 	return &Unit{}, nil
 // }
 
 // func init() {

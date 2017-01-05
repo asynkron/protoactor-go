@@ -1,6 +1,8 @@
 syntax = "proto3";
 package shared;
 
+message Unit {}
+
 message HelloRequest {
   string name = 1;
 }
@@ -21,4 +23,5 @@ message AddResponse {
 service Hello {
   rpc SayHello (HelloRequest) returns (HelloResponse) {} 
   rpc Add(AddRequest) returns (AddResponse) {}
+  rpc VoidFunc(AddRequest) returns (Unit) {}
 }

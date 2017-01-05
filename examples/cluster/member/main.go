@@ -6,9 +6,8 @@ import (
 	"time"
 
 	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/examples/cluster/shared"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/grain"
+	"github.com/AsynkronIT/protoactor-go/examples/cluster/shared"
 )
 
 const (
@@ -25,7 +24,7 @@ func main() {
 
 func sync() {
 	hello := shared.GetHelloGrain("abc")
-	options := []grain.GrainCallOption{grain.WithTimeout(5 * time.Second), grain.WithRetry(5)}
+	options := []cluster.GrainCallOption{cluster.WithTimeout(5 * time.Second), cluster.WithRetry(5)}
 	res, err := hello.SayHello(&shared.HelloRequest{Name: "GAM"}, options...)
 	if err != nil {
 		log.Fatal(err)

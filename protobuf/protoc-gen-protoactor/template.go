@@ -24,8 +24,8 @@ type {{ $service.Name }}Grain struct {
 }
 
 {{ range $method := $service.Methods}}	
-func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }}, options ...grain.GrainCallOption) (*{{ $method.Output.Name }}, error) {
-	conf := grain.ApplyGrainCallOptions(options)
+func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }}, options ...cluster.GrainCallOption) (*{{ $method.Output.Name }}, error) {
+	conf := cluster.ApplyGrainCallOptions(options)
 	fun := func() (*{{ $method.Output.Name }}, error) {
 			pid, err := cluster.Get(g.ID, "{{ $service.Name }}")
 			if err != nil {
@@ -66,7 +66,7 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }
 	return nil, err
 }
 
-func (g *{{ $service.Name }}Grain) {{ $method.Name }}Chan(r *{{ $method.Input.Name }}, options ...grain.GrainCallOption) (<-chan *{{ $method.Output.Name }}, <-chan error) {
+func (g *{{ $service.Name }}Grain) {{ $method.Name }}Chan(r *{{ $method.Input.Name }}, options ...cluster.GrainCallOption) (<-chan *{{ $method.Output.Name }}, <-chan error) {
 	c := make(chan *{{ $method.Output.Name }})
 	e := make(chan error)
 	go func() {
@@ -126,7 +126,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 
 func init() {
 	{{ range $service := .Services}}
-	cluster.Register("{{ $service.Name }}", actor.FromProducer(func() actor.Actor { 
+	remoting.Register("{{ $service.Name }}", actor.FromProducer(func() actor.Actor { 
 		return &{{ $service.Name }}Actor {}
 		})		)
 	{{ end }}	
@@ -135,7 +135,7 @@ func init() {
 
 {{ range $service := .Services}}
 // type {{ $service.PascalName }} struct {
-//	grain.Grain
+//	cluster.Grain
 // }
 {{ range $method := $service.Methods}}
 // func (*{{ $service.PascalName }}) {{ $method.Name }}(r *{{ $method.Input.Name }}) (*{{ $method.Output.Name }}, error) {

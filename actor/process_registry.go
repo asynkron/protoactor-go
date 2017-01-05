@@ -71,6 +71,9 @@ func (pr *ProcessRegistryValue) remove(pid *PID) {
 }
 
 func (pr *ProcessRegistryValue) get(pid *PID) (ActorRef, bool) {
+	if pid == nil {
+		panic("Pid may not be nil")
+	}
 	if pid.Host != localHost && pid.Host != pr.Host {
 		for _, handler := range pr.RemoteHandlers {
 			ref, ok := handler(pid)

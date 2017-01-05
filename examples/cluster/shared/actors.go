@@ -1,10 +1,10 @@
 package shared
 
-import "github.com/AsynkronIT/protoactor-go/cluster/grain"
+import "github.com/AsynkronIT/protoactor-go/cluster"
 
 //a Go struct implementing the Hello interface
 type hello struct {
-	grain.Grain
+	cluster.Grain
 }
 
 func (h *hello) SayHello(r *HelloRequest) (*HelloResponse, error) {
@@ -13,6 +13,10 @@ func (h *hello) SayHello(r *HelloRequest) (*HelloResponse, error) {
 
 func (*hello) Add(r *AddRequest) (*AddResponse, error) {
 	return &AddResponse{Result: r.A + r.B}, nil
+}
+
+func (*hello) VoidFunc(r *AddRequest) (*Unit, error) {
+	return &Unit{}, nil
 }
 
 func init() {

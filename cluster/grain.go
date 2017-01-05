@@ -1,4 +1,4 @@
-package grain
+package cluster
 
 import "time"
 
