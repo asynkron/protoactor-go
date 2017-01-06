@@ -7,6 +7,10 @@ import (
 )
 
 func TestRegisterMember(t *testing.T) {
+	if testing.Short() {
+		return
+	}
+
 	p := New()
 	defer p.Shutdown()
 	err := p.RegisterMember("mycluster", "127.0.0.1", 8000, []string{"a", "b"})
@@ -16,6 +20,10 @@ func TestRegisterMember(t *testing.T) {
 }
 
 func TestReRegisterMember(t *testing.T) {
+	if testing.Short() {
+		return
+	}
+
 	p := New()
 	defer p.Shutdown()
 	err := p.RegisterMember("mycluster", "127.0.0.1", 8000, []string{"a", "b"})
