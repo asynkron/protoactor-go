@@ -22,5 +22,5 @@ func TestReRegisterMember(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(60 * time.Second)
+	time.Sleep(10 * time.Second)
 }

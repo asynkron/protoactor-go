@@ -39,7 +39,7 @@ func New() *ConsulProvider {
 }
 
 func (p *ConsulProvider) RegisterMember(clusterName string, address string, port int, knownKinds []string) error {
-	p.id = fmt.Sprintf("%v_%v_%v", clusterName, address, port)
+	p.id = fmt.Sprintf("%v@%v:%v", clusterName, address, port)
 	s := RegisterAgentService{
 		ID:      p.id,
 		Name:    clusterName,
@@ -109,12 +109,12 @@ func (p *ConsulProvider) UpdateTTL() {
 
 	go func() {
 		for !p.shutdown {
-			time.Sleep(2 * time.Second)
 			log.Println("Refreshing service TTL")
 			err := refresh()
 			if err != nil {
 				log.Println("Failure refreshing service TTL")
 			}
+			time.Sleep(2 * time.Second)
 		}
 	}()
 }
