@@ -6,6 +6,7 @@ type MemberStatus struct {
 	Alive      bool
 }
 type ClusterProvider interface {
-	RegisterNode(knownKinds []string) error
+	RegisterNode(clusterName string, address string, port int, knownKinds []string) error
 	MemberStatusChanges() <-chan MemberStatus
+	Shutdown() error
 }
