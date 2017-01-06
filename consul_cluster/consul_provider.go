@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/AsynkronIT/protoactor-go/cluster"
@@ -18,11 +19,11 @@ type RegisterAgentService struct {
 	Port              int      `json:"Port"`
 	EnableTagOverride bool     `json:"EnableTagOverride"`
 	Check             struct {
-		DeregisterCriticalServiceAfter string `json:"DeregisterCriticalServiceAfter"`
-		Script                         string `json:"Script"`
-		HTTP                           string `json:"HTTP"`
-		Interval                       string `json:"Interval"`
-		TTL                            string `json:"TTL"`
+		DeregisterCriticalServiceAfter string `json:"DeregisterCriticalServiceAfter,omitempty"`
+		Script                         string `json:"Script,omitempty"`
+		HTTP                           string `json:"HTTP,omitempty"`
+		Interval                       string `json:"Interval,omitempty"`
+		TTL                            string `json:"TTL,omitempty"`
 	} `json:"Check"`
 }
 
@@ -42,6 +43,17 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 		Tags:    knownKinds,
 		Address: address,
 		Port:    port,
+		Check: struct {
+			DeregisterCriticalServiceAfter string `json:"DeregisterCriticalServiceAfter,omitempty"`
+			Script                         string `json:"Script,omitempty"`
+			HTTP                           string `json:"HTTP,omitempty"`
+			Interval                       string `json:"Interval,omitempty"`
+			TTL                            string `json:"TTL,omitempty"`
+		}{
+			DeregisterCriticalServiceAfter: "90m",
+			HTTP:     "http://localhost:5000/health",
+			Interval: "10s",
+		},
 	}
 
 	b, err := json.Marshal(s)
@@ -49,7 +61,9 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 		return err
 	}
 
-	url := "http://127.0.0.1"
+	log.Println(string(b))
+
+	url := "http://127.0.0.1:8500/v1/agent/service/register"
 	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(b))
 	req.Header.Set("X-Custom-Header", "myvalue")
 	req.Header.Set("Content-Type", "application/json")
@@ -60,13 +74,13 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("Expected status 200, got: %v", resp.StatusCode)
-	}
-	fmt.Println("response Status:", resp.Status)
-	fmt.Println("response Headers:", resp.Header)
 	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("response Body:", string(body))
+	bodyStr := string(body)
+
+	if resp.StatusCode != 200 {
+		log.Fatal(bodyStr)
+		return fmt.Errorf("Expected status 200, got: %v", resp.Status)
+	}
 
 	return nil
 }
