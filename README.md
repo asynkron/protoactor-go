@@ -2,7 +2,7 @@
 [![GoDoc](https://godoc.org/github.com/AsynkronIT/protoactor-go?status.svg)](https://godoc.org/github.com/AsynkronIT/protoactor-go)
 [![Build Status](https://travis-ci.org/AsynkronIT/protoactor-go.svg?branch=dev)](https://travis-ci.org/AsynkronIT/protoactor-go)
 
-[![Join the chat at https://gitter.im/AsynkronIT/Proto Actor](https://badges.gitter.im/AsynkronIT/Proto Actor.svg)](https://gitter.im/AsynkronIT/Proto Actor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/AsynkronIT/gam](https://badges.gitter.im/AsynkronIT/gam.svg)](https://gitter.im/AsynkronIT/gam?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # Cross platform actors
 
