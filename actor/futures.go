@@ -61,7 +61,7 @@ func (f *Future) PipeTo(pid *PID) {
 
 func (f *Future) wait() {
 	f.cond.L.Lock()
-	if !f.done {
+	for !f.done {
 		f.cond.Wait()
 	}
 	f.cond.L.Unlock()
