@@ -81,6 +81,10 @@ func (pid *PID) Empty() bool {
 	return pid.Host == "" && pid.Id == ""
 }
 
+func (pid *PID) String() string {
+	return pid.Host + "/" + pid.Id
+}
+
 //NewPID returns a new instance of the PID struct
 func NewPID(host, id string) *PID {
 	return &PID{
