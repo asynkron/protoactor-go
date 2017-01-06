@@ -50,7 +50,7 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 			Interval                       string `json:"Interval,omitempty"`
 			TTL                            string `json:"TTL,omitempty"`
 		}{
-			DeregisterCriticalServiceAfter: "90m",
+			DeregisterCriticalServiceAfter: "20s",
 			HTTP:     "http://localhost:5000/health",
 			Interval: "10s",
 		},

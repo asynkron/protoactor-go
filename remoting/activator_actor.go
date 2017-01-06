@@ -22,6 +22,14 @@ func Register(kind string, props actor.Props) {
 	nameLookup[kind] = props
 }
 
+func GetKnownKinds() []string {
+	keys := make([]string, 0, len(nameLookup))
+	for k := range nameLookup {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 type activator struct {
 }
 
