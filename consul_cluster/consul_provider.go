@@ -29,6 +29,7 @@ type RegisterAgentService struct {
 
 type ConsulProvider struct {
 	shutdown bool
+	id       string
 }
 
 func New() *ConsulProvider {
@@ -37,8 +38,9 @@ func New() *ConsulProvider {
 }
 
 func (p *ConsulProvider) RegisterMember(clusterName string, address string, port int, knownKinds []string) error {
+	p.id = fmt.Sprintf("%v_%v_%v", clusterName, address, port)
 	s := RegisterAgentService{
-		ID:      fmt.Sprintf("%v_%v_%v", clusterName, address, port),
+		ID:      p.id,
 		Name:    clusterName,
 		Tags:    knownKinds,
 		Address: address,
@@ -60,8 +62,6 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 	if err != nil {
 		return err
 	}
-
-	log.Println(string(b))
 
 	url := "http://127.0.0.1:8500/v1/agent/service/register"
 	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(b))
@@ -87,6 +87,24 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 
 func (p *ConsulProvider) Shutdown() error {
 	p.shutdown = true
+	///v1/agent/service/deregister
+	url := "http://127.0.0.1:8500/v1/agent/service/deregister/" + p.id
+	req, err := http.NewRequest("GET", url, nil)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	bodyStr := string(body)
+
+	if resp.StatusCode != 200 {
+		log.Fatal(bodyStr)
+		return fmt.Errorf("Expected status 200, got: %v", resp.Status)
+	}
+
 	return nil
 }
 
