@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/AsynkronIT/protoactor-go/cluster"
 )
@@ -53,8 +54,7 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 			TTL                            string `json:"TTL,omitempty"`
 		}{
 			DeregisterCriticalServiceAfter: "20s",
-			HTTP:     "http://localhost:5000/health",
-			Interval: "10s",
+			TTL: "10s",
 		},
 	}
 
@@ -82,7 +82,41 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 		return fmt.Errorf("Expected status 200, got: %v", resp.Status)
 	}
 
+	p.UpdateTTL()
 	return nil
+}
+
+func (p *ConsulProvider) UpdateTTL() {
+	refresh := func() error {
+		url := "http://127.0.0.1:8500//v1/agent/check/pass/service:" + p.id
+		req, err := http.NewRequest("PUT", url, nil)
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
+		bodyStr := string(body)
+
+		if resp.StatusCode != 200 {
+			log.Fatal(bodyStr)
+			return fmt.Errorf("Expected status 200, got: %v", resp.Status)
+		}
+		return nil
+	}
+
+	go func() {
+		for !p.shutdown {
+			time.Sleep(2 * time.Second)
+			log.Println("Refreshing service TTL")
+			err := refresh()
+			if err != nil {
+				log.Println("Failure refreshing service TTL")
+			}
+		}
+	}()
 }
 
 func (p *ConsulProvider) Shutdown() error {
