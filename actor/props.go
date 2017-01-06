@@ -4,7 +4,7 @@ package actor
 type Props struct {
 	actorProducer       Producer
 	mailboxProducer     MailboxProducer
-	supervisionStrategy SupervisionStrategy
+	supervisionStrategy SupervisorStrategy
 	routerConfig        RouterConfig
 	receivePlugins      []Receive
 	dispatcher          Dispatcher
@@ -24,7 +24,7 @@ func (props Props) ProduceActor() Actor {
 	return props.actorProducer()
 }
 
-func (props Props) Supervisor() SupervisionStrategy {
+func (props Props) Supervisor() SupervisorStrategy {
 	if props.supervisionStrategy == nil {
 		return defaultSupervisionStrategy
 	}
@@ -50,7 +50,7 @@ func (props Props) WithMailbox(mailbox MailboxProducer) Props {
 	return props
 }
 
-func (props Props) WithSupervisor(supervisor SupervisionStrategy) Props {
+func (props Props) WithSupervisor(supervisor SupervisorStrategy) Props {
 	//pass by value, we only modify the copy
 	props.supervisionStrategy = supervisor
 	return props

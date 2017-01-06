@@ -269,6 +269,10 @@ func (cell *actorCell) handleTerminated(msg *Terminated) {
 
 //offload the supervision completely to the supervisor strategy
 func (cell *actorCell) handleFailure(msg *Failure) {
+	if strategy, ok := cell.actor.(SupervisorStrategy); ok {
+		strategy.HandleFailure(cell, msg.Who, msg.Reason)
+		return
+	}
 	cell.props.Supervisor().HandleFailure(cell, msg.Who, msg.Reason)
 }
 

@@ -14,7 +14,7 @@ type Decider func(child *PID, cause interface{}) Directive
 //TODO: as we dont allow remote children or remote SupervisionStrategy
 //Instead of letting the parent keep track of child restart stats.
 //this info could actually go into each actor, sending it back to the parent as part of the Failure message
-type SupervisionStrategy interface {
+type SupervisorStrategy interface {
 	HandleFailure(supervisor Supervisor, child *PID, cause interface{})
 }
 
@@ -49,7 +49,7 @@ func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 	}
 }
 
-func NewOneForOneStrategy(maxNrOfRetries int, withinTimeRangeMilliseconds int, decider Decider) SupervisionStrategy {
+func NewOneForOneStrategy(maxNrOfRetries int, withinTimeRangeMilliseconds int, decider Decider) SupervisorStrategy {
 	return &OneForOneStrategy{
 		maxNrOfRetries:              maxNrOfRetries,
 		withinTimeRangeMilliseconds: withinTimeRangeMilliseconds,
@@ -63,6 +63,6 @@ func DefaultDecider(child *PID, reason interface{}) Directive {
 
 var defaultSupervisionStrategy = NewOneForOneStrategy(10, 3000, DefaultDecider)
 
-func DefaultSupervisionStrategy() SupervisionStrategy {
+func DefaultSupervisionStrategy() SupervisorStrategy {
 	return defaultSupervisionStrategy
 }
