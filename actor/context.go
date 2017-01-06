@@ -220,8 +220,10 @@ func (cell *actorCell) incarnateActor() {
 
 func (cell *actorCell) InvokeSystemMessage(message SystemMessage) {
 	switch msg := message.(interface{}).(type) {
-	default:
-		fmt.Printf("Unknown system message %T", msg)
+	case *SuspendMailbox:
+		//pass
+	case *ResumeMailbox:
+		//pass
 	case *Stop:
 		cell.handleStop(msg)
 	case *Terminated:
@@ -234,6 +236,8 @@ func (cell *actorCell) InvokeSystemMessage(message SystemMessage) {
 		cell.handleFailure(msg)
 	case *Restart:
 		cell.handleRestart(msg)
+	default:
+		log.Printf("Unknown system message %T", msg)
 	}
 }
 
