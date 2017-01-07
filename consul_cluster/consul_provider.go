@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/hashicorp/consul/api"
 )
@@ -81,8 +82,7 @@ func (p *ConsulProvider) Shutdown() error {
 	return nil
 }
 
-func (p *ConsulProvider) GetStatusChanges() <-chan []*cluster.MemberStatus {
-	c := make(chan []*cluster.MemberStatus)
+func (p *ConsulProvider) MonitorMemberStatusChanges() {
 	var index uint64
 	healthCheck := func() ([]*api.ServiceEntry, error) {
 		res, meta, err := p.client.Health().Service(p.clusterName, "", false, &api.QueryOptions{
@@ -98,11 +98,10 @@ func (p *ConsulProvider) GetStatusChanges() <-chan []*cluster.MemberStatus {
 	go func() {
 		for !p.shutdown {
 			statuses, err := healthCheck()
-			log.Println("Cluster status changed")
 			if err != nil {
 				log.Printf("Error %v", err)
 			} else {
-				res := make([]*cluster.MemberStatus, len(statuses))
+				res := make(cluster.MemberStatusBatch, len(statuses))
 				for i, v := range statuses {
 					ms := &cluster.MemberStatus{
 						Address: v.Service.Address,
@@ -112,9 +111,13 @@ func (p *ConsulProvider) GetStatusChanges() <-chan []*cluster.MemberStatus {
 					}
 					res[i] = ms
 				}
-				c <- res
+				//the reason why we want this in a batch and not as individual messages is that
+				//if we have an atomic batch, we can calculate what nodes have left the cluster
+				//passing events one by one, we can't know if someone left or just havent changed status for a long time
+
+				//publish the current cluster topology onto the EventStream
+				actor.EventStream.Publish(res)
 			}
 		}
 	}()
-	return c
 }
