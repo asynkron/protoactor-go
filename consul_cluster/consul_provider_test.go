@@ -11,7 +11,7 @@ func TestRegisterMember(t *testing.T) {
 		return
 	}
 
-	p := New()
+	p, _ := New()
 	defer p.Shutdown()
 	err := p.RegisterMember("mycluster", "127.0.0.1", 8000, []string{"a", "b"})
 	if err != nil {
@@ -24,7 +24,7 @@ func TestRefreshMemberTTL(t *testing.T) {
 		return
 	}
 
-	p := New()
+	p, _ := New()
 	defer p.Shutdown()
 	err := p.RegisterMember("mycluster", "127.0.0.1", 8000, []string{"a", "b"})
 	if err != nil {
