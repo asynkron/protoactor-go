@@ -11,10 +11,14 @@ import (
 )
 
 type ConsulProvider struct {
-	shutdown    bool
-	id          string
-	clusterName string
-	client      *api.Client
+	shutdown           bool
+	id                 string
+	clusterName        string
+	client             *api.Client
+	ttl                time.Duration
+	refreshTTL         time.Duration
+	deregisterCritical time.Duration
+	blockingWaitTime   time.Duration
 }
 
 func New() (*ConsulProvider, error) {
@@ -23,7 +27,11 @@ func New() (*ConsulProvider, error) {
 		return nil, err
 	}
 	p := &ConsulProvider{
-		client: client,
+		client:             client,
+		ttl:                10 * time.Second,
+		refreshTTL:         2 * time.Second,
+		deregisterCritical: 60 * time.Second,
+		blockingWaitTime:   20 * time.Second,
 	}
 	return p, nil
 }
@@ -38,8 +46,8 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 		Address: address,
 		Port:    port,
 		Check: &api.AgentServiceCheck{
-			DeregisterCriticalServiceAfter: "20s",
-			TTL: "10s",
+			DeregisterCriticalServiceAfter: p.deregisterCritical.String(),
+			TTL: p.ttl.String(),
 		},
 	}
 	err := p.client.Agent().ServiceRegister(s)
@@ -68,7 +76,7 @@ func (p *ConsulProvider) UpdateTTL() {
 			if err != nil {
 				log.Println("Failure refreshing service TTL")
 			}
-			time.Sleep(2 * time.Second)
+			time.Sleep(p.refreshTTL)
 		}
 	}()
 }
@@ -87,7 +95,7 @@ func (p *ConsulProvider) MonitorMemberStatusChanges() {
 	healthCheck := func() ([]*api.ServiceEntry, error) {
 		res, meta, err := p.client.Health().Service(p.clusterName, "", false, &api.QueryOptions{
 			WaitIndex: index,
-			WaitTime:  20 * time.Second,
+			WaitTime:  p.blockingWaitTime,
 		})
 		if err != nil {
 			return nil, err
