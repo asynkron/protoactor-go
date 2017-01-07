@@ -97,11 +97,20 @@ func (p *ConsulProvider) GetStatusChanges() <-chan cluster.MemberStatus {
 	}
 	go func() {
 		for !p.shutdown {
-			_, err := healthCheck()
+			statuses, err := healthCheck()
+			log.Println("Cluster status changed")
 			if err != nil {
 				log.Printf("Error %v", err)
 			} else {
-				//log.Printf("Status %+v", res)
+				for _, v := range statuses {
+					ms := cluster.MemberStatus{
+						Address: v.Service.Address,
+						Port:    v.Service.Port,
+						Kinds:   v.Service.Tags,
+						Alive:   v.Checks[0].Status == "passing",
+					}
+					c <- ms
+				}
 			}
 		}
 	}()

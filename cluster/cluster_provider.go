@@ -1,9 +1,10 @@
 package cluster
 
 type MemberStatus struct {
-	Address    string
-	KnownKinds []string
-	Alive      bool
+	Address string
+	Port    int
+	Kinds   []string
+	Alive   bool
 }
 type ClusterProvider interface {
 	RegisterNode(clusterName string, address string, port int, knownKinds []string) error
