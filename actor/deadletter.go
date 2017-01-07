@@ -26,7 +26,7 @@ func (*DeadLetterActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
 }
 
 func (ref *DeadLetterActorRef) Stop(pid *PID) {
-	ref.SendSystemMessage(pid, &Stop{})
+	ref.SendSystemMessage(pid, stopMessage)
 }
 
 func (ref *DeadLetterActorRef) Watch(pid *PID) {

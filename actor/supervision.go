@@ -35,10 +35,10 @@ func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 	switch directive {
 	case ResumeDirective:
 		//resume the failing child
-		child.sendSystemMessage(&ResumeMailbox{})
+		child.sendSystemMessage(resumeMailboxMessage)
 	case RestartDirective:
 		//restart the failing child
-		child.sendSystemMessage(&Restart{})
+		child.sendSystemMessage(restartMessage)
 	case StopDirective:
 		//stop the failing child
 		child.Stop()

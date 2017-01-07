@@ -35,3 +35,10 @@ type Failure struct {
 	Who    *PID
 	Reason interface{}
 }
+
+var (
+	restartMessage        SystemMessage = &Restart{}
+	stopMessage           SystemMessage = &Stop{}
+	resumeMailboxMessage  SystemMessage = &ResumeMailbox{}
+	suspendMailboxMessage SystemMessage = &SuspendMailbox{}
+)

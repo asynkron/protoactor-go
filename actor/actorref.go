@@ -32,7 +32,7 @@ func (ref *LocalActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
 }
 
 func (ref *LocalActorRef) Stop(pid *PID) {
-	ref.SendSystemMessage(pid, &Stop{})
+	ref.SendSystemMessage(pid, stopMessage)
 }
 
 func (ref *LocalActorRef) Watch(pid *PID) {

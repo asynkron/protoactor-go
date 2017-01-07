@@ -115,7 +115,7 @@ func (cell *actorCell) cancelTimer() {
 }
 
 func (cell *actorCell) receiveTimeoutHandler() {
-	cell.self.Request(&ReceiveTimeout{}, nil)
+	cell.self.Request(receiveTimeoutMessage, nil)
 }
 
 func (cell *actorCell) SetReceiveTimeout(d time.Duration) {
@@ -244,8 +244,8 @@ func (cell *actorCell) InvokeSystemMessage(message SystemMessage) {
 func (cell *actorCell) handleRestart(msg *Restart) {
 	cell.stopping = false
 	cell.restarting = true
-	cell.InvokeUserMessage(&Restarting{})
-	cell.children.ForEach(func(i int, pid PID) {
+	cell.InvokeUserMessage(restartingMessage)
+	cell.children.ForEach(func(_ int, pid PID) {
 		pid.Stop()
 	})
 	cell.tryRestartOrTerminate()
@@ -255,8 +255,8 @@ func (cell *actorCell) handleRestart(msg *Restart) {
 func (cell *actorCell) handleStop(msg *Stop) {
 	cell.stopping = true
 	cell.restarting = false
-	cell.InvokeUserMessage(&Stopping{})
-	cell.children.ForEach(func(i int, pid PID) {
+	cell.InvokeUserMessage(stoppingMessage)
+	cell.children.ForEach(func(_ int, pid PID) {
 		pid.Stop()
 	})
 	cell.tryRestartOrTerminate()
@@ -282,7 +282,7 @@ func (cell *actorCell) handleFailure(msg *Failure) {
 
 func (cell *actorCell) EscalateFailure(who *PID, reason interface{}) {
 	//suspend self
-	cell.Self().sendSystemMessage(&SuspendMailbox{})
+	cell.Self().sendSystemMessage(suspendMailboxMessage)
 	//send failure to parent
 	cell.Parent().sendSystemMessage(&Failure{Reason: reason, Who: who})
 }
@@ -317,12 +317,12 @@ func (cell *actorCell) restart() {
 			cell.InvokeUserMessage(msg)
 		}
 	}
-	cell.self.sendSystemMessage(&ResumeMailbox{})
+	cell.self.sendSystemMessage(resumeMailboxMessage)
 }
 
 func (cell *actorCell) stopped() {
 	ProcessRegistry.remove(cell.self)
-	cell.InvokeUserMessage(&Stopped{})
+	cell.InvokeUserMessage(stoppedMessage)
 	otherStopped := &Terminated{Who: cell.self}
 	cell.watchers.ForEach(func(i int, pid PID) {
 		pid.sendSystemMessage(otherStopped)
@@ -339,7 +339,7 @@ func (cell *actorCell) InvokeUserMessage(md interface{}) {
 			} else {
 				//TODO: Akka recursively suspends all children also on failure
 				//Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
-				cell.self.sendSystemMessage(&SuspendMailbox{})
+				cell.self.sendSystemMessage(suspendMailboxMessage)
 				cell.parent.sendSystemMessage(failure)
 			}
 		}
