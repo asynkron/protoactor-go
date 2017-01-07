@@ -19,7 +19,7 @@ func TestRegisterMember(t *testing.T) {
 	}
 }
 
-func TestReRegisterMember(t *testing.T) {
+func TestRefreshMemberTTL(t *testing.T) {
 	if testing.Short() {
 		return
 	}
@@ -30,5 +30,6 @@ func TestReRegisterMember(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(10 * time.Second)
+	p.GetStatusChanges()
+	time.Sleep(60 * time.Second)
 }
