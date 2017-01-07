@@ -1,40 +1,28 @@
 package cluster
 
 import (
-	"fmt"
 	"log"
-	"time"
 
 	"github.com/AsynkronIT/gonet"
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remoting"
-	"github.com/hashicorp/memberlist"
 )
 
-//Start the cluster and optionally join other nodes
-func Start(ip string, join ...string) {
-	h, p := gonet.GetAddress(ip)
+func StartWithProvider(clusterName, address string, provider ClusterProvider) {
+	h, p := gonet.GetAddress(address)
 	log.Printf("[CLUSTER] Starting on %v:%v", h, p)
-	if p == 0 {
-		p = gonet.FindFreePort()
-	}
-	name := fmt.Sprintf("%v:%v", h, p+1)
-	c := getMemberlistConfig(h, p, name)
-	spawnPartitionActor()
-	l, err := memberlist.Create(c)
+	kinds := remoting.GetKnownKinds()
+	kindPIDMap = make(map[string]*actor.PID)
 
-	if err != nil {
-		panic("[CLUSTER] Failed to create memberlist: " + err.Error())
+	//for each known kind, spin up a partition-kind actor to handle all requests for that kind
+	for _, kind := range kinds {
+		kindPID := spawnPartitionActor(kind)
+		kindPIDMap[kind] = kindPID
 	}
-
-	list = l
-	remoting.Start(name)
-
-	if len(join) > 0 {
-		// Join an existing cluster by specifying at least one known member.
-		_, err = list.Join(join)
-		if err != nil {
-			panic("[CLUSTER] Failed to join cluster: " + err.Error())
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
+	subscribePartitionKindsToEventStream()
+	spawnMembershipActor()
+	subscribeMembershipActorToEventStream()
+	provider.RegisterNode(clusterName, h, p, kinds)
+	provider.MonitorMemberStatusChanges()
+	remoting.Start(address)
 }

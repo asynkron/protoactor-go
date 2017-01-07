@@ -9,28 +9,44 @@ import (
 )
 
 var (
-	partitionPid *actor.PID
+	kindPIDMap map[string]*actor.PID
 )
 
-func spawnPartitionActor() {
-	partitionPid = actor.SpawnNamed(actor.FromProducer(newClusterActor()), "partition")
+func subscribePartitionKindsToEventStream() {
+	actor.EventStream.Subscribe(func(m interface{}) {
+		if mse, ok := m.(MemberStatusEvent); ok {
+			for _, k := range mse.GetKinds() {
+				kindPID := kindPIDMap[k]
+				if kindPID != nil {
+					kindPID.Tell(m)
+				}
+			}
+		}
+	})
 }
 
-func partitionForHost(host string) *actor.PID {
-	pid := actor.NewPID(host, "partition")
+func spawnPartitionActor(kind string) *actor.PID {
+	partitionPid := actor.SpawnNamed(actor.FromProducer(newPartitionActor(kind)), "#partition"+kind)
+	return partitionPid
+}
+
+func partitionForKind(host, kind string) *actor.PID {
+	pid := actor.NewPID(host, "#partition-"+kind)
 	return pid
 }
 
-func newClusterActor() actor.Producer {
+func newPartitionActor(kind string) actor.Producer {
 	return func() actor.Actor {
 		return &partitionActor{
 			partition: make(map[string]*actor.PID),
+			kind:      kind,
 		}
 	}
 }
 
 type partitionActor struct {
 	partition map[string]*actor.PID
+	kind      string
 }
 
 func (state *partitionActor) Receive(context actor.Context) {
@@ -39,10 +55,10 @@ func (state *partitionActor) Receive(context actor.Context) {
 		log.Println("[CLUSTER] Partition started")
 	case *remoting.ActorPidRequest:
 		state.spawn(msg, context)
-	case *clusterStatusJoin:
+	case *MemberJoinedEvent:
 		state.clusterStatusJoin(msg)
-	case *clusterStatusLeave:
-		log.Printf("[CLUSTER] Node left %v", msg.node.host)
+	case *MemberLeftEvent:
+		log.Printf("[CLUSTER] Node left %v", msg.Name())
 	case *TakeOwnership:
 		state.takeOwnership(msg)
 	default:
@@ -55,7 +71,7 @@ func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.
 	pid := state.partition[msg.Name]
 	if pid == nil {
 		//get a random node
-		random := getRandomActivator()
+		random := getRandomActivator(msg.Kind)
 		var err error
 		pid, err = remoting.Spawn(random, msg.Name, msg.Kind, 5*time.Second)
 		if err != nil {
@@ -70,15 +86,12 @@ func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.
 	context.Respond(response)
 }
 
-func (state *partitionActor) clusterStatusJoin(msg *clusterStatusJoin) {
-	log.Printf("[CLUSTER] Node joined %v", msg.node.host)
-	if list.LocalNode() == nil {
-		return
-	}
+func (state *partitionActor) clusterStatusJoin(msg *MemberJoinedEvent) {
+	log.Printf("[CLUSTER] Node joined %v", msg.Name())
 
-	selfName := list.LocalNode().Name
+	selfName := localMember()
 	for actorID := range state.partition {
-		host := getNode(actorID)
+		host := getNode(actorID, state.kind)
 		if host != selfName {
 			state.transferOwnership(actorID, host)
 		}
@@ -88,7 +101,7 @@ func (state *partitionActor) clusterStatusJoin(msg *clusterStatusJoin) {
 func (state *partitionActor) transferOwnership(actorID string, host string) {
 	log.Printf("[CLUSTER] Giving ownership of %v to Node %v", actorID, host)
 	pid := state.partition[actorID]
-	owner := partitionForHost(host)
+	owner := partitionForKind(host, state.kind)
 	owner.Tell(&TakeOwnership{
 		Pid:  pid,
 		Name: actorID,

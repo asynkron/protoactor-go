@@ -20,10 +20,7 @@ func newMembershipActor() actor.Producer {
 	}
 }
 
-func init() {
-	spawnMembershipActor()
-
-	//subscribe the membership actor to the MemberStatusBatch event
+func subscribeMembershipActorToEventStream() {
 	actor.EventStream.SubscribePID(func(m interface{}) bool {
 		_, ok := m.(MemberStatusBatch)
 		return ok
@@ -37,33 +34,6 @@ func init() {
 //per kind.
 type membershipActor struct {
 	members map[string]*MemberStatus
-}
-
-type MemberStatusEvent interface {
-	MemberStatusEvent()
-}
-
-type MemberEvent struct {
-	Address string
-	Port    int
-}
-
-func (*MemberEvent) MemberStatusEvent() {}
-
-type MemberJoinedEvent struct {
-	MemberEvent
-}
-
-type MemberLeftEvent struct {
-	MemberEvent
-}
-
-type MemberUnavailableEvent struct {
-	MemberEvent
-}
-
-type MemberAvailableEvent struct {
-	MemberEvent
 }
 
 func (a *membershipActor) Receive(ctx actor.Context) {
