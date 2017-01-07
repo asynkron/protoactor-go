@@ -89,10 +89,9 @@ func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.
 func (state *partitionActor) clusterStatusJoin(msg *MemberJoinedEvent) {
 	log.Printf("[CLUSTER] Node joined %v", msg.Name())
 
-	selfName := localMember()
 	for actorID := range state.partition {
 		host := getNode(actorID, state.kind)
-		if host != selfName {
+		if host != localMember {
 			state.transferOwnership(actorID, host)
 		}
 	}

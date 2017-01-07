@@ -9,6 +9,7 @@ import (
 )
 
 func StartWithProvider(clusterName, address string, provider ClusterProvider) {
+	localMember = address
 	h, p := gonet.GetAddress(address)
 	log.Printf("[CLUSTER] Starting on %v:%v", h, p)
 	kinds := remoting.GetKnownKinds()
