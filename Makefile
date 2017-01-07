@@ -38,4 +38,7 @@ PACKAGES := $(shell go list ./... | grep -v "/examples/")
 test:
 	go test $(PACKAGES)
 
+test-short:
+	go test -short $(PACKAGES)
+
 # }}} test
