@@ -34,7 +34,7 @@ func TestRefreshMemberTTL(t *testing.T) {
 	go func() {
 		for {
 			s := <-c
-			log.Printf("Cluster status %v:%v, %v, %v", s.Address, s.Port, s.Kinds, s.Alive)
+			log.Printf("%+v", s)
 		}
 	}()
 	time.Sleep(60 * time.Second)

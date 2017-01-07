@@ -81,8 +81,8 @@ func (p *ConsulProvider) Shutdown() error {
 	return nil
 }
 
-func (p *ConsulProvider) GetStatusChanges() <-chan cluster.MemberStatus {
-	c := make(chan cluster.MemberStatus)
+func (p *ConsulProvider) GetStatusChanges() <-chan []*cluster.MemberStatus {
+	c := make(chan []*cluster.MemberStatus)
 	var index uint64
 	healthCheck := func() ([]*api.ServiceEntry, error) {
 		res, meta, err := p.client.Health().Service(p.clusterName, "", false, &api.QueryOptions{
@@ -102,15 +102,17 @@ func (p *ConsulProvider) GetStatusChanges() <-chan cluster.MemberStatus {
 			if err != nil {
 				log.Printf("Error %v", err)
 			} else {
-				for _, v := range statuses {
-					ms := cluster.MemberStatus{
+				res := make([]*cluster.MemberStatus, len(statuses))
+				for i, v := range statuses {
+					ms := &cluster.MemberStatus{
 						Address: v.Service.Address,
 						Port:    v.Service.Port,
 						Kinds:   v.Service.Tags,
 						Alive:   v.Checks[0].Status == "passing",
 					}
-					c <- ms
+					res[i] = ms
 				}
+				c <- res
 			}
 		}
 	}()
