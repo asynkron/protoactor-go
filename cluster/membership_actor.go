@@ -11,10 +11,10 @@ var (
 )
 
 func spawnMembershipActor() {
-	membershipPID = actor.SpawnNamed(actor.FromProducer(NewMembershipActor()), "#membership")
+	membershipPID = actor.SpawnNamed(actor.FromProducer(newMembershipActor()), "#membership")
 }
 
-func NewMembershipActor() actor.Producer {
+func newMembershipActor() actor.Producer {
 	return func() actor.Actor {
 		return &membershipActor{}
 	}
@@ -71,35 +71,62 @@ func (a *membershipActor) Receive(ctx actor.Context) {
 	case *actor.Started:
 		a.members = make(map[string]*MemberStatus)
 	case MemberStatusBatch:
-		//TODO: keys that are present in the map but not in the message, are nodes that have left/been deregistered
-		//we need to handle this too..
-		for _, new := range msg {
 
+		//build a lookup for the new statuses
+		tmp := make(map[string]*MemberStatus)
+		for _, new := range msg {
 			//key is address:port
 			key := fmt.Sprintf("%v:%v", new.Address, new.Port)
-			old := a.members[key]
-			a.members[key] = new
-			address := MemberEvent{
-				Address: new.Address,
-				Port:    new.Port,
-			}
-			if old == nil {
-				//notify joined
-				joined := &MemberJoinedEvent{MemberEvent: address}
-				actor.EventStream.Publish(joined)
-			} else {
-				if old.Alive && !new.Alive {
-					//notify node unavailable
-					unavailable := &MemberUnavailableEvent{MemberEvent: address}
-					actor.EventStream.Publish(unavailable)
-				} else if !old.Alive && new.Alive {
-					//notify node reachable
-					available := &MemberAvailableEvent{MemberEvent: address}
-					actor.EventStream.Publish(available)
-				} else {
-					//Ignore, no change...
-				}
+			tmp[key] = new
+		}
+
+		//find the entires that only exist in the old set but not in the new
+		for key, old := range a.members {
+			new := tmp[key]
+			if new == nil {
+				a.notify(new, old)
 			}
 		}
+
+		//find all the entries that exist in the new set
+		for key, new := range tmp {
+			old := a.members[key]
+			a.members[key] = new
+			a.notify(new, old)
+		}
+	}
+}
+
+func (a *membershipActor) notify(new *MemberStatus, old *MemberStatus) {
+	address := MemberEvent{
+		Address: new.Address,
+		Port:    new.Port,
+	}
+	if new == nil && old == nil {
+		//ignore, not possible
+		return
+	}
+	if new == nil {
+		//notify left
+		left := &MemberLeftEvent{MemberEvent: address}
+		actor.EventStream.Publish(left)
+		return
+	}
+	if old == nil {
+		//notify joined
+		joined := &MemberJoinedEvent{MemberEvent: address}
+		actor.EventStream.Publish(joined)
+		return
+	}
+	if old.Alive && !new.Alive {
+		//notify node unavailable
+		unavailable := &MemberUnavailableEvent{MemberEvent: address}
+		actor.EventStream.Publish(unavailable)
+		return
+	}
+	if !old.Alive && new.Alive {
+		//notify node reachable
+		available := &MemberAvailableEvent{MemberEvent: address}
+		actor.EventStream.Publish(available)
 	}
 }
