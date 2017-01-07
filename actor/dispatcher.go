@@ -16,7 +16,7 @@ func (d goroutineDispatcher) Throughput() int {
 }
 
 var (
-	defaultDispatcher = goroutineDispatcher(300)
+	defaultDispatcher Dispatcher = goroutineDispatcher(300)
 )
 
 func NewDefaultDispatcher(throughput int) Dispatcher {
