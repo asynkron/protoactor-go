@@ -84,35 +84,52 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 }
 
 func (a *memberlistActor) notify(new *MemberStatus, old *MemberStatus) {
-	address := MemberEvent{
-		Address: new.Address,
-		Port:    new.Port,
-	}
+
 	if new == nil && old == nil {
 		//ignore, not possible
 		return
 	}
 	if new == nil {
 		//notify left
-		left := &MemberLeftEvent{MemberEvent: address}
+		meta := MemberMeta{
+			Address: old.Address,
+			Port:    old.Port,
+			Kinds:   old.Kinds,
+		}
+		left := &MemberLeftEvent{MemberMeta: meta}
 		actor.EventStream.Publish(left)
 		return
 	}
 	if old == nil {
 		//notify joined
-		joined := &MemberJoinedEvent{MemberEvent: address}
+		meta := MemberMeta{
+			Address: new.Address,
+			Port:    new.Port,
+			Kinds:   new.Kinds,
+		}
+		joined := &MemberJoinedEvent{MemberMeta: meta}
 		actor.EventStream.Publish(joined)
 		return
 	}
 	if old.Alive && !new.Alive {
 		//notify node unavailable
-		unavailable := &MemberUnavailableEvent{MemberEvent: address}
+		meta := MemberMeta{
+			Address: new.Address,
+			Port:    new.Port,
+			Kinds:   new.Kinds,
+		}
+		unavailable := &MemberUnavailableEvent{MemberMeta: meta}
 		actor.EventStream.Publish(unavailable)
 		return
 	}
 	if !old.Alive && new.Alive {
 		//notify node reachable
-		available := &MemberAvailableEvent{MemberEvent: address}
+		meta := MemberMeta{
+			Address: new.Address,
+			Port:    new.Port,
+			Kinds:   new.Kinds,
+		}
+		available := &MemberAvailableEvent{MemberMeta: meta}
 		actor.EventStream.Publish(available)
 	}
 }

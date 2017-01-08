@@ -56,10 +56,16 @@ func (state *partitionActor) Receive(context actor.Context) {
 	case *remoting.ActorPidRequest:
 		state.spawn(msg, context)
 	case *MemberJoinedEvent:
+		log.Printf("[CLUSTER] Node Joined %v", msg.Name())
 		state.clusterStatusJoin(msg)
 	case *MemberLeftEvent:
 		log.Printf("[CLUSTER] Node left %v", msg.Name())
+	case *MemberAvailableEvent:
+		log.Printf("[CLUSTER] Node available %v", msg.Name())
+	case *MemberUnavailableEvent:
+		log.Printf("[CLUSTER] Node unavailable %v", msg.Name())
 	case *TakeOwnership:
+		log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
 		state.takeOwnership(msg)
 	default:
 		log.Printf("[CLUSTER] Partition got unknown message %+v", msg)
@@ -88,8 +94,6 @@ func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.
 }
 
 func (state *partitionActor) clusterStatusJoin(msg *MemberJoinedEvent) {
-	log.Printf("[CLUSTER] Node joined: %v", msg.Name())
-
 	for actorID := range state.partition {
 		host := getNode(actorID, state.kind)
 		if host != actor.ProcessRegistry.Host {
@@ -111,6 +115,6 @@ func (state *partitionActor) transferOwnership(actorID string, host string) {
 }
 
 func (state *partitionActor) takeOwnership(msg *TakeOwnership) {
-	log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
+
 	state.partition[msg.Name] = msg.Pid
 }

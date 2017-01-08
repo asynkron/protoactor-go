@@ -7,34 +7,40 @@ type MemberStatusEvent interface {
 	GetKinds() []string
 }
 
-type MemberEvent struct {
+type MemberMeta struct {
 	Address string
 	Port    int
 	Kinds   []string
 }
 
-func (e *MemberEvent) Name() string {
+func (e *MemberMeta) Name() string {
 	return fmt.Sprintf("%v:%v", e.Address, e.Port)
 }
 
-func (e *MemberEvent) GetKinds() []string {
+func (e *MemberMeta) GetKinds() []string {
 	return e.Kinds
 }
 
-func (*MemberEvent) MemberStatusEvent() {}
-
 type MemberJoinedEvent struct {
-	MemberEvent
+	MemberMeta
 }
+
+func (*MemberJoinedEvent) MemberStatusEvent() {}
 
 type MemberLeftEvent struct {
-	MemberEvent
+	MemberMeta
 }
+
+func (*MemberLeftEvent) MemberStatusEvent() {}
 
 type MemberUnavailableEvent struct {
-	MemberEvent
+	MemberMeta
 }
 
+func (*MemberUnavailableEvent) MemberStatusEvent() {}
+
 type MemberAvailableEvent struct {
-	MemberEvent
+	MemberMeta
 }
+
+func (*MemberAvailableEvent) MemberStatusEvent() {}
