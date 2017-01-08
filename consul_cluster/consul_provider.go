@@ -55,12 +55,16 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 	if err != nil {
 		return err
 	}
+	//force our own TTL to be OK
+	p.blockingUpdateTTL()
+	//force our own existence to be part of the first status update
+	p.blockingStatusChange()
 
 	p.UpdateTTL()
 	return nil
 }
 
-func (p *ConsulProvider) UpdateTTL() {
+func (p *ConsulProvider) blockingUpdateTTL() {
 	refresh := func() error {
 		err := p.client.Agent().PassTTL("service:"+p.id, "")
 		if err != nil {
@@ -68,14 +72,18 @@ func (p *ConsulProvider) UpdateTTL() {
 		}
 		return nil
 	}
+	//	log.Println("[CLUSTER] [CONSUL] Refreshing service TTL")
+	err := refresh()
+	if err != nil {
+		log.Println("[CLUSTER] [CONSUL] Failure refreshing service TTL")
+	}
+}
+
+func (p *ConsulProvider) UpdateTTL() {
 
 	go func() {
 		for !p.shutdown {
-			//	log.Println("[CLUSTER] [CONSUL] Refreshing service TTL")
-			err := refresh()
-			if err != nil {
-				log.Println("[CLUSTER] [CONSUL] Failure refreshing service TTL")
-			}
+			p.blockingUpdateTTL()
 			time.Sleep(p.refreshTTL)
 		}
 	}()
@@ -90,22 +98,49 @@ func (p *ConsulProvider) Shutdown() error {
 	return nil
 }
 
-func (p *ConsulProvider) MonitorMemberStatusChanges() {
-	var index uint64
-	healthCheck := func() ([]*api.ServiceEntry, error) {
-		res, meta, err := p.client.Health().Service(p.clusterName, "", false, &api.QueryOptions{
-			WaitIndex: index,
-			WaitTime:  p.blockingWaitTime,
-		})
-		if err != nil {
-			return nil, err
-		}
-		index = meta.LastIndex
-		return res, nil
+func (p *ConsulProvider) healthCheck(index uint64) (uint64, []*api.ServiceEntry, error) {
+	res, meta, err := p.client.Health().Service(p.clusterName, "", false, &api.QueryOptions{
+		WaitIndex: index,
+		WaitTime:  p.blockingWaitTime,
+	})
+	if err != nil {
+		return 0, nil, err
 	}
+	return meta.LastIndex, res, nil
+}
+
+//call this directly after registering the service
+func (p *ConsulProvider) blockingStatusChange() {
+	_, statuses, err := p.healthCheck(0)
+	if err != nil {
+		log.Printf("Error %v", err)
+	} else {
+		res := make(cluster.MemberStatusBatch, len(statuses))
+		for i, v := range statuses {
+			ms := &cluster.MemberStatus{
+				Address: v.Service.Address,
+				Port:    v.Service.Port,
+				Kinds:   v.Service.Tags,
+				Alive:   v.Checks[1].Status == "passing",
+			}
+			res[i] = ms
+		}
+		//the reason why we want this in a batch and not as individual messages is that
+		//if we have an atomic batch, we can calculate what nodes have left the cluster
+		//passing events one by one, we can't know if someone left or just havent changed status for a long time
+
+		//publish the current cluster topology onto the EventStream
+		actor.EventStream.Publish(res)
+	}
+}
+
+func (p *ConsulProvider) MonitorMemberStatusChanges() {
+
 	go func() {
+		var index uint64
 		for !p.shutdown {
-			statuses, err := healthCheck()
+			i, statuses, err := p.healthCheck(index)
+			index = i
 			if err != nil {
 				log.Printf("Error %v", err)
 			} else {
@@ -115,7 +150,7 @@ func (p *ConsulProvider) MonitorMemberStatusChanges() {
 						Address: v.Service.Address,
 						Port:    v.Service.Port,
 						Kinds:   v.Service.Tags,
-						Alive:   v.Checks[0].Status == "passing",
+						Alive:   v.Checks[1].Status == "passing",
 					}
 					res[i] = ms
 				}

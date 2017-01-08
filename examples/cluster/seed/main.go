@@ -22,7 +22,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cluster.StartWithProvider("mycluster", "127.0.0.1:8080", cp)
+	cluster.Start("mycluster", "127.0.0.1:8080", cp)
 
 	hello := shared.GetHelloGrain("MyGrain")
 

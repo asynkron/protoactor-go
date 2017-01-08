@@ -2,14 +2,13 @@ package cluster
 
 import (
 	"log"
-	"time"
 
 	"github.com/AsynkronIT/gonet"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remoting"
 )
 
-func StartWithProvider(clusterName, address string, provider ClusterProvider) {
+func Start(clusterName, address string, provider ClusterProvider) {
 	remoting.Start(address)
 	h, p := gonet.GetAddress(address)
 	log.Printf("[CLUSTER] Starting Proto.Actor cluster on on %v:%v", h, p)
@@ -26,6 +25,5 @@ func StartWithProvider(clusterName, address string, provider ClusterProvider) {
 	subscribeMembershipActorToEventStream()
 	provider.RegisterMember(clusterName, h, p, kinds)
 	provider.MonitorMemberStatusChanges()
-	time.Sleep(5 * time.Second)
-
+	//time.Sleep(1 * time.Second) //TODO: racecondition, consul is not yet up to date
 }

@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cluster.StartWithProvider("mycluster", "127.0.0.1:8081", cp)
+	cluster.Start("mycluster", "127.0.0.1:8081", cp)
 
 	sync()
 	async()

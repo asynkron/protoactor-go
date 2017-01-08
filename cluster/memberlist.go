@@ -11,8 +11,9 @@ import (
 func getMembers(kind string) []string {
 	res, err := memberlistPID.RequestFuture(&MemberByKindRequest{kind: kind, onlyAlive: true}, 5*time.Second).Result()
 	if err != nil {
-		log.Printf("Failed to get members by kind")
-		return nil
+		//TODO: lets say a node asks for an actor of kind X, which is not registered on the local node
+		//and no other nodes are currently avaialbe, what should be the behavior?
+		panic("No members found")
 	}
 	t, ok := res.(*MemberByKindResponse)
 	if !ok {
