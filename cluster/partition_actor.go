@@ -56,16 +56,15 @@ func (state *partitionActor) Receive(context actor.Context) {
 	case *remoting.ActorPidRequest:
 		state.spawn(msg, context)
 	case *MemberJoinedEvent:
-		log.Printf("[CLUSTER] Node Joined %v", msg.Name())
-		state.clusterStatusJoin(msg)
+		state.memberJoined(msg)
 	case *MemberLeftEvent:
-		log.Printf("[CLUSTER] Node Left %v", msg.Name())
+		state.memberLeft(msg)
 	case *MemberAvailableEvent:
 		log.Printf("[CLUSTER] Node Available %v", msg.Name())
 	case *MemberUnavailableEvent:
 		log.Printf("[CLUSTER] Node Unavailable %v", msg.Name())
 	case *TakeOwnership:
-		log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
+
 		state.takeOwnership(msg)
 	default:
 		log.Printf("[CLUSTER] Partition got unknown message %+v", msg)
@@ -93,7 +92,19 @@ func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.
 	context.Respond(response)
 }
 
-func (state *partitionActor) clusterStatusJoin(msg *MemberJoinedEvent) {
+func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {
+	log.Printf("[CLUSTER] Node Left %v", msg.Name())
+	for actorID, pid := range state.partition {
+		//if the mapped PID is on the host that left, forget it
+		if pid.Host == msg.Name() {
+			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, msg.Name())
+			delete(state.partition, actorID)
+		}
+	}
+}
+
+func (state *partitionActor) memberJoined(msg *MemberJoinedEvent) {
+	log.Printf("[CLUSTER] Node Joined %v", msg.Name())
 	for actorID := range state.partition {
 		host := getNode(actorID, state.kind)
 		if host != actor.ProcessRegistry.Host {
@@ -115,6 +126,6 @@ func (state *partitionActor) transferOwnership(actorID string, host string) {
 }
 
 func (state *partitionActor) takeOwnership(msg *TakeOwnership) {
-
+	log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
 	state.partition[msg.Name] = msg.Pid
 }
