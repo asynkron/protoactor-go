@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/examples/remoterouting/messages"
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/examples/remoterouting/messages"
 	"github.com/AsynkronIT/protoactor-go/remoting"
 	"github.com/AsynkronIT/protoactor-go/routing"
 

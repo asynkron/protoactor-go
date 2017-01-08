@@ -32,7 +32,7 @@ var ss string
 func BenchmarkUint64ToId(b *testing.B) {
 	var s string
 	for i := 0; i < b.N; i++ {
-		s = uint64ToId(uint64(i)<<5)
+		s = uint64ToId(uint64(i) << 5)
 	}
 	ss = s
 }

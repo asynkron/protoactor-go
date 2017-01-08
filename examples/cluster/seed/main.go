@@ -4,8 +4,8 @@ import (
 	"log"
 
 	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/examples/cluster/shared"
 	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/AsynkronIT/protoactor-go/examples/cluster/shared"
 )
 
 func main() {
