@@ -23,7 +23,7 @@ func (pid *PID) Request(message interface{}, respondTo *PID) {
 func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Future {
 	ref, ok := ProcessRegistry.get(pid)
 	if !ok {
-		log.Fatalf("[ACTOR] Failed to register RequestFuture for PID %v", pid.String())
+		log.Printf("[ACTOR] RequestFuture for missing local PID '%v'", pid.String())
 	}
 
 	future := NewFuture(timeout)
