@@ -238,7 +238,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 	case *actor.Started:
 		a.inner = xHelloFactory()
 		id := ctx.Self().Id
-		a.inner.Init(id[6:len(id)])
+		a.inner.Init(id[7:len(id)])
 	case *cluster.GrainRequest:
 		switch msg.Method {
 

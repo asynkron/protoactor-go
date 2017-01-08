@@ -92,7 +92,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 	case *actor.Started:
 		a.inner = x{{ $service.Name }}Factory()
 		id := ctx.Self().Id
-		a.inner.Init(id[6:len(id)])
+		a.inner.Init(id[7:len(id)]) //skip "remote$"
 	case *cluster.GrainRequest:
 		switch msg.Method {
 		{{ range $method := $service.Methods}}	

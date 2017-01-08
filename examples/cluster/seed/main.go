@@ -16,7 +16,7 @@ func main() {
 	}
 	cluster.StartWithProvider("mycluster", "127.0.0.1:8080", cp)
 	log.Println("starting")
-	hello := shared.GetHelloGrain("abc")
+	hello := shared.GetHelloGrain("MyGrain")
 
 	res, err := hello.SayHello(&shared.HelloRequest{Name: "Roger"})
 	if err != nil {
