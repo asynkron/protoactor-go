@@ -28,9 +28,9 @@ func New() (*ConsulProvider, error) {
 	}
 	p := &ConsulProvider{
 		client:             client,
-		ttl:                10 * time.Second,
-		refreshTTL:         2 * time.Second,
-		deregisterCritical: 60 * time.Second,
+		ttl:                5 * time.Second,
+		refreshTTL:         3 * time.Second,
+		deregisterCritical: 30 * time.Second,
 		blockingWaitTime:   20 * time.Second,
 	}
 	return p, nil

@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"log"
+	"time"
 
 	"github.com/AsynkronIT/gonet"
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -25,5 +26,6 @@ func StartWithProvider(clusterName, address string, provider ClusterProvider) {
 	subscribeMembershipActorToEventStream()
 	provider.RegisterMember(clusterName, h, p, kinds)
 	provider.MonitorMemberStatusChanges()
+	time.Sleep(5 * time.Second)
 
 }

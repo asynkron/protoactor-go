@@ -7,6 +7,7 @@ import (
 
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/AsynkronIT/protoactor-go/consul_cluster"
 	"github.com/AsynkronIT/protoactor-go/examples/cluster/shared"
 )
 
@@ -15,7 +16,12 @@ const (
 )
 
 func main() {
-	cluster.Start("127.0.0.1:0", "127.0.0.1:7711")
+	cp, err := consul_cluster.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cluster.StartWithProvider("mycluster", "127.0.0.1:8081", cp)
+
 	sync()
 	async()
 
