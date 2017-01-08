@@ -5,7 +5,8 @@ import (
 	"log"
 	"reflect"
 	"time"
-
+        "runtime"
+        "strings"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 )
 
@@ -329,10 +330,41 @@ func (cell *actorCell) stopped() {
 	})
 }
 
+func identifyPanic() string {
+        var name, file string
+        var line int
+        var pc [16]uintptr
+
+        n := runtime.Callers(3, pc[:])
+        for _, pc := range pc[:n] {
+                log.Printf("%s", pc)
+                fn := runtime.FuncForPC(pc)
+                if fn == nil {
+                        continue
+                }
+                file, line = fn.FileLine(pc)
+                fmt.Printf(file, line, pc)
+                name = fn.Name()
+                if !strings.HasPrefix(name, "runtime.") {
+                        break
+                }
+        }
+
+        switch {
+        case name != "":
+                return fmt.Sprintf("%v:%v", name, line)
+        case file != "":
+                return fmt.Sprintf("%v:%v", file, line)
+        }
+
+        return fmt.Sprintf("pc:%x", pc)
+}
+
+
 func (cell *actorCell) InvokeUserMessage(md interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[ACTOR] '%v' Recovering from: %v", cell.debugString(), r)
+			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", cell.debugString(), r, identifyPanic())
 			failure := &Failure{Reason: r, Who: cell.self}
 			if cell.parent == nil {
 				handleRootFailure(failure)
