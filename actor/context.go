@@ -332,7 +332,7 @@ func (cell *actorCell) stopped() {
 func (cell *actorCell) InvokeUserMessage(md interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[ACTOR] '%v' Recovering from: %v", cell.debugString(), r)
+			log.Printf("[ACTOR] '%v' Recovering from: %v on message %+v", cell.debugString(), r, md)
 			failure := &Failure{Reason: r, Who: cell.self}
 			if cell.parent == nil {
 				handleRootFailure(failure)
@@ -344,6 +344,12 @@ func (cell *actorCell) InvokeUserMessage(md interface{}) {
 			}
 		}
 	}()
+
+	if md == nil {
+		log.Printf("[ACTOR] '%v' got nil message", cell.Self().String())
+		return
+	}
+
 	cell.receiveIndex = 0
 	cell.message = md
 

@@ -6,9 +6,11 @@ import (
 	"time"
 
 	console "github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/consul_cluster"
 	"github.com/AsynkronIT/protoactor-go/examples/cluster/shared"
+	"github.com/AsynkronIT/protoactor-go/remoting"
 )
 
 const (
@@ -16,6 +18,11 @@ const (
 )
 
 func main() {
+	//this node knows about Hello kind
+	remoting.Register("Hello", actor.FromProducer(func() actor.Actor {
+		return &shared.HelloActor{}
+	}))
+
 	cp, err := consul_cluster.New()
 	if err != nil {
 		log.Fatal(err)
@@ -36,7 +43,6 @@ func sync() {
 		log.Fatal(err)
 	}
 	log.Printf("Message from SayHello: %v", res.Message)
-	log.Println("Starting")
 	for i := 0; i < 10000; i++ {
 		x := shared.GetHelloGrain(fmt.Sprintf("hello%v", i))
 		x.SayHello(&shared.HelloRequest{Name: "GAM"})
