@@ -7,16 +7,16 @@ import (
 )
 
 var (
-	membershipPID *actor.PID
+	memberlistPID *actor.PID
 )
 
 func spawnMembershipActor() {
-	membershipPID = actor.SpawnNamed(actor.FromProducer(newMembershipActor()), "#membership")
+	memberlistPID = actor.SpawnNamed(actor.FromProducer(newMembershipActor()), "#membership")
 }
 
 func newMembershipActor() actor.Producer {
 	return func() actor.Actor {
-		return &membershipActor{}
+		return &memberlistActor{}
 	}
 }
 
@@ -24,7 +24,7 @@ func subscribeMembershipActorToEventStream() {
 	actor.EventStream.SubscribePID(func(m interface{}) bool {
 		_, ok := m.(MemberStatusBatch)
 		return ok
-	}, membershipPID)
+	}, memberlistPID)
 }
 
 //membershipActor is responsible to keep track of the current cluster topology
@@ -32,14 +32,24 @@ func subscribeMembershipActorToEventStream() {
 //the default ClusterProvider is consul_cluster.ConsulProvider which uses the Consul HTTP API to scan for changes
 //TODO: we need some way of creating a hashring per "kind", maybe we should have a child actor to the membership actor that handles nodes
 //per kind.
-type membershipActor struct {
+type memberlistActor struct {
 	members map[string]*MemberStatus
 }
 
-func (a *membershipActor) Receive(ctx actor.Context) {
+func (a *memberlistActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		a.members = make(map[string]*MemberStatus)
+	case *MemberByKindRequest:
+		var res []string
+		for key, v := range a.members {
+			if !msg.onlyAlive || (msg.onlyAlive && v.Alive) {
+				res = append(res, key)
+			}
+		}
+		ctx.Respond(&MemberByKindResponse{
+			members: res,
+		})
 	case MemberStatusBatch:
 
 		//build a lookup for the new statuses
@@ -67,7 +77,7 @@ func (a *membershipActor) Receive(ctx actor.Context) {
 	}
 }
 
-func (a *membershipActor) notify(new *MemberStatus, old *MemberStatus) {
+func (a *memberlistActor) notify(new *MemberStatus, old *MemberStatus) {
 	address := MemberEvent{
 		Address: new.Address,
 		Port:    new.Port,

@@ -68,6 +68,7 @@ func (state *partitionActor) Receive(context actor.Context) {
 
 func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.Context) {
 
+	//TODO: make this async
 	pid := state.partition[msg.Name]
 	if pid == nil {
 		//get a random node

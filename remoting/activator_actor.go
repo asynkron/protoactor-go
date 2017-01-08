@@ -38,6 +38,14 @@ func ActivatorForHost(host string) *actor.PID {
 	return pid
 }
 
+func SpawnFuture(host string, name string, kind string, timeout time.Duration) *actor.Future {
+	activator := ActivatorForHost(host)
+	f := activator.RequestFuture(&ActorPidRequest{
+		Name: name,
+		Kind: kind,
+	}, timeout)
+	return f
+}
 func Spawn(host string, name string, kind string, timeout time.Duration) (*actor.PID, error) {
 	activator := ActivatorForHost(host)
 	res, err := activator.RequestFuture(&ActorPidRequest{

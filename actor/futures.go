@@ -33,8 +33,8 @@ func NewFuture(timeout time.Duration) *Future {
 }
 
 type Future struct {
-	pid    *PID
-	cond   *sync.Cond
+	pid  *PID
+	cond *sync.Cond
 	// protected by cond
 	done   bool
 	result interface{}
@@ -56,6 +56,13 @@ func (f *Future) PipeTo(pid *PID) {
 		} else {
 			pid.Tell(res)
 		}
+	}()
+}
+
+func (f *Future) ContinueWith(fun func(f *Future)) {
+	go func() {
+		f.Wait()
+		fun(f)
 	}()
 }
 
