@@ -154,6 +154,7 @@ type actorCell struct {
 	actor          Actor
 	props          Props
 	behavior       behaviorStack
+	receive        Receive
 	children       PIDSet
 	watchers       PIDSet
 	watching       PIDSet
@@ -183,9 +184,8 @@ func (cell *actorCell) Parent() *PID {
 
 func NewActorCell(props Props, parent *PID) *actorCell {
 	cell := &actorCell{
-		parent:   parent,
-		props:    props,
-		behavior: make(behaviorStack, 0, 8),
+		parent: parent,
+		props:  props,
 	}
 	cell.incarnateActor()
 	return cell
@@ -405,25 +405,25 @@ func (cell *actorCell) AutoReceiveOrUser() {
 	case *PoisonPill:
 		cell.self.Stop()
 	default:
-		receive, _ := cell.behavior.Peek()
-		receive(cell)
+		cell.receive(cell)
 	}
 }
 
 func (cell *actorCell) Become(behavior Receive) {
 	cell.behavior.Clear()
-	cell.behavior.Push(behavior)
+	cell.receive = behavior
 }
 
 func (cell *actorCell) BecomeStacked(behavior Receive) {
-	cell.behavior.Push(behavior)
+	cell.behavior.Push(cell.receive)
+	cell.receive = behavior
 }
 
 func (cell *actorCell) UnbecomeStacked() {
-	if cell.behavior.Len() <= 1 {
+	if cell.behavior.Len() == 0 {
 		panic("Can not unbecome actor base behavior")
 	}
-	cell.behavior.Pop()
+	cell.receive, _ = cell.behavior.Pop()
 }
 
 func (cell *actorCell) Watch(who *PID) {
