@@ -26,7 +26,7 @@ func subscribePartitionKindsToEventStream() {
 }
 
 func spawnPartitionActor(kind string) *actor.PID {
-	partitionPid := actor.SpawnNamed(actor.FromProducer(newPartitionActor(kind)), "#partition"+kind)
+	partitionPid := actor.SpawnNamed(actor.FromProducer(newPartitionActor(kind)), "#partition-"+kind)
 	return partitionPid
 }
 
@@ -52,7 +52,7 @@ type partitionActor struct {
 func (state *partitionActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Println("[CLUSTER] Partition started")
+		log.Printf("[CLUSTER] Started %v", context.Self().Id)
 	case *remoting.ActorPidRequest:
 		state.spawn(msg, context)
 	case *MemberJoinedEvent:
@@ -92,7 +92,7 @@ func (state *partitionActor) clusterStatusJoin(msg *MemberJoinedEvent) {
 
 	for actorID := range state.partition {
 		host := getNode(actorID, state.kind)
-		if host != localMember {
+		if host != actor.ProcessRegistry.Host {
 			state.transferOwnership(actorID, host)
 		}
 	}

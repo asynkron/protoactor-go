@@ -9,9 +9,9 @@ import (
 )
 
 func StartWithProvider(clusterName, address string, provider ClusterProvider) {
-	localMember = address
+	remoting.Start(address)
 	h, p := gonet.GetAddress(address)
-	log.Printf("[CLUSTER] Starting on %v:%v", h, p)
+	log.Printf("[CLUSTER] Starting Proto.Actor cluster on on %v:%v", h, p)
 	kinds := remoting.GetKnownKinds()
 	kindPIDMap = make(map[string]*actor.PID)
 
@@ -23,7 +23,7 @@ func StartWithProvider(clusterName, address string, provider ClusterProvider) {
 	subscribePartitionKindsToEventStream()
 	spawnMembershipActor()
 	subscribeMembershipActorToEventStream()
-	provider.RegisterNode(clusterName, h, p, kinds)
+	provider.RegisterMember(clusterName, h, p, kinds)
 	provider.MonitorMemberStatusChanges()
-	remoting.Start(address)
+
 }

@@ -4,12 +4,17 @@ import (
 	"log"
 
 	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/examples/cluster/shared"
 	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/AsynkronIT/protoactor-go/consul_cluster"
+	"github.com/AsynkronIT/protoactor-go/examples/cluster/shared"
 )
 
 func main() {
-	cluster.Start("127.0.0.1:7711")
+	cp, err := consul_cluster.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cluster.StartWithProvider("mycluster", "127.0.0.1:8080", cp)
 	log.Println("starting")
 	hello := shared.GetHelloGrain("abc")
 
@@ -17,6 +22,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Message from grain %v", res.Message)
+	log.Printf("Message from grain: %v", res.Message)
 	console.ReadLine()
 }

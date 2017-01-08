@@ -71,10 +71,10 @@ func (p *ConsulProvider) UpdateTTL() {
 
 	go func() {
 		for !p.shutdown {
-			log.Println("Refreshing service TTL")
+			log.Println("[CLUSTER] [CONSUL] Refreshing service TTL")
 			err := refresh()
 			if err != nil {
-				log.Println("Failure refreshing service TTL")
+				log.Println("[CLUSTER] [CONSUL] Failure refreshing service TTL")
 			}
 			time.Sleep(p.refreshTTL)
 		}

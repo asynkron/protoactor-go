@@ -10,7 +10,7 @@ type MemberStatus struct {
 type MemberStatusBatch []*MemberStatus
 
 type ClusterProvider interface {
-	RegisterNode(clusterName string, address string, port int, knownKinds []string) error
+	RegisterMember(clusterName string, address string, port int, knownKinds []string) error
 	MonitorMemberStatusChanges()
 	Shutdown() error
 }

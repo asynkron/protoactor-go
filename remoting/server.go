@@ -34,6 +34,6 @@ func Start(host string, options ...RemotingOption) {
 
 	s := grpc.NewServer(config.serverOptions...)
 	RegisterRemotingServer(s, &server{})
-	log.Printf("[REMOTING] Starting GAM server on %v.", host)
+	log.Printf("[REMOTING] Starting Proto.Actor server on %v", host)
 	go s.Serve(lis)
 }
