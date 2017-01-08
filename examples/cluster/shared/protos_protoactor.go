@@ -20,7 +20,6 @@ package shared
 import errors "errors"
 import log "log"
 import actor "github.com/AsynkronIT/protoactor-go/actor"
-import remoting "github.com/AsynkronIT/protoactor-go/remoting"
 import cluster "github.com/AsynkronIT/protoactor-go/cluster"
 
 import proto "github.com/gogo/protobuf/proto"
@@ -306,10 +305,6 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 }
 
 func init() {
-
-	remoting.Register("Hello", actor.FromProducer(func() actor.Actor {
-		return &HelloActor{}
-	}))
 
 }
 
