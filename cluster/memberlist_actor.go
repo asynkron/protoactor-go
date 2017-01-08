@@ -42,9 +42,15 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 		a.members = make(map[string]*MemberStatus)
 	case *MemberByKindRequest:
 		var res []string
+
+		//TODO: optimize this
 		for key, v := range a.members {
 			if !msg.onlyAlive || (msg.onlyAlive && v.Alive) {
-				res = append(res, key)
+				for _, k := range v.Kinds {
+					if k == msg.kind {
+						res = append(res, key)
+					}
+				}
 			}
 		}
 		ctx.Respond(&MemberByKindResponse{

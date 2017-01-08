@@ -88,7 +88,7 @@ func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.
 }
 
 func (state *partitionActor) clusterStatusJoin(msg *MemberJoinedEvent) {
-	log.Printf("[CLUSTER] Node joined %v", msg.Name())
+	log.Printf("[CLUSTER] Node joined: %v", msg.Name())
 
 	for actorID := range state.partition {
 		host := getNode(actorID, state.kind)
