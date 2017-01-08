@@ -5,8 +5,8 @@ import (
 	"runtime"
 
 	"github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/examples/chat/messages"
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/examples/chat/messages"
 	"github.com/AsynkronIT/protoactor-go/remoting"
 )
 

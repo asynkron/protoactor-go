@@ -73,7 +73,7 @@ func TestBehaviorStack_Pop_ExpectedOrder(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		t.Run("order " + strconv.Itoa(i), func(t *testing.T) {
+		t.Run("order "+strconv.Itoa(i), func(t *testing.T) {
 			var bs behaviorStack
 			for _, fn := range tc.items {
 				bs.Push(fn)

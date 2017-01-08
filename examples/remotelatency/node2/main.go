@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/examples/remotelatency/messages"
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/examples/remotelatency/messages"
 	"github.com/AsynkronIT/protoactor-go/remoting"
 )
 

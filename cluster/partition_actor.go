@@ -45,7 +45,7 @@ func newPartitionActor(kind string) actor.Producer {
 }
 
 type partitionActor struct {
-	partition map[string]*actor.PID
+	partition map[string]*actor.PID //actor/grain name to PID
 	kind      string
 }
 
@@ -59,11 +59,11 @@ func (state *partitionActor) Receive(context actor.Context) {
 		log.Printf("[CLUSTER] Node Joined %v", msg.Name())
 		state.clusterStatusJoin(msg)
 	case *MemberLeftEvent:
-		log.Printf("[CLUSTER] Node left %v", msg.Name())
+		log.Printf("[CLUSTER] Node Left %v", msg.Name())
 	case *MemberAvailableEvent:
-		log.Printf("[CLUSTER] Node available %v", msg.Name())
+		log.Printf("[CLUSTER] Node Available %v", msg.Name())
 	case *MemberUnavailableEvent:
-		log.Printf("[CLUSTER] Node unavailable %v", msg.Name())
+		log.Printf("[CLUSTER] Node Unavailable %v", msg.Name())
 	case *TakeOwnership:
 		log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
 		state.takeOwnership(msg)

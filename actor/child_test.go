@@ -3,8 +3,9 @@ package actor
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type CreateChildMessage struct{}

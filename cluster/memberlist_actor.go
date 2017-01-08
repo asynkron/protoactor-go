@@ -70,7 +70,7 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 		for key, old := range a.members {
 			new := tmp[key]
 			if new == nil {
-				a.notify(new, old)
+				a.notify(key, new, old)
 			}
 		}
 
@@ -78,12 +78,12 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 		for key, new := range tmp {
 			old := a.members[key]
 			a.members[key] = new
-			a.notify(new, old)
+			a.notify(key, new, old)
 		}
 	}
 }
 
-func (a *memberlistActor) notify(new *MemberStatus, old *MemberStatus) {
+func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatus) {
 
 	if new == nil && old == nil {
 		//ignore, not possible
@@ -98,6 +98,7 @@ func (a *memberlistActor) notify(new *MemberStatus, old *MemberStatus) {
 		}
 		left := &MemberLeftEvent{MemberMeta: meta}
 		actor.EventStream.Publish(left)
+		delete(a.members, key) //remove this member as it has left
 		return
 	}
 	if old == nil {
