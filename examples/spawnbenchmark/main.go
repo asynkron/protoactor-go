@@ -60,6 +60,7 @@ func (s *state) Receive(ctx actor.Context) {
 }
 
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+var memprofile = flag.String("memprofile", "", "write mem profile to file")
 
 func main() {
 	flag.Parse()
@@ -85,4 +86,14 @@ func main() {
 
 	took := time.Since(start)
 	fmt.Printf("Result: %d in %d ms.\n", result, took.Nanoseconds()/1e6)
+
+	if *memprofile != "" {
+		f, err := os.Create(*memprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.WriteHeapProfile(f)
+		f.Close()
+		return
+	}
 }
