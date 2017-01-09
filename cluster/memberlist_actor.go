@@ -112,6 +112,16 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		actor.EventStream.Publish(joined)
 		return
 	}
+	if new.MemberID != old.MemberID {
+		meta := MemberMeta{
+			Address: new.Address,
+			Port:    new.Port,
+			Kinds:   new.Kinds,
+		}
+		joined := &MemberRejoinedEvent{MemberMeta: meta}
+		actor.EventStream.Publish(joined)
+		return
+	}
 	if old.Alive && !new.Alive {
 		//notify node unavailable
 		meta := MemberMeta{

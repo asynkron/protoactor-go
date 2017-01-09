@@ -57,6 +57,8 @@ func (state *partitionActor) Receive(context actor.Context) {
 		state.spawn(msg, context)
 	case *MemberJoinedEvent:
 		state.memberJoined(msg)
+	case *MemberRejoinedEvent:
+		state.memberRejoined(msg)
 	case *MemberLeftEvent:
 		state.memberLeft(msg)
 	case *MemberAvailableEvent:
@@ -90,6 +92,17 @@ func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.
 		Pid: pid,
 	}
 	context.Respond(response)
+}
+
+func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
+	log.Printf("[CLUSTER] Node Rejoined %v", msg.Name())
+	for actorID, pid := range state.partition {
+		//if the mapped PID is on the host that left, forget it
+		if pid.Host == msg.Name() {
+			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, msg.Name())
+			delete(state.partition, actorID)
+		}
+	}
 }
 
 func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {

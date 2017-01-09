@@ -27,6 +27,12 @@ type MemberJoinedEvent struct {
 
 func (*MemberJoinedEvent) MemberStatusEvent() {}
 
+type MemberRejoinedEvent struct {
+	MemberMeta
+}
+
+func (*MemberRejoinedEvent) MemberStatusEvent() {}
+
 type MemberLeftEvent struct {
 	MemberMeta
 }
