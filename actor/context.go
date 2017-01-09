@@ -217,7 +217,7 @@ func (cell *actorCell) incarnateActor() {
 	cell.restarting = false
 	cell.stopping = false
 	cell.actor = actor
-	cell.Become(actor.Receive)
+	cell.receive = actor.Receive
 }
 
 func (cell *actorCell) InvokeSystemMessage(message SystemMessage) {
