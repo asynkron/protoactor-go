@@ -5,7 +5,7 @@
 //
 package mpsc
 
-// This implementation is based on http://www.1024cores.net/home/lock-free-algorithms/queues/intrusive-mpsc-node-based-queue
+// This implementation is based on http://www.1024cores.net/home/lock-free-algorithms/queues/non-intrusive-mpsc-node-based-queue
 
 import (
 	"sync/atomic"
