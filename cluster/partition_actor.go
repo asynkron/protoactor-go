@@ -127,7 +127,7 @@ func (state *partitionActor) memberJoined(msg *MemberJoinedEvent) {
 }
 
 func (state *partitionActor) transferOwnership(actorID string, host string) {
-	log.Printf("[CLUSTER] Giving ownership of %v to Node %v", actorID, host)
+	//	log.Printf("[CLUSTER] Giving ownership of %v to Node %v", actorID, host)
 	pid := state.partition[actorID]
 	owner := partitionForKind(host, state.kind)
 	owner.Tell(&TakeOwnership{
@@ -139,6 +139,6 @@ func (state *partitionActor) transferOwnership(actorID string, host string) {
 }
 
 func (state *partitionActor) takeOwnership(msg *TakeOwnership) {
-	log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
+	//	log.Printf("[CLUSTER] Took ownerhip of %v", msg.Pid)
 	state.partition[msg.Name] = msg.Pid
 }
