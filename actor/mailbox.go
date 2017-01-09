@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"github.com/AsynkronIT/protoactor-go/actor/lfqueue"
+	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
 )
 
 type ReceiveUserMessage func(interface{})
@@ -37,7 +37,7 @@ const (
 
 type DefaultMailbox struct {
 	userMailbox     MailboxQueue
-	systemMailbox   *lfqueue.LockfreeQueue
+	systemMailbox   *mpsc.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
 	invoker         MessageInvoker

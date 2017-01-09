@@ -1,7 +1,7 @@
 package actor
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor/lfqueue"
+	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
 	"github.com/Workiva/go-datastructures/queue"
 )
 
@@ -28,7 +28,7 @@ func NewBoundedMailbox(size int, mailboxStats ...MailboxStatistics) MailboxProdu
 			userMailbox: queue.NewRingBuffer(uint64(size)),
 		}
 		return &DefaultMailbox{
-			systemMailbox: lfqueue.NewLockfreeQueue(),
+			systemMailbox: mpsc.New(),
 			userMailbox:   q,
 			mailboxStats:  mailboxStats,
 		}

@@ -1,13 +1,12 @@
 package remoting
 
 import (
+	"runtime"
 	"sync/atomic"
 
 	"github.com/AsynkronIT/goring"
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/actor/lfqueue"
-
-	"runtime"
+	"github.com/AsynkronIT/protoactor-go/internal/queue/lfqueue"
 )
 
 const (

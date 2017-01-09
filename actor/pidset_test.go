@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/AsynkronIT/protoactor-go/actor/cheapset"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -90,32 +89,6 @@ func pidSetAdd(b *testing.B, data []*PID) {
 	}
 }
 
-func BenchmarkCheapSet_Add(b *testing.B) {
-	cases := []struct {
-		l int
-	}{
-		{l: 1},
-		{l: 5},
-		{l: 20},
-		{l: 500},
-	}
-
-	for _, tc := range cases {
-		b.Run("len "+strconv.Itoa(tc.l), func(b *testing.B) {
-			cheapSetAdd(b, pids[:tc.l])
-		})
-	}
-}
-
-func cheapSetAdd(b *testing.B, data []*PID) {
-	for i := 0; i < b.N; i++ {
-		var s cheapset.Set
-		for j := 0; j < len(data); j++ {
-			s.Add(data[j])
-		}
-	}
-}
-
 func BenchmarkPIDSet_AddRemove(b *testing.B) {
 	cases := []struct {
 		l int
@@ -136,35 +109,6 @@ func BenchmarkPIDSet_AddRemove(b *testing.B) {
 func pidSetAddRemove(b *testing.B, data []*PID) {
 	for i := 0; i < b.N; i++ {
 		var s PIDSet
-		for j := 0; j < len(data); j++ {
-			s.Add(data[j])
-		}
-		for j := 0; j < len(data); j++ {
-			s.Remove(data[j])
-		}
-	}
-}
-
-func BenchmarkCheapSet_AddRemove(b *testing.B) {
-	cases := []struct {
-		l int
-	}{
-		{l: 1},
-		{l: 5},
-		{l: 20},
-		{l: 500},
-	}
-
-	for _, tc := range cases {
-		b.Run("len "+strconv.Itoa(tc.l), func(b *testing.B) {
-			cheapSetAddRemove(b, pids[:tc.l])
-		})
-	}
-}
-
-func cheapSetAddRemove(b *testing.B, data []*PID) {
-	for i := 0; i < b.N; i++ {
-		var s cheapset.Set
 		for j := 0; j < len(data); j++ {
 			s.Add(data[j])
 		}

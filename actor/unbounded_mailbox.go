@@ -2,7 +2,7 @@ package actor
 
 import (
 	"github.com/AsynkronIT/goring"
-	"github.com/AsynkronIT/protoactor-go/actor/lfqueue"
+	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
 )
 
 type unboundedMailboxQueue struct {
@@ -30,7 +30,7 @@ func NewUnboundedMailbox(mailboxStats ...MailboxStatistics) MailboxProducer {
 			userMailbox: goring.New(10),
 		}
 		return &DefaultMailbox{
-			systemMailbox: lfqueue.NewLockfreeQueue(),
+			systemMailbox: mpsc.New(),
 			userMailbox:   q,
 			mailboxStats:  mailboxStats,
 		}
