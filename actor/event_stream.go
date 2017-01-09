@@ -23,7 +23,7 @@ type Subscription struct {
 func init() {
 	EventStream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetter); ok {
-			log.Printf("[DeadLetter] %v got %+v", deadLetter.PID, deadLetter.Message)
+			log.Printf("[DeadLetter] %v got %+v from %v", deadLetter.PID, deadLetter.Message, deadLetter.Sender)
 		}
 	})
 }
