@@ -57,6 +57,18 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 		return err
 	}
 
+	//register a unique ID for the current process
+	//similar to UID for Akka ActorSystem
+	kvKey := fmt.Sprintf("%v/%v:%v", clusterName, address, port)
+	_, err = p.client.KV().Put(&api.KVPair{
+		Key:   kvKey,
+		Value: []byte(time.Now().String()), //currently, just a semi unique id for this member
+	}, &api.WriteOptions{})
+
+	if err != nil {
+		return err
+	}
+
 	//IMPORTANT: do these ops sync directly after registering.
 	//this will ensure that the local node sees its own information upon startup.
 
@@ -122,13 +134,27 @@ func (p *ConsulProvider) notifyStatuses() {
 	//TODO: http://localhost:8500/v1/kv/mycluster/?recurse
 	//use this to fetch additional information regarding each node
 
+	kvKey := p.clusterName + "/"
+	kv, _, err := p.client.KV().List(kvKey, &api.QueryOptions{})
+	if err != nil {
+		log.Printf("Error %v", err)
+		return
+	}
+	kvMap := make(map[string]string)
+	for _, v := range kv {
+		kvMap[v.Key] = string(v.Value)
+	}
+
 	res := make(cluster.MemberStatusBatch, len(statuses))
 	for i, v := range statuses {
+		key := fmt.Sprintf("%v/%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
+		memberID := kvMap[key]
 		ms := &cluster.MemberStatus{
-			Address: v.Service.Address,
-			Port:    v.Service.Port,
-			Kinds:   v.Service.Tags,
-			Alive:   v.Checks[1].Status == "passing",
+			MemberID: memberID,
+			Address:  v.Service.Address,
+			Port:     v.Service.Port,
+			Kinds:    v.Service.Tags,
+			Alive:    v.Checks[1].Status == "passing",
 		}
 		res[i] = ms
 	}

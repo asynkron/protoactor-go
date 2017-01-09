@@ -1,10 +1,11 @@
 package cluster
 
 type MemberStatus struct {
-	Address string
-	Port    int
-	Kinds   []string
-	Alive   bool
+	MemberID string
+	Address  string
+	Port     int
+	Kinds    []string
+	Alive    bool
 }
 
 type MemberStatusBatch []*MemberStatus
