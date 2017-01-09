@@ -64,6 +64,7 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 		Key:   kvKey,
 		Value: []byte(time.Now().String()), //currently, just a semi unique id for this member
 	}, &api.WriteOptions{})
+	//TODO: Orleans just use an int32 for the unique id called Generation.
 
 	if err != nil {
 		return err
@@ -131,9 +132,8 @@ func (p *ConsulProvider) notifyStatuses() {
 		return
 	}
 	p.index = meta.LastIndex
-	//TODO: http://localhost:8500/v1/kv/mycluster/?recurse
-	//use this to fetch additional information regarding each node
 
+	//fetch additional info per member from the consul KV store
 	kvKey := p.clusterName + "/"
 	kv, _, err := p.client.KV().List(kvKey, &api.QueryOptions{})
 	if err != nil {
