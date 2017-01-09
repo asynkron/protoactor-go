@@ -119,6 +119,8 @@ func (p *ConsulProvider) notifyStatuses() {
 		return
 	}
 	p.index = meta.LastIndex
+	//TODO: http://localhost:8500/v1/kv/mycluster/?recurse
+	//use this to fetch additional information regarding each node
 
 	res := make(cluster.MemberStatusBatch, len(statuses))
 	for i, v := range statuses {
