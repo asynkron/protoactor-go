@@ -33,7 +33,24 @@ func (ref *remoteActorRef) send(pid *actor.PID, message interface{}, sender *act
 }
 
 func (ref *remoteActorRef) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
-	ref.send(pid, message, nil)
+
+	//intercept any Watch messages and direct them to the endpoint manager
+	switch msg := message.(type) {
+	case *actor.Watch:
+		rwatch := &remoteWatch{
+			Watcher: msg.Watcher,
+			Watchee: pid,
+		}
+		endpointManagerPID.Tell(rwatch)
+	case *actor.Unwatch:
+		runwatch := &remoteUnwatch{
+			Watcher: msg.Watcher,
+			Watchee: pid,
+		}
+		endpointManagerPID.Tell(runwatch)
+	default:
+		ref.send(pid, message, nil)
+	}
 }
 
 func (ref *remoteActorRef) Stop(pid *actor.PID) {
