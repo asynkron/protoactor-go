@@ -35,7 +35,7 @@ func New() *Queue {
 func (q *Queue) Push(x interface{}) {
 	n := &node{val: x}
 	// current producer acquires head node
-	prev := (*node)(unsafe.Pointer(atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&q.head)), unsafe.Pointer(n))))
+	prev := (*node)(atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&q.head)), unsafe.Pointer(n)))
 
 	// release node to consumer
 	prev.next = n
