@@ -32,6 +32,10 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 		state.connections = make(map[string]*endpoint)
 
 		log.Println("[REMOTING] Started EndpointManager")
+	case *remoteTerminate:
+		host := msg.Watchee.Host
+		endpoint := state.ensureConnected(host, ctx)
+		endpoint.watcher.Tell(msg)
 	case *remoteWatch:
 		host := msg.Watchee.Host
 		endpoint := state.ensureConnected(host, ctx)

@@ -2,6 +2,8 @@ package remoting
 
 import (
 	"log"
+
+	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
 type server struct{}
@@ -19,7 +21,19 @@ func (s *server) Receive(stream Remoting_ReceiveServer) error {
 			//if message is system message send it as sysmsg instead of usermsg
 
 			sender := envelope.Sender
-			pid.Request(message, sender)
+
+			switch msg := message.(type) {
+			case *actor.Terminated:
+				rt := &remoteTerminate{
+					Watchee: msg.Who,
+					Watcher: pid,
+				}
+				endpointManagerPID.Tell(rt)
+			default:
+				//TODO: this only works for user messages
+				//TODO: system messages needs to be sent correctly
+				pid.Request(message, sender)
+			}
 		}
 	}
 }

@@ -50,8 +50,8 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 	case *actor.Started:
 		state.initialize()
 	case *remoteTerminate:
-		//we have intercepted a remote terminate message
-		//remove the terminated PID from any lookup here and forward to watcher
+		delete(state.watched, msg.Watcher.String())
+		delete(state.watcher, msg.Watchee.String())
 
 	case *endpointTerminated:
 		//The EndpointWatcher is notified that the given endpoint has closed
