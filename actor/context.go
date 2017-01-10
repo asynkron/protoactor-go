@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/emirpasic/gods/stacks/linkedliststack"
@@ -152,6 +154,7 @@ type actorCell struct {
 	actor          Actor
 	props          Props
 	behavior       behaviorStack
+	receive        Receive
 	children       PIDSet
 	watchers       PIDSet
 	watching       PIDSet
@@ -181,9 +184,8 @@ func (cell *actorCell) Parent() *PID {
 
 func NewActorCell(props Props, parent *PID) *actorCell {
 	cell := &actorCell{
-		parent:   parent,
-		props:    props,
-		behavior: make(behaviorStack, 0, 8),
+		parent: parent,
+		props:  props,
 	}
 	cell.incarnateActor()
 	return cell
@@ -215,7 +217,7 @@ func (cell *actorCell) incarnateActor() {
 	cell.restarting = false
 	cell.stopping = false
 	cell.actor = actor
-	cell.Become(actor.Receive)
+	cell.receive = actor.Receive
 }
 
 func (cell *actorCell) InvokeSystemMessage(message SystemMessage) {
@@ -329,10 +331,40 @@ func (cell *actorCell) stopped() {
 	})
 }
 
+func identifyPanic() string {
+	var name, file string
+	var line int
+	var pc [16]uintptr
+
+	n := runtime.Callers(3, pc[:])
+	for _, pc := range pc[:n] {
+		log.Printf("%s", pc)
+		fn := runtime.FuncForPC(pc)
+		if fn == nil {
+			continue
+		}
+		file, line = fn.FileLine(pc)
+		fmt.Printf(file, line, pc)
+		name = fn.Name()
+		if !strings.HasPrefix(name, "runtime.") {
+			break
+		}
+	}
+
+	switch {
+	case name != "":
+		return fmt.Sprintf("%v:%v", name, line)
+	case file != "":
+		return fmt.Sprintf("%v:%v", file, line)
+	}
+
+	return fmt.Sprintf("pc:%x", pc)
+}
+
 func (cell *actorCell) InvokeUserMessage(md interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[ACTOR] '%v' Recovering from: %v on message %+v", cell.debugString(), r, md)
+			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", cell.debugString(), r, identifyPanic())
 			failure := &Failure{Reason: r, Who: cell.self}
 			if cell.parent == nil {
 				handleRootFailure(failure)
@@ -379,25 +411,25 @@ func (cell *actorCell) AutoReceiveOrUser() {
 	case *PoisonPill:
 		cell.self.Stop()
 	default:
-		receive, _ := cell.behavior.Peek()
-		receive(cell)
+		cell.receive(cell)
 	}
 }
 
 func (cell *actorCell) Become(behavior Receive) {
 	cell.behavior.Clear()
-	cell.behavior.Push(behavior)
+	cell.receive = behavior
 }
 
 func (cell *actorCell) BecomeStacked(behavior Receive) {
-	cell.behavior.Push(behavior)
+	cell.behavior.Push(cell.receive)
+	cell.receive = behavior
 }
 
 func (cell *actorCell) UnbecomeStacked() {
-	if cell.behavior.Len() <= 1 {
+	if cell.behavior.Len() == 0 {
 		panic("Can not unbecome actor base behavior")
 	}
-	cell.behavior.Pop()
+	cell.receive, _ = cell.behavior.Pop()
 }
 
 func (cell *actorCell) Watch(who *PID) {

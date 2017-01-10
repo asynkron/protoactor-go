@@ -1,13 +1,15 @@
 package actor
 
-import "github.com/AsynkronIT/protoactor-go/actor/lfqueue"
+import (
+	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
+)
 
 // NewUnboundedLockfreeMailbox creates an unbounded, lock-free mailbox
 func NewUnboundedLockfreeMailbox(mailboxStats ...MailboxStatistics) MailboxProducer {
 	return func() Mailbox {
 		return &DefaultMailbox{
-			userMailbox:   lfqueue.NewLockfreeQueue(),
-			systemMailbox: lfqueue.NewLockfreeQueue(),
+			userMailbox:   mpsc.New(),
+			systemMailbox: mpsc.New(),
 			mailboxStats:  mailboxStats,
 		}
 	}
