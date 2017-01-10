@@ -56,7 +56,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 
 	case *endpointTerminated:
 		//The EndpointWatcher is notified that the given endpoint has closed
-		//Now notify all watchers that the watched PID has Terminated
+		//Now notify all watchers that any watched PID from this endpoint is terminated
 		//also make Terminated carry information about AddressTerminated
 
 	case *remoteWatch:
