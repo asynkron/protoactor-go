@@ -37,17 +37,17 @@ func (ref *remoteActorRef) SendSystemMessage(pid *actor.PID, message actor.Syste
 	//intercept any Watch messages and direct them to the endpoint manager
 	switch msg := message.(type) {
 	case *actor.Watch:
-		rwatch := &remoteWatch{
+		rw := &remoteWatch{
 			Watcher: msg.Watcher,
 			Watchee: pid,
 		}
-		endpointManagerPID.Tell(rwatch)
+		endpointManagerPID.Tell(rw)
 	case *actor.Unwatch:
-		runwatch := &remoteUnwatch{
+		ruw := &remoteUnwatch{
 			Watcher: msg.Watcher,
 			Watchee: pid,
 		}
-		endpointManagerPID.Tell(runwatch)
+		endpointManagerPID.Tell(ruw)
 	default:
 		sendRemoteMessage(pid, message, nil)
 	}
