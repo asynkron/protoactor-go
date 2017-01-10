@@ -43,19 +43,26 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 	case *MessageEnvelope:
 		host := msg.Target.Host
 		endpoint := state.ensureConnected(host, ctx)
+
+		if endpoint == nil {
+			log.Println("endpoint is nil!!!")
+		}
+
 		endpoint.writer.Tell(msg)
 	}
 }
 func (state *endpointManager) ensureConnected(host string, ctx actor.Context) *endpoint {
-	endpoint, ok := state.connections[host]
+	e, ok := state.connections[host]
 	if !ok {
 		props := actor.
 			FromProducer(newEndpointWriter(host, state.config)).
 			WithMailbox(newEndpointWriterMailbox(state.config.endpointWriterBatchSize, state.config.endpointWriterQueueSize))
 		pid := ctx.Spawn(props)
-		endpoint.writer = pid
-		//spawn watcher
-		state.connections[host] = endpoint
+		e = &endpoint{
+			writer:  pid,
+			watcher: nil, //TODO: spawn watcher
+		}
+		state.connections[host] = e
 	}
-	return endpoint
+	return e
 }
