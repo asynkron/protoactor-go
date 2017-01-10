@@ -6,7 +6,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
-type addressTerminated struct {
+type endpointTerminated struct {
 	host string
 }
 
@@ -45,7 +45,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 	case *actor.Started:
 		state.initialize()
 
-	case *addressTerminated:
+	case *endpointTerminated:
 		//The EndpointWatcher is notified that the given endpoint has closed
 		//Now notify all watchers that the watched PID has Terminated
 		//also make Terminated carry information about AddressTerminated
