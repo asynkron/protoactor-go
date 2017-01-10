@@ -376,6 +376,12 @@ func (cell *actorCell) InvokeUserMessage(md interface{}) {
 			}
 		}
 	}()
+
+	if md == nil {
+		log.Printf("[ACTOR] '%v' got nil message", cell.Self().String())
+		return
+	}
+
 	cell.receiveIndex = 0
 	cell.message = md
 

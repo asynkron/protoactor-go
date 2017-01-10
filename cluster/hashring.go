@@ -2,55 +2,39 @@ package cluster
 
 import (
 	"hash/fnv"
+	"log"
 	"math"
+
+	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
 const (
 	hashSize = uint32(math.MaxUint32)
 )
 
-func newClusterNode(host string) *clusterNode {
-	return &clusterNode{
-		host:  host,
-		value: hash(host),
-	}
-}
-
-type clusterNode struct {
-	host  string
-	value uint32
-}
-
-func (n *clusterNode) delta(v uint32) uint32 {
-	d := delta(v, n.value)
-	return d
-}
-
-func clusterNodes() []*clusterNode {
-	m := list.Members()
-	res := make([]*clusterNode, len(m))
-	for i, n := range m {
-		res[i] = newClusterNode(n.Name)
-	}
-	return res
-}
-
-func getNode(key string) string {
+func getNode(key, kind string) string {
 	v := hash(key)
-	nodes := clusterNodes()
+	members := getMembers(kind)
+	if members == nil {
+		log.Printf("[CLUSTER] Failed to getNode")
+		return actor.ProcessRegistry.Host
+	}
+
 	bestV := hashSize
 	bestI := 0
 
 	//walk all members and find the node with the closest distance to the id hash
-	for i, n := range nodes {
-		if b := n.delta(v); b < bestV {
+	for i, n := range members {
+		h := hash(n)     //hash the node address
+		b := delta(h, v) //calculate the delta between key and node address
+		if b < bestV {
 			bestV = b
 			bestI = i
 		}
 	}
 
-	node := nodes[bestI]
-	return node.host
+	member := members[bestI]
+	return member
 }
 
 func delta(l uint32, r uint32) uint32 {

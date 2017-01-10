@@ -9,12 +9,12 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remoting"
 )
 
-func getRandomActivator() string {
+func getRandomActivator(kind string) string {
 	r := rand.Int()
-	members := list.Members()
+	members := getMembers(kind)
 	i := r % len(members)
 	member := members[i]
-	return member.Name
+	return member
 }
 
 //Get a PID to a virtual actor
@@ -22,8 +22,8 @@ func Get(name string, kind string) (*actor.PID, error) {
 	pid := cache.Get(name)
 	if pid == nil {
 
-		host := getNode(name)
-		remote := partitionForHost(host)
+		host := getNode(name, kind)
+		remote := partitionForKind(host, kind)
 
 		//request the pid of the "id" from the correct partition
 		req := &remoting.ActorPidRequest{

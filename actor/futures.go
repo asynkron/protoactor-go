@@ -59,6 +59,13 @@ func (f *Future) PipeTo(pid *PID) {
 	}()
 }
 
+func (f *Future) ContinueWith(fun func(f *Future)) {
+	go func() {
+		f.Wait()
+		fun(f)
+	}()
+}
+
 func (f *Future) wait() {
 	f.cond.L.Lock()
 	for !f.done {

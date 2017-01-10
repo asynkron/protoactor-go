@@ -19,21 +19,38 @@ func newRemoteActorRef(pid *actor.PID) actor.ActorRef {
 }
 
 func (ref *remoteActorRef) SendUserMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
-	ref.send(pid, message, sender)
+	sendRemoteMessage(pid, message, sender)
 }
 
-func (ref *remoteActorRef) send(pid *actor.PID, message interface{}, sender *actor.PID) {
+func sendRemoteMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
 	switch msg := message.(type) {
 	case proto.Message:
-		envelope, _ := serialize(msg, ref.pid, sender)
+		envelope, _ := serialize(msg, pid, sender)
 		endpointManagerPID.Tell(envelope)
 	default:
-		log.Printf("[REMOTING] failed, trying to send non Proto %s message to %v", reflect.TypeOf(msg), ref.pid)
+		log.Printf("[REMOTING] failed, trying to send non Proto %s message to %v", reflect.TypeOf(msg), pid)
 	}
 }
 
 func (ref *remoteActorRef) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
-	ref.send(pid, message, nil)
+
+	//intercept any Watch messages and direct them to the endpoint manager
+	switch msg := message.(type) {
+	case *actor.Watch:
+		rw := &remoteWatch{
+			Watcher: msg.Watcher,
+			Watchee: pid,
+		}
+		endpointManagerPID.Tell(rw)
+	case *actor.Unwatch:
+		ruw := &remoteUnwatch{
+			Watcher: msg.Watcher,
+			Watchee: pid,
+		}
+		endpointManagerPID.Tell(ruw)
+	default:
+		sendRemoteMessage(pid, message, nil)
+	}
 }
 
 func (ref *remoteActorRef) Stop(pid *actor.PID) {

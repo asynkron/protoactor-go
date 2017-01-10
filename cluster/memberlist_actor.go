@@ -7,27 +7,24 @@ import (
 )
 
 var (
-	membershipPID *actor.PID
+	memberlistPID *actor.PID
 )
 
 func spawnMembershipActor() {
-	membershipPID = actor.SpawnNamed(actor.FromProducer(newMembershipActor()), "#membership")
+	memberlistPID = actor.SpawnNamed(actor.FromProducer(newMembershipActor()), "#membership")
 }
 
 func newMembershipActor() actor.Producer {
 	return func() actor.Actor {
-		return &membershipActor{}
+		return &memberlistActor{}
 	}
 }
 
-func init() {
-	spawnMembershipActor()
-
-	//subscribe the membership actor to the MemberStatusBatch event
+func subscribeMembershipActorToEventStream() {
 	actor.EventStream.SubscribePID(func(m interface{}) bool {
 		_, ok := m.(MemberStatusBatch)
 		return ok
-	}, membershipPID)
+	}, memberlistPID)
 }
 
 //membershipActor is responsible to keep track of the current cluster topology
@@ -35,41 +32,30 @@ func init() {
 //the default ClusterProvider is consul_cluster.ConsulProvider which uses the Consul HTTP API to scan for changes
 //TODO: we need some way of creating a hashring per "kind", maybe we should have a child actor to the membership actor that handles nodes
 //per kind.
-type membershipActor struct {
+type memberlistActor struct {
 	members map[string]*MemberStatus
 }
 
-type MemberStatusEvent interface {
-	MemberStatusEvent()
-}
-
-type MemberEvent struct {
-	Address string
-	Port    int
-}
-
-func (*MemberEvent) MemberStatusEvent() {}
-
-type MemberJoinedEvent struct {
-	MemberEvent
-}
-
-type MemberLeftEvent struct {
-	MemberEvent
-}
-
-type MemberUnavailableEvent struct {
-	MemberEvent
-}
-
-type MemberAvailableEvent struct {
-	MemberEvent
-}
-
-func (a *membershipActor) Receive(ctx actor.Context) {
+func (a *memberlistActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		a.members = make(map[string]*MemberStatus)
+	case *MemberByKindRequest:
+		var res []string
+
+		//TODO: optimize this
+		for key, v := range a.members {
+			if !msg.onlyAlive || (msg.onlyAlive && v.Alive) {
+				for _, k := range v.Kinds {
+					if k == msg.kind {
+						res = append(res, key)
+					}
+				}
+			}
+		}
+		ctx.Respond(&MemberByKindResponse{
+			members: res,
+		})
 	case MemberStatusBatch:
 
 		//build a lookup for the new statuses
@@ -84,7 +70,7 @@ func (a *membershipActor) Receive(ctx actor.Context) {
 		for key, old := range a.members {
 			new := tmp[key]
 			if new == nil {
-				a.notify(new, old)
+				a.notify(key, new, old)
 			}
 		}
 
@@ -92,41 +78,69 @@ func (a *membershipActor) Receive(ctx actor.Context) {
 		for key, new := range tmp {
 			old := a.members[key]
 			a.members[key] = new
-			a.notify(new, old)
+			a.notify(key, new, old)
 		}
 	}
 }
 
-func (a *membershipActor) notify(new *MemberStatus, old *MemberStatus) {
-	address := MemberEvent{
-		Address: new.Address,
-		Port:    new.Port,
-	}
+func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatus) {
+
 	if new == nil && old == nil {
 		//ignore, not possible
 		return
 	}
 	if new == nil {
 		//notify left
-		left := &MemberLeftEvent{MemberEvent: address}
+		meta := MemberMeta{
+			Address: old.Address,
+			Port:    old.Port,
+			Kinds:   old.Kinds,
+		}
+		left := &MemberLeftEvent{MemberMeta: meta}
 		actor.EventStream.Publish(left)
+		delete(a.members, key) //remove this member as it has left
 		return
 	}
 	if old == nil {
 		//notify joined
-		joined := &MemberJoinedEvent{MemberEvent: address}
+		meta := MemberMeta{
+			Address: new.Address,
+			Port:    new.Port,
+			Kinds:   new.Kinds,
+		}
+		joined := &MemberJoinedEvent{MemberMeta: meta}
+		actor.EventStream.Publish(joined)
+		return
+	}
+	if new.MemberID != old.MemberID {
+		meta := MemberMeta{
+			Address: new.Address,
+			Port:    new.Port,
+			Kinds:   new.Kinds,
+		}
+		joined := &MemberRejoinedEvent{MemberMeta: meta}
 		actor.EventStream.Publish(joined)
 		return
 	}
 	if old.Alive && !new.Alive {
 		//notify node unavailable
-		unavailable := &MemberUnavailableEvent{MemberEvent: address}
+		meta := MemberMeta{
+			Address: new.Address,
+			Port:    new.Port,
+			Kinds:   new.Kinds,
+		}
+		unavailable := &MemberUnavailableEvent{MemberMeta: meta}
 		actor.EventStream.Publish(unavailable)
 		return
 	}
 	if !old.Alive && new.Alive {
 		//notify node reachable
-		available := &MemberAvailableEvent{MemberEvent: address}
+		meta := MemberMeta{
+			Address: new.Address,
+			Port:    new.Port,
+			Kinds:   new.Kinds,
+		}
+		available := &MemberAvailableEvent{MemberMeta: meta}
 		actor.EventStream.Publish(available)
 	}
 }
