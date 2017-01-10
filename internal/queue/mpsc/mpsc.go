@@ -35,7 +35,7 @@ func New() *Queue {
 func (q *Queue) Push(x interface{}) {
 	n := &node{val: x}
 	// current producer acquires head node
-	prev := (*node)(unsafe.Pointer(atomic.SwapUintptr((*uintptr)(unsafe.Pointer(&q.head)), (uintptr)(unsafe.Pointer(n)))))
+	prev := (*node)(unsafe.Pointer(atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&q.head)), unsafe.Pointer(n))))
 
 	// release node to consumer
 	prev.next = n
@@ -46,7 +46,7 @@ func (q *Queue) Push(x interface{}) {
 // Pop must be called from a single, consumer goroutine
 func (q *Queue) Pop() interface{} {
 	tail := q.tail
-	next := (*node)(unsafe.Pointer(atomic.LoadUintptr((*uintptr)(unsafe.Pointer(&tail.next))))) // acquire
+	next := (*node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&tail.next)))) // acquire
 	if next != nil {
 		q.tail = next
 		return next.val
@@ -59,6 +59,6 @@ func (q *Queue) Pop() interface{} {
 // Empty must be called from a single, consumer goroutine
 func (q *Queue) Empty() bool {
 	tail := q.tail
-	next := atomic.LoadUintptr((*uintptr)(unsafe.Pointer(&tail.next)))
-	return next == 0
+	next := (*node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&tail.next))))
+	return next == nil
 }
