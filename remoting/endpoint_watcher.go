@@ -20,6 +20,11 @@ type remoteUnwatch struct {
 	Watchee *actor.PID
 }
 
+type remoteTerminate struct {
+	Watcher *actor.PID
+	Watchee *actor.PID
+}
+
 func newEndpointWatcher(host string) actor.Producer {
 	return func() actor.Actor {
 		return &endpointWatcher{
@@ -44,6 +49,9 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		state.initialize()
+	case *remoteTerminate:
+		//we have intercepted a remote terminate message
+		//remove the terminated PID from any lookup here and forward to watcher
 
 	case *endpointTerminated:
 		//The EndpointWatcher is notified that the given endpoint has closed
