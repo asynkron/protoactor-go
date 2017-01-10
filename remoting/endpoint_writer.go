@@ -33,21 +33,21 @@ func (state *endpointWriter) initialize() {
 }
 
 func (state *endpointWriter) initializeInternal() error {
-	log.Println("[REMOTING] Started EndpointWriter for host", state.host)
-	log.Println("[REMOTING] Connecting to host", state.host)
+	log.Printf("[REMOTING] Started EndpointWriter for host %v", state.host)
+	log.Printf("[REMOTING] Connecting to host %v", state.host)
 	conn, err := grpc.Dial(state.host, state.config.dialOptions...)
 	if err != nil {
 		return err
 	}
-	log.Println("[REMOTING] Connected to host", state.host)
+	log.Printf("[REMOTING] Connected to host %v", state.host)
 	state.conn = conn
 	c := NewRemotingClient(conn)
-	log.Println("[REMOTING] Getting stream from host", state.host)
+	log.Printf("[REMOTING] Getting stream from host %v", state.host)
 	stream, err := c.Receive(context.Background(), state.config.callOptions...)
 	if err != nil {
 		return err
 	}
-	log.Println("[REMOTING] Got stream from host", state.host)
+	log.Printf("[REMOTING] Got stream from host %v", state.host)
 	state.stream = stream
 	return nil
 }
@@ -65,7 +65,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	err := state.stream.Send(batch)
 	if err != nil {
 		ctx.Stash()
-		log.Println("[REMOTING] gRPC Failed to send to host", state.host)
+		log.Printf("[REMOTING] gRPC Failed to send to host %v", state.host)
 		panic("restart")
 		//log.Printf("[REMOTING] Endpoing writer %v failed to send, shutting down", ctx.Self())
 		//ctx.Self().Stop()

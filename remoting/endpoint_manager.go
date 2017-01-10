@@ -54,15 +54,26 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 func (state *endpointManager) ensureConnected(host string, ctx actor.Context) *endpoint {
 	e, ok := state.connections[host]
 	if !ok {
-		props := actor.
-			FromProducer(newEndpointWriter(host, state.config)).
-			WithMailbox(newEndpointWriterMailbox(state.config.endpointWriterBatchSize, state.config.endpointWriterQueueSize))
-		pid := ctx.Spawn(props)
 		e = &endpoint{
-			writer:  pid,
-			watcher: nil, //TODO: spawn watcher
+			writer:  state.spawnEndpointWriter(host, ctx),
+			watcher: state.spawnEndpointWatcher(host, ctx),
 		}
 		state.connections[host] = e
 	}
 	return e
+}
+
+func (state *endpointManager) spawnEndpointWriter(host string, ctx actor.Context) *actor.PID {
+	props := actor.
+		FromProducer(newEndpointWriter(host, state.config)).
+		WithMailbox(newEndpointWriterMailbox(state.config.endpointWriterBatchSize, state.config.endpointWriterQueueSize))
+	pid := ctx.Spawn(props)
+	return pid
+}
+
+func (state *endpointManager) spawnEndpointWatcher(host string, ctx actor.Context) *actor.PID {
+	props := actor.
+		FromProducer(newEndpointWatcher(host))
+	pid := ctx.Spawn(props)
+	return pid
 }
