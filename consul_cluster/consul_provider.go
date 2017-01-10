@@ -59,12 +59,12 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 
 	//register a unique ID for the current process
 	//similar to UID for Akka ActorSystem
+	//TODO: Orleans just use an int32 for the unique id called Generation.
 	kvKey := fmt.Sprintf("%v/%v:%v", clusterName, address, port)
 	_, err = p.client.KV().Put(&api.KVPair{
 		Key:   kvKey,
 		Value: []byte(time.Now().String()), //currently, just a semi unique id for this member
 	}, &api.WriteOptions{})
-	//TODO: Orleans just use an int32 for the unique id called Generation.
 
 	if err != nil {
 		return err
