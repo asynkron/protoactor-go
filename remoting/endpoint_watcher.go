@@ -49,6 +49,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		state.initialize()
+
 	case *remoteTerminate:
 		delete(state.watched, msg.Watcher.String())
 		delete(state.watcher, msg.Watchee.String())
@@ -84,6 +85,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 
 		//pass it off to the remote PID
 		sendRemoteMessage(msg.Watchee, uw, nil)
+
 	default:
 		log.Printf("[REMOTING] EndpointWatcher for %v, Unknown message %v", state.host, msg)
 	}
