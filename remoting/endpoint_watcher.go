@@ -59,7 +59,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		for id, pid := range state.watched {
 
 			//try to find the watcher ID in the local actor registry
-			tmp, ok := actor.ProcessRegistry.LocalPids.Get(id)
+			ref, ok := actor.ProcessRegistry.GetLocal(id)
 			if ok {
 
 				//create a terminated event for the Watched actor
@@ -68,9 +68,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 					AddressTerminated: true,
 				}
 
-				ref := tmp.(actor.ActorRef)
 				watcher := actor.NewLocalPID(id)
-
 				//send the address Terminated event to the Watcher
 				ref.SendSystemMessage(watcher, terminated)
 			}

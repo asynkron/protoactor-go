@@ -89,3 +89,11 @@ func (pr *ProcessRegistryValue) get(pid *PID) (ActorRef, bool) {
 	}
 	return ref.(ActorRef), true
 }
+
+func (pr *ProcessRegistryValue) GetLocal(id string) (ActorRef, bool) {
+	ref, ok := pr.LocalPids.Get(id)
+	if !ok {
+		return deadLetter, false
+	}
+	return ref.(ActorRef), true
+}

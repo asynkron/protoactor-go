@@ -29,9 +29,10 @@ func (s *server) Receive(stream Remoting_ReceiveServer) error {
 					Watcher: pid,
 				}
 				endpointManagerPID.Tell(rt)
+			case actor.SystemMessage:
+				ref, _ := actor.ProcessRegistry.GetLocal(pid.Id)
+				ref.SendSystemMessage(pid, msg)
 			default:
-				//TODO: this only works for user messages
-				// system messages needs to be sent correctly
 				pid.Request(message, sender)
 			}
 		}
