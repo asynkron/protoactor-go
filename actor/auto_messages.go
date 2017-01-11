@@ -4,8 +4,21 @@ type AutoReceiveMessage interface {
 	AutoReceiveMessage()
 }
 
+type Restarting struct{}
+
 func (*Restarting) AutoReceiveMessage() {}
-func (*Stopping) AutoReceiveMessage()   {}
+
+type Stopping struct{}
+
+func (*Stopping) AutoReceiveMessage() {}
+
+type Stopped struct{}
+
 func (*Stopped) AutoReceiveMessage()    {}
 func (*PoisonPill) AutoReceiveMessage() {}
-func (*Started) AutoReceiveMessage()    {}
+
+type Started struct{}
+
+func (*Started) AutoReceiveMessage() {}
+
+type ReceiveTimeout struct{}

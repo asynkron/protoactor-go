@@ -1,2 +1,1 @@
-protoc --gogoslick_out=grpc:. protos.proto 
-go build
+protoc -I=. -I=%GOPATH%/src --gogoslick_out=. protos.proto 
