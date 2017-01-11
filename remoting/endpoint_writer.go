@@ -9,45 +9,45 @@ import (
 	"google.golang.org/grpc"
 )
 
-func newEndpointWriter(host string, config *remotingConfig) actor.Producer {
+func newEndpointWriter(address string, config *remotingConfig) actor.Producer {
 	return func() actor.Actor {
 		return &endpointWriter{
-			host:   host,
-			config: config,
+			address: address,
+			config:  config,
 		}
 	}
 }
 
 type endpointWriter struct {
-	config *remotingConfig
-	host   string
-	conn   *grpc.ClientConn
-	stream Remoting_ReceiveClient
+	config  *remotingConfig
+	address string
+	conn    *grpc.ClientConn
+	stream  Remoting_ReceiveClient
 }
 
 func (state *endpointWriter) initialize() {
 	err := state.initializeInternal()
 	if err != nil {
-		log.Printf("[REMOTING] EndpointWriter failed to connect to %v, err: %v", state.host, err)
+		log.Printf("[REMOTING] EndpointWriter failed to connect to %v, err: %v", state.address, err)
 	}
 }
 
 func (state *endpointWriter) initializeInternal() error {
-	log.Printf("[REMOTING] Started EndpointWriter for host %v", state.host)
-	log.Printf("[REMOTING] Connecting to host %v", state.host)
-	conn, err := grpc.Dial(state.host, state.config.dialOptions...)
+	log.Printf("[REMOTING] Started EndpointWriter for address %v", state.address)
+	log.Printf("[REMOTING] Connecting to address %v", state.address)
+	conn, err := grpc.Dial(state.address, state.config.dialOptions...)
 	if err != nil {
 		return err
 	}
-	log.Printf("[REMOTING] Connected to host %v", state.host)
+	log.Printf("[REMOTING] Connected to address %v", state.address)
 	state.conn = conn
 	c := NewRemotingClient(conn)
-	log.Printf("[REMOTING] Getting stream from host %v", state.host)
+	log.Printf("[REMOTING] Getting stream from address %v", state.address)
 	stream, err := c.Receive(context.Background(), state.config.callOptions...)
 	if err != nil {
 		return err
 	}
-	log.Printf("[REMOTING] Got stream from host %v", state.host)
+	log.Printf("[REMOTING] Got stream from address %v", state.address)
 	state.stream = stream
 	return nil
 }
@@ -65,7 +65,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	err := state.stream.Send(batch)
 	if err != nil {
 		ctx.Stash()
-		log.Printf("[REMOTING] gRPC Failed to send to host %v", state.host)
+		log.Printf("[REMOTING] gRPC Failed to send to address %v", state.address)
 		panic("restart")
 		//log.Printf("[REMOTING] Endpoing writer %v failed to send, shutting down", ctx.Self())
 		//ctx.Self().Stop()

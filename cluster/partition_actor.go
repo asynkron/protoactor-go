@@ -83,7 +83,7 @@ func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.
 		var err error
 		pid, err = remoting.Spawn(random, msg.Name, msg.Kind, 5*time.Second)
 		if err != nil {
-			log.Printf("[CLUSTER] Partition failed to spawn '%v' of kind '%v' on host '%v'", msg.Name, msg.Kind, random)
+			log.Printf("[CLUSTER] Partition failed to spawn '%v' of kind '%v' on address '%v'", msg.Name, msg.Kind, random)
 			return
 		}
 		state.partition[msg.Name] = pid
@@ -97,7 +97,7 @@ func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.
 func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
 	log.Printf("[CLUSTER] Node Rejoined %v", msg.Name())
 	for actorID, pid := range state.partition {
-		//if the mapped PID is on the host that left, forget it
+		//if the mapped PID is on the address that left, forget it
 		if pid.Address == msg.Name() {
 			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, msg.Name())
 			delete(state.partition, actorID)
@@ -108,7 +108,7 @@ func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
 func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {
 	log.Printf("[CLUSTER] Node Left %v", msg.Name())
 	for actorID, pid := range state.partition {
-		//if the mapped PID is on the host that left, forget it
+		//if the mapped PID is on the address that left, forget it
 		if pid.Address == msg.Name() {
 			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, msg.Name())
 			delete(state.partition, actorID)
@@ -119,17 +119,17 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {
 func (state *partitionActor) memberJoined(msg *MemberJoinedEvent) {
 	log.Printf("[CLUSTER] Node Joined %v", msg.Name())
 	for actorID := range state.partition {
-		host := getNode(actorID, state.kind)
-		if host != actor.ProcessRegistry.Address {
-			state.transferOwnership(actorID, host)
+		address := getNode(actorID, state.kind)
+		if address != actor.ProcessRegistry.Address {
+			state.transferOwnership(actorID, address)
 		}
 	}
 }
 
-func (state *partitionActor) transferOwnership(actorID string, host string) {
-	//	log.Printf("[CLUSTER] Giving ownership of %v to Node %v", actorID, host)
+func (state *partitionActor) transferOwnership(actorID string, address string) {
+	//	log.Printf("[CLUSTER] Giving ownership of %v to Node %v", actorID, address)
 	pid := state.partition[actorID]
-	owner := partitionForKind(host, state.kind)
+	owner := partitionForKind(address, state.kind)
 	owner.Tell(&TakeOwnership{
 		Pid:  pid,
 		Name: actorID,
