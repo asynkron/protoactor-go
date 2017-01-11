@@ -54,4 +54,5 @@ message Unwatch {
 }
 message Terminated {
     PID who = 1;
+    bool AddressTerminated = 2;
 }

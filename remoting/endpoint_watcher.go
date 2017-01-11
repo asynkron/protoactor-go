@@ -57,10 +57,11 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 	case *EndpointTerminated:
 		log.Printf("[REMOTING] EndpointWatcher handling terminated address %v", msg.Address)
 		for id, pid := range state.watched {
-			// terminated := &actor.Terminated{
-			// 	Who: pid,
-			// }
-			log.Printf("Notifying %v that %v was terminated", id, pid.String())
+			terminated := &actor.Terminated{
+				Who:               pid,
+				AddressTerminated: true,
+			}
+			log.Printf("Notifying %v that %v was terminated %v", id, pid.String(), terminated)
 		}
 
 	case *remoteWatch:
