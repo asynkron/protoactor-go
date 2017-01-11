@@ -25,5 +25,4 @@ func Start(clusterName, address string, provider ClusterProvider) {
 	subscribeMembershipActorToEventStream()
 	provider.RegisterMember(clusterName, h, p, kinds)
 	provider.MonitorMemberStatusChanges()
-	//time.Sleep(1 * time.Second) //TODO: racecondition, consul is not yet up to date
 }

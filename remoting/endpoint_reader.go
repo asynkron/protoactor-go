@@ -31,7 +31,7 @@ func (s *server) Receive(stream Remoting_ReceiveServer) error {
 				endpointManagerPID.Tell(rt)
 			default:
 				//TODO: this only works for user messages
-				//TODO: system messages needs to be sent correctly
+				// system messages needs to be sent correctly
 				pid.Request(message, sender)
 			}
 		}

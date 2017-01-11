@@ -30,8 +30,6 @@ func subscribeMembershipActorToEventStream() {
 //membershipActor is responsible to keep track of the current cluster topology
 //it does so by listening to changes from the ClusterProvider.
 //the default ClusterProvider is consul_cluster.ConsulProvider which uses the Consul HTTP API to scan for changes
-//TODO: we need some way of creating a hashring per "kind", maybe we should have a child actor to the membership actor that handles nodes
-//per kind.
 type memberlistActor struct {
 	members map[string]*MemberStatus
 }
@@ -99,6 +97,7 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		left := &MemberLeftEvent{MemberMeta: meta}
 		actor.EventStream.Publish(left)
 		delete(a.members, key) //remove this member as it has left
+
 		return
 	}
 	if old == nil {

@@ -62,41 +62,41 @@ func (pid *PID) Stop() {
 func pidFromKey(key string, p *PID) {
 	i := strings.IndexByte(key, ':')
 	if i == -1 {
-		p.Host = ProcessRegistry.Host
+		p.Address = ProcessRegistry.Address
 		p.Id = key
 	} else {
-		p.Host = key[:i]
+		p.Address = key[:i]
 		p.Id = key[i+1:]
 	}
 }
 
 func (pid *PID) key() string {
-	if pid.Host == ProcessRegistry.Host {
+	if pid.Address == ProcessRegistry.Address {
 		return pid.Id
 	}
-	return pid.Host + ":" + pid.Id
+	return pid.Address + ":" + pid.Id
 }
 
 func (pid *PID) Empty() bool {
-	return pid.Host == "" && pid.Id == ""
+	return pid.Address == "" && pid.Id == ""
 }
 
 func (pid *PID) String() string {
-	return pid.Host + "/" + pid.Id
+	return pid.Address + "/" + pid.Id
 }
 
 //NewPID returns a new instance of the PID struct
-func NewPID(host, id string) *PID {
+func NewPID(address, id string) *PID {
 	return &PID{
-		Host: host,
-		Id:   id,
+		Address: address,
+		Id:      id,
 	}
 }
 
-//NewLocalPID returns a new instance of the PID struct with the host preset
+//NewLocalPID returns a new instance of the PID struct with the address preset
 func NewLocalPID(id string) *PID {
 	return &PID{
-		Host: ProcessRegistry.Host,
-		Id:   id,
+		Address: ProcessRegistry.Address,
+		Id:      id,
 	}
 }

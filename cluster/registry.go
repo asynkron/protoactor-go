@@ -22,8 +22,8 @@ func Get(name string, kind string) (*actor.PID, error) {
 	pid := cache.Get(name)
 	if pid == nil {
 
-		host := getNode(name, kind)
-		remote := partitionForKind(host, kind)
+		address := getNode(name, kind)
+		remote := partitionForKind(address, kind)
 
 		//request the pid of the "id" from the correct partition
 		req := &remoting.ActorPidRequest{

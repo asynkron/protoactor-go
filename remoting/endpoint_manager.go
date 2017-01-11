@@ -16,6 +16,21 @@ func newEndpointManager(config *remotingConfig) actor.Producer {
 	}
 }
 
+func subscribeEndpointManager() {
+	actor.EventStream.SubscribePID(func(m interface{}) bool {
+		_, ok := m.(*EndpointTerminated)
+		return ok
+	}, endpointManagerPID)
+}
+
+func spawnEndpointManager(config *remotingConfig) {
+	props := actor.
+		FromProducer(newEndpointManager(config)).
+		WithMailbox(actor.NewBoundedMailbox(config.endpointManagerQueueSize))
+
+	endpointManagerPID = actor.Spawn(props)
+}
+
 type endpoint struct {
 	writer  *actor.PID
 	watcher *actor.PID
@@ -32,52 +47,52 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 		state.connections = make(map[string]*endpoint)
 
 		log.Println("[REMOTING] Started EndpointManager")
+	case *EndpointTerminated:
+		address := msg.address
+		endpoint := state.ensureConnected(address, ctx)
+		endpoint.watcher.Tell(msg)
 	case *remoteTerminate:
-		host := msg.Watchee.Host
-		endpoint := state.ensureConnected(host, ctx)
+		address := msg.Watchee.Address
+		endpoint := state.ensureConnected(address, ctx)
 		endpoint.watcher.Tell(msg)
 	case *remoteWatch:
-		host := msg.Watchee.Host
-		endpoint := state.ensureConnected(host, ctx)
+		address := msg.Watchee.Address
+		endpoint := state.ensureConnected(address, ctx)
 		endpoint.watcher.Tell(msg)
 	case *remoteUnwatch:
-		host := msg.Watchee.Host
-		endpoint := state.ensureConnected(host, ctx)
+		address := msg.Watchee.Address
+		endpoint := state.ensureConnected(address, ctx)
 		endpoint.watcher.Tell(msg)
 	case *MessageEnvelope:
-		host := msg.Target.Host
-		endpoint := state.ensureConnected(host, ctx)
-
-		if endpoint == nil {
-			log.Println("endpoint is nil!!!")
-		}
+		address := msg.Target.Address
+		endpoint := state.ensureConnected(address, ctx)
 
 		endpoint.writer.Tell(msg)
 	}
 }
-func (state *endpointManager) ensureConnected(host string, ctx actor.Context) *endpoint {
-	e, ok := state.connections[host]
+func (state *endpointManager) ensureConnected(address string, ctx actor.Context) *endpoint {
+	e, ok := state.connections[address]
 	if !ok {
 		e = &endpoint{
-			writer:  state.spawnEndpointWriter(host, ctx),
-			watcher: state.spawnEndpointWatcher(host, ctx),
+			writer:  state.spawnEndpointWriter(address, ctx),
+			watcher: state.spawnEndpointWatcher(address, ctx),
 		}
-		state.connections[host] = e
+		state.connections[address] = e
 	}
 	return e
 }
 
-func (state *endpointManager) spawnEndpointWriter(host string, ctx actor.Context) *actor.PID {
+func (state *endpointManager) spawnEndpointWriter(address string, ctx actor.Context) *actor.PID {
 	props := actor.
-		FromProducer(newEndpointWriter(host, state.config)).
+		FromProducer(newEndpointWriter(address, state.config)).
 		WithMailbox(newEndpointWriterMailbox(state.config.endpointWriterBatchSize, state.config.endpointWriterQueueSize))
 	pid := ctx.Spawn(props)
 	return pid
 }
 
-func (state *endpointManager) spawnEndpointWatcher(host string, ctx actor.Context) *actor.PID {
+func (state *endpointManager) spawnEndpointWatcher(address string, ctx actor.Context) *actor.PID {
 	props := actor.
-		FromProducer(newEndpointWatcher(host))
+		FromProducer(newEndpointWatcher(address))
 	pid := ctx.Spawn(props)
 	return pid
 }

@@ -473,7 +473,7 @@ func (cell *actorCell) SpawnNamed(props Props, name string) *PID {
 }
 
 func (cell *actorCell) debugString() string {
-	return fmt.Sprintf("%v/%v:%v", cell.self.Host, cell.self.Id, reflect.TypeOf(cell.actor))
+	return fmt.Sprintf("%v/%v:%v", cell.self.Address, cell.self.Id, reflect.TypeOf(cell.actor))
 }
 
 func handleRootFailure(msg *Failure) {

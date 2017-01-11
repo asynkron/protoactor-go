@@ -7,24 +7,24 @@ import (
 )
 
 type ProcessRegistryValue struct {
-	Host           string
+	Address        string
 	LocalPids      cmap.ConcurrentMap
-	RemoteHandlers []HostResolver
+	RemoteHandlers []AddressResolver
 	SequenceID     uint64
 }
 
 var (
-	localHost = "nonhost"
+	localAddress = "nonhost"
 
 	ProcessRegistry = &ProcessRegistryValue{
-		Host:      localHost,
+		Address:   localAddress,
 		LocalPids: cmap.New(),
 	}
 )
 
-type HostResolver func(*PID) (ActorRef, bool)
+type AddressResolver func(*PID) (ActorRef, bool)
 
-func (pr *ProcessRegistryValue) RegisterHostResolver(handler HostResolver) {
+func (pr *ProcessRegistryValue) RegisterAddressResolver(handler AddressResolver) {
 	pr.RemoteHandlers = append(pr.RemoteHandlers, handler)
 }
 
@@ -58,8 +58,8 @@ func (pr *ProcessRegistryValue) getAutoId() string {
 func (pr *ProcessRegistryValue) add(actorRef ActorRef, id string) (*PID, bool) {
 
 	pid := PID{
-		Host: pr.Host,
-		Id:   id,
+		Address: pr.Address,
+		Id:      id,
 	}
 
 	found := pr.LocalPids.SetIfAbsent(pid.Id, actorRef)
@@ -74,7 +74,7 @@ func (pr *ProcessRegistryValue) get(pid *PID) (ActorRef, bool) {
 	if pid == nil {
 		panic("Pid may not be nil")
 	}
-	if pid.Host != localHost && pid.Host != pr.Host {
+	if pid.Address != localAddress && pid.Address != pr.Address {
 		for _, handler := range pr.RemoteHandlers {
 			ref, ok := handler(pid)
 			if ok {

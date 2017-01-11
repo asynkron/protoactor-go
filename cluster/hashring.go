@@ -17,7 +17,7 @@ func getNode(key, kind string) string {
 	members := getMembers(kind)
 	if members == nil {
 		log.Printf("[CLUSTER] Failed to getNode")
-		return actor.ProcessRegistry.Host
+		return actor.ProcessRegistry.Address
 	}
 
 	bestV := hashSize

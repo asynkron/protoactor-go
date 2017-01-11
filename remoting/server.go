@@ -12,9 +12,9 @@ import (
 )
 
 //Start the remoting server
-func Start(host string, options ...RemotingOption) {
+func Start(address string, options ...RemotingOption) {
 	grpclog.SetLogger(log.New(ioutil.Discard, "", 0))
-	lis, err := net.Listen("tcp", host)
+	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalf("[REMOTING] failed to listen: %v", err)
 	}
@@ -23,19 +23,16 @@ func Start(host string, options ...RemotingOption) {
 		option(config)
 	}
 
+	address = lis.Addr().String()
+	actor.ProcessRegistry.RegisterAddressResolver(remoteHandler)
+	actor.ProcessRegistry.Address = address
+
 	spawnActivatorActor()
-
-	host = lis.Addr().String()
-	actor.ProcessRegistry.RegisterHostResolver(remoteHandler)
-	actor.ProcessRegistry.Host = host
-	props := actor.
-		FromProducer(newEndpointManager(config)).
-		WithMailbox(actor.NewBoundedMailbox(config.endpointManagerQueueSize))
-
-	endpointManagerPID = actor.Spawn(props)
+	spawnEndpointManager(config)
+	subscribeEndpointManager()
 
 	s := grpc.NewServer(config.serverOptions...)
 	RegisterRemotingServer(s, &server{})
-	log.Printf("[REMOTING] Starting Proto.Actor server on %v", host)
+	log.Printf("[REMOTING] Starting Proto.Actor server on %v", address)
 	go s.Serve(lis)
 }

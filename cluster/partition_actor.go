@@ -30,8 +30,8 @@ func spawnPartitionActor(kind string) *actor.PID {
 	return partitionPid
 }
 
-func partitionForKind(host, kind string) *actor.PID {
-	pid := actor.NewPID(host, "#partition-"+kind)
+func partitionForKind(address, kind string) *actor.PID {
+	pid := actor.NewPID(address, "#partition-"+kind)
 	return pid
 }
 
@@ -98,7 +98,7 @@ func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
 	log.Printf("[CLUSTER] Node Rejoined %v", msg.Name())
 	for actorID, pid := range state.partition {
 		//if the mapped PID is on the host that left, forget it
-		if pid.Host == msg.Name() {
+		if pid.Address == msg.Name() {
 			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, msg.Name())
 			delete(state.partition, actorID)
 		}
@@ -109,7 +109,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {
 	log.Printf("[CLUSTER] Node Left %v", msg.Name())
 	for actorID, pid := range state.partition {
 		//if the mapped PID is on the host that left, forget it
-		if pid.Host == msg.Name() {
+		if pid.Address == msg.Name() {
 			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, msg.Name())
 			delete(state.partition, actorID)
 		}
@@ -120,7 +120,7 @@ func (state *partitionActor) memberJoined(msg *MemberJoinedEvent) {
 	log.Printf("[CLUSTER] Node Joined %v", msg.Name())
 	for actorID := range state.partition {
 		host := getNode(actorID, state.kind)
-		if host != actor.ProcessRegistry.Host {
+		if host != actor.ProcessRegistry.Address {
 			state.transferOwnership(actorID, host)
 		}
 	}

@@ -53,8 +53,8 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 type PID struct {
-	Host string `protobuf:"bytes,1,opt,name=Host,proto3" json:"Host,omitempty"`
-	Id   string `protobuf:"bytes,2,opt,name=Id,proto3" json:"Id,omitempty"`
+	Address string `protobuf:"bytes,1,opt,name=Host,proto3" json:"Host,omitempty"`
+	Id      string `protobuf:"bytes,2,opt,name=Id,proto3" json:"Id,omitempty"`
 }
 
 func (m *PID) Reset()                    { *m = PID{} }
@@ -255,7 +255,7 @@ func (this *PID) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.Host != that1.Host {
+	if this.Address != that1.Address {
 		return false
 	}
 	if this.Id != that1.Id {
@@ -673,7 +673,7 @@ func (this *PID) GoString() string {
 	}
 	s := make([]string, 0, 6)
 	s = append(s, "&actor.PID{")
-	s = append(s, "Host: "+fmt.Sprintf("%#v", this.Host)+",\n")
+	s = append(s, "Host: "+fmt.Sprintf("%#v", this.Address)+",\n")
 	s = append(s, "Id: "+fmt.Sprintf("%#v", this.Id)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -864,11 +864,11 @@ func (m *PID) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Host) > 0 {
+	if len(m.Address) > 0 {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintProtos(dAtA, i, uint64(len(m.Host)))
-		i += copy(dAtA[i:], m.Host)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.Address)))
+		i += copy(dAtA[i:], m.Address)
 	}
 	if len(m.Id) > 0 {
 		dAtA[i] = 0x12
@@ -1228,7 +1228,7 @@ func encodeVarintProtos(dAtA []byte, offset int, v uint64) int {
 func (m *PID) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Host)
+	l = len(m.Address)
 	if l > 0 {
 		n += 1 + l + sovProtos(uint64(l))
 	}
@@ -1562,7 +1562,7 @@ func (m *PID) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Host = string(dAtA[iNdEx:postIndex])
+			m.Address = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {

@@ -29,7 +29,7 @@ func (state *ConsistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 	state.routeeMap = make(map[string]*actor.PID)
 	nodes := make([]string, routees.Len())
 	routees.ForEach(func(i int, pid actor.PID) {
-		nodeName := pid.Host + "@" + pid.Id
+		nodeName := pid.Address + "@" + pid.Id
 		nodes[i] = nodeName
 		state.routeeMap[nodeName] = &pid
 	})

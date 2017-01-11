@@ -6,8 +6,8 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
-type endpointTerminated struct {
-	host string
+type EndpointTerminated struct {
+	address string
 }
 
 type remoteWatch struct {
@@ -25,22 +25,22 @@ type remoteTerminate struct {
 	Watchee *actor.PID
 }
 
-func newEndpointWatcher(host string) actor.Producer {
+func newEndpointWatcher(address string) actor.Producer {
 	return func() actor.Actor {
 		return &endpointWatcher{
-			host: host,
+			address: address,
 		}
 	}
 }
 
 type endpointWatcher struct {
-	host    string
+	address string
 	watched map[string]*actor.PID //key is the watching PID string, value is the watched PID
 	watcher map[string]*actor.PID //key is the watched PID string, value is the watching PID
 }
 
 func (state *endpointWatcher) initialize() {
-	log.Printf("[REMOTING] Started EndpointWatcher for host %v", state.host)
+	log.Printf("[REMOTING] Started EndpointWatcher for address %v", state.address)
 	state.watched = make(map[string]*actor.PID)
 	state.watcher = make(map[string]*actor.PID)
 }
@@ -51,18 +51,18 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		state.initialize()
 
 	case *remoteTerminate:
-		delete(state.watched, msg.Watcher.String())
-		delete(state.watcher, msg.Watchee.String())
+		delete(state.watched, msg.Watcher.Id)
+		delete(state.watcher, msg.Watchee.Id)
 
-	case *endpointTerminated:
+	case *EndpointTerminated:
 		//The EndpointWatcher is notified that the given endpoint has closed
 		//Now notify all watchers that any watched PID from this endpoint is terminated
 		//also make Terminated carry information about AddressTerminated
 
 	case *remoteWatch:
 
-		state.watched[msg.Watcher.String()] = msg.Watchee
-		state.watcher[msg.Watchee.String()] = msg.Watcher
+		state.watched[msg.Watcher.Id] = msg.Watchee
+		state.watcher[msg.Watchee.Id] = msg.Watcher
 
 		//recreate the Watch command
 		w := &actor.Watch{
@@ -75,8 +75,8 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 	case *remoteUnwatch:
 
 		//delete the watch entries
-		delete(state.watched, msg.Watcher.String())
-		delete(state.watcher, msg.Watchee.String())
+		delete(state.watched, msg.Watcher.Id)
+		delete(state.watcher, msg.Watchee.Id)
 
 		//recreate the Unwatch command
 		uw := &actor.Unwatch{
@@ -87,6 +87,6 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		sendRemoteMessage(msg.Watchee, uw, nil)
 
 	default:
-		log.Printf("[REMOTING] EndpointWatcher for %v, Unknown message %v", state.host, msg)
+		log.Printf("[REMOTING] EndpointWatcher for %v, Unknown message %v", state.address, msg)
 	}
 }
