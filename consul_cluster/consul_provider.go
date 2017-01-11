@@ -151,7 +151,7 @@ func (p *ConsulProvider) notifyStatuses() {
 		memberID := kvMap[key]
 		ms := &cluster.MemberStatus{
 			MemberID: memberID,
-			Address:  v.Service.Address,
+			Host:     v.Service.Address,
 			Port:     v.Service.Port,
 			Kinds:    v.Service.Tags,
 			Alive:    v.Checks[1].Status == "passing",

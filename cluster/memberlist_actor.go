@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/remoting"
 )
 
 var (
@@ -60,7 +61,7 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 		tmp := make(map[string]*MemberStatus)
 		for _, new := range msg {
 			//key is address:port
-			key := fmt.Sprintf("%v:%v", new.Address, new.Port)
+			key := fmt.Sprintf("%v:%v", new.Host, new.Port)
 			tmp[key] = new
 		}
 
@@ -90,22 +91,27 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 	if new == nil {
 		//notify left
 		meta := MemberMeta{
-			Address: old.Address,
-			Port:    old.Port,
-			Kinds:   old.Kinds,
+			Host:  old.Host,
+			Port:  old.Port,
+			Kinds: old.Kinds,
 		}
 		left := &MemberLeftEvent{MemberMeta: meta}
 		actor.EventStream.Publish(left)
 		delete(a.members, key) //remove this member as it has left
+
+		rt := &remoting.EndpointTerminated{
+			Address: fmt.Sprintf("%v:%v", old.Host, old.Port),
+		}
+		actor.EventStream.Publish(rt)
 
 		return
 	}
 	if old == nil {
 		//notify joined
 		meta := MemberMeta{
-			Address: new.Address,
-			Port:    new.Port,
-			Kinds:   new.Kinds,
+			Host:  new.Host,
+			Port:  new.Port,
+			Kinds: new.Kinds,
 		}
 		joined := &MemberJoinedEvent{MemberMeta: meta}
 		actor.EventStream.Publish(joined)
@@ -113,9 +119,9 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 	}
 	if new.MemberID != old.MemberID {
 		meta := MemberMeta{
-			Address: new.Address,
-			Port:    new.Port,
-			Kinds:   new.Kinds,
+			Host:  new.Host,
+			Port:  new.Port,
+			Kinds: new.Kinds,
 		}
 		joined := &MemberRejoinedEvent{MemberMeta: meta}
 		actor.EventStream.Publish(joined)
@@ -124,9 +130,9 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 	if old.Alive && !new.Alive {
 		//notify node unavailable
 		meta := MemberMeta{
-			Address: new.Address,
-			Port:    new.Port,
-			Kinds:   new.Kinds,
+			Host:  new.Host,
+			Port:  new.Port,
+			Kinds: new.Kinds,
 		}
 		unavailable := &MemberUnavailableEvent{MemberMeta: meta}
 		actor.EventStream.Publish(unavailable)
@@ -135,9 +141,9 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 	if !old.Alive && new.Alive {
 		//notify node reachable
 		meta := MemberMeta{
-			Address: new.Address,
-			Port:    new.Port,
-			Kinds:   new.Kinds,
+			Host:  new.Host,
+			Port:  new.Port,
+			Kinds: new.Kinds,
 		}
 		available := &MemberAvailableEvent{MemberMeta: meta}
 		actor.EventStream.Publish(available)

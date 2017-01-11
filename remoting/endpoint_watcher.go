@@ -7,7 +7,7 @@ import (
 )
 
 type EndpointTerminated struct {
-	address string
+	Address string
 }
 
 type remoteWatch struct {
@@ -55,9 +55,13 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		delete(state.watcher, msg.Watchee.Id)
 
 	case *EndpointTerminated:
-		//The EndpointWatcher is notified that the given endpoint has closed
-		//Now notify all watchers that any watched PID from this endpoint is terminated
-		//also make Terminated carry information about AddressTerminated
+		log.Printf("[REMOTING] EndpointWatcher handling terminated address %v", msg.Address)
+		for id, pid := range state.watched {
+			// terminated := &actor.Terminated{
+			// 	Who: pid,
+			// }
+			log.Printf("Notifying %v that %v was terminated", id, pid.String())
+		}
 
 	case *remoteWatch:
 

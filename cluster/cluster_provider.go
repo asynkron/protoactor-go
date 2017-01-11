@@ -2,7 +2,7 @@ package cluster
 
 type MemberStatus struct {
 	MemberID string
-	Address  string
+	Host     string
 	Port     int
 	Kinds    []string
 	Alive    bool

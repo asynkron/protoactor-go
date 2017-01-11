@@ -48,7 +48,7 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 
 		log.Println("[REMOTING] Started EndpointManager")
 	case *EndpointTerminated:
-		address := msg.address
+		address := msg.Address
 		endpoint := state.ensureConnected(address, ctx)
 		endpoint.watcher.Tell(msg)
 	case *remoteTerminate:

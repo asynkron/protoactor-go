@@ -8,13 +8,13 @@ type MemberStatusEvent interface {
 }
 
 type MemberMeta struct {
-	Address string
-	Port    int
-	Kinds   []string
+	Host  string
+	Port  int
+	Kinds []string
 }
 
 func (e *MemberMeta) Name() string {
-	return fmt.Sprintf("%v:%v", e.Address, e.Port)
+	return fmt.Sprintf("%v:%v", e.Host, e.Port)
 }
 
 func (e *MemberMeta) GetKinds() []string {
