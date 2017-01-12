@@ -11,7 +11,7 @@ import (
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 )
 
-type Request struct {
+type messageSender struct {
 	Message interface{}
 	Sender  *PID
 }
@@ -86,7 +86,7 @@ func (cell *actorCell) Actor() Actor {
 }
 
 func (cell *actorCell) Message() interface{} {
-	userMessage, ok := cell.message.(*Request)
+	userMessage, ok := cell.message.(*messageSender)
 	if ok {
 		return userMessage.Message
 	}
@@ -94,7 +94,7 @@ func (cell *actorCell) Message() interface{} {
 }
 
 func (cell *actorCell) Sender() *PID {
-	userMessage, ok := cell.message.(*Request)
+	userMessage, ok := cell.message.(*messageSender)
 	if ok {
 		return userMessage.Sender
 	}

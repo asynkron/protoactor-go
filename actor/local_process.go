@@ -12,7 +12,7 @@ func newLocalProcess(mailbox Mailbox) *localProcess {
 
 func (ref *localProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	if sender != nil {
-		ref.mailbox.PostUserMessage(&Request{Message: message, Sender: sender})
+		ref.mailbox.PostUserMessage(&messageSender{Message: message, Sender: sender})
 	} else {
 		ref.mailbox.PostUserMessage(message)
 	}
