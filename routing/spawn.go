@@ -29,6 +29,7 @@ func SpawnNamedGroup(config RouterConfig, name string) *actor.PID {
 }
 
 func spawn(id string, config RouterConfig, props actor.Props, parent *actor.PID) *actor.PID {
+	props = props.WithSpawn(nil)
 	routerState := config.CreateRouterState()
 
 	routerProps := actor.FromInstance(&routerActor{
