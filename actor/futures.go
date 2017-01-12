@@ -15,7 +15,7 @@ func NewFuture(timeout time.Duration) *Future {
 	fut := &Future{cond: sync.NewCond(&sync.Mutex{})}
 
 	ref := &futureProcess{f: fut}
-	id := ProcessRegistry.getAutoId()
+	id := ProcessRegistry.NextId()
 
 	pid, ok := ProcessRegistry.Add(ref, id)
 	if !ok {

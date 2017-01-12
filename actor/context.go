@@ -454,7 +454,7 @@ func (cell *actorCell) Respond(response interface{}) {
 }
 
 func (cell *actorCell) Spawn(props Props) *PID {
-	id := ProcessRegistry.getAutoId()
+	id := ProcessRegistry.NextId()
 	return cell.SpawnNamed(props, id)
 }
 

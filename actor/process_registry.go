@@ -50,7 +50,7 @@ func uint64ToId(u uint64) string {
 	return string(buf[i:])
 }
 
-func (pr *ProcessRegistryValue) getAutoId() string {
+func (pr *ProcessRegistryValue) NextId() string {
 	counter := atomic.AddUint64(&pr.SequenceID, 1)
 	return uint64ToId(counter)
 }

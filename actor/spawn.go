@@ -2,7 +2,7 @@ package actor
 
 //Spawn an actor with an auto generated id
 func Spawn(props Props) *PID {
-	id := ProcessRegistry.getAutoId()
+	id := ProcessRegistry.NextId()
 	pid := spawn(id, props, nil)
 	return pid
 }
