@@ -62,8 +62,8 @@ func (pr *ProcessRegistryValue) add(actorRef Process, id string) (*PID, bool) {
 		Id:      id,
 	}
 
-	found := pr.LocalPids.SetIfAbsent(pid.Id, actorRef)
-	return &pid, found
+	absent := pr.LocalPids.SetIfAbsent(pid.Id, actorRef)
+	return &pid, absent
 }
 
 func (pr *ProcessRegistryValue) remove(pid *PID) {
