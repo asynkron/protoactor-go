@@ -10,17 +10,8 @@ message PID {
     string Id = 2;
 }
 
-//TODO: should we move the ones that don't need to be serializable?
-//e.g. Stopping, Restarting, Started. ReceiveTimeout etc?
 //user messages
 message PoisonPill {}
-
-
-// message Restarting {}
-// message Stopping {}
-// message Stopped {}
-// message Started {}
-// message ReceiveTimeout {}
 
 // router management messages
 message RouterAddRoutee {

@@ -49,8 +49,8 @@ func spawnRouter(id string, config RouterConfig, props Props, parent *PID) *PID 
 		state:  routerState,
 	})
 
-	routerId := ProcessRegistry.getAutoId()
-	router := spawn(routerId, routerProps, parent)
+	routerID := ProcessRegistry.getAutoId()
+	router := spawn(routerID, routerProps, parent)
 
 	ref := &RouterActorRef{
 		router: router,
