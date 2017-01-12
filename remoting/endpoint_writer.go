@@ -47,6 +47,13 @@ func (state *endpointWriter) initializeInternal() error {
 	if err != nil {
 		return err
 	}
+	go func() {
+		_, err := stream.Recv()
+		if err != nil {
+			log.Printf("[REMOTING] EndpointWriter for address %v closed", state.address)
+		}
+	}()
+
 	log.Printf("[REMOTING] Got stream from address %v", state.address)
 	state.stream = stream
 	return nil
