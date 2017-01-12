@@ -14,10 +14,10 @@ var (
 func NewFuture(timeout time.Duration) *Future {
 	fut := &Future{cond: sync.NewCond(&sync.Mutex{})}
 
-	ref := &FutureActorRef{f: fut}
-	id := ProcessRegistry.getAutoId()
+	ref := &futureProcess{f: fut}
+	id := ProcessRegistry.NextId()
 
-	pid, ok := ProcessRegistry.add(ref, id)
+	pid, ok := ProcessRegistry.Add(ref, id)
 	if !ok {
 		log.Printf("[ACTOR] Failed to register future actorref '%v'", id)
 		log.Println(id)
@@ -84,22 +84,22 @@ func (f *Future) Wait() error {
 	return f.err
 }
 
-// FutureActorRef is a struct carrying a response PID and a channel where the response is placed
-type FutureActorRef struct {
+// futureProcess is a struct carrying a response PID and a channel where the response is placed
+type futureProcess struct {
 	f *Future
 }
 
-func (ref *FutureActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
+func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	ref.f.result = message
 	ref.Stop(pid)
 }
 
-func (ref *FutureActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
+func (ref *futureProcess) SendSystemMessage(pid *PID, message SystemMessage) {
 	ref.f.result = message
 	ref.Stop(pid)
 }
 
-func (ref *FutureActorRef) Stop(pid *PID) {
+func (ref *futureProcess) Stop(pid *PID) {
 	ref.f.cond.L.Lock()
 	if ref.f.done {
 		ref.f.cond.L.Unlock()
@@ -108,11 +108,11 @@ func (ref *FutureActorRef) Stop(pid *PID) {
 
 	ref.f.done = true
 	ref.f.t.Stop()
-	ProcessRegistry.remove(pid)
+	ProcessRegistry.Remove(pid)
 
 	ref.f.cond.L.Unlock()
 	ref.f.cond.Signal()
 }
 
-func (ref *FutureActorRef) Watch(pid *PID)   {}
-func (ref *FutureActorRef) Unwatch(pid *PID) {}
+func (ref *futureProcess) Watch(pid *PID)   {}
+func (ref *futureProcess) Unwatch(pid *PID) {}

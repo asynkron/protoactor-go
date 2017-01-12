@@ -12,7 +12,7 @@ import (
 
 type myMessage struct{ i int }
 
-func (m *myMessage) HashBy() string {
+func (m *myMessage) Hash() string {
 	return strconv.Itoa(m.i)
 }
 

@@ -11,7 +11,7 @@ import (
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 )
 
-type Request struct {
+type messageSender struct {
 	Message interface{}
 	Sender  *PID
 }
@@ -86,7 +86,7 @@ func (cell *actorCell) Actor() Actor {
 }
 
 func (cell *actorCell) Message() interface{} {
-	userMessage, ok := cell.message.(*Request)
+	userMessage, ok := cell.message.(*messageSender)
 	if ok {
 		return userMessage.Message
 	}
@@ -94,7 +94,7 @@ func (cell *actorCell) Message() interface{} {
 }
 
 func (cell *actorCell) Sender() *PID {
-	userMessage, ok := cell.message.(*Request)
+	userMessage, ok := cell.message.(*messageSender)
 	if ok {
 		return userMessage.Sender
 	}
@@ -182,7 +182,7 @@ func (cell *actorCell) Parent() *PID {
 	return cell.parent
 }
 
-func NewActorCell(props Props, parent *PID) *actorCell {
+func newActorCell(props Props, parent *PID) *actorCell {
 	cell := &actorCell{
 		parent: parent,
 		props:  props,
@@ -323,7 +323,7 @@ func (cell *actorCell) restart() {
 }
 
 func (cell *actorCell) stopped() {
-	ProcessRegistry.remove(cell.self)
+	ProcessRegistry.Remove(cell.self)
 	cell.InvokeUserMessage(stoppedMessage)
 	otherStopped := &Terminated{Who: cell.self}
 	cell.watchers.ForEach(func(i int, pid PID) {
@@ -454,7 +454,7 @@ func (cell *actorCell) Respond(response interface{}) {
 }
 
 func (cell *actorCell) Spawn(props Props) *PID {
-	id := ProcessRegistry.getAutoId()
+	id := ProcessRegistry.NextId()
 	return cell.SpawnNamed(props, id)
 }
 

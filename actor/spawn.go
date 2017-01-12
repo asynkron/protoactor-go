@@ -2,7 +2,7 @@ package actor
 
 //Spawn an actor with an auto generated id
 func Spawn(props Props) *PID {
-	id := ProcessRegistry.getAutoId()
+	id := ProcessRegistry.NextId()
 	pid := spawn(id, props, nil)
 	return pid
 }
@@ -18,12 +18,12 @@ func spawn(id string, props Props, parent *PID) *PID {
 		return spawnRouter(id, props.RouterConfig(), props, parent)
 	}
 
-	cell := NewActorCell(props, parent)
+	cell := newActorCell(props, parent)
 	mailbox := props.ProduceMailbox()
-	ref := NewLocalActorRef(mailbox)
-	pid, new := ProcessRegistry.add(ref, id)
+	ref := newLocalProcess(mailbox)
+	pid, absent := ProcessRegistry.Add(ref, id)
 
-	if new {
+	if absent {
 		mailbox.RegisterHandlers(cell, props.Dispatcher())
 		cell.self = pid
 		cell.InvokeUserMessage(startedMessage)

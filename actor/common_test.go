@@ -3,7 +3,6 @@ package actor
 import (
 	"io/ioutil"
 	"log"
-	"sync/atomic"
 	"time"
 
 	"github.com/stretchr/testify/mock"
@@ -24,43 +23,6 @@ func (inlineDispatcher) Schedule(runner MailboxRunner) {
 
 func (inlineDispatcher) Throughput() int {
 	return 1
-}
-
-const defaultTimeout = 10 * time.Millisecond
-
-type waiter struct {
-	c  int32
-	ch chan struct{}
-}
-
-func newWaiter(c int32) *waiter {
-	return &waiter{c: c, ch: make(chan struct{})}
-}
-
-func (w *waiter) Add(c int32) {
-	v := atomic.AddInt32(&w.c, c)
-	if v == 0 {
-		w.ch <- struct{}{}
-	} else if v < 0 {
-		panic("<0")
-	}
-}
-
-func (w *waiter) Done() {
-	w.Add(-1)
-}
-
-func (w *waiter) Wait() bool {
-	return w.WaitTimeout(defaultTimeout)
-}
-
-func (w *waiter) WaitTimeout(t time.Duration) bool {
-	select {
-	case <-w.ch:
-		return true
-	case <-time.After(t):
-		return false
-	}
 }
 
 type mockActor struct {
@@ -165,22 +127,22 @@ func (m *mockContext) Actor() Actor {
 	return args.Get(0).(Actor)
 }
 
-type mockActorRef struct {
+type mockProcess struct {
 	mock.Mock
 }
 
-func (m *mockActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
+func (m *mockProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	m.Called(pid, message, sender)
 }
-func (m *mockActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
+func (m *mockProcess) SendSystemMessage(pid *PID, message SystemMessage) {
 	m.Called(pid, message)
 }
-func (m *mockActorRef) Stop(pid *PID) {
+func (m *mockProcess) Stop(pid *PID) {
 	m.Called(pid)
 }
-func (m *mockActorRef) Watch(pid *PID) {
+func (m *mockProcess) Watch(pid *PID) {
 	m.Called(pid)
 }
-func (m *mockActorRef) Unwatch(pid *PID) {
+func (m *mockProcess) Unwatch(pid *PID) {
 	m.Called(pid)
 }

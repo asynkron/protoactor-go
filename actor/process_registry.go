@@ -8,7 +8,7 @@ import (
 
 type ProcessRegistryValue struct {
 	Address        string
-	LocalPids      cmap.ConcurrentMap
+	LocalPIDs      cmap.ConcurrentMap
 	RemoteHandlers []AddressResolver
 	SequenceID     uint64
 }
@@ -18,11 +18,11 @@ var (
 
 	ProcessRegistry = &ProcessRegistryValue{
 		Address:   localAddress,
-		LocalPids: cmap.New(),
+		LocalPIDs: cmap.New(),
 	}
 )
 
-type AddressResolver func(*PID) (ActorRef, bool)
+type AddressResolver func(*PID) (Process, bool)
 
 func (pr *ProcessRegistryValue) RegisterAddressResolver(handler AddressResolver) {
 	pr.RemoteHandlers = append(pr.RemoteHandlers, handler)
@@ -50,27 +50,27 @@ func uint64ToId(u uint64) string {
 	return string(buf[i:])
 }
 
-func (pr *ProcessRegistryValue) getAutoId() string {
+func (pr *ProcessRegistryValue) NextId() string {
 	counter := atomic.AddUint64(&pr.SequenceID, 1)
 	return uint64ToId(counter)
 }
 
-func (pr *ProcessRegistryValue) add(actorRef ActorRef, id string) (*PID, bool) {
+func (pr *ProcessRegistryValue) Add(process Process, id string) (*PID, bool) {
 
 	pid := PID{
 		Address: pr.Address,
 		Id:      id,
 	}
 
-	found := pr.LocalPids.SetIfAbsent(pid.Id, actorRef)
-	return &pid, found
+	absent := pr.LocalPIDs.SetIfAbsent(pid.Id, process)
+	return &pid, absent
 }
 
-func (pr *ProcessRegistryValue) remove(pid *PID) {
-	pr.LocalPids.Remove(pid.Id)
+func (pr *ProcessRegistryValue) Remove(pid *PID) {
+	pr.LocalPIDs.Remove(pid.Id)
 }
 
-func (pr *ProcessRegistryValue) get(pid *PID) (ActorRef, bool) {
+func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {
 	if pid == nil {
 		panic("Pid may not be nil")
 	}
@@ -83,17 +83,17 @@ func (pr *ProcessRegistryValue) get(pid *PID) (ActorRef, bool) {
 		}
 		return deadLetter, false
 	}
-	ref, ok := pr.LocalPids.Get(pid.Id)
+	ref, ok := pr.LocalPIDs.Get(pid.Id)
 	if !ok {
 		return deadLetter, false
 	}
-	return ref.(ActorRef), true
+	return ref.(Process), true
 }
 
-func (pr *ProcessRegistryValue) GetLocal(id string) (ActorRef, bool) {
-	ref, ok := pr.LocalPids.Get(id)
+func (pr *ProcessRegistryValue) GetLocal(id string) (Process, bool) {
+	ref, ok := pr.LocalPIDs.Get(id)
 	if !ok {
 		return deadLetter, false
 	}
-	return ref.(ActorRef), true
+	return ref.(Process), true
 }

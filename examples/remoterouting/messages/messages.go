@@ -1,5 +1,5 @@
 package messages
 
-func (m *Ping) HashBy() string {
+func (m *Ping) Hash() string {
 	return m.User
 }

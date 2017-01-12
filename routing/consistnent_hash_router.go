@@ -7,8 +7,8 @@ import (
 	"github.com/serialx/hashring"
 )
 
-type Hashable interface {
-	HashBy() string
+type Hasher interface {
+	Hash() string
 }
 
 type ConsistentHashGroupRouter struct {
@@ -47,8 +47,8 @@ func (state *ConsistentHashRouterState) GetRoutees() *actor.PIDSet {
 
 func (state *ConsistentHashRouterState) RouteMessage(message interface{}, sender *actor.PID) {
 	switch msg := message.(type) {
-	case Hashable:
-		key := msg.HashBy()
+	case Hasher:
+		key := msg.Hash()
 
 		node, ok := state.hashring.GetNode(key)
 		if !ok {
@@ -61,7 +61,7 @@ func (state *ConsistentHashRouterState) RouteMessage(message interface{}, sender
 			log.Println("[ROUTING] Consisten router failed to resolve node", node)
 		}
 	default:
-		log.Println("[ROUTING] Unknown message", msg)
+		log.Println("[ROUTING] Message must implement routing.Hasher", msg)
 	}
 }
 
