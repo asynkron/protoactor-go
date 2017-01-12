@@ -51,6 +51,12 @@ func (state *endpointWriter) initializeInternal() error {
 		_, err := stream.Recv()
 		if err != nil {
 			log.Printf("[REMOTING] EndpointWriter for address %v closed", state.address)
+
+			//notify that the endpoint terminated
+			terminated := EndpointTerminated{
+				Address: state.address,
+			}
+			actor.EventStream.Publish(terminated)
 		}
 	}()
 
