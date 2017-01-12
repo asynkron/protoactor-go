@@ -8,7 +8,7 @@ import (
 
 type ProcessRegistryValue struct {
 	Address        string
-	LocalPids      cmap.ConcurrentMap
+	LocalPIDs      cmap.ConcurrentMap
 	RemoteHandlers []AddressResolver
 	SequenceID     uint64
 }
@@ -18,7 +18,7 @@ var (
 
 	ProcessRegistry = &ProcessRegistryValue{
 		Address:   localAddress,
-		LocalPids: cmap.New(),
+		LocalPIDs: cmap.New(),
 	}
 )
 
@@ -62,12 +62,12 @@ func (pr *ProcessRegistryValue) add(process Process, id string) (*PID, bool) {
 		Id:      id,
 	}
 
-	absent := pr.LocalPids.SetIfAbsent(pid.Id, process)
+	absent := pr.LocalPIDs.SetIfAbsent(pid.Id, process)
 	return &pid, absent
 }
 
 func (pr *ProcessRegistryValue) remove(pid *PID) {
-	pr.LocalPids.Remove(pid.Id)
+	pr.LocalPIDs.Remove(pid.Id)
 }
 
 func (pr *ProcessRegistryValue) get(pid *PID) (Process, bool) {
@@ -83,7 +83,7 @@ func (pr *ProcessRegistryValue) get(pid *PID) (Process, bool) {
 		}
 		return deadLetter, false
 	}
-	ref, ok := pr.LocalPids.Get(pid.Id)
+	ref, ok := pr.LocalPIDs.Get(pid.Id)
 	if !ok {
 		return deadLetter, false
 	}
@@ -91,7 +91,7 @@ func (pr *ProcessRegistryValue) get(pid *PID) (Process, bool) {
 }
 
 func (pr *ProcessRegistryValue) GetLocal(id string) (Process, bool) {
-	ref, ok := pr.LocalPids.Get(id)
+	ref, ok := pr.LocalPIDs.Get(id)
 	if !ok {
 		return deadLetter, false
 	}
