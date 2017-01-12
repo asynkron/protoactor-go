@@ -1,17 +1,19 @@
-package actor
+package routing
+
+import "github.com/AsynkronIT/protoactor-go/actor"
 
 type routerActor struct {
-	props  Props
+	props  actor.Props
 	config RouterConfig
 	state  RouterState
 }
 
-func (a *routerActor) Receive(context Context) {
+func (a *routerActor) Receive(context actor.Context) {
 	switch m := context.Message().(type) {
-	case *Started:
+	case *actor.Started:
 		a.config.OnStarted(context, a.props, a.state)
 
-	case *RouterAddRoutee:
+	case *AddRoutee:
 		r := a.state.GetRoutees()
 		if r.Contains(m.PID) {
 			return
@@ -20,7 +22,7 @@ func (a *routerActor) Receive(context Context) {
 		r.Add(m.PID)
 		a.state.SetRoutees(r)
 
-	case *RouterRemoveRoutee:
+	case *RemoveRoutee:
 		r := a.state.GetRoutees()
 		if !r.Contains(m.PID) {
 			return
@@ -30,20 +32,20 @@ func (a *routerActor) Receive(context Context) {
 		r.Remove(m.PID)
 		a.state.SetRoutees(r)
 
-	case *RouterBroadcastMessage:
+	case *BroadcastMessage:
 		msg := m.Message
 		sender := context.Sender()
-		a.state.GetRoutees().ForEach(func(i int, pid PID) {
+		a.state.GetRoutees().ForEach(func(i int, pid actor.PID) {
 			pid.Request(msg, sender)
 		})
 
-	case *RouterGetRoutees:
+	case *GetRoutees:
 		r := a.state.GetRoutees()
-		routees := make([]*PID, r.Len())
-		r.ForEach(func(i int, pid PID) {
+		routees := make([]*actor.PID, r.Len())
+		r.ForEach(func(i int, pid actor.PID) {
 			routees[i] = &pid
 		})
 
-		context.Sender().Tell(&RouterRoutees{routees})
+		context.Sender().Tell(&Routees{routees})
 	}
 }

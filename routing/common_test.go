@@ -1,4 +1,4 @@
-package actor
+package routing
 
 import (
 	"io/ioutil"
@@ -6,10 +6,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/stretchr/testify/mock"
 )
 
-var nullReceive Receive = func(Context) {}
+var nullReceive actor.Receive = func(actor.Context) {}
 
 func init() {
 	// discard all logging in tests
@@ -18,7 +19,7 @@ func init() {
 
 type inlineDispatcher struct{}
 
-func (inlineDispatcher) Schedule(runner MailboxRunner) {
+func (inlineDispatcher) Schedule(runner actor.MailboxRunner) {
 	runner()
 }
 
@@ -67,7 +68,7 @@ type mockActor struct {
 	mock.Mock
 }
 
-func (m *mockActor) Receive(context Context) {
+func (m *mockActor) Receive(context actor.Context) {
 	m.Called(context)
 }
 
@@ -81,11 +82,11 @@ type mockContext struct {
 	mock.Mock
 }
 
-func (m *mockContext) Watch(pid *PID) {
+func (m *mockContext) Watch(pid *actor.PID) {
 	m.Called(pid)
 }
 
-func (m *mockContext) Unwatch(pid *PID) {
+func (m *mockContext) Unwatch(pid *actor.PID) {
 	m.Called(pid)
 }
 
@@ -102,16 +103,16 @@ func (m *mockContext) ReceiveTimeout() time.Duration {
 	return args.Get(0).(time.Duration)
 }
 
-func (m *mockContext) Sender() *PID {
+func (m *mockContext) Sender() *actor.PID {
 	args := m.Called()
-	return args.Get(0).(*PID)
+	return args.Get(0).(*actor.PID)
 }
 
-func (m *mockContext) Become(r Receive) {
+func (m *mockContext) Become(r actor.Receive) {
 	m.Called(r)
 }
 
-func (m *mockContext) BecomeStacked(r Receive) {
+func (m *mockContext) BecomeStacked(r actor.Receive) {
 	m.Called(r)
 }
 
@@ -119,29 +120,29 @@ func (m *mockContext) UnbecomeStacked() {
 	m.Called()
 }
 
-func (m *mockContext) Self() *PID {
+func (m *mockContext) Self() *actor.PID {
 	args := m.Called()
-	return args.Get(0).(*PID)
+	return args.Get(0).(*actor.PID)
 }
 
-func (m *mockContext) Parent() *PID {
+func (m *mockContext) Parent() *actor.PID {
 	args := m.Called()
-	return args.Get(0).(*PID)
+	return args.Get(0).(*actor.PID)
 }
 
-func (m *mockContext) Spawn(p Props) *PID {
+func (m *mockContext) Spawn(p actor.Props) *actor.PID {
 	args := m.Called(p)
-	return args.Get(0).(*PID)
+	return args.Get(0).(*actor.PID)
 }
 
-func (m *mockContext) SpawnNamed(p Props, name string) *PID {
+func (m *mockContext) SpawnNamed(p actor.Props, name string) *actor.PID {
 	args := m.Called(p, name)
-	return args.Get(0).(*PID)
+	return args.Get(0).(*actor.PID)
 }
 
-func (m *mockContext) Children() []*PID {
+func (m *mockContext) Children() []*actor.PID {
 	args := m.Called()
-	return args.Get(0).([]*PID)
+	return args.Get(0).([]*actor.PID)
 }
 
 func (m *mockContext) Next() {
@@ -160,27 +161,27 @@ func (m *mockContext) Respond(response interface{}) {
 	m.Called(response)
 }
 
-func (m *mockContext) Actor() Actor {
+func (m *mockContext) Actor() actor.Actor {
 	args := m.Called()
-	return args.Get(0).(Actor)
+	return args.Get(0).(actor.Actor)
 }
 
 type mockProcess struct {
 	mock.Mock
 }
 
-func (m *mockProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
+func (m *mockProcess) SendUserMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
 	m.Called(pid, message, sender)
 }
-func (m *mockProcess) SendSystemMessage(pid *PID, message SystemMessage) {
+func (m *mockProcess) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
 	m.Called(pid, message)
 }
-func (m *mockProcess) Stop(pid *PID) {
+func (m *mockProcess) Stop(pid *actor.PID) {
 	m.Called(pid)
 }
-func (m *mockProcess) Watch(pid *PID) {
+func (m *mockProcess) Watch(pid *actor.PID) {
 	m.Called(pid)
 }
-func (m *mockProcess) Unwatch(pid *PID) {
+func (m *mockProcess) Unwatch(pid *actor.PID) {
 	m.Called(pid)
 }

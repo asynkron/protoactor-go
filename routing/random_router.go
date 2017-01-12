@@ -7,11 +7,11 @@ import (
 )
 
 type RandomGroupRouter struct {
-	actor.GroupRouter
+	GroupRouter
 }
 
 type RandomPoolRouter struct {
-	actor.PoolRouter
+	PoolRouter
 }
 
 type RandomRouterState struct {
@@ -35,22 +35,22 @@ func (state *RandomRouterState) RouteMessage(message interface{}, sender *actor.
 	pid.Request(message, sender)
 }
 
-func NewRandomPool(poolSize int) actor.PoolRouterConfig {
+func NewRandomPool(poolSize int) PoolRouterConfig {
 	r := &RandomPoolRouter{}
 	r.PoolSize = poolSize
 	return r
 }
 
-func NewRandomGroup(routees ...*actor.PID) actor.GroupRouterConfig {
+func NewRandomGroup(routees ...*actor.PID) GroupRouterConfig {
 	r := &RandomGroupRouter{}
 	r.Routees = actor.NewPIDSet(routees...)
 	return r
 }
 
-func (config *RandomPoolRouter) CreateRouterState() actor.RouterState {
+func (config *RandomPoolRouter) CreateRouterState() RouterState {
 	return &RandomRouterState{}
 }
 
-func (config *RandomGroupRouter) CreateRouterState() actor.RouterState {
+func (config *RandomGroupRouter) CreateRouterState() RouterState {
 	return &RandomRouterState{}
 }

@@ -20,7 +20,7 @@ func doWork(ctx actor.Context) {
 }
 
 func main() {
-	pid := actor.Spawn(actor.FromFunc(doWork).WithPoolRouter(routing.NewRoundRobinPool(maxConcurrency)))
+	pid := actor.Spawn(routing.FromProps(actor.FromFunc(doWork), routing.NewRoundRobinPool(maxConcurrency)))
 	for i := 0; i < 1000; i++ {
 		pid.Tell(&workItem{i})
 	}

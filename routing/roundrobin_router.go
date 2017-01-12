@@ -7,11 +7,11 @@ import (
 )
 
 type RoundRobinGroupRouter struct {
-	actor.GroupRouter
+	GroupRouter
 }
 
 type RoundRobinPoolRouter struct {
-	actor.PoolRouter
+	PoolRouter
 }
 
 type RoundRobinState struct {
@@ -34,23 +34,23 @@ func (state *RoundRobinState) RouteMessage(message interface{}, sender *actor.PI
 	pid.Request(message, sender)
 }
 
-func NewRoundRobinGroup(routees ...*actor.PID) actor.GroupRouterConfig {
+func NewRoundRobinGroup(routees ...*actor.PID) GroupRouterConfig {
 	r := &RoundRobinGroupRouter{}
 	r.Routees = actor.NewPIDSet(routees...)
 	return r
 }
 
-func NewRoundRobinPool(poolSize int) actor.PoolRouterConfig {
+func NewRoundRobinPool(poolSize int) PoolRouterConfig {
 	r := &RoundRobinPoolRouter{}
 	r.PoolSize = poolSize
 	return r
 }
 
-func (config *RoundRobinPoolRouter) CreateRouterState() actor.RouterState {
+func (config *RoundRobinPoolRouter) CreateRouterState() RouterState {
 	return &RoundRobinState{}
 }
 
-func (config *RoundRobinGroupRouter) CreateRouterState() actor.RouterState {
+func (config *RoundRobinGroupRouter) CreateRouterState() RouterState {
 	return &RoundRobinState{}
 }
 

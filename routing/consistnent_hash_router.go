@@ -12,11 +12,11 @@ type Hasher interface {
 }
 
 type ConsistentHashGroupRouter struct {
-	actor.GroupRouter
+	GroupRouter
 }
 
 type ConsistentHashPoolRouter struct {
-	actor.PoolRouter
+	PoolRouter
 }
 
 type ConsistentHashRouterState struct {
@@ -65,26 +65,26 @@ func (state *ConsistentHashRouterState) RouteMessage(message interface{}, sender
 	}
 }
 
-func (state *ConsistentHashRouterState) InvokeRouterManagementMessage(msg actor.RouterManagementMessage, sender *actor.PID) {
+func (state *ConsistentHashRouterState) InvokeRouterManagementMessage(msg ManagementMessage, sender *actor.PID) {
 
 }
 
-func NewConsistentHashPool(poolSize int) actor.PoolRouterConfig {
+func NewConsistentHashPool(poolSize int) PoolRouterConfig {
 	r := &ConsistentHashPoolRouter{}
 	r.PoolSize = poolSize
 	return r
 }
 
-func NewConsistentHashGroup(routees ...*actor.PID) actor.GroupRouterConfig {
+func NewConsistentHashGroup(routees ...*actor.PID) GroupRouterConfig {
 	r := &ConsistentHashGroupRouter{}
 	r.Routees = actor.NewPIDSet(routees...)
 	return r
 }
 
-func (config *ConsistentHashPoolRouter) CreateRouterState() actor.RouterState {
+func (config *ConsistentHashPoolRouter) CreateRouterState() RouterState {
 	return &ConsistentHashRouterState{}
 }
 
-func (config *ConsistentHashGroupRouter) CreateRouterState() actor.RouterState {
+func (config *ConsistentHashGroupRouter) CreateRouterState() RouterState {
 	return &ConsistentHashRouterState{}
 }

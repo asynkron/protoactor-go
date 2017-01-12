@@ -1,23 +1,20 @@
 package actor
 
+type Spawner func(id string, props Props, parent *PID) *PID
+
+var DefaultSpawner Spawner = spawn
+
 //Spawn an actor with an auto generated id
 func Spawn(props Props) *PID {
-	id := ProcessRegistry.NextId()
-	pid := spawn(id, props, nil)
-	return pid
+	return props.spawn(ProcessRegistry.NextId(), nil)
 }
 
 //SpawnNamed spawns a named actor
 func SpawnNamed(props Props, name string) *PID {
-	pid := spawn(name, props, nil)
-	return pid
+	return props.spawn(name, nil)
 }
 
 func spawn(id string, props Props, parent *PID) *PID {
-	if props.RouterConfig() != nil {
-		return spawnRouter(id, props.RouterConfig(), props, parent)
-	}
-
 	cell := newActorCell(props, parent)
 	mailbox := props.ProduceMailbox()
 	ref := newLocalProcess(mailbox)

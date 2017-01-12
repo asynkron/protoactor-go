@@ -5,9 +5,9 @@ type Props struct {
 	actorProducer       Producer
 	mailboxProducer     MailboxProducer
 	supervisionStrategy SupervisorStrategy
-	routerConfig        RouterConfig
 	receivePlugins      []Receive
 	dispatcher          Dispatcher
+	spawner             Spawner
 }
 
 func (props Props) Dispatcher() Dispatcher {
@@ -15,9 +15,6 @@ func (props Props) Dispatcher() Dispatcher {
 		return defaultDispatcher
 	}
 	return props.dispatcher
-}
-func (props Props) RouterConfig() RouterConfig {
-	return props.routerConfig
 }
 
 func (props Props) ProduceActor() Actor {
@@ -38,6 +35,13 @@ func (props Props) ProduceMailbox() Mailbox {
 	return props.mailboxProducer()
 }
 
+func (props Props) spawn(id string, parent *PID) *PID {
+	if props.spawner != nil {
+		return props.spawner(id, props, parent)
+	}
+	return DefaultSpawner(id, props, parent)
+}
+
 func (props Props) WithReceivers(plugin ...Receive) Props {
 	//pass by value, we only modify the copy
 	props.receivePlugins = append(props.receivePlugins, plugin...)
@@ -56,24 +60,19 @@ func (props Props) WithSupervisor(supervisor SupervisorStrategy) Props {
 	return props
 }
 
-func (props Props) WithPoolRouter(routerConfig PoolRouterConfig) Props {
-	//pass by value, we only modify the copy
-	props.routerConfig = routerConfig
-	return props
-}
-
 func (props Props) WithDispatcher(dispatcher Dispatcher) Props {
 	//pass by value, we only modify the copy
 	props.dispatcher = dispatcher
 	return props
 }
 
+func (props Props) WithSpawn(spawn Spawner) Props {
+	props.spawner = spawn
+	return props
+}
+
 func FromProducer(actorProducer Producer) Props {
-	return Props{
-		actorProducer:   actorProducer,
-		mailboxProducer: nil,
-		routerConfig:    nil,
-	}
+	return Props{actorProducer: actorProducer}
 }
 
 func FromFunc(receive Receive) Props {
@@ -86,11 +85,4 @@ func FromInstance(template Actor) Props {
 	}
 	p := FromProducer(producer)
 	return p
-}
-
-func FromGroupRouter(router GroupRouterConfig) Props {
-	return Props{
-		routerConfig:  router,
-		actorProducer: nil,
-	}
 }

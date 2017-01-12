@@ -1,0 +1,21 @@
+syntax = "proto3";
+package routing;
+import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
+
+message AddRoutee {
+    actor.PID PID = 1;
+}
+
+message RemoveRoutee {
+    actor.PID PID = 1;
+}
+
+message AdjustPoolSize {
+    int32 change = 1;
+}
+
+message GetRoutees {}
+
+message Routees {
+    repeated actor.PID PIDs = 1;
+}

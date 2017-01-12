@@ -1,9 +1,10 @@
-package actor
+package routing
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -17,9 +18,9 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 		Run(func(args mock.Arguments) {
 			w.Done()
 		})
-	child := Spawn(FromInstance(a))
+	child := actor.Spawn(actor.FromInstance(a))
 
-	s1 := NewPIDSet(child)
+	s1 := actor.NewPIDSet(child)
 
 	rs := new(testRouterState)
 	rs.On("SetRoutees", s1)
@@ -28,12 +29,12 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 	grc := newGroupRouterConfig(child)
 	grc.On("CreateRouterState").Return(rs)
 
-	routerPID := Spawn(FromGroupRouter(grc))
+	routerPID := actor.Spawn(FromGroupRouter(grc))
 	routerPID.Tell("hello")
 
-	// w.Wait()
+	w.Wait()
 
-	// mock.AssertExpectationsForObjects(t, a, rs)
+	mock.AssertExpectationsForObjects(t, a, rs)
 }
 
 type testGroupRouter struct {
@@ -41,9 +42,9 @@ type testGroupRouter struct {
 	mock.Mock
 }
 
-func newGroupRouterConfig(routees ...*PID) *testGroupRouter {
+func newGroupRouterConfig(routees ...*actor.PID) *testGroupRouter {
 	r := new(testGroupRouter)
-	r.Routees = NewPIDSet(routees...)
+	r.Routees = actor.NewPIDSet(routees...)
 	return r
 }
 
@@ -54,22 +55,22 @@ func (m *testGroupRouter) CreateRouterState() RouterState {
 
 type testRouterState struct {
 	mock.Mock
-	routees *PIDSet
+	routees *actor.PIDSet
 }
 
-func (m *testRouterState) SetRoutees(routees *PIDSet) {
+func (m *testRouterState) SetRoutees(routees *actor.PIDSet) {
 	m.Called(routees)
 	m.routees = routees
 }
 
-func (m *testRouterState) RouteMessage(message interface{}, sender *PID) {
+func (m *testRouterState) RouteMessage(message interface{}, sender *actor.PID) {
 	m.Called(message, sender)
-	m.routees.ForEach(func(i int, pid PID) {
+	m.routees.ForEach(func(i int, pid actor.PID) {
 		pid.Request(message, sender)
 	})
 }
 
-func (m *testRouterState) GetRoutees() *PIDSet {
+func (m *testRouterState) GetRoutees() *actor.PIDSet {
 	args := m.Called()
-	return args.Get(0).(*PIDSet)
+	return args.Get(0).(*actor.PIDSet)
 }

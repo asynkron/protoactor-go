@@ -3,11 +3,11 @@ package routing
 import "github.com/AsynkronIT/protoactor-go/actor"
 
 type BroadcastGroupRouter struct {
-	actor.GroupRouter
+	GroupRouter
 }
 
 type BroadcastPoolRouter struct {
-	actor.PoolRouter
+	PoolRouter
 }
 
 type BroadcastRouterState struct {
@@ -28,22 +28,22 @@ func (state *BroadcastRouterState) RouteMessage(message interface{}, sender *act
 	})
 }
 
-func NewBroadcastPool(poolSize int) actor.PoolRouterConfig {
+func NewBroadcastPool(poolSize int) PoolRouterConfig {
 	r := &BroadcastPoolRouter{}
 	r.PoolSize = poolSize
 	return r
 }
 
-func NewBroadcastGroup(routees ...*actor.PID) actor.GroupRouterConfig {
+func NewBroadcastGroup(routees ...*actor.PID) GroupRouterConfig {
 	r := &BroadcastGroupRouter{}
 	r.Routees = actor.NewPIDSet(routees...)
 	return r
 }
 
-func (config *BroadcastPoolRouter) CreateRouterState() actor.RouterState {
+func (config *BroadcastPoolRouter) CreateRouterState() RouterState {
 	return &BroadcastRouterState{}
 }
 
-func (config *BroadcastGroupRouter) CreateRouterState() actor.RouterState {
+func (config *BroadcastGroupRouter) CreateRouterState() RouterState {
 	return &BroadcastRouterState{}
 }

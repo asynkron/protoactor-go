@@ -25,29 +25,25 @@ func main() {
 			log.Printf("%v got message %d", context.Self(), msg.i)
 		}
 	})
-	props := act.WithPoolRouter(routing.NewRoundRobinPool(5))
-	pid := actor.Spawn(props)
+	pid := routing.SpawnPool(routing.NewRoundRobinPool(5), act)
 	for i := 0; i < 10; i++ {
 		pid.Tell(&myMessage{i})
 	}
 	time.Sleep(1 * time.Second)
 	log.Println("Random routing:")
-	props = act.WithPoolRouter(routing.NewRandomPool(5))
-	pid = actor.Spawn(props)
+	pid = routing.SpawnPool(routing.NewRandomPool(5), act)
 	for i := 0; i < 10; i++ {
 		pid.Tell(&myMessage{i})
 	}
 	time.Sleep(1 * time.Second)
 	log.Println("ConsistentHash routing:")
-	props = act.WithPoolRouter(routing.NewConsistentHashPool(5))
-	pid = actor.Spawn(props)
+	pid = routing.SpawnPool(routing.NewConsistentHashPool(5), act)
 	for i := 0; i < 10; i++ {
 		pid.Tell(&myMessage{i})
 	}
 	time.Sleep(1 * time.Second)
 	log.Println("BroadcastPool routing:")
-	props = act.WithPoolRouter(routing.NewBroadcastPool(5))
-	pid = actor.Spawn(props)
+	pid = routing.SpawnPool(routing.NewBroadcastPool(5), act)
 	for i := 0; i < 10; i++ {
 		pid.Tell(&myMessage{i})
 	}
