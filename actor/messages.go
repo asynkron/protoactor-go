@@ -4,6 +4,10 @@ type AutoReceiveMessage interface {
 	AutoReceiveMessage()
 }
 
+type NotInfluenceReceiveTimeout interface {
+	NotInfluenceReceiveTimeout()
+}
+
 //SystemMessage is a special type of messages passed to control the actor lifecycles
 type SystemMessage interface {
 	SystemMessage()
@@ -41,6 +45,15 @@ func (*Failure) SystemMessage()        {}
 func (*Restart) SystemMessage()        {}
 func (*ResumeMailbox) SystemMessage()  {}
 func (*SuspendMailbox) SystemMessage() {}
+
+var (
+	restartingMessage     interface{} = &Restarting{}
+	stoppingMessage       interface{} = &Stopping{}
+	stoppedMessage        interface{} = &Stopped{}
+	poisonPillMessage     interface{} = &PoisonPill{}
+	startedMessage        interface{} = &Started{}
+	receiveTimeoutMessage interface{} = &ReceiveTimeout{}
+)
 
 var (
 	restartMessage        SystemMessage = &Restart{}
