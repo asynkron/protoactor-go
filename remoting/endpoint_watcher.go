@@ -36,7 +36,9 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		delete(state.watcher, msg.Watchee.Id)
 
 	case *EndpointTerminated:
+
 		log.Printf("[REMOTING] EndpointWatcher handling terminated address %v", msg.Address)
+
 		for id, pid := range state.watched {
 
 			//try to find the watcher ID in the local actor registry
@@ -54,6 +56,8 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 				ref.SendSystemMessage(watcher, terminated)
 			}
 		}
+
+		ctx.Become(state.Terminated)
 
 	case *remoteWatch:
 
@@ -81,6 +85,36 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 
 		//pass it off to the remote PID
 		sendRemoteMessage(msg.Watchee, uw, nil)
+
+	default:
+		log.Printf("[REMOTING] EndpointWatcher for %v, Unknown message %v", state.address, msg)
+	}
+}
+
+func (state *endpointWatcher) Terminated(ctx actor.Context) {
+	switch msg := ctx.Message().(type) {
+	case *remoteTerminate:
+	//pass
+	case *EndpointTerminated:
+	//pass
+	case *remoteWatch:
+
+		//try to find the watcher ID in the local actor registry
+		ref, ok := actor.ProcessRegistry.GetLocal(msg.Watcher.Id)
+		if ok {
+
+			//create a terminated event for the Watched actor
+			terminated := &actor.Terminated{
+				Who:               msg.Watchee,
+				AddressTerminated: true,
+			}
+
+			//send the address Terminated event to the Watcher
+			ref.SendSystemMessage(msg.Watcher, terminated)
+		}
+
+	case *remoteUnwatch:
+	//pass
 
 	default:
 		log.Printf("[REMOTING] EndpointWatcher for %v, Unknown message %v", state.address, msg)
