@@ -34,15 +34,15 @@ func (state *endpointWriter) initialize() {
 
 func (state *endpointWriter) initializeInternal() error {
 	log.Printf("[REMOTING] Started EndpointWriter for address %v", state.address)
-	log.Printf("[REMOTING] Connecting to address %v", state.address)
+	log.Printf("[REMOTING] EndpointWriter connecting to address %v", state.address)
 	conn, err := grpc.Dial(state.address, state.config.dialOptions...)
 	if err != nil {
 		return err
 	}
-	log.Printf("[REMOTING] Connected to address %v", state.address)
+	//	log.Printf("[REMOTING] Connected to address %v", state.address)
 	state.conn = conn
 	c := NewRemotingClient(conn)
-	log.Printf("[REMOTING] Getting stream from address %v", state.address)
+	//	log.Printf("[REMOTING] Getting stream from address %v", state.address)
 	stream, err := c.Receive(context.Background(), state.config.callOptions...)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (state *endpointWriter) initializeInternal() error {
 	go func() {
 		_, err := stream.Recv()
 		if err != nil {
-			log.Printf("[REMOTING] EndpointWriter for address %v closed", state.address)
+			log.Printf("[REMOTING] EndpointWriter lost connection to address %v", state.address)
 
 			//notify that the endpoint terminated
 			terminated := EndpointTerminated{
@@ -60,7 +60,7 @@ func (state *endpointWriter) initializeInternal() error {
 		}
 	}()
 
-	log.Printf("[REMOTING] Got stream from address %v", state.address)
+	log.Printf("[REMOTING] EndpointWriter connected to address %v", state.address)
 	state.stream = stream
 	return nil
 }
