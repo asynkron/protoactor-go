@@ -60,7 +60,7 @@ func (pid *PID) Stop() {
 }
 
 func pidFromKey(key string, p *PID) {
-	i := strings.IndexByte(key, ':')
+	i := strings.IndexByte(key, '#')
 	if i == -1 {
 		p.Address = ProcessRegistry.Address
 		p.Id = key
@@ -74,7 +74,7 @@ func (pid *PID) key() string {
 	if pid.Address == ProcessRegistry.Address {
 		return pid.Id
 	}
-	return pid.Address + ":" + pid.Id
+	return pid.Address + "#" + pid.Id
 }
 
 func (pid *PID) Empty() bool {
