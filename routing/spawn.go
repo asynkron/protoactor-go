@@ -37,8 +37,8 @@ func spawn(id string, config RouterConfig, props actor.Props, parent *actor.PID)
 		state:  routerState,
 	})
 
-	routerId := actor.ProcessRegistry.NextId()
-	router := actor.DefaultSpawner(routerId, routerProps, parent)
+	routerID := actor.ProcessRegistry.NextId()
+	router := actor.DefaultSpawner(routerID, routerProps, parent)
 
 	ref := &routerProcess{
 		router: router,
