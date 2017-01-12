@@ -9,19 +9,19 @@ import (
 
 //Tell a message to a given PID
 func (pid *PID) Tell(message interface{}) {
-	ref, _ := ProcessRegistry.get(pid)
+	ref, _ := ProcessRegistry.Get(pid)
 	ref.SendUserMessage(pid, message, nil)
 }
 
 //Ask a message to a given PID
 func (pid *PID) Request(message interface{}, respondTo *PID) {
-	ref, _ := ProcessRegistry.get(pid)
+	ref, _ := ProcessRegistry.Get(pid)
 	ref.SendUserMessage(pid, message, respondTo)
 }
 
 //RequestFuture sends a message to a given PID and returns a Future
 func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Future {
-	ref, ok := ProcessRegistry.get(pid)
+	ref, ok := ProcessRegistry.Get(pid)
 	if !ok {
 		log.Printf("[ACTOR] RequestFuture for missing local PID '%v'", pid.String())
 	}
@@ -32,12 +32,12 @@ func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Futur
 }
 
 func (pid *PID) sendSystemMessage(message SystemMessage) {
-	ref, _ := ProcessRegistry.get(pid)
+	ref, _ := ProcessRegistry.Get(pid)
 	ref.SendSystemMessage(pid, message)
 }
 
 func (pid *PID) StopFuture() *Future {
-	ref, _ := ProcessRegistry.get(pid)
+	ref, _ := ProcessRegistry.Get(pid)
 
 	future := NewFuture(10 * time.Second)
 
@@ -55,7 +55,7 @@ func (pid *PID) StopFuture() *Future {
 
 //Stop the given PID
 func (pid *PID) Stop() {
-	ref, _ := ProcessRegistry.get(pid)
+	ref, _ := ProcessRegistry.Get(pid)
 	ref.Stop(pid)
 }
 

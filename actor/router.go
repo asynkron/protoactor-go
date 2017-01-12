@@ -56,7 +56,7 @@ func spawnRouter(id string, config RouterConfig, props Props, parent *PID) *PID 
 		router: router,
 		state:  routerState,
 	}
-	proxy, _ := ProcessRegistry.add(ref, id)
+	proxy, _ := ProcessRegistry.Add(ref, id)
 	return proxy
 }
 
@@ -67,7 +67,7 @@ type routerProcess struct {
 
 func (ref *routerProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	if _, ok := message.(RouterManagementMessage); ok {
-		r, _ := ProcessRegistry.get(ref.router)
+		r, _ := ProcessRegistry.Get(ref.router)
 		r.SendUserMessage(pid, message, sender)
 	} else {
 		ref.state.RouteMessage(message, sender)
@@ -83,7 +83,7 @@ func (ref *routerProcess) Unwatch(pid *PID) {
 }
 
 func (ref *routerProcess) SendSystemMessage(pid *PID, message SystemMessage) {
-	r, _ := ProcessRegistry.get(ref.router)
+	r, _ := ProcessRegistry.Get(ref.router)
 	r.SendSystemMessage(pid, message)
 }
 

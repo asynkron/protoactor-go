@@ -34,7 +34,7 @@ func TestStopFuture(t *testing.T) {
 			return
 		}
 
-		_, found := ProcessRegistry.get(actor)
+		_, found := ProcessRegistry.Get(actor)
 		assert.False(t, found)
 	}
 }

@@ -55,7 +55,7 @@ func (pr *ProcessRegistryValue) getAutoId() string {
 	return uint64ToId(counter)
 }
 
-func (pr *ProcessRegistryValue) add(process Process, id string) (*PID, bool) {
+func (pr *ProcessRegistryValue) Add(process Process, id string) (*PID, bool) {
 
 	pid := PID{
 		Address: pr.Address,
@@ -66,11 +66,11 @@ func (pr *ProcessRegistryValue) add(process Process, id string) (*PID, bool) {
 	return &pid, absent
 }
 
-func (pr *ProcessRegistryValue) remove(pid *PID) {
+func (pr *ProcessRegistryValue) Remove(pid *PID) {
 	pr.LocalPIDs.Remove(pid.Id)
 }
 
-func (pr *ProcessRegistryValue) get(pid *PID) (Process, bool) {
+func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {
 	if pid == nil {
 		panic("Pid may not be nil")
 	}

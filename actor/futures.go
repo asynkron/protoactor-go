@@ -17,7 +17,7 @@ func NewFuture(timeout time.Duration) *Future {
 	ref := &futureProcess{f: fut}
 	id := ProcessRegistry.getAutoId()
 
-	pid, ok := ProcessRegistry.add(ref, id)
+	pid, ok := ProcessRegistry.Add(ref, id)
 	if !ok {
 		log.Printf("[ACTOR] Failed to register future actorref '%v'", id)
 		log.Println(id)
@@ -108,7 +108,7 @@ func (ref *futureProcess) Stop(pid *PID) {
 
 	ref.f.done = true
 	ref.f.t.Stop()
-	ProcessRegistry.remove(pid)
+	ProcessRegistry.Remove(pid)
 
 	ref.f.cond.L.Unlock()
 	ref.f.cond.Signal()

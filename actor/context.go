@@ -323,7 +323,7 @@ func (cell *actorCell) restart() {
 }
 
 func (cell *actorCell) stopped() {
-	ProcessRegistry.remove(cell.self)
+	ProcessRegistry.Remove(cell.self)
 	cell.InvokeUserMessage(stoppedMessage)
 	otherStopped := &Terminated{Who: cell.self}
 	cell.watchers.ForEach(func(i int, pid PID) {
