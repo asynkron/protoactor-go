@@ -18,7 +18,7 @@ func spawn(id string, props Props, parent *PID) *PID {
 		return spawnRouter(id, props.RouterConfig(), props, parent)
 	}
 
-	cell := NewActorCell(props, parent)
+	cell := newActorCell(props, parent)
 	mailbox := props.ProduceMailbox()
 	ref := newLocalProcess(mailbox)
 	pid, absent := ProcessRegistry.add(ref, id)

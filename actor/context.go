@@ -182,7 +182,7 @@ func (cell *actorCell) Parent() *PID {
 	return cell.parent
 }
 
-func NewActorCell(props Props, parent *PID) *actorCell {
+func newActorCell(props Props, parent *PID) *actorCell {
 	cell := &actorCell{
 		parent: parent,
 		props:  props,
