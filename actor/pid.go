@@ -41,7 +41,7 @@ func (pid *PID) StopFuture() *Future {
 
 	future := NewFuture(10 * time.Second)
 
-	ref, ok := ref.(*localActorRef)
+	ref, ok := ref.(*localProcess)
 	if !ok {
 		log.Fatalf("[ACTOR] Trying to stop non local actorref %s", reflect.TypeOf(ref))
 	}

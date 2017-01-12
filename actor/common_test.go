@@ -165,22 +165,22 @@ func (m *mockContext) Actor() Actor {
 	return args.Get(0).(Actor)
 }
 
-type mockActorRef struct {
+type mockProcess struct {
 	mock.Mock
 }
 
-func (m *mockActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
+func (m *mockProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	m.Called(pid, message, sender)
 }
-func (m *mockActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
+func (m *mockProcess) SendSystemMessage(pid *PID, message SystemMessage) {
 	m.Called(pid, message)
 }
-func (m *mockActorRef) Stop(pid *PID) {
+func (m *mockProcess) Stop(pid *PID) {
 	m.Called(pid)
 }
-func (m *mockActorRef) Watch(pid *PID) {
+func (m *mockProcess) Watch(pid *PID) {
 	m.Called(pid)
 }
-func (m *mockActorRef) Unwatch(pid *PID) {
+func (m *mockProcess) Unwatch(pid *PID) {
 	m.Called(pid)
 }

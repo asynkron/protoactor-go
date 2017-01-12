@@ -22,7 +22,7 @@ var (
 	}
 )
 
-type AddressResolver func(*PID) (ActorRef, bool)
+type AddressResolver func(*PID) (Process, bool)
 
 func (pr *ProcessRegistryValue) RegisterAddressResolver(handler AddressResolver) {
 	pr.RemoteHandlers = append(pr.RemoteHandlers, handler)
@@ -55,7 +55,7 @@ func (pr *ProcessRegistryValue) getAutoId() string {
 	return uint64ToId(counter)
 }
 
-func (pr *ProcessRegistryValue) add(actorRef ActorRef, id string) (*PID, bool) {
+func (pr *ProcessRegistryValue) add(actorRef Process, id string) (*PID, bool) {
 
 	pid := PID{
 		Address: pr.Address,
@@ -70,7 +70,7 @@ func (pr *ProcessRegistryValue) remove(pid *PID) {
 	pr.LocalPids.Remove(pid.Id)
 }
 
-func (pr *ProcessRegistryValue) get(pid *PID) (ActorRef, bool) {
+func (pr *ProcessRegistryValue) get(pid *PID) (Process, bool) {
 	if pid == nil {
 		panic("Pid may not be nil")
 	}
@@ -87,13 +87,13 @@ func (pr *ProcessRegistryValue) get(pid *PID) (ActorRef, bool) {
 	if !ok {
 		return deadLetter, false
 	}
-	return ref.(ActorRef), true
+	return ref.(Process), true
 }
 
-func (pr *ProcessRegistryValue) GetLocal(id string) (ActorRef, bool) {
+func (pr *ProcessRegistryValue) GetLocal(id string) (Process, bool) {
 	ref, ok := pr.LocalPids.Get(id)
 	if !ok {
 		return deadLetter, false
 	}
-	return ref.(ActorRef), true
+	return ref.(Process), true
 }

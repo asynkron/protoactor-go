@@ -52,7 +52,7 @@ func spawnRouter(id string, config RouterConfig, props Props, parent *PID) *PID 
 	routerId := ProcessRegistry.getAutoId()
 	router := spawn(routerId, routerProps, parent)
 
-	ref := &RouterActorRef{
+	ref := &routerProcess{
 		router: router,
 		state:  routerState,
 	}
@@ -60,12 +60,12 @@ func spawnRouter(id string, config RouterConfig, props Props, parent *PID) *PID 
 	return proxy
 }
 
-type RouterActorRef struct {
+type routerProcess struct {
 	router *PID
 	state  RouterState
 }
 
-func (ref *RouterActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
+func (ref *routerProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	if _, ok := message.(RouterManagementMessage); ok {
 		r, _ := ProcessRegistry.get(ref.router)
 		r.SendUserMessage(pid, message, sender)
@@ -74,20 +74,20 @@ func (ref *RouterActorRef) SendUserMessage(pid *PID, message interface{}, sender
 	}
 }
 
-func (ref *RouterActorRef) Watch(pid *PID) {
+func (ref *routerProcess) Watch(pid *PID) {
 	ref.SendSystemMessage(pid, &Watch{Watcher: pid})
 }
 
-func (ref *RouterActorRef) Unwatch(pid *PID) {
+func (ref *routerProcess) Unwatch(pid *PID) {
 	ref.SendSystemMessage(pid, &Unwatch{Watcher: pid})
 }
 
-func (ref *RouterActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
+func (ref *routerProcess) SendSystemMessage(pid *PID, message SystemMessage) {
 	r, _ := ProcessRegistry.get(ref.router)
 	r.SendSystemMessage(pid, message)
 }
 
-func (ref *RouterActorRef) Stop(pid *PID) {
+func (ref *routerProcess) Stop(pid *PID) {
 	ref.SendSystemMessage(pid, stopMessage)
 }
 

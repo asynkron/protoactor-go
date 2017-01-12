@@ -18,7 +18,7 @@ func NewBlackHoleActor() Actor {
 	return &BlackHoleActor{}
 }
 
-func TestSpawnProducesActorRef(t *testing.T) {
+func TestSpawnProducesProcess(t *testing.T) {
 	actor := Spawn(FromProducer(NewBlackHoleActor))
 	defer actor.Stop()
 	assert.NotNil(t, actor)

@@ -8,17 +8,17 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
-type remoteActorRef struct {
+type remoteProcess struct {
 	pid *actor.PID
 }
 
-func newRemoteActorRef(pid *actor.PID) actor.ActorRef {
-	return &remoteActorRef{
+func newRemoteProcess(pid *actor.PID) actor.Process {
+	return &remoteProcess{
 		pid: pid,
 	}
 }
 
-func (ref *remoteActorRef) SendUserMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
+func (ref *remoteProcess) SendUserMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
 	sendRemoteMessage(pid, message, sender)
 }
 
@@ -32,7 +32,7 @@ func sendRemoteMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
 	}
 }
 
-func (ref *remoteActorRef) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
+func (ref *remoteProcess) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
 
 	//intercept any Watch messages and direct them to the endpoint manager
 	switch msg := message.(type) {
@@ -53,14 +53,14 @@ func (ref *remoteActorRef) SendSystemMessage(pid *actor.PID, message actor.Syste
 	}
 }
 
-func (ref *remoteActorRef) Stop(pid *actor.PID) {
+func (ref *remoteProcess) Stop(pid *actor.PID) {
 	ref.SendSystemMessage(pid, &actor.Stop{})
 }
 
-func (ref *remoteActorRef) Watch(pid *actor.PID) {
+func (ref *remoteProcess) Watch(pid *actor.PID) {
 	ref.SendSystemMessage(pid, &actor.Watch{Watcher: pid})
 }
 
-func (ref *remoteActorRef) Unwatch(pid *actor.PID) {
+func (ref *remoteProcess) Unwatch(pid *actor.PID) {
 	ref.SendSystemMessage(pid, &actor.Unwatch{Watcher: pid})
 }

@@ -1,9 +1,9 @@
 package actor
 
-type deadLetterActorRef struct{}
+type deadLetterProcess struct{}
 
 var (
-	deadLetter ActorRef = &deadLetterActorRef{}
+	deadLetter Process = &deadLetterProcess{}
 )
 
 type DeadLetter struct {
@@ -12,7 +12,7 @@ type DeadLetter struct {
 	Sender  *PID
 }
 
-func (*deadLetterActorRef) SendUserMessage(pid *PID, message interface{}, sender *PID) {
+func (*deadLetterProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	EventStream.Publish(&DeadLetter{
 		PID:     pid,
 		Message: message,
@@ -20,21 +20,21 @@ func (*deadLetterActorRef) SendUserMessage(pid *PID, message interface{}, sender
 	})
 }
 
-func (*deadLetterActorRef) SendSystemMessage(pid *PID, message SystemMessage) {
+func (*deadLetterProcess) SendSystemMessage(pid *PID, message SystemMessage) {
 	EventStream.Publish(&DeadLetter{
 		PID:     pid,
 		Message: message,
 	})
 }
 
-func (ref *deadLetterActorRef) Stop(pid *PID) {
+func (ref *deadLetterProcess) Stop(pid *PID) {
 	ref.SendSystemMessage(pid, stopMessage)
 }
 
-func (ref *deadLetterActorRef) Watch(pid *PID) {
+func (ref *deadLetterProcess) Watch(pid *PID) {
 	ref.SendSystemMessage(pid, &Watch{Watcher: pid})
 }
 
-func (ref *deadLetterActorRef) Unwatch(pid *PID) {
+func (ref *deadLetterProcess) Unwatch(pid *PID) {
 	ref.SendSystemMessage(pid, &Unwatch{Watcher: pid})
 }

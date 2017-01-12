@@ -20,7 +20,7 @@ func spawn(id string, props Props, parent *PID) *PID {
 
 	cell := NewActorCell(props, parent)
 	mailbox := props.ProduceMailbox()
-	ref := newLocalActorRef(mailbox)
+	ref := newLocalProcess(mailbox)
 	pid, new := ProcessRegistry.add(ref, id)
 
 	if new {
