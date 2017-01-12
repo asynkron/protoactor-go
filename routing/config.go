@@ -1,6 +1,8 @@
 package routing
 
-import "github.com/AsynkronIT/protoactor-go/actor"
+import (
+	"github.com/AsynkronIT/protoactor-go/actor"
+)
 
 type RouterConfig interface {
 	OnStarted(context actor.Context, props actor.Props, router RouterState)

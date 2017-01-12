@@ -1,9 +1,9 @@
 package actor
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
-	"sync/atomic"
 	"time"
 
 	"github.com/stretchr/testify/mock"
@@ -16,65 +16,38 @@ func init() {
 	log.SetOutput(ioutil.Discard)
 }
 
-type inlineDispatcher struct{}
-
-func (inlineDispatcher) Schedule(runner MailboxRunner) {
-	runner()
-}
-
-func (inlineDispatcher) Throughput() int {
-	return 1
-}
-
-const defaultTimeout = 10 * time.Millisecond
-
-type waiter struct {
-	c  int32
-	ch chan struct{}
-}
-
-func newWaiter(c int32) *waiter {
-	return &waiter{c: c, ch: make(chan struct{})}
-}
-
-func (w *waiter) Add(c int32) {
-	v := atomic.AddInt32(&w.c, c)
-	if v == 0 {
-		w.ch <- struct{}{}
-	} else if v < 0 {
-		panic("<0")
+func spawnNamedProcess(name string) (*PID, *mockProcess) {
+	p := &mockProcess{}
+	pid, ok := ProcessRegistry.Add(p, name)
+	if !ok {
+		panic(fmt.Errorf("did not spawn named process '%s'", name))
 	}
+
+	return pid, p
 }
 
-func (w *waiter) Done() {
-	w.Add(-1)
+func removeProcess(pid *PID) {
+	ProcessRegistry.Remove(pid)
 }
 
-func (w *waiter) Wait() bool {
-	return w.WaitTimeout(defaultTimeout)
-}
-
-func (w *waiter) WaitTimeout(t time.Duration) bool {
-	select {
-	case <-w.ch:
-		return true
-	case <-time.After(t):
-		return false
-	}
-}
-
-type mockActor struct {
+type mockProcess struct {
 	mock.Mock
 }
 
-func (m *mockActor) Receive(context Context) {
-	m.Called(context)
+func (m *mockProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
+	m.Called(pid, message, sender)
 }
-
-func newMockActor() *mockActor {
-	a := new(mockActor)
-	a.On("Receive", mock.Anything).Once() // Started
-	return a
+func (m *mockProcess) SendSystemMessage(pid *PID, message SystemMessage) {
+	m.Called(pid, message)
+}
+func (m *mockProcess) Stop(pid *PID) {
+	m.Called(pid)
+}
+func (m *mockProcess) Watch(pid *PID) {
+	m.Called(pid)
+}
+func (m *mockProcess) Unwatch(pid *PID) {
+	m.Called(pid)
 }
 
 type mockContext struct {
@@ -163,24 +136,4 @@ func (m *mockContext) Respond(response interface{}) {
 func (m *mockContext) Actor() Actor {
 	args := m.Called()
 	return args.Get(0).(Actor)
-}
-
-type mockProcess struct {
-	mock.Mock
-}
-
-func (m *mockProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
-	m.Called(pid, message, sender)
-}
-func (m *mockProcess) SendSystemMessage(pid *PID, message SystemMessage) {
-	m.Called(pid, message)
-}
-func (m *mockProcess) Stop(pid *PID) {
-	m.Called(pid)
-}
-func (m *mockProcess) Watch(pid *PID) {
-	m.Called(pid)
-}
-func (m *mockProcess) Unwatch(pid *PID) {
-	m.Called(pid)
 }

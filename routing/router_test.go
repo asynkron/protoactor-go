@@ -3,22 +3,21 @@ package routing
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/stretchr/testify/mock"
 )
 
 var _ fmt.Formatter
+var _ time.Time
 
 func TestRouterSendsUserMessageToChild(t *testing.T) {
-	w := newWaiter(1)
+	child, p := spawnNamedProcess("child")
+	defer removeProcess(child)
 
-	a := newMockActor()
-	a.On("Receive", mock.Anything).
-		Run(func(args mock.Arguments) {
-			w.Done()
-		})
-	child := actor.Spawn(actor.FromInstance(a))
+	p.On("SendUserMessage", mock.Anything, "hello", mock.Anything)
+	p.On("SendSystemMessage", mock.Anything, mock.Anything, mock.Anything)
 
 	s1 := actor.NewPIDSet(child)
 
@@ -29,12 +28,10 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 	grc := newGroupRouterConfig(child)
 	grc.On("CreateRouterState").Return(rs)
 
-	routerPID := actor.Spawn(FromGroupRouter(grc))
+	routerPID := SpawnGroup(grc)
 	routerPID.Tell("hello")
 
-	w.Wait()
-
-	mock.AssertExpectationsForObjects(t, a, rs)
+	mock.AssertExpectationsForObjects(t, p, rs)
 }
 
 type testGroupRouter struct {
@@ -49,6 +46,7 @@ func newGroupRouterConfig(routees ...*actor.PID) *testGroupRouter {
 }
 
 func (m *testGroupRouter) CreateRouterState() RouterState {
+	fmt.Println("Doing it")
 	args := m.Called()
 	return args.Get(0).(*testRouterState)
 }
@@ -59,6 +57,7 @@ type testRouterState struct {
 }
 
 func (m *testRouterState) SetRoutees(routees *actor.PIDSet) {
+	fmt.Println("SetRoutees")
 	m.Called(routees)
 	m.routees = routees
 }

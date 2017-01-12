@@ -1,6 +1,10 @@
 package routing
 
-import "github.com/AsynkronIT/protoactor-go/actor"
+import (
+	"fmt"
+
+	"github.com/AsynkronIT/protoactor-go/actor"
+)
 
 // SpawnPool spawns a pool router with an auto generated id
 func SpawnPool(config PoolRouterConfig, props actor.Props) *actor.PID {
@@ -31,6 +35,7 @@ func SpawnNamedGroup(config RouterConfig, name string) *actor.PID {
 func spawn(id string, config RouterConfig, props actor.Props, parent *actor.PID) *actor.PID {
 	props = props.WithSpawn(nil)
 	routerState := config.CreateRouterState()
+	fmt.Println(routerState)
 
 	routerProps := actor.FromInstance(&routerActor{
 		props:  props,
