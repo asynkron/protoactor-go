@@ -55,14 +55,14 @@ func (pr *ProcessRegistryValue) getAutoId() string {
 	return uint64ToId(counter)
 }
 
-func (pr *ProcessRegistryValue) add(actorRef Process, id string) (*PID, bool) {
+func (pr *ProcessRegistryValue) add(process Process, id string) (*PID, bool) {
 
 	pid := PID{
 		Address: pr.Address,
 		Id:      id,
 	}
 
-	absent := pr.LocalPids.SetIfAbsent(pid.Id, actorRef)
+	absent := pr.LocalPids.SetIfAbsent(pid.Id, process)
 	return &pid, absent
 }
 
