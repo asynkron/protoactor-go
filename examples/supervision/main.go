@@ -30,11 +30,11 @@ func (state *childActor) Receive(context actor.Context) {
 	case *actor.Started:
 		fmt.Println("Starting, initialize actor here")
 	case *actor.Stopping:
-		fmt.Println("Stopping, actor is about shut down")
+		fmt.Println("Stopping, actor is about to shut down")
 	case *actor.Stopped:
-		fmt.Println("Stopped, actor and it's children are stopped")
+		fmt.Println("Stopped, actor and its children are stopped")
 	case *actor.Restarting:
-		fmt.Println("Restarting, actor is about restart")
+		fmt.Println("Restarting, actor is about to restart")
 	case *hello:
 		fmt.Printf("Hello %v\n", msg.Who)
 		panic("Ouch")
