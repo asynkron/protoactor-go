@@ -283,6 +283,11 @@ func (cell *actorCell) handleFailure(msg *Failure) {
 }
 
 func (cell *actorCell) EscalateFailure(who *PID, reason interface{}) {
+	if cell.Parent() == nil {
+		log.Printf("[ACTOR] '%v' Cannot escalate failure from root actor; stopping instead", cell.debugString())
+		cell.Self().sendSystemMessage(stopMessage)
+		return
+	}
 	//suspend self
 	cell.Self().sendSystemMessage(suspendMailboxMessage)
 	//send failure to parent
@@ -427,7 +432,7 @@ func (cell *actorCell) BecomeStacked(behavior Receive) {
 
 func (cell *actorCell) UnbecomeStacked() {
 	if cell.behavior.Len() == 0 {
-		panic("Can not unbecome actor base behavior")
+		panic("Cannot unbecome actor base behavior")
 	}
 	cell.receive, _ = cell.behavior.Pop()
 }
