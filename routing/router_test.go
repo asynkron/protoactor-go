@@ -13,8 +13,8 @@ var _ fmt.Formatter
 var _ time.Time
 
 func TestRouterSendsUserMessageToChild(t *testing.T) {
-	child, p := spawnNamedProcess("child")
-	defer removeProcess(child)
+	child, p := spawnMockProcess("child")
+	defer removeMockProcess(child)
 
 	p.On("SendUserMessage", mock.Anything, "hello", mock.Anything)
 	p.On("SendSystemMessage", mock.Anything, mock.Anything, mock.Anything)
