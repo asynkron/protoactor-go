@@ -8,8 +8,8 @@ import (
 )
 
 func TestActorCell_SpawnNamed(t *testing.T) {
-	pid, p := spawnNamedProcess("foo/bar")
-	defer removeProcess(pid)
+	pid, p := spawnMockProcess("foo/bar")
+	defer removeMockProcess(pid)
 	p.On("SendSystemMessage", pid, mock.Anything)
 
 	props := Props{

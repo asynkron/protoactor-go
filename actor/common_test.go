@@ -16,7 +16,7 @@ func init() {
 	log.SetOutput(ioutil.Discard)
 }
 
-func spawnNamedProcess(name string) (*PID, *mockProcess) {
+func spawnMockProcess(name string) (*PID, *mockProcess) {
 	p := &mockProcess{}
 	pid, ok := ProcessRegistry.Add(p, name)
 	if !ok {
@@ -26,7 +26,7 @@ func spawnNamedProcess(name string) (*PID, *mockProcess) {
 	return pid, p
 }
 
-func removeProcess(pid *PID) {
+func removeMockProcess(pid *PID) {
 	ProcessRegistry.Remove(pid)
 }
 
