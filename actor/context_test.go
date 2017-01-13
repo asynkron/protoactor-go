@@ -1,6 +1,28 @@
 package actor
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+func TestActorCell_SpawnNamed(t *testing.T) {
+	pid, p := spawnNamedProcess("foo/bar")
+	defer removeProcess(pid)
+	p.On("SendSystemMessage", pid, mock.Anything)
+
+	props := Props{
+		spawner: func(id string, _ Props, _ *PID) *PID {
+			assert.Equal(t, "foo/bar", id)
+			return NewLocalPID(id)
+		},
+	}
+
+	parent := &actorCell{self: NewLocalPID("foo")}
+	parent.SpawnNamed(props, "bar")
+	mock.AssertExpectationsForObjects(t, p)
+}
 
 func BenchmarkActorCell_Next(b *testing.B) {
 	ac := &actorCell{actor: nullReceive}

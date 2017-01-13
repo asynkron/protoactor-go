@@ -454,19 +454,11 @@ func (cell *actorCell) Respond(response interface{}) {
 }
 
 func (cell *actorCell) Spawn(props Props) *PID {
-	id := ProcessRegistry.NextId()
-	return cell.SpawnNamed(props, id)
+	return cell.SpawnNamed(props, ProcessRegistry.NextId())
 }
 
 func (cell *actorCell) SpawnNamed(props Props, name string) *PID {
-	var fullName string
-	if cell.parent != nil {
-		fullName = cell.parent.Id + "/" + name
-	} else {
-		fullName = name
-	}
-
-	pid := props.spawn(fullName, cell.self)
+	pid := props.spawn(cell.self.Id + "/" + name, cell.self)
 	cell.children.Add(pid)
 	cell.Watch(pid)
 	return pid
