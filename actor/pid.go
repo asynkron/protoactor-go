@@ -2,7 +2,6 @@ package actor
 
 import (
 	"log"
-	"reflect"
 	"strings"
 	"time"
 )
@@ -37,18 +36,10 @@ func (pid *PID) sendSystemMessage(message SystemMessage) {
 }
 
 func (pid *PID) StopFuture() *Future {
-	ref, _ := ProcessRegistry.Get(pid)
-
 	future := NewFuture(10 * time.Second)
 
-	ref, ok := ref.(*localProcess)
-	if !ok {
-		log.Fatalf("[ACTOR] Trying to stop non local actorref %s", reflect.TypeOf(ref))
-	}
-
-	ref.Watch(future.PID())
-
-	ref.Stop(pid)
+	pid.sendSystemMessage(&Watch{Watcher: future.PID()})
+	pid.Stop()
 
 	return future
 }
