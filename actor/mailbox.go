@@ -63,10 +63,8 @@ func (m *DefaultMailbox) ConsumeSystemMessages() bool {
 }
 
 func (m *DefaultMailbox) PostUserMessage(message interface{}) {
-	if m.mailboxStats != nil {
-		for _, ms := range m.mailboxStats {
-			ms.MessagePosted(message)
-		}
+	for _, ms := range m.mailboxStats {
+		ms.MessagePosted(message)
 	}
 	m.userMailbox.Push(message)
 	m.schedule()
@@ -106,10 +104,8 @@ process:
 
 		if userMsg := m.userMailbox.Pop(); userMsg != nil {
 			m.invoker.InvokeUserMessage(userMsg)
-			if m.mailboxStats != nil {
-				for _, ms := range m.mailboxStats {
-					ms.MessageReceived(userMsg)
-				}
+			for _, ms := range m.mailboxStats {
+				ms.MessageReceived(userMsg)
 			}
 		} else {
 			break process
@@ -127,19 +123,15 @@ process:
 		}
 	}
 
-	if m.mailboxStats != nil {
-		for _, ms := range m.mailboxStats {
-			ms.MailboxEmpty()
-		}
+	for _, ms := range m.mailboxStats {
+		ms.MailboxEmpty()
 	}
 }
 
 func (m *DefaultMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
 	m.invoker = invoker
 	m.dispatcher = dispatcher
-	if m.mailboxStats != nil {
-		for _, ms := range m.mailboxStats {
-			ms.MailboxStarted()
-		}
+	for _, ms := range m.mailboxStats {
+		ms.MailboxStarted()
 	}
 }
