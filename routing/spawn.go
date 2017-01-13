@@ -1,8 +1,6 @@
 package routing
 
 import (
-	"fmt"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
@@ -35,7 +33,6 @@ func SpawnNamedGroup(config RouterConfig, name string) *actor.PID {
 func spawn(id string, config RouterConfig, props actor.Props, parent *actor.PID) *actor.PID {
 	props = props.WithSpawn(nil)
 	routerState := config.CreateRouterState()
-	fmt.Println(routerState)
 
 	routerProps := actor.FromInstance(&routerActor{
 		props:  props,
