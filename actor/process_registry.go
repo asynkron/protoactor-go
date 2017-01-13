@@ -72,7 +72,7 @@ func (pr *ProcessRegistryValue) Remove(pid *PID) {
 
 func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {
 	if pid == nil {
-		panic("Pid may not be nil")
+		return deadLetter, false
 	}
 	if pid.Address != localAddress && pid.Address != pr.Address {
 		for _, handler := range pr.RemoteHandlers {
