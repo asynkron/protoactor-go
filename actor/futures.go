@@ -113,6 +113,3 @@ func (ref *futureProcess) Stop(pid *PID) {
 	ref.f.cond.L.Unlock()
 	ref.f.cond.Signal()
 }
-
-func (ref *futureProcess) Watch(pid *PID)   {}
-func (ref *futureProcess) Unwatch(pid *PID) {}

@@ -25,11 +25,3 @@ func (ref *localProcess) SendSystemMessage(pid *PID, message SystemMessage) {
 func (ref *localProcess) Stop(pid *PID) {
 	ref.SendSystemMessage(pid, stopMessage)
 }
-
-func (ref *localProcess) Watch(pid *PID) {
-	ref.SendSystemMessage(pid, &Watch{Watcher: pid})
-}
-
-func (ref *localProcess) Unwatch(pid *PID) {
-	ref.SendSystemMessage(pid, &Unwatch{Watcher: pid})
-}

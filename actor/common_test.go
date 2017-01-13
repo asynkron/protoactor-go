@@ -43,12 +43,6 @@ func (m *mockProcess) SendSystemMessage(pid *PID, message SystemMessage) {
 func (m *mockProcess) Stop(pid *PID) {
 	m.Called(pid)
 }
-func (m *mockProcess) Watch(pid *PID) {
-	m.Called(pid)
-}
-func (m *mockProcess) Unwatch(pid *PID) {
-	m.Called(pid)
-}
 
 type mockContext struct {
 	mock.Mock

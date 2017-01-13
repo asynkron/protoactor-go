@@ -5,6 +5,4 @@ type Process interface {
 	SendUserMessage(pid *PID, message interface{}, sender *PID)
 	SendSystemMessage(pid *PID, message SystemMessage)
 	Stop(pid *PID)
-	Watch(pid *PID)
-	Unwatch(pid *PID)
 }

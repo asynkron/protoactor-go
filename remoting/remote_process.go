@@ -56,11 +56,3 @@ func (ref *remoteProcess) SendSystemMessage(pid *actor.PID, message actor.System
 func (ref *remoteProcess) Stop(pid *actor.PID) {
 	ref.SendSystemMessage(pid, &actor.Stop{})
 }
-
-func (ref *remoteProcess) Watch(pid *actor.PID) {
-	ref.SendSystemMessage(pid, &actor.Watch{Watcher: pid})
-}
-
-func (ref *remoteProcess) Unwatch(pid *actor.PID) {
-	ref.SendSystemMessage(pid, &actor.Unwatch{Watcher: pid})
-}

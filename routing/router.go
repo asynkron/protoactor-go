@@ -16,14 +16,6 @@ func (ref *routerProcess) SendUserMessage(pid *actor.PID, message interface{}, s
 	}
 }
 
-func (ref *routerProcess) Watch(pid *actor.PID) {
-	ref.SendSystemMessage(pid, &actor.Watch{Watcher: pid})
-}
-
-func (ref *routerProcess) Unwatch(pid *actor.PID) {
-	ref.SendSystemMessage(pid, &actor.Unwatch{Watcher: pid})
-}
-
 func (ref *routerProcess) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
 	r, _ := actor.ProcessRegistry.Get(ref.router)
 	r.SendSystemMessage(pid, message)
