@@ -30,11 +30,3 @@ func (*deadLetterProcess) SendSystemMessage(pid *PID, message SystemMessage) {
 func (ref *deadLetterProcess) Stop(pid *PID) {
 	ref.SendSystemMessage(pid, stopMessage)
 }
-
-func (ref *deadLetterProcess) Watch(pid *PID) {
-	ref.SendSystemMessage(pid, &Watch{Watcher: pid})
-}
-
-func (ref *deadLetterProcess) Unwatch(pid *PID) {
-	ref.SendSystemMessage(pid, &Unwatch{Watcher: pid})
-}
