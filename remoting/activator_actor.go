@@ -46,7 +46,12 @@ func SpawnFuture(address string, name string, kind string, timeout time.Duration
 	}, timeout)
 	return f
 }
-func Spawn(address string, name string, kind string, timeout time.Duration) (*actor.PID, error) {
+
+func Spawn(address string, kind string, timeout time.Duration) (*actor.PID, error) {
+	return SpawnNamed(address, "", kind, timeout)
+}
+
+func SpawnNamed(address string, name string, kind string, timeout time.Duration) (*actor.PID, error) {
 	activator := ActivatorForAddress(address)
 	res, err := activator.RequestFuture(&ActorPidRequest{
 		Name: name,
@@ -75,6 +80,13 @@ func (*activator) Receive(context actor.Context) {
 		log.Println("[REMOTING] Started Activator")
 	case *ActorPidRequest:
 		props := nameLookup[msg.Kind]
+		name := msg.Name
+
+		//unnamed actor, assign auto ID
+		if name == "" {
+			name = actor.ProcessRegistry.NextId()
+		}
+
 		pid := actor.SpawnNamed(props, "Remote$"+msg.Name)
 		response := &ActorPidResponse{
 			Pid: pid,

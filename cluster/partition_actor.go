@@ -81,7 +81,7 @@ func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.
 		//get a random node
 		random := getRandomActivator(msg.Kind)
 		var err error
-		pid, err = remoting.Spawn(random, msg.Name, msg.Kind, 5*time.Second)
+		pid, err = remoting.SpawnNamed(random, msg.Name, msg.Kind, 5*time.Second)
 		if err != nil {
 			log.Printf("[CLUSTER] Partition failed to spawn '%v' of kind '%v' on address '%v'", msg.Name, msg.Kind, random)
 			return

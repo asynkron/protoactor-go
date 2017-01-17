@@ -17,7 +17,7 @@ func main() {
 		switch msg := ctx.Message().(type) {
 		case *actor.Started:
 			log.Println("Local actor started")
-			pid, err := remoting.Spawn("127.0.0.1:8080", "myRemote", "remote", timeout)
+			pid, err := remoting.SpawnNamed("127.0.0.1:8080", "myRemote", "remote", timeout)
 			if err != nil {
 				log.Print("Local failed to spawn remote actor")
 				return
