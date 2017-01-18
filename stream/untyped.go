@@ -24,17 +24,16 @@ func NewUntypedStream() *UntypedStream {
 	c := make(chan interface{})
 	props := actor.FromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
-		case actor.AutoReceiveMessage:
-		case actor.SystemMessage: //ignore terminate
+		case actor.AutoReceiveMessage, actor.SystemMessage:
+		// ignore terminate
 		default:
 			c <- msg
 		}
 	})
 	pid := actor.Spawn(props)
 
-	stream := &UntypedStream{
+	return &UntypedStream{
 		c:   c,
 		pid: pid,
 	}
-	return stream
 }
