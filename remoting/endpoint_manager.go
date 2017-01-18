@@ -17,10 +17,11 @@ func newEndpointManager(config *remotingConfig) actor.Producer {
 }
 
 func subscribeEndpointManager() {
-	actor.EventStream.SubscribePID(func(m interface{}) bool {
-		_, ok := m.(*EndpointTerminated)
-		return ok
-	}, endpointManagerPID)
+	actor.EventStream.SubscribePID(endpointManagerPID,
+		func(m interface{}) bool {
+			_, ok := m.(*EndpointTerminated)
+			return ok
+		})
 }
 
 func spawnEndpointManager(config *remotingConfig) {

@@ -22,10 +22,11 @@ func newMembershipActor() actor.Producer {
 }
 
 func subscribeMembershipActorToEventStream() {
-	actor.EventStream.SubscribePID(func(m interface{}) bool {
-		_, ok := m.(MemberStatusBatch)
-		return ok
-	}, memberlistPID)
+	actor.EventStream.SubscribePID(memberlistPID,
+		func(m interface{}) bool {
+			_, ok := m.(MemberStatusBatch)
+			return ok
+		})
 }
 
 // membershipActor is responsible to keep track of the current cluster topology
