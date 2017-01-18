@@ -7,7 +7,7 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remotebenchmark/messages"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 
 	"log"
 	"sync"
@@ -77,7 +77,7 @@ func main() {
 
 	messageCount := 1000000
 
-	remoting.Start("127.0.0.1:8081")
+	remote.Start("127.0.0.1:8081")
 
 	props := actor.
 		FromProducer(newLocalActor(&wg, messageCount)).

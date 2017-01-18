@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 var (
@@ -53,7 +53,7 @@ func (state *partitionActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
 		log.Printf("[CLUSTER] Started %v", context.Self().Id)
-	case *remoting.ActorPidRequest:
+	case *remote.ActorPidRequest:
 		state.spawn(msg, context)
 	case *MemberJoinedEvent:
 		state.memberJoined(msg)
@@ -73,7 +73,7 @@ func (state *partitionActor) Receive(context actor.Context) {
 	}
 }
 
-func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.Context) {
+func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Context) {
 
 	//TODO: make this async
 	pid := state.partition[msg.Name]
@@ -81,14 +81,14 @@ func (state *partitionActor) spawn(msg *remoting.ActorPidRequest, context actor.
 		//get a random node
 		random := getRandomActivator(msg.Kind)
 		var err error
-		pid, err = remoting.SpawnNamed(random, msg.Name, msg.Kind, 5*time.Second)
+		pid, err = remote.SpawnNamed(random, msg.Name, msg.Kind, 5*time.Second)
 		if err != nil {
 			log.Printf("[CLUSTER] Partition failed to spawn '%v' of kind '%v' on address '%v'", msg.Name, msg.Kind, random)
 			return
 		}
 		state.partition[msg.Name] = pid
 	}
-	response := &remoting.ActorPidResponse{
+	response := &remote.ActorPidResponse{
 		Pid: pid,
 	}
 	context.Respond(response)

@@ -9,7 +9,7 @@ import (
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remotelatency/messages"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 type remoteActor struct {
@@ -79,7 +79,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	runtime.GC()
 
-	remoting.Start("127.0.0.1:8080", remoting.WithEndpointWriterBatchSize(10000))
+	remote.Start("127.0.0.1:8080", remote.WithEndpointWriterBatchSize(10000))
 	props := actor.
 		FromProducer(newRemoteActor()).
 		WithMailbox(actor.NewBoundedMailbox(1000))

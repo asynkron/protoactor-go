@@ -9,7 +9,7 @@ import (
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remoterouting/messages"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 var (
@@ -38,7 +38,7 @@ func newRemoteActor(name string) actor.Producer {
 }
 
 func NewRemote(bind, name string) {
-	remoting.Start(bind)
+	remote.Start(bind)
 	props := actor.
 		FromProducer(newRemoteActor(name)).
 		WithMailbox(actor.NewBoundedMailbox(10000))

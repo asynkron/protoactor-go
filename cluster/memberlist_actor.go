@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 var (
@@ -100,7 +100,7 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		actor.EventStream.Publish(left)
 		delete(a.members, key) //remove this member as it has left
 
-		rt := &remoting.EndpointTerminated{
+		rt := &remote.EndpointTerminated{
 			Address: fmt.Sprintf("%v:%v", old.Host, old.Port),
 		}
 		actor.EventStream.Publish(rt)

@@ -6,7 +6,7 @@ import (
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remotelatency/messages"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 
 	"runtime"
 )
@@ -21,7 +21,7 @@ func main() {
 
 	messageCount := 1000000
 
-	remoting.Start("127.0.0.1:8081", remoting.WithEndpointWriterBatchSize(10000))
+	remote.Start("127.0.0.1:8081", remote.WithEndpointWriterBatchSize(10000))
 
 	remote := actor.NewPID("127.0.0.1:8080", "remote")
 	remote.

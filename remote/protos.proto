@@ -1,7 +1,6 @@
 syntax = "proto3";
-package remoting;
-import "actor.proto";
-option csharp_namespace = "GAM.Remoting";
+package remote;
+import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
 
 message MessageEnvelope {
   string type_name = 1;
@@ -26,5 +25,5 @@ message MessageBatch {
 message Unit {}
 
 service Remoting {
-  rpc Receive (stream MessageBatch) returns (Unit) {}
+  rpc Receive (stream MessageBatch) returns (stream Unit) {}
 }

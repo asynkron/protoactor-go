@@ -1,4 +1,4 @@
-package remoting
+package remote
 
 import "github.com/AsynkronIT/protoactor-go/actor"
 

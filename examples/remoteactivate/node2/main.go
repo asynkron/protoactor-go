@@ -6,7 +6,7 @@ import (
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remoteactivate/messages"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 type helloActor struct{}
@@ -25,13 +25,13 @@ func newHelloActor() actor.Actor {
 }
 
 func init() {
-	remoting.Register("hello", actor.FromProducer(newHelloActor))
+	remote.Register("hello", actor.FromProducer(newHelloActor))
 }
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	remoting.Start("127.0.0.1:8080")
+	remote.Start("127.0.0.1:8080")
 
 	console.ReadLine()
 }

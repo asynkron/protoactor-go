@@ -5,14 +5,14 @@ import (
 
 	"github.com/AsynkronIT/gonet"
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 func Start(clusterName, address string, provider ClusterProvider) {
-	remoting.Start(address)
+	remote.Start(address)
 	h, p := gonet.GetAddress(address)
 	log.Printf("[CLUSTER] Starting Proto.Actor cluster on on %v:%v", h, p)
-	kinds := remoting.GetKnownKinds()
+	kinds := remote.GetKnownKinds()
 	kindPIDMap = make(map[string]*actor.PID)
 
 	//for each known kind, spin up a partition-kind actor to handle all requests for that kind

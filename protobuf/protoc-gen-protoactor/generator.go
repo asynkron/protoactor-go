@@ -41,7 +41,7 @@ func (g *gorelans) GenerateImports(file *generator.FileDescriptor) {
 	g.PrintImport("errors", "errors")
 	g.PrintImport("log", "log")
 	g.PrintImport("actor", "github.com/AsynkronIT/protoactor-go/actor")
-	g.PrintImport("remoting", "github.com/AsynkronIT/protoactor-go/remoting")
+	g.PrintImport("remote", "github.com/AsynkronIT/protoactor-go/remote")
 	g.PrintImport("cluster", "github.com/AsynkronIT/protoactor-go/cluster")
 
 	g.P()

@@ -1,4 +1,4 @@
-package remoting
+package remote
 
 import (
 	"log"

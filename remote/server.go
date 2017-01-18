@@ -1,4 +1,4 @@
-package remoting
+package remote
 
 import (
 	"io/ioutil"
@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/grpclog"
 )
 
-//Start the remoting server
+// Start the remote server
 func Start(address string, options ...RemotingOption) {
 	grpclog.SetLogger(log.New(ioutil.Discard, "", 0))
 	lis, err := net.Listen("tcp", address)

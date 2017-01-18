@@ -17,7 +17,7 @@ Proto.Actor uses tags to categorise issues into groups or mark their phase in de
 Most notably many tags start with a `t:` prefix (as in `topic:`), which categorises issues in terms of which module they relate to. Examples are:
 
 - [t:actor](https://github.com/AsynkronIT/protoactor-go/labels/t%3Aactor)
-- [t:remoting](https://github.com/AsynkronIT/protoactor-go/labels/t%3Aremoting)
+- [t:remote](https://github.com/AsynkronIT/protoactor-go/labels/t%3Aremote)
 - [t:cluster](https://github.com/AsynkronIT/protoactor-go/labels/t%3Acluster)
 - [t:routing](https://github.com/AsynkronIT/protoactor-go/labels/t%3Arouting)
 - [See all labels](https://github.com/AsynkronIT/protoactor-go/labels)

@@ -7,7 +7,7 @@ import (
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/chat/messages"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/emirpasic/gods/sets/hashset"
 )
 
@@ -20,7 +20,7 @@ func notifyAll(clients *hashset.Set, message interface{}) {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	remoting.Start("127.0.0.1:8080")
+	remote.Start("127.0.0.1:8080")
 	clients := hashset.New()
 	props := actor.FromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {

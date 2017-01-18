@@ -7,12 +7,12 @@ import (
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/distributedchannels/messages"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	remoting.Start("127.0.0.1:8080")
+	remote.Start("127.0.0.1:8080")
 	//create the channel
 	channel := make(chan *messages.MyMessage)
 

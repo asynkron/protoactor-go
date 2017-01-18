@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 func getRandomActivator(kind string) string {
@@ -23,23 +23,23 @@ func Get(name string, kind string) (*actor.PID, error) {
 	if pid == nil {
 
 		address := getNode(name, kind)
-		remote := partitionForKind(address, kind)
+		remotePID := partitionForKind(address, kind)
 
 		//request the pid of the "id" from the correct partition
-		req := &remoting.ActorPidRequest{
+		req := &remote.ActorPidRequest{
 			Name: name,
 			Kind: kind,
 		}
 
 		//await the response
-		res, err := remote.RequestFuture(req, 5*time.Second).Result()
+		res, err := remotePID.RequestFuture(req, 5*time.Second).Result()
 		if err != nil {
 			log.Printf("[CLUSTER] ActorPidRequest for '%v' timed out, failure %v", name, err)
 			return nil, err
 		}
 
 		//unwrap the result
-		typed, ok := res.(*remoting.ActorPidResponse)
+		typed, ok := res.(*remote.ActorPidResponse)
 		if !ok {
 			log.Fatalf("[CLUSTER] ActorPidRequest for '%v' returned incorrect response, expected ActorPidResponse", name)
 		}

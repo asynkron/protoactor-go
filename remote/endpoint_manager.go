@@ -1,4 +1,4 @@
-package remoting
+package remote
 
 import (
 	"log"
@@ -8,7 +8,7 @@ import (
 
 var endpointManagerPID *actor.PID
 
-func newEndpointManager(config *remotingConfig) actor.Producer {
+func newEndpointManager(config *remoteConfig) actor.Producer {
 	return func() actor.Actor {
 		return &endpointManager{
 			config: config,
@@ -24,7 +24,7 @@ func subscribeEndpointManager() {
 		})
 }
 
-func spawnEndpointManager(config *remotingConfig) {
+func spawnEndpointManager(config *remoteConfig) {
 	props := actor.
 		FromProducer(newEndpointManager(config)).
 		WithMailbox(actor.NewBoundedMailbox(config.endpointManagerQueueSize))
@@ -39,7 +39,7 @@ type endpoint struct {
 
 type endpointManager struct {
 	connections map[string]*endpoint
-	config      *remotingConfig
+	config      *remoteConfig
 }
 
 func (state *endpointManager) Receive(ctx actor.Context) {

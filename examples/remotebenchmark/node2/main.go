@@ -7,14 +7,14 @@ import (
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remotebenchmark/messages"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU() * 1)
 	runtime.GC()
 
-	remoting.Start("127.0.0.1:8080")
+	remote.Start("127.0.0.1:8080")
 	var sender *actor.PID
 	props := actor.
 		FromFunc(

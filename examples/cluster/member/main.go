@@ -10,7 +10,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/cluster/consul"
 	"github.com/AsynkronIT/protoactor-go/examples/cluster/shared"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 
 func main() {
 	//this node knows about Hello kind
-	remoting.Register("Hello", actor.FromProducer(func() actor.Actor {
+	remote.Register("Hello", actor.FromProducer(func() actor.Actor {
 		return &shared.HelloActor{}
 	}))
 

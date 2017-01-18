@@ -1,4 +1,4 @@
-package remoting
+package remote
 
 import (
 	"log"
@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func newEndpointWriter(address string, config *remotingConfig) actor.Producer {
+func newEndpointWriter(address string, config *remoteConfig) actor.Producer {
 	return func() actor.Actor {
 		return &endpointWriter{
 			address: address,
@@ -19,7 +19,7 @@ func newEndpointWriter(address string, config *remotingConfig) actor.Producer {
 }
 
 type endpointWriter struct {
-	config  *remotingConfig
+	config  *remoteConfig
 	address string
 	conn    *grpc.ClientConn
 	stream  Remoting_ReceiveClient
@@ -41,7 +41,7 @@ func (state *endpointWriter) initializeInternal() error {
 	}
 	//	log.Printf("[REMOTING] Connected to address %v", state.address)
 	state.conn = conn
-	c := NewRemotingClient(conn)
+	c := NewRemoteClient(conn)
 	//	log.Printf("[REMOTING] Getting stream from address %v", state.address)
 	stream, err := c.Receive(context.Background(), state.config.callOptions...)
 	if err != nil {

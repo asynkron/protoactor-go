@@ -6,18 +6,18 @@ import (
 
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remoting"
+	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 func main() {
 	timeout := 5 * time.Second
-	remoting.Start("127.0.0.1:8081")
+	remote.Start("127.0.0.1:8081")
 
 	props := actor.FromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
 		case *actor.Started:
 			log.Println("Local actor started")
-			pid, err := remoting.SpawnNamed("127.0.0.1:8080", "myRemote", "remote", timeout)
+			pid, err := remote.SpawnNamed("127.0.0.1:8080", "myRemote", "remote", timeout)
 			if err != nil {
 				log.Print("Local failed to spawn remote actor")
 				return
