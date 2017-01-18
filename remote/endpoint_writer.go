@@ -41,7 +41,7 @@ func (state *endpointWriter) initializeInternal() error {
 	}
 	//	log.Printf("[REMOTING] Connected to address %v", state.address)
 	state.conn = conn
-	c := NewRemoteClient(conn)
+	c := NewRemotingClient(conn)
 	//	log.Printf("[REMOTING] Getting stream from address %v", state.address)
 	stream, err := c.Receive(context.Background(), state.config.callOptions...)
 	if err != nil {
