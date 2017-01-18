@@ -463,7 +463,7 @@ func (cell *actorCell) Spawn(props Props) *PID {
 }
 
 func (cell *actorCell) SpawnNamed(props Props, name string) *PID {
-	pid := props.spawn(cell.self.Id + "/" + name, cell.self)
+	pid := props.spawn(cell.self.Id+"/"+name, cell.self)
 	cell.children.Add(pid)
 	cell.Watch(pid)
 	return pid
