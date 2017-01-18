@@ -1,4 +1,4 @@
-package routing
+package router
 
 import (
 	"fmt"
@@ -42,13 +42,6 @@ func (m *mockProcess) SendSystemMessage(pid *actor.PID, message actor.SystemMess
 func (m *mockProcess) Stop(pid *actor.PID) {
 	m.Called(pid)
 }
-func (m *mockProcess) Watch(pid *actor.PID) {
-	m.Called(pid)
-}
-func (m *mockProcess) Unwatch(pid *actor.PID) {
-	m.Called(pid)
-}
-
 type mockContext struct {
 	mock.Mock
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/routing"
+	"github.com/AsynkronIT/protoactor-go/router"
 )
 
 type workItem struct{ i int }
@@ -20,7 +20,7 @@ func doWork(ctx actor.Context) {
 }
 
 func main() {
-	pid := actor.Spawn(routing.FromProps(actor.FromFunc(doWork), routing.NewRoundRobinPool(maxConcurrency)))
+	pid := actor.Spawn(router.NewRoundRobinPool(maxConcurrency).WithFunc(doWork))
 	for i := 0; i < 1000; i++ {
 		pid.Tell(&workItem{i})
 	}

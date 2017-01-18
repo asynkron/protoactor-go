@@ -1,20 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"runtime"
-
 	"sync"
-
-	"fmt"
 	"time"
 
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remoterouting/messages"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/AsynkronIT/protoactor-go/routing"
-
-	console "github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor-go/router"
 )
 
 func main() {
@@ -25,7 +22,7 @@ func main() {
 
 	p1 := actor.NewPID("127.0.0.1:8101", "remote")
 	p2 := actor.NewPID("127.0.0.1:8102", "remote")
-	remote := routing.SpawnGroup(routing.NewConsistentHashGroup(p1, p2))
+	remotePID := actor.Spawn(router.NewConsistentHashGroup(p1, p2))
 
 	messageCount := 1000000
 
@@ -43,7 +40,7 @@ func main() {
 
 	for i := 0; i < messageCount; i++ {
 		message := &messages.Ping{User: fmt.Sprintf("User_%d", i)}
-		remote.Request(message, pid)
+		remotePID.Request(message, pid)
 	}
 
 	wgStop.Wait()

@@ -1,4 +1,4 @@
-package routing
+package router
 
 import (
 	"log"
@@ -11,20 +11,20 @@ type Hasher interface {
 	Hash() string
 }
 
-type ConsistentHashGroupRouter struct {
+type consistentHashGroupRouter struct {
 	GroupRouter
 }
 
-type ConsistentHashPoolRouter struct {
+type consistentHashPoolRouter struct {
 	PoolRouter
 }
 
-type ConsistentHashRouterState struct {
+type consistentHashRouterState struct {
 	hashring  *hashring.HashRing
 	routeeMap map[string]*actor.PID
 }
 
-func (state *ConsistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
+func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 	//lookup from node name to PID
 	state.routeeMap = make(map[string]*actor.PID)
 	nodes := make([]string, routees.Len())
@@ -37,7 +37,7 @@ func (state *ConsistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 	state.hashring = hashring.New(nodes)
 }
 
-func (state *ConsistentHashRouterState) GetRoutees() *actor.PIDSet {
+func (state *consistentHashRouterState) GetRoutees() *actor.PIDSet {
 	var routees actor.PIDSet
 	for _, v := range state.routeeMap {
 		routees.Add(v)
@@ -45,7 +45,7 @@ func (state *ConsistentHashRouterState) GetRoutees() *actor.PIDSet {
 	return &routees
 }
 
-func (state *ConsistentHashRouterState) RouteMessage(message interface{}, sender *actor.PID) {
+func (state *consistentHashRouterState) RouteMessage(message interface{}, sender *actor.PID) {
 	switch msg := message.(type) {
 	case Hasher:
 		key := msg.Hash()
@@ -61,30 +61,26 @@ func (state *ConsistentHashRouterState) RouteMessage(message interface{}, sender
 			log.Println("[ROUTING] Consisten router failed to resolve node", node)
 		}
 	default:
-		log.Println("[ROUTING] Message must implement routing.Hasher", msg)
+		log.Println("[ROUTING] Message must implement router.Hasher", msg)
 	}
 }
 
-func (state *ConsistentHashRouterState) InvokeRouterManagementMessage(msg ManagementMessage, sender *actor.PID) {
+func (state *consistentHashRouterState) InvokeRouterManagementMessage(msg ManagementMessage, sender *actor.PID) {
 
 }
 
-func NewConsistentHashPool(poolSize int) PoolRouterConfig {
-	r := &ConsistentHashPoolRouter{}
-	r.PoolSize = poolSize
-	return r
+func NewConsistentHashPool(size int) actor.Props {
+	return actor.FromSpawn(spawner(&consistentHashPoolRouter{PoolRouter{PoolSize: size}}))
 }
 
-func NewConsistentHashGroup(routees ...*actor.PID) GroupRouterConfig {
-	r := &ConsistentHashGroupRouter{}
-	r.Routees = actor.NewPIDSet(routees...)
-	return r
+func NewConsistentHashGroup(routees ...*actor.PID) actor.Props {
+	return actor.FromSpawn(spawner(&consistentHashGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
-func (config *ConsistentHashPoolRouter) CreateRouterState() RouterState {
-	return &ConsistentHashRouterState{}
+func (config *consistentHashPoolRouter) CreateRouterState() Interface {
+	return &consistentHashRouterState{}
 }
 
-func (config *ConsistentHashGroupRouter) CreateRouterState() RouterState {
-	return &ConsistentHashRouterState{}
+func (config *consistentHashGroupRouter) CreateRouterState() Interface {
+	return &consistentHashRouterState{}
 }

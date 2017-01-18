@@ -1,11 +1,11 @@
-package routing
+package router
 
 import "github.com/AsynkronIT/protoactor-go/actor"
 
 type routerActor struct {
 	props  actor.Props
 	config RouterConfig
-	state  RouterState
+	state  Interface
 }
 
 func (a *routerActor) Receive(context actor.Context) {

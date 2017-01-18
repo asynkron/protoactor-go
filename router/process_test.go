@@ -1,4 +1,4 @@
-package routing
+package router
 
 import (
 	"fmt"
@@ -28,7 +28,7 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 	grc := newGroupRouterConfig(child)
 	grc.On("CreateRouterState").Return(rs)
 
-	routerPID := SpawnGroup(grc)
+	routerPID := actor.Spawn(actor.FromSpawn(spawner(grc)))
 	routerPID.Tell("hello")
 
 	mock.AssertExpectationsForObjects(t, p, rs)
@@ -45,7 +45,7 @@ func newGroupRouterConfig(routees ...*actor.PID) *testGroupRouter {
 	return r
 }
 
-func (m *testGroupRouter) CreateRouterState() RouterState {
+func (m *testGroupRouter) CreateRouterState() Interface {
 	fmt.Println("Doing it")
 	args := m.Called()
 	return args.Get(0).(*testRouterState)
