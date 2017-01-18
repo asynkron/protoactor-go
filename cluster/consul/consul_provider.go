@@ -1,4 +1,4 @@
-package consul_cluster
+package consul
 
 import (
 	"fmt"

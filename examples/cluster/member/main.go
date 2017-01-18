@@ -8,7 +8,7 @@ import (
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/consul_cluster"
+	"github.com/AsynkronIT/protoactor-go/cluster/consul"
 	"github.com/AsynkronIT/protoactor-go/examples/cluster/shared"
 	"github.com/AsynkronIT/protoactor-go/remoting"
 )
@@ -23,7 +23,7 @@ func main() {
 		return &shared.HelloActor{}
 	}))
 
-	cp, err := consul_cluster.New()
+	cp, err := consul.New()
 	if err != nil {
 		log.Fatal(err)
 	}

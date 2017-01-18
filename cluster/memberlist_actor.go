@@ -28,9 +28,9 @@ func subscribeMembershipActorToEventStream() {
 	}, memberlistPID)
 }
 
-//membershipActor is responsible to keep track of the current cluster topology
-//it does so by listening to changes from the ClusterProvider.
-//the default ClusterProvider is consul_cluster.ConsulProvider which uses the Consul HTTP API to scan for changes
+// membershipActor is responsible to keep track of the current cluster topology
+// it does so by listening to changes from the ClusterProvider.
+// the default ClusterProvider is consul.ConsulProvider which uses the Consul HTTP API to scan for changes
 type memberlistActor struct {
 	members map[string]*MemberStatus
 }
