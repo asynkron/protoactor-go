@@ -46,7 +46,6 @@ func newGroupRouterConfig(routees ...*actor.PID) *testGroupRouter {
 }
 
 func (m *testGroupRouter) CreateRouterState() Interface {
-	fmt.Println("Doing it")
 	args := m.Called()
 	return args.Get(0).(*testRouterState)
 }
@@ -57,7 +56,6 @@ type testRouterState struct {
 }
 
 func (m *testRouterState) SetRoutees(routees *actor.PIDSet) {
-	fmt.Println("SetRoutees")
 	m.Called(routees)
 	m.routees = routees
 }

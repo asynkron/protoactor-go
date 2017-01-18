@@ -35,8 +35,8 @@ func (*Restarting) AutoReceiveMessage() {}
 func (*Stopping) AutoReceiveMessage()   {}
 func (*Stopped) AutoReceiveMessage()    {}
 func (*PoisonPill) AutoReceiveMessage() {}
-func (*Started) AutoReceiveMessage()    {}
 
+func (*Started) SystemMessage()    {}
 func (*Stop) SystemMessage()           {}
 func (*Watch) SystemMessage()          {}
 func (*Unwatch) SystemMessage()        {}
@@ -51,12 +51,12 @@ var (
 	stoppingMessage       interface{} = &Stopping{}
 	stoppedMessage        interface{} = &Stopped{}
 	poisonPillMessage     interface{} = &PoisonPill{}
-	startedMessage        interface{} = &Started{}
 	receiveTimeoutMessage interface{} = &ReceiveTimeout{}
 )
 
 var (
 	restartMessage        SystemMessage = &Restart{}
+	startedMessage        SystemMessage = &Started{}
 	stopMessage           SystemMessage = &Stop{}
 	resumeMailboxMessage  SystemMessage = &ResumeMailbox{}
 	suspendMailboxMessage SystemMessage = &SuspendMailbox{}

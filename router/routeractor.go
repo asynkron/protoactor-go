@@ -1,17 +1,23 @@
 package router
 
-import "github.com/AsynkronIT/protoactor-go/actor"
+import (
+	"sync"
+
+	"github.com/AsynkronIT/protoactor-go/actor"
+)
 
 type routerActor struct {
 	props  actor.Props
 	config RouterConfig
 	state  Interface
+	wg     sync.WaitGroup
 }
 
 func (a *routerActor) Receive(context actor.Context) {
 	switch m := context.Message().(type) {
 	case *actor.Started:
 		a.config.OnStarted(context, a.props, a.state)
+		a.wg.Done()
 
 	case *AddRoutee:
 		r := a.state.GetRoutees()

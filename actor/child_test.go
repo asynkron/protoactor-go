@@ -5,6 +5,8 @@ import (
 
 	"time"
 
+	"sync"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -103,10 +105,14 @@ func TestActorCanStopChildren(t *testing.T) {
 func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 	child := Spawn(FromInstance(nullReceive))
 	future := NewFuture(testTimeout)
+	var wg sync.WaitGroup
+	wg.Add(1)
+
 	var r Receive = func(c Context) {
 		switch msg := c.Message().(type) {
 		case *Started:
 			c.Watch(child)
+			wg.Done()
 
 		case *Terminated:
 			ac := c.(*actorCell)
@@ -117,6 +123,7 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 	}
 
 	Spawn(FromInstance(r))
+	wg.Wait()
 	child.Stop()
 
 	_, err := future.Result()

@@ -222,18 +222,18 @@ func (cell *actorCell) incarnateActor() {
 
 func (cell *actorCell) InvokeSystemMessage(message SystemMessage) {
 	switch msg := message.(interface{}).(type) {
-	case *SuspendMailbox:
-		//pass
-	case *ResumeMailbox:
+	case *Started:
+		cell.InvokeUserMessage(msg) // forward
+	case *Watch:
+		cell.watchers.Add(msg.Watcher)
+	case *Unwatch:
+		cell.watchers.Remove(msg.Watcher)
+	case *SuspendMailbox, *ResumeMailbox:
 		//pass
 	case *Stop:
 		cell.handleStop(msg)
 	case *Terminated:
 		cell.handleTerminated(msg)
-	case *Watch:
-		cell.watchers.Add(msg.Watcher)
-	case *Unwatch:
-		cell.watchers.Remove(msg.Watcher)
 	case *Failure:
 		cell.handleFailure(msg)
 	case *Restart:

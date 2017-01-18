@@ -6,20 +6,23 @@ import (
 
 func spawn(id string, config RouterConfig, props actor.Props, parent *actor.PID) *actor.PID {
 	props = props.WithSpawn(nil)
-	routerState := config.CreateRouterState()
+	rs := config.CreateRouterState()
 
-	routerProps := actor.FromInstance(&routerActor{
+	ra := &routerActor{
 		props:  props,
 		config: config,
-		state:  routerState,
-	})
+		state:  rs,
+	}
+	ra.wg.Add(1)
+	rp := actor.FromInstance(ra)
 
-	routerID := actor.ProcessRegistry.NextId()
-	router := actor.DefaultSpawner(routerID, routerProps, parent)
+	rid := actor.ProcessRegistry.NextId()
+	router := actor.DefaultSpawner(rid, rp, parent)
+	ra.wg.Wait() // wait for routerActor to start
 
 	ref := &process{
 		router: router,
-		state:  routerState,
+		state:  rs,
 	}
 	proxy, _ := actor.ProcessRegistry.Add(ref, id)
 	return proxy

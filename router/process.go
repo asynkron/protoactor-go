@@ -2,6 +2,8 @@ package router
 
 import "github.com/AsynkronIT/protoactor-go/actor"
 
+// process serves as a proxy to the router implementation and forwards messages directly to the routee. This
+// optimization avoids serializing router messages through an actor
 type process struct {
 	router *actor.PID
 	state  Interface

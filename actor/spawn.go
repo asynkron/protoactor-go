@@ -21,9 +21,9 @@ func spawn(id string, props Props, parent *PID) *PID {
 	pid, absent := ProcessRegistry.Add(ref, id)
 
 	if absent {
-		mailbox.RegisterHandlers(cell, props.Dispatcher())
 		cell.self = pid
-		cell.InvokeUserMessage(startedMessage)
+		mailbox.RegisterHandlers(cell, props.Dispatcher())
+		mailbox.PostSystemMessage(startedMessage)
 	}
 
 	return pid
