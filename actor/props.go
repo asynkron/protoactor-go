@@ -71,6 +71,21 @@ func (props Props) WithSpawn(spawn Spawner) Props {
 	return props
 }
 
+func (props Props) WithFunc(receive Receive) Props {
+	props.actorProducer = makeProducerFromInstance(receive)
+	return props
+}
+
+func (props Props) WithInstance(a Actor) Props {
+	props.actorProducer = makeProducerFromInstance(a)
+	return props
+}
+
+func (props Props) WithProducer(p Producer) Props {
+	props.actorProducer = p
+	return props
+}
+
 func FromProducer(actorProducer Producer) Props {
 	return Props{actorProducer: actorProducer}
 }
@@ -79,10 +94,16 @@ func FromFunc(receive Receive) Props {
 	return FromInstance(receive)
 }
 
+func FromSpawn(spawn Spawner) Props {
+	return Props{spawner: spawn}
+}
+
 func FromInstance(template Actor) Props {
-	producer := func() Actor {
-		return template
+	return Props{actorProducer: makeProducerFromInstance(template)}
+}
+
+func makeProducerFromInstance(a Actor) Producer {
+	return func() Actor {
+		return a
 	}
-	p := FromProducer(producer)
-	return p
 }
