@@ -8,7 +8,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/persistence/messages"
 	"github.com/AsynkronIT/protoactor-go/persistence"
-	"github.com/AsynkronIT/protoactor-go/persistence_providers/gamcb"
+	"github.com/AsynkronIT/protoactor-go/persistence/gamcb"
 )
 
 type persistentActor struct {
