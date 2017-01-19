@@ -56,18 +56,17 @@ func (pr *ProcessRegistryValue) NextId() string {
 }
 
 func (pr *ProcessRegistryValue) Add(process Process, id string) (*PID, bool) {
-
-	pid := PID{
+	return &PID{
 		Address: pr.Address,
 		Id:      id,
-	}
-
-	absent := pr.LocalPIDs.SetIfAbsent(pid.Id, process)
-	return &pid, absent
+	}, pr.LocalPIDs.SetIfAbsent(id, process)
 }
 
 func (pr *ProcessRegistryValue) Remove(pid *PID) {
-	pr.LocalPIDs.Remove(pid.Id)
+	ref, _ := pr.LocalPIDs.Pop(pid.Id)
+	if l, ok := ref.(*localProcess); ok {
+		l.dead = true
+	}
 }
 
 func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {

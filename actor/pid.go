@@ -1,38 +1,49 @@
 package actor
 
 import (
-	"log"
 	"strings"
+	"sync/atomic"
 	"time"
+	"unsafe"
 )
+
+func (pid *PID) ref() Process {
+	p := (*Process)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p))))
+	if p != nil {
+		if l, ok := (*p).(*localProcess); ok && l.dead {
+			atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p)), nil)
+		} else {
+			return *p
+		}
+	}
+
+	ref, exists := ProcessRegistry.Get(pid)
+	if exists {
+		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p)), unsafe.Pointer(&ref))
+	}
+
+	return ref
+}
 
 //Tell a message to a given PID
 func (pid *PID) Tell(message interface{}) {
-	ref, _ := ProcessRegistry.Get(pid)
-	ref.SendUserMessage(pid, message, nil)
+	pid.ref().SendUserMessage(pid, message, nil)
 }
 
 //Ask a message to a given PID
 func (pid *PID) Request(message interface{}, respondTo *PID) {
-	ref, _ := ProcessRegistry.Get(pid)
-	ref.SendUserMessage(pid, message, respondTo)
+	pid.ref().SendUserMessage(pid, message, respondTo)
 }
 
 //RequestFuture sends a message to a given PID and returns a Future
 func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Future {
-	ref, ok := ProcessRegistry.Get(pid)
-	if !ok {
-		log.Printf("[ACTOR] RequestFuture for missing local PID '%v'", pid.String())
-	}
-
 	future := NewFuture(timeout)
-	ref.SendUserMessage(pid, message, future.PID())
+	pid.ref().SendUserMessage(pid, message, future.PID())
 	return future
 }
 
 func (pid *PID) sendSystemMessage(message SystemMessage) {
-	ref, _ := ProcessRegistry.Get(pid)
-	ref.SendSystemMessage(pid, message)
+	pid.ref().SendSystemMessage(pid, message)
 }
 
 func (pid *PID) StopFuture() *Future {
@@ -46,8 +57,7 @@ func (pid *PID) StopFuture() *Future {
 
 //Stop the given PID
 func (pid *PID) Stop() {
-	ref, _ := ProcessRegistry.Get(pid)
-	ref.Stop(pid)
+	pid.ref().Stop(pid)
 }
 
 func pidFromKey(key string, p *PID) {

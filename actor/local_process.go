@@ -2,12 +2,7 @@ package actor
 
 type localProcess struct {
 	mailbox Mailbox
-}
-
-func newLocalProcess(mailbox Mailbox) *localProcess {
-	return &localProcess{
-		mailbox: mailbox,
-	}
+	dead    bool
 }
 
 func (ref *localProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
@@ -23,5 +18,6 @@ func (ref *localProcess) SendSystemMessage(pid *PID, message SystemMessage) {
 }
 
 func (ref *localProcess) Stop(pid *PID) {
+	ref.dead = true
 	ref.SendSystemMessage(pid, stopMessage)
 }

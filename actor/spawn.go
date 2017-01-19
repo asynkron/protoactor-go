@@ -17,10 +17,11 @@ func SpawnNamed(props Props, name string) *PID {
 func spawn(id string, props Props, parent *PID) *PID {
 	cell := newActorCell(props, parent)
 	mailbox := props.ProduceMailbox()
-	ref := newLocalProcess(mailbox)
+	var ref Process = &localProcess{mailbox: mailbox}
 	pid, absent := ProcessRegistry.Add(ref, id)
 
 	if absent {
+		pid.p = &ref
 		cell.self = pid
 		mailbox.RegisterHandlers(cell, props.Dispatcher())
 		mailbox.PostSystemMessage(startedMessage)

@@ -10,7 +10,7 @@ import (
 func TestActorCell_SpawnNamed(t *testing.T) {
 	pid, p := spawnMockProcess("foo/bar")
 	defer removeMockProcess(pid)
-	p.On("SendSystemMessage", pid, mock.Anything)
+	p.On("SendSystemMessage", matchPID(pid), mock.Anything)
 
 	props := Props{
 		spawner: func(id string, _ Props, _ *PID) *PID {

@@ -16,6 +16,12 @@ func init() {
 	log.SetOutput(ioutil.Discard)
 }
 
+func matchPID(with *PID) interface{} {
+	return mock.MatchedBy(func(v *PID) bool {
+		return with.Address == v.Address && with.Id == v.Id
+	})
+}
+
 func spawnMockProcess(name string) (*PID, *mockProcess) {
 	p := &mockProcess{}
 	pid, ok := ProcessRegistry.Add(p, name)

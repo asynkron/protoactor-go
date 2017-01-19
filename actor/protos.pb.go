@@ -49,6 +49,8 @@ const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 type PID struct {
 	Address string `protobuf:"bytes,1,opt,name=Address,proto3" json:"Address,omitempty"`
 	Id      string `protobuf:"bytes,2,opt,name=Id,proto3" json:"Id,omitempty"`
+
+	p *Process
 }
 
 func (m *PID) Reset()                    { *m = PID{} }
