@@ -13,29 +13,6 @@ message PID {
 //user messages
 message PoisonPill {}
 
-// router management messages
-message RouterAddRoutee {
-    actor.PID PID = 1;
-}
-
-message RouterRemoveRoutee {
-    actor.PID PID = 1;
-}
-
-message RouterAdjustPoolSize {
-    int32 change = 1;
-}
-
-message RouterGetRoutees {}
-
-message RouterRoutees {
-    repeated actor.PID PIDs = 1;
-}
-
-//message RouterBroadcast {
-//    google.protobuf.Any message = 1;
-//}
-
 //system messages
 message Watch {
     PID watcher = 1;
