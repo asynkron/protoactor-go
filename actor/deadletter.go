@@ -7,9 +7,14 @@ var (
 )
 
 type DeadLetter struct {
-	PID     *PID
+	// PID specifies the process ID of the dead letter process
+	PID *PID
+
+	// Message specifies the message that could not be delivered
 	Message interface{}
-	Sender  *PID
+
+	// Sender specifies the process that sent the original Message
+	Sender *PID
 }
 
 func (*deadLetterProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {

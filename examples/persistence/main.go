@@ -61,7 +61,7 @@ func main() {
 
 	props := actor.
 		FromProducer(newPersistentActor).
-		WithReceivers(
+		WithMiddleware(
 			//	actor.MessageLogging,  //<- logging receive pipeline
 			persistence.Using(cb)) //<- persistence receive pipeline
 

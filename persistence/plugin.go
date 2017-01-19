@@ -16,7 +16,8 @@ type persistent interface {
 type Mixin struct {
 	eventIndex    int
 	providerState ProviderState
-	context       actor.Context
+	name          string
+	receiver      receiver
 	recovering    bool
 }
 
@@ -25,16 +26,15 @@ func (mixin *Mixin) Recovering() bool {
 }
 
 func (mixin *Mixin) Name() string {
-	name := mixin.context.Self().Id
-	return name
+	return mixin.name
 }
 func (mixin *Mixin) PersistReceive(message proto.Message) {
 
 	mixin.providerState.PersistEvent(mixin.Name(), mixin.eventIndex, message)
 	mixin.eventIndex++
-	mixin.context.Receive(message)
+	mixin.receiver.Receive(message)
 	if mixin.eventIndex%mixin.providerState.GetSnapshotInterval() == 0 {
-		mixin.context.Receive(&RequestSnapshot{})
+		mixin.receiver.Receive(&RequestSnapshot{})
 	}
 }
 
@@ -47,19 +47,26 @@ func (mixin *Mixin) init(provider Provider, context actor.Context) {
 		mixin.providerState = provider.GetState()
 	}
 
+	receiver := context.(receiver)
+
+	mixin.name = context.Self().Id
 	mixin.eventIndex = 0
-	mixin.context = context
+	mixin.receiver = receiver
 	mixin.recovering = true
 
 	mixin.providerState.Restart()
 	if snapshot, eventIndex, ok := mixin.providerState.GetSnapshot(mixin.Name()); ok {
 		mixin.eventIndex = eventIndex
-		context.Receive(snapshot)
+		receiver.Receive(snapshot)
 	}
 	mixin.providerState.GetEvents(mixin.Name(), mixin.eventIndex, func(e interface{}) {
-		context.Receive(e)
+		receiver.Receive(e)
 		mixin.eventIndex++
 	})
 	mixin.recovering = false
-	context.Receive(&ReplayComplete{})
+	receiver.Receive(&ReplayComplete{})
+}
+
+type receiver interface {
+	Receive(message interface{})
 }

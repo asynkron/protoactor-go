@@ -5,7 +5,8 @@ type Props struct {
 	actorProducer       Producer
 	mailboxProducer     MailboxProducer
 	supervisionStrategy SupervisorStrategy
-	receivePlugins      []ReceiveFunc
+	middleware          []func(next ReceiveFunc) ReceiveFunc
+	middlewareChain     ReceiveFunc
 	dispatcher          Dispatcher
 	spawner             Spawner
 }
@@ -42,9 +43,9 @@ func (props Props) spawn(id string, parent *PID) *PID {
 	return DefaultSpawner(id, props, parent)
 }
 
-func (props Props) WithReceivers(plugin ...ReceiveFunc) Props {
-	//pass by value, we only modify the copy
-	props.receivePlugins = append(props.receivePlugins, plugin...)
+func (props Props) WithMiddleware(middleware ...func(ReceiveFunc) ReceiveFunc) Props {
+	props.middleware = append(props.middleware, middleware...)
+	props.middlewareChain = makeMiddlewareChain(props.middleware, localContextReceiver)
 	return props
 }
 

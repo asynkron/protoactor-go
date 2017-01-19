@@ -5,6 +5,7 @@ import (
 
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/actor/middleware"
 	"github.com/AsynkronIT/protoactor-go/plugin"
 )
 
@@ -44,7 +45,10 @@ func (p *NamerPlugin) OnOtherMessage(ctx actor.Context, usrMsg interface{}) {}
 func main() {
 	props := actor.
 		FromInstance(&myActor{}).
-		WithReceivers(plugin.Use(&NamerPlugin{}))
+		WithMiddleware(
+			plugin.Use(&NamerPlugin{}),
+			middleware.Logger,
+		)
 
 	pid := actor.Spawn(props)
 	pid.Tell("bar")

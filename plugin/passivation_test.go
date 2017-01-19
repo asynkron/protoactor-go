@@ -22,7 +22,7 @@ func TestPassivation(t *testing.T) {
 	PassivationDuration := time.Duration(3 * UnitOfTime)
 	props := actor.
 		FromInstance(&SmartActor{}).
-		WithReceivers(Use(&PassivationPlugin{Duration: PassivationDuration}))
+		WithMiddleware(Use(&PassivationPlugin{Duration: PassivationDuration}))
 
 	pid := actor.Spawn(props)
 	time.Sleep(UnitOfTime)

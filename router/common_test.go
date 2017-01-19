@@ -110,14 +110,6 @@ func (m *mockContext) Children() []*actor.PID {
 	return args.Get(0).([]*actor.PID)
 }
 
-func (m *mockContext) Next() {
-	m.Called()
-}
-
-func (m *mockContext) Receive(i interface{}) {
-	m.Called(i)
-}
-
 func (m *mockContext) Stash() {
 	m.Called()
 }

@@ -24,10 +24,29 @@ func TestLocalContext_SpawnNamed(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, p)
 }
 
-func BenchmarkLocalContext_Next(b *testing.B) {
+func BenchmarkLocalContext_ProcessMessageNoMiddleware(b *testing.B) {
+	var m interface{} = 1
+
 	ctx := &localContext{actor: nullReceive}
 	ctx.Become(nullReceive.Receive)
 	for i := 0; i < b.N; i++ {
-		ctx.Next()
+		ctx.processMessage(m)
+	}
+}
+
+func BenchmarkLocalContext_ProcessMessageWithMiddleware(b *testing.B) {
+	var m interface{} = 1
+
+	fn := func(next ReceiveFunc) ReceiveFunc {
+		fn := func(context Context) {
+			next(context)
+		}
+		return fn
+	}
+
+	ctx := &localContext{actor: nullReceive, middleware: makeMiddlewareChain([]func(ReceiveFunc) ReceiveFunc{fn, fn}, localContextReceiver)}
+	ctx.Become(nullReceive.Receive)
+	for i := 0; i < b.N; i++ {
+		ctx.processMessage(m)
 	}
 }

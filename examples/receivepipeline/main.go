@@ -5,6 +5,7 @@ import (
 
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/actor/middleware"
 )
 
 type hello struct{ Who string }
@@ -17,7 +18,7 @@ func receive(context actor.Context) {
 }
 
 func main() {
-	props := actor.FromFunc(receive).WithReceivers(actor.MessageLogging) //using built in plugin
+	props := actor.FromFunc(receive).WithMiddleware(middleware.Logger)
 	pid := actor.Spawn(props)
 	pid.Tell(&hello{Who: "Roger"})
 	console.ReadLine()

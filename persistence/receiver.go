@@ -7,21 +7,24 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
-func Using(provider Provider) actor.ReceiveFunc {
+func Using(provider Provider) func(next actor.ReceiveFunc) actor.ReceiveFunc {
+	return func(next actor.ReceiveFunc) actor.ReceiveFunc {
+		fn := func(ctx actor.Context) {
 
-	return func(context actor.Context) {
-		switch context.Message().(type) {
-		case *actor.Started:
-			context.Next()
-			context.Self().Tell(&Replay{}) //start async replay
-		case *Replay:
-			if p, ok := context.Actor().(persistent); ok {
-				p.init(provider, context)
-			} else {
-				log.Fatalf("Actor type %v is not persistent", reflect.TypeOf(context.Actor()))
+			switch ctx.Message().(type) {
+			case *actor.Started:
+				next(ctx)
+				ctx.Self().Tell(&Replay{}) //start async replay
+			case *Replay:
+				if p, ok := ctx.Actor().(persistent); ok {
+					p.init(provider, ctx)
+				} else {
+					log.Fatalf("Actor type %v is not persistent", reflect.TypeOf(ctx.Actor()))
+				}
+			default:
+				next(ctx)
 			}
-		default:
-			context.Next()
 		}
+		return fn
 	}
 }

@@ -51,12 +51,6 @@ type Context interface {
 	// Returns a slice of the current actors children
 	Children() []*PID
 
-	// Next performs the next middleware or base Receive handler
-	Next()
-
-	// Receive processes a custom user message synchronously
-	Receive(interface{})
-
 	// Stash stashes the current message on a stack for reprocessing when the actor restarts
 	Stash()
 

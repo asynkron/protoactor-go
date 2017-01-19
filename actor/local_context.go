@@ -21,14 +21,15 @@ type localContext struct {
 	parent         *PID
 	self           *PID
 	actor          Actor
-	props          Props
+	supervisor     SupervisorStrategy
+	producer       Producer
+	middleware     ReceiveFunc
 	behavior       behaviorStack
 	receive        ReceiveFunc
 	children       PIDSet
 	watchers       PIDSet
 	watching       PIDSet
 	stash          *linkedliststack.Stack
-	receiveIndex   int
 	stopping       bool
 	restarting     bool
 	receiveTimeout time.Duration
@@ -36,10 +37,12 @@ type localContext struct {
 	restartStats   *ChildRestartStats
 }
 
-func newLocalContext(props Props, parent *PID) *localContext {
+func newLocalContext(producer Producer, supervisor SupervisorStrategy, middleware ReceiveFunc, parent *PID) *localContext {
 	cell := &localContext{
-		parent: parent,
-		props:  props,
+		parent:     parent,
+		producer:   producer,
+		supervisor: supervisor,
+		middleware: middleware,
 	}
 	cell.incarnateActor()
 	return cell
@@ -128,28 +131,35 @@ func (ctx *localContext) Parent() *PID {
 }
 
 func (ctx *localContext) Receive(message interface{}) {
-	i := ctx.receiveIndex
-	m := ctx.message
-
-	ctx.receiveIndex = 0
-	ctx.message = message
-	ctx.Next()
-
-	ctx.receiveIndex = i
-	ctx.message = m
+	ctx.processMessage(message)
 }
 
-func (ctx *localContext) Next() {
-	if ctx.receiveIndex < len(ctx.props.receivePlugins) {
-		receive := ctx.props.receivePlugins[ctx.receiveIndex]
-		ctx.receiveIndex++
-		receive(ctx)
+// localContextReceiver is used when middleware chain is required
+func localContextReceiver(ctx Context) {
+	a := ctx.(*localContext)
+	if _, ok := a.message.(*PoisonPill); ok {
+		a.self.Stop()
 	} else {
-		ctx.AutoReceiveOrUser()
+		a.receive(ctx)
 	}
 }
+
+func (ctx *localContext) processMessage(m interface{}) {
+	ctx.message = m
+
+	if ctx.middleware != nil {
+		ctx.middleware(ctx)
+	} else {
+		if _, ok := m.(*PoisonPill); ok {
+			ctx.self.Stop()
+		} else {
+			ctx.receive(ctx)
+		}
+	}
+}
+
 func (ctx *localContext) incarnateActor() {
-	actor := ctx.props.ProduceActor()
+	actor := ctx.producer()
 	ctx.restarting = false
 	ctx.stopping = false
 	ctx.actor = actor
@@ -215,7 +225,7 @@ func (ctx *localContext) handleFailure(msg *Failure) {
 		strategy.HandleFailure(ctx, msg.Who, msg.ChildStats, msg.Reason)
 		return
 	}
-	ctx.props.Supervisor().HandleFailure(ctx, msg.Who, msg.ChildStats, msg.Reason)
+	ctx.supervisor.HandleFailure(ctx, msg.Who, msg.ChildStats, msg.Reason)
 }
 
 func (ctx *localContext) EscalateFailure(who *PID, reason interface{}) {
@@ -336,9 +346,6 @@ func (ctx *localContext) InvokeUserMessage(md interface{}) {
 		return
 	}
 
-	ctx.receiveIndex = 0
-	ctx.message = md
-
 	influenceTimeout := true
 	if ctx.receiveTimeout > 0 {
 		_, influenceTimeout = md.(NotInfluenceReceiveTimeout)
@@ -348,24 +355,10 @@ func (ctx *localContext) InvokeUserMessage(md interface{}) {
 		}
 	}
 
-	//optimize fast path, remove next from profiler flow
-	if ctx.props.receivePlugins == nil {
-		ctx.AutoReceiveOrUser()
-	} else {
-		ctx.Next()
-	}
+	ctx.processMessage(md)
 
 	if ctx.receiveTimeout > 0 && influenceTimeout {
 		ctx.t.Reset(ctx.receiveTimeout)
-	}
-}
-
-func (ctx *localContext) AutoReceiveOrUser() {
-	switch ctx.Message().(type) {
-	case *PoisonPill:
-		ctx.self.Stop()
-	default:
-		ctx.receive(ctx)
 	}
 }
 
