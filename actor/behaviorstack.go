@@ -1,6 +1,6 @@
 package actor
 
-type behaviorStack []Receive
+type behaviorStack []ReceiveFunc
 
 func (b *behaviorStack) Clear() {
 	if len(*b) == 0 {
@@ -13,7 +13,7 @@ func (b *behaviorStack) Clear() {
 	*b = (*b)[:0]
 }
 
-func (b *behaviorStack) Peek() (v Receive, ok bool) {
+func (b *behaviorStack) Peek() (v ReceiveFunc, ok bool) {
 	l := b.Len()
 	if l > 0 {
 		ok = true
@@ -22,11 +22,11 @@ func (b *behaviorStack) Peek() (v Receive, ok bool) {
 	return
 }
 
-func (b *behaviorStack) Push(v Receive) {
+func (b *behaviorStack) Push(v ReceiveFunc) {
 	*b = append(*b, v)
 }
 
-func (b *behaviorStack) Pop() (v Receive, ok bool) {
+func (b *behaviorStack) Pop() (v ReceiveFunc, ok bool) {
 	l := b.Len()
 	if l > 0 {
 		l--

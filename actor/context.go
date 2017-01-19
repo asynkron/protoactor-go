@@ -28,10 +28,10 @@ type Context interface {
 	Sender() *PID
 
 	// Become replaces the actors current Receive handler with a new handler
-	Become(Receive)
+	Become(ReceiveFunc)
 
 	// BecomeStacked pushes a new Receive handler on the current handler stack
-	BecomeStacked(Receive)
+	BecomeStacked(ReceiveFunc)
 
 	// UnbecomeStacked reverts to the previous Receive handler
 	UnbecomeStacked()

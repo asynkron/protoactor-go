@@ -5,7 +5,7 @@ type Props struct {
 	actorProducer       Producer
 	mailboxProducer     MailboxProducer
 	supervisionStrategy SupervisorStrategy
-	receivePlugins      []Receive
+	receivePlugins      []ReceiveFunc
 	dispatcher          Dispatcher
 	spawner             Spawner
 }
@@ -42,7 +42,7 @@ func (props Props) spawn(id string, parent *PID) *PID {
 	return DefaultSpawner(id, props, parent)
 }
 
-func (props Props) WithReceivers(plugin ...Receive) Props {
+func (props Props) WithReceivers(plugin ...ReceiveFunc) Props {
 	//pass by value, we only modify the copy
 	props.receivePlugins = append(props.receivePlugins, plugin...)
 	return props
@@ -71,7 +71,7 @@ func (props Props) WithSpawn(spawn Spawner) Props {
 	return props
 }
 
-func (props Props) WithFunc(receive Receive) Props {
+func (props Props) WithFunc(receive ReceiveFunc) Props {
 	props.actorProducer = makeProducerFromInstance(receive)
 	return props
 }
@@ -90,7 +90,7 @@ func FromProducer(actorProducer Producer) Props {
 	return Props{actorProducer: actorProducer}
 }
 
-func FromFunc(receive Receive) Props {
+func FromFunc(receive ReceiveFunc) Props {
 	return FromInstance(receive)
 }
 

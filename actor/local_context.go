@@ -23,7 +23,7 @@ type localContext struct {
 	actor          Actor
 	props          Props
 	behavior       behaviorStack
-	receive        Receive
+	receive        ReceiveFunc
 	children       PIDSet
 	watchers       PIDSet
 	watching       PIDSet
@@ -369,12 +369,12 @@ func (ctx *localContext) AutoReceiveOrUser() {
 	}
 }
 
-func (ctx *localContext) Become(behavior Receive) {
+func (ctx *localContext) Become(behavior ReceiveFunc) {
 	ctx.behavior.Clear()
 	ctx.receive = behavior
 }
 
-func (ctx *localContext) BecomeStacked(behavior Receive) {
+func (ctx *localContext) BecomeStacked(behavior ReceiveFunc) {
 	ctx.behavior.Push(ctx.receive)
 	ctx.receive = behavior
 }

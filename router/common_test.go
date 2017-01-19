@@ -73,11 +73,11 @@ func (m *mockContext) Sender() *actor.PID {
 	return args.Get(0).(*actor.PID)
 }
 
-func (m *mockContext) Become(r actor.Receive) {
+func (m *mockContext) Become(r actor.ReceiveFunc) {
 	m.Called(r)
 }
 
-func (m *mockContext) BecomeStacked(r actor.Receive) {
+func (m *mockContext) BecomeStacked(r actor.ReceiveFunc) {
 	m.Called(r)
 }
 

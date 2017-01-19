@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-var nullReceive Receive = func(Context) {}
+var nullReceive ReceiveFunc = func(Context) {}
 
 func init() {
 	// discard all logging in tests
@@ -80,11 +80,11 @@ func (m *mockContext) Sender() *PID {
 	return args.Get(0).(*PID)
 }
 
-func (m *mockContext) Become(r Receive) {
+func (m *mockContext) Become(r ReceiveFunc) {
 	m.Called(r)
 }
 
-func (m *mockContext) BecomeStacked(r Receive) {
+func (m *mockContext) BecomeStacked(r ReceiveFunc) {
 	m.Called(r)
 }
 
