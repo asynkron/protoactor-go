@@ -17,7 +17,7 @@ func (a *actorWithSupervisor) Receive(ctx Context) {
 	}
 }
 
-func (a *actorWithSupervisor) HandleFailure(supervisor Supervisor, child *PID, reason interface{}) {
+func (a *actorWithSupervisor) HandleFailure(supervisor Supervisor, child *PID, crs *ChildRestartStats, reason interface{}) {
 	a.wg.Done()
 }
 

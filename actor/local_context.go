@@ -33,6 +33,7 @@ type localContext struct {
 	restarting     bool
 	receiveTimeout time.Duration
 	t              *time.Timer
+	restartStats   *ChildRestartStats
 }
 
 func newActorCell(props Props, parent *PID) *localContext {
@@ -211,10 +212,10 @@ func (ctx *localContext) handleTerminated(msg *Terminated) {
 //offload the supervision completely to the supervisor strategy
 func (ctx *localContext) handleFailure(msg *Failure) {
 	if strategy, ok := ctx.actor.(SupervisorStrategy); ok {
-		strategy.HandleFailure(ctx, msg.Who, msg.Reason)
+		strategy.HandleFailure(ctx, msg.Who, msg.ChildStats, msg.Reason)
 		return
 	}
-	ctx.props.Supervisor().HandleFailure(ctx, msg.Who, msg.Reason)
+	ctx.props.Supervisor().HandleFailure(ctx, msg.Who, msg.ChildStats, msg.Reason)
 }
 
 func (ctx *localContext) EscalateFailure(who *PID, reason interface{}) {
@@ -252,6 +253,11 @@ func (ctx *localContext) tryRestartOrTerminate() {
 
 func (ctx *localContext) restart() {
 	ctx.incarnateActor()
+	//create a new childRestartStats with the current failure settings
+	ctx.restartStats = &ChildRestartStats{
+		FailureCount:    ctx.restartStats.FailureCount + 1,
+		LastFailureTime: time.Now(),
+	}
 	ctx.InvokeUserMessage(startedMessage)
 	if ctx.stash != nil {
 		for !ctx.stash.Empty() {
@@ -305,7 +311,15 @@ func (ctx *localContext) InvokeUserMessage(md interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", ctx.debugString(), r, identifyPanic())
-			failure := &Failure{Reason: r, Who: ctx.self}
+
+			//lazy initialize the child restart stats if this is the first time
+			//further mutations are handled within "restart"
+			if ctx.restartStats == nil {
+				ctx.restartStats = &ChildRestartStats{
+					FailureCount: 1,
+				}
+			}
+			failure := &Failure{Reason: r, Who: ctx.self, ChildStats: ctx.restartStats}
 			if ctx.parent == nil {
 				handleRootFailure(failure)
 			} else {
@@ -409,5 +423,5 @@ func (ctx *localContext) debugString() string {
 }
 
 func handleRootFailure(msg *Failure) {
-	defaultSupervisionStrategy.HandleFailure(nil, msg.Who, msg.Reason)
+	defaultSupervisionStrategy.HandleFailure(nil, msg.Who, msg.ChildStats, msg.Reason)
 }

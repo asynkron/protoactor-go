@@ -26,9 +26,12 @@ type Restart struct{}
 type Stop struct{}
 type ResumeMailbox struct{}
 type SuspendMailbox struct{}
+
+//TODO: make private?
 type Failure struct {
-	Who    *PID
-	Reason interface{}
+	Who        *PID
+	Reason     interface{}
+	ChildStats *ChildRestartStats
 }
 
 func (*Restarting) AutoReceiveMessage() {}
