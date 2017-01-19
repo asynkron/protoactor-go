@@ -317,7 +317,7 @@ func (cell *actorCell) tryRestartOrTerminate() {
 
 func (cell *actorCell) restart() {
 	cell.incarnateActor()
-	cell.InvokeUserMessage(&Started{})
+	cell.InvokeUserMessage(startedMessage)
 	if cell.stash != nil {
 		for !cell.stash.Empty() {
 			msg, _ := cell.stash.Pop()
