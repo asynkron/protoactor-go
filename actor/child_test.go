@@ -115,7 +115,7 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 			wg.Done()
 
 		case *Terminated:
-			ac := c.(*actorCell)
+			ac := c.(*localContext)
 			if msg.Who.Equal(child) && ac.watching.Empty() {
 				future.PID().Tell(true)
 			}

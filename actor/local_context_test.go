@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestActorCell_SpawnNamed(t *testing.T) {
+func TestLocalContext_SpawnNamed(t *testing.T) {
 	pid, p := spawnMockProcess("foo/bar")
 	defer removeMockProcess(pid)
 	p.On("SendSystemMessage", matchPID(pid), mock.Anything)
@@ -19,15 +19,15 @@ func TestActorCell_SpawnNamed(t *testing.T) {
 		},
 	}
 
-	parent := &actorCell{self: NewLocalPID("foo")}
+	parent := &localContext{self: NewLocalPID("foo")}
 	parent.SpawnNamed(props, "bar")
 	mock.AssertExpectationsForObjects(t, p)
 }
 
-func BenchmarkActorCell_Next(b *testing.B) {
-	ac := &actorCell{actor: nullReceive}
-	ac.Become(nullReceive.Receive)
+func BenchmarkLocalContext_Next(b *testing.B) {
+	ctx := &localContext{actor: nullReceive}
+	ctx.Become(nullReceive.Receive)
 	for i := 0; i < b.N; i++ {
-		ac.Next()
+		ctx.Next()
 	}
 }
