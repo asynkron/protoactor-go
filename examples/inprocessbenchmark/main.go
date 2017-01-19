@@ -26,34 +26,50 @@ type clientActor struct {
 	count        int
 	wgStop       *sync.WaitGroup
 	messageCount int
+	batch        int
+	batchSize    int
+}
+
+func (state *clientActor) sendBatch(context actor.Context, sender *actor.PID) bool {
+	if state.messageCount == 0 {
+		return false
+	}
+
+	m := &Msg{
+		replyTo: context.Self(),
+	}
+	for i := 0; i < state.batchSize; i++ {
+		sender.Tell(m)
+	}
+
+	state.messageCount -= state.batchSize
+	state.batch = state.batchSize
+	return true
 }
 
 func (state *clientActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *Start:
-		sender := msg.Sender
-		m := &Msg{
-			replyTo: context.Self(),
-		}
-		for i := 0; i < state.messageCount; i++ {
-			sender.Tell(m)
-		}
+		state.sendBatch(context, msg.Sender)
+
 	case *Msg:
-		state.count++
-		// if state.count%500000 == 0 {
-		// 	log.Println(state.count)
-		// }
-		if state.count == state.messageCount {
+		state.batch--
+		if state.batch > 0 {
+			return
+		}
+
+		if !state.sendBatch(context, msg.replyTo) {
 			state.wgStop.Done()
 		}
 	}
 }
 
-func newLocalActor(stop *sync.WaitGroup, messageCount int) actor.Producer {
+func newLocalActor(stop *sync.WaitGroup, messageCount int, batchSize int) actor.Producer {
 	return func() actor.Actor {
 		return &clientActor{
 			wgStop:       stop,
 			messageCount: messageCount,
+			batchSize:    batchSize,
 		}
 	}
 }
@@ -90,6 +106,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	messageCount := 1000000
+	batchSize := 100
 	tps := []int{300, 400, 500, 600, 700, 800, 900}
 	log.Println("Dispatcher Throughput			Elapsed Time			Messages per sec")
 	for _, tp := range tps {
@@ -97,7 +114,7 @@ func main() {
 		d := actor.NewDefaultDispatcher(tp)
 
 		clientProps := actor.
-			FromProducer(newLocalActor(&wg, messageCount)).
+			FromProducer(newLocalActor(&wg, messageCount, batchSize)).
 			WithMailbox(actor.NewUnboundedMailbox()).
 			WithDispatcher(d)
 
