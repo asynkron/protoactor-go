@@ -36,7 +36,7 @@ type localContext struct {
 	restartStats   *ChildRestartStats
 }
 
-func newActorCell(props Props, parent *PID) *localContext {
+func newLocalContext(props Props, parent *PID) *localContext {
 	cell := &localContext{
 		parent: parent,
 		props:  props,

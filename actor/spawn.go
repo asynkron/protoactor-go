@@ -15,7 +15,7 @@ func SpawnNamed(props Props, name string) *PID {
 }
 
 func spawn(id string, props Props, parent *PID) *PID {
-	cell := newActorCell(props, parent)
+	cell := newLocalContext(props, parent)
 	mailbox := props.ProduceMailbox()
 	var ref Process = &localProcess{mailbox: mailbox}
 	pid, absent := ProcessRegistry.Add(ref, id)
