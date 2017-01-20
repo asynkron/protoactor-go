@@ -87,7 +87,6 @@ func TestActorStopsAfterXRestars(t *testing.T) {
 	m, e := NewObserver()
 	props := FromInstance(&failingChildActor{}).WithMiddleware(m)
 	child := Spawn(props)
-	//
 	fail := "fail!"
 
 	e.ExpectMsg(startedMessage, t)
