@@ -2,6 +2,7 @@ package router
 
 import (
 	"sync"
+	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
@@ -37,6 +38,16 @@ func (a *routerActor) Receive(context actor.Context) {
 		context.Unwatch(m.PID)
 		r.Remove(m.PID)
 		a.state.SetRoutees(r)
+		// The removed node should be stopped with a delay to give it a
+		// chance to process the messages in its mailbox (best effort).
+		// There is no way to send a message with timer atm and blocking
+		// the router actor is not a good idea.
+		// TODO: Update this when there is such a way
+		go func(pid *actor.PID) {
+			timer := time.NewTimer(time.Millisecond * 100)
+			<-timer.C
+			m.PID.Tell(&actor.PoisonPill{})
+		}(m.PID)
 
 	case *BroadcastMessage:
 		msg := m.Message

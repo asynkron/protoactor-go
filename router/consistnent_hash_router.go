@@ -19,27 +19,32 @@ type consistentHashPoolRouter struct {
 	PoolRouter
 }
 
-type consistentHashRouterState struct {
+type hashmapContainer struct {
 	hashring  *hashring.HashRing
 	routeeMap map[string]*actor.PID
+}
+type consistentHashRouterState struct {
+	hmc *hashmapContainer
 }
 
 func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 	//lookup from node name to PID
-	state.routeeMap = make(map[string]*actor.PID)
+	hmc := hashmapContainer{}
+	hmc.routeeMap = make(map[string]*actor.PID)
 	nodes := make([]string, routees.Len())
 	routees.ForEach(func(i int, pid actor.PID) {
 		nodeName := pid.Address + "@" + pid.Id
 		nodes[i] = nodeName
-		state.routeeMap[nodeName] = &pid
+		hmc.routeeMap[nodeName] = &pid
 	})
 	//initialize hashring for mapping message keys to node names
-	state.hashring = hashring.New(nodes)
+	hmc.hashring = hashring.New(nodes)
+	state.hmc = &hmc
 }
 
 func (state *consistentHashRouterState) GetRoutees() *actor.PIDSet {
 	var routees actor.PIDSet
-	for _, v := range state.routeeMap {
+	for _, v := range state.hmc.routeeMap {
 		routees.Add(v)
 	}
 	return &routees
@@ -49,13 +54,14 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}, sender
 	switch msg := message.(type) {
 	case Hasher:
 		key := msg.Hash()
+		hmc := state.hmc
 
-		node, ok := state.hashring.GetNode(key)
+		node, ok := hmc.hashring.GetNode(key)
 		if !ok {
 			log.Printf("[ROUTING] Consistent has router failed to derminate routee: %v", key)
 			return
 		}
-		if routee, ok := state.routeeMap[node]; ok {
+		if routee, ok := hmc.routeeMap[node]; ok {
 			routee.Request(msg, sender)
 		} else {
 			log.Println("[ROUTING] Consisten router failed to resolve node", node)
