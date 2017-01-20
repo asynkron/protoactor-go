@@ -283,7 +283,13 @@ func (ctx *localContext) EscalateFailure(who *PID, reason interface{}) {
 	//suspend self
 	ctx.Self().sendSystemMessage(suspendMailboxMessage)
 	//send failure to parent
-	ctx.Parent().sendSystemMessage(&Failure{Reason: reason, Who: who})
+	if ctx.restartStats == nil {
+		ctx.restartStats = &ChildRestartStats{
+			FailureCount:    1,
+			LastFailureTime: time.Now(),
+		}
+	}
+	ctx.Parent().sendSystemMessage(&Failure{Reason: reason, Who: who, ChildStats: ctx.restartStats})
 }
 
 func (ctx *localContext) tryRestartOrTerminate() {
