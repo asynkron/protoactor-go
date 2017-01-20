@@ -10,6 +10,7 @@ import (
 )
 
 var nullReceive ReceiveFunc = func(Context) {}
+var nilPID *PID
 
 func init() {
 	// discard all logging in tests

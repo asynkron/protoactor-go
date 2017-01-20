@@ -11,10 +11,9 @@ var (
 	ErrTimeout = errors.New("timeout")
 )
 
-func NewFuture(timeout time.Duration) *Future {
-	fut := &Future{cond: sync.NewCond(&sync.Mutex{})}
-
-	ref := &futureProcess{f: fut}
+// NewFuture creates a Future with a timeout of duration t
+func NewFuture(t time.Duration) *Future {
+	ref := &futureProcess{Future{cond: sync.NewCond(&sync.Mutex{})}}
 	id := ProcessRegistry.NextId()
 
 	pid, ok := ProcessRegistry.Add(ref, id)
@@ -23,13 +22,13 @@ func NewFuture(timeout time.Duration) *Future {
 		log.Println(id)
 	}
 
-	fut.pid = pid
-	fut.t = time.AfterFunc(timeout, func() {
-		fut.err = ErrTimeout
+	ref.pid = pid
+	ref.t = time.AfterFunc(t, func() {
+		ref.err = ErrTimeout
 		ref.Stop(pid)
 	})
 
-	return fut
+	return &ref.Future
 }
 
 type Future struct {
@@ -40,6 +39,7 @@ type Future struct {
 	result interface{}
 	err    error
 	t      *time.Timer
+	pipes  []*PID
 }
 
 // PID to the backing actor for the Future result
@@ -47,16 +47,27 @@ func (f *Future) PID() *PID {
 	return f.pid
 }
 
-// PipeTo starts a go routine and waits for the `Future.Result()`, then sends the result to the given `PID`
-func (f *Future) PipeTo(pid *PID) {
-	go func() {
-		res, err := f.Result()
-		if err != nil {
-			pid.Tell(err)
-		} else {
-			pid.Tell(res)
-		}
-	}()
+// PipeTo forwards the result or error of the future to the specified pids
+func (f *Future) PipeTo(pids ...*PID) {
+	f.pipes = append(f.pipes, pids...)
+}
+
+func (f *Future) sendToPipes() {
+	if f.pipes == nil {
+		return
+	}
+
+	var m interface{}
+	if f.err != nil {
+		m = f.err
+	} else {
+		m = f.result
+	}
+
+	for _, pid := range f.pipes {
+		pid.Tell(m)
+	}
+	f.pipes = nil
 }
 
 func (f *Future) ContinueWith(fun func(f *Future)) {
@@ -74,6 +85,7 @@ func (f *Future) wait() {
 	f.cond.L.Unlock()
 }
 
+// Result waits for the future to resolve
 func (f *Future) Result() (interface{}, error) {
 	f.wait()
 	return f.result, f.err
@@ -86,30 +98,31 @@ func (f *Future) Wait() error {
 
 // futureProcess is a struct carrying a response PID and a channel where the response is placed
 type futureProcess struct {
-	f *Future
+	Future
 }
 
 func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
-	ref.f.result = message
+	ref.result = message
 	ref.Stop(pid)
 }
 
 func (ref *futureProcess) SendSystemMessage(pid *PID, message SystemMessage) {
-	ref.f.result = message
+	ref.result = message
 	ref.Stop(pid)
 }
 
 func (ref *futureProcess) Stop(pid *PID) {
-	ref.f.cond.L.Lock()
-	if ref.f.done {
-		ref.f.cond.L.Unlock()
+	ref.cond.L.Lock()
+	if ref.done {
+		ref.cond.L.Unlock()
 		return
 	}
 
-	ref.f.done = true
-	ref.f.t.Stop()
+	ref.done = true
+	ref.t.Stop()
 	ProcessRegistry.Remove(pid)
 
-	ref.f.cond.L.Unlock()
-	ref.f.cond.Signal()
+	ref.sendToPipes()
+	ref.cond.L.Unlock()
+	ref.cond.Signal()
 }
