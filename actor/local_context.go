@@ -301,7 +301,6 @@ func identifyPanic() string {
 			continue
 		}
 		file, line = fn.FileLine(pc)
-		fmt.Printf(file, line, pc)
 		name = fn.Name()
 		if !strings.HasPrefix(name, "runtime.") {
 			break
