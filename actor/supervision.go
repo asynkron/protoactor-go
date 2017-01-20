@@ -3,12 +3,12 @@ package actor
 type Decider func(child *PID, cause interface{}) Directive
 
 type SupervisorStrategy interface {
-	HandleFailure(supervisor Supervisor, child *PID, crs *ChildRestartStats, cause interface{})
+	HandleFailure(supervisor Supervisor, child *PID, crs *ChildRestartStats, cause interface{}, message interface{})
 }
 
 type Supervisor interface {
 	Children() []*PID
-	EscalateFailure(who *PID, reason interface{})
+	EscalateFailure(who *PID, reason interface{}, message interface{})
 }
 
 func logFailure(child *PID, reason interface{}, directive Directive) {

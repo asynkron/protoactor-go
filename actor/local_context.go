@@ -268,13 +268,13 @@ func (ctx *localContext) handleTerminated(msg *Terminated) {
 //offload the supervision completely to the supervisor strategy
 func (ctx *localContext) handleFailure(msg *Failure) {
 	if strategy, ok := ctx.actor.(SupervisorStrategy); ok {
-		strategy.HandleFailure(ctx, msg.Who, msg.ChildStats, msg.Reason)
+		strategy.HandleFailure(ctx, msg.Who, msg.ChildStats, msg.Reason, msg.Message)
 		return
 	}
-	ctx.supervisor.HandleFailure(ctx, msg.Who, msg.ChildStats, msg.Reason)
+	ctx.supervisor.HandleFailure(ctx, msg.Who, msg.ChildStats, msg.Reason, msg.Message)
 }
 
-func (ctx *localContext) EscalateFailure(who *PID, reason interface{}) {
+func (ctx *localContext) EscalateFailure(who *PID, reason interface{}, message interface{}) {
 	if ctx.Parent() == nil {
 		log.Printf("[ACTOR] '%v' Cannot escalate failure from root actor; stopping instead", ctx.debugString())
 		ctx.Self().sendSystemMessage(stopMessage)
@@ -289,7 +289,12 @@ func (ctx *localContext) EscalateFailure(who *PID, reason interface{}) {
 			LastFailureTime: time.Now(),
 		}
 	}
-	ctx.Parent().sendSystemMessage(&Failure{Reason: reason, Who: who, ChildStats: ctx.restartStats})
+	ctx.Parent().sendSystemMessage(&Failure{
+		Reason:     reason,
+		Who:        who,
+		ChildStats: ctx.restartStats,
+		Message:    message,
+	})
 }
 
 func (ctx *localContext) tryRestartOrTerminate() {
@@ -428,5 +433,5 @@ func (ctx *localContext) debugString() string {
 }
 
 func handleRootFailure(msg *Failure) {
-	defaultSupervisionStrategy.HandleFailure(nil, msg.Who, msg.ChildStats, msg.Reason)
+	defaultSupervisionStrategy.HandleFailure(nil, msg.Who, msg.ChildStats, msg.Reason, msg.Message)
 }

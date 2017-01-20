@@ -16,7 +16,7 @@ type OneForOneStrategy struct {
 	decider        Decider
 }
 
-func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *PID, crs *ChildRestartStats, reason interface{}) {
+func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *PID, crs *ChildRestartStats, reason interface{}, message interface{}) {
 	directive := strategy.decider(child, reason)
 
 	switch directive {
@@ -41,6 +41,6 @@ func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 		//send failure to parent
 		//supervisor mailbox
 		//do not log here, log in the parent handling the error
-		supervisor.EscalateFailure(child, reason)
+		supervisor.EscalateFailure(child, reason, message)
 	}
 }

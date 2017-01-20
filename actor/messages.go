@@ -52,6 +52,7 @@ type Failure struct {
 	Who        *PID
 	Reason     interface{}
 	ChildStats *ChildRestartStats
+	Message    interface{}
 }
 
 func (*Restarting) AutoReceiveMessage() {}
