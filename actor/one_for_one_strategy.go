@@ -1,17 +1,19 @@
 package actor
 
-func NewOneForOneStrategy(maxNrOfRetries int, withinTimeRangeMilliseconds int, decider Decider) SupervisorStrategy {
+import "time"
+
+func NewOneForOneStrategy(maxNrOfRetries int, withinDuration time.Duration, decider Decider) SupervisorStrategy {
 	return &OneForOneStrategy{
-		maxNrOfRetries:              maxNrOfRetries,
-		withinTimeRangeMilliseconds: withinTimeRangeMilliseconds,
-		decider:                     decider,
+		maxNrOfRetries: maxNrOfRetries,
+		withinDuration: withinDuration,
+		decider:        decider,
 	}
 }
 
 type OneForOneStrategy struct {
-	maxNrOfRetries              int
-	withinTimeRangeMilliseconds int
-	decider                     Decider
+	maxNrOfRetries int
+	withinDuration time.Duration
+	decider        Decider
 }
 
 func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *PID, crs *ChildRestartStats, reason interface{}) {
@@ -24,7 +26,7 @@ func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 		child.sendSystemMessage(resumeMailboxMessage)
 	case RestartDirective:
 		//try restart the failing child
-		if crs.requestRestartPermission(strategy.maxNrOfRetries, strategy.withinTimeRangeMilliseconds) {
+		if crs.requestRestartPermission(strategy.maxNrOfRetries, strategy.withinDuration) {
 			logFailure(child, reason, RestartDirective)
 			child.sendSystemMessage(restartMessage)
 		} else {
