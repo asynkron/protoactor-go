@@ -10,7 +10,7 @@ func TestDeadLetterAfterStop(t *testing.T) {
 	actor := Spawn(FromProducer(NewBlackHoleActor))
 	done := false
 	sub := EventStream.Subscribe(func(msg interface{}) {
-		if deadLetter, ok := msg.(*DeadLetter); ok {
+		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			if deadLetter.PID == actor {
 				done = true
 			}

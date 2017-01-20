@@ -53,7 +53,7 @@ func (state *endpointWriter) initializeInternal() error {
 			log.Printf("[REMOTING] EndpointWriter lost connection to address %v", state.address)
 
 			//notify that the endpoint terminated
-			terminated := &EndpointTerminated{
+			terminated := &EndpointTerminatedEvent{
 				Address: state.address,
 			}
 			actor.EventStream.Publish(terminated)

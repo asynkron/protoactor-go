@@ -35,7 +35,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		delete(state.watched, msg.Watcher.Id)
 		delete(state.watcher, msg.Watchee.Id)
 
-	case *EndpointTerminated:
+	case *EndpointTerminatedEvent:
 
 		log.Printf("[REMOTING] EndpointWatcher handling terminated address %v", msg.Address)
 
@@ -95,7 +95,7 @@ func (state *endpointWatcher) Terminated(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *remoteTerminate:
 	//pass
-	case *EndpointTerminated:
+	case *EndpointTerminatedEvent:
 	//pass
 	case *remoteWatch:
 

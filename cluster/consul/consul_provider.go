@@ -145,7 +145,7 @@ func (p *ConsulProvider) notifyStatuses() {
 		kvMap[v.Key] = string(v.Value)
 	}
 
-	res := make(cluster.MemberStatusBatch, len(statuses))
+	res := make(cluster.ClusterTopologyEvent, len(statuses))
 	for i, v := range statuses {
 		key := fmt.Sprintf("%v/%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
 		memberID := kvMap[key]

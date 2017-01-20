@@ -2,7 +2,7 @@ package remote
 
 import "github.com/AsynkronIT/protoactor-go/actor"
 
-type EndpointTerminated struct {
+type EndpointTerminatedEvent struct {
 	Address string
 }
 

@@ -8,7 +8,7 @@ type MemberStatus struct {
 	Alive    bool
 }
 
-type MemberStatusBatch []*MemberStatus
+type ClusterTopologyEvent []*MemberStatus
 
 type ClusterProvider interface {
 	RegisterMember(clusterName string, address string, port int, knownKinds []string) error

@@ -6,7 +6,7 @@ var (
 	deadLetter Process = &deadLetterProcess{}
 )
 
-type DeadLetter struct {
+type DeadLetterEvent struct {
 	// PID specifies the process ID of the dead letter process
 	PID *PID
 
@@ -18,7 +18,7 @@ type DeadLetter struct {
 }
 
 func (*deadLetterProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
-	EventStream.Publish(&DeadLetter{
+	EventStream.Publish(&DeadLetterEvent{
 		PID:     pid,
 		Message: message,
 		Sender:  sender,
@@ -26,7 +26,7 @@ func (*deadLetterProcess) SendUserMessage(pid *PID, message interface{}, sender 
 }
 
 func (*deadLetterProcess) SendSystemMessage(pid *PID, message SystemMessage) {
-	EventStream.Publish(&DeadLetter{
+	EventStream.Publish(&DeadLetterEvent{
 		PID:     pid,
 		Message: message,
 	})

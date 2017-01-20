@@ -19,7 +19,7 @@ func newEndpointManager(config *remoteConfig) actor.Producer {
 func subscribeEndpointManager() {
 	actor.EventStream.SubscribePID(endpointManagerPID,
 		func(m interface{}) bool {
-			_, ok := m.(*EndpointTerminated)
+			_, ok := m.(*EndpointTerminatedEvent)
 			return ok
 		})
 }
@@ -48,7 +48,7 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 		state.connections = make(map[string]*endpoint)
 
 		log.Println("[REMOTING] Started EndpointManager")
-	case *EndpointTerminated:
+	case *EndpointTerminatedEvent:
 		address := msg.Address
 		endpoint := state.ensureConnected(address, ctx)
 		endpoint.watcher.Tell(msg)

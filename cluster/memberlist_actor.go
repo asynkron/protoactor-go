@@ -24,7 +24,7 @@ func newMembershipActor() actor.Producer {
 func subscribeMembershipActorToEventStream() {
 	actor.EventStream.SubscribePID(memberlistPID,
 		func(m interface{}) bool {
-			_, ok := m.(MemberStatusBatch)
+			_, ok := m.(ClusterTopologyEvent)
 			return ok
 		})
 }
@@ -56,7 +56,7 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 		ctx.Respond(&MemberByKindResponse{
 			members: res,
 		})
-	case MemberStatusBatch:
+	case ClusterTopologyEvent:
 
 		//build a lookup for the new statuses
 		tmp := make(map[string]*MemberStatus)
@@ -100,7 +100,7 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		actor.EventStream.Publish(left)
 		delete(a.members, key) //remove this member as it has left
 
-		rt := &remote.EndpointTerminated{
+		rt := &remote.EndpointTerminatedEvent{
 			Address: fmt.Sprintf("%v:%v", old.Host, old.Port),
 		}
 		actor.EventStream.Publish(rt)
