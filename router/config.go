@@ -33,7 +33,7 @@ func (config *PoolRouter) OnStarted(context actor.Context, props actor.Props, ro
 }
 
 func spawner(config RouterConfig) actor.Spawner {
-	return func(id string, props actor.Props, parent *actor.PID) *actor.PID {
+	return func(id string, props actor.Props, parent *actor.PID) (*actor.PID, error) {
 		return spawn(id, config, props, parent)
 	}
 }

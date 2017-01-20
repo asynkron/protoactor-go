@@ -1,32 +1,42 @@
 package actor
 
-type Spawner func(id string, props Props, parent *PID) *PID
+import "errors"
+
+var (
+	ErrNameExists = errors.New("spawn: name exists")
+)
+
+type Spawner func(id string, props Props, parent *PID) (*PID, error)
 
 // DefaultSpawner conforms to Spawner and is used to spawn a local actor
 var DefaultSpawner Spawner = spawn
 
-//Spawn an actor with an auto generated id
+// Spawn starts a new actor with an unique id
 func Spawn(props Props) *PID {
-	return props.spawn(ProcessRegistry.NextId(), nil)
+	pid, _ := props.spawn(ProcessRegistry.NextId(), nil)
+	return pid
 }
 
-//SpawnNamed spawns a named actor
-func SpawnNamed(props Props, name string) *PID {
+// SpawnNamed starts a new actor based on props
+//
+// if name exists, error will be ErrNameExists
+func SpawnNamed(props Props, name string) (*PID, error) {
 	return props.spawn(name, nil)
 }
 
-func spawn(id string, props Props, parent *PID) *PID {
+func spawn(id string, props Props, parent *PID) (*PID, error) {
 	cell := newLocalContext(props.actorProducer, props.Supervisor(), props.middlewareChain, parent)
 	mailbox := props.ProduceMailbox()
 	var ref Process = &localProcess{mailbox: mailbox}
 	pid, absent := ProcessRegistry.Add(ref, id)
-
-	if absent {
-		pid.p = &ref
-		cell.self = pid
-		mailbox.RegisterHandlers(cell, props.Dispatcher())
-		mailbox.PostSystemMessage(startedMessage)
+	if !absent {
+		return pid, ErrNameExists
 	}
 
-	return pid
+	pid.p = &ref
+	cell.self = pid
+	mailbox.RegisterHandlers(cell, props.Dispatcher())
+	mailbox.PostSystemMessage(startedMessage)
+
+	return pid, nil
 }

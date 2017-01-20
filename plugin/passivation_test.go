@@ -18,6 +18,10 @@ func (state *SmartActor) Receive(context actor.Context) {
 }
 
 func TestPassivation(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+
 	UnitOfTime := time.Duration(200 * time.Millisecond)
 	PassivationDuration := time.Duration(3 * UnitOfTime)
 	props := actor.

@@ -401,14 +401,20 @@ func (ctx *localContext) Respond(response interface{}) {
 }
 
 func (ctx *localContext) Spawn(props Props) *PID {
-	return ctx.SpawnNamed(props, ProcessRegistry.NextId())
+	pid, _ := ctx.SpawnNamed(props, ProcessRegistry.NextId())
+	return pid
 }
 
-func (ctx *localContext) SpawnNamed(props Props, name string) *PID {
-	pid := props.spawn(ctx.self.Id+"/"+name, ctx.self)
+func (ctx *localContext) SpawnNamed(props Props, name string) (*PID, error) {
+	pid, err := props.spawn(ctx.self.Id+"/"+name, ctx.self)
+	if err != nil {
+		return pid, err
+	}
+
 	ctx.children.Add(pid)
 	ctx.Watch(pid)
-	return pid
+
+	return pid, nil
 }
 
 func (ctx *localContext) debugString() string {

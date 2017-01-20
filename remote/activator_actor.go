@@ -14,7 +14,7 @@ var (
 )
 
 func spawnActivatorActor() {
-	activatorPid = actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
+	activatorPid, _ = actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
 }
 
 //Register a known actor props by name
@@ -87,7 +87,7 @@ func (*activator) Receive(context actor.Context) {
 			name = actor.ProcessRegistry.NextId()
 		}
 
-		pid := actor.SpawnNamed(props, "Remote$"+msg.Name)
+		pid, _ := actor.SpawnNamed(props, "Remote$"+msg.Name)
 		response := &ActorPidResponse{
 			Pid: pid,
 		}

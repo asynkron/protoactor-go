@@ -18,7 +18,7 @@ func TestStopFuture(t *testing.T) {
 	ID := "UniqueID"
 	{
 		props := FromInstance(&ShortLivingActor{})
-		actor := SpawnNamed(props, ID)
+		actor, _ := SpawnNamed(props, ID)
 
 		fut := actor.StopFuture()
 
