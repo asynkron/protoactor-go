@@ -75,6 +75,10 @@ func (state *managerActor) Receive(context actor.Context) {
 }
 
 func TestConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+
 	wait.Add(100 * 10000)
 	rpid := actor.Spawn(router.NewConsistentHashPool(100).WithInstance(&routerActor{}))
 

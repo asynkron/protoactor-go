@@ -13,9 +13,9 @@ func TestLocalContext_SpawnNamed(t *testing.T) {
 	p.On("SendSystemMessage", matchPID(pid), mock.Anything)
 
 	props := Props{
-		spawner: func(id string, _ Props, _ *PID) *PID {
+		spawner: func(id string, _ Props, _ *PID) (*PID, error) {
 			assert.Equal(t, "foo/bar", id)
-			return NewLocalPID(id)
+			return NewLocalPID(id), nil
 		},
 	}
 

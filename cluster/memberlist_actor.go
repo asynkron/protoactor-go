@@ -12,7 +12,7 @@ var (
 )
 
 func spawnMembershipActor() {
-	memberlistPID = actor.SpawnNamed(actor.FromProducer(newMembershipActor()), "#membership")
+	memberlistPID, _ = actor.SpawnNamed(actor.FromProducer(newMembershipActor()), "#membership")
 }
 
 func newMembershipActor() actor.Producer {
