@@ -1,5 +1,7 @@
 package actor
 
+import "time"
+
 type Decider func(child *PID, cause interface{}) Directive
 
 type SupervisorStrategy interface {
@@ -24,7 +26,7 @@ func DefaultDecider(child *PID, reason interface{}) Directive {
 	return RestartDirective
 }
 
-var defaultSupervisionStrategy = NewOneForOneStrategy(10, 0, DefaultDecider)
+var defaultSupervisionStrategy = NewOneForOneStrategy(10, 3*time.Second, DefaultDecider)
 
 func DefaultSupervisorStrategy() SupervisorStrategy {
 	return defaultSupervisionStrategy
