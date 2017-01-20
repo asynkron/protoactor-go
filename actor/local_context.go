@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"runtime"
-	"strings"
 	"time"
 
 	"github.com/emirpasic/gods/stacks/linkedliststack"
@@ -158,19 +156,6 @@ func (ctx *localContext) EscalateFailure(who *PID, reason interface{}, message i
 }
 
 func (ctx *localContext) InvokeUserMessage(md interface{}) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", ctx.debugString(), r, identifyPanic())
-
-			ctx.EscalateFailure(ctx.self, r, md)
-		}
-	}()
-
-	if md == nil {
-		log.Printf("[ACTOR] '%v' got nil message", ctx.Self().String())
-		return
-	}
-
 	influenceTimeout := true
 	if ctx.receiveTimeout > 0 {
 		_, influenceTimeout = md.(NotInfluenceReceiveTimeout)
@@ -329,35 +314,6 @@ func (ctx *localContext) stopped() {
 	})
 }
 
-func identifyPanic() string {
-	var name, file string
-	var line int
-	var pc [16]uintptr
-
-	n := runtime.Callers(3, pc[:])
-	for _, pc := range pc[:n] {
-		log.Printf("%d", pc)
-		fn := runtime.FuncForPC(pc)
-		if fn == nil {
-			continue
-		}
-		file, line = fn.FileLine(pc)
-		name = fn.Name()
-		if !strings.HasPrefix(name, "runtime.") {
-			break
-		}
-	}
-
-	switch {
-	case name != "":
-		return fmt.Sprintf("%v:%v", name, line)
-	case file != "":
-		return fmt.Sprintf("%v:%v", file, line)
-	}
-
-	return fmt.Sprintf("pc:%x", pc)
-}
-
 func (ctx *localContext) SetBehavior(behavior ReceiveFunc) {
 	ctx.behavior.Clear()
 	ctx.receive = behavior
@@ -413,7 +369,7 @@ func (ctx *localContext) SpawnNamed(props Props, name string) (*PID, error) {
 	return pid, nil
 }
 
-func (ctx *localContext) debugString() string {
+func (ctx *localContext) GoString() string {
 	return fmt.Sprintf("%v/%v:%v", ctx.self.Address, ctx.self.Id, reflect.TypeOf(ctx.actor))
 }
 

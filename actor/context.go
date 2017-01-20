@@ -2,11 +2,6 @@ package actor
 
 import "time"
 
-type MessageInvoker interface {
-	InvokeSystemMessage(SystemMessage)
-	InvokeUserMessage(interface{})
-}
-
 type Context interface {
 	// Watch registers the actor as a monitor for the specified PID
 	Watch(*PID)

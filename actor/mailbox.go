@@ -1,14 +1,14 @@
 package actor
 
 import (
+	"fmt"
+	"log"
 	"runtime"
+	"strings"
 	"sync/atomic"
 
 	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
 )
-
-type ReceiveUserMessage func(interface{})
-type ReceiveSystemMessage func(SystemMessage)
 
 type MailboxStatistics interface {
 	MailboxStarted()
@@ -17,8 +17,16 @@ type MailboxStatistics interface {
 	MailboxEmpty()
 }
 
+type MessageInvoker interface {
+	InvokeSystemMessage(SystemMessage)
+	InvokeUserMessage(interface{})
+	EscalateFailure(who *PID, reason interface{}, message interface{})
+}
+
 type MailboxRunner func()
+
 type MailboxProducer func() Mailbox
+
 type Mailbox interface {
 	PostUserMessage(message interface{})
 	PostSystemMessage(message SystemMessage)
@@ -46,22 +54,6 @@ type DefaultMailbox struct {
 	mailboxStats    []MailboxStatistics
 }
 
-func (m *DefaultMailbox) ConsumeSystemMessages() bool {
-	if sysMsg := m.systemMailbox.Pop(); sysMsg != nil {
-		sys, _ := sysMsg.(SystemMessage)
-		switch sys.(type) {
-		case *SuspendMailbox:
-			m.suspended = true
-		case *ResumeMailbox:
-			m.suspended = false
-		}
-
-		m.invoker.InvokeSystemMessage(sys)
-		return true
-	}
-	return false
-}
-
 func (m *DefaultMailbox) PostUserMessage(message interface{}) {
 	for _, ms := range m.mailboxStats {
 		ms.MessagePosted(message)
@@ -85,32 +77,8 @@ func (m *DefaultMailbox) schedule() {
 func (m *DefaultMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&m.hasMoreMessages, mailboxHasNoMessages)
-	i, t := 0, m.dispatcher.Throughput()
-process:
-	for {
-		if i > t {
-			i = 0
-			runtime.Gosched()
-		}
 
-		i++
-
-		if m.ConsumeSystemMessages() {
-			continue
-		} else if m.suspended {
-			// exit processing is suspended and no system messages were processed
-			break process
-		}
-
-		if userMsg := m.userMailbox.Pop(); userMsg != nil {
-			m.invoker.InvokeUserMessage(userMsg)
-			for _, ms := range m.mailboxStats {
-				ms.MessageReceived(userMsg)
-			}
-		} else {
-			break process
-		}
-	}
+	process: m.run()
 
 	// set mailbox to idle
 	atomic.StoreInt32(&m.schedulerStatus, mailboxIdle)
@@ -126,6 +94,86 @@ process:
 	for _, ms := range m.mailboxStats {
 		ms.MailboxEmpty()
 	}
+}
+
+func identifyPanic() string {
+	var name, file string
+	var line int
+	var pc [16]uintptr
+
+	n := runtime.Callers(3, pc[:])
+	for _, pc := range pc[:n] {
+		log.Printf("%d", pc)
+		fn := runtime.FuncForPC(pc)
+		if fn == nil {
+			continue
+		}
+		file, line = fn.FileLine(pc)
+		name = fn.Name()
+		if !strings.HasPrefix(name, "runtime.") {
+			break
+		}
+	}
+
+	switch {
+	case name != "":
+		return fmt.Sprintf("%v:%v", name, line)
+	case file != "":
+		return fmt.Sprintf("%v:%v", file, line)
+	}
+
+	return fmt.Sprintf("pc:%x", pc)
+}
+
+func (m *DefaultMailbox) run() {
+	var msg interface{}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", m.invoker, r, identifyPanic())
+
+			m.invoker.EscalateFailure(nil, r, msg)
+		}
+	}()
+
+	i, t := 0, m.dispatcher.Throughput()
+	for {
+		if i > t {
+			i = 0
+			runtime.Gosched()
+		}
+
+		i++
+
+		// keep processing system messages until queue is empty
+		if msg = m.systemMailbox.Pop(); msg != nil {
+			sys, _ := msg.(SystemMessage)
+			switch sys.(type) {
+			case *SuspendMailbox:
+				m.suspended = true
+			case *ResumeMailbox:
+				m.suspended = false
+			}
+
+			m.invoker.InvokeSystemMessage(sys)
+			continue
+		}
+
+		// didn't process a system message, so break until we are resumed
+		if m.suspended {
+			return
+		}
+
+		if msg = m.userMailbox.Pop(); msg != nil {
+			m.invoker.InvokeUserMessage(msg)
+			for _, ms := range m.mailboxStats {
+				ms.MessageReceived(msg)
+			}
+		} else {
+			return
+		}
+	}
+
 }
 
 func (m *DefaultMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
