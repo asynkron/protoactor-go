@@ -69,6 +69,10 @@ func TestRouterActor_Receive_BroadcastMessage(t *testing.T) {
 
 	actor.ProcessRegistry.Add(child, "p1")
 	actor.ProcessRegistry.Add(child, "p2")
+	defer func() {
+		actor.ProcessRegistry.Remove(&actor.PID{Id: "p1"})
+		actor.ProcessRegistry.Remove(&actor.PID{Id: "p2"})
+	}()
 
 	c := new(mockContext)
 	c.On("Message").Return(&BroadcastMessage{"hi"})
