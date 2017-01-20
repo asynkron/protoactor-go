@@ -20,6 +20,7 @@ func (c *ChildRestartStats) requestRestartPermission(maxNrOfRetries int, withinT
 		return c.FailureCount <= maxNrOfRetries
 	}
 
+	return c.FailureCount <= maxNrOfRetries
 	//TODO: implement timewindow logic
 
 	return true

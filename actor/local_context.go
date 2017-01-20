@@ -203,6 +203,7 @@ func (ctx *localContext) handleRestart(msg *Restart) {
 func (ctx *localContext) handleStop(msg *Stop) {
 	ctx.stopping = true
 	ctx.restarting = false
+
 	ctx.InvokeUserMessage(stoppingMessage)
 	ctx.children.ForEach(func(_ int, pid PID) {
 		pid.Stop()
