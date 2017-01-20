@@ -26,6 +26,6 @@ func DefaultDecider(child *PID, reason interface{}) Directive {
 
 var defaultSupervisionStrategy = NewOneForOneStrategy(10, 3000, DefaultDecider)
 
-func DefaultSupervisionStrategy() SupervisorStrategy {
+func DefaultSupervisorStrategy() SupervisorStrategy {
 	return defaultSupervisionStrategy
 }
