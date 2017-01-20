@@ -134,27 +134,35 @@ func (ctx *localContext) Receive(message interface{}) {
 	ctx.processMessage(message)
 }
 
+func (ctx *localContext) EscalateFailure(who *PID, reason interface{}, message interface{}) {
+
+	//TODO: maybe we don't need the "who" here, as it is always the escalating actor that needs to pass itself
+	//e.g. if actor c escalates to b that escalates to a, then a should try to handle b and not c
+
+	//lazy initialize the child restart stats if this is the first time
+	//further mutations are handled within "restart"
+	if ctx.restartStats == nil {
+		ctx.restartStats = &ChildRestartStats{
+			FailureCount: 1,
+		}
+	}
+	failure := &Failure{Reason: reason, Who: ctx.self, ChildStats: ctx.restartStats}
+	if ctx.parent == nil {
+		handleRootFailure(failure)
+	} else {
+		//TODO: Akka recursively suspends all children also on failure
+		//Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
+		ctx.self.sendSystemMessage(suspendMailboxMessage)
+		ctx.parent.sendSystemMessage(failure)
+	}
+}
+
 func (ctx *localContext) InvokeUserMessage(md interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", ctx.debugString(), r, identifyPanic())
 
-			//lazy initialize the child restart stats if this is the first time
-			//further mutations are handled within "restart"
-			if ctx.restartStats == nil {
-				ctx.restartStats = &ChildRestartStats{
-					FailureCount: 1,
-				}
-			}
-			failure := &Failure{Reason: r, Who: ctx.self, ChildStats: ctx.restartStats}
-			if ctx.parent == nil {
-				handleRootFailure(failure)
-			} else {
-				//TODO: Akka recursively suspends all children also on failure
-				//Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
-				ctx.self.sendSystemMessage(suspendMailboxMessage)
-				ctx.parent.sendSystemMessage(failure)
-			}
+			ctx.EscalateFailure(ctx.self, r, md)
 		}
 	}()
 
@@ -272,29 +280,6 @@ func (ctx *localContext) handleFailure(msg *Failure) {
 		return
 	}
 	ctx.supervisor.HandleFailure(ctx, msg.Who, msg.ChildStats, msg.Reason, msg.Message)
-}
-
-func (ctx *localContext) EscalateFailure(who *PID, reason interface{}, message interface{}) {
-	if ctx.Parent() == nil {
-		log.Printf("[ACTOR] '%v' Cannot escalate failure from root actor; stopping instead", ctx.debugString())
-		ctx.Self().sendSystemMessage(stopMessage)
-		return
-	}
-	//suspend self
-	ctx.Self().sendSystemMessage(suspendMailboxMessage)
-	//send failure to parent
-	if ctx.restartStats == nil {
-		ctx.restartStats = &ChildRestartStats{
-			FailureCount:    1,
-			LastFailureTime: time.Now(),
-		}
-	}
-	ctx.Parent().sendSystemMessage(&Failure{
-		Reason:     reason,
-		Who:        who,
-		ChildStats: ctx.restartStats,
-		Message:    message,
-	})
 }
 
 func (ctx *localContext) tryRestartOrTerminate() {
