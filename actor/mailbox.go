@@ -78,7 +78,8 @@ func (m *DefaultMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&m.hasMoreMessages, mailboxHasNoMessages)
 
-	process: m.run()
+process:
+	m.run()
 
 	// set mailbox to idle
 	atomic.StoreInt32(&m.schedulerStatus, mailboxIdle)
