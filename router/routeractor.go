@@ -46,7 +46,7 @@ func (a *routerActor) Receive(context actor.Context) {
 		go func(pid *actor.PID) {
 			timer := time.NewTimer(time.Millisecond * 100)
 			<-timer.C
-			m.PID.Stop()
+			m.PID.Tell(&actor.PoisonPill{})
 		}(m.PID)
 
 	case *BroadcastMessage:
