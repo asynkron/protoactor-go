@@ -38,16 +38,16 @@ func (a *routerActor) Receive(context actor.Context) {
 		context.Unwatch(m.PID)
 		r.Remove(m.PID)
 		a.state.SetRoutees(r)
-		// The removed node should be stopped with a delay to give it a
-		// chance to process the messages in its mailbox (best effort).
-		// There is no way to send a message with timer atm and blocking
-		// the router actor is not a good idea.
-		// TODO: Update this when there is such a way
-		go func(pid *actor.PID) {
-			timer := time.NewTimer(time.Millisecond * 100)
-			<-timer.C
-			m.PID.Tell(&actor.PoisonPill{})
-		}(m.PID)
+		// sleep for 1ms before sending the poison pill
+		// This is to give some time to the routee actor receive all
+		// the messages. Sepcially due to the synchronization conditions in
+		// consistent hash router, where a copy of hmc can be obtained before
+		// the update and cause messages routed to a dead routee if there is no
+		// delay. This is a best effort approach and 1ms seems to be acceptable
+		// in terms of both delay it cause to the router actor and the time it
+		// provides for the routee to receive messages before it dies.
+		time.Sleep(time.Millisecond * 1)
+		m.PID.Tell(&actor.PoisonPill{})
 
 	case *BroadcastMessage:
 		msg := m.Message
