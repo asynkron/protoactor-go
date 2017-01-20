@@ -1,7 +1,5 @@
 package actor
 
-import "log"
-
 type Directive int
 
 // Directive determines how a supervisor should handle a failing actor
@@ -68,18 +66,13 @@ func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 	}
 }
 
-//TODO: how should this message look? and should we have a setting for turning this on or off?
 func logFailure(child *PID, reason interface{}, directive Directive) {
-	var dirname string
-	switch directive {
-	case ResumeDirective:
-		dirname = "Resuming"
-	case RestartDirective:
-		dirname = "Restarting"
-	case StopDirective:
-		dirname = "Stopping"
+	event := &SupervisorEvent{
+		Child:     child,
+		Reason:    reason,
+		Directive: directive,
 	}
-	log.Printf("[ACTOR] %v actor '%v' after failure '%v'", dirname, child, reason)
+	EventStream.Publish(event)
 }
 
 func NewOneForOneStrategy(maxNrOfRetries int, withinTimeRangeMilliseconds int, decider Decider) SupervisorStrategy {
