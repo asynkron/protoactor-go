@@ -57,7 +57,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 			}
 		}
 
-		ctx.Become(state.Terminated)
+		ctx.SetBehavior(state.Terminated)
 
 	case *remoteWatch:
 

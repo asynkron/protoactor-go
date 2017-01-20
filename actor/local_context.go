@@ -134,6 +134,51 @@ func (ctx *localContext) Receive(message interface{}) {
 	ctx.processMessage(message)
 }
 
+func (ctx *localContext) InvokeUserMessage(md interface{}) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", ctx.debugString(), r, identifyPanic())
+
+			//lazy initialize the child restart stats if this is the first time
+			//further mutations are handled within "restart"
+			if ctx.restartStats == nil {
+				ctx.restartStats = &ChildRestartStats{
+					FailureCount: 1,
+				}
+			}
+			failure := &Failure{Reason: r, Who: ctx.self, ChildStats: ctx.restartStats}
+			if ctx.parent == nil {
+				handleRootFailure(failure)
+			} else {
+				//TODO: Akka recursively suspends all children also on failure
+				//Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
+				ctx.self.sendSystemMessage(suspendMailboxMessage)
+				ctx.parent.sendSystemMessage(failure)
+			}
+		}
+	}()
+
+	if md == nil {
+		log.Printf("[ACTOR] '%v' got nil message", ctx.Self().String())
+		return
+	}
+
+	influenceTimeout := true
+	if ctx.receiveTimeout > 0 {
+		_, influenceTimeout = md.(NotInfluenceReceiveTimeout)
+		influenceTimeout = !influenceTimeout
+		if influenceTimeout {
+			ctx.t.Stop()
+		}
+	}
+
+	ctx.processMessage(md)
+
+	if ctx.receiveTimeout > 0 && influenceTimeout {
+		ctx.t.Reset(ctx.receiveTimeout)
+	}
+}
+
 // localContextReceiver is used when middleware chain is required
 func localContextReceiver(ctx Context) {
 	a := ctx.(*localContext)
@@ -317,62 +362,17 @@ func identifyPanic() string {
 	return fmt.Sprintf("pc:%x", pc)
 }
 
-func (ctx *localContext) InvokeUserMessage(md interface{}) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", ctx.debugString(), r, identifyPanic())
-
-			//lazy initialize the child restart stats if this is the first time
-			//further mutations are handled within "restart"
-			if ctx.restartStats == nil {
-				ctx.restartStats = &ChildRestartStats{
-					FailureCount: 1,
-				}
-			}
-			failure := &Failure{Reason: r, Who: ctx.self, ChildStats: ctx.restartStats}
-			if ctx.parent == nil {
-				handleRootFailure(failure)
-			} else {
-				//TODO: Akka recursively suspends all children also on failure
-				//Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
-				ctx.self.sendSystemMessage(suspendMailboxMessage)
-				ctx.parent.sendSystemMessage(failure)
-			}
-		}
-	}()
-
-	if md == nil {
-		log.Printf("[ACTOR] '%v' got nil message", ctx.Self().String())
-		return
-	}
-
-	influenceTimeout := true
-	if ctx.receiveTimeout > 0 {
-		_, influenceTimeout = md.(NotInfluenceReceiveTimeout)
-		influenceTimeout = !influenceTimeout
-		if influenceTimeout {
-			ctx.t.Stop()
-		}
-	}
-
-	ctx.processMessage(md)
-
-	if ctx.receiveTimeout > 0 && influenceTimeout {
-		ctx.t.Reset(ctx.receiveTimeout)
-	}
-}
-
-func (ctx *localContext) Become(behavior ReceiveFunc) {
+func (ctx *localContext) SetBehavior(behavior ReceiveFunc) {
 	ctx.behavior.Clear()
 	ctx.receive = behavior
 }
 
-func (ctx *localContext) BecomeStacked(behavior ReceiveFunc) {
+func (ctx *localContext) PushBehavior(behavior ReceiveFunc) {
 	ctx.behavior.Push(ctx.receive)
 	ctx.receive = behavior
 }
 
-func (ctx *localContext) UnbecomeStacked() {
+func (ctx *localContext) PopBehavior() {
 	if ctx.behavior.Len() == 0 {
 		panic("Cannot unbecome actor base behavior")
 	}

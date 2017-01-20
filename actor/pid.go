@@ -25,17 +25,18 @@ func (pid *PID) ref() Process {
 	return ref
 }
 
-//Tell a message to a given PID
+// Tell sends a messages asynchronously to the PID
 func (pid *PID) Tell(message interface{}) {
 	pid.ref().SendUserMessage(pid, message, nil)
 }
 
-//Ask a message to a given PID
+// Request sends a messages asynchronously to the PID. The actor may send a response back via respondTo, which is
+// available to the receiving actor via Context.Sender
 func (pid *PID) Request(message interface{}, respondTo *PID) {
 	pid.ref().SendUserMessage(pid, message, respondTo)
 }
 
-//RequestFuture sends a message to a given PID and returns a Future
+// RequestFuture sends a message to a given PID and returns a Future
 func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Future {
 	future := NewFuture(timeout)
 	pid.ref().SendUserMessage(pid, message, future.PID())

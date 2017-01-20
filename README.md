@@ -127,34 +127,33 @@ func main() {
 }
 ```
 
-## State machines / Become and Unbecome
+## State machines / SetBehavior, PushBehavior and PopBehavior
 
 ```go
-type Become struct{}
 type Hello struct{ Who string }
-type BecomeActor struct{}
+type SetBehaviorActor struct{}
 
-func (state *BecomeActor) Receive(context actor.Context) {
+func (state *SetBehaviorActor) Receive(context actor.Context) {
     switch msg := context.Message().(type) {
     case Hello:
         fmt.Printf("Hello %v\n", msg.Who)
-        context.Become(state.Other)
+        context.SetBehavior(state.Other)
     }
 }
 
-func (state *BecomeActor) Other(context actor.Context) {
+func (state *SetBehaviorActor) Other(context actor.Context) {
     switch msg := context.Message().(type) {
     case Hello:
         fmt.Printf("%v, ey we are now handling messages in another behavior", msg.Who)
     }
 }
 
-func NewBecomeActor() actor.Actor {
-    return &BecomeActor{}
+func NewSetBehaviorActor() actor.Actor {
+    return &SetBehaviorActor{}
 }
 
 func main() {
-    props := actor.FromProducer(NewBecomeActor)
+    props := actor.FromProducer(NewSetBehaviorActor)
     pid := actor.Spawn(props)
     pid.Tell(Hello{Who: "Roger"})
     pid.Tell(Hello{Who: "Roger"})

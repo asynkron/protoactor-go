@@ -28,7 +28,7 @@ func BenchmarkLocalContext_ProcessMessageNoMiddleware(b *testing.B) {
 	var m interface{} = 1
 
 	ctx := &localContext{actor: nullReceive}
-	ctx.Become(nullReceive.Receive)
+	ctx.SetBehavior(nullReceive.Receive)
 	for i := 0; i < b.N; i++ {
 		ctx.processMessage(m)
 	}
@@ -45,7 +45,7 @@ func BenchmarkLocalContext_ProcessMessageWithMiddleware(b *testing.B) {
 	}
 
 	ctx := &localContext{actor: nullReceive, middleware: makeMiddlewareChain([]func(ReceiveFunc) ReceiveFunc{fn, fn}, localContextReceiver)}
-	ctx.Become(nullReceive.Receive)
+	ctx.SetBehavior(nullReceive.Receive)
 	for i := 0; i < b.N; i++ {
 		ctx.processMessage(m)
 	}

@@ -19,6 +19,8 @@ type Context interface {
 
 	// SetReceiveTimeout sets the inactivity timeout, after which a ReceiveTimeout message will be sent to the actor.
 	// A duration of less than 1ms will disable the inactivity timer.
+	//
+	// If a message is received before the duration d, the timer will be reset, unless the message conforms
 	SetReceiveTimeout(d time.Duration)
 
 	// ReceiveTimeout returns the current timeout
@@ -27,14 +29,14 @@ type Context interface {
 	// Sender returns the PID of actor that sent currently processed message
 	Sender() *PID
 
-	// Become replaces the actors current Receive handler with a new handler
-	Become(ReceiveFunc)
+	// SetBehavior replaces the actors current behavior stack with the new behavior
+	SetBehavior(behavior ReceiveFunc)
 
-	// BecomeStacked pushes a new Receive handler on the current handler stack
-	BecomeStacked(ReceiveFunc)
+	// PushBehavior pushes the current behavior on the stack and sets the current Receive handler to the new behavior
+	PushBehavior(behavior ReceiveFunc)
 
-	// UnbecomeStacked reverts to the previous Receive handler
-	UnbecomeStacked()
+	// PopBehavior reverts to the previous Receive handler
+	PopBehavior()
 
 	// Self returns the PID for the current actor
 	Self() *PID

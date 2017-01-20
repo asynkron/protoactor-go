@@ -2,6 +2,7 @@ package actor
 
 type Spawner func(id string, props Props, parent *PID) *PID
 
+// DefaultSpawner conforms to Spawner and is used to spawn a local actor
 var DefaultSpawner Spawner = spawn
 
 //Spawn an actor with an auto generated id

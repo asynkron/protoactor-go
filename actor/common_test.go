@@ -81,15 +81,15 @@ func (m *mockContext) Sender() *PID {
 	return args.Get(0).(*PID)
 }
 
-func (m *mockContext) Become(r ReceiveFunc) {
+func (m *mockContext) SetBehavior(r ReceiveFunc) {
 	m.Called(r)
 }
 
-func (m *mockContext) BecomeStacked(r ReceiveFunc) {
+func (m *mockContext) PushBehavior(r ReceiveFunc) {
 	m.Called(r)
 }
 
-func (m *mockContext) UnbecomeStacked() {
+func (m *mockContext) PopBehavior() {
 	m.Called()
 }
 
