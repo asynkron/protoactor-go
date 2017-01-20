@@ -1,7 +1,6 @@
 package actor
 
 import (
-	"log"
 	"sync"
 )
 
@@ -14,38 +13,39 @@ var (
 	EventStream = &eventStream{}
 )
 
-type Action func(msg interface{})
+// SubscriberFunc is the signature of an EventStream subscriber function
+type SubscriberFunc func(msg interface{})
+
 type Predicate func(msg interface{}) bool
+
+// Subscription is returned from the Subscribe function.
+//
+// This value and can be passed to Unsubscribe when the observer is no longer interested in receiving messages
 type Subscription struct {
-	i      int
-	action Action
+	i  int
+	fn SubscriberFunc
+	p  Predicate
 }
 
-func init() {
-	EventStream.Subscribe(func(msg interface{}) {
-		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
-			log.Printf("[DeadLetter] %v got %+v from %v", deadLetter.PID, deadLetter.Message, deadLetter.Sender)
-		}
-	})
+// WithPredicate sets a predicate to filter messages passed to the subscriber
+func (s *Subscription) WithPredicate(p Predicate) *Subscription {
+	s.p = p
+	return s
 }
 
-func (es *eventStream) Subscribe(action Action) *Subscription {
+func (es *eventStream) Subscribe(fn SubscriberFunc) *Subscription {
 	es.Lock()
 	sub := &Subscription{
-		i:      len(es.subscriptions),
-		action: action,
+		i:  len(es.subscriptions),
+		fn: fn,
 	}
 	es.subscriptions = append(es.subscriptions, sub)
 	es.Unlock()
 	return sub
 }
 
-func (es *eventStream) SubscribePID(pid *PID, predicate Predicate) *Subscription {
-	return es.Subscribe(func(msg interface{}) {
-		if predicate(msg) {
-			pid.Tell(msg)
-		}
-	})
+func (es *eventStream) SubscribePID(pid *PID) *Subscription {
+	return es.Subscribe(pid.Tell)
 }
 
 func (es *eventStream) Unsubscribe(sub *Subscription) {
@@ -76,6 +76,8 @@ func (es *eventStream) Publish(message interface{}) {
 	defer es.RUnlock()
 
 	for _, s := range es.subscriptions {
-		s.action(message)
+		if s.p == nil || s.p(message) {
+			s.fn(message)
+		}
 	}
 }

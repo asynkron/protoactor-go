@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestEventStream_Subscribe(t *testing.T) {
@@ -46,4 +47,34 @@ func TestEventStream_Publish(t *testing.T) {
 
 	es.Publish(100)
 	assert.Equal(t, 100, v)
+}
+
+func TestEventStream_SubscribePID_WithPredicate_ReturnsTrue(t *testing.T) {
+	a1, p1 := spawnMockProcess("a1")
+	defer removeMockProcess(a1)
+
+	var msg interface{} = "hello"
+
+	p1.On("SendUserMessage", a1, msg, nilPID)
+
+	es := &eventStream{}
+	es.SubscribePID(a1).
+		WithPredicate(func(m interface{}) bool { return true })
+	es.Publish(msg)
+
+	mock.AssertExpectationsForObjects(t, p1)
+}
+
+func TestEventStream_SubscribePID_WithPredicate_ReturnsFalse(t *testing.T) {
+	a1, p1 := spawnMockProcess("a1")
+	defer removeMockProcess(a1)
+
+	var msg interface{} = "hello"
+
+	es := &eventStream{}
+	es.SubscribePID(a1).
+		WithPredicate(func(m interface{}) bool { return false })
+	es.Publish(msg)
+
+	mock.AssertExpectationsForObjects(t, p1)
 }

@@ -1,10 +1,21 @@
 package actor
 
+import "log"
+
 type deadLetterProcess struct{}
 
 var (
-	deadLetter Process = &deadLetterProcess{}
+	deadLetter           Process = &deadLetterProcess{}
+	deadLetterSubscriber *Subscription
 )
+
+func init() {
+	deadLetterSubscriber = EventStream.Subscribe(func(msg interface{}) {
+		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
+			log.Printf("[DeadLetter] %v got %+v from %v", deadLetter.PID, deadLetter.Message, deadLetter.Sender)
+		}
+	})
+}
 
 type DeadLetterEvent struct {
 	// PID specifies the process ID of the dead letter process
