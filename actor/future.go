@@ -11,7 +11,7 @@ var (
 	ErrTimeout = errors.New("timeout")
 )
 
-// NewFuture creates a Future with a timeout of duration t
+// NewFuture creates and returns a new actor.Future with a timeout of duration t
 func NewFuture(t time.Duration) *Future {
 	ref := &futureProcess{Future{cond: sync.NewCond(&sync.Mutex{})}}
 	id := ProcessRegistry.NextId()
@@ -68,13 +68,6 @@ func (f *Future) sendToPipes() {
 		pid.Tell(m)
 	}
 	f.pipes = nil
-}
-
-func (f *Future) ContinueWith(fun func(f *Future)) {
-	go func() {
-		f.Wait()
-		fun(f)
-	}()
 }
 
 func (f *Future) wait() {
