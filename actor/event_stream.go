@@ -16,12 +16,14 @@ var (
 // SubscriberFunc is the signature of an EventStream subscriber function
 type SubscriberFunc func(msg interface{})
 
+// Predicate is a function used to filter messages before being forwarded to a SubscriberFunc
 type Predicate func(msg interface{}) bool
 
 // Subscription is returned from the Subscribe function.
 //
 // This value and can be passed to Unsubscribe when the observer is no longer interested in receiving messages
 type Subscription struct {
+	es *eventStream
 	i  int
 	fn SubscriberFunc
 	p  Predicate
@@ -29,13 +31,16 @@ type Subscription struct {
 
 // WithPredicate sets a predicate to filter messages passed to the subscriber
 func (s *Subscription) WithPredicate(p Predicate) *Subscription {
+	s.es.Lock()
 	s.p = p
+	s.es.Unlock()
 	return s
 }
 
 func (es *eventStream) Subscribe(fn SubscriberFunc) *Subscription {
 	es.Lock()
 	sub := &Subscription{
+		es: es,
 		i:  len(es.subscriptions),
 		fn: fn,
 	}
