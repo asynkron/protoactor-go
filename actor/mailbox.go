@@ -19,7 +19,7 @@ type MailboxStatistics interface {
 type MessageInvoker interface {
 	InvokeSystemMessage(SystemMessage)
 	InvokeUserMessage(interface{})
-	EscalateFailure(who *PID, reason interface{}, message interface{})
+	EscalateFailure(reason interface{}, message interface{})
 }
 
 type MailboxProducer func() Mailbox
@@ -100,7 +100,7 @@ func (m *DefaultMailbox) run() {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", m.invoker, r, core.IdentifyPanic())
-			m.invoker.EscalateFailure(nil, r, msg)
+			m.invoker.EscalateFailure(r, msg)
 		}
 	}()
 

@@ -132,11 +132,7 @@ func (ctx *localContext) Receive(message interface{}) {
 	ctx.processMessage(message)
 }
 
-func (ctx *localContext) EscalateFailure(who *PID, reason interface{}, message interface{}) {
-
-	//TODO: maybe we don't need the "who" here, as it is always the escalating actor that needs to pass itself
-	//e.g. if actor c escalates to b that escalates to a, then a should try to handle b and not c
-
+func (ctx *localContext) EscalateFailure(reason interface{}, message interface{}) {
 	//lazy initialize the child restart stats if this is the first time
 	//further mutations are handled within "restart"
 	if ctx.restartStats == nil {

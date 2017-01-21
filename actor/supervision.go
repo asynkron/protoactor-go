@@ -8,7 +8,7 @@ type SupervisorStrategy interface {
 
 type Supervisor interface {
 	Children() []*PID
-	EscalateFailure(who *PID, reason interface{}, message interface{})
+	EscalateFailure(reason interface{}, message interface{})
 }
 
 func logFailure(child *PID, reason interface{}, directive Directive) {
