@@ -32,7 +32,7 @@ type localContext struct {
 	restarting     bool
 	receiveTimeout time.Duration
 	t              *time.Timer
-	restartStats   *ChildRestartStats
+	restartStats   *RestartStatistics
 }
 
 func newLocalContext(producer Producer, supervisor SupervisorStrategy, middleware ReceiveFunc, parent *PID) *localContext {
@@ -136,11 +136,11 @@ func (ctx *localContext) EscalateFailure(reason interface{}, message interface{}
 	//lazy initialize the child restart stats if this is the first time
 	//further mutations are handled within "restart"
 	if ctx.restartStats == nil {
-		ctx.restartStats = &ChildRestartStats{
+		ctx.restartStats = &RestartStatistics{
 			FailureCount: 0,
 		}
 	}
-	failure := &Failure{Reason: reason, Who: ctx.self, ChildStats: ctx.restartStats}
+	failure := &Failure{Reason: reason, Who: ctx.self, RestartStats: ctx.restartStats}
 	if ctx.parent == nil {
 		handleRootFailure(failure)
 	} else {
@@ -257,10 +257,10 @@ func (ctx *localContext) handleTerminated(msg *Terminated) {
 //offload the supervision completely to the supervisor strategy
 func (ctx *localContext) handleFailure(msg *Failure) {
 	if strategy, ok := ctx.actor.(SupervisorStrategy); ok {
-		strategy.HandleFailure(ctx, msg.Who, msg.ChildStats, msg.Reason, msg.Message)
+		strategy.HandleFailure(ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
 		return
 	}
-	ctx.supervisor.HandleFailure(ctx, msg.Who, msg.ChildStats, msg.Reason, msg.Message)
+	ctx.supervisor.HandleFailure(ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
 }
 
 func (ctx *localContext) tryRestartOrTerminate() {
@@ -366,5 +366,5 @@ func (ctx *localContext) GoString() string {
 }
 
 func handleRootFailure(msg *Failure) {
-	defaultSupervisionStrategy.HandleFailure(nil, msg.Who, msg.ChildStats, msg.Reason, msg.Message)
+	defaultSupervisionStrategy.HandleFailure(nil, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
 }

@@ -49,10 +49,10 @@ type SuspendMailbox struct{}
 
 //TODO: make private?
 type Failure struct {
-	Who        *PID
-	Reason     interface{}
-	ChildStats *ChildRestartStats
-	Message    interface{}
+	Who          *PID
+	Reason       interface{}
+	RestartStats *RestartStatistics
+	Message      interface{}
 }
 
 func (*Restarting) AutoReceiveMessage() {}

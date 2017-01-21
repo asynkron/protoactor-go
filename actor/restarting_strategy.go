@@ -7,7 +7,7 @@ func NewRestartingStrategy() SupervisorStrategy {
 type RestartingStrategy struct {
 }
 
-func (strategy *RestartingStrategy) HandleFailure(supervisor Supervisor, child *PID, crs *ChildRestartStats, reason interface{}, message interface{}) {
+func (strategy *RestartingStrategy) HandleFailure(supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
 	//always restart
 	child.sendSystemMessage(restartMessage)
 }

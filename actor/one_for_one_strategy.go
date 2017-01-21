@@ -16,7 +16,7 @@ type OneForOneStrategy struct {
 	decider        Decider
 }
 
-func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *PID, crs *ChildRestartStats, reason interface{}, message interface{}) {
+func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
 	directive := strategy.decider(child, reason)
 
 	switch directive {
@@ -26,7 +26,7 @@ func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 		child.sendSystemMessage(resumeMailboxMessage)
 	case RestartDirective:
 		//try restart the failing child
-		if crs.requestRestartPermission(strategy.maxNrOfRetries, strategy.withinDuration) {
+		if rs.requestRestartPermission(strategy.maxNrOfRetries, strategy.withinDuration) {
 			logFailure(child, reason, RestartDirective)
 			child.sendSystemMessage(restartMessage)
 		} else {

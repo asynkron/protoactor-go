@@ -16,7 +16,7 @@ type AllForOneStrategy struct {
 	decider        Decider
 }
 
-func (strategy *AllForOneStrategy) HandleFailure(supervisor Supervisor, child *PID, crs *ChildRestartStats, reason interface{}, message interface{}) {
+func (strategy *AllForOneStrategy) HandleFailure(supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
 	directive := strategy.decider(child, reason)
 	switch directive {
 	case ResumeDirective:
@@ -26,7 +26,7 @@ func (strategy *AllForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 	case RestartDirective:
 		children := supervisor.Children()
 		//try restart the all the children
-		if crs.requestRestartPermission(strategy.maxNrOfRetries, strategy.withinDuration) {
+		if rs.requestRestartPermission(strategy.maxNrOfRetries, strategy.withinDuration) {
 			logFailure(child, reason, RestartDirective)
 			for _, c := range children {
 				c.sendSystemMessage(restartMessage)
