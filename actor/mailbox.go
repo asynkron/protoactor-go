@@ -1,12 +1,11 @@
 package actor
 
 import (
-	"fmt"
 	"log"
 	"runtime"
-	"strings"
 	"sync/atomic"
 
+	"github.com/AsynkronIT/protoactor-go/internal/core"
 	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
 )
 
@@ -97,42 +96,12 @@ process:
 	}
 }
 
-func identifyPanic() string {
-	var name, file string
-	var line int
-	var pc [16]uintptr
-
-	n := runtime.Callers(3, pc[:])
-	for _, pc := range pc[:n] {
-		log.Printf("%d", pc)
-		fn := runtime.FuncForPC(pc)
-		if fn == nil {
-			continue
-		}
-		file, line = fn.FileLine(pc)
-		name = fn.Name()
-		if !strings.HasPrefix(name, "runtime.") {
-			break
-		}
-	}
-
-	switch {
-	case name != "":
-		return fmt.Sprintf("%v:%v", name, line)
-	case file != "":
-		return fmt.Sprintf("%v:%v", file, line)
-	}
-
-	return fmt.Sprintf("pc:%x", pc)
-}
-
 func (m *DefaultMailbox) run() {
 	var msg interface{}
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", m.invoker, r, identifyPanic())
-
+			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", m.invoker, r, core.IdentifyPanic())
 			m.invoker.EscalateFailure(nil, r, msg)
 		}
 	}()
