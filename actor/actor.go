@@ -3,7 +3,9 @@ package actor
 // The Producer type is a function that creates a new actor
 type Producer func() Actor
 
-// Actor is the interface for actors, it defines the Receive method
+// Actor is the interface that defines the Receive method.
+//
+// Receive is sent messages to be processed from the mailbox associated with the instance of the actor
 type Actor interface {
 	Receive(context Context)
 }
