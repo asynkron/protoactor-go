@@ -24,8 +24,15 @@ func DefaultDecider(child *PID, reason interface{}) Directive {
 	return RestartDirective
 }
 
-var defaultSupervisionStrategy = NewOneForOneStrategy(10, 0, DefaultDecider)
+var (
+	defaultSupervisionStrategy    = NewOneForOneStrategy(10, 0, DefaultDecider)
+	restartingSupervisionStrategy = NewRestartingStrategy()
+)
 
 func DefaultSupervisorStrategy() SupervisorStrategy {
 	return defaultSupervisionStrategy
+}
+
+func RestartingSupervisorStrategy() SupervisorStrategy {
+	return restartingSupervisionStrategy
 }

@@ -115,7 +115,7 @@ func main() {
 
 		clientProps := actor.
 			FromProducer(newLocalActor(&wg, messageCount, batchSize)).
-			WithMailbox(actor.NewUnboundedMailbox()).
+			WithMailbox(actor.NewBoundedMailbox(110)).
 			WithDispatcher(d)
 
 		echoProps := actor.
@@ -126,7 +126,7 @@ func main() {
 						msg.replyTo.Tell(msg)
 					}
 				}).
-			WithMailbox(actor.NewUnboundedMailbox()).
+			WithMailbox(actor.NewBoundedMailbox(110)).
 			WithDispatcher(d)
 
 		clients := make([]*actor.PID, 0)

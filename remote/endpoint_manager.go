@@ -28,7 +28,8 @@ func subscribeEndpointManager() {
 func spawnEndpointManager(config *remoteConfig) {
 	props := actor.
 		FromProducer(newEndpointManager(config)).
-		WithMailbox(actor.NewBoundedMailbox(config.endpointManagerQueueSize))
+		WithMailbox(actor.NewBoundedMailbox(config.endpointManagerQueueSize)).
+		WithSupervisor(actor.RestartingSupervisorStrategy())
 
 	endpointManagerPID = actor.Spawn(props)
 }
