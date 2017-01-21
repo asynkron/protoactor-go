@@ -2,13 +2,14 @@ package actor_test
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
-// Spawn creates instances of actors, like the 'new' operator for objects
-func ExampleSpawn() {
+// Spawn creates instances of actors, similar to 'new' or 'make' but for actors.
+func ExampleSpawnNamed() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -26,7 +27,10 @@ func ExampleSpawn() {
 	})
 
 	// spawn the actor based on the props
-	actor.Spawn(props)
+	_, err := actor.SpawnNamed(props, "my-actor")
+	if err != nil {
+		log.Fatal("The actor name is already in use")
+	}
 	wg.Wait()
 	// Output: hello world
 }
