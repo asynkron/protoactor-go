@@ -55,6 +55,11 @@ type Failure struct {
 	Message      interface{}
 }
 
+type messageSender struct {
+	Message interface{}
+	Sender  *PID
+}
+
 func (*Restarting) AutoReceiveMessage() {}
 func (*Stopping) AutoReceiveMessage()   {}
 func (*Stopped) AutoReceiveMessage()    {}

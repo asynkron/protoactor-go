@@ -7,11 +7,6 @@ import (
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 )
 
-type messageSender struct {
-	Message interface{}
-	Sender  *PID
-}
-
 type localContext struct {
 	message        interface{}
 	parent         *PID
