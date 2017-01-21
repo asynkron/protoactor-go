@@ -20,8 +20,10 @@ func (f *setBehaviorActor) Receive(context actor.Context) {
 }
 
 func (f *setBehaviorActor) Other(context actor.Context) {
-	fmt.Println(context.Message())
-	f.Done()
+	if msg, ok := context.Message().(string); ok && msg == "foo" {
+		fmt.Println(msg)
+		f.Done()
+	}
 }
 
 // SetBehavior allows an actor to change its Receive handler, providing basic support for state machines
@@ -32,8 +34,8 @@ func ExampleContext_setBehavior() {
 	defer pid.Stop()
 
 	pid.Tell("other")
-	pid.Tell("hello from other")
+	pid.Tell("foo")
 	a.Wait()
 
-	// Output: hello from other
+	// Output: foo
 }
