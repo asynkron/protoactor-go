@@ -42,7 +42,7 @@ func WithSupervisorSubscriber(fn SubscriberFunc) optionFn {
 	}
 }
 
-// SetOptions
+// SetOptions is used to configure the actor system
 func SetOptions(opts ...optionFn) {
 	for _, opt := range opts {
 		opt()

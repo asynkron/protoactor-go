@@ -4,7 +4,7 @@ type AutoReceiveMessage interface {
 	AutoReceiveMessage()
 }
 
-// An actor which receives a NotInfluenceReceiveTimeout message will not reset the ReceiveTimeout duration
+// An actor which receives a NotInfluenceReceiveTimeout message will not reset the ReceiveTimeout timer
 type NotInfluenceReceiveTimeout interface {
 	NotInfluenceReceiveTimeout()
 }

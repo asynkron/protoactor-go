@@ -1,14 +1,14 @@
 package actor
 
 type Dispatcher interface {
-	Schedule(runner MailboxRunner)
+	Schedule(fn func())
 	Throughput() int
 }
 
 type goroutineDispatcher int
 
-func (goroutineDispatcher) Schedule(runner MailboxRunner) {
-	go runner()
+func (goroutineDispatcher) Schedule(fn func()) {
+	go fn()
 }
 
 func (d goroutineDispatcher) Throughput() int {

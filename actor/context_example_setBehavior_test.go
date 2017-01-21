@@ -21,6 +21,7 @@ func (f *setBehaviorActor) Other(context actor.Context) {
 	fmt.Println(context.Message())
 }
 
+// SetBehavior allows an actor to change its Receive handler, providing basic support for state machines
 func ExampleContext_setBehavior() {
 	pid := actor.Spawn(actor.FromInstance(&setBehaviorActor{}))
 	defer pid.Stop()

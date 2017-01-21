@@ -17,15 +17,11 @@ func init() {
 	})
 }
 
+// A DeadLetterEvent is published to the EventStream when a message is sent to a nonexistent PID
 type DeadLetterEvent struct {
-	// PID specifies the process ID of the dead letter process
-	PID *PID
-
-	// Message specifies the message that could not be delivered
-	Message interface{}
-
-	// Sender specifies the process that sent the original Message
-	Sender *PID
+	PID     *PID        // The dead letter process
+	Message interface{} // The message that could not be delivered
+	Sender  *PID        // the process that sent the Message
 }
 
 func (*deadLetterProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {

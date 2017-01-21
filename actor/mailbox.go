@@ -22,8 +22,6 @@ type MessageInvoker interface {
 	EscalateFailure(who *PID, reason interface{}, message interface{})
 }
 
-type MailboxRunner func()
-
 type MailboxProducer func() Mailbox
 
 type Mailbox interface {

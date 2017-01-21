@@ -4,10 +4,10 @@ import "time"
 
 type Context interface {
 	// Watch registers the actor as a monitor for the specified PID
-	Watch(*PID)
+	Watch(pid *PID)
 
 	// Unwatch unregisters the actor as a monitor for the specified PID
-	Unwatch(*PID)
+	Unwatch(pid *PID)
 
 	// Message returns the current message to be processed
 	Message() interface{}
@@ -15,7 +15,8 @@ type Context interface {
 	// SetReceiveTimeout sets the inactivity timeout, after which a ReceiveTimeout message will be sent to the actor.
 	// A duration of less than 1ms will disable the inactivity timer.
 	//
-	// If a message is received before the duration d, the timer will be reset, unless the message conforms
+	// If a message is received before the duration d, the timer will be reset. If the message conforms to
+	// the NotInfluenceReceiveTimeout interface, the timer will not be reset
 	SetReceiveTimeout(d time.Duration)
 
 	// ReceiveTimeout returns the current timeout
@@ -40,14 +41,14 @@ type Context interface {
 	Parent() *PID
 
 	// Spawn spawns a child actor using the given Props
-	Spawn(Props) *PID
+	Spawn(props Props) *PID
 
 	// SpawnNamed spawns a named child actor using the given Props
 	//
 	// ErrNameExists will be returned if id already exists
 	SpawnNamed(props Props, id string) (*PID, error)
 
-	// Returns a slice of the current actors children
+	// Returns a slice of the actors children
 	Children() []*PID
 
 	// Stash stashes the current message on a stack for reprocessing when the actor restarts
