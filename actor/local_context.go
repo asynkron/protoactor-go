@@ -137,7 +137,7 @@ func (ctx *localContext) EscalateFailure(reason interface{}, message interface{}
 	//further mutations are handled within "restart"
 	if ctx.restartStats == nil {
 		ctx.restartStats = &ChildRestartStats{
-			FailureCount: 1,
+			FailureCount: 0,
 		}
 	}
 	failure := &Failure{Reason: reason, Who: ctx.self, ChildStats: ctx.restartStats}
@@ -286,12 +286,8 @@ func (ctx *localContext) tryRestartOrTerminate() {
 
 func (ctx *localContext) restart() {
 	ctx.incarnateActor()
-	//create a new childRestartStats with the current failure settings
-	ctx.restartStats = &ChildRestartStats{
-		FailureCount:    ctx.restartStats.FailureCount + 1,
-		LastFailureTime: time.Now(),
-	}
 	ctx.InvokeUserMessage(startedMessage)
+	ctx.restartStats.LastFailureTime = time.Now()
 	if ctx.stash != nil {
 		for !ctx.stash.Empty() {
 			msg, _ := ctx.stash.Pop()

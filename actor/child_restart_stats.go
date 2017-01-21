@@ -7,16 +7,14 @@ type ChildRestartStats struct {
 	LastFailureTime time.Time
 }
 
-func inTimeSpan(start, end, check time.Time) bool {
-	return check.After(start) && check.Before(end)
-}
-
 func (c *ChildRestartStats) requestRestartPermission(maxNrOfRetries int, withinDuration time.Duration) bool {
 
 	//supervisor says this child may not restart
 	if maxNrOfRetries == 0 {
 		return false
 	}
+
+	c.FailureCount++
 
 	//supervisor says child may restart, and we don't care about any timewindow
 	if withinDuration == 0 {
@@ -29,6 +27,7 @@ func (c *ChildRestartStats) requestRestartPermission(maxNrOfRetries int, withinD
 		return c.FailureCount <= maxNrOfRetries
 	}
 
-	//the last event was so long ago that it doesnt matter, lets just say OK to restart
+	//we are past the time limit, we can safely reset the failure count and restart
+	c.FailureCount = 0
 	return true
 }
