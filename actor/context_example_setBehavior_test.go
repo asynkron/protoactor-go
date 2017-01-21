@@ -2,12 +2,14 @@ package actor_test
 
 import (
 	"fmt"
-	"time"
+	"sync"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
-type setBehaviorActor struct{}
+type setBehaviorActor struct {
+	sync.WaitGroup
+}
 
 // Receive is the default message handler when an actor is started
 func (f *setBehaviorActor) Receive(context actor.Context) {
@@ -19,15 +21,19 @@ func (f *setBehaviorActor) Receive(context actor.Context) {
 
 func (f *setBehaviorActor) Other(context actor.Context) {
 	fmt.Println(context.Message())
+	f.Done()
 }
 
 // SetBehavior allows an actor to change its Receive handler, providing basic support for state machines
 func ExampleContext_setBehavior() {
-	pid := actor.Spawn(actor.FromInstance(&setBehaviorActor{}))
+	a := &setBehaviorActor{}
+	a.Add(1)
+	pid := actor.Spawn(actor.FromInstance(a))
 	defer pid.Stop()
 
 	pid.Tell("other")
-	pid.RequestFuture("hello from other", 10*time.Millisecond).Wait()
+	pid.Tell("hello from other")
+	a.Wait()
 
 	// Output: hello from other
 }
