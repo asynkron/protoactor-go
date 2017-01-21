@@ -15,13 +15,17 @@ type ProcessRegistryValue struct {
 
 var (
 	localAddress = "nonhost"
-
-	ProcessRegistry = &ProcessRegistryValue{
-		Address:   localAddress,
-		LocalPIDs: cmap.New(),
-	}
 )
 
+// ProcessRegistry is a registry of all active processes.
+//
+// NOTE: This should only be used for advanced scenarios
+var ProcessRegistry = &ProcessRegistryValue{
+	Address:   localAddress,
+	LocalPIDs: cmap.New(),
+}
+
+// An AddressResolver is used to resolve remote actors
 type AddressResolver func(*PID) (Process, bool)
 
 func (pr *ProcessRegistryValue) RegisterAddressResolver(handler AddressResolver) {

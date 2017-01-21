@@ -9,9 +9,8 @@ type eventStream struct {
 	subscriptions []*Subscription
 }
 
-var (
-	EventStream = &eventStream{}
-)
+// EventStream is a publisher / subscriber.
+var	EventStream = &eventStream{}
 
 // SubscriberFunc is the signature of an EventStream subscriber function
 type SubscriberFunc func(msg interface{})

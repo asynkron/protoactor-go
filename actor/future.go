@@ -7,9 +7,8 @@ import (
 	"time"
 )
 
-var (
-	ErrTimeout = errors.New("timeout")
-)
+// ErrTimeout is the error used when a future times out before receiving a result.
+var	ErrTimeout = errors.New("future: timeout")
 
 // NewFuture creates and returns a new actor.Future with a timeout of duration t
 func NewFuture(t time.Duration) *Future {
