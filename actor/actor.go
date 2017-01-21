@@ -1,9 +1,9 @@
 package actor
 
-//Producer is a function that can create an actor
+// The Producer type is a function that creates a new actor
 type Producer func() Actor
 
-//Actor is the interface for actors, it defines the Receive method
+// Actor is the interface for actors, it defines the Receive method
 type Actor interface {
 	Receive(Context)
 }

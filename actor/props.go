@@ -1,6 +1,6 @@
 package actor
 
-// Props or properties of an actor, it defines how the actor should be created
+// Props represents configuration to define how an actor should be created
 type Props struct {
 	actorProducer       Producer
 	mailboxProducer     MailboxProducer
@@ -87,6 +87,7 @@ func (props Props) WithProducer(p Producer) Props {
 	return props
 }
 
+// FromProducer
 func FromProducer(actorProducer Producer) Props {
 	return Props{actorProducer: actorProducer}
 }

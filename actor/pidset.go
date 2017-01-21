@@ -7,6 +7,7 @@ type PIDSet struct {
 	m map[string]struct{}
 }
 
+// NewPIDSet returns a new PIDSet with the given pids.
 func NewPIDSet(pids ...*PID) *PIDSet {
 	var s PIDSet
 	for _, pid := range pids {
@@ -32,6 +33,7 @@ func (p *PIDSet) migrate() {
 	p.s = p.s[:0]
 }
 
+// Add adds the element v to the set
 func (p *PIDSet) Add(v *PID) {
 	if p.m == nil {
 		if p.indexOf(v) > -1 {
@@ -50,6 +52,7 @@ func (p *PIDSet) Add(v *PID) {
 	p.m[v.key()] = struct{}{}
 }
 
+// Remove removes v from the set and returns true if them element existed
 func (p *PIDSet) Remove(v *PID) bool {
 	if p.m == nil {
 		i := p.indexOf(v)
@@ -69,6 +72,7 @@ func (p *PIDSet) Remove(v *PID) bool {
 	return true
 }
 
+// Contains reports whether v is an element of the set
 func (p *PIDSet) Contains(v *PID) bool {
 	if p.m == nil {
 		return p.indexOf(v) != -1
@@ -77,6 +81,7 @@ func (p *PIDSet) Contains(v *PID) bool {
 	return ok
 }
 
+// Len returns the number of elements in the set
 func (p *PIDSet) Len() int {
 	if p.m == nil {
 		return len(p.s)
@@ -84,6 +89,7 @@ func (p *PIDSet) Len() int {
 	return len(p.m)
 }
 
+// Clear removes all the elements in the set
 func (p *PIDSet) Clear() {
 	if p.m == nil {
 		p.s = p.s[:0]
@@ -92,10 +98,12 @@ func (p *PIDSet) Clear() {
 	}
 }
 
+// Empty reports whether the set is empty
 func (p *PIDSet) Empty() bool {
 	return p.Len() == 0
 }
 
+// Values returns all the elements of the set as a slice
 func (p *PIDSet) Values() []PID {
 	if p.Len() == 0 {
 		return nil
@@ -116,6 +124,7 @@ func (p *PIDSet) Values() []PID {
 	return r
 }
 
+// ForEach invokes f for every element of the set
 func (p *PIDSet) ForEach(f func(i int, pid PID)) {
 	var pid PID
 	if p.m == nil {
