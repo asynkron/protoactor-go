@@ -1,9 +1,9 @@
 package actor
 
-type Decider func(child *PID, cause interface{}) Directive
+type Decider func(child *PID, reason interface{}) Directive
 
 type SupervisorStrategy interface {
-	HandleFailure(supervisor Supervisor, child *PID, crs *ChildRestartStats, cause interface{}, message interface{})
+	HandleFailure(supervisor Supervisor, child *PID, crs *ChildRestartStats, reason interface{}, message interface{})
 }
 
 type Supervisor interface {
