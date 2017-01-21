@@ -1,6 +1,10 @@
 syntax = "proto3";
 package remote;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
+
+option (gogoproto.gostring_all) = false;
 
 message MessageEnvelope {
   string type_name = 1;

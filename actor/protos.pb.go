@@ -23,9 +23,6 @@ import math "math"
 import _ "github.com/gogo/protobuf/gogoproto"
 
 import strings "strings"
-import github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
-import sort "sort"
-import strconv "strconv"
 import reflect "reflect"
 
 import io "io"
@@ -266,89 +263,6 @@ func (this *Terminated) Equal(that interface{}) bool {
 		return false
 	}
 	return true
-}
-func (this *PID) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 6)
-	s = append(s, "&actor.PID{")
-	s = append(s, "Address: "+fmt.Sprintf("%#v", this.Address)+",\n")
-	s = append(s, "Id: "+fmt.Sprintf("%#v", this.Id)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *PoisonPill) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 4)
-	s = append(s, "&actor.PoisonPill{")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *Watch) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&actor.Watch{")
-	if this.Watcher != nil {
-		s = append(s, "Watcher: "+fmt.Sprintf("%#v", this.Watcher)+",\n")
-	}
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *Unwatch) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 5)
-	s = append(s, "&actor.Unwatch{")
-	if this.Watcher != nil {
-		s = append(s, "Watcher: "+fmt.Sprintf("%#v", this.Watcher)+",\n")
-	}
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *Terminated) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 6)
-	s = append(s, "&actor.Terminated{")
-	if this.Who != nil {
-		s = append(s, "Who: "+fmt.Sprintf("%#v", this.Who)+",\n")
-	}
-	s = append(s, "AddressTerminated: "+fmt.Sprintf("%#v", this.AddressTerminated)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func valueToGoStringProtos(v interface{}, typ string) string {
-	rv := reflect.ValueOf(v)
-	if rv.IsNil() {
-		return "nil"
-	}
-	pv := reflect.Indirect(rv).Interface()
-	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
-}
-func extensionToGoStringProtos(m github_com_gogo_protobuf_proto.Message) string {
-	e := github_com_gogo_protobuf_proto.GetUnsafeExtensionsMap(m)
-	if e == nil {
-		return "nil"
-	}
-	s := "proto.NewUnsafeXXX_InternalExtensions(map[int32]proto.Extension{"
-	keys := make([]int, 0, len(e))
-	for k := range e {
-		keys = append(keys, int(k))
-	}
-	sort.Ints(keys)
-	ss := []string{}
-	for _, k := range keys {
-		ss = append(ss, strconv.Itoa(k)+": "+e[int32(k)].GoString())
-	}
-	s += strings.Join(ss, ",") + "})"
-	return s
 }
 func (m *PID) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
@@ -1182,8 +1096,8 @@ var fileDescriptorProtos = []byte{
 	0x44, 0x70, 0x71, 0x85, 0xa4, 0x16, 0xe5, 0x66, 0xe6, 0x25, 0x96, 0xa4, 0xa6, 0x08, 0xc9, 0x70,
 	0x31, 0x97, 0x67, 0xe4, 0x63, 0x51, 0x0f, 0x12, 0x16, 0xd2, 0xe1, 0x12, 0x84, 0x3a, 0x1d, 0xa1,
 	0x05, 0xec, 0x7c, 0x8e, 0x20, 0x4c, 0x09, 0x27, 0x9d, 0x0b, 0x0f, 0xe5, 0x18, 0x6e, 0x3c, 0x94,
-	0x63, 0xf8, 0xf0, 0x50, 0x8e, 0xb1, 0xe1, 0x91, 0x1c, 0xe3, 0x8a, 0x47, 0x72, 0x8c, 0x27, 0x1e,
+	0x63, 0xf8, 0xf0, 0x50, 0x8e, 0xa1, 0xe1, 0x91, 0x1c, 0xe3, 0x8a, 0x47, 0x72, 0x8c, 0x27, 0x1e,
 	0xc9, 0x31, 0x5e, 0x78, 0x24, 0xc7, 0xf8, 0xe0, 0x91, 0x1c, 0xe3, 0x8b, 0x47, 0x72, 0x0c, 0x1f,
 	0x1e, 0xc9, 0x31, 0x4e, 0x78, 0x2c, 0xc7, 0x90, 0xc4, 0x06, 0x0e, 0x33, 0x63, 0x40, 0x00, 0x00,
-	0x00, 0xff, 0xff, 0xc1, 0x26, 0x33, 0x56, 0x79, 0x01, 0x00, 0x00,
+	0x00, 0xff, 0xff, 0x60, 0xb6, 0x24, 0xbe, 0x79, 0x01, 0x00, 0x00,
 }
