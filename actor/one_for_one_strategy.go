@@ -26,7 +26,7 @@ func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 		child.sendSystemMessage(resumeMailboxMessage)
 	case RestartDirective:
 		//try restart the failing child
-		if rs.requestRestartPermission(strategy.maxNrOfRetries, strategy.withinDuration) {
+		if strategy.requestRestartPermission(rs) {
 			logFailure(child, reason, RestartDirective)
 			child.sendSystemMessage(restartMessage)
 		} else {
@@ -43,4 +43,29 @@ func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 		//do not log here, log in the parent handling the error
 		supervisor.EscalateFailure(reason, message)
 	}
+}
+
+func (strategy *OneForOneStrategy) requestRestartPermission(rs *RestartStatistics) bool {
+
+	//supervisor says this child may not restart
+	if strategy.maxNrOfRetries == 0 {
+		return false
+	}
+
+	rs.FailureCount++
+
+	//supervisor says child may restart, and we don't care about any timewindow
+	if strategy.withinDuration == 0 {
+		//have we restarted fewer times than supervisor allows?
+		return rs.FailureCount <= strategy.maxNrOfRetries
+	}
+
+	max := time.Now().Add(-strategy.withinDuration)
+	if rs.LastFailureTime.After(max) {
+		return rs.FailureCount <= strategy.maxNrOfRetries
+	}
+
+	//we are past the time limit, we can safely reset the failure count and restart
+	rs.FailureCount = 0
+	return true
 }
