@@ -8,7 +8,7 @@ import (
 )
 
 // Spawn creates instances of actors, like the 'new' operator for objects
-func Example_Spawn() {
+func ExampleSpawn() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
