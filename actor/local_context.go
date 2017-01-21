@@ -1,9 +1,7 @@
 package actor
 
 import (
-	"fmt"
 	"log"
-	"reflect"
 	"time"
 
 	"github.com/emirpasic/gods/stacks/linkedliststack"
@@ -362,7 +360,11 @@ func (ctx *localContext) SpawnNamed(props Props, name string) (*PID, error) {
 }
 
 func (ctx *localContext) GoString() string {
-	return fmt.Sprintf("%v/%v:%v", ctx.self.Address, ctx.self.Id, reflect.TypeOf(ctx.actor))
+	return ctx.self.String()
+}
+
+func (ctx *localContext) String() string {
+	return ctx.self.String()
 }
 
 func handleRootFailure(msg *Failure) {

@@ -20,6 +20,7 @@ type MessageInvoker interface {
 	InvokeSystemMessage(SystemMessage)
 	InvokeUserMessage(interface{})
 	EscalateFailure(reason interface{}, message interface{})
+	String() string
 }
 
 type MailboxProducer func() Mailbox
@@ -99,7 +100,7 @@ func (m *DefaultMailbox) run() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", m.invoker, r, core.IdentifyPanic())
+			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", m.invoker.String(), r, core.IdentifyPanic())
 			m.invoker.EscalateFailure(r, msg)
 		}
 	}()
