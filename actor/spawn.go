@@ -3,7 +3,7 @@ package actor
 import "errors"
 
 // ErrNameExists is the error used when an existing name is used for spawning an actor.
-var	ErrNameExists = errors.New("spawn: name exists")
+var ErrNameExists = errors.New("spawn: name exists")
 
 type Spawner func(id string, props Props, parent *PID) (*PID, error)
 
