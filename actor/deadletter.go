@@ -23,7 +23,7 @@ func init() {
 
 // A DeadLetterEvent is published via event.Publish when a message is sent to a nonexistent PID
 type DeadLetterEvent struct {
-	PID     *PID        // The dead letter process
+	PID     *PID        // The invalid process, to which the message was sent
 	Message interface{} // The message that could not be delivered
 	Sender  *PID        // the process that sent the Message
 }
