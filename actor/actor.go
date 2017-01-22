@@ -7,13 +7,13 @@ type Producer func() Actor
 //
 // Receive is sent messages to be processed from the mailbox associated with the instance of the actor
 type Actor interface {
-	Receive(context Context)
+	Receive(c Context)
 }
 
 // The ReceiveFunc type is an adapter to allow the use of ordinary functions as actors to process messages
-type ReceiveFunc func(context Context)
+type ReceiveFunc func(c Context)
 
-// Receive calls f(context)
-func (f ReceiveFunc) Receive(context Context) {
-	f(context)
+// Receive calls f(c)
+func (f ReceiveFunc) Receive(c Context) {
+	f(c)
 }

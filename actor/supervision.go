@@ -2,7 +2,8 @@ package actor
 
 import "github.com/AsynkronIT/protoactor-go/eventstream"
 
-type Decider func(child *PID, reason interface{}) Directive
+// DeciderFunc is a function which is called by a SupervisorStrategy
+type DeciderFunc func(reason interface{}) Directive
 
 type SupervisorStrategy interface {
 	HandleFailure(supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{})
@@ -21,7 +22,8 @@ func logFailure(child *PID, reason interface{}, directive Directive) {
 	})
 }
 
-func DefaultDecider(child *PID, reason interface{}) Directive {
+// DefaultDecider
+func DefaultDecider(_ interface{}) Directive {
 	return RestartDirective
 }
 

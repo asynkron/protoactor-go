@@ -2,22 +2,27 @@ package actor
 
 import "time"
 
-func NewAllForOneStrategy(maxNrOfRetries int, withinDuration time.Duration, decider Decider) SupervisorStrategy {
-	return &AllForOneStrategy{
+// NewAllForOneStrategy returns a new SupervisorStrategy which applies the given fault Directive from the decider to the
+// failing child and all its children.
+//
+// This strategy is appropriate when the children have a strong dependency, such that and any single one failing would
+// place them all into a potentially invalid state.
+func NewAllForOneStrategy(maxNrOfRetries int, withinDuration time.Duration, decider DeciderFunc) SupervisorStrategy {
+	return &allForOneStrategy{
 		maxNrOfRetries: maxNrOfRetries,
 		withinDuration: withinDuration,
 		decider:        decider,
 	}
 }
 
-type AllForOneStrategy struct {
+type allForOneStrategy struct {
 	maxNrOfRetries int
 	withinDuration time.Duration
-	decider        Decider
+	decider        DeciderFunc
 }
 
-func (strategy *AllForOneStrategy) HandleFailure(supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
-	directive := strategy.decider(child, reason)
+func (strategy *allForOneStrategy) HandleFailure(supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
+	directive := strategy.decider(reason)
 	switch directive {
 	case ResumeDirective:
 		//resume the failing child
@@ -53,27 +58,20 @@ func (strategy *AllForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 	}
 }
 
-func (strategy *AllForOneStrategy) requestRestartPermission(rs *RestartStatistics) bool {
+func (strategy *allForOneStrategy) requestRestartPermission(rs *RestartStatistics) bool {
 
-	//supervisor says this child may not restart
+	// supervisor says this child may not restart
 	if strategy.maxNrOfRetries == 0 {
 		return false
 	}
 
 	rs.FailureCount++
 
-	//supervisor says child may restart, and we don't care about any timewindow
-	if strategy.withinDuration == 0 {
-		//have we restarted fewer times than supervisor allows?
+	if strategy.withinDuration == 0 || time.Since(rs.LastFailureTime) < strategy.withinDuration {
 		return rs.FailureCount <= strategy.maxNrOfRetries
 	}
 
-	max := time.Now().Add(-strategy.withinDuration)
-	if rs.LastFailureTime.After(max) {
-		return rs.FailureCount <= strategy.maxNrOfRetries
-	}
-
-	//we are past the time limit, we can safely reset the failure count and restart
+	// we are past the time limit, we can safely reset the failure count and restart
 	rs.FailureCount = 0
 	return true
 }

@@ -2,22 +2,26 @@ package actor
 
 import "time"
 
-func NewOneForOneStrategy(maxNrOfRetries int, withinDuration time.Duration, decider Decider) SupervisorStrategy {
-	return &OneForOneStrategy{
+// NewOneForOneStrategy returns a new Supervisor strategy which applies the fault Directive from the decider
+// to the failing child process.
+//
+// This strategy is applicable if it is safe to handle a single child in isolation from its peers or dependents
+func NewOneForOneStrategy(maxNrOfRetries int, withinDuration time.Duration, decider DeciderFunc) SupervisorStrategy {
+	return &oneForOne{
 		maxNrOfRetries: maxNrOfRetries,
 		withinDuration: withinDuration,
 		decider:        decider,
 	}
 }
 
-type OneForOneStrategy struct {
+type oneForOne struct {
 	maxNrOfRetries int
 	withinDuration time.Duration
-	decider        Decider
+	decider        DeciderFunc
 }
 
-func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
-	directive := strategy.decider(child, reason)
+func (strategy *oneForOne) HandleFailure(supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
+	directive := strategy.decider(reason)
 
 	switch directive {
 	case ResumeDirective:
@@ -45,7 +49,7 @@ func (strategy *OneForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 	}
 }
 
-func (strategy *OneForOneStrategy) requestRestartPermission(rs *RestartStatistics) bool {
+func (strategy *oneForOne) requestRestartPermission(rs *RestartStatistics) bool {
 
 	//supervisor says this child may not restart
 	if strategy.maxNrOfRetries == 0 {
@@ -54,14 +58,7 @@ func (strategy *OneForOneStrategy) requestRestartPermission(rs *RestartStatistic
 
 	rs.FailureCount++
 
-	//supervisor says child may restart, and we don't care about any timewindow
-	if strategy.withinDuration == 0 {
-		//have we restarted fewer times than supervisor allows?
-		return rs.FailureCount <= strategy.maxNrOfRetries
-	}
-
-	max := time.Now().Add(-strategy.withinDuration)
-	if rs.LastFailureTime.After(max) {
+	if strategy.withinDuration == 0 || time.Since(rs.LastFailureTime) < strategy.withinDuration {
 		return rs.FailureCount <= strategy.maxNrOfRetries
 	}
 

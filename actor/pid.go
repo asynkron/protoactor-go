@@ -39,7 +39,7 @@ func (pid *PID) Request(message interface{}, respondTo *PID) {
 // RequestFuture sends a message to a given PID and returns a Future
 func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Future {
 	future := NewFuture(timeout)
-	pid.ref().SendUserMessage(pid, message, future.PID())
+	pid.ref().SendUserMessage(pid, message, future.pid)
 	return future
 }
 
@@ -50,7 +50,7 @@ func (pid *PID) sendSystemMessage(message interface{}) {
 func (pid *PID) StopFuture() *Future {
 	future := NewFuture(10 * time.Second)
 
-	pid.sendSystemMessage(&Watch{Watcher: future.PID()})
+	pid.sendSystemMessage(&Watch{Watcher: future.pid})
 	pid.Stop()
 
 	return future
