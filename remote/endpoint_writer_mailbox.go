@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 
 	"github.com/AsynkronIT/goring"
-	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/internal/core"
 	"github.com/AsynkronIT/protoactor-go/internal/queue/lfqueue"
 	"github.com/AsynkronIT/protoactor-go/mailbox"
@@ -81,9 +80,9 @@ func (m *endpointWriterMailbox) run() {
 		// keep processing system messages until queue is empty
 		if msg = m.systemMailbox.Pop(); msg != nil {
 			switch msg.(type) {
-			case *actor.SuspendMailbox:
+			case *mailbox.SuspendMailbox:
 				m.suspended = true
-			case *actor.ResumeMailbox:
+			case *mailbox.ResumeMailbox:
 				m.suspended = false
 			default:
 				m.invoker.InvokeSystemMessage(msg)

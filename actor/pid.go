@@ -43,7 +43,7 @@ func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Futur
 	return future
 }
 
-func (pid *PID) sendSystemMessage(message SystemMessage) {
+func (pid *PID) sendSystemMessage(message interface{}) {
 	pid.ref().SendSystemMessage(pid, message)
 }
 

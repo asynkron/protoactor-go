@@ -1,5 +1,7 @@
 package actor
 
+import "github.com/AsynkronIT/protoactor-go/mailbox"
+
 type AutoReceiveMessage interface {
 	AutoReceiveMessage()
 }
@@ -37,16 +39,6 @@ type Restart struct{}
 // This will not be forwarded to the Receive method
 type Stop struct{}
 
-// ResumeMailbox is message sent by the actor system to control the lifecycle of an actor.
-//
-// This will not be forwarded to the Receive method
-type ResumeMailbox struct{}
-
-// SuspendMailbox is message sent by the actor system to control the lifecycle of an actor.
-//
-// This will not be forwarded to the Receive method
-type SuspendMailbox struct{}
-
 //TODO: make private?
 type Failure struct {
 	Who          *PID
@@ -72,8 +64,6 @@ func (*Unwatch) SystemMessage()        {}
 func (*Terminated) SystemMessage()     {}
 func (*Failure) SystemMessage()        {}
 func (*Restart) SystemMessage()        {}
-func (*ResumeMailbox) SystemMessage()  {}
-func (*SuspendMailbox) SystemMessage() {}
 
 var (
 	restartingMessage     interface{} = &Restarting{}
@@ -84,9 +74,9 @@ var (
 )
 
 var (
-	restartMessage        SystemMessage = &Restart{}
-	startedMessage        SystemMessage = &Started{}
-	stopMessage           SystemMessage = &Stop{}
-	resumeMailboxMessage  SystemMessage = &ResumeMailbox{}
-	suspendMailboxMessage SystemMessage = &SuspendMailbox{}
+	restartMessage        interface{} = &Restart{}
+	startedMessage        interface{} = &Started{}
+	stopMessage           interface{} = &Stop{}
+	resumeMailboxMessage  interface{} = &mailbox.ResumeMailbox{}
+	suspendMailboxMessage interface{} = &mailbox.SuspendMailbox{}
 )
