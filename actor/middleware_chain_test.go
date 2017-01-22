@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func middleware(called *int) func(ReceiveFunc) ReceiveFunc {
-	return func(next ReceiveFunc) ReceiveFunc {
+func middleware(called *int) func(ActorFunc) ActorFunc {
+	return func(next ActorFunc) ActorFunc {
 		fn := func(context Context) {
 			*called = context.Message().(int)
 
@@ -21,7 +21,7 @@ func middleware(called *int) func(ReceiveFunc) ReceiveFunc {
 func TestMakeReceiverMiddleware_CallsInCorrectOrder(t *testing.T) {
 	var c [3]int
 
-	r := []func(ReceiveFunc) ReceiveFunc{
+	r := []func(ActorFunc) ActorFunc{
 		middleware(&c[0]),
 		middleware(&c[1]),
 		middleware(&c[2]),
@@ -42,5 +42,5 @@ func TestMakeReceiverMiddleware_CallsInCorrectOrder(t *testing.T) {
 }
 
 func TestMakeReceiverMiddleware_ReturnsNil(t *testing.T) {
-	assert.Nil(t, makeMiddlewareChain([]func(ReceiveFunc) ReceiveFunc{}, func(_ Context) {}))
+	assert.Nil(t, makeMiddlewareChain([]func(ActorFunc) ActorFunc{}, func(_ Context) {}))
 }

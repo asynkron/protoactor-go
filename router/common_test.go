@@ -73,11 +73,11 @@ func (m *mockContext) Sender() *actor.PID {
 	return args.Get(0).(*actor.PID)
 }
 
-func (m *mockContext) SetBehavior(r actor.ReceiveFunc) {
+func (m *mockContext) SetBehavior(r actor.ActorFunc) {
 	m.Called(r)
 }
 
-func (m *mockContext) PushBehavior(r actor.ReceiveFunc) {
+func (m *mockContext) PushBehavior(r actor.ActorFunc) {
 	m.Called(r)
 }
 

@@ -10,10 +10,10 @@ type Actor interface {
 	Receive(c Context)
 }
 
-// The ReceiveFunc type is an adapter to allow the use of ordinary functions as actors to process messages
-type ReceiveFunc func(c Context)
+// The ActorFunc type is an adapter to allow the use of ordinary functions as actors to process messages
+type ActorFunc func(c Context)
 
 // Receive calls f(c)
-func (f ReceiveFunc) Receive(c Context) {
+func (f ActorFunc) Receive(c Context) {
 	f(c)
 }

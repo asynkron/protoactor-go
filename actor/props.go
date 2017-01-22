@@ -7,8 +7,8 @@ type Props struct {
 	actorProducer       Producer
 	mailboxProducer     mailbox.Producer
 	supervisionStrategy SupervisorStrategy
-	middleware          []func(next ReceiveFunc) ReceiveFunc
-	middlewareChain     ReceiveFunc
+	middleware          []func(next ActorFunc) ActorFunc
+	middlewareChain     ActorFunc
 	dispatcher          mailbox.Dispatcher
 	spawner             Spawner
 }
@@ -70,8 +70,8 @@ func (props Props) WithSpawn(spawn Spawner) Props {
 	return props
 }
 
-func (props Props) WithFunc(receive ReceiveFunc) Props {
-	props.actorProducer = makeProducerFromInstance(receive)
+func (props Props) WithFunc(f ActorFunc) Props {
+	props.actorProducer = makeProducerFromInstance(f)
 	return props
 }
 
@@ -90,8 +90,8 @@ func FromProducer(actorProducer Producer) Props {
 	return Props{actorProducer: actorProducer}
 }
 
-func FromFunc(receive ReceiveFunc) Props {
-	return FromInstance(receive)
+func FromFunc(f ActorFunc) Props {
+	return FromInstance(f)
 }
 
 func FromSpawn(spawn Spawner) Props {

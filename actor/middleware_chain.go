@@ -1,6 +1,6 @@
 package actor
 
-func makeMiddlewareChain(middleware []func(ReceiveFunc) ReceiveFunc, actorReceiver ReceiveFunc) ReceiveFunc {
+func makeMiddlewareChain(middleware []func(ActorFunc) ActorFunc, actorReceiver ActorFunc) ActorFunc {
 	if len(middleware) == 0 {
 		return nil
 	}

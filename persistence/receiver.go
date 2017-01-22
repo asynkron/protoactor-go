@@ -7,8 +7,8 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
-func Using(provider Provider) func(next actor.ReceiveFunc) actor.ReceiveFunc {
-	return func(next actor.ReceiveFunc) actor.ReceiveFunc {
+func Using(provider Provider) func(next actor.ActorFunc) actor.ActorFunc {
+	return func(next actor.ActorFunc) actor.ActorFunc {
 		fn := func(ctx actor.Context) {
 
 			switch ctx.Message().(type) {

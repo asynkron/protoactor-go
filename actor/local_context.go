@@ -14,9 +14,9 @@ type localContext struct {
 	actor          Actor
 	supervisor     SupervisorStrategy
 	producer       Producer
-	middleware     ReceiveFunc
+	middleware     ActorFunc
 	behavior       behaviorStack
-	receive        ReceiveFunc
+	receive        ActorFunc
 	children       PIDSet
 	watchers       PIDSet
 	watching       PIDSet
@@ -28,7 +28,7 @@ type localContext struct {
 	restartStats   *RestartStatistics
 }
 
-func newLocalContext(producer Producer, supervisor SupervisorStrategy, middleware ReceiveFunc, parent *PID) *localContext {
+func newLocalContext(producer Producer, supervisor SupervisorStrategy, middleware ActorFunc, parent *PID) *localContext {
 	cell := &localContext{
 		parent:     parent,
 		producer:   producer,
@@ -297,12 +297,12 @@ func (ctx *localContext) stopped() {
 	})
 }
 
-func (ctx *localContext) SetBehavior(behavior ReceiveFunc) {
+func (ctx *localContext) SetBehavior(behavior ActorFunc) {
 	ctx.behavior.Clear()
 	ctx.receive = behavior
 }
 
-func (ctx *localContext) PushBehavior(behavior ReceiveFunc) {
+func (ctx *localContext) PushBehavior(behavior ActorFunc) {
 	ctx.behavior.Push(ctx.receive)
 	ctx.receive = behavior
 }

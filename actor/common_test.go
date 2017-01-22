@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-var nullReceive ReceiveFunc = func(Context) {}
+var nullReceive ActorFunc = func(Context) {}
 var nilPID *PID
 
 func init() {
@@ -81,11 +81,11 @@ func (m *mockContext) Sender() *PID {
 	return args.Get(0).(*PID)
 }
 
-func (m *mockContext) SetBehavior(r ReceiveFunc) {
+func (m *mockContext) SetBehavior(r ActorFunc) {
 	m.Called(r)
 }
 
-func (m *mockContext) PushBehavior(r ReceiveFunc) {
+func (m *mockContext) PushBehavior(r ActorFunc) {
 	m.Called(r)
 }
 

@@ -41,10 +41,10 @@ func TestActorWithOwnSupervisorCanHandleFailure(t *testing.T) {
 	wg.Wait()
 }
 
-func NewObserver() (func(ReceiveFunc) ReceiveFunc, *Expector) {
+func NewObserver() (func(ActorFunc) ActorFunc, *Expector) {
 	c := make(chan interface{})
 	e := &Expector{C: c}
-	f := func(next ReceiveFunc) ReceiveFunc {
+	f := func(next ActorFunc) ActorFunc {
 		fn := func(context Context) {
 			message := context.Message()
 			c <- message

@@ -9,8 +9,8 @@ type plugin interface {
 	OnOtherMessage(actor.Context, interface{})
 }
 
-func Use(plugin plugin) func(next actor.ReceiveFunc) actor.ReceiveFunc {
-	return func(next actor.ReceiveFunc) actor.ReceiveFunc {
+func Use(plugin plugin) func(next actor.ActorFunc) actor.ActorFunc {
+	return func(next actor.ActorFunc) actor.ActorFunc {
 		fn := func(context actor.Context) {
 			switch msg := context.Message().(type) {
 			case *actor.Started:

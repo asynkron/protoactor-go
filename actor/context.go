@@ -26,10 +26,10 @@ type Context interface {
 	Sender() *PID
 
 	// SetBehavior replaces the actors current behavior stack with the new behavior
-	SetBehavior(behavior ReceiveFunc)
+	SetBehavior(behavior ActorFunc)
 
 	// PushBehavior pushes the current behavior on the stack and sets the current Receive handler to the new behavior
-	PushBehavior(behavior ReceiveFunc)
+	PushBehavior(behavior ActorFunc)
 
 	// PopBehavior reverts to the previous Receive handler
 	PopBehavior()
