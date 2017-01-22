@@ -1,7 +1,9 @@
 package actor
 
+import "github.com/AsynkronIT/protoactor-go/mailbox"
+
 type localProcess struct {
-	mailbox Mailbox
+	mailbox mailbox.Inbound
 	dead    bool
 }
 
@@ -13,7 +15,7 @@ func (ref *localProcess) SendUserMessage(pid *PID, message interface{}, sender *
 	}
 }
 
-func (ref *localProcess) SendSystemMessage(pid *PID, message SystemMessage) {
+func (ref *localProcess) SendSystemMessage(pid *PID, message interface{}) {
 	ref.mailbox.PostSystemMessage(message)
 }
 

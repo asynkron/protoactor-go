@@ -1,4 +1,4 @@
-package actor
+package mailbox
 
 type Dispatcher interface {
 	Schedule(fn func())
@@ -14,10 +14,6 @@ func (goroutineDispatcher) Schedule(fn func()) {
 func (d goroutineDispatcher) Throughput() int {
 	return int(d)
 }
-
-var (
-	defaultDispatcher Dispatcher = goroutineDispatcher(300)
-)
 
 func NewDefaultDispatcher(throughput int) Dispatcher {
 	return goroutineDispatcher(throughput)

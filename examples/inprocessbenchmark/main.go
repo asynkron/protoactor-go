@@ -12,6 +12,8 @@ import (
 
 	"runtime"
 	"time"
+
+	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
 type Msg struct {
@@ -35,9 +37,10 @@ func (state *clientActor) sendBatch(context actor.Context, sender *actor.PID) bo
 		return false
 	}
 
-	m := &Msg{
+	var m interface{} = &Msg{
 		replyTo: context.Self(),
 	}
+
 	for i := 0; i < state.batchSize; i++ {
 		sender.Tell(m)
 	}
@@ -111,11 +114,11 @@ func main() {
 	log.Println("Dispatcher Throughput			Elapsed Time			Messages per sec")
 	for _, tp := range tps {
 
-		d := actor.NewDefaultDispatcher(tp)
+		d := mailbox.NewDefaultDispatcher(tp)
 
 		clientProps := actor.
 			FromProducer(newLocalActor(&wg, messageCount, batchSize)).
-			WithMailbox(actor.NewBoundedMailbox(batchSize + 10)).
+			WithMailbox(mailbox.NewBoundedProducer(batchSize + 10)).
 			WithDispatcher(d)
 
 		echoProps := actor.
@@ -126,7 +129,7 @@ func main() {
 						msg.replyTo.Tell(msg)
 					}
 				}).
-			WithMailbox(actor.NewBoundedMailbox(batchSize + 10)).
+			WithMailbox(mailbox.NewBoundedProducer(batchSize + 10)).
 			WithDispatcher(d)
 
 		clients := make([]*actor.PID, 0)

@@ -1,4 +1,4 @@
-package actor
+package mailbox
 
 import (
 	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
@@ -22,14 +22,15 @@ func (q *boundedMailboxQueue) Pop() interface{} {
 }
 
 // NewBoundedMailbox creates an unbounded mailbox
-func NewBoundedMailbox(size int, mailboxStats ...MailboxStatistics) MailboxProducer {
-	return func(dispatcher Dispatcher) Mailbox {
+func NewBoundedProducer(size int, mailboxStats ...Statistics) Producer {
+	return func(invoker MessageInvoker, dispatcher Dispatcher) Inbound {
 		q := &boundedMailboxQueue{
 			userMailbox: queue.NewRingBuffer(uint64(size)),
 		}
 		return &DefaultMailbox{
 			systemMailbox: mpsc.New(),
 			userMailbox:   q,
+			invoker:       invoker,
 			mailboxStats:  mailboxStats,
 			dispatcher:    dispatcher,
 		}

@@ -193,16 +193,14 @@ func (ctx *localContext) incarnateActor() {
 	ctx.receive = actor.Receive
 }
 
-func (ctx *localContext) InvokeSystemMessage(message SystemMessage) {
-	switch msg := message.(interface{}).(type) {
+func (ctx *localContext) InvokeSystemMessage(message interface{}) {
+	switch msg := message.(type) {
 	case *Started:
 		ctx.InvokeUserMessage(msg) // forward
 	case *Watch:
 		ctx.watchers.Add(msg.Watcher)
 	case *Unwatch:
 		ctx.watchers.Remove(msg.Watcher)
-	case *SuspendMailbox, *ResumeMailbox:
-	//pass
 	case *Stop:
 		ctx.handleStop(msg)
 	case *Terminated:

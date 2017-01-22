@@ -5,6 +5,7 @@ import (
 
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
 type mailboxLogger struct{}
@@ -25,7 +26,7 @@ func (m *mailboxLogger) MailboxEmpty() {
 func main() {
 	props := actor.FromFunc(func(ctx actor.Context) {
 
-	}).WithMailbox(actor.NewUnboundedMailbox(&mailboxLogger{}))
+	}).WithMailbox(mailbox.NewUnboundedProducer(&mailboxLogger{}))
 	actor := actor.Spawn(props)
 	actor.Tell("Hello")
 	console.ReadLine()

@@ -7,6 +7,7 @@ import (
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remotebenchmark/messages"
+	"github.com/AsynkronIT/protoactor-go/mailbox"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
@@ -28,7 +29,7 @@ func main() {
 					sender.Tell(&messages.Pong{})
 				}
 			}).
-		WithMailbox(actor.NewBoundedMailbox(1000000))
+		WithMailbox(mailbox.NewBoundedProducer(1000000))
 
 	actor.SpawnNamed(props, "remote")
 

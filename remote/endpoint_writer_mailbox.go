@@ -9,6 +9,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/internal/core"
 	"github.com/AsynkronIT/protoactor-go/internal/queue/lfqueue"
+	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
 const (
@@ -25,9 +26,9 @@ type endpointWriterMailbox struct {
 	systemMailbox   *lfqueue.LockfreeQueue
 	schedulerStatus int32
 	hasMoreMessages int32
-	invoker         actor.MessageInvoker
+	invoker         mailbox.MessageInvoker
 	batchSize       int
-	dispatcher      actor.Dispatcher
+	dispatcher      mailbox.Dispatcher
 	suspended       bool
 }
 
@@ -37,7 +38,7 @@ func (m *endpointWriterMailbox) PostUserMessage(message interface{}) {
 	m.schedule()
 }
 
-func (m *endpointWriterMailbox) PostSystemMessage(message actor.SystemMessage) {
+func (m *endpointWriterMailbox) PostSystemMessage(message interface{}) {
 	m.systemMailbox.Push(message)
 	m.schedule()
 }
@@ -79,15 +80,15 @@ func (m *endpointWriterMailbox) run() {
 	for {
 		// keep processing system messages until queue is empty
 		if msg = m.systemMailbox.Pop(); msg != nil {
-			sys, _ := msg.(actor.SystemMessage)
-			switch sys.(type) {
+			switch msg.(type) {
 			case *actor.SuspendMailbox:
 				m.suspended = true
 			case *actor.ResumeMailbox:
 				m.suspended = false
+			default:
+				m.invoker.InvokeSystemMessage(msg)
 			}
 
-			m.invoker.InvokeSystemMessage(sys)
 			continue
 		}
 
@@ -107,8 +108,8 @@ func (m *endpointWriterMailbox) run() {
 	}
 }
 
-func newEndpointWriterMailbox(batchSize, initialSize int) actor.MailboxProducer {
-	return func(dispatcher actor.Dispatcher) actor.Mailbox {
+func newEndpointWriterMailbox(batchSize, initialSize int) mailbox.Producer {
+	return func(invoker mailbox.MessageInvoker, dispatcher mailbox.Dispatcher) mailbox.Inbound {
 		userMailbox := goring.New(int64(initialSize))
 		systemMailbox := lfqueue.NewLockfreeQueue()
 		return &endpointWriterMailbox{
@@ -117,11 +118,11 @@ func newEndpointWriterMailbox(batchSize, initialSize int) actor.MailboxProducer 
 			hasMoreMessages: mailboxHasNoMessages,
 			schedulerStatus: mailboxIdle,
 			batchSize:       batchSize,
+			invoker:         invoker,
 			dispatcher:      dispatcher,
 		}
 	}
 }
 
-func (m *endpointWriterMailbox) SetInvoker(invoker actor.MessageInvoker) {
-	m.invoker = invoker
+func (m *endpointWriterMailbox) Start() {
 }

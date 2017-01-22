@@ -14,6 +14,8 @@ import (
 
 	"runtime"
 	"time"
+
+	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
 type localActor struct {
@@ -81,7 +83,7 @@ func main() {
 
 	props := actor.
 		FromProducer(newLocalActor(&wg, messageCount)).
-		WithMailbox(actor.NewBoundedMailbox(1000000))
+		WithMailbox(mailbox.NewBoundedProducer(1000000))
 
 	pid := actor.Spawn(props)
 

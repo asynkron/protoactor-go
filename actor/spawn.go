@@ -1,6 +1,8 @@
 package actor
 
-import "errors"
+import (
+	"errors"
+)
 
 // ErrNameExists is the error used when an existing name is used for spawning an actor.
 var ErrNameExists = errors.New("spawn: name exists")
@@ -24,18 +26,20 @@ func SpawnNamed(props Props, name string) (*PID, error) {
 }
 
 func spawn(id string, props Props, parent *PID) (*PID, error) {
-	cell := newLocalContext(props.actorProducer, props.Supervisor(), props.middlewareChain, parent)
-	mailbox := props.ProduceMailbox(props.Dispatcher())
-	var ref Process = &localProcess{mailbox: mailbox}
-	pid, absent := ProcessRegistry.Add(ref, id)
+	lp := &localProcess{}
+	pid, absent := ProcessRegistry.Add(lp, id)
 	if !absent {
 		return pid, ErrNameExists
 	}
 
+	cell := newLocalContext(props.actorProducer, props.Supervisor(), props.middlewareChain, parent)
+	mb := props.ProduceMailbox(cell, props.Dispatcher())
+	lp.mailbox = mb
+	var ref Process = lp
 	pid.p = &ref
 	cell.self = pid
-	mailbox.SetInvoker(cell)
-	mailbox.PostSystemMessage(startedMessage)
+	mb.Start()
+	mb.PostSystemMessage(startedMessage)
 
 	return pid, nil
 }

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
 type request struct {
@@ -19,7 +20,7 @@ type request struct {
 }
 
 var (
-	props = actor.FromProducer(newState).WithMailbox(actor.NewUnboundedLockfreeMailbox())
+	props = actor.FromProducer(newState).WithMailbox(mailbox.NewUnboundedLockfreeProducer())
 )
 
 type state struct {

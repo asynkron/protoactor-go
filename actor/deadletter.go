@@ -36,7 +36,7 @@ func (*deadLetterProcess) SendUserMessage(pid *PID, message interface{}, sender 
 	})
 }
 
-func (*deadLetterProcess) SendSystemMessage(pid *PID, message SystemMessage) {
+func (*deadLetterProcess) SendSystemMessage(pid *PID, message interface{}) {
 	eventstream.Publish(&DeadLetterEvent{
 		PID:     pid,
 		Message: message,

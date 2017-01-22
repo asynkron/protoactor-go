@@ -5,6 +5,7 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
+	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
 var endpointManagerPID *actor.PID
@@ -29,7 +30,7 @@ func subscribeEndpointManager() {
 func spawnEndpointManager(config *remoteConfig) {
 	props := actor.
 		FromProducer(newEndpointManager(config)).
-		WithMailbox(actor.NewBoundedMailbox(config.endpointManagerQueueSize)).
+		WithMailbox(mailbox.NewBoundedProducer(config.endpointManagerQueueSize)).
 		WithSupervisor(actor.RestartingSupervisorStrategy())
 
 	endpointManagerPID = actor.Spawn(props)

@@ -32,7 +32,7 @@ func sendRemoteMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
 	}
 }
 
-func (ref *remoteProcess) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
+func (ref *remoteProcess) SendSystemMessage(pid *actor.PID, message interface{}) {
 
 	//intercept any Watch messages and direct them to the endpoint manager
 	switch msg := message.(type) {

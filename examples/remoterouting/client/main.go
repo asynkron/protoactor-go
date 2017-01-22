@@ -10,6 +10,7 @@ import (
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remoterouting/messages"
+	"github.com/AsynkronIT/protoactor-go/mailbox"
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/AsynkronIT/protoactor-go/router"
 )
@@ -30,7 +31,7 @@ func main() {
 
 	props := actor.
 		FromProducer(newLocalActor(&wgStop, messageCount)).
-		WithMailbox(actor.NewBoundedMailbox(10000))
+		WithMailbox(mailbox.NewBoundedProducer(10000))
 
 	pid := actor.Spawn(props)
 

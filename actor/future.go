@@ -98,7 +98,7 @@ func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}, sender 
 	ref.Stop(pid)
 }
 
-func (ref *futureProcess) SendSystemMessage(pid *PID, message SystemMessage) {
+func (ref *futureProcess) SendSystemMessage(pid *PID, message interface{}) {
 	ref.result = message
 	ref.Stop(pid)
 }

@@ -18,7 +18,7 @@ func (ref *process) SendUserMessage(pid *actor.PID, message interface{}, sender 
 	}
 }
 
-func (ref *process) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
+func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 	r, _ := actor.ProcessRegistry.Get(ref.router)
 	r.SendSystemMessage(pid, message)
 }

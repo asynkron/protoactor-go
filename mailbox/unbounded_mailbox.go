@@ -1,4 +1,4 @@
-package actor
+package mailbox
 
 import (
 	"github.com/AsynkronIT/goring"
@@ -21,17 +21,16 @@ func (q *unboundedMailboxQueue) Pop() interface{} {
 	return nil
 }
 
-var defaultMailboxProducer = NewUnboundedMailbox()
-
 // NewUnboundedMailbox creates an unbounded mailbox
-func NewUnboundedMailbox(mailboxStats ...MailboxStatistics) MailboxProducer {
-	return func(dispatcher Dispatcher) Mailbox {
+func NewUnboundedProducer(mailboxStats ...Statistics) Producer {
+	return func(invoker MessageInvoker, dispatcher Dispatcher) Inbound {
 		q := &unboundedMailboxQueue{
 			userMailbox: goring.New(10),
 		}
 		return &DefaultMailbox{
 			systemMailbox: mpsc.New(),
 			userMailbox:   q,
+			invoker:       invoker,
 			mailboxStats:  mailboxStats,
 			dispatcher:    dispatcher,
 		}

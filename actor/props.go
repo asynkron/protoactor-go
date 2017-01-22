@@ -1,17 +1,19 @@
 package actor
 
+import "github.com/AsynkronIT/protoactor-go/mailbox"
+
 // Props represents configuration to define how an actor should be created
 type Props struct {
 	actorProducer       Producer
-	mailboxProducer     MailboxProducer
+	mailboxProducer     mailbox.Producer
 	supervisionStrategy SupervisorStrategy
 	middleware          []func(next ReceiveFunc) ReceiveFunc
 	middlewareChain     ReceiveFunc
-	dispatcher          Dispatcher
+	dispatcher          mailbox.Dispatcher
 	spawner             Spawner
 }
 
-func (props Props) Dispatcher() Dispatcher {
+func (props Props) Dispatcher() mailbox.Dispatcher {
 	if props.dispatcher == nil {
 		return defaultDispatcher
 	}
@@ -29,11 +31,11 @@ func (props Props) Supervisor() SupervisorStrategy {
 	return props.supervisionStrategy
 }
 
-func (props Props) ProduceMailbox(dispatcher Dispatcher) Mailbox {
+func (props Props) ProduceMailbox(invoker mailbox.MessageInvoker, dispatcher mailbox.Dispatcher) mailbox.Inbound {
 	if props.mailboxProducer == nil {
-		return defaultMailboxProducer(dispatcher)
+		return defaultMailboxProducer(invoker, dispatcher)
 	}
-	return props.mailboxProducer(dispatcher)
+	return props.mailboxProducer(invoker, dispatcher)
 }
 
 func (props Props) spawn(id string, parent *PID) (*PID, error) {
@@ -49,7 +51,7 @@ func (props Props) WithMiddleware(middleware ...func(ReceiveFunc) ReceiveFunc) P
 	return props
 }
 
-func (props Props) WithMailbox(mailbox MailboxProducer) Props {
+func (props Props) WithMailbox(mailbox mailbox.Producer) Props {
 	//pass by value, we only modify the copy
 	props.mailboxProducer = mailbox
 	return props
@@ -61,7 +63,7 @@ func (props Props) WithSupervisor(supervisor SupervisorStrategy) Props {
 	return props
 }
 
-func (props Props) WithDispatcher(dispatcher Dispatcher) Props {
+func (props Props) WithDispatcher(dispatcher mailbox.Dispatcher) Props {
 	//pass by value, we only modify the copy
 	props.dispatcher = dispatcher
 	return props
