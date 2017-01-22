@@ -23,7 +23,7 @@ func (q *boundedMailboxQueue) Pop() interface{} {
 
 // NewBoundedMailbox creates an unbounded mailbox
 func NewBoundedMailbox(size int, mailboxStats ...MailboxStatistics) MailboxProducer {
-	return func() Mailbox {
+	return func(dispatcher Dispatcher) Mailbox {
 		q := &boundedMailboxQueue{
 			userMailbox: queue.NewRingBuffer(uint64(size)),
 		}
@@ -31,6 +31,7 @@ func NewBoundedMailbox(size int, mailboxStats ...MailboxStatistics) MailboxProdu
 			systemMailbox: mpsc.New(),
 			userMailbox:   q,
 			mailboxStats:  mailboxStats,
+			dispatcher:    dispatcher,
 		}
 	}
 }

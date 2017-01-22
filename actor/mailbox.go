@@ -22,12 +22,12 @@ type MessageInvoker interface {
 	EscalateFailure(reason interface{}, message interface{})
 }
 
-type MailboxProducer func() Mailbox
+type MailboxProducer func(dispatcher Dispatcher) Mailbox
 
 type Mailbox interface {
 	PostUserMessage(message interface{})
 	PostSystemMessage(message SystemMessage)
-	RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher)
+	SetInvoker(invoker MessageInvoker)
 }
 
 const (
@@ -144,9 +144,8 @@ func (m *DefaultMailbox) run() {
 
 }
 
-func (m *DefaultMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
+func (m *DefaultMailbox) SetInvoker(invoker MessageInvoker) {
 	m.invoker = invoker
-	m.dispatcher = dispatcher
 	for _, ms := range m.mailboxStats {
 		ms.MailboxStarted()
 	}

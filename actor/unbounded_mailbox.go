@@ -25,7 +25,7 @@ var defaultMailboxProducer = NewUnboundedMailbox()
 
 // NewUnboundedMailbox creates an unbounded mailbox
 func NewUnboundedMailbox(mailboxStats ...MailboxStatistics) MailboxProducer {
-	return func() Mailbox {
+	return func(dispatcher Dispatcher) Mailbox {
 		q := &unboundedMailboxQueue{
 			userMailbox: goring.New(10),
 		}
@@ -33,6 +33,7 @@ func NewUnboundedMailbox(mailboxStats ...MailboxStatistics) MailboxProducer {
 			systemMailbox: mpsc.New(),
 			userMailbox:   q,
 			mailboxStats:  mailboxStats,
+			dispatcher:    dispatcher,
 		}
 	}
 }

@@ -25,7 +25,7 @@ func SpawnNamed(props Props, name string) (*PID, error) {
 
 func spawn(id string, props Props, parent *PID) (*PID, error) {
 	cell := newLocalContext(props.actorProducer, props.Supervisor(), props.middlewareChain, parent)
-	mailbox := props.ProduceMailbox()
+	mailbox := props.ProduceMailbox(props.Dispatcher())
 	var ref Process = &localProcess{mailbox: mailbox}
 	pid, absent := ProcessRegistry.Add(ref, id)
 	if !absent {
@@ -34,7 +34,7 @@ func spawn(id string, props Props, parent *PID) (*PID, error) {
 
 	pid.p = &ref
 	cell.self = pid
-	mailbox.RegisterHandlers(cell, props.Dispatcher())
+	mailbox.SetInvoker(cell)
 	mailbox.PostSystemMessage(startedMessage)
 
 	return pid, nil

@@ -108,22 +108,20 @@ func (m *endpointWriterMailbox) run() {
 }
 
 func newEndpointWriterMailbox(batchSize, initialSize int) actor.MailboxProducer {
-
-	return func() actor.Mailbox {
+	return func(dispatcher actor.Dispatcher) actor.Mailbox {
 		userMailbox := goring.New(int64(initialSize))
 		systemMailbox := lfqueue.NewLockfreeQueue()
-		mailbox := endpointWriterMailbox{
+		return &endpointWriterMailbox{
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
 			hasMoreMessages: mailboxHasNoMessages,
 			schedulerStatus: mailboxIdle,
 			batchSize:       batchSize,
+			dispatcher:      dispatcher,
 		}
-		return &mailbox
 	}
 }
 
-func (m *endpointWriterMailbox) RegisterHandlers(invoker actor.MessageInvoker, dispatcher actor.Dispatcher) {
+func (m *endpointWriterMailbox) SetInvoker(invoker actor.MessageInvoker) {
 	m.invoker = invoker
-	m.dispatcher = dispatcher
 }

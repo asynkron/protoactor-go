@@ -29,11 +29,11 @@ func (props Props) Supervisor() SupervisorStrategy {
 	return props.supervisionStrategy
 }
 
-func (props Props) ProduceMailbox() Mailbox {
+func (props Props) ProduceMailbox(dispatcher Dispatcher) Mailbox {
 	if props.mailboxProducer == nil {
-		return defaultMailboxProducer()
+		return defaultMailboxProducer(dispatcher)
 	}
-	return props.mailboxProducer()
+	return props.mailboxProducer(dispatcher)
 }
 
 func (props Props) spawn(id string, parent *PID) (*PID, error) {
