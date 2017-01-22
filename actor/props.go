@@ -13,25 +13,21 @@ type Props struct {
 	spawner             Spawner
 }
 
-func (props Props) Dispatcher() mailbox.Dispatcher {
+func (props Props) getDispatcher() mailbox.Dispatcher {
 	if props.dispatcher == nil {
 		return defaultDispatcher
 	}
 	return props.dispatcher
 }
 
-func (props Props) ProduceActor() Actor {
-	return props.actorProducer()
-}
-
-func (props Props) Supervisor() SupervisorStrategy {
+func (props Props) getSupervisor() SupervisorStrategy {
 	if props.supervisionStrategy == nil {
 		return defaultSupervisionStrategy
 	}
 	return props.supervisionStrategy
 }
 
-func (props Props) ProduceMailbox(invoker mailbox.MessageInvoker, dispatcher mailbox.Dispatcher) mailbox.Inbound {
+func (props Props) produceMailbox(invoker mailbox.MessageInvoker, dispatcher mailbox.Dispatcher) mailbox.Inbound {
 	if props.mailboxProducer == nil {
 		return defaultMailboxProducer(invoker, dispatcher)
 	}
