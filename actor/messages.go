@@ -57,13 +57,13 @@ func (*Stopping) AutoReceiveMessage()   {}
 func (*Stopped) AutoReceiveMessage()    {}
 func (*PoisonPill) AutoReceiveMessage() {}
 
-func (*Started) SystemMessage()        {}
-func (*Stop) SystemMessage()           {}
-func (*Watch) SystemMessage()          {}
-func (*Unwatch) SystemMessage()        {}
-func (*Terminated) SystemMessage()     {}
-func (*Failure) SystemMessage()        {}
-func (*Restart) SystemMessage()        {}
+func (*Started) SystemMessage()    {}
+func (*Stop) SystemMessage()       {}
+func (*Watch) SystemMessage()      {}
+func (*Unwatch) SystemMessage()    {}
+func (*Terminated) SystemMessage() {}
+func (*Failure) SystemMessage()    {}
+func (*Restart) SystemMessage()    {}
 
 var (
 	restartingMessage     interface{} = &Restarting{}
