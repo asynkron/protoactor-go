@@ -1,6 +1,6 @@
 package mailbox
 
-type MailboxQueue interface {
+type queue interface {
 	Push(interface{})
 	Pop() interface{}
 }

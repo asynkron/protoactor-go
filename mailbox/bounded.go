@@ -2,11 +2,11 @@ package mailbox
 
 import (
 	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
-	"github.com/Workiva/go-datastructures/queue"
+	rbqueue "github.com/Workiva/go-datastructures/queue"
 )
 
 type boundedMailboxQueue struct {
-	userMailbox *queue.RingBuffer
+	userMailbox *rbqueue.RingBuffer
 }
 
 func (q *boundedMailboxQueue) Push(m interface{}) {
@@ -21,13 +21,13 @@ func (q *boundedMailboxQueue) Pop() interface{} {
 	return nil
 }
 
-// NewBoundedMailbox creates an unbounded mailbox
+// NewBoundedProducer returns a producer which creates an bounded mailbox of the specified size
 func NewBoundedProducer(size int, mailboxStats ...Statistics) Producer {
 	return func(invoker MessageInvoker, dispatcher Dispatcher) Inbound {
 		q := &boundedMailboxQueue{
-			userMailbox: queue.NewRingBuffer(uint64(size)),
+			userMailbox: rbqueue.NewRingBuffer(uint64(size)),
 		}
-		return &DefaultMailbox{
+		return &defaultMailbox{
 			systemMailbox: mpsc.New(),
 			userMailbox:   q,
 			invoker:       invoker,

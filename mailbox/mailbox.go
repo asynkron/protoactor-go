@@ -16,32 +16,35 @@ type Statistics interface {
 	MailboxEmpty()
 }
 
+// MessageInvoker is the interface used by a mailbox to forward messages for processing
 type MessageInvoker interface {
 	InvokeSystemMessage(interface{})
 	InvokeUserMessage(interface{})
 	EscalateFailure(reason interface{}, message interface{})
 }
 
+// The Inbound interface is used to enqueue messages to the mailbox
 type Inbound interface {
 	PostUserMessage(message interface{})
 	PostSystemMessage(message interface{})
 	Start()
 }
 
+// Producer is a function which creates a new mailbox
 type Producer func(invoker MessageInvoker, dispatcher Dispatcher) Inbound
 
 const (
-	mailboxIdle int32 = iota
-	mailboxRunning
+	idle int32 = iota
+	running
 )
 
 const (
-	mailboxHasNoMessages int32 = iota
-	mailboxHasMoreMessages
+	hasNoMessages int32 = iota
+	hasMoreMessages
 )
 
-type DefaultMailbox struct {
-	userMailbox     MailboxQueue
+type defaultMailbox struct {
+	userMailbox     queue
 	systemMailbox   *mpsc.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
@@ -51,7 +54,7 @@ type DefaultMailbox struct {
 	mailboxStats    []Statistics
 }
 
-func (m *DefaultMailbox) PostUserMessage(message interface{}) {
+func (m *defaultMailbox) PostUserMessage(message interface{}) {
 	for _, ms := range m.mailboxStats {
 		ms.MessagePosted(message)
 	}
@@ -59,32 +62,32 @@ func (m *DefaultMailbox) PostUserMessage(message interface{}) {
 	m.schedule()
 }
 
-func (m *DefaultMailbox) PostSystemMessage(message interface{}) {
+func (m *defaultMailbox) PostSystemMessage(message interface{}) {
 	m.systemMailbox.Push(message)
 	m.schedule()
 }
 
-func (m *DefaultMailbox) schedule() {
-	atomic.StoreInt32(&m.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
-	if atomic.CompareAndSwapInt32(&m.schedulerStatus, mailboxIdle, mailboxRunning) {
+func (m *defaultMailbox) schedule() {
+	atomic.StoreInt32(&m.hasMoreMessages, hasMoreMessages) //we have more messages to process
+	if atomic.CompareAndSwapInt32(&m.schedulerStatus, idle, running) {
 		m.dispatcher.Schedule(m.processMessages)
 	}
 }
 
-func (m *DefaultMailbox) processMessages() {
+func (m *defaultMailbox) processMessages() {
 	//we are about to start processing messages, we can safely reset the message flag of the mailbox
-	atomic.StoreInt32(&m.hasMoreMessages, mailboxHasNoMessages)
+	atomic.StoreInt32(&m.hasMoreMessages, hasNoMessages)
 
 process:
 	m.run()
 
 	// set mailbox to idle
-	atomic.StoreInt32(&m.schedulerStatus, mailboxIdle)
+	atomic.StoreInt32(&m.schedulerStatus, idle)
 
 	// check if there are still messages to process (sent after the message loop ended)
-	if atomic.SwapInt32(&m.hasMoreMessages, mailboxHasNoMessages) == mailboxHasMoreMessages {
+	if atomic.SwapInt32(&m.hasMoreMessages, hasNoMessages) == hasMoreMessages {
 		// try setting the mailbox back to running
-		if atomic.CompareAndSwapInt32(&m.schedulerStatus, mailboxIdle, mailboxRunning) {
+		if atomic.CompareAndSwapInt32(&m.schedulerStatus, idle, running) {
 			goto process
 		}
 	}
@@ -94,7 +97,7 @@ process:
 	}
 }
 
-func (m *DefaultMailbox) run() {
+func (m *defaultMailbox) run() {
 	var msg interface{}
 
 	defer func() {
@@ -144,7 +147,7 @@ func (m *DefaultMailbox) run() {
 
 }
 
-func (m *DefaultMailbox) Start() {
+func (m *defaultMailbox) Start() {
 	for _, ms := range m.mailboxStats {
 		ms.MailboxStarted()
 	}
