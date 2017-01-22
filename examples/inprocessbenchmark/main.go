@@ -17,7 +17,7 @@ import (
 )
 
 type Msg struct {
-	replyTo *actor.PID
+	Sender *actor.PID
 }
 type Start struct {
 	Sender *actor.PID
@@ -39,7 +39,7 @@ func (state *pingActor) sendBatch(context actor.Context, sender *actor.PID) bool
 	}
 
 	var m interface{} = &Msg{
-		replyTo: context.Self(),
+		Sender: context.Self(),
 	}
 
 	for i := 0; i < state.batchSize; i++ {
@@ -62,7 +62,7 @@ func (state *pingActor) Receive(context actor.Context) {
 			return
 		}
 
-		if !state.sendBatch(context, msg.replyTo) {
+		if !state.sendBatch(context, msg.Sender) {
 			state.wgStop.Done()
 		}
 	}
@@ -127,7 +127,7 @@ func main() {
 				func(context actor.Context) {
 					switch msg := context.Message().(type) {
 					case *Msg:
-						msg.replyTo.Tell(msg)
+						msg.Sender.Tell(msg)
 					}
 				}).
 			WithMailbox(mailbox.NewBoundedProducer(batchSize + 10)).
