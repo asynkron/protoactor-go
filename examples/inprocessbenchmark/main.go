@@ -22,9 +22,10 @@ type Msg struct {
 type Start struct {
 	Sender *actor.PID
 }
-type Started struct{}
 
-type clientActor struct {
+//type Started struct{}
+
+type pingActor struct {
 	count        int
 	wgStop       *sync.WaitGroup
 	messageCount int
@@ -32,7 +33,7 @@ type clientActor struct {
 	batchSize    int
 }
 
-func (state *clientActor) sendBatch(context actor.Context, sender *actor.PID) bool {
+func (state *pingActor) sendBatch(context actor.Context, sender *actor.PID) bool {
 	if state.messageCount == 0 {
 		return false
 	}
@@ -50,7 +51,7 @@ func (state *clientActor) sendBatch(context actor.Context, sender *actor.PID) bo
 	return true
 }
 
-func (state *clientActor) Receive(context actor.Context) {
+func (state *pingActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *Start:
 		state.sendBatch(context, msg.Sender)
@@ -67,9 +68,9 @@ func (state *clientActor) Receive(context actor.Context) {
 	}
 }
 
-func newLocalActor(stop *sync.WaitGroup, messageCount int, batchSize int) actor.Producer {
+func newPingActor(stop *sync.WaitGroup, messageCount int, batchSize int) actor.Producer {
 	return func() actor.Actor {
-		return &clientActor{
+		return &pingActor{
 			wgStop:       stop,
 			messageCount: messageCount,
 			batchSize:    batchSize,
@@ -117,7 +118,7 @@ func main() {
 		d := mailbox.NewDefaultDispatcher(tp)
 
 		clientProps := actor.
-			FromProducer(newLocalActor(&wg, messageCount, batchSize)).
+			FromProducer(newPingActor(&wg, messageCount, batchSize)).
 			WithMailbox(mailbox.NewBoundedProducer(batchSize + 10)).
 			WithDispatcher(d)
 
