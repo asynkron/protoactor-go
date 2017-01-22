@@ -28,7 +28,7 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 	grc := newGroupRouterConfig(child)
 	grc.On("CreateRouterState").Return(rs)
 
-	routerPID := actor.Spawn(actor.FromSpawn(spawner(grc)))
+	routerPID := actor.Spawn(actor.FromSpawnFunc(spawner(grc)))
 	routerPID.Tell("hello")
 
 	mock.AssertExpectationsForObjects(t, p, rs)

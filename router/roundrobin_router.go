@@ -34,12 +34,12 @@ func (state *roundRobinState) RouteMessage(message interface{}, sender *actor.PI
 	pid.Request(message, sender)
 }
 
-func NewRoundRobinPool(size int) actor.Props {
-	return actor.FromSpawn(spawner(&roundRobinPoolRouter{PoolRouter{PoolSize: size}}))
+func NewRoundRobinPool(size int) *actor.Props {
+	return actor.FromSpawnFunc(spawner(&roundRobinPoolRouter{PoolRouter{PoolSize: size}}))
 }
 
-func NewRoundRobinGroup(routees ...*actor.PID) actor.Props {
-	return actor.FromSpawn(spawner(&roundRobinGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
+func NewRoundRobinGroup(routees ...*actor.PID) *actor.Props {
+	return actor.FromSpawnFunc(spawner(&roundRobinGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
 func (config *roundRobinPoolRouter) CreateRouterState() Interface {

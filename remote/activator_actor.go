@@ -18,8 +18,8 @@ func spawnActivatorActor() {
 }
 
 //Register a known actor props by name
-func Register(kind string, props actor.Props) {
-	nameLookup[kind] = props
+func Register(kind string, props *actor.Props) {
+	nameLookup[kind] = *props
 }
 
 func GetKnownKinds() []string {
@@ -87,7 +87,7 @@ func (*activator) Receive(context actor.Context) {
 			name = actor.ProcessRegistry.NextId()
 		}
 
-		pid, _ := actor.SpawnNamed(props, "Remote$"+msg.Name)
+		pid, _ := actor.SpawnNamed(&props, "Remote$"+msg.Name)
 		response := &ActorPidResponse{
 			Pid: pid,
 		}

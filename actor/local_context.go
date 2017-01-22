@@ -335,12 +335,12 @@ func (ctx *localContext) Respond(response interface{}) {
 	ctx.Sender().Tell(response)
 }
 
-func (ctx *localContext) Spawn(props Props) *PID {
+func (ctx *localContext) Spawn(props *Props) *PID {
 	pid, _ := ctx.SpawnNamed(props, ProcessRegistry.NextId())
 	return pid
 }
 
-func (ctx *localContext) SpawnNamed(props Props, name string) (*PID, error) {
+func (ctx *localContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	pid, err := props.spawn(ctx.self.Id+"/"+name, ctx.self)
 	if err != nil {
 		return pid, err

@@ -8,7 +8,7 @@ import (
 )
 
 type routerActor struct {
-	props  actor.Props
+	props  *actor.Props
 	config RouterConfig
 	state  Interface
 	wg     sync.WaitGroup

@@ -35,12 +35,12 @@ func (state *randomRouterState) RouteMessage(message interface{}, sender *actor.
 	pid.Request(message, sender)
 }
 
-func NewRandomPool(size int) actor.Props {
-	return actor.FromSpawn(spawner(&randomPoolRouter{PoolRouter{PoolSize: size}}))
+func NewRandomPool(size int) *actor.Props {
+	return actor.FromSpawnFunc(spawner(&randomPoolRouter{PoolRouter{PoolSize: size}}))
 }
 
-func NewRandomGroup(routees ...*actor.PID) actor.Props {
-	return actor.FromSpawn(spawner(&randomGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
+func NewRandomGroup(routees ...*actor.PID) *actor.Props {
+	return actor.FromSpawnFunc(spawner(&randomGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
 func (config *randomPoolRouter) CreateRouterState() Interface {

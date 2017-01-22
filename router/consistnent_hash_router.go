@@ -75,12 +75,12 @@ func (state *consistentHashRouterState) InvokeRouterManagementMessage(msg Manage
 
 }
 
-func NewConsistentHashPool(size int) actor.Props {
-	return actor.FromSpawn(spawner(&consistentHashPoolRouter{PoolRouter{PoolSize: size}}))
+func NewConsistentHashPool(size int) *actor.Props {
+	return actor.FromSpawnFunc(spawner(&consistentHashPoolRouter{PoolRouter{PoolSize: size}}))
 }
 
-func NewConsistentHashGroup(routees ...*actor.PID) actor.Props {
-	return actor.FromSpawn(spawner(&consistentHashGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
+func NewConsistentHashGroup(routees ...*actor.PID) *actor.Props {
+	return actor.FromSpawnFunc(spawner(&consistentHashGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
 func (config *consistentHashPoolRouter) CreateRouterState() Interface {

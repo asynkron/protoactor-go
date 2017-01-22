@@ -103,12 +103,12 @@ func (m *mockContext) Parent() *PID {
 	return args.Get(0).(*PID)
 }
 
-func (m *mockContext) Spawn(p Props) *PID {
+func (m *mockContext) Spawn(p *Props) *PID {
 	args := m.Called(p)
 	return args.Get(0).(*PID)
 }
 
-func (m *mockContext) SpawnNamed(p Props, name string) (*PID, error) {
+func (m *mockContext) SpawnNamed(p *Props, name string) (*PID, error) {
 	args := m.Called(p, name)
 	return args.Get(0).(*PID), args.Get(1).(error)
 }

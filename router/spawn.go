@@ -4,12 +4,13 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
-func spawn(id string, config RouterConfig, props actor.Props, parent *actor.PID) (*actor.PID, error) {
-	props = props.WithSpawn(nil)
+func spawn(id string, config RouterConfig, props *actor.Props, parent *actor.PID) (*actor.PID, error) {
+	var pc = *props
+	pc.WithSpawnFunc(nil)
 	rs := config.CreateRouterState()
 
 	ra := &routerActor{
-		props:  props,
+		props:  &pc,
 		config: config,
 		state:  rs,
 	}

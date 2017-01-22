@@ -41,12 +41,12 @@ type Context interface {
 	Parent() *PID
 
 	// Spawn spawns a child actor using the given Props
-	Spawn(props Props) *PID
+	Spawn(props *Props) *PID
 
 	// SpawnNamed spawns a named child actor using the given Props
 	//
 	// ErrNameExists will be returned if id already exists
-	SpawnNamed(props Props, id string) (*PID, error)
+	SpawnNamed(props *Props, id string) (*PID, error)
 
 	// Returns a slice of the actors children
 	Children() []*PID
