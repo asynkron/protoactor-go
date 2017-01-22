@@ -5,6 +5,7 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 
+	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -56,7 +57,7 @@ func (state *endpointWriter) initializeInternal() error {
 			terminated := &EndpointTerminatedEvent{
 				Address: state.address,
 			}
-			actor.EventStream.Publish(terminated)
+			eventstream.Publish(terminated)
 		}
 	}()
 

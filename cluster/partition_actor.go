@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
@@ -13,7 +14,7 @@ var (
 )
 
 func subscribePartitionKindsToEventStream() {
-	actor.EventStream.Subscribe(func(m interface{}) {
+	eventstream.Subscribe(func(m interface{}) {
 		if mse, ok := m.(MemberStatusEvent); ok {
 			for _, k := range mse.GetKinds() {
 				kindPID := kindPIDMap[k]

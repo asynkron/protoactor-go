@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/eventstream"
 )
 
 var endpointManagerPID *actor.PID
@@ -17,8 +18,8 @@ func newEndpointManager(config *remoteConfig) actor.Producer {
 }
 
 func subscribeEndpointManager() {
-	actor.EventStream.
-		SubscribePID(endpointManagerPID).
+	eventstream.
+		Subscribe(endpointManagerPID.Tell).
 		WithPredicate(func(m interface{}) bool {
 			_, ok := m.(*EndpointTerminatedEvent)
 			return ok

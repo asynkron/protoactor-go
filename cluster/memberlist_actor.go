@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
@@ -22,8 +23,8 @@ func newMembershipActor() actor.Producer {
 }
 
 func subscribeMembershipActorToEventStream() {
-	actor.EventStream.
-		SubscribePID(memberlistPID).
+	eventstream.
+		Subscribe(memberlistPID.Tell).
 		WithPredicate(func(m interface{}) bool {
 			_, ok := m.(ClusterTopologyEvent)
 			return ok
@@ -98,13 +99,13 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 			Kinds: old.Kinds,
 		}
 		left := &MemberLeftEvent{MemberMeta: meta}
-		actor.EventStream.Publish(left)
+		eventstream.Publish(left)
 		delete(a.members, key) //remove this member as it has left
 
 		rt := &remote.EndpointTerminatedEvent{
 			Address: fmt.Sprintf("%v:%v", old.Host, old.Port),
 		}
-		actor.EventStream.Publish(rt)
+		eventstream.Publish(rt)
 
 		return
 	}
@@ -116,7 +117,7 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 			Kinds: new.Kinds,
 		}
 		joined := &MemberJoinedEvent{MemberMeta: meta}
-		actor.EventStream.Publish(joined)
+		eventstream.Publish(joined)
 		return
 	}
 	if new.MemberID != old.MemberID {
@@ -126,7 +127,7 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 			Kinds: new.Kinds,
 		}
 		joined := &MemberRejoinedEvent{MemberMeta: meta}
-		actor.EventStream.Publish(joined)
+		eventstream.Publish(joined)
 		return
 	}
 	if old.Alive && !new.Alive {
@@ -137,7 +138,7 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 			Kinds: new.Kinds,
 		}
 		unavailable := &MemberUnavailableEvent{MemberMeta: meta}
-		actor.EventStream.Publish(unavailable)
+		eventstream.Publish(unavailable)
 		return
 	}
 	if !old.Alive && new.Alive {
@@ -148,6 +149,6 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 			Kinds: new.Kinds,
 		}
 		available := &MemberAvailableEvent{MemberMeta: meta}
-		actor.EventStream.Publish(available)
+		eventstream.Publish(available)
 	}
 }

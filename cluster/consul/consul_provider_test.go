@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/eventstream"
 )
 
 func TestRegisterMember(t *testing.T) {
@@ -33,7 +33,7 @@ func TestRefreshMemberTTL(t *testing.T) {
 		log.Fatal(err)
 	}
 	p.MonitorMemberStatusChanges()
-	actor.EventStream.Subscribe(func(m interface{}) {
+	eventstream.Subscribe(func(m interface{}) {
 		log.Printf("Event %+v", m)
 	})
 	time.Sleep(60 * time.Second)

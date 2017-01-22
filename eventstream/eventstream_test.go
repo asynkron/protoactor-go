@@ -1,21 +1,20 @@
-package actor
+package eventstream
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestEventStream_Subscribe(t *testing.T) {
-	es := &eventStream{}
+	es := &EventStream{}
 	s := es.Subscribe(func(interface{}) {})
 	assert.NotNil(t, s)
 	assert.Len(t, es.subscriptions, 1)
 }
 
 func TestEventStream_Unsubscribe(t *testing.T) {
-	es := &eventStream{}
+	es := &EventStream{}
 	var c1, c2 int
 
 	s1 := es.Subscribe(func(interface{}) { c1++ })
@@ -37,7 +36,7 @@ func TestEventStream_Unsubscribe(t *testing.T) {
 }
 
 func TestEventStream_Publish(t *testing.T) {
-	es := &eventStream{}
+	es := &EventStream{}
 
 	var v int
 	es.Subscribe(func(m interface{}) { v = m.(int) })
@@ -49,32 +48,22 @@ func TestEventStream_Publish(t *testing.T) {
 	assert.Equal(t, 100, v)
 }
 
-func TestEventStream_SubscribePID_WithPredicate_ReturnsTrue(t *testing.T) {
-	a1, p1 := spawnMockProcess("a1")
-	defer removeMockProcess(a1)
-
-	var msg interface{} = "hello"
-
-	p1.On("SendUserMessage", a1, msg, nilPID)
-
-	es := &eventStream{}
-	es.SubscribePID(a1).
+func TestEventStream_Subscribe_WithPredicate_IsCalled(t *testing.T) {
+	called := false
+	es := &EventStream{}
+	es.Subscribe(func(interface{}) { called = true }).
 		WithPredicate(func(m interface{}) bool { return true })
-	es.Publish(msg)
+	es.Publish("")
 
-	mock.AssertExpectationsForObjects(t, p1)
+	assert.True(t, called)
 }
 
-func TestEventStream_SubscribePID_WithPredicate_ReturnsFalse(t *testing.T) {
-	a1, p1 := spawnMockProcess("a1")
-	defer removeMockProcess(a1)
-
-	var msg interface{} = "hello"
-
-	es := &eventStream{}
-	es.SubscribePID(a1).
+func TestEventStream_Subscribe_WithPredicate_IsNotCalled(t *testing.T) {
+	called := false
+	es := &EventStream{}
+	es.Subscribe(func(interface{}) { called = true }).
 		WithPredicate(func(m interface{}) bool { return false })
-	es.Publish(msg)
+	es.Publish("")
 
-	mock.AssertExpectationsForObjects(t, p1)
+	assert.False(t, called)
 }

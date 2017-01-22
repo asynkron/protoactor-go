@@ -1,19 +1,21 @@
 package actor
 
+import "github.com/AsynkronIT/protoactor-go/eventstream"
+
 type optionFn func()
 
-// WithDeadLetterSubscriber option replaces the default DeadLetterEvent EventStream subscriber with fn.
+// WithDeadLetterSubscriber option replaces the default DeadLetterEvent event subscriber with fn.
 //
 // fn will only receive *DeadLetterEvent messages
 //
 // Specifying nil will clear the existing.
-func WithDeadLetterSubscriber(fn SubscriberFunc) optionFn {
+func WithDeadLetterSubscriber(fn func(evt interface{})) optionFn {
 	return func() {
 		if deadLetterSubscriber != nil {
-			EventStream.Unsubscribe(deadLetterSubscriber)
+			eventstream.Unsubscribe(deadLetterSubscriber)
 		}
 		if fn != nil {
-			deadLetterSubscriber = EventStream.Subscribe(fn).
+			deadLetterSubscriber = eventstream.Subscribe(fn).
 				WithPredicate(func(m interface{}) bool {
 					_, ok := m.(*DeadLetterEvent)
 					return ok
@@ -22,18 +24,18 @@ func WithDeadLetterSubscriber(fn SubscriberFunc) optionFn {
 	}
 }
 
-// WithSupervisorSubscriber option replaces the default SupervisorEvent EventStream subscriber with fn.
+// WithSupervisorSubscriber option replaces the default SupervisorEvent event subscriber with fn.
 //
 // fn will only receive *SupervisorEvent messages
 //
 // Specifying nil will clear the existing.
-func WithSupervisorSubscriber(fn SubscriberFunc) optionFn {
+func WithSupervisorSubscriber(fn func(evt interface{})) optionFn {
 	return func() {
 		if supervisionSubscriber != nil {
-			EventStream.Unsubscribe(supervisionSubscriber)
+			eventstream.Unsubscribe(supervisionSubscriber)
 		}
 		if fn != nil {
-			supervisionSubscriber = EventStream.Subscribe(fn).
+			supervisionSubscriber = eventstream.Subscribe(fn).
 				WithPredicate(func(m interface{}) bool {
 					_, ok := m.(*SupervisorEvent)
 					return ok

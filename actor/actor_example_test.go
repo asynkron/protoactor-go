@@ -2,8 +2,9 @@ package actor_test
 
 import (
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/actor"
 	"sync"
+
+	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
 // Demonstrates how to create an actor using a function literal and how to send a message asynchronously
@@ -36,7 +37,6 @@ func Example_synchronous() {
 		}
 	}))
 
-
 	// caller will send a PING message and wait for the PONG
 	caller := actor.Spawn(actor.FromFunc(func(c actor.Context) {
 		switch msg := c.Message().(type) {
@@ -47,7 +47,7 @@ func Example_synchronous() {
 			callee.Request("PING", c.Self())
 
 		case string:
-			fmt.Println( msg) // PONG
+			fmt.Println(msg) // PONG
 			wg.Done()
 		}
 	}))

@@ -1,5 +1,7 @@
 package actor
 
+import "github.com/AsynkronIT/protoactor-go/eventstream"
+
 type Decider func(child *PID, reason interface{}) Directive
 
 type SupervisorStrategy interface {
@@ -12,12 +14,11 @@ type Supervisor interface {
 }
 
 func logFailure(child *PID, reason interface{}, directive Directive) {
-	event := &SupervisorEvent{
+	eventstream.Publish(&SupervisorEvent{
 		Child:     child,
 		Reason:    reason,
 		Directive: directive,
-	}
-	EventStream.Publish(event)
+	})
 }
 
 func DefaultDecider(child *PID, reason interface{}) Directive {

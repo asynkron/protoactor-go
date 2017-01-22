@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -162,8 +162,8 @@ func (p *ConsulProvider) notifyStatuses() {
 	//if we have an atomic batch, we can calculate what nodes have left the cluster
 	//passing events one by one, we can't know if someone left or just havent changed status for a long time
 
-	//publish the current cluster topology onto the EventStream
-	actor.EventStream.Publish(res)
+	//publish the current cluster topology onto the event stream
+	eventstream.Publish(res)
 }
 
 func (p *ConsulProvider) MonitorMemberStatusChanges() {
