@@ -20,6 +20,8 @@ func init() {
 // SetDebugLogger sets the debug logger.
 //
 // Use log.DiscardLogger to discard all log messages.
+//
+// SetDebugLogger is not safe to call concurrently and must be configured before starting the actor system
 func SetDebugLogger(l log.Logger) {
 	logdbg = l
 }
@@ -28,6 +30,8 @@ func SetDebugLogger(l log.Logger) {
 //
 // Error logging is reserved for system errors.
 // Use log.DiscardLogger to discard all log messages.
+//
+// SetErrorLogger is not safe to call concurrently and must be configured before starting the actor system
 func SetErrorLogger(l log.Logger) {
 	logerr = l
 }
