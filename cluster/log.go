@@ -1,26 +1,26 @@
 package cluster
 
 import (
-	"log"
+	slog "log"
 	"os"
 
-	plog "github.com/AsynkronIT/protoactor-go/log"
+	"github.com/AsynkronIT/protoactor-go/log"
 )
 
 var (
-	logerr plog.Logger
-	logdbg plog.Logger
+	logerr log.Logger
+	logdbg log.Logger
 )
 
 func init() {
-	logerr = log.New(os.Stdout, "[ERROR] [CLUSTER] ", log.Ldate|log.Ltime|log.LUTC)
-	logdbg = log.New(os.Stdout, "[DEBUG] [CLUSTER] ", log.Ldate|log.Ltime|log.LUTC)
+	logerr = slog.New(os.Stdout, "[ERROR] [CLUSTER] ", slog.Ldate|slog.Ltime|slog.LUTC)
+	logdbg = slog.New(os.Stdout, "[DEBUG] [CLUSTER] ", slog.Ldate|slog.Ltime|slog.LUTC)
 }
 
-// SetDebugLogger sets the debug logger with an alternate logger
+// SetDebugLogger sets the debug logger
 //
 // use log.DiscardLogger to discard all log messages
-func SetDebugLogger(l plog.Logger) {
+func SetDebugLogger(l log.Logger) {
 	logdbg = l
 }
 
@@ -28,6 +28,6 @@ func SetDebugLogger(l plog.Logger) {
 //
 // Error logging is reserved for system errors
 // use log.DiscardLogger to discard all log messages
-func SetErrorLogger(l plog.Logger) {
+func SetErrorLogger(l log.Logger) {
 	logerr = l
 }
