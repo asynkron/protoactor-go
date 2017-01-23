@@ -20,7 +20,7 @@ func Spawn(props *Props) *PID {
 
 // SpawnPrefix starts a new actor based on props and named using a prefix followed by a unique id
 func SpawnPrefix(props *Props, prefix string) (*PID, error) {
-	return props.spawn(prefix + ProcessRegistry.NextId(), nil)
+	return props.spawn(prefix+ProcessRegistry.NextId(), nil)
 }
 
 // SpawnNamed starts a new actor based on props and named using the specified name

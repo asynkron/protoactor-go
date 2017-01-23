@@ -337,7 +337,7 @@ func (ctx *localContext) Spawn(props *Props) *PID {
 }
 
 func (ctx *localContext) SpawnPrefix(props *Props, prefix string) *PID {
-	pid, _ := ctx.SpawnNamed(props, prefix + ProcessRegistry.NextId())
+	pid, _ := ctx.SpawnNamed(props, prefix+ProcessRegistry.NextId())
 	return pid
 }
 
