@@ -14,7 +14,6 @@ func IdentifyPanic() string {
 
 	n := runtime.Callers(3, pc[:])
 	for _, pc := range pc[:n] {
-		log.Printf("%d", pc)
 		fn := runtime.FuncForPC(pc)
 		if fn == nil {
 			continue
