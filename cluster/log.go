@@ -17,17 +17,17 @@ func init() {
 	logdbg = slog.New(os.Stdout, "[DEBUG] [CLUSTER] ", slog.Ldate|slog.Ltime|slog.LUTC)
 }
 
-// SetDebugLogger sets the debug logger
+// SetDebugLogger sets the debug logger.
 //
-// use log.DiscardLogger to discard all log messages
+// Use log.DiscardLogger to discard all log messages.
 func SetDebugLogger(l log.Logger) {
 	logdbg = l
 }
 
-// SetErrorLogger sets the error logger
+// SetErrorLogger sets the error logger.
 //
-// Error logging is reserved for system errors
-// use log.DiscardLogger to discard all log messages
+// Error logging is reserved for system errors.
+// Use log.DiscardLogger to discard all log messages.
 func SetErrorLogger(l log.Logger) {
 	logerr = l
 }
