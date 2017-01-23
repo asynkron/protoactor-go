@@ -1,8 +1,6 @@
 package remote
 
 import (
-	"log"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/mailbox"
@@ -50,8 +48,8 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		state.connections = make(map[string]*endpoint)
+		logdbg.Println("Started EndpointManager")
 
-		log.Println("[REMOTING] Started EndpointManager")
 	case *EndpointTerminatedEvent:
 		address := msg.Address
 		endpoint := state.ensureConnected(address, ctx)
@@ -71,7 +69,6 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 	case *MessageEnvelope:
 		address := msg.Target.Address
 		endpoint := state.ensureConnected(address, ctx)
-
 		endpoint.writer.Tell(msg)
 	}
 }

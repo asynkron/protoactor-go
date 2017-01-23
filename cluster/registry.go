@@ -1,9 +1,10 @@
 package cluster
 
 import (
-	"log"
 	"math/rand"
 	"time"
+
+	"os"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
@@ -34,14 +35,15 @@ func Get(name string, kind string) (*actor.PID, error) {
 		//await the response
 		res, err := remotePID.RequestFuture(req, 5*time.Second).Result()
 		if err != nil {
-			log.Printf("[CLUSTER] ActorPidRequest for '%v' timed out, failure %v", name, err)
+			logerr.Printf("ActorPidRequest for '%v' timed out, failure %v", name, err)
 			return nil, err
 		}
 
 		//unwrap the result
 		typed, ok := res.(*remote.ActorPidResponse)
 		if !ok {
-			log.Fatalf("[CLUSTER] ActorPidRequest for '%v' returned incorrect response, expected ActorPidResponse", name)
+			logerr.Printf("ActorPidRequest for '%v' returned incorrect response, expected ActorPidResponse", name)
+			os.Exit(1)
 		}
 		pid = typed.Pid
 		cache.Add(name, pid)

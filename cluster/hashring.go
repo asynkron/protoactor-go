@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"hash/fnv"
-	"log"
 	"math"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -16,7 +15,7 @@ func getNode(key, kind string) string {
 	v := hash(key)
 	members := getMembers(kind)
 	if members == nil {
-		log.Printf("[CLUSTER] Failed to getNode")
+		logdbg.Println("getNode: failed to get member for kind %s", kind)
 		return actor.ProcessRegistry.Address
 	}
 

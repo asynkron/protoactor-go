@@ -2,7 +2,6 @@ package actor
 
 import (
 	"errors"
-	"log"
 	"sync"
 	"time"
 )
@@ -17,8 +16,7 @@ func NewFuture(d time.Duration) *Future {
 
 	pid, ok := ProcessRegistry.Add(ref, id)
 	if !ok {
-		log.Printf("[ACTOR] Failed to register future actorref '%v'", id)
-		log.Println(id)
+		logdbg.Printf("Failed to register future actorref '%v'", id)
 	}
 
 	ref.pid = pid

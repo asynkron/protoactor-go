@@ -1,7 +1,6 @@
 package remote
 
 import (
-	"log"
 	"runtime"
 	"sync/atomic"
 
@@ -71,7 +70,7 @@ func (m *endpointWriterMailbox) run() {
 	var msg interface{}
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", m.invoker, r, core.IdentifyPanic())
+			logdbg.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", m.invoker, r, core.IdentifyPanic())
 			m.invoker.EscalateFailure(r, msg)
 		}
 	}()

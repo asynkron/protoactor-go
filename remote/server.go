@@ -4,9 +4,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"os"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )
@@ -16,7 +16,8 @@ func Start(address string, options ...RemotingOption) {
 	grpclog.SetLogger(log.New(ioutil.Discard, "", 0))
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
-		log.Fatalf("[REMOTING] failed to listen: %v", err)
+		logerr.Printf("failed to listen: %v", err)
+		os.Exit(1)
 	}
 	config := defaultRemoteConfig()
 	for _, option := range options {
@@ -33,6 +34,6 @@ func Start(address string, options ...RemotingOption) {
 
 	s := grpc.NewServer(config.serverOptions...)
 	RegisterRemotingServer(s, &server{})
-	log.Printf("[REMOTING] Starting Proto.Actor server on %v", address)
+	logdbg.Printf("Starting Proto.Actor server on %v", address)
 	go s.Serve(lis)
 }

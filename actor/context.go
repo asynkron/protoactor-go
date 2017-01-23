@@ -55,6 +55,8 @@ type Context interface {
 	Stash()
 
 	// Respond sends a response to the to the current `Sender`
+	//
+	// If the Sender is nil, the actor will panic
 	Respond(response interface{})
 
 	// Actor returns the actor associated with this context

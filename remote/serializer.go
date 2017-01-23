@@ -1,12 +1,12 @@
 package remote
 
 import (
-	"log"
 	"reflect"
 
+	"os"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
-	proto "github.com/gogo/protobuf/proto"
-	//proto "github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 )
 
 func serialize(message proto.Message, target *actor.PID, sender *actor.PID) (*MessageEnvelope, error) {
@@ -31,7 +31,8 @@ func deserialize(message *MessageEnvelope) proto.Message {
 	ensureGoGo(message.TypeName)
 	t1 := proto.MessageType(message.TypeName)
 	if t1 == nil {
-		log.Fatalf("[REMOTING] Unknown message type name '%v'", message.TypeName)
+		logerr.Printf("Unknown message type name '%v'", message.TypeName)
+		os.Exit(1)
 	}
 	t := t1.Elem()
 
@@ -44,6 +45,7 @@ func deserialize(message *MessageEnvelope) proto.Message {
 
 func ensureGoGo(typeName string) {
 	if typeName == "" {
-		log.Fatalf("[REMOTING] Message type name is empty string, make sure you have generated the Proto contacts with GOGO Proto: github.com/gogo/protobuf/proto")
+		logerr.Println("Message type name is empty string, make sure you have generated the Proto contacts with GOGO Proto: github.com/gogo/protobuf/proto")
+		os.Exit(1)
 	}
 }

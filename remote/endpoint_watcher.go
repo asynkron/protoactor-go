@@ -1,8 +1,6 @@
 package remote
 
 import (
-	"log"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
@@ -21,7 +19,7 @@ type endpointWatcher struct {
 }
 
 func (state *endpointWatcher) initialize() {
-	log.Printf("[REMOTING] Started EndpointWatcher for address %v", state.address)
+	logdbg.Printf("Started EndpointWatcher for address %v", state.address)
 	state.watched = make(map[string]*actor.PID)
 	state.watcher = make(map[string]*actor.PID)
 }
@@ -36,8 +34,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		delete(state.watcher, msg.Watchee.Id)
 
 	case *EndpointTerminatedEvent:
-
-		log.Printf("[REMOTING] EndpointWatcher handling terminated address %v", msg.Address)
+		logdbg.Printf("EndpointWatcher handling terminated address %v", msg.Address)
 
 		for id, pid := range state.watched {
 
@@ -87,16 +84,12 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		sendRemoteMessage(msg.Watchee, uw, nil)
 
 	default:
-		log.Printf("[REMOTING] EndpointWatcher for %v, Unknown message %v", state.address, msg)
+		logerr.Printf("EndpointWatcher for %v, Unknown message %v", state.address, msg)
 	}
 }
 
 func (state *endpointWatcher) Terminated(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *remoteTerminate:
-	//pass
-	case *EndpointTerminatedEvent:
-	//pass
 	case *remoteWatch:
 
 		//try to find the watcher ID in the local actor registry
@@ -113,10 +106,10 @@ func (state *endpointWatcher) Terminated(ctx actor.Context) {
 			ref.SendSystemMessage(msg.Watcher, terminated)
 		}
 
-	case *remoteUnwatch:
-	//pass
+	case *remoteTerminate, *EndpointTerminatedEvent, *remoteUnwatch:
+		// pass
 
 	default:
-		log.Printf("[REMOTING] EndpointWatcher for %v, Unknown message %v", state.address, msg)
+		logerr.Printf("EndpointWatcher for %v, Unknown message %v", state.address, msg)
 	}
 }

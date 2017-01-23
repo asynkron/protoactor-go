@@ -2,7 +2,6 @@ package remote
 
 import (
 	"errors"
-	"log"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -58,13 +57,13 @@ func SpawnNamed(address string, name string, kind string, timeout time.Duration)
 		Kind: kind,
 	}, timeout).Result()
 	if err != nil {
-		return nil, errors.New("[REMOTING] Remote activating timed out")
+		return nil, errors.New("remote: Remote activating timed out")
 	}
 	switch msg := res.(type) {
 	case *ActorPidResponse:
 		return msg.Pid, nil
 	default:
-		return nil, errors.New("[REMOTING] Unknown response when remote activating")
+		return nil, errors.New("remote: Unknown response when remote activating")
 	}
 }
 
@@ -77,7 +76,7 @@ func newActivatorActor() actor.Producer {
 func (*activator) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Println("[REMOTING] Started Activator")
+		logdbg.Println("Started Activator")
 	case *ActorPidRequest:
 		props := nameLookup[msg.Kind]
 		name := msg.Name
@@ -93,6 +92,6 @@ func (*activator) Receive(context actor.Context) {
 		}
 		context.Respond(response)
 	default:
-		log.Printf("[CLUSTER] Activator got unknown message %+v", msg)
+		logerr.Printf("Activator got unknown message %+v", msg)
 	}
 }

@@ -1,9 +1,6 @@
 package cluster
 
-import (
-	"log"
-	"time"
-)
+import "time"
 
 //getMembers lists all known, reachable and unreachable members for this kind
 //TODO: this needs to be implemented,we could send a `Request` to the membership actor, but this seems flaky.
@@ -17,7 +14,7 @@ func getMembers(kind string) []string {
 	}
 	t, ok := res.(*MemberByKindResponse)
 	if !ok {
-		log.Printf("Failed to cast members by kind response")
+		logdbg.Println("Failed to cast members by kind response")
 		return nil
 	}
 

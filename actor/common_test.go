@@ -2,10 +2,9 @@ package actor
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
 	"time"
 
+	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -14,7 +13,8 @@ var nilPID *PID
 
 func init() {
 	// discard all logging in tests
-	log.SetOutput(ioutil.Discard)
+	logdbg = log.DiscardLogger
+	logerr = log.DiscardLogger
 }
 
 func matchPID(with *PID) interface{} {

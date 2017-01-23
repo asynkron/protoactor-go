@@ -1,7 +1,6 @@
 package actor
 
 import (
-	"log"
 	"time"
 
 	"github.com/emirpasic/gods/stacks/linkedliststack"
@@ -210,7 +209,7 @@ func (ctx *localContext) InvokeSystemMessage(message interface{}) {
 	case *Restart:
 		ctx.handleRestart(msg)
 	default:
-		log.Printf("Unknown system message %T", msg)
+		logerr.Printf("Unknown system message %T", msg)
 	}
 }
 
@@ -329,9 +328,6 @@ func (ctx *localContext) Unwatch(who *PID) {
 }
 
 func (ctx *localContext) Respond(response interface{}) {
-	if ctx.Sender() == nil {
-		log.Fatal("[ACTOR] No sender")
-	}
 	ctx.Sender().Tell(response)
 }
 

@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"log"
 	"runtime"
 	"strings"
 )

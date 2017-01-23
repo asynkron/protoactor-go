@@ -1,10 +1,6 @@
 package remote
 
-import (
-	"log"
-
-	"github.com/AsynkronIT/protoactor-go/actor"
-)
+import "github.com/AsynkronIT/protoactor-go/actor"
 
 type server struct{}
 
@@ -12,7 +8,7 @@ func (s *server) Receive(stream Remoting_ReceiveServer) error {
 	for {
 		batch, err := stream.Recv()
 		if err != nil {
-			log.Printf("[REMOTING] EndpointReader failed to read. %v", err)
+			logdbg.Printf("EndpointReader failed to read. %v", err)
 			return err
 		}
 		for _, envelope := range batch.Envelopes {

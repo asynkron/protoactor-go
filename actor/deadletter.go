@@ -1,10 +1,6 @@
 package actor
 
-import (
-	"log"
-
-	"github.com/AsynkronIT/protoactor-go/eventstream"
-)
+import "github.com/AsynkronIT/protoactor-go/eventstream"
 
 type deadLetterProcess struct{}
 
@@ -16,7 +12,7 @@ var (
 func init() {
 	deadLetterSubscriber = eventstream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
-			log.Printf("[ACTOR] [DeadLetter] %v got %+v from %v", deadLetter.PID, deadLetter.Message, deadLetter.Sender)
+			logdbg.Printf("[DeadLetter] %v got %+v from %v", deadLetter.PID, deadLetter.Message, deadLetter.Sender)
 		}
 	})
 }
