@@ -12,15 +12,20 @@ type SpawnFunc func(id string, props *Props, parent *PID) (*PID, error)
 // DefaultSpawner conforms to Spawner and is used to spawn a local actor
 var DefaultSpawner SpawnFunc = spawn
 
-// Spawn starts a new actor with an unique id
+// Spawn starts a new actor based on props and named with a unique id
 func Spawn(props *Props) *PID {
 	pid, _ := props.spawn(ProcessRegistry.NextId(), nil)
 	return pid
 }
 
-// SpawnNamed starts a new actor based on props
+// SpawnPrefix starts a new actor based on props and named using a prefix followed by a unique id
+func SpawnPrefix(props *Props, prefix string) (*PID, error) {
+	return props.spawn(prefix + ProcessRegistry.NextId(), nil)
+}
+
+// SpawnNamed starts a new actor based on props and named using the specified name
 //
-// if name exists, error will be ErrNameExists
+// If name exists, error will be ErrNameExists
 func SpawnNamed(props *Props, name string) (*PID, error) {
 	return props.spawn(name, nil)
 }

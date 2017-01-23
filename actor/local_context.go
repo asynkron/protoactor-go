@@ -336,6 +336,11 @@ func (ctx *localContext) Spawn(props *Props) *PID {
 	return pid
 }
 
+func (ctx *localContext) SpawnPrefix(props *Props, prefix string) *PID {
+	pid, _ := ctx.SpawnNamed(props, prefix + ProcessRegistry.NextId())
+	return pid
+}
+
 func (ctx *localContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	pid, err := props.spawn(ctx.self.Id+"/"+name, ctx.self)
 	if err != nil {

@@ -40,10 +40,13 @@ type Context interface {
 	// Parent returns the PID for the current actors parent
 	Parent() *PID
 
-	// Spawn spawns a child actor using the given Props
+	// Spawn starts a new child actor based on props and named with a unique id
 	Spawn(props *Props) *PID
 
-	// SpawnNamed spawns a named child actor using the given Props
+	// SpawnPrefix starts a new child actor based on props and named using a prefix followed by a unique id
+	SpawnPrefix(props *Props, prefix string) *PID
+
+	// SpawnNamed starts a new child actor based on props and named using the specified name
 	//
 	// ErrNameExists will be returned if id already exists
 	SpawnNamed(props *Props, id string) (*PID, error)
