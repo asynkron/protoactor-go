@@ -4,7 +4,7 @@ import (
 	"sync"
 )
 
-// Predicate is a function used to filter messages before being forwarded to a SubscriberFunc
+// Predicate is a function used to filter messages before being forwarded to a subscriber
 type Predicate func(evt interface{}) bool
 
 var es = &EventStream{}
