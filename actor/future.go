@@ -46,7 +46,26 @@ func (f *Future) PID() *PID {
 
 // PipeTo forwards the result or error of the future to the specified pids
 func (f *Future) PipeTo(pids ...*PID) {
+	f.cond.L.Lock()
 	f.pipes = append(f.pipes, pids...)
+	//for an already completed future, force push the result to targets
+	if f.done {
+		f.tell()
+	}
+	f.cond.L.Unlock()
+}
+
+func (f *Future) tell() {
+	var m interface{}
+	if f.err != nil {
+		m = f.err
+	} else {
+		m = f.result
+	}
+	for _, pid := range f.pipes {
+		pid.Tell(m)
+	}
+	f.pipes = nil
 }
 
 func (f *Future) sendToPipes() {
@@ -54,17 +73,8 @@ func (f *Future) sendToPipes() {
 		return
 	}
 
-	var m interface{}
-	if f.err != nil {
-		m = f.err
-	} else {
-		m = f.result
-	}
+	f.tell()
 
-	for _, pid := range f.pipes {
-		pid.Tell(m)
-	}
-	f.pipes = nil
 }
 
 func (f *Future) wait() {

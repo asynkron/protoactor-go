@@ -27,7 +27,7 @@ func sendRemoteMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
 		envelope, _ := serialize(msg, pid, sender)
 		endpointManagerPID.Tell(envelope)
 	default:
-		logerr.Printf("failed, trying to send non Proto %s message to %v", reflect.TypeOf(msg), pid)
+		logerr.Printf("failed, trying to send non Proto %s message to %v from %v", reflect.TypeOf(msg), pid, sender)
 	}
 }
 
