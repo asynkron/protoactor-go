@@ -22,6 +22,7 @@ func init() {
 	eventstream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			if m, ok := deadLetter.Message.(*Watch); ok {
+				//we know that this is a local actor since we get it on our own event stream, thus the address is not terminated
 				m.Watcher.sendSystemMessage(&Terminated{AddressTerminated: false, Who: deadLetter.PID})
 			}
 		}
