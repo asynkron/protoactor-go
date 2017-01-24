@@ -15,6 +15,17 @@ func init() {
 			logdbg.Printf("[DeadLetter] %v got %+v from %v", deadLetter.PID, deadLetter.Message, deadLetter.Sender)
 		}
 	})
+
+	//this subscriber may not be deactivated.
+	//it ensures that Watch commands that reach a stopped actor gets a Terminated message back.
+	//This can happen if one actor tries to Watch a PID, while another thread sends a Stop message.
+	eventstream.Subscribe(func(msg interface{}) {
+		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
+			if m, ok := deadLetter.Message.(*Watch); ok {
+				m.Watcher.sendSystemMessage(&Terminated{AddressTerminated: false, Who: deadLetter.PID})
+			}
+		}
+	})
 }
 
 // A DeadLetterEvent is published via event.Publish when a message is sent to a nonexistent PID
