@@ -83,7 +83,7 @@ func main() {
 	remote.Start("127.0.0.1:8080", remote.WithEndpointWriterBatchSize(10000))
 	props := actor.
 		FromProducer(newRemoteActor()).
-		WithMailbox(mailbox.NewBoundedProducer(1000))
+		WithMailbox(mailbox.Bounded(1000))
 
 	actor.SpawnNamed(props, "remote")
 

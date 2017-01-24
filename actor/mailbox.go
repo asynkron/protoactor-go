@@ -6,4 +6,4 @@ var (
 	defaultDispatcher mailbox.Dispatcher = mailbox.NewDefaultDispatcher(300)
 )
 
-var defaultMailboxProducer = mailbox.NewUnboundedProducer()
+var defaultMailboxProducer = mailbox.Unbounded()

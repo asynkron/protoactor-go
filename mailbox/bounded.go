@@ -21,8 +21,8 @@ func (q *boundedMailboxQueue) Pop() interface{} {
 	return nil
 }
 
-// NewBoundedProducer returns a producer which creates an bounded mailbox of the specified size
-func NewBoundedProducer(size int, mailboxStats ...Statistics) Producer {
+// Bounded returns a producer which creates an bounded mailbox of the specified size
+func Bounded(size int, mailboxStats ...Statistics) Producer {
 	return func(invoker MessageInvoker, dispatcher Dispatcher) Inbound {
 		q := &boundedMailboxQueue{
 			userMailbox: rbqueue.NewRingBuffer(uint64(size)),

@@ -119,7 +119,7 @@ func main() {
 
 		clientProps := actor.
 			FromProducer(newPingActor(&wg, messageCount, batchSize)).
-			WithMailbox(mailbox.NewBoundedProducer(batchSize + 10)).
+			WithMailbox(mailbox.Bounded(batchSize + 10)).
 			WithDispatcher(d)
 
 		echoProps := actor.
@@ -130,7 +130,7 @@ func main() {
 						msg.Sender.Tell(msg)
 					}
 				}).
-			WithMailbox(mailbox.NewBoundedProducer(batchSize + 10)).
+			WithMailbox(mailbox.Bounded(batchSize + 10)).
 			WithDispatcher(d)
 
 		clients := make([]*actor.PID, 0)

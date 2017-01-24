@@ -26,7 +26,7 @@ func (m *mailboxLogger) MailboxEmpty() {
 func main() {
 	props := actor.FromFunc(func(ctx actor.Context) {
 
-	}).WithMailbox(mailbox.NewUnboundedProducer(&mailboxLogger{}))
+	}).WithMailbox(mailbox.Unbounded(&mailboxLogger{}))
 	actor := actor.Spawn(props)
 	actor.Tell("Hello")
 	console.ReadLine()
