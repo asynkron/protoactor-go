@@ -36,5 +36,8 @@ func TestDeadLetterWatchRespondsWithTerminate(t *testing.T) {
 	f := NewFuture(testTimeout)
 	//send a watch message, from our future
 	pid.sendSystemMessage(&Watch{Watcher: f.PID()})
-	f.Wait()
+	err := f.Wait()
+	if err != nil {
+		t.Fail()
+	}
 }
