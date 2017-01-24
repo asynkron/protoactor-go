@@ -34,11 +34,6 @@ type Started struct{}
 // Restart is message sent by the actor system to control the lifecycle of an actor
 type Restart struct{}
 
-// Stop is message sent by the actor system to control the lifecycle of an actor
-//
-// This will not be forwarded to the Receive method
-type Stop struct{}
-
 //TODO: make private?
 type Failure struct {
 	Who          *PID

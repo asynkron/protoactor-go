@@ -53,5 +53,5 @@ func (ref *remoteProcess) SendSystemMessage(pid *actor.PID, message interface{})
 }
 
 func (ref *remoteProcess) Stop(pid *actor.PID) {
-	ref.SendSystemMessage(pid, &actor.Stop{})
+	ref.SendSystemMessage(pid, stopMessage)
 }

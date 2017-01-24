@@ -28,3 +28,5 @@ message Terminated {
     PID who = 1;
     bool AddressTerminated = 2;
 }
+
+message Stop {}

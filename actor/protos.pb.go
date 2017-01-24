@@ -87,12 +87,20 @@ func (m *Terminated) GetWho() *PID {
 	return nil
 }
 
+type Stop struct {
+}
+
+func (m *Stop) Reset()                    { *m = Stop{} }
+func (*Stop) ProtoMessage()               {}
+func (*Stop) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{5} }
+
 func init() {
 	proto.RegisterType((*PID)(nil), "actor.PID")
 	proto.RegisterType((*PoisonPill)(nil), "actor.PoisonPill")
 	proto.RegisterType((*Watch)(nil), "actor.Watch")
 	proto.RegisterType((*Unwatch)(nil), "actor.Unwatch")
 	proto.RegisterType((*Terminated)(nil), "actor.Terminated")
+	proto.RegisterType((*Stop)(nil), "actor.Stop")
 }
 func (this *PID) Equal(that interface{}) bool {
 	if that == nil {
@@ -247,6 +255,33 @@ func (this *Terminated) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *Stop) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*Stop)
+	if !ok {
+		that2, ok := that.(Stop)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	return true
+}
 func (m *PID) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -389,6 +424,24 @@ func (m *Terminated) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *Stop) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Stop) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
 func encodeFixed64Protos(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	dAtA[offset+1] = uint8(v >> 8)
@@ -469,6 +522,12 @@ func (m *Terminated) Size() (n int) {
 	return n
 }
 
+func (m *Stop) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
 func sovProtos(x uint64) (n int) {
 	for {
 		n++
@@ -518,6 +577,15 @@ func (this *Terminated) String() string {
 	s := strings.Join([]string{`&Terminated{`,
 		`Who:` + strings.Replace(fmt.Sprintf("%v", this.Who), "PID", "PID", 1) + `,`,
 		`AddressTerminated:` + fmt.Sprintf("%v", this.AddressTerminated) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Stop) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Stop{`,
 		`}`,
 	}, "")
 	return s
@@ -957,6 +1025,56 @@ func (m *Terminated) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *Stop) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Stop: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Stop: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func skipProtos(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1065,7 +1183,7 @@ var (
 func init() { proto.RegisterFile("protos.proto", fileDescriptorProtos) }
 
 var fileDescriptorProtos = []byte{
-	// 267 bytes of a gzipped FileDescriptorProto
+	// 275 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x28, 0xca, 0x2f,
 	0xc9, 0x2f, 0xd6, 0x03, 0x53, 0x42, 0xac, 0x89, 0xc9, 0x25, 0xf9, 0x45, 0x52, 0xba, 0xe9, 0x99,
 	0x25, 0x19, 0xa5, 0x49, 0x7a, 0xc9, 0xf9, 0xb9, 0xfa, 0xe9, 0xf9, 0xe9, 0xf9, 0xfa, 0x60, 0xd9,
@@ -1078,9 +1196,10 @@ var fileDescriptorProtos = []byte{
 	0x7a, 0x01, 0x9e, 0x2e, 0x41, 0x30, 0x29, 0x25, 0x7d, 0x2e, 0xf6, 0xd0, 0xbc, 0x72, 0x12, 0x34,
 	0x44, 0x70, 0x71, 0x85, 0xa4, 0x16, 0xe5, 0x66, 0xe6, 0x25, 0x96, 0xa4, 0xa6, 0x08, 0xc9, 0x70,
 	0x31, 0x97, 0x67, 0xe4, 0x63, 0x51, 0x0f, 0x12, 0x16, 0xd2, 0xe1, 0x12, 0x84, 0x3a, 0x1d, 0xa1,
-	0x05, 0xec, 0x7c, 0x8e, 0x20, 0x4c, 0x09, 0x27, 0x9d, 0x0b, 0x0f, 0xe5, 0x18, 0x6e, 0x3c, 0x94,
-	0x63, 0xf8, 0xf0, 0x50, 0x8e, 0xa1, 0xe1, 0x91, 0x1c, 0xe3, 0x8a, 0x47, 0x72, 0x8c, 0x27, 0x1e,
-	0xc9, 0x31, 0x5e, 0x78, 0x24, 0xc7, 0xf8, 0xe0, 0x91, 0x1c, 0xe3, 0x8b, 0x47, 0x72, 0x0c, 0x1f,
-	0x1e, 0xc9, 0x31, 0x4e, 0x78, 0x2c, 0xc7, 0x90, 0xc4, 0x06, 0x0e, 0x33, 0x63, 0x40, 0x00, 0x00,
-	0x00, 0xff, 0xff, 0x60, 0xb6, 0x24, 0xbe, 0x79, 0x01, 0x00, 0x00,
+	0x05, 0xec, 0x7c, 0x8e, 0x20, 0x4c, 0x09, 0x25, 0x36, 0x2e, 0x96, 0xe0, 0x92, 0xfc, 0x02, 0x27,
+	0x9d, 0x0b, 0x0f, 0xe5, 0x18, 0x6e, 0x3c, 0x94, 0x63, 0xf8, 0xf0, 0x50, 0x8e, 0xa1, 0xe1, 0x91,
+	0x1c, 0xe3, 0x8a, 0x47, 0x72, 0x8c, 0x27, 0x1e, 0xc9, 0x31, 0x5e, 0x78, 0x24, 0xc7, 0xf8, 0xe0,
+	0x91, 0x1c, 0xe3, 0x8b, 0x47, 0x72, 0x0c, 0x1f, 0x1e, 0xc9, 0x31, 0x4e, 0x78, 0x2c, 0xc7, 0x90,
+	0xc4, 0x06, 0x0e, 0x3b, 0x63, 0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 0x5b, 0x17, 0x80, 0x36, 0x81,
+	0x01, 0x00, 0x00,
 }

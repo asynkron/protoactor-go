@@ -20,3 +20,7 @@ type remoteTerminate struct {
 	Watcher *actor.PID
 	Watchee *actor.PID
 }
+
+var (
+	stopMessage interface{} = &actor.Stop{}
+)
