@@ -33,7 +33,7 @@ func Example_synchronous() {
 	callee := actor.Spawn(actor.FromFunc(func(c actor.Context) {
 		if msg, ok := c.Message().(string); ok {
 			fmt.Println(msg) // outputs PING
-			c.Sender().Tell("PONG")
+			c.Respond("PONG")
 		}
 	}))
 

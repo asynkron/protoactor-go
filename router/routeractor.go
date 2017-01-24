@@ -63,6 +63,6 @@ func (a *routerActor) Receive(context actor.Context) {
 			routees[i] = &pid
 		})
 
-		context.Sender().Tell(&Routees{routees})
+		context.Respond(&Routees{routees})
 	}
 }
