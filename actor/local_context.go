@@ -3,6 +3,7 @@ package actor
 import (
 	"time"
 
+	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 )
 
@@ -209,7 +210,7 @@ func (ctx *localContext) InvokeSystemMessage(message interface{}) {
 	case *Restart:
 		ctx.handleRestart(msg)
 	default:
-		logerr.Printf("Unknown system message %T", msg)
+		plog.Error("unknown system message", log.Message(msg))
 	}
 }
 

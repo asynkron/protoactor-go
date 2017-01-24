@@ -4,6 +4,8 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"github.com/AsynkronIT/protoactor-go/log"
 )
 
 // ErrTimeout is the error used when a future times out before receiving a result.
@@ -16,7 +18,7 @@ func NewFuture(d time.Duration) *Future {
 
 	pid, ok := ProcessRegistry.Add(ref, id)
 	if !ok {
-		logdbg.Printf("Failed to register future actorref '%v'", id)
+		plog.Error("failed to register future process", log.Stringer("pid", pid))
 	}
 
 	ref.pid = pid

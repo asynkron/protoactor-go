@@ -1,6 +1,9 @@
 package actor
 
-import "github.com/AsynkronIT/protoactor-go/eventstream"
+import (
+	"github.com/AsynkronIT/protoactor-go/eventstream"
+	"github.com/AsynkronIT/protoactor-go/log"
+)
 
 type SupervisorEvent struct {
 	Child     *PID
@@ -15,7 +18,7 @@ var (
 func init() {
 	supervisionSubscriber = eventstream.Subscribe(func(evt interface{}) {
 		if supervisorEvent, ok := evt.(*SupervisorEvent); ok {
-			logdbg.Printf("[SUPERVISION] Actor: '%v' Directive: '%v' Reason: '%v' ", supervisorEvent.Child, supervisorEvent.Directive.String(), supervisorEvent.Reason)
+			plog.Debug("[SUPERVISION]", log.Stringer("actor", supervisorEvent.Child), log.Stringer("directive", supervisorEvent.Directive), log.Object("reason", supervisorEvent.Reason))
 		}
 	})
 }

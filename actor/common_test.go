@@ -4,18 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/stretchr/testify/mock"
 )
 
 var nullReceive ActorFunc = func(Context) {}
 var nilPID *PID
-
-func init() {
-	// discard all logging in tests
-	logdbg = log.DiscardLogger
-	logerr = log.DiscardLogger
-}
 
 func matchPID(with *PID) interface{} {
 	return mock.MatchedBy(func(v *PID) bool {

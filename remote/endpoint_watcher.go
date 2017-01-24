@@ -2,6 +2,7 @@ package remote
 
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/log"
 )
 
 func newEndpointWatcher(address string) actor.Producer {
@@ -19,7 +20,7 @@ type endpointWatcher struct {
 }
 
 func (state *endpointWatcher) initialize() {
-	logdbg.Printf("Started EndpointWatcher for address %v", state.address)
+	plog.Info("Started EndpointWatcher", log.String("address", state.address))
 	state.watched = make(map[string]*actor.PID)
 	state.watcher = make(map[string]*actor.PID)
 }
@@ -34,7 +35,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		delete(state.watcher, msg.Watchee.Id)
 
 	case *EndpointTerminatedEvent:
-		logdbg.Printf("EndpointWatcher handling terminated address %v", msg.Address)
+		plog.Info("EndpointWatcher handling terminated", log.String("address", state.address))
 
 		for id, pid := range state.watched {
 
@@ -84,7 +85,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		sendRemoteMessage(msg.Watchee, uw, nil)
 
 	default:
-		logerr.Printf("EndpointWatcher for %v, Unknown message %v", state.address, msg)
+		plog.Error("EndpointWatcher received unknown message", log.String("address", state.address), log.Message(msg))
 	}
 }
 
@@ -110,6 +111,6 @@ func (state *endpointWatcher) Terminated(ctx actor.Context) {
 		// pass
 
 	default:
-		logerr.Printf("EndpointWatcher for %v, Unknown message %v", state.address, msg)
+		plog.Error("EndpointWatcher received unknown message", log.String("address", state.address), log.Message(msg))
 	}
 }

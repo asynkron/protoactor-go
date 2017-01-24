@@ -3,19 +3,52 @@ Package log provides simple log interfaces
 */
 package log
 
-// A Logger is a type that provides basic support for logging messages
-type Logger interface {
-	// Printf logs a message. Arguments are handled in the manner of fmt.Printf.
-	Printf(format string, v ...interface{})
+import (
+	"sync/atomic"
+	"time"
+)
 
-	// Println logs a message. Arguments are handled in the manner of fmt.Println.
-	Println(v ...interface{})
+type Level int32
+
+const (
+	MinLevel = Level(iota)
+	DebugLevel
+	InfoLevel
+	ErrorLevel
+)
+
+type Logger struct {
+	level   Level
+	prefix  string
+	context []Field
 }
 
-// DiscardLogger is a logger that discards all log messages
-var DiscardLogger Logger = null(0)
+func New(level Level, prefix string, context ...Field) *Logger {
+	return &Logger{level: level, prefix: prefix, context: context}
+}
 
-type null int
+func (l *Logger) Level() Level {
+	return Level(atomic.LoadInt32((*int32)(&l.level)))
+}
 
-func (null) Printf(format string, v ...interface{}) {}
-func (null) Println(v ...interface{})               {}
+func (l *Logger) SetLevel(level Level) {
+	atomic.StoreInt32((*int32)(&l.level), int32(level))
+}
+
+func (l *Logger) Debug(msg string, fields ...Field) {
+	if l.Level() > MinLevel {
+		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Fields: fields})
+	}
+}
+
+func (l *Logger) Info(msg string, fields ...Field) {
+	if l.Level() > DebugLevel {
+		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Fields: fields})
+	}
+}
+
+func (l *Logger) Error(msg string, fields ...Field) {
+	if l.Level() > InfoLevel {
+		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Fields: fields})
+	}
+}

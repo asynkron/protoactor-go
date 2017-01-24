@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 
 	"github.com/AsynkronIT/goring"
-	"github.com/AsynkronIT/protoactor-go/internal/core"
 	"github.com/AsynkronIT/protoactor-go/internal/queue/lfqueue"
+	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
@@ -70,7 +70,7 @@ func (m *endpointWriterMailbox) run() {
 	var msg interface{}
 	defer func() {
 		if r := recover(); r != nil {
-			logdbg.Printf("[ACTOR] '%v' Recovering from: %v. Detailed stack: %v", m.invoker, r, core.IdentifyPanic())
+			plog.Debug("[ACTOR] Recovering", log.Object("actor", m.invoker), log.Object("reason", r), log.Stack())
 			m.invoker.EscalateFailure(r, msg)
 		}
 	}()

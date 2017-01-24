@@ -79,11 +79,10 @@ func (pid *PID) key() string {
 	return pid.Address + "#" + pid.Id
 }
 
-func (pid *PID) Empty() bool {
-	return pid.Address == "" && pid.Id == ""
-}
-
 func (pid *PID) String() string {
+	if pid == nil {
+		return "nil"
+	}
 	return pid.Address + "/" + pid.Id
 }
 

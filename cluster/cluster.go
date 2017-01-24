@@ -3,13 +3,14 @@ package cluster
 import (
 	"github.com/AsynkronIT/gonet"
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 func Start(clusterName, address string, provider ClusterProvider) {
 	remote.Start(address)
 	h, p := gonet.GetAddress(address)
-	logdbg.Printf("Starting Proto.Actor cluster on on %v:%v", h, p)
+	plog.Info("Starting Proto.Actor cluster", log.String("address", address))
 	kinds := remote.GetKnownKinds()
 	kindPIDMap = make(map[string]*actor.PID)
 
