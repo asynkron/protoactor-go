@@ -176,7 +176,7 @@ func (state *HelloActor) Receive(context actor.Context) {
     case *actor.Stopping:
         fmt.Println("Stopping, actor is about shut down")
     case *actor.Stopped:
-        fmt.Println("Stopped, actor and it's children are stopped")
+        fmt.Println("Stopped, actor and its children are stopped")
     case *actor.Restarting:
         fmt.Println("Restarting, actor is about restart")
     case Hello:
@@ -234,7 +234,7 @@ func (state *ChildActor) Receive(context actor.Context) {
     case *actor.Stopping:
         fmt.Println("Stopping, actor is about shut down")
     case *actor.Stopped:
-        fmt.Println("Stopped, actor and it's children are stopped")
+        fmt.Println("Stopped, actor and its children are stopped")
     case *actor.Restarting:
         fmt.Println("Restarting, actor is about restart")
     case Hello:
