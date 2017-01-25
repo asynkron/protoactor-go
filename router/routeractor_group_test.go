@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestRouterActor_Receive_AddRoute(t *testing.T) {
+func TestGroupRouterActor_Receive_AddRoute(t *testing.T) {
 	state := new(testRouterState)
 
-	a := routerActor{state: state}
+	a := groupRouterActor{state: state}
 
 	p1 := actor.NewLocalPID("p1")
 	c := new(mockContext)
@@ -24,10 +24,10 @@ func TestRouterActor_Receive_AddRoute(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, state, c)
 }
 
-func TestRouterActor_Receive_AddRoute_NoDuplicates(t *testing.T) {
+func TestGroupRouterActor_Receive_AddRoute_NoDuplicates(t *testing.T) {
 	state := new(testRouterState)
 
-	a := routerActor{state: state}
+	a := groupRouterActor{state: state}
 
 	p1 := actor.NewLocalPID("p1")
 	c := new(mockContext)
@@ -39,16 +39,21 @@ func TestRouterActor_Receive_AddRoute_NoDuplicates(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, state, c)
 }
 
-func TestRouterActor_Receive_RemoveRoute(t *testing.T) {
+func TestGroupRouterActor_Receive_RemoveRoute(t *testing.T) {
 	state := new(testRouterState)
 
-	a := routerActor{state: state}
+	a := groupRouterActor{state: state}
 
-	p1 := actor.NewLocalPID("p1")
+	p1, _ := spawnMockProcess("p1")
+	defer removeMockProcess(p1)
+
 	p2 := actor.NewLocalPID("p2")
 	c := new(mockContext)
 	c.On("Message").Return(&RemoveRoutee{p1})
-	c.On("Unwatch", p1).Once()
+	c.On("Unwatch", p1).
+		Run(func(args mock.Arguments) {
+
+		}).Once()
 
 	state.On("GetRoutees").Return(actor.NewPIDSet(p1, p2))
 	state.On("SetRoutees", actor.NewPIDSet(p2)).Once()
@@ -57,9 +62,9 @@ func TestRouterActor_Receive_RemoveRoute(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, state, c)
 }
 
-func TestRouterActor_Receive_BroadcastMessage(t *testing.T) {
+func TestGroupRouterActor_Receive_BroadcastMessage(t *testing.T) {
 	state := new(testRouterState)
-	a := routerActor{state: state}
+	a := groupRouterActor{state: state}
 
 	p1 := actor.NewLocalPID("p1")
 	p2 := actor.NewLocalPID("p2")

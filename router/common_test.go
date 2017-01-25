@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+var nilPID *actor.PID
+
 func init() {
 	// discard all logging in tests
 	log.SetOutput(ioutil.Discard)
