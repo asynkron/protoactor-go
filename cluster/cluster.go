@@ -20,6 +20,7 @@ func Start(clusterName, address string, provider ClusterProvider) {
 		kindPIDMap[kind] = kindPID
 	}
 	subscribePartitionKindsToEventStream()
+	spawnPidCacheActor()
 	spawnMembershipActor()
 	subscribeMembershipActorToEventStream()
 	provider.RegisterMember(clusterName, h, p, kinds)

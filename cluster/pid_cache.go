@@ -1,29 +1,116 @@
 package cluster
 
 import (
-	"sync"
+	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/AsynkronIT/protoactor-go/router"
 )
 
-type pidCache struct {
-	lock  sync.RWMutex
-	Cache map[string]*actor.PID
+var (
+	pidCacheActorPid *actor.PID
+)
+
+func spawnPidCacheActor() {
+	props := router.NewConsistentHashPool(128).WithProducer(newPidCacheActor())
+	pidCacheActorPid, _ = actor.SpawnNamed(props, "PidCache")
+
+}
+func newPidCacheActor() actor.Producer {
+	return func() actor.Actor {
+		return &pidCachePartitionActor{}
+	}
 }
 
-func (c *pidCache) Get(key string) *actor.PID {
-	c.lock.RLock()
-	pid := c.Cache[key]
-	c.lock.RUnlock()
-	return pid
+type pidCachePartitionActor struct {
+	Cache        map[string]*actor.PID
+	ReverseCache map[string]string
 }
 
-func (c *pidCache) Add(key string, pid *actor.PID) {
-	c.lock.Lock()
-	c.Cache[key] = pid
-	c.lock.Unlock()
+type pidCacheResponse struct {
+	pid       *actor.PID
+	name      string
+	kind      string
+	respondTo *actor.PID
 }
 
-var cache = &pidCache{
-	Cache: make(map[string]*actor.PID),
+type pidCacheRequest struct {
+	name string
+	kind string
+}
+
+func (p *pidCacheRequest) Hash() string {
+	return p.name
+}
+
+func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
+	switch msg := ctx.Message().(type) {
+	case *actor.Started:
+		a.Cache = make(map[string]*actor.PID)
+		a.ReverseCache = make(map[string]string)
+
+	case *pidCacheRequest:
+		if pid, ok := a.Cache[msg.name]; ok {
+			//name was in cache, exit early
+			ctx.Respond(&remote.ActorPidResponse{Pid: pid})
+			return
+		}
+
+		address := getNode(msg.name, msg.kind)
+		remotePID := partitionForKind(address, msg.kind)
+
+		//we are about to go out of actor concurrency constraint
+		//bind any Context information to vars
+		//Do not do this at home..
+		sender := ctx.Sender()
+		self := ctx.Self()
+		go func() {
+
+			//re-package the request as a remote.ActorPidRequest
+			req := &remote.ActorPidRequest{
+				Kind: msg.kind,
+				Name: msg.name,
+			}
+			//ask the DHT partition for this name to give us a PID
+			r, err := remotePID.RequestFuture(req, 5*time.Second).Result()
+			if err != nil {
+				return
+			}
+			typed, ok := r.(*remote.ActorPidResponse)
+			if !ok {
+				return
+			}
+			//repackage the ActorPidResonse as a pidCacheResponse + contextual information
+			response := &pidCacheResponse{
+				kind:      msg.kind,
+				name:      msg.name,
+				pid:       typed.Pid,
+				respondTo: sender,
+			}
+			self.Tell(response)
+		}()
+	case *pidCacheResponse:
+		//add the pid to the cache using the name we requested
+		a.Cache[msg.name] = msg.pid
+		//make a lookup from pid to name
+		a.ReverseCache[msg.pid.String()] = msg.name
+		//watch the pid so we know if the node or pid dies
+		ctx.Watch(msg.pid)
+		//tell the original requester that we have a response
+		msg.respondTo.Tell(&remote.ActorPidResponse{
+			Pid: msg.pid,
+		})
+	case *actor.Terminated:
+		key := msg.Who.String()
+		//get the virtual name from the pid
+		name, ok := a.ReverseCache[key]
+		if !ok {
+			//we don't have it, just ignore
+			return
+		}
+		//drop both lookups as this actor is now dead
+		delete(a.Cache, name)
+		delete(a.ReverseCache, key)
+	}
 }
