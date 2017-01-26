@@ -2,7 +2,6 @@ package actor
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
