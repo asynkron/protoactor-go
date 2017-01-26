@@ -48,7 +48,8 @@ type messageSender struct {
 }
 
 type continuation struct {
-	f func()
+	message interface{}
+	f       func()
 }
 
 func (*Restarting) AutoReceiveMessage() {}

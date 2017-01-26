@@ -60,12 +60,6 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 		address := getNode(msg.name, msg.kind)
 		remotePID := partitionForKind(address, msg.kind)
 
-		//we are about to go out of actor concurrency constraint
-		//bind any Context information to vars
-		//Do not do this at home..
-		sender := ctx.Sender()
-		self := ctx.Self()
-
 		//re-package the request as a remote.ActorPidRequest
 		req := &remote.ActorPidRequest{
 			Kind: msg.kind,
@@ -86,9 +80,9 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 				kind:      msg.kind,
 				name:      msg.name,
 				pid:       typed.Pid,
-				respondTo: sender,
+				respondTo: ctx.Sender(),
 			}
-			self.Tell(response)
+			ctx.Self().Tell(response)
 		})
 
 	case *pidCacheResponse:

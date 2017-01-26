@@ -196,7 +196,8 @@ func (ctx *localContext) incarnateActor() {
 func (ctx *localContext) InvokeSystemMessage(message interface{}) {
 	switch msg := message.(type) {
 	case *continuation:
-		msg.f() //invoke the continuation in the current actor context
+		ctx.message = msg.message //apply the message that was present when we started the await
+		msg.f()                   //invoke the continuation in the current actor context
 	case *Started:
 		ctx.InvokeUserMessage(msg) // forward
 	case *Watch:
@@ -377,7 +378,8 @@ func (ctx *localContext) AwaitFuture(f *Future, cont func(res interface{}, err e
 	f.continueWith(func(res interface{}, err error) {
 		//send the wrapped callaback as a continuation message to self
 		ctx.self.sendSystemMessage(&continuation{
-			f: wrapper,
+			f:       wrapper,
+			message: ctx.message,
 		})
 	})
 }
