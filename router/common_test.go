@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+var nilPID *actor.PID
+
 func init() {
 	// discard all logging in tests
 	log.SetOutput(ioutil.Discard)
@@ -126,4 +128,8 @@ func (m *mockContext) Respond(response interface{}) {
 func (m *mockContext) Actor() actor.Actor {
 	args := m.Called()
 	return args.Get(0).(actor.Actor)
+}
+
+func (m *mockContext) AwaitFuture(f *actor.Future, cont func(res interface{}, err error)) {
+	m.Called(f, cont)
 }

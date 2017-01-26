@@ -1,7 +1,9 @@
 package actor
 
 import (
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -49,4 +51,22 @@ func BenchmarkLocalContext_ProcessMessageWithMiddleware(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		ctx.processMessage(m)
 	}
+}
+
+func TestActorContinueFutureInActor(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	pid := Spawn(FromFunc(func(ctx Context) {
+		if ctx.Message() == "request" {
+			ctx.Respond("done")
+		}
+		if ctx.Message() == "start" {
+			f := ctx.Self().RequestFuture("request", 5*time.Second)
+			ctx.AwaitFuture(f, func(res interface{}, err error) {
+				wg.Done()
+			})
+		}
+	}))
+	pid.Tell("start")
+	wg.Wait()
 }

@@ -15,6 +15,8 @@ func (self *ShortLivingActor) Receive(ctx Context) {
 }
 
 func TestStopFuture(t *testing.T) {
+	plog.Debug("hello world")
+
 	ID := "UniqueID"
 	{
 		props := FromInstance(&ShortLivingActor{})

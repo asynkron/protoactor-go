@@ -47,18 +47,23 @@ type messageSender struct {
 	Sender  *PID
 }
 
+type continuation struct {
+	f func()
+}
+
 func (*Restarting) AutoReceiveMessage() {}
 func (*Stopping) AutoReceiveMessage()   {}
 func (*Stopped) AutoReceiveMessage()    {}
 func (*PoisonPill) AutoReceiveMessage() {}
 
-func (*Started) SystemMessage()    {}
-func (*Stop) SystemMessage()       {}
-func (*Watch) SystemMessage()      {}
-func (*Unwatch) SystemMessage()    {}
-func (*Terminated) SystemMessage() {}
-func (*Failure) SystemMessage()    {}
-func (*Restart) SystemMessage()    {}
+func (*Started) SystemMessage()      {}
+func (*Stop) SystemMessage()         {}
+func (*Watch) SystemMessage()        {}
+func (*Unwatch) SystemMessage()      {}
+func (*Terminated) SystemMessage()   {}
+func (*Failure) SystemMessage()      {}
+func (*Restart) SystemMessage()      {}
+func (*continuation) SystemMessage() {}
 
 var (
 	restartingMessage     interface{} = &Restarting{}

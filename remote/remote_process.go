@@ -1,9 +1,8 @@
 package remote
 
 import (
-	"reflect"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -27,7 +26,7 @@ func sendRemoteMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
 		envelope, _ := serialize(msg, pid, sender)
 		endpointManagerPID.Tell(envelope)
 	default:
-		logerr.Printf("failed, trying to send non Proto %s message to %v from %v", reflect.TypeOf(msg), pid, sender)
+		plog.Error("failed, trying to send non Proto message", log.TypeOf("type", msg), log.Stringer("pid", pid))
 	}
 }
 

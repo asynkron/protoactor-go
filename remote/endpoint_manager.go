@@ -48,7 +48,7 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		state.connections = make(map[string]*endpoint)
-		logdbg.Println("Started EndpointManager")
+		plog.Debug("Started EndpointManager")
 
 	case *EndpointTerminatedEvent:
 		address := msg.Address

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"github.com/AsynkronIT/protoactor-go/log"
 )
 
 // ErrTimeout is the error used when a future times out before receiving a result.
@@ -16,7 +18,7 @@ func NewFuture(d time.Duration) *Future {
 
 	pid, ok := ProcessRegistry.Add(ref, id)
 	if !ok {
-		logdbg.Printf("Failed to register future actorref '%v'", id)
+		plog.Error("failed to register future process", log.Stringer("pid", pid))
 	}
 
 	ref.pid = pid
@@ -32,11 +34,12 @@ type Future struct {
 	pid  *PID
 	cond *sync.Cond
 	// protected by cond
-	done   bool
-	result interface{}
-	err    error
-	t      *time.Timer
-	pipes  []*PID
+	done        bool
+	result      interface{}
+	err         error
+	t           *time.Timer
+	pipes       []*PID
+	completions []func(res interface{}, err error)
 }
 
 // PID to the backing actor for the Future result
@@ -96,6 +99,16 @@ func (f *Future) Wait() error {
 	return f.err
 }
 
+func (f *Future) continueWith(continuation func(res interface{}, err error)) {
+	f.cond.L.Lock()
+	defer f.cond.L.Unlock() //use defer as the continuation could blow up
+	if f.done {
+		continuation(f.result, f.err)
+	} else {
+		f.completions = append(f.completions, continuation)
+	}
+}
+
 // futureProcess is a struct carrying a response PID and a channel where the response is placed
 type futureProcess struct {
 	Future
@@ -123,6 +136,21 @@ func (ref *futureProcess) Stop(pid *PID) {
 	ProcessRegistry.Remove(pid)
 
 	ref.sendToPipes()
+	ref.runCompletions()
 	ref.cond.L.Unlock()
 	ref.cond.Signal()
+}
+
+//TODO: we could replace "pipes" with this
+//instead of pushing PIDs to pipes, we could push wrapper funcs that tells the pid
+//as a completeion, that would unify the model
+func (f *Future) runCompletions() {
+	if f.completions == nil {
+		return
+	}
+
+	for _, c := range f.completions {
+		c(f.result, f.err)
+	}
+	f.completions = nil
 }

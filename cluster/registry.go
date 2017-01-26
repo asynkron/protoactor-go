@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
@@ -27,11 +28,12 @@ func Get(name string, kind string) (*actor.PID, error) {
 
 	res, err := pidCacheActorPid.RequestFuture(req, 5*time.Second).Result()
 	if err != nil {
+			plog.Error("ActorPidRequest timed out", log.String("name", name), log.Error(err))
 		return nil, err
 	}
 	typed, ok := res.(*remote.ActorPidResponse)
 	if !ok {
-		return nil, fmt.Errorf("Hej hopp")
+			plog.Error("ActorPidRequest returned incorrect response", log.String("name", name))
 	}
 	return typed.Pid, nil
 }

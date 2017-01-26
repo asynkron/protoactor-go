@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/log"
 )
 
 const (
@@ -15,7 +16,7 @@ func getNode(key, kind string) string {
 	v := hash(key)
 	members := getMembers(kind)
 	if members == nil {
-		logdbg.Println("getNode: failed to get member for kind %s", kind)
+		plog.Error("getNode: failed to get member", log.String("kind", kind))
 		return actor.ProcessRegistry.Address
 	}
 

@@ -4,6 +4,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 
 	"github.com/AsynkronIT/protoactor-go/eventstream"
+	"github.com/AsynkronIT/protoactor-go/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -27,18 +28,17 @@ type endpointWriter struct {
 func (state *endpointWriter) initialize() {
 	err := state.initializeInternal()
 	if err != nil {
-		logdbg.Printf("EndpointWriter failed to connect to %v, err: %v", state.address, err)
+		plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
 	}
 }
 
 func (state *endpointWriter) initializeInternal() error {
-	logdbg.Printf("Started EndpointWriter for address %v", state.address)
-	logdbg.Printf("EndpointWriter connecting to address %v", state.address)
+	plog.Info("Started EndpointWriter", log.String("address", state.address))
+	plog.Info("EndpointWatcher connecting", log.String("address", state.address))
 	conn, err := grpc.Dial(state.address, state.config.dialOptions...)
 	if err != nil {
 		return err
 	}
-	//	log.Printf("Connected to address %v", state.address)
 	state.conn = conn
 	c := NewRemotingClient(conn)
 	//	log.Printf("Getting stream from address %v", state.address)
@@ -49,7 +49,7 @@ func (state *endpointWriter) initializeInternal() error {
 	go func() {
 		_, err := stream.Recv()
 		if err != nil {
-			logdbg.Printf("EndpointWriter lost connection to address %v", state.address)
+			plog.Info("EndpointWriter lost connection to address", log.String("address", state.address))
 
 			//notify that the endpoint terminated
 			terminated := &EndpointTerminatedEvent{
@@ -59,7 +59,7 @@ func (state *endpointWriter) initializeInternal() error {
 		}
 	}()
 
-	logdbg.Printf("EndpointWriter connected to address %v", state.address)
+	plog.Info("EndpointWriter connected", log.String("address", state.address))
 	state.stream = stream
 	return nil
 }
@@ -77,8 +77,8 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	err := state.stream.Send(batch)
 	if err != nil {
 		ctx.Stash()
-		logdbg.Printf("gRPC Failed to send to address %v", state.address)
-		panic("restart")
+		plog.Debug("gRPC Failed to send", log.String("address", state.address))
+		panic("restart it")
 	}
 }
 
@@ -93,6 +93,6 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 	case []interface{}:
 		state.sendEnvelopes(msg, ctx)
 	default:
-		logerr.Println("Unknown message", msg)
+		plog.Error("Unknown message", log.Message(msg))
 	}
 }

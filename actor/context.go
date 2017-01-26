@@ -64,4 +64,6 @@ type Context interface {
 
 	// Actor returns the actor associated with this context
 	Actor() Actor
+
+	AwaitFuture(f *Future, continuation func(res interface{}, err error))
 }

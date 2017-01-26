@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/log"
 )
 
 var (
@@ -37,7 +38,7 @@ func ActivatorForAddress(address string) *actor.PID {
 	return pid
 }
 
-func SpawnFuture(address string, name string, kind string, timeout time.Duration) *actor.Future {
+func SpawnFuture(address, name, kind string, timeout time.Duration) *actor.Future {
 	activator := ActivatorForAddress(address)
 	f := activator.RequestFuture(&ActorPidRequest{
 		Name: name,
@@ -46,11 +47,11 @@ func SpawnFuture(address string, name string, kind string, timeout time.Duration
 	return f
 }
 
-func Spawn(address string, kind string, timeout time.Duration) (*actor.PID, error) {
+func Spawn(address, kind string, timeout time.Duration) (*actor.PID, error) {
 	return SpawnNamed(address, "", kind, timeout)
 }
 
-func SpawnNamed(address string, name string, kind string, timeout time.Duration) (*actor.PID, error) {
+func SpawnNamed(address, name, kind string, timeout time.Duration) (*actor.PID, error) {
 	activator := ActivatorForAddress(address)
 	res, err := activator.RequestFuture(&ActorPidRequest{
 		Name: name,
@@ -76,7 +77,7 @@ func newActivatorActor() actor.Producer {
 func (*activator) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		logdbg.Println("Started Activator")
+		plog.Debug("Started Activator")
 	case *ActorPidRequest:
 		props := nameLookup[msg.Kind]
 		name := msg.Name
@@ -92,6 +93,6 @@ func (*activator) Receive(context actor.Context) {
 		}
 		context.Respond(response)
 	default:
-		logerr.Printf("Activator got unknown message %+v", msg)
+		plog.Error("Activator got unknown message", log.Message(msg))
 	}
 }

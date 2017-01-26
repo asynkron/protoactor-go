@@ -1,15 +1,10 @@
-package eventstream
+package log
 
-import (
-	"sync"
-)
+import "sync"
 
-// Predicate is a function used to filter messages before being forwarded to a subscriber
-type Predicate func(evt interface{}) bool
+var es = &eventStream{}
 
-var es = &EventStream{}
-
-func Subscribe(fn func(evt interface{})) *Subscription {
+func Subscribe(fn func(evt Event)) *Subscription {
 	return es.Subscribe(fn)
 }
 
@@ -17,16 +12,12 @@ func Unsubscribe(sub *Subscription) {
 	es.Unsubscribe(sub)
 }
 
-func Publish(event interface{}) {
-	es.Publish(event)
-}
-
-type EventStream struct {
+type eventStream struct {
 	sync.RWMutex
 	subscriptions []*Subscription
 }
 
-func (es *EventStream) Subscribe(fn func(evt interface{})) *Subscription {
+func (es *eventStream) Subscribe(fn func(evt Event)) *Subscription {
 	es.Lock()
 	sub := &Subscription{
 		es: es,
@@ -38,7 +29,7 @@ func (es *EventStream) Subscribe(fn func(evt interface{})) *Subscription {
 	return sub
 }
 
-func (ps *EventStream) Unsubscribe(sub *Subscription) {
+func (ps *eventStream) Unsubscribe(sub *Subscription) {
 	if sub.i == -1 {
 		return
 	}
@@ -61,12 +52,12 @@ func (ps *EventStream) Unsubscribe(sub *Subscription) {
 	ps.Unlock()
 }
 
-func (ps *EventStream) Publish(evt interface{}) {
+func (ps *eventStream) Publish(evt Event) {
 	ps.RLock()
 	defer ps.RUnlock()
 
 	for _, s := range ps.subscriptions {
-		if s.p == nil || s.p(evt) {
+		if evt.Level >= s.l {
 			s.fn(evt)
 		}
 	}
@@ -76,16 +67,19 @@ func (ps *EventStream) Publish(evt interface{}) {
 //
 // This value and can be passed to Unsubscribe when the observer is no longer interested in receiving messages
 type Subscription struct {
-	es *EventStream
+	es *eventStream
 	i  int
-	fn func(event interface{})
-	p  Predicate
+	fn func(event Event)
+	l  Level
 }
 
-// WithPredicate sets a predicate to filter messages passed to the subscriber
-func (s *Subscription) WithPredicate(p Predicate) *Subscription {
+// WithMinLevel filter messages below the provided level
+//
+// For example, setting ErrorLevel will only pass error messages. Setting MinLevel will
+// allow all messages, and is the default.
+func (s *Subscription) WithMinLevel(level Level) *Subscription {
 	s.es.Lock()
-	s.p = p
+	s.l = level
 	s.es.Unlock()
 	return s
 }

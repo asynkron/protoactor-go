@@ -1,11 +1,11 @@
-package cluster
+package mailbox
 
 import (
 	"github.com/AsynkronIT/protoactor-go/log"
 )
 
 var (
-	plog = log.New(log.DebugLevel, "[CLUSTER]")
+	plog = log.New(log.DebugLevel, "[MAILBOX]")
 )
 
 // SetLogLevel sets the log level for the logger.

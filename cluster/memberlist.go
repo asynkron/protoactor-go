@@ -14,7 +14,7 @@ func getMembers(kind string) []string {
 	}
 	t, ok := res.(*MemberByKindResponse)
 	if !ok {
-		logdbg.Println("Failed to cast members by kind response")
+		plog.Error("Failed to cast members by kind response")
 		return nil
 	}
 

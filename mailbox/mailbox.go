@@ -1,12 +1,11 @@
 package mailbox
 
 import (
-	"log"
 	"runtime"
 	"sync/atomic"
 
-	"github.com/AsynkronIT/protoactor-go/internal/core"
 	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
+	"github.com/AsynkronIT/protoactor-go/log"
 )
 
 type Statistics interface {
@@ -102,7 +101,7 @@ func (m *defaultMailbox) run() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[ACTOR] '%s' Recovering from: %v. Detailed stack: %v", m.invoker, r, core.IdentifyPanic())
+			plog.Debug("[ACTOR] Recovering", log.Object("actor", m.invoker), log.Object("reason", r), log.Stack())
 			m.invoker.EscalateFailure(r, msg)
 		}
 	}()

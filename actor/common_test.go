@@ -4,18 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/stretchr/testify/mock"
 )
 
 var nullReceive ActorFunc = func(Context) {}
 var nilPID *PID
-
-func init() {
-	// discard all logging in tests
-	logdbg = log.DiscardLogger
-	logerr = log.DiscardLogger
-}
 
 func matchPID(with *PID) interface{} {
 	return mock.MatchedBy(func(v *PID) bool {
@@ -134,4 +127,8 @@ func (m *mockContext) Respond(response interface{}) {
 func (m *mockContext) Actor() Actor {
 	args := m.Called()
 	return args.Get(0).(Actor)
+}
+
+func (m *mockContext) AwaitFuture(f *Future, cont func(res interface{}, err error)) {
+	m.Called(f, cont)
 }

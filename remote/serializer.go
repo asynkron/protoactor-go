@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -31,7 +32,7 @@ func deserialize(message *MessageEnvelope) proto.Message {
 	ensureGoGo(message.TypeName)
 	t1 := proto.MessageType(message.TypeName)
 	if t1 == nil {
-		logerr.Printf("Unknown message type name '%v'", message.TypeName)
+		plog.Error("Unknown message type", log.String("type", message.TypeName))
 		os.Exit(1)
 	}
 	t := t1.Elem()
@@ -45,7 +46,7 @@ func deserialize(message *MessageEnvelope) proto.Message {
 
 func ensureGoGo(typeName string) {
 	if typeName == "" {
-		logerr.Println("Message type name is empty string, make sure you have generated the Proto contacts with GOGO Proto: github.com/gogo/protobuf/proto")
+		plog.Error("Message type name is empty string, make sure you have generated the Proto contacts with GOGO Proto: github.com/gogo/protobuf/proto")
 		os.Exit(1)
 	}
 }
