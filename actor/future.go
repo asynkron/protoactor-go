@@ -35,12 +35,12 @@ type Future struct {
 	pid  *PID
 	cond *sync.Cond
 	// protected by cond
-	done         bool
-	result       interface{}
-	err          error
-	t            *time.Timer
-	pipes        []*PID
-	completeions []func(res interface{}, err error)
+	done        bool
+	result      interface{}
+	err         error
+	t           *time.Timer
+	pipes       []*PID
+	completions []func(res interface{}, err error)
 }
 
 // PID to the backing actor for the Future result
@@ -96,7 +96,7 @@ func (f *Future) continueWith(continuation func(res interface{}, err error)) {
 	if f.done {
 		continuation(f.result, f.err)
 	} else {
-		f.completeions = append(f.completeions, continuation)
+		f.completions = append(f.completions, continuation)
 	}
 }
 
@@ -136,13 +136,12 @@ func (ref *futureProcess) Stop(pid *PID) {
 //instead of pushing PIDs to pipes, we could push wrapper funcs that tells the pid
 //as a completeion, that would unify the model
 func (f *Future) runCompletions() {
-	if f.completeions == nil {
+	if f.completions == nil {
 		return
 	}
-	fmt.Println("Running completions")
 
-	for _, c := range f.completeions {
+	for _, c := range f.completions {
 		c(f.result, f.err)
 	}
-	f.completeions = nil
+	f.completions = nil
 }
