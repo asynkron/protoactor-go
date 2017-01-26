@@ -2,6 +2,7 @@ package actor
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -34,11 +35,12 @@ type Future struct {
 	pid  *PID
 	cond *sync.Cond
 	// protected by cond
-	done   bool
-	result interface{}
-	err    error
-	t      *time.Timer
-	pipes  []*PID
+	done         bool
+	result       interface{}
+	err          error
+	t            *time.Timer
+	pipes        []*PID
+	completeions []func(res interface{}, err error)
 }
 
 // PID to the backing actor for the Future result
@@ -88,6 +90,16 @@ func (f *Future) Wait() error {
 	return f.err
 }
 
+func (f *Future) continueWith(continuation func(res interface{}, err error)) {
+	f.cond.L.Lock()
+	defer f.cond.L.Unlock() //use defer as the continuation could blow up
+	if f.done {
+		continuation(f.result, f.err)
+	} else {
+		f.completeions = append(f.completeions, continuation)
+	}
+}
+
 // futureProcess is a struct carrying a response PID and a channel where the response is placed
 type futureProcess struct {
 	Future
@@ -115,6 +127,22 @@ func (ref *futureProcess) Stop(pid *PID) {
 	ProcessRegistry.Remove(pid)
 
 	ref.sendToPipes()
+	ref.runCompletions()
 	ref.cond.L.Unlock()
 	ref.cond.Signal()
+}
+
+//TODO: we could replace "pipes" with this
+//instead of pushing PIDs to pipes, we could push wrapper funcs that tells the pid
+//as a completeion, that would unify the model
+func (f *Future) runCompletions() {
+	if f.completeions == nil {
+		return
+	}
+	fmt.Println("Running completions")
+
+	for _, c := range f.completeions {
+		c(f.result, f.err)
+	}
+	f.completeions = nil
 }

@@ -195,6 +195,8 @@ func (ctx *localContext) incarnateActor() {
 
 func (ctx *localContext) InvokeSystemMessage(message interface{}) {
 	switch msg := message.(type) {
+	case *continuation:
+		msg.f() //invoke the continuation in the current actor context
 	case *Started:
 		ctx.InvokeUserMessage(msg) // forward
 	case *Watch:
@@ -364,4 +366,18 @@ func (ctx *localContext) String() string {
 
 func handleRootFailure(msg *Failure) {
 	defaultSupervisionStrategy.HandleFailure(nil, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
+}
+
+func (ctx *localContext) AwaitFuture(f *Future, cont func(res interface{}, err error)) {
+	wrapper := func() {
+		cont(f.result, f.err)
+	}
+
+	//invoke the callback when the future completes
+	f.continueWith(func(res interface{}, err error) {
+		//send the wrapped callaback as a continuation message to self
+		ctx.self.sendSystemMessage(&continuation{
+			f: wrapper,
+		})
+	})
 }

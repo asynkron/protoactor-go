@@ -128,3 +128,7 @@ func (m *mockContext) Actor() Actor {
 	args := m.Called()
 	return args.Get(0).(Actor)
 }
+
+func (m *mockContext) AwaitFuture(f *Future, cont func(res interface{}, err error)) {
+	m.Called(f, cont)
+}
