@@ -28,13 +28,6 @@ type pidCachePartitionActor struct {
 	ReverseCache map[string]string
 }
 
-type pidCacheResponse struct {
-	pid       *actor.PID
-	name      string
-	kind      string
-	respondTo *actor.PID
-}
-
 type pidCacheRequest struct {
 	name string
 	kind string
@@ -56,14 +49,16 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 			ctx.Respond(&remote.ActorPidResponse{Pid: pid})
 			return
 		}
+		name := msg.name
+		kind := msg.kind
 
-		address := getNode(msg.name, msg.kind)
-		remotePID := partitionForKind(address, msg.kind)
+		address := getNode(name, kind)
+		remotePID := partitionForKind(address, kind)
 
 		//re-package the request as a remote.ActorPidRequest
 		req := &remote.ActorPidRequest{
-			Kind: msg.kind,
-			Name: msg.name,
+			Kind: kind,
+			Name: name,
 		}
 		//ask the DHT partition for this name to give us a PID
 		f := remotePID.RequestFuture(req, 5*time.Second)
@@ -71,31 +66,20 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 			if err != nil {
 				return
 			}
-			typed, ok := r.(*remote.ActorPidResponse)
+			response, ok := r.(*remote.ActorPidResponse)
 			if !ok {
 				return
 			}
-			//repackage the ActorPidResonse as a pidCacheResponse + contextual information
-			response := &pidCacheResponse{
-				kind:      msg.kind,
-				name:      msg.name,
-				pid:       typed.Pid,
-				respondTo: ctx.Sender(),
-			}
-			ctx.Self().Tell(response)
+
+			a.Cache[name] = response.Pid
+			//make a lookup from pid to name
+			a.ReverseCache[response.Pid.String()] = name
+			//watch the pid so we know if the node or pid dies
+			ctx.Watch(response.Pid)
+			//tell the original requester that we have a response
+			ctx.Respond(response)
 		})
 
-	case *pidCacheResponse:
-		//add the pid to the cache using the name we requested
-		a.Cache[msg.name] = msg.pid
-		//make a lookup from pid to name
-		a.ReverseCache[msg.pid.String()] = msg.name
-		//watch the pid so we know if the node or pid dies
-		ctx.Watch(msg.pid)
-		//tell the original requester that we have a response
-		msg.respondTo.Tell(&remote.ActorPidResponse{
-			Pid: msg.pid,
-		})
 	case *actor.Terminated:
 		key := msg.Who.String()
 		//get the virtual name from the pid
