@@ -65,15 +65,15 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 		//Do not do this at home..
 		sender := ctx.Sender()
 		self := ctx.Self()
-		go func() {
 
-			//re-package the request as a remote.ActorPidRequest
-			req := &remote.ActorPidRequest{
-				Kind: msg.kind,
-				Name: msg.name,
-			}
-			//ask the DHT partition for this name to give us a PID
-			r, err := remotePID.RequestFuture(req, 5*time.Second).Result()
+		//re-package the request as a remote.ActorPidRequest
+		req := &remote.ActorPidRequest{
+			Kind: msg.kind,
+			Name: msg.name,
+		}
+		//ask the DHT partition for this name to give us a PID
+		f := remotePID.RequestFuture(req, 5*time.Second)
+		ctx.AwaitFuture(f, func(r interface{}, err error) {
 			if err != nil {
 				return
 			}
@@ -89,7 +89,8 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 				respondTo: sender,
 			}
 			self.Tell(response)
-		}()
+		})
+
 	case *pidCacheResponse:
 		//add the pid to the cache using the name we requested
 		a.Cache[msg.name] = msg.pid
