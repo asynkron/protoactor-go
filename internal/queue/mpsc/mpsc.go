@@ -19,13 +19,13 @@ type node struct {
 
 type Queue struct {
 	head, tail *node
-	stub       node
 }
 
 func New() *Queue {
 	q := &Queue{}
-	q.head = &q.stub
-	q.tail = q.head
+	stub := &node{}
+	q.head = stub
+	q.tail = stub
 	return q
 }
 
@@ -49,7 +49,8 @@ func (q *Queue) Pop() interface{} {
 	next := (*node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&tail.next)))) // acquire
 	if next != nil {
 		q.tail = next
-		return next.val
+		v := next.val
+		return v
 	}
 	return nil
 }

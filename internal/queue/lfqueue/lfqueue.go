@@ -18,7 +18,7 @@ import (
 //   v := lfq.Pop()
 func NewLockfreeQueue() *LockfreeQueue {
 	var lfq LockfreeQueue
-	lfq.head = unsafe.Pointer(&lfq.dummy)
+	lfq.head = unsafe.Pointer(&lfqNode{})
 	lfq.tail = lfq.head
 	return &lfq
 }
@@ -28,7 +28,6 @@ func NewLockfreeQueue() *LockfreeQueue {
 type LockfreeQueue struct {
 	head  unsafe.Pointer
 	tail  unsafe.Pointer
-	dummy lfqNode
 }
 
 // Pop returns (and removes) an element from the front of the queue, or nil if the queue is empty.
@@ -40,7 +39,9 @@ func (lfq *LockfreeQueue) Pop() interface{} {
 		n := (*lfqNode)(atomic.LoadPointer(&rh.next))
 		if n != nil {
 			if atomic.CompareAndSwapPointer(&lfq.head, h, rh.next) {
-				return n.val
+				v := n.val
+				n.val = nil
+				return v
 			} else {
 				continue
 			}
