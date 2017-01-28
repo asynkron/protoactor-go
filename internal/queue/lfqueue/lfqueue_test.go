@@ -3,6 +3,7 @@ package lfqueue
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"runtime"
 	"sync"
 	"testing"
@@ -11,7 +12,7 @@ import (
 
 func TestLfQueueConsistency(t *testing.T) {
 	max := 1000000
-	c := 10
+	c := 100
 	var wg sync.WaitGroup
 	wg.Add(1)
 	q := NewLockfreeQueue()
@@ -36,6 +37,9 @@ func TestLfQueueConsistency(t *testing.T) {
 		cmax := max / c
 		go func() {
 			for i := 0; i < cmax; i++ {
+				if rand.Intn(10) == 0 {
+					time.Sleep(time.Duration(rand.Intn(1000)))
+				}
 				q.Push(fmt.Sprintf("%v %v", j, i))
 			}
 		}()
