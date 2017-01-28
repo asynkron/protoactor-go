@@ -1,6 +1,7 @@
 package lfqueue
 
 import (
+	"fmt"
 	"log"
 	"runtime"
 	"sync"
@@ -9,9 +10,10 @@ import (
 )
 
 func TestLfQueueConsistency(t *testing.T) {
-	max := 100000000
+	max := 1000000
 	c := 10
 	var wg sync.WaitGroup
+	wg.Add(1)
 	q := NewLockfreeQueue()
 	go func() {
 		i := 0
@@ -19,6 +21,8 @@ func TestLfQueueConsistency(t *testing.T) {
 			r := q.Pop()
 			if r == nil {
 				runtime.Gosched()
+
+				continue
 			}
 			i++
 			if i == max {
@@ -32,7 +36,7 @@ func TestLfQueueConsistency(t *testing.T) {
 		cmax := max / c
 		go func() {
 			for i := 0; i < cmax; i++ {
-				q.Push("abc")
+				q.Push(fmt.Sprintf("%v %v", j, i))
 			}
 		}()
 	}
