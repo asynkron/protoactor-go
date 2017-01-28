@@ -18,6 +18,7 @@ func TestLfQueueConsistency(t *testing.T) {
 	q := NewLockfreeQueue()
 	go func() {
 		i := 0
+		seen := make(map[string]string)
 		for {
 			r := q.Pop()
 			if r == nil {
@@ -26,6 +27,14 @@ func TestLfQueueConsistency(t *testing.T) {
 				continue
 			}
 			i++
+			s := r.(string)
+			_, present := seen[s]
+			if present {
+				log.Printf("item have already been seen %v", s)
+				t.FailNow()
+			}
+			seen[s] = s
+
 			if i == max {
 				wg.Done()
 				return
