@@ -101,6 +101,10 @@ func (m *defaultMailbox) run() {
 
 	defer func() {
 		if r := recover(); r != nil {
+			//force the has more messages to be true.
+			//if there was a lot of messages on the queue, and we exit here.
+			//there will be messages left at the queue that are not scheduled
+			atomic.SwapInt32(&m.hasMoreMessages, hasMoreMessages)
 			plog.Debug("[ACTOR] Recovering", log.Object("actor", m.invoker), log.Object("reason", r), log.Stack())
 			m.invoker.EscalateFailure(r, msg)
 		}
