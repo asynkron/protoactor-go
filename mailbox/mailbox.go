@@ -114,15 +114,13 @@ func (m *defaultMailbox) run() {
 
 		// keep processing system messages until queue is empty
 		if msg = m.systemMailbox.Pop(); msg != nil {
+			atomic.AddInt32(&m.sysMessages, -1)
 			switch msg.(type) {
 			case *SuspendMailbox:
-				atomic.AddInt32(&m.sysMessages, -1)
 				m.suspended = true
 			case *ResumeMailbox:
-				atomic.AddInt32(&m.sysMessages, -1)
 				m.suspended = false
 			default:
-				atomic.AddInt32(&m.sysMessages, -1)
 				m.invoker.InvokeSystemMessage(msg)
 			}
 
