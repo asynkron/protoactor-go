@@ -43,13 +43,14 @@ func TestLfQueueConsistency(t *testing.T) {
 	}()
 
 	for j := 0; j < c; j++ {
+		jj := j
 		cmax := max / c
 		go func() {
 			for i := 0; i < cmax; i++ {
 				if rand.Intn(10) == 0 {
 					time.Sleep(time.Duration(rand.Intn(1000)))
 				}
-				q.Push(fmt.Sprintf("%v %v", j, i))
+				q.Push(fmt.Sprintf("%v %v", jj, i))
 			}
 		}()
 	}
