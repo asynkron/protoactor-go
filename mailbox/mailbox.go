@@ -116,8 +116,10 @@ func (m *defaultMailbox) run() {
 		if msg = m.systemMailbox.Pop(); msg != nil {
 			switch msg.(type) {
 			case *SuspendMailbox:
+				atomic.AddInt32(&m.sysMessages, -1)
 				m.suspended = true
 			case *ResumeMailbox:
+				atomic.AddInt32(&m.sysMessages, -1)
 				m.suspended = false
 			default:
 				atomic.AddInt32(&m.sysMessages, -1)
