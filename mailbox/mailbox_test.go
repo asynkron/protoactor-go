@@ -1,4 +1,4 @@
-package mpsc
+package mailbox
 
 import (
 	"fmt"
@@ -7,33 +7,14 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func TestQueue_PushPop(t *testing.T) {
-	q := New()
-
-	q.Push(1)
-	q.Push(2)
-	assert.Equal(t, 1, q.Pop())
-	assert.Equal(t, 2, q.Pop())
-	assert.True(t, q.Empty())
-}
-
-func TestQueue_Empty(t *testing.T) {
-	q := New()
-	assert.True(t, q.Empty())
-	q.Push(1)
-	assert.False(t, q.Empty())
-}
-
-func TestMpscQueueConsistency(t *testing.T) {
+func TestLfQueueConsistency(t *testing.T) {
 	max := 1000000
 	c := 10
 	var wg sync.WaitGroup
 	wg.Add(1)
-	q := New()
+	q := NewLockfreeQueue()
 	go func() {
 		i := 0
 		for {
