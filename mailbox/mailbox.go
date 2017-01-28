@@ -37,16 +37,12 @@ const (
 	running
 )
 
-const (
-	hasNoMessages int32 = iota
-	hasMoreMessages
-)
-
 type defaultMailbox struct {
 	userMailbox     queue
 	systemMailbox   *mpsc.Queue
 	schedulerStatus int32
-	hasMoreMessages int32
+	userMessages    int32
+	sysMessages     int32
 	invoker         MessageInvoker
 	dispatcher      Dispatcher
 	suspended       bool
@@ -58,35 +54,36 @@ func (m *defaultMailbox) PostUserMessage(message interface{}) {
 		ms.MessagePosted(message)
 	}
 	m.userMailbox.Push(message)
+	atomic.AddInt32(&m.userMessages, 1)
 	m.schedule()
 }
 
 func (m *defaultMailbox) PostSystemMessage(message interface{}) {
 	m.systemMailbox.Push(message)
+	atomic.AddInt32(&m.sysMessages, 1)
 	m.schedule()
 }
 
 func (m *defaultMailbox) schedule() {
-	atomic.StoreInt32(&m.hasMoreMessages, hasMoreMessages) //we have more messages to process
 	if atomic.CompareAndSwapInt32(&m.schedulerStatus, idle, running) {
 		m.dispatcher.Schedule(m.processMessages)
 	}
 }
 
 func (m *defaultMailbox) processMessages() {
-	//we are about to start processing messages, we can safely reset the message flag of the mailbox
-	atomic.StoreInt32(&m.hasMoreMessages, hasNoMessages)
 
 process:
 	m.run()
 
 	// set mailbox to idle
 	atomic.StoreInt32(&m.schedulerStatus, idle)
-
+	sys := atomic.LoadInt32(&m.sysMessages)
+	user := atomic.LoadInt32(&m.userMessages)
 	// check if there are still messages to process (sent after the message loop ended)
-	if atomic.SwapInt32(&m.hasMoreMessages, hasNoMessages) == hasMoreMessages {
+	if sys > 0 || (!m.suspended && user > 0) {
 		// try setting the mailbox back to running
 		if atomic.CompareAndSwapInt32(&m.schedulerStatus, idle, running) {
+			//	fmt.Printf("looping %v %v %v\n", sys, user, m.suspended)
 			goto process
 		}
 	}
@@ -101,10 +98,6 @@ func (m *defaultMailbox) run() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			//force the has more messages to be true.
-			//if there was a lot of messages on the queue, and we exit here.
-			//there will be messages left at the queue that are not scheduled
-			atomic.SwapInt32(&m.hasMoreMessages, hasMoreMessages)
 			plog.Debug("[ACTOR] Recovering", log.Object("actor", m.invoker), log.Object("reason", r), log.Stack())
 			m.invoker.EscalateFailure(r, msg)
 		}
@@ -127,6 +120,7 @@ func (m *defaultMailbox) run() {
 			case *ResumeMailbox:
 				m.suspended = false
 			default:
+				atomic.AddInt32(&m.sysMessages, -1)
 				m.invoker.InvokeSystemMessage(msg)
 			}
 
@@ -139,8 +133,10 @@ func (m *defaultMailbox) run() {
 		}
 
 		if msg = m.userMailbox.Pop(); msg != nil {
+			atomic.AddInt32(&m.userMessages, -1)
 			m.invoker.InvokeUserMessage(msg)
 			for _, ms := range m.mailboxStats {
+
 				ms.MessageReceived(msg)
 			}
 		} else {
