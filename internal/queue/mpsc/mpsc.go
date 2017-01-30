@@ -50,6 +50,7 @@ func (q *Queue) Pop() interface{} {
 	if next != nil {
 		q.tail = next
 		v := next.val
+		next.val = nil
 		return v
 	}
 	return nil
