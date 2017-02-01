@@ -1,10 +1,13 @@
 package actor
 
-import "github.com/AsynkronIT/protoactor-go/mailbox"
+import (
+	"github.com/AsynkronIT/protoactor-go/mailbox"
+	"sync/atomic"
+)
 
 type localProcess struct {
 	mailbox mailbox.Inbound
-	dead    bool
+	dead    int32
 }
 
 func (ref *localProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
@@ -20,6 +23,6 @@ func (ref *localProcess) SendSystemMessage(pid *PID, message interface{}) {
 }
 
 func (ref *localProcess) Stop(pid *PID) {
-	ref.dead = true
+	atomic.StoreInt32(&ref.dead, 1)
 	ref.SendSystemMessage(pid, stopMessage)
 }

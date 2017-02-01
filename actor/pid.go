@@ -10,7 +10,7 @@ import (
 func (pid *PID) ref() Process {
 	p := (*Process)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p))))
 	if p != nil {
-		if l, ok := (*p).(*localProcess); ok && l.dead {
+		if l, ok := (*p).(*localProcess); ok && atomic.LoadInt32(&l.dead) == 1 {
 			atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p)), nil)
 		} else {
 			return *p
