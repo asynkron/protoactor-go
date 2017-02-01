@@ -5,7 +5,7 @@ type optionFn func()
 // WithEventSubscriber option replaces the default Event subscriber with fn.
 //
 // Specifying nil will disable logging of events.
-func WithEventSubscruber(fn func(evt Event)) optionFn {
+func WithEventSubscriber(fn func(evt Event)) optionFn {
 	return func() {
 		if sub != nil {
 			Unsubscribe(sub)
