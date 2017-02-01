@@ -1,7 +1,6 @@
 language: go
 before_install:
   - go get -v github.com/golang/lint/golint
-  - go get github.com/AsynkronIT/goring
   - go get github.com/AsynkronIT/gonet
   - go get github.com/AsynkronIT/goconsole
   - go get github.com/Workiva/go-datastructures

@@ -1,7 +1,7 @@
 package mailbox
 
 import (
-	"github.com/AsynkronIT/goring"
+	"github.com/AsynkronIT/protoactor-go/internal/queue/goring"
 	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
 )
 
