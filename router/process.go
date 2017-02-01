@@ -24,5 +24,6 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 }
 
 func (ref *process) Stop(pid *actor.PID) {
+	actor.ProcessRegistry.Remove(pid)
 	ref.SendSystemMessage(pid, &actor.Stop{})
 }
