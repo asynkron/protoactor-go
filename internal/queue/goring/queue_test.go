@@ -60,7 +60,7 @@ func TestLfQueueConsistency(t *testing.T) {
 	c := 100
 	var wg sync.WaitGroup
 	wg.Add(1)
-	q := New(10)
+	q := New(2)
 	go func() {
 		i := 0
 		seen := make(map[string]string)
@@ -72,6 +72,10 @@ func TestLfQueueConsistency(t *testing.T) {
 				continue
 			}
 			i++
+			if r == nil {
+				log.Printf("%#v, %#v", q, q.content)
+				panic("consistency failure")
+			}
 			s := r.(string)
 			_, present := seen[s]
 			if present {

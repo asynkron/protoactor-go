@@ -35,8 +35,8 @@ func (q *Queue) Push(item interface{}) {
 	c := q.content
 	c.tail = (c.tail + 1) % c.mod
 	if c.tail == c.head {
-		var fillFactor int64 = 10
-		//we need to resize
+		var fillFactor int64 = 2
+		// we need to resize
 
 		newLen := c.mod * fillFactor
 		newBuff := make([]interface{}, newLen)
@@ -50,7 +50,7 @@ func (q *Queue) Push(item interface{}) {
 			buffer: newBuff,
 			head:   0,
 			tail:   c.mod,
-			mod:    c.mod * fillFactor,
+			mod:    newLen,
 		}
 		q.content = newContent
 	}
@@ -77,10 +77,9 @@ func (q *Queue) Pop() (interface{}, bool) {
 
 	q.lock.Lock()
 	c := q.content
-	c.head++
-	pos := c.head % c.mod
-	res := c.buffer[pos]
-	c.buffer[pos] = nil
+	c.head = (c.head + 1) % c.mod
+	res := c.buffer[c.head]
+	c.buffer[c.head] = nil
 	atomic.AddInt64(&q.len, -1)
 	q.lock.Unlock()
 	return res, true
