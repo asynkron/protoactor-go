@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+var nullProducer Producer = func() Actor { return nullReceive }
 var nullReceive ActorFunc = func(Context) {}
 var nilPID *PID
 

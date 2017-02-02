@@ -201,7 +201,11 @@ func (ctx *localContext) InvokeSystemMessage(message interface{}) {
 	case *Started:
 		ctx.InvokeUserMessage(msg) // forward
 	case *Watch:
-		ctx.watchers.Add(msg.Watcher)
+		if ctx.stopping {
+			msg.Watcher.sendSystemMessage(&Terminated{Who: ctx.self})
+		} else {
+			ctx.watchers.Add(msg.Watcher)
+		}
 	case *Unwatch:
 		ctx.watchers.Remove(msg.Watcher)
 	case *Stop:

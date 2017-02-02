@@ -26,6 +26,25 @@ func TestLocalContext_SpawnNamed(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, p)
 }
 
+// TestLocalContext_Stop verifies if context is stopping and receives a Watch message, it should
+// immediately respond with a Terminated message
+func TestLocalContext_Stop(t *testing.T) {
+	pid, p := spawnMockProcess("foo")
+	defer removeMockProcess(pid)
+
+	other, o := spawnMockProcess("watcher")
+	defer removeMockProcess(other)
+
+	o.On("SendSystemMessage", other, &Terminated{Who: pid})
+
+	lc := newLocalContext(nullProducer, DefaultSupervisorStrategy(), nil, nil)
+	lc.self = pid
+	lc.InvokeSystemMessage(&Stop{})
+	lc.InvokeSystemMessage(&Watch{Watcher: other})
+
+	mock.AssertExpectationsForObjects(t, p, o)
+}
+
 func BenchmarkLocalContext_ProcessMessageNoMiddleware(b *testing.B) {
 	var m interface{} = 1
 
