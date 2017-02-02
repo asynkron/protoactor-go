@@ -183,6 +183,8 @@ func (ctx *localContext) processMessage(m interface{}) {
 			ctx.receive(ctx)
 		}
 	}
+
+	ctx.message = nil
 }
 
 func (ctx *localContext) incarnateActor() {
