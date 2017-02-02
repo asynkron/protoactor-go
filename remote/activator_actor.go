@@ -87,7 +87,7 @@ func (*activator) Receive(context actor.Context) {
 			name = actor.ProcessRegistry.NextId()
 		}
 
-		pid, _ := actor.SpawnNamed(&props, "Remote$"+msg.Name)
+		pid, _ := actor.SpawnNamed(&props, "Remote$"+name)
 		response := &ActorPidResponse{
 			Pid: pid,
 		}
