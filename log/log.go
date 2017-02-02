@@ -37,18 +37,18 @@ func (l *Logger) SetLevel(level Level) {
 
 func (l *Logger) Debug(msg string, fields ...Field) {
 	if l.Level() > MinLevel {
-		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Fields: fields})
+		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
 	}
 }
 
 func (l *Logger) Info(msg string, fields ...Field) {
 	if l.Level() > DebugLevel {
-		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Fields: fields})
+		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
 	}
 }
 
 func (l *Logger) Error(msg string, fields ...Field) {
 	if l.Level() > InfoLevel {
-		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Fields: fields})
+		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
 	}
 }
