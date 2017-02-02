@@ -78,7 +78,9 @@ func (q *Queue) Pop() (interface{}, bool) {
 	q.lock.Lock()
 	c := q.content
 	c.head++
-	res := c.buffer[c.head%c.mod]
+	pos := c.head % c.mod
+	res := c.buffer[pos]
+	c.buffer[pos] = nil
 	atomic.AddInt64(&q.len, -1)
 	q.lock.Unlock()
 	return res, true
@@ -100,8 +102,9 @@ func (q *Queue) PopMany(count int64) ([]interface{}, bool) {
 
 	buffer := make([]interface{}, count)
 	for i := int64(0); i < count; i++ {
-		v := c.buffer[(c.head+1+i)%c.mod]
-		buffer[i] = v
+		pos := (c.head + 1 + i) % c.mod
+		buffer[i] = c.buffer[pos]
+		c.buffer[pos] = nil
 	}
 	c.head = (c.head + count) % c.mod
 
