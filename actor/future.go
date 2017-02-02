@@ -16,7 +16,7 @@ func NewFuture(d time.Duration) *Future {
 	ref := &futureProcess{Future{cond: sync.NewCond(&sync.Mutex{})}}
 	id := ProcessRegistry.NextId()
 
-	pid, ok := ProcessRegistry.Add(ref, "future" + id)
+	pid, ok := ProcessRegistry.Add(ref, "future"+id)
 	if !ok {
 		plog.Error("failed to register future process", log.Stringer("pid", pid))
 	}

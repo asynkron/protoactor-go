@@ -26,8 +26,8 @@ func NewLockfreeQueue() *LockfreeQueue {
 // LockfreeQueue is a goroutine-safe Queue implementation.
 // The overall performance of LockfreeQueue is much better than List+Mutex(standard package).
 type LockfreeQueue struct {
-	head  unsafe.Pointer
-	tail  unsafe.Pointer
+	head unsafe.Pointer
+	tail unsafe.Pointer
 }
 
 // Pop returns (and removes) an element from the front of the queue, or nil if the queue is empty.

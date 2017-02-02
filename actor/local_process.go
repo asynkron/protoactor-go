@@ -1,8 +1,9 @@
 package actor
 
 import (
-	"github.com/AsynkronIT/protoactor-go/mailbox"
 	"sync/atomic"
+
+	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
 type localProcess struct {
