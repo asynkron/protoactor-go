@@ -1,6 +1,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/AsynkronIT/protoactor-go)](https://goreportcard.com/report/github.com/AsynkronIT/protoactor-go) 
 [![GoDoc](https://godoc.org/github.com/AsynkronIT/protoactor-go?status.svg)](https://godoc.org/github.com/AsynkronIT/protoactor-go)
 [![Build Status](https://travis-ci.org/AsynkronIT/protoactor-go.svg?branch=dev)](https://travis-ci.org/AsynkronIT/protoactor-go)
+[![Coverage Status](https://coveralls.io/repos/github/AsynkronIT/protoactor-go/badge.svg?branch=dev)](https://coveralls.io/github/AsynkronIT/protoactor-go?branch=dev)
 
 [![Join the chat at https://gitter.im/AsynkronIT/gam](https://badges.gitter.im/AsynkronIT/gam.svg)](https://gitter.im/AsynkronIT/gam?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
