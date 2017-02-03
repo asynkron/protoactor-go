@@ -198,11 +198,11 @@ func (ctx *localContext) incarnateActor() {
 func (ctx *localContext) InvokeSystemMessage(message interface{}) {
 	switch msg := message.(type) {
 	case *continuation:
-		ctx.message = msg.message 	// apply the message that was present when we started the await
-		msg.f()                   	// invoke the continuation in the current actor context
-		ctx.message = nil			// release the message
+		ctx.message = msg.message // apply the message that was present when we started the await
+		msg.f()                   // invoke the continuation in the current actor context
+		ctx.message = nil         // release the message
 	case *Started:
-		ctx.InvokeUserMessage(msg) 	// forward
+		ctx.InvokeUserMessage(msg) // forward
 	case *Watch:
 		if ctx.stopping {
 			msg.Watcher.sendSystemMessage(&Terminated{Who: ctx.self})
