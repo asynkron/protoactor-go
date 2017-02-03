@@ -30,7 +30,7 @@ func TestLfQueueConsistency(t *testing.T) {
 			s := r.(string)
 			_, present := seen[s]
 			if present {
-				log.Printf("item have already been seen %v", s)
+				log.Printf("duplicate item %v", s)
 				t.FailNow()
 			}
 			seen[s] = s
