@@ -34,6 +34,15 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		delete(state.watched, msg.Watcher.Id)
 		delete(state.watcher, msg.Watchee.Id)
 
+		terminated := &actor.Terminated{
+			Who:               msg.Watchee,
+			AddressTerminated: false,
+		}
+		ref, ok := actor.ProcessRegistry.GetLocal(msg.Watcher.Id)
+		if ok {
+			ref.SendSystemMessage(msg.Watcher, terminated)
+		}
+
 	case *EndpointTerminatedEvent:
 		plog.Info("EndpointWatcher handling terminated", log.String("address", state.address))
 
