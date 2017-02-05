@@ -56,13 +56,13 @@ func (strategy *oneForOne) requestRestartPermission(rs *RestartStatistics) bool 
 		return false
 	}
 
-	rs.FailureCount++
+	rs.Fail()
 
-	if strategy.withinDuration == 0 || time.Since(rs.LastFailureTime) < strategy.withinDuration {
+	if strategy.withinDuration == 0 || rs.IsWithinDuration(strategy.withinDuration) {
 		return rs.FailureCount <= strategy.maxNrOfRetries
 	}
 
 	//we are past the time limit, we can safely reset the failure count and restart
-	rs.FailureCount = 0
+	rs.Reset()
 	return true
 }

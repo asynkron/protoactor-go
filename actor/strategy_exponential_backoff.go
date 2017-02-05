@@ -33,13 +33,13 @@ func (strategy *exponentialBackoffStrategy) HandleFailure(supervisor Supervisor,
 }
 
 func (strategy *exponentialBackoffStrategy) setFailureCount(rs *RestartStatistics) {
-	rs.FailureCount++
+	rs.Fail()
 
 	// if we are within the backoff window, exit early
-	if time.Since(rs.LastFailureTime) < strategy.backoffWindow {
+	if rs.IsWithinDuration(strategy.backoffWindow) {
 		return
 	}
 
 	//we are past the backoff limit, reset the failure counter
-	rs.FailureCount = 0
+	rs.Reset()
 }

@@ -288,7 +288,7 @@ func (ctx *localContext) tryRestartOrTerminate() {
 func (ctx *localContext) restart() {
 	ctx.incarnateActor()
 	ctx.InvokeUserMessage(startedMessage)
-	ctx.restartStats.LastFailureTime = time.Now()
+	ctx.restartStats.Restart()
 	if ctx.stash != nil {
 		for !ctx.stash.Empty() {
 			msg, _ := ctx.stash.Pop()
@@ -371,8 +371,6 @@ func (ctx *localContext) GoString() string {
 func (ctx *localContext) String() string {
 	return ctx.self.String()
 }
-
-
 
 func (ctx *localContext) AwaitFuture(f *Future, cont func(res interface{}, err error)) {
 	wrapper := func() {
