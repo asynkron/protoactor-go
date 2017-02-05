@@ -372,9 +372,7 @@ func (ctx *localContext) String() string {
 	return ctx.self.String()
 }
 
-func handleRootFailure(msg *Failure) {
-	defaultSupervisionStrategy.HandleFailure(nil, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
-}
+
 
 func (ctx *localContext) AwaitFuture(f *Future, cont func(res interface{}, err error)) {
 	wrapper := func() {
@@ -389,4 +387,22 @@ func (ctx *localContext) AwaitFuture(f *Future, cont func(res interface{}, err e
 			message: ctx.message,
 		})
 	})
+}
+
+func (*localContext) RestartChildren(pids ...*PID) {
+	for _, pid := range pids {
+		pid.sendSystemMessage(restartMessage)
+	}
+}
+
+func (*localContext) StopChildren(pids ...*PID) {
+	for _, pid := range pids {
+		pid.sendSystemMessage(stopMessage)
+	}
+}
+
+func (*localContext) ResumeChildren(pids ...*PID) {
+	for _, pid := range pids {
+		pid.sendSystemMessage(resumeMailboxMessage)
+	}
 }

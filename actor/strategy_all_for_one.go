@@ -27,29 +27,22 @@ func (strategy *allForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 	case ResumeDirective:
 		//resume the failing child
 		logFailure(child, reason, directive)
-		child.sendSystemMessage(resumeMailboxMessage)
+		supervisor.RestartChildren(child)
 	case RestartDirective:
 		children := supervisor.Children()
 		//try restart the all the children
 		if strategy.requestRestartPermission(rs) {
 			logFailure(child, reason, RestartDirective)
-			for _, c := range children {
-				c.sendSystemMessage(restartMessage)
-			}
-
+			supervisor.RestartChildren(children...)
 		} else {
 			logFailure(child, reason, StopDirective)
-			for _, c := range children {
-				c.Stop()
-			}
+			supervisor.StopChildren(children...)
 		}
 	case StopDirective:
 		children := supervisor.Children()
 		//stop all the children, no need to involve the crs
 		logFailure(child, reason, directive)
-		for _, c := range children {
-			c.Stop()
-		}
+		supervisor.StopChildren(children...)
 	case EscalateDirective:
 		//send failure to parent
 		//supervisor mailbox

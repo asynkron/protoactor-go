@@ -12,6 +12,9 @@ type SupervisorStrategy interface {
 type Supervisor interface {
 	Children() []*PID
 	EscalateFailure(reason interface{}, message interface{})
+	RestartChildren(pids ...*PID)
+	StopChildren(pids ...*PID)
+	ResumeChildren(pids ...*PID)
 }
 
 func logFailure(child *PID, reason interface{}, directive Directive) {
@@ -39,3 +42,4 @@ func DefaultSupervisorStrategy() SupervisorStrategy {
 func RestartingSupervisorStrategy() SupervisorStrategy {
 	return restartingSupervisionStrategy
 }
+

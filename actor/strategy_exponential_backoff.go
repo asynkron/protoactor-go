@@ -28,7 +28,7 @@ func (strategy *exponentialBackoffStrategy) HandleFailure(supervisor Supervisor,
 	noise := rand.Intn(500)
 	dur := time.Duration(backoff + noise)
 	time.AfterFunc(dur, func() {
-		child.sendSystemMessage(restartMessage)
+		supervisor.RestartChildren(child)
 	})
 }
 
