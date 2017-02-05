@@ -24,6 +24,7 @@ protogen: $(PROTO_GEN_FILES)
 
 %.pb.go: %.proto
 	cd $(dir $<); $(PROTO_MAKER) --proto_path=. --proto_path=$(PROJECT_DIR)/vendor --proto_path=$(GOPATH)/src ./*.proto
+	sed -i '' -En -e '/^package [[:alpha:]]+/,$$p' $@
 
 # }}} Protobuf end
 
