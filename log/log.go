@@ -15,6 +15,7 @@ const (
 	DebugLevel
 	InfoLevel
 	ErrorLevel
+	OffLevel
 )
 
 type Logger struct {
@@ -36,19 +37,19 @@ func (l *Logger) SetLevel(level Level) {
 }
 
 func (l *Logger) Debug(msg string, fields ...Field) {
-	if l.Level() > MinLevel {
+	if l.Level() < InfoLevel {
 		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
 	}
 }
 
 func (l *Logger) Info(msg string, fields ...Field) {
-	if l.Level() > DebugLevel {
+	if l.Level() < ErrorLevel {
 		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
 	}
 }
 
 func (l *Logger) Error(msg string, fields ...Field) {
-	if l.Level() > InfoLevel {
+	if l.Level() < OffLevel {
 		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
 	}
 }
