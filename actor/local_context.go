@@ -125,7 +125,7 @@ func (ctx *localContext) Receive(message interface{}) {
 	ctx.processMessage(message)
 }
 
-func (ctx *localContext) EscalateFailure(reason interface{}, message interface{}) {
+func (ctx *localContext) RestartStats() *RestartStatistics {
 	//lazy initialize the child restart stats if this is the first time
 	//further mutations are handled within "restart"
 	if ctx.restartStats == nil {
@@ -133,12 +133,17 @@ func (ctx *localContext) EscalateFailure(reason interface{}, message interface{}
 			FailureCount: 0,
 		}
 	}
-	failure := &Failure{Reason: reason, Who: ctx.self, RestartStats: ctx.restartStats}
+	return ctx.restartStats
+}
+
+func (ctx *localContext) EscalateFailure(reason interface{}, message interface{}) {
+	failure := &Failure{Reason: reason, Who: ctx.self, RestartStats: ctx.RestartStats()}
 	if ctx.parent == nil {
 		handleRootFailure(failure)
 	} else {
 		//TODO: Akka recursively suspends all children also on failure
 		//Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
+
 		ctx.self.sendSystemMessage(suspendMailboxMessage)
 		ctx.parent.sendSystemMessage(failure)
 	}
@@ -288,7 +293,7 @@ func (ctx *localContext) tryRestartOrTerminate() {
 func (ctx *localContext) restart() {
 	ctx.incarnateActor()
 	ctx.InvokeUserMessage(startedMessage)
-	ctx.restartStats.Restart()
+	ctx.RestartStats().Restart()
 	if ctx.stash != nil {
 		for !ctx.stash.Empty() {
 			msg, _ := ctx.stash.Pop()
