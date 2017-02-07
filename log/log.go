@@ -28,6 +28,28 @@ func New(level Level, prefix string, context ...Field) *Logger {
 	return &Logger{level: level, prefix: prefix, context: context}
 }
 
+func (l *Logger) With(fields ...Field) *Logger {
+	var ctx []Field
+
+	ll := len(l.context) + len(fields)
+	if ll > 0 {
+		ctx = make([]Field, 0, ll)
+		if len(l.context) > 0 {
+			ctx = append(ctx, l.context...)
+		}
+
+		if len(fields) > 0 {
+			ctx = append(ctx, fields...)
+		}
+	}
+
+	return &Logger{
+		level:   l.level,
+		prefix:  l.prefix,
+		context: ctx,
+	}
+}
+
 func (l *Logger) Level() Level {
 	return Level(atomic.LoadInt32((*int32)(&l.level)))
 }

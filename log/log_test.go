@@ -1,6 +1,17 @@
 package log
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestLogger_With(t *testing.T) {
+	base := New(DebugLevel, "", Field{key: "first"})
+	l := base.With(Field{key: "second"})
+
+	assert.Equal(t, []Field{{key: "first"}, {key: "second"}}, l.context)
+}
 
 func Benchmark_OffLevel_TwoFields(b *testing.B) {
 	l := New(MinLevel, "")
