@@ -74,7 +74,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	var targetMax int32
 	for i, tmp := range msg {
 		rd := tmp.(*remoteDeliver)
-		bytes, typeName, _ := serialize(rd.message, rd.target, rd.sender)
+		bytes, typeName, _ := serialize(rd.message)
 		typeID, ok := typeNames[typeName]
 		if !ok {
 			typeNames[typeName] = typeMax
