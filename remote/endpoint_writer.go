@@ -70,24 +70,11 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	//type name uniqueness map name string to type index
 	typeNames := make(map[string]int32)
 	targetNames := make(map[string]int32)
-	var typeMax int32
-	var targetMax int32
 	for i, tmp := range msg {
 		rd := tmp.(*remoteDeliver)
 		bytes, typeName, _ := serialize(rd.message)
-		typeID, ok := typeNames[typeName]
-		if !ok {
-			typeNames[typeName] = typeMax
-			typeID = typeMax
-			typeMax++
-		}
-
-		targetID, ok := targetNames[rd.target.Id]
-		if !ok {
-			targetNames[rd.target.Id] = targetMax
-			targetID = targetMax
-			targetMax++
-		}
+		typeID := addToLookup(typeNames, typeName)
+		targetID := addToLookup(targetNames, rd.target.Id)
 
 		envelopes[i] = &MessageEnvelope{
 			MessageData: bytes,
@@ -108,6 +95,16 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		plog.Debug("gRPC Failed to send", log.String("address", state.address))
 		panic("restart it")
 	}
+}
+
+func addToLookup(m map[string]int32, name string) int32 {
+	max := int32(len(m))
+	id, ok := m[name]
+	if !ok {
+		m[name] = max
+		id = max
+	}
+	return id
 }
 
 func mapToArray(m map[string]int32) []string {
