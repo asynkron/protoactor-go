@@ -67,11 +67,33 @@ func (state *endpointWriter) initializeInternal() error {
 func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context) {
 	envelopes := make([]*MessageEnvelope, len(msg))
 
+	typeNames := make(map[string]int32)
+	var typeMax int32
 	for i, tmp := range msg {
-		envelopes[i] = tmp.(*MessageEnvelope)
+		rd := tmp.(*remoteDeliver)
+		bytes, typeName, _ := serialize(rd.message, rd.target, rd.sender)
+		typeID, ok := typeNames[typeName]
+		if !ok {
+			typeNames[typeName] = typeMax
+			typeID = typeMax
+			typeMax++
+		}
+		envelopes[i] = &MessageEnvelope{
+			MessageData: bytes,
+			Sender:      rd.sender,
+			Target:      rd.target.Id,
+			TypeId:      typeID,
+		}
+	}
+
+	var typeNamesArr []string
+
+	for key := range typeNames {
+		typeNamesArr = append(typeNamesArr, key)
 	}
 
 	batch := &MessageBatch{
+		TypeNames: typeNamesArr,
 		Envelopes: envelopes,
 	}
 	err := state.stream.Send(batch)

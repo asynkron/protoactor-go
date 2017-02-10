@@ -66,8 +66,8 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 		address := msg.Watchee.Address
 		endpoint := state.ensureConnected(address, ctx)
 		endpoint.watcher.Tell(msg)
-	case *MessageEnvelope:
-		address := msg.Target.Address
+	case *remoteDeliver:
+		address := msg.target.Address
 		endpoint := state.ensureConnected(address, ctx)
 		endpoint.writer.Tell(msg)
 	}

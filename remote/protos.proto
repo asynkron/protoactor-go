@@ -6,10 +6,15 @@ import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
 
 option (gogoproto.gostring_all) = false;
 
+message MessageBatch {
+  repeated string type_names=1;
+  repeated MessageEnvelope envelopes = 2;
+}
+
 message MessageEnvelope {
-  string type_name = 1;
+  int32 type_id = 1;
   bytes message_data = 2;
-  actor.PID target = 3;
+  string target = 3;
   actor.PID sender = 4;
 }
 
@@ -22,9 +27,7 @@ message ActorPidResponse {
     actor.PID pid = 1;
 }
 
-message MessageBatch {
-  repeated MessageEnvelope envelopes = 1;
-}
+
 
 message Unit {}
 

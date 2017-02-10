@@ -23,8 +23,13 @@ func (ref *remoteProcess) SendUserMessage(pid *actor.PID, message interface{}, s
 func sendRemoteMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
 	switch msg := message.(type) {
 	case proto.Message:
-		envelope, _ := serialize(msg, pid, sender)
-		endpointManagerPID.Tell(envelope)
+
+		rd := &remoteDeliver{
+			message: msg,
+			sender:  sender,
+			target:  pid,
+		}
+		endpointManagerPID.Tell(rd)
 	default:
 		plog.Error("failed, trying to send non Proto message", log.TypeOf("type", msg), log.Stringer("pid", pid))
 	}
@@ -53,4 +58,10 @@ func (ref *remoteProcess) SendSystemMessage(pid *actor.PID, message interface{})
 
 func (ref *remoteProcess) Stop(pid *actor.PID) {
 	ref.SendSystemMessage(pid, stopMessage)
+}
+
+type remoteDeliver struct {
+	message proto.Message
+	target  *actor.PID
+	sender  *actor.PID
 }

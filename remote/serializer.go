@@ -10,29 +10,23 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
-func serialize(message proto.Message, target *actor.PID, sender *actor.PID) (*MessageEnvelope, error) {
+func serialize(message proto.Message, target *actor.PID, sender *actor.PID) ([]byte, string, error) {
 	typeName := proto.MessageName(message)
 	ensureGoGo(typeName)
 	bytes, err := proto.Marshal(message)
 	if err != nil {
-		return nil, err
-	}
-	envelope := &MessageEnvelope{
-		TypeName:    typeName,
-		MessageData: bytes,
-		Target:      target,
-		Sender:      sender,
+		return nil, "", err
 	}
 
-	return envelope, nil
+	return bytes, typeName, nil
 }
 
-func deserialize(message *MessageEnvelope) proto.Message {
+func deserialize(message *MessageEnvelope, typeName string) proto.Message {
 
-	ensureGoGo(message.TypeName)
-	t1 := proto.MessageType(message.TypeName)
+	ensureGoGo(typeName)
+	t1 := proto.MessageType(typeName)
 	if t1 == nil {
-		plog.Error("Unknown message type", log.String("type", message.TypeName))
+		plog.Error("Unknown message type", log.String("type", typeName))
 		os.Exit(1)
 	}
 	t := t1.Elem()
