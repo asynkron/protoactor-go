@@ -8,13 +8,14 @@ option (gogoproto.gostring_all) = false;
 
 message MessageBatch {
   repeated string type_names=1;
-  repeated MessageEnvelope envelopes = 2;
+  repeated string target_names=2;
+  repeated MessageEnvelope envelopes = 3;
 }
 
 message MessageEnvelope {
   int32 type_id = 1;
   bytes message_data = 2;
-  string target = 3;
+  int32 target = 3;
   actor.PID sender = 4;
 }
 

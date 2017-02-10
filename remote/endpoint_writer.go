@@ -67,8 +67,11 @@ func (state *endpointWriter) initializeInternal() error {
 func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context) {
 	envelopes := make([]*MessageEnvelope, len(msg))
 
+	//type name uniqueness map name string to type index
 	typeNames := make(map[string]int32)
+	targetNames := make(map[string]int32)
 	var typeMax int32
+	var targetMax int32
 	for i, tmp := range msg {
 		rd := tmp.(*remoteDeliver)
 		bytes, typeName, _ := serialize(rd.message, rd.target, rd.sender)
@@ -78,23 +81,38 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			typeID = typeMax
 			typeMax++
 		}
+
+		targetID, ok := targetNames[rd.target.Id]
+		if !ok {
+			targetNames[rd.target.Id] = targetMax
+			targetID = targetMax
+			targetMax++
+		}
+
 		envelopes[i] = &MessageEnvelope{
 			MessageData: bytes,
 			Sender:      rd.sender,
-			Target:      rd.target.Id,
+			Target:      targetID,
 			TypeId:      typeID,
 		}
 	}
 
+	//generate the type name array
 	var typeNamesArr []string
-
 	for key := range typeNames {
 		typeNamesArr = append(typeNamesArr, key)
 	}
 
+	//generate the type name array
+	var targetNamesArr []string
+	for key := range targetNames {
+		targetNamesArr = append(targetNamesArr, key)
+	}
+
 	batch := &MessageBatch{
-		TypeNames: typeNamesArr,
-		Envelopes: envelopes,
+		TypeNames:   typeNamesArr,
+		TargetNames: targetNamesArr,
+		Envelopes:   envelopes,
 	}
 	err := state.stream.Send(batch)
 	if err != nil {
