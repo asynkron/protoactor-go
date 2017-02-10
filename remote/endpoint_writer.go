@@ -97,21 +97,9 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		}
 	}
 
-	//generate the type name array
-	var typeNamesArr []string
-	for key := range typeNames {
-		typeNamesArr = append(typeNamesArr, key)
-	}
-
-	//generate the type name array
-	var targetNamesArr []string
-	for key := range targetNames {
-		targetNamesArr = append(targetNamesArr, key)
-	}
-
 	batch := &MessageBatch{
-		TypeNames:   typeNamesArr,
-		TargetNames: targetNamesArr,
+		TypeNames:   mapToArray(typeNames),
+		TargetNames: mapToArray(targetNames),
 		Envelopes:   envelopes,
 	}
 	err := state.stream.Send(batch)
@@ -120,6 +108,14 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		plog.Debug("gRPC Failed to send", log.String("address", state.address))
 		panic("restart it")
 	}
+}
+
+func mapToArray(m map[string]int32) []string {
+	var arr []string
+	for key := range m {
+		arr = append(arr, key)
+	}
+	return arr
 }
 
 func (state *endpointWriter) Receive(ctx actor.Context) {
