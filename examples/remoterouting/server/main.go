@@ -38,7 +38,7 @@ func newRemoteActor(name string) actor.Producer {
 	}
 }
 
-func NewRemote(bind, name string) {
+func newRemote(bind, name string) {
 	remote.Start(bind)
 	props := actor.
 		FromProducer(newRemoteActor(name)).
@@ -56,7 +56,7 @@ func main() {
 
 	flag.Parse()
 
-	NewRemote(*flagBind, *flagName)
+	newRemote(*flagBind, *flagName)
 
 	console.ReadLine()
 }

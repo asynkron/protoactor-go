@@ -17,8 +17,6 @@ type localActor struct {
 
 func (state *localActor) Receive(context actor.Context) {
 	switch context.Message().(type) {
-	case *actor.Started:
-		state.wgStop.Add(1)
 	case *messages.Pong:
 		state.count++
 		if state.count%50000 == 0 {
@@ -32,6 +30,7 @@ func (state *localActor) Receive(context actor.Context) {
 }
 
 func newLocalActor(stop *sync.WaitGroup, messageCount int) actor.Producer {
+	stop.Add(1)
 	return func() actor.Actor {
 		return &localActor{
 			wgStop:       stop,

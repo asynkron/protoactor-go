@@ -69,12 +69,16 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 
 	//type name uniqueness map name string to type index
 	typeNames := make(map[string]int32)
+	typeNamesArr := make([]string, 0)
 	targetNames := make(map[string]int32)
+	targetNamesArr := make([]string, 0)
+	var typeID int32
+	var targetID int32
 	for i, tmp := range msg {
 		rd := tmp.(*remoteDeliver)
 		bytes, typeName, _ := serialize(rd.message)
-		typeID := addToLookup(typeNames, typeName)
-		targetID := addToLookup(targetNames, rd.target.Id)
+		typeID, typeNamesArr = addToLookup(typeNames, typeName, typeNamesArr)
+		targetID, targetNamesArr = addToLookup(targetNames, rd.target.Id, targetNamesArr)
 
 		envelopes[i] = &MessageEnvelope{
 			MessageData: bytes,
@@ -85,11 +89,12 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	}
 
 	batch := &MessageBatch{
-		TypeNames:   mapToArray(typeNames),
-		TargetNames: mapToArray(targetNames),
+		TypeNames:   typeNamesArr,
+		TargetNames: targetNamesArr,
 		Envelopes:   envelopes,
 	}
 	err := state.stream.Send(batch)
+
 	if err != nil {
 		ctx.Stash()
 		plog.Debug("gRPC Failed to send", log.String("address", state.address))
@@ -97,22 +102,15 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	}
 }
 
-func addToLookup(m map[string]int32, name string) int32 {
+func addToLookup(m map[string]int32, name string, a []string) (int32, []string) {
 	max := int32(len(m))
 	id, ok := m[name]
 	if !ok {
 		m[name] = max
 		id = max
+		a = append(a, name)
 	}
-	return id
-}
-
-func mapToArray(m map[string]int32) []string {
-	var arr []string
-	for key := range m {
-		arr = append(arr, key)
-	}
-	return arr
+	return id, a
 }
 
 func (state *endpointWriter) Receive(ctx actor.Context) {
