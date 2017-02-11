@@ -6,6 +6,8 @@ import (
 	"sort"
 	"time"
 
+	"fmt"
+
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remotelatency/messages"
@@ -51,18 +53,19 @@ func (state *remoteActor) Receive(context actor.Context) {
 			a := int64arr(state.messages)
 			sort.Sort(a)
 
-			r0 := state.messages[0]
-			r10 := state.messages[100000]
-			r50 := state.messages[500000]
-			r999 := state.messages[999000]
-			r9999 := state.messages[999900]
+			data := make(map[string]int64)
+			for i := 0; i < 100; i++ {
+				key := fmt.Sprintf("%v", i)
+				data[key] = state.messages[i*10000]
+			}
+
+			data["99.9"] = state.messages[999000]
+			data["99.99"] = state.messages[999900]
 
 			log.Println("Done")
-			log.Printf(" 0.00 %v", r0)
-			log.Printf("10.00 %v", r10)
-			log.Printf("50.00 %v", r50)
-			log.Printf("99.90 %v", r999)
-			log.Printf("99.99 %v", r9999)
+			for k, v := range data {
+				log.Printf("%v %v", k, v)
+			}
 		}
 	}
 }

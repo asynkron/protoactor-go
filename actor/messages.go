@@ -2,11 +2,12 @@ package actor
 
 import "github.com/AsynkronIT/protoactor-go/mailbox"
 
+//An AutoReceiveMessage is a special kind of user message that will be handled in some way automatially by the actor
 type AutoReceiveMessage interface {
 	AutoReceiveMessage()
 }
 
-// An actor which receives a NotInfluenceReceiveTimeout message will not reset the ReceiveTimeout timer
+//NotInfluenceReceiveTimeout messages will not reset the ReceiveTimeout timer of an actor that receives the message
 type NotInfluenceReceiveTimeout interface {
 	NotInfluenceReceiveTimeout()
 }

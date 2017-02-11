@@ -2,8 +2,6 @@ package actor
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type BehaviorMessage struct{}
@@ -29,14 +27,11 @@ func (EchoSetBehaviorActor) Other(context Context) {
 }
 
 func TestActorCanSetBehavior(t *testing.T) {
-	actor := Spawn(FromProducer(NewEchoBehaviorActor))
-	defer actor.Stop()
-	actor.Tell(BehaviorMessage{})
-	result := actor.RequestFuture(EchoRequest{}, testTimeout)
-	if _, err := result.Result(); err != nil {
-		assert.Fail(t, "timed out")
-		return
-	}
+	a := Spawn(FromProducer(NewEchoBehaviorActor))
+	defer a.Stop()
+	a.Tell(BehaviorMessage{})
+	result := a.RequestFuture(EchoRequest{}, testTimeout)
+	assertFutureSuccess(result,t)
 }
 
 type PopBehaviorMessage struct{}
@@ -64,12 +59,9 @@ func (*EchoPopBehaviorActor) Other(context Context) {
 }
 
 func TestActorCanPopBehavior(t *testing.T) {
-	actor := Spawn(FromProducer(NewEchoUnbecomeActor))
-	actor.Tell(BehaviorMessage{})
-	actor.Tell(PopBehaviorMessage{})
-	result := actor.RequestFuture(EchoRequest{}, testTimeout)
-	if _, err := result.Result(); err != nil {
-		assert.Fail(t, "timed out")
-		return
-	}
+	a := Spawn(FromProducer(NewEchoUnbecomeActor))
+	a.Tell(BehaviorMessage{})
+	a.Tell(PopBehaviorMessage{})
+	result := a.RequestFuture(EchoRequest{}, testTimeout)
+	assertFutureSuccess(result,t)
 }

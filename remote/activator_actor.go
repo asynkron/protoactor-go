@@ -22,6 +22,7 @@ func Register(kind string, props *actor.Props) {
 	nameLookup[kind] = *props
 }
 
+//GetKnownKinds returns a slice of known actor "kinds"
 func GetKnownKinds() []string {
 	keys := make([]string, 0, len(nameLookup))
 	for k := range nameLookup {
