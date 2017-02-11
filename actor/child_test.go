@@ -28,17 +28,14 @@ func NewCreateChildActor() Actor {
 }
 
 func TestActorCanCreateChildren(t *testing.T) {
-	actor := Spawn(FromProducer(NewCreateChildActor))
-	defer actor.Stop()
+	a := Spawn(FromProducer(NewCreateChildActor))
+	defer a.Stop()
 	expected := 10
 	for i := 0; i < expected; i++ {
-		actor.Tell(CreateChildMessage{})
+		a.Tell(CreateChildMessage{})
 	}
-	response, err := actor.RequestFuture(GetChildCountRequest{}, testTimeout).Result()
-	if err != nil {
-		assert.Fail(t, "timed out")
-		return
-	}
+	future := a.RequestFuture(GetChildCountRequest{}, testTimeout)
+	response := assertFutureSuccess(future,t)
 	assert.Equal(t, expected, response.(GetChildCountResponse).ChildCount)
 }
 
@@ -81,21 +78,13 @@ func TestActorCanStopChildren(t *testing.T) {
 	actor.Tell(GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.PID()})
 
 	//wait for the actor to reply to the first responsePID
-	err := future.Wait()
-	if err != nil {
-		assert.Fail(t, "timed out")
-		return
-	}
+	assertFutureSuccess(future,t)
 
 	//then send a stop command
 	actor.Stop()
 
 	//wait for the actor to stop and get the result from the stopped handler
-	response, err := future2.Result()
-	if err != nil {
-		assert.Fail(t, "timed out")
-		return
-	}
+	response := assertFutureSuccess(future2,t)
 	//we should have 0 children when the actor is stopped
 	assert.Equal(t, 0, response.(GetChildCountResponse).ChildCount)
 }
@@ -124,8 +113,7 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 	wg.Wait()
 	child.Stop()
 
-	_, err := future.Result()
-	assert.NoError(t, err, "timed out")
+	assertFutureSuccess(future,t)
 }
 
 func TestFutureDoesTimeout(t *testing.T) {

@@ -67,3 +67,9 @@ func TestFuture_PipeTo_TimeoutSendsError(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, p1, p2, p3)
 	assert.Empty(t, fp.pipes, "pipes were not cleared")
 }
+
+func assertFutureSuccess(future *Future, t *testing.T) interface{} {
+	res, err := future.Result()
+	assert.NoError(t, err, "timed out")
+	return res
+}
