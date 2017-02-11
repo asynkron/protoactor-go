@@ -74,9 +74,5 @@ For synchronous communication, an actor will use a Future and wait for the resul
 to an actor and wait for a response, use the RequestFuture method, which returns a Future:
 
 	f := pid.RequestFuture("Hello", 50 * time.Millisecond)
-	res, err := f.Result() // waits for pid to reply
-
-
-
-*/
+	res, err := f.Result() // waits for pid to reply */
 package actor

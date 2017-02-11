@@ -2,6 +2,7 @@ package actor
 
 import "time"
 
+//Context contains contextual information for actors
 type Context interface {
 	// Watch registers the actor as a monitor for the specified PID
 	Watch(pid *PID)

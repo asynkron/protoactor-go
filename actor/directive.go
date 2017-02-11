@@ -1,5 +1,6 @@
 package actor
 
+//Directive is an enum for supervision actions
 type Directive int
 
 // Directive determines how a supervisor should handle a faulting actor

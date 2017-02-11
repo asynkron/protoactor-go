@@ -41,56 +41,66 @@ func (props *Props) spawn(id string, parent *PID) (*PID, error) {
 	return DefaultSpawner(id, props, parent)
 }
 
+//WithMiddleware assigns one or more middlewares to the props
 func (props *Props) WithMiddleware(middleware ...func(ActorFunc) ActorFunc) *Props {
 	props.middleware = append(props.middleware, middleware...)
 	props.middlewareChain = makeMiddlewareChain(props.middleware, localContextReceiver)
 	return props
 }
 
+//WithMailbox assigns the desired mailbox producer to the props
 func (props *Props) WithMailbox(mailbox mailbox.Producer) *Props {
 	props.mailboxProducer = mailbox
 	return props
 }
 
+//WithSupervisor assigns a supervision strategy to the props
 func (props *Props) WithSupervisor(supervisor SupervisorStrategy) *Props {
 	props.supervisionStrategy = supervisor
 	return props
 }
 
+//WithDispatcher assigns a dispatcher to the props
 func (props *Props) WithDispatcher(dispatcher mailbox.Dispatcher) *Props {
 	props.dispatcher = dispatcher
 	return props
 }
 
+//WithSpawnFunc assigns a custom spawn func to the props, this is mainly for internal usage
 func (props *Props) WithSpawnFunc(spawn SpawnFunc) *Props {
 	props.spawner = spawn
 	return props
 }
 
+//WithFunc assigns a receive func to the props
 func (props *Props) WithFunc(f ActorFunc) *Props {
 	props.actorProducer = makeProducerFromInstance(f)
 	return props
 }
 
+//WithInstance creates a custom actor producer from a given instance and assigns it to the props
 func (props *Props) WithInstance(a Actor) *Props {
 	props.actorProducer = makeProducerFromInstance(a)
 	return props
 }
 
+//WithProducer assigns a actor producer to the props
 func (props *Props) WithProducer(p Producer) *Props {
 	props.actorProducer = p
 	return props
 }
 
-// FromProducer
+//FromProducer creates a props whith the given actor producer assigned
 func FromProducer(actorProducer Producer) *Props {
 	return &Props{actorProducer: actorProducer}
 }
 
+//FromFunc creates a props with the given receive func assigned as the actor producer
 func FromFunc(f ActorFunc) *Props {
 	return FromInstance(f)
 }
 
+//FromInstance creates a props with the given instance assigned as the actor producer
 func FromInstance(template Actor) *Props {
 	return &Props{actorProducer: makeProducerFromInstance(template)}
 }
