@@ -80,6 +80,14 @@ func (m *mockContext) MessageHeader() actor.ReadonlyMessageHeader {
 	return args.Get(0).(actor.ReadonlyMessageHeader)
 }
 
+func (m *mockContext) Tell(pid *actor.PID, message interface{}) {
+	m.Called()
+}
+
+func (m *mockContext) Request(pid *actor.PID, message interface{}) {
+	m.Called()
+}
+
 func (m *mockContext) SetBehavior(r actor.ActorFunc) {
 	m.Called(r)
 }

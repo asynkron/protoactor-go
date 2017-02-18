@@ -19,6 +19,12 @@ type Context interface {
 	//MessageHeader returns the meta information for the currently processed message
 	MessageHeader() ReadonlyMessageHeader
 
+	//Tell sends a message to the given PID
+	Tell(pid *PID, message interface{})
+
+	//Request sends a message to the given PID and also provides a Sender PID
+	Request(pid *PID, message interface{})
+
 	// SetReceiveTimeout sets the inactivity timeout, after which a ReceiveTimeout message will be sent to the actor.
 	// A duration of less than 1ms will disable the inactivity timer.
 	//

@@ -67,6 +67,14 @@ func (ctx *localContext) MessageHeader() ReadonlyMessageHeader {
 	return emptyMessageHeader
 }
 
+func (ctx *localContext) Tell(pid *PID, message interface{}) {
+	pid.ref().SendUserMessage(pid, message, nil)
+}
+
+func (ctx *localContext) Request(pid *PID, message interface{}) {
+	pid.ref().SendUserMessage(pid, message, ctx.Self())
+}
+
 func (ctx *localContext) Stash() {
 	if ctx.stash == nil {
 		ctx.stash = linkedliststack.New()
