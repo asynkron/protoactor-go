@@ -44,19 +44,27 @@ func (ctx *localContext) Actor() Actor {
 }
 
 func (ctx *localContext) Message() interface{} {
-	userMessage, ok := ctx.message.(*messageSender)
+	envelope, ok := ctx.message.(*messageEnvelope)
 	if ok {
-		return userMessage.Message
+		return envelope.Message
 	}
 	return ctx.message
 }
 
 func (ctx *localContext) Sender() *PID {
-	userMessage, ok := ctx.message.(*messageSender)
+	envelope, ok := ctx.message.(*messageEnvelope)
 	if ok {
-		return userMessage.Sender
+		return envelope.Sender
 	}
 	return nil
+}
+
+func (ctx *localContext) MessageHeader() ReadonlyMessageHeader {
+	envelope, ok := ctx.message.(*messageEnvelope)
+	if ok {
+		return envelope.Header
+	}
+	return emptyMessageHeader
 }
 
 func (ctx *localContext) Stash() {

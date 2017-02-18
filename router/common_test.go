@@ -75,6 +75,11 @@ func (m *mockContext) Sender() *actor.PID {
 	return args.Get(0).(*actor.PID)
 }
 
+func (m *mockContext) MessageHeader() actor.ReadonlyMessageHeader {
+	args := m.Called()
+	return args.Get(0).(actor.ReadonlyMessageHeader)
+}
+
 func (m *mockContext) SetBehavior(r actor.ActorFunc) {
 	m.Called(r)
 }

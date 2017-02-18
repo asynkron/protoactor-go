@@ -13,6 +13,12 @@ type Context interface {
 	// Message returns the current message to be processed
 	Message() interface{}
 
+	// Sender returns the PID of actor that sent currently processed message
+	Sender() *PID
+
+	//MessageHeader returns the meta information for the currently processed message
+	MessageHeader() ReadonlyMessageHeader
+
 	// SetReceiveTimeout sets the inactivity timeout, after which a ReceiveTimeout message will be sent to the actor.
 	// A duration of less than 1ms will disable the inactivity timer.
 	//
@@ -22,9 +28,6 @@ type Context interface {
 
 	// ReceiveTimeout returns the current timeout
 	ReceiveTimeout() time.Duration
-
-	// Sender returns the PID of actor that sent currently processed message
-	Sender() *PID
 
 	// SetBehavior replaces the actors current behavior stack with the new behavior
 	SetBehavior(behavior ActorFunc)

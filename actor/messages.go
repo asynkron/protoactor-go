@@ -35,17 +35,11 @@ type Started struct{}
 // Restart is message sent by the actor system to control the lifecycle of an actor
 type Restart struct{}
 
-//TODO: make private?
 type Failure struct {
 	Who          *PID
 	Reason       interface{}
 	RestartStats *RestartStatistics
 	Message      interface{}
-}
-
-type messageSender struct {
-	Message interface{}
-	Sender  *PID
 }
 
 type continuation struct {
