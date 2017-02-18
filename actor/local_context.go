@@ -91,7 +91,7 @@ func (ctx *localContext) cancelTimer() {
 }
 
 func (ctx *localContext) receiveTimeoutHandler() {
-	ctx.self.Request(receiveTimeoutMessage, nil)
+	ctx.self.Tell(receiveTimeoutMessage)
 }
 
 func (ctx *localContext) SetReceiveTimeout(d time.Duration) {
@@ -360,7 +360,7 @@ func (ctx *localContext) Unwatch(who *PID) {
 }
 
 func (ctx *localContext) Respond(response interface{}) {
-	ctx.Sender().Tell(response)
+	ctx.Tell(ctx.Sender(), response)
 }
 
 func (ctx *localContext) Spawn(props *Props) *PID {
