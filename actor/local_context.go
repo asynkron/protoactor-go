@@ -192,6 +192,10 @@ func localContextReceiver(ctx Context) {
 	}
 }
 
+func localContextSender(_ Context, target *PID, envelope messageEnvelope) {
+	target.ref().SendUserMessage(target, envelope.Message, envelope.Sender)
+}
+
 func (ctx *localContext) processMessage(m interface{}) {
 	ctx.message = m
 

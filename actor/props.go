@@ -8,7 +8,9 @@ type Props struct {
 	mailboxProducer     mailbox.Producer
 	supervisionStrategy SupervisorStrategy
 	middleware          []func(next ActorFunc) ActorFunc
+	middleware2         []func(next SenderFunc) SenderFunc
 	middlewareChain     ActorFunc
+	middleware2Chain    SenderFunc
 	dispatcher          mailbox.Dispatcher
 	spawner             SpawnFunc
 }
@@ -45,6 +47,12 @@ func (props *Props) spawn(id string, parent *PID) (*PID, error) {
 func (props *Props) WithMiddleware(middleware ...func(ActorFunc) ActorFunc) *Props {
 	props.middleware = append(props.middleware, middleware...)
 	props.middlewareChain = makeMiddlewareChain(props.middleware, localContextReceiver)
+	return props
+}
+
+func (props *Props) WithMiddleware2(middleware ...func(SenderFunc) SenderFunc) *Props {
+	props.middleware2 = append(props.middleware2, middleware...)
+	props.middleware2Chain = makeMiddleware2Chain(props.middleware2, localContextSender)
 	return props
 }
 
