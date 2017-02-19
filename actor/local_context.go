@@ -15,6 +15,7 @@ type localContext struct {
 	supervisor     SupervisorStrategy
 	producer       Producer
 	middleware     ActorFunc
+	middleware2    SenderFunc
 	behavior       behaviorStack
 	receive        ActorFunc
 	children       PIDSet
@@ -28,12 +29,13 @@ type localContext struct {
 	restartStats   *RestartStatistics
 }
 
-func newLocalContext(producer Producer, supervisor SupervisorStrategy, middleware ActorFunc, parent *PID) *localContext {
+func newLocalContext(producer Producer, supervisor SupervisorStrategy, middleware ActorFunc, middleware2 SenderFunc, parent *PID) *localContext {
 	cell := &localContext{
-		parent:     parent,
-		producer:   producer,
-		supervisor: supervisor,
-		middleware: middleware,
+		parent:      parent,
+		producer:    producer,
+		supervisor:  supervisor,
+		middleware:  middleware,
+		middleware2: middleware2,
 	}
 	cell.incarnateActor()
 	return cell
@@ -68,10 +70,24 @@ func (ctx *localContext) MessageHeader() ReadonlyMessageHeader {
 }
 
 func (ctx *localContext) Tell(pid *PID, message interface{}) {
+	if ctx.middleware2 != nil {
+		ctx.middleware2(ctx, pid, messageEnvelope{
+			Header:  emptyMessageHeader,
+			Message: message,
+			Sender:  nil,
+		})
+	}
 	pid.ref().SendUserMessage(pid, message, nil)
 }
 
 func (ctx *localContext) Request(pid *PID, message interface{}) {
+	if ctx.middleware2 != nil {
+		ctx.middleware2(ctx, pid, messageEnvelope{
+			Header:  emptyMessageHeader,
+			Message: message,
+			Sender:  ctx.Self(),
+		})
+	}
 	pid.ref().SendUserMessage(pid, message, ctx.Self())
 }
 
