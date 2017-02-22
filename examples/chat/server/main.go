@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"runtime"
 
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -19,7 +18,6 @@ func notifyAll(clients *hashset.Set, message interface{}) {
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
 	remote.Start("127.0.0.1:8080")
 	clients := hashset.New()
 	props := actor.FromFunc(func(context actor.Context) {

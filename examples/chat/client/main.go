@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"runtime"
 
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -11,7 +10,6 @@ import (
 )
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
 	remote.Start("127.0.0.1:0")
 
 	server := actor.NewPID("127.0.0.1:8080", "chatserver")
@@ -46,6 +44,7 @@ func main() {
 			OldUserName: nick,
 			NewUserName: newNick,
 		})
+		nick = newNick
 	})
 	cons.Run()
 }
