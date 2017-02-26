@@ -59,6 +59,9 @@ func (m *defaultMailbox) PostUserMessage(message interface{}) {
 }
 
 func (m *defaultMailbox) PostSystemMessage(message interface{}) {
+	for _, ms := range m.mailboxStats {
+		ms.MessagePosted(message)
+	}
 	m.systemMailbox.Push(message)
 	atomic.AddInt32(&m.sysMessages, 1)
 	m.schedule()
@@ -123,7 +126,9 @@ func (m *defaultMailbox) run() {
 			default:
 				m.invoker.InvokeSystemMessage(msg)
 			}
-
+			for _, ms := range m.mailboxStats {
+				ms.MessageReceived(msg)
+			}
 			continue
 		}
 
@@ -136,7 +141,6 @@ func (m *defaultMailbox) run() {
 			atomic.AddInt32(&m.userMessages, -1)
 			m.invoker.InvokeUserMessage(msg)
 			for _, ms := range m.mailboxStats {
-
 				ms.MessageReceived(msg)
 			}
 		} else {
