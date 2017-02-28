@@ -8,8 +8,8 @@ option (gogoproto.gostring_all) = false;
 
 message PID {
     option (gogoproto.stringer) = false;
-    string Address = 1;
-    string Id = 2;
+    string address = 1;
+    string id = 2;
 }
 
 //user messages
@@ -26,7 +26,7 @@ message Unwatch {
 
 message Terminated {
     PID who = 1;
-    bool AddressTerminated = 2;
+    bool address_terminated = 2;
 }
 
 message Stop {}

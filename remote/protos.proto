@@ -28,8 +28,6 @@ message ActorPidResponse {
     actor.PID pid = 1;
 }
 
-
-
 message Unit {}
 
 service Remoting {
