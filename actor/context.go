@@ -25,6 +25,9 @@ type Context interface {
 	//Request sends a message to the given PID and also provides a Sender PID
 	Request(pid *PID, message interface{})
 
+	// RequestFuture sends a message to a given PID and returns a Future
+	RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future
+
 	// SetReceiveTimeout sets the inactivity timeout, after which a ReceiveTimeout message will be sent to the actor.
 	// A duration of less than 1ms will disable the inactivity timer.
 	//

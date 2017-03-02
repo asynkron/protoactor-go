@@ -12,7 +12,7 @@ func TestActorCanReplyOnStarting(t *testing.T) {
 			context.Tell(future.PID(), EchoResponse{})
 		}
 	}))
-	defer a.StopFuture().Wait()
+	a.GracefulStop()
 	assertFutureSuccess(future, t)
 }
 
@@ -24,6 +24,6 @@ func TestActorCanReplyOnStopping(t *testing.T) {
 			context.Tell(future.PID(), EchoResponse{})
 		}
 	}))
-	defer a.StopFuture().Wait()
+	a.GracefulStop()
 	assertFutureSuccess(future, t)
 }

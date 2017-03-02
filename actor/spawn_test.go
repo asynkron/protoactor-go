@@ -38,10 +38,10 @@ func TestLookupById(t *testing.T) {
 	ID := "UniqueID"
 	{
 		props := FromInstance(&GorgeousActor{Counter: Counter{value: 0}})
-		actor, _ := SpawnNamed(props, ID)
-		defer actor.Stop()
+		pid, _ := SpawnNamed(props, ID)
+		defer pid.Stop()
 
-		result := actor.RequestFuture(Increment{}, testTimeout)
+		result := pid.RequestFuture(Increment{}, testTimeout)
 		value, err := result.Result()
 		if err != nil {
 			assert.Fail(t, "timed out")
@@ -52,8 +52,8 @@ func TestLookupById(t *testing.T) {
 	}
 	{
 		props := FromInstance(&GorgeousActor{Counter: Counter{value: 0}})
-		actor, _ := SpawnNamed(props, ID)
-		result := actor.RequestFuture(Increment{}, testTimeout)
+		pid, _ := SpawnNamed(props, ID)
+		result := pid.RequestFuture(Increment{}, testTimeout)
 		value, err := result.Result()
 		if err != nil {
 			assert.Fail(t, "timed out")

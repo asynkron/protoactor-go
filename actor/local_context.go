@@ -91,6 +91,21 @@ func (ctx *localContext) Request(pid *PID, message interface{}) {
 	pid.ref().SendUserMessage(pid, message, ctx.Self())
 }
 
+func (ctx *localContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
+	future := NewFuture(timeout)
+	ctx.Request(pid, message)
+	if ctx.middleware2 != nil {
+		ctx.middleware2(ctx, pid, messageEnvelope{
+			Header:  emptyMessageHeader,
+			Message: message,
+			Sender:  future.PID(),
+		})
+	} else {
+		pid.ref().SendUserMessage(pid, message, future.PID())
+	}
+	return future
+}
+
 func (ctx *localContext) Stash() {
 	if ctx.stash == nil {
 		ctx.stash = linkedliststack.New()

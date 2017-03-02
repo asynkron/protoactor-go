@@ -34,8 +34,8 @@ func TestActorCanCreateChildren(t *testing.T) {
 	for i := 0; i < expected; i++ {
 		a.Tell(CreateChildMessage{})
 	}
-	future := a.RequestFuture(GetChildCountRequest{}, testTimeout)
-	response := assertFutureSuccess(future, t)
+	fut := a.RequestFuture(GetChildCountRequest{}, testTimeout)
+	response := assertFutureSuccess(fut, t)
 	assert.Equal(t, expected, response.(GetChildCountResponse).ChildCount)
 }
 

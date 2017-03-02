@@ -56,6 +56,10 @@ func (pid *PID) StopFuture() *Future {
 	return future
 }
 
+func (pid *PID) GracefulStop() {
+	pid.StopFuture().Wait()
+}
+
 //Stop the given PID
 func (pid *PID) Stop() {
 	pid.ref().Stop(pid)
