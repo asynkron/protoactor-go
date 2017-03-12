@@ -13,7 +13,7 @@ type localProcess struct {
 
 func (ref *localProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
 	if sender != nil {
-		ref.mailbox.PostUserMessage(&messageEnvelope{Message: message, Sender: sender})
+		ref.mailbox.PostUserMessage(&MessageEnvelope{Message: message, Sender: sender})
 	} else {
 		ref.mailbox.PostUserMessage(message)
 	}

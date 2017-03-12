@@ -12,14 +12,14 @@ func makeMiddlewareChain(middleware []func(ActorFunc) ActorFunc, actorReceiver A
 	return h
 }
 
-func makeMiddleware2Chain(middleware2 []func(SenderFunc) SenderFunc, actorReceiver SenderFunc) SenderFunc {
-	if len(middleware2) == 0 {
+func makeOutboundMiddlewareChain(outboundMiddleware []func(SenderFunc) SenderFunc, actorReceiver SenderFunc) SenderFunc {
+	if len(outboundMiddleware) == 0 {
 		return nil
 	}
 
-	h := middleware2[len(middleware2)-1](actorReceiver)
-	for i := len(middleware2) - 2; i >= 0; i-- {
-		h = middleware2[i](h)
+	h := outboundMiddleware[len(outboundMiddleware)-1](actorReceiver)
+	for i := len(outboundMiddleware) - 2; i >= 0; i-- {
+		h = outboundMiddleware[i](h)
 	}
 	return h
 }

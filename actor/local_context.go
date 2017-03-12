@@ -46,7 +46,7 @@ func (ctx *localContext) Actor() Actor {
 }
 
 func (ctx *localContext) Message() interface{} {
-	envelope, ok := ctx.message.(*messageEnvelope)
+	envelope, ok := ctx.message.(*MessageEnvelope)
 	if ok {
 		return envelope.Message
 	}
@@ -54,7 +54,7 @@ func (ctx *localContext) Message() interface{} {
 }
 
 func (ctx *localContext) Sender() *PID {
-	envelope, ok := ctx.message.(*messageEnvelope)
+	envelope, ok := ctx.message.(*MessageEnvelope)
 	if ok {
 		return envelope.Sender
 	}
@@ -62,7 +62,7 @@ func (ctx *localContext) Sender() *PID {
 }
 
 func (ctx *localContext) MessageHeader() ReadonlyMessageHeader {
-	envelope, ok := ctx.message.(*messageEnvelope)
+	envelope, ok := ctx.message.(*MessageEnvelope)
 	if ok {
 		return envelope.Header
 	}
@@ -71,7 +71,7 @@ func (ctx *localContext) MessageHeader() ReadonlyMessageHeader {
 
 func (ctx *localContext) Tell(pid *PID, message interface{}) {
 	if ctx.outboundMiddleware != nil {
-		ctx.outboundMiddleware(ctx, pid, messageEnvelope{
+		ctx.outboundMiddleware(ctx, pid, MessageEnvelope{
 			Header:  emptyMessageHeader,
 			Message: message,
 			Sender:  nil,
@@ -82,7 +82,7 @@ func (ctx *localContext) Tell(pid *PID, message interface{}) {
 
 func (ctx *localContext) Request(pid *PID, message interface{}) {
 	if ctx.outboundMiddleware != nil {
-		ctx.outboundMiddleware(ctx, pid, messageEnvelope{
+		ctx.outboundMiddleware(ctx, pid, MessageEnvelope{
 			Header:  emptyMessageHeader,
 			Message: message,
 			Sender:  ctx.Self(),
@@ -95,7 +95,7 @@ func (ctx *localContext) RequestFuture(pid *PID, message interface{}, timeout ti
 	future := NewFuture(timeout)
 	ctx.Request(pid, message)
 	if ctx.outboundMiddleware != nil {
-		ctx.outboundMiddleware(ctx, pid, messageEnvelope{
+		ctx.outboundMiddleware(ctx, pid, MessageEnvelope{
 			Header:  emptyMessageHeader,
 			Message: message,
 			Sender:  future.PID(),
@@ -223,7 +223,7 @@ func localContextReceiver(ctx Context) {
 	}
 }
 
-func localContextSender(_ Context, target *PID, envelope messageEnvelope) {
+func localContextSender(_ Context, target *PID, envelope MessageEnvelope) {
 	target.ref().SendUserMessage(target, envelope.Message, envelope.Sender)
 }
 

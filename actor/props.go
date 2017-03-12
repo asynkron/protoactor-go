@@ -52,7 +52,7 @@ func (props *Props) WithMiddleware(middleware ...func(ActorFunc) ActorFunc) *Pro
 
 func (props *Props) WithOutboundMiddleware(middleware ...func(SenderFunc) SenderFunc) *Props {
 	props.outboundMiddleware = append(props.outboundMiddleware, middleware...)
-	props.outboundMiddlewareChain = makeMiddleware2Chain(props.outboundMiddleware, localContextSender)
+	props.outboundMiddlewareChain = makeOutboundMiddlewareChain(props.outboundMiddleware, localContextSender)
 	return props
 }
 
