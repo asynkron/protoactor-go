@@ -8,32 +8,34 @@ import (
 )
 
 type localContext struct {
-	message        interface{}
-	parent         *PID
-	self           *PID
-	actor          Actor
-	supervisor     SupervisorStrategy
-	producer       Producer
-	middleware     ActorFunc
-	behavior       behaviorStack
-	receive        ActorFunc
-	children       PIDSet
-	watchers       PIDSet
-	watching       PIDSet
-	stash          *linkedliststack.Stack
-	stopping       bool
-	restarting     bool
-	receiveTimeout time.Duration
-	t              *time.Timer
-	restartStats   *RestartStatistics
+	message            interface{}
+	parent             *PID
+	self               *PID
+	actor              Actor
+	supervisor         SupervisorStrategy
+	producer           Producer
+	middleware         ActorFunc
+	outboundMiddleware SenderFunc
+	behavior           behaviorStack
+	receive            ActorFunc
+	children           PIDSet
+	watchers           PIDSet
+	watching           PIDSet
+	stash              *linkedliststack.Stack
+	stopping           bool
+	restarting         bool
+	receiveTimeout     time.Duration
+	t                  *time.Timer
+	restartStats       *RestartStatistics
 }
 
-func newLocalContext(producer Producer, supervisor SupervisorStrategy, middleware ActorFunc, parent *PID) *localContext {
+func newLocalContext(producer Producer, supervisor SupervisorStrategy, middleware ActorFunc, middleware2 SenderFunc, parent *PID) *localContext {
 	cell := &localContext{
-		parent:     parent,
-		producer:   producer,
-		supervisor: supervisor,
-		middleware: middleware,
+		parent:             parent,
+		producer:           producer,
+		supervisor:         supervisor,
+		middleware:         middleware,
+		outboundMiddleware: middleware2,
 	}
 	cell.incarnateActor()
 	return cell
@@ -68,11 +70,40 @@ func (ctx *localContext) MessageHeader() ReadonlyMessageHeader {
 }
 
 func (ctx *localContext) Tell(pid *PID, message interface{}) {
+	if ctx.outboundMiddleware != nil {
+		ctx.outboundMiddleware(ctx, pid, messageEnvelope{
+			Header:  emptyMessageHeader,
+			Message: message,
+			Sender:  nil,
+		})
+	}
 	pid.ref().SendUserMessage(pid, message, nil)
 }
 
 func (ctx *localContext) Request(pid *PID, message interface{}) {
+	if ctx.outboundMiddleware != nil {
+		ctx.outboundMiddleware(ctx, pid, messageEnvelope{
+			Header:  emptyMessageHeader,
+			Message: message,
+			Sender:  ctx.Self(),
+		})
+	}
 	pid.ref().SendUserMessage(pid, message, ctx.Self())
+}
+
+func (ctx *localContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
+	future := NewFuture(timeout)
+	ctx.Request(pid, message)
+	if ctx.outboundMiddleware != nil {
+		ctx.outboundMiddleware(ctx, pid, messageEnvelope{
+			Header:  emptyMessageHeader,
+			Message: message,
+			Sender:  future.PID(),
+		})
+	} else {
+		pid.ref().SendUserMessage(pid, message, future.PID())
+	}
+	return future
 }
 
 func (ctx *localContext) Stash() {
@@ -91,7 +122,7 @@ func (ctx *localContext) cancelTimer() {
 }
 
 func (ctx *localContext) receiveTimeoutHandler() {
-	ctx.self.Request(receiveTimeoutMessage, nil)
+	ctx.self.Tell(receiveTimeoutMessage)
 }
 
 func (ctx *localContext) SetReceiveTimeout(d time.Duration) {
@@ -190,6 +221,10 @@ func localContextReceiver(ctx Context) {
 	} else {
 		a.receive(ctx)
 	}
+}
+
+func localContextSender(_ Context, target *PID, envelope messageEnvelope) {
+	target.ref().SendUserMessage(target, envelope.Message, envelope.Sender)
 }
 
 func (ctx *localContext) processMessage(m interface{}) {
@@ -360,7 +395,7 @@ func (ctx *localContext) Unwatch(who *PID) {
 }
 
 func (ctx *localContext) Respond(response interface{}) {
-	ctx.Sender().Tell(response)
+	ctx.Tell(ctx.Sender(), response)
 }
 
 func (ctx *localContext) Spawn(props *Props) *PID {

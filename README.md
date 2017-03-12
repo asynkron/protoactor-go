@@ -188,15 +188,15 @@ func (state *HelloActor) Receive(context actor.Context) {
 
 func main() {
     props := actor.FromInstance(&HelloActor{})
-    actor := actor.Spawn(props)
-    actor.Tell(Hello{Who: "Roger"})
+    pid := actor.Spawn(props)
+    actor.Tell(pid, Hello{Who: "Roger"})
 
     //why wait?
     //Stop is a system message and is not processed through the user message mailbox
     //thus, it will be handled _before_ any user message
     //we only do this to show the correct order of events in the console
     time.Sleep(1 * time.Second)
-    actor.Stop()
+    actor.StopActor(pid)
 
     console.ReadLine()
 }

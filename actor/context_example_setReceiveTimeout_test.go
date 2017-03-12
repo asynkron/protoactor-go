@@ -36,7 +36,7 @@ func ExampleContext_setReceiveTimeout() {
 	a.Add(1)
 
 	pid := actor.Spawn(actor.FromInstance(a))
-	defer pid.Stop()
+	defer pid.GracefulStop()
 
 	a.Wait() // wait for the ReceiveTimeout message
 

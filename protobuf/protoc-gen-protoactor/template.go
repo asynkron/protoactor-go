@@ -36,7 +36,7 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }
 				return nil, err
 			}
 			request := &cluster.GrainRequest{Method: "{{ $method.Name }}", MessageData: bytes}
-			response, err := pid.RequestFuture(request, conf.Timeout).Result()
+			response, err := actor.RequestFuture(pid, request, conf.Timeout).Result()
 			if err != nil {
 				return nil, err
 			}

@@ -37,7 +37,7 @@ func TestLocalContext_Stop(t *testing.T) {
 
 	o.On("SendSystemMessage", other, &Terminated{Who: pid})
 
-	lc := newLocalContext(nullProducer, DefaultSupervisorStrategy(), nil, nil)
+	lc := newLocalContext(nullProducer, DefaultSupervisorStrategy(), nil, nil, nil)
 	lc.self = pid
 	lc.InvokeSystemMessage(&Stop{})
 	lc.InvokeSystemMessage(&Watch{Watcher: other})
@@ -80,7 +80,7 @@ func TestActorContinueFutureInActor(t *testing.T) {
 			ctx.Respond("done")
 		}
 		if ctx.Message() == "start" {
-			f := ctx.Self().RequestFuture("request", 5*time.Second)
+			f := ctx.RequestFuture(ctx.Self(), "request", 5*time.Second)
 			ctx.AwaitFuture(f, func(res interface{}, err error) {
 				wg.Done()
 			})

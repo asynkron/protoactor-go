@@ -4,13 +4,15 @@ import "github.com/AsynkronIT/protoactor-go/mailbox"
 
 // Props represents configuration to define how an actor should be created
 type Props struct {
-	actorProducer       Producer
-	mailboxProducer     mailbox.Producer
-	supervisionStrategy SupervisorStrategy
-	middleware          []func(next ActorFunc) ActorFunc
-	middlewareChain     ActorFunc
-	dispatcher          mailbox.Dispatcher
-	spawner             SpawnFunc
+	actorProducer           Producer
+	mailboxProducer         mailbox.Producer
+	supervisionStrategy     SupervisorStrategy
+	middleware              []func(next ActorFunc) ActorFunc
+	outboundMiddleware      []func(next SenderFunc) SenderFunc
+	middlewareChain         ActorFunc
+	outboundMiddlewareChain SenderFunc
+	dispatcher              mailbox.Dispatcher
+	spawner                 SpawnFunc
 }
 
 func (props *Props) getDispatcher() mailbox.Dispatcher {
@@ -45,6 +47,12 @@ func (props *Props) spawn(id string, parent *PID) (*PID, error) {
 func (props *Props) WithMiddleware(middleware ...func(ActorFunc) ActorFunc) *Props {
 	props.middleware = append(props.middleware, middleware...)
 	props.middlewareChain = makeMiddlewareChain(props.middleware, localContextReceiver)
+	return props
+}
+
+func (props *Props) WithOutboundMiddleware(middleware ...func(SenderFunc) SenderFunc) *Props {
+	props.outboundMiddleware = append(props.outboundMiddleware, middleware...)
+	props.outboundMiddlewareChain = makeMiddleware2Chain(props.outboundMiddleware, localContextSender)
 	return props
 }
 

@@ -73,6 +73,6 @@ using the Context.Sender method, which returns the PID of of the sender.
 For synchronous communication, an actor will use a Future and wait for the result before continuing. To send a message
 to an actor and wait for a response, use the RequestFuture method, which returns a Future:
 
-	f := pid.RequestFuture("Hello", 50 * time.Millisecond)
+	f := actor.RequestFuture(pid,"Hello", 50 * time.Millisecond)
 	res, err := f.Result() // waits for pid to reply */
 package actor

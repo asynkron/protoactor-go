@@ -34,8 +34,8 @@ func TestActorCanCreateChildren(t *testing.T) {
 	for i := 0; i < expected; i++ {
 		a.Tell(CreateChildMessage{})
 	}
-	future := a.RequestFuture(GetChildCountRequest{}, testTimeout)
-	response := assertFutureSuccess(future,t)
+	fut := a.RequestFuture(GetChildCountRequest{}, testTimeout)
+	response := assertFutureSuccess(fut, t)
 	assert.Equal(t, expected, response.(GetChildCountResponse).ChildCount)
 }
 
@@ -53,11 +53,11 @@ func (state *CreateChildThenStopActor) Receive(context Context) {
 	case CreateChildMessage:
 		context.Spawn(FromProducer(NewBlackHoleActor))
 	case GetChildCountMessage2:
-		msg.ReplyDirectly.Tell(true)
+		context.Tell(msg.ReplyDirectly, true)
 		state.replyTo = msg.ReplyAfterStop
 	case *Stopped:
 		reply := GetChildCountResponse{ChildCount: len(context.Children())}
-		state.replyTo.Tell(reply)
+		context.Tell(state.replyTo, reply)
 	}
 }
 
@@ -78,13 +78,13 @@ func TestActorCanStopChildren(t *testing.T) {
 	actor.Tell(GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.PID()})
 
 	//wait for the actor to reply to the first responsePID
-	assertFutureSuccess(future,t)
+	assertFutureSuccess(future, t)
 
 	//then send a stop command
 	actor.Stop()
 
 	//wait for the actor to stop and get the result from the stopped handler
-	response := assertFutureSuccess(future2,t)
+	response := assertFutureSuccess(future2, t)
 	//we should have 0 children when the actor is stopped
 	assert.Equal(t, 0, response.(GetChildCountResponse).ChildCount)
 }
@@ -104,7 +104,7 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 		case *Terminated:
 			ac := c.(*localContext)
 			if msg.Who.Equal(child) && ac.watching.Empty() {
-				future.PID().Tell(true)
+				c.Tell(future.PID(), true)
 			}
 		}
 	}
@@ -113,7 +113,7 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 	wg.Wait()
 	child.Stop()
 
-	assertFutureSuccess(future,t)
+	assertFutureSuccess(future, t)
 }
 
 func TestFutureDoesTimeout(t *testing.T) {
