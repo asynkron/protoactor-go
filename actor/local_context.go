@@ -76,8 +76,9 @@ func (ctx *localContext) Tell(pid *PID, message interface{}) {
 			Message: message,
 			Sender:  nil,
 		})
+	} else {
+		pid.ref().SendUserMessage(pid, message, nil)
 	}
-	pid.ref().SendUserMessage(pid, message, nil)
 }
 
 func (ctx *localContext) Request(pid *PID, message interface{}) {
@@ -87,13 +88,13 @@ func (ctx *localContext) Request(pid *PID, message interface{}) {
 			Message: message,
 			Sender:  ctx.Self(),
 		})
+	} else {
+		pid.ref().SendUserMessage(pid, message, ctx.Self())
 	}
-	pid.ref().SendUserMessage(pid, message, ctx.Self())
 }
 
 func (ctx *localContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
 	future := NewFuture(timeout)
-	ctx.Request(pid, message)
 	if ctx.outboundMiddleware != nil {
 		ctx.outboundMiddleware(ctx, pid, MessageEnvelope{
 			Header:  emptyMessageHeader,

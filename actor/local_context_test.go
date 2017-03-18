@@ -45,6 +45,52 @@ func TestLocalContext_Stop(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, p, o)
 }
 
+func TestLocalContext_SendMessage_WithOutboundMiddleware(t *testing.T) {
+	// Define a local context with no-op outbound middlware
+	mw := func(next SenderFunc) SenderFunc {
+		return func(ctx Context, target *PID, envelope MessageEnvelope) {
+			next(ctx, target, envelope)
+		}
+	}
+
+	ctx := &localContext{
+		actor: nullReceive,
+		outboundMiddleware: makeOutboundMiddlewareChain(
+			[]func(SenderFunc) SenderFunc{mw}, localContextSender,
+		),
+	}
+
+	ctx.SetBehavior(nullReceive.Receive)
+
+	// Define a receiver to which the local context will send a message
+	var counter int
+	receiver := Spawn(FromFunc(func(ctx Context) {
+		switch ctx.Message().(type) {
+		case bool:
+			counter++
+		}
+	}))
+
+	// Send a message with Tell
+	// Then wait a little to allow the receiver to process the message
+	// TODO: There should be a better way to wait.
+	timeout := 3 * time.Millisecond
+	ctx.Tell(receiver, true)
+	time.Sleep(timeout)
+	assert.Equal(t, 1, counter)
+
+	// Send a message with Request
+	counter = 0 // Reset the counter
+	ctx.Request(receiver, true)
+	time.Sleep(3 * time.Millisecond)
+	assert.Equal(t, 1, counter)
+
+	// Send a message with RequestFuture
+	counter = 0 // Reset the counter
+	ctx.RequestFuture(receiver, true, timeout).Wait()
+	assert.Equal(t, 1, counter)
+}
+
 func BenchmarkLocalContext_ProcessMessageNoMiddleware(b *testing.B) {
 	var m interface{} = 1
 
