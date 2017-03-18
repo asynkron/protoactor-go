@@ -53,14 +53,7 @@ func TestLocalContext_SendMessage_WithOutboundMiddleware(t *testing.T) {
 		}
 	}
 
-	ctx := &localContext{
-		actor: nullReceive,
-		outboundMiddleware: makeOutboundMiddlewareChain(
-			[]func(SenderFunc) SenderFunc{mw}, localContextSender,
-		),
-	}
-
-	ctx.SetBehavior(nullReceive.Receive)
+	ctx := newLocalContext(nullProducer, DefaultSupervisorStrategy(), nil, []OutboundMiddleware{mw}, nil)
 
 	// Define a receiver to which the local context will send a message
 	var counter int
@@ -105,14 +98,13 @@ func BenchmarkLocalContext_ProcessMessageWithMiddleware(b *testing.B) {
 	var m interface{} = 1
 
 	fn := func(next ActorFunc) ActorFunc {
-		fn := func(context Context) {
+		return func(context Context) {
 			next(context)
 		}
-		return fn
 	}
 
-	ctx := &localContext{actor: nullReceive, middleware: makeMiddlewareChain([]func(ActorFunc) ActorFunc{fn, fn}, localContextReceiver)}
-	ctx.SetBehavior(nullReceive.Receive)
+	ctx := newLocalContext(nullProducer, DefaultSupervisorStrategy(), []InboundMiddleware{fn, fn}, nil, nil)
+
 	for i := 0; i < b.N; i++ {
 		ctx.processMessage(m)
 	}
