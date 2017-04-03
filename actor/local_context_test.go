@@ -23,7 +23,7 @@ func TestLocalContext_SpawnNamed(t *testing.T) {
 
 	parent := &localContext{self: NewLocalPID("foo")}
 	parent.SpawnNamed(props, "bar")
-	mock.AssertExpectationsForObjects(t, p)
+	p.AssertExpectations(t)
 }
 
 // TestLocalContext_Stop verifies if context is stopping and receives a Watch message, it should
@@ -42,7 +42,8 @@ func TestLocalContext_Stop(t *testing.T) {
 	lc.InvokeSystemMessage(&Stop{})
 	lc.InvokeSystemMessage(&Watch{Watcher: other})
 
-	mock.AssertExpectationsForObjects(t, p, o)
+	p.AssertExpectations(t)
+	o.AssertExpectations(t)
 }
 
 func TestLocalContext_SendMessage_WithOutboundMiddleware(t *testing.T) {

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func middleware(called *int) InboundMiddleware {
@@ -38,7 +37,7 @@ func TestMakeInboundMiddleware_CallsInCorrectOrder(t *testing.T) {
 	assert.Equal(t, 1, c[0])
 	assert.Equal(t, 2, c[1])
 	assert.Equal(t, 3, c[2])
-	mock.AssertExpectationsForObjects(t, mc)
+	mc.AssertExpectations(t)
 }
 
 func TestMakeInboundMiddleware_ReturnsNil(t *testing.T) {
