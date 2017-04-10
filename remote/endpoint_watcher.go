@@ -16,13 +16,11 @@ func newEndpointWatcher(address string) actor.Producer {
 type endpointWatcher struct {
 	address string
 	watched map[string]*actor.PID //key is the watching PID string, value is the watched PID
-	watcher map[string]*actor.PID //key is the watched PID string, value is the watching PID
 }
 
 func (state *endpointWatcher) initialize() {
 	plog.Info("Started EndpointWatcher", log.String("address", state.address))
 	state.watched = make(map[string]*actor.PID)
-	state.watcher = make(map[string]*actor.PID)
 }
 
 func (state *endpointWatcher) Receive(ctx actor.Context) {
@@ -32,7 +30,6 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 
 	case *remoteTerminate:
 		delete(state.watched, msg.Watcher.Id)
-		delete(state.watcher, msg.Watchee.Id)
 
 		terminated := &actor.Terminated{
 			Who:               msg.Watchee,
@@ -69,7 +66,6 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 	case *remoteWatch:
 
 		state.watched[msg.Watcher.Id] = msg.Watchee
-		state.watcher[msg.Watchee.Id] = msg.Watcher
 
 		//recreate the Watch command
 		w := &actor.Watch{
@@ -83,7 +79,6 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 
 		//delete the watch entries
 		delete(state.watched, msg.Watcher.Id)
-		delete(state.watcher, msg.Watchee.Id)
 
 		//recreate the Unwatch command
 		uw := &actor.Unwatch{
