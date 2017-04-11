@@ -196,7 +196,7 @@ func main() {
     //thus, it will be handled _before_ any user message
     //we only do this to show the correct order of events in the console
     time.Sleep(1 * time.Second)
-    actor.StopActor(pid)
+    pid.Stop()
 
     console.ReadLine()
 }
