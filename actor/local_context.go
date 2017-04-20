@@ -37,13 +37,15 @@ func newLocalContext(producer Producer, supervisor SupervisorStrategy, inboundMi
 	}
 
 	// Construct the inbound middleware chain with the final receiver at the end
-	this.inboundMiddleware = makeInboundMiddlewareChain(inboundMiddleware, func(ctx Context) {
-		if _, ok := this.message.(*PoisonPill); ok {
-			this.self.Stop()
-		} else {
-			this.receive(ctx)
-		}
-	})
+	if inboundMiddleware != nil {
+		this.inboundMiddleware = makeInboundMiddlewareChain(inboundMiddleware, func(ctx Context) {
+			if _, ok := this.message.(*PoisonPill); ok {
+				this.self.Stop()
+			} else {
+				this.receive(ctx)
+			}
+		})
+	}
 
 	// Construct the outbound middleware chain with the final sender at the end
 	this.outboundMiddleware = makeOutboundMiddlewareChain(outboundMiddleware, func(_ Context, target *PID, envelope MessageEnvelope) {
