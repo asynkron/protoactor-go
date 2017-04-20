@@ -111,6 +111,40 @@ func BenchmarkLocalContext_ProcessMessageWithMiddleware(b *testing.B) {
 	}
 }
 
+func benchmarkLocalContext_SpawnWithMiddlewareN(n int, b *testing.B) {
+	middlwareFn := func(next ActorFunc) ActorFunc {
+		return func(context Context) {
+			next(context)
+		}
+	}
+
+	props := FromProducer(nullProducer)
+	for i := 0; i < n; i++ {
+		props = props.WithMiddleware(middlwareFn)
+	}
+
+	parent := &localContext{self: NewLocalPID("foo")}
+	for i := 0; i < b.N; i++ {
+		parent.Spawn(props)
+	}
+}
+
+func BenchmarkLocalContext_SpawnWithMiddleware0(b *testing.B) {
+	benchmarkLocalContext_SpawnWithMiddlewareN(0, b)
+}
+
+func BenchmarkLocalContext_SpawnWithMiddleware1(b *testing.B) {
+	benchmarkLocalContext_SpawnWithMiddlewareN(1, b)
+}
+
+func BenchmarkLocalContext_SpawnWithMiddleware2(b *testing.B) {
+	benchmarkLocalContext_SpawnWithMiddlewareN(2, b)
+}
+
+func BenchmarkLocalContext_SpawnWithMiddleware5(b *testing.B) {
+	benchmarkLocalContext_SpawnWithMiddlewareN(5, b)
+}
+
 func TestActorContinueFutureInActor(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
