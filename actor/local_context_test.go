@@ -1,7 +1,6 @@
 package actor
 
 import (
-	"sync"
 	"testing"
 	"time"
 
@@ -119,8 +118,6 @@ func BenchmarkLocalContext_ProcessMessageWithMiddleware(b *testing.B) {
 }
 
 func TestActorContinueFutureInActor(t *testing.T) {
-	var wg sync.WaitGroup
-	wg.Add(1)
 	pid := Spawn(FromFunc(func(ctx Context) {
 		if ctx.Message() == "request" {
 			ctx.Respond("done")
@@ -128,10 +125,11 @@ func TestActorContinueFutureInActor(t *testing.T) {
 		if ctx.Message() == "start" {
 			f := ctx.RequestFuture(ctx.Self(), "request", 5*time.Second)
 			ctx.AwaitFuture(f, func(res interface{}, err error) {
-				wg.Done()
+				ctx.Respond(res)
 			})
 		}
 	}))
-	pid.Tell("start")
-	wg.Wait()
+	res, err := pid.RequestFuture("start", time.Second).Result()
+	assert.NoError(t, err)
+	assert.Equal(t, "done", res)
 }
