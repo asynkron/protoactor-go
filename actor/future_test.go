@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestFuture_PipeTo_Message(t *testing.T) {
@@ -33,7 +32,9 @@ func TestFuture_PipeTo_Message(t *testing.T) {
 	fp, _ := ref.(*futureProcess)
 
 	fp.SendUserMessage(f.pid, "hello", nil)
-	mock.AssertExpectationsForObjects(t, p1, p2, p3)
+	p1.AssertExpectations(t)
+	p2.AssertExpectations(t)
+	p3.AssertExpectations(t)
 	assert.Empty(t, fp.pipes, "pipes were not cleared")
 }
 
@@ -64,7 +65,9 @@ func TestFuture_PipeTo_TimeoutSendsError(t *testing.T) {
 	assert.IsType(t, &futureProcess{}, ref)
 	fp, _ := ref.(*futureProcess)
 
-	mock.AssertExpectationsForObjects(t, p1, p2, p3)
+	p1.AssertExpectations(t)
+	p2.AssertExpectations(t)
+	p3.AssertExpectations(t)
 	assert.Empty(t, fp.pipes, "pipes were not cleared")
 }
 

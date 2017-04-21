@@ -14,7 +14,7 @@ type localContext struct {
 	actor              Actor
 	supervisor         SupervisorStrategy
 	producer           Producer
-	middleware         ActorFunc
+	inboundMiddleware  ActorFunc
 	outboundMiddleware SenderFunc
 	behavior           behaviorStack
 	receive            ActorFunc
@@ -29,16 +29,31 @@ type localContext struct {
 	restartStats       *RestartStatistics
 }
 
-func newLocalContext(producer Producer, supervisor SupervisorStrategy, middleware ActorFunc, middleware2 SenderFunc, parent *PID) *localContext {
-	cell := &localContext{
-		parent:             parent,
-		producer:           producer,
-		supervisor:         supervisor,
-		middleware:         middleware,
-		outboundMiddleware: middleware2,
+func newLocalContext(producer Producer, supervisor SupervisorStrategy, inboundMiddleware []InboundMiddleware, outboundMiddleware []OutboundMiddleware, parent *PID) *localContext {
+	this := &localContext{
+		parent:     parent,
+		producer:   producer,
+		supervisor: supervisor,
 	}
-	cell.incarnateActor()
-	return cell
+
+	// Construct the inbound middleware chain with the final receiver at the end
+	if inboundMiddleware != nil {
+		this.inboundMiddleware = makeInboundMiddlewareChain(inboundMiddleware, func(ctx Context) {
+			if _, ok := this.message.(*PoisonPill); ok {
+				this.self.Stop()
+			} else {
+				this.receive(ctx)
+			}
+		})
+	}
+
+	// Construct the outbound middleware chain with the final sender at the end
+	this.outboundMiddleware = makeOutboundMiddlewareChain(outboundMiddleware, func(_ Context, target *PID, envelope MessageEnvelope) {
+		target.ref().SendUserMessage(target, envelope.Message, envelope.Sender)
+	})
+
+	this.incarnateActor()
+	return this
 }
 
 func (ctx *localContext) Actor() Actor {
@@ -214,25 +229,11 @@ func (ctx *localContext) InvokeUserMessage(md interface{}) {
 	}
 }
 
-// localContextReceiver is used when middleware chain is required
-func localContextReceiver(ctx Context) {
-	a := ctx.(*localContext)
-	if _, ok := a.message.(*PoisonPill); ok {
-		a.self.Stop()
-	} else {
-		a.receive(ctx)
-	}
-}
-
-func localContextSender(_ Context, target *PID, envelope MessageEnvelope) {
-	target.ref().SendUserMessage(target, envelope.Message, envelope.Sender)
-}
-
 func (ctx *localContext) processMessage(m interface{}) {
 	ctx.message = m
 
-	if ctx.middleware != nil {
-		ctx.middleware(ctx)
+	if ctx.inboundMiddleware != nil {
+		ctx.inboundMiddleware(ctx)
 	} else {
 		if _, ok := m.(*PoisonPill); ok {
 			ctx.self.Stop()

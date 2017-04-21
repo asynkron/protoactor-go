@@ -23,7 +23,7 @@ func TestLocalContext_SpawnNamed(t *testing.T) {
 
 	parent := &localContext{self: NewLocalPID("foo")}
 	parent.SpawnNamed(props, "bar")
-	mock.AssertExpectationsForObjects(t, p)
+	p.AssertExpectations(t)
 }
 
 // TestLocalContext_Stop verifies if context is stopping and receives a Watch message, it should
@@ -42,7 +42,8 @@ func TestLocalContext_Stop(t *testing.T) {
 	lc.InvokeSystemMessage(&Stop{})
 	lc.InvokeSystemMessage(&Watch{Watcher: other})
 
-	mock.AssertExpectationsForObjects(t, p, o)
+	p.AssertExpectations(t)
+	o.AssertExpectations(t)
 }
 
 func TestLocalContext_SendMessage_WithOutboundMiddleware(t *testing.T) {
@@ -53,14 +54,7 @@ func TestLocalContext_SendMessage_WithOutboundMiddleware(t *testing.T) {
 		}
 	}
 
-	ctx := &localContext{
-		actor: nullReceive,
-		outboundMiddleware: makeOutboundMiddlewareChain(
-			[]func(SenderFunc) SenderFunc{mw}, localContextSender,
-		),
-	}
-
-	ctx.SetBehavior(nullReceive.Receive)
+	ctx := newLocalContext(nullProducer, DefaultSupervisorStrategy(), nil, []OutboundMiddleware{mw}, nil)
 
 	// Define a receiver to which the local context will send a message
 	var counter int
@@ -105,17 +99,50 @@ func BenchmarkLocalContext_ProcessMessageWithMiddleware(b *testing.B) {
 	var m interface{} = 1
 
 	fn := func(next ActorFunc) ActorFunc {
-		fn := func(context Context) {
+		return func(context Context) {
 			next(context)
 		}
-		return fn
 	}
 
-	ctx := &localContext{actor: nullReceive, middleware: makeMiddlewareChain([]func(ActorFunc) ActorFunc{fn, fn}, localContextReceiver)}
-	ctx.SetBehavior(nullReceive.Receive)
+	ctx := newLocalContext(nullProducer, DefaultSupervisorStrategy(), []InboundMiddleware{fn, fn}, nil, nil)
+
 	for i := 0; i < b.N; i++ {
 		ctx.processMessage(m)
 	}
+}
+
+func benchmarkLocalContext_SpawnWithMiddlewareN(n int, b *testing.B) {
+	middlwareFn := func(next ActorFunc) ActorFunc {
+		return func(context Context) {
+			next(context)
+		}
+	}
+
+	props := FromProducer(nullProducer)
+	for i := 0; i < n; i++ {
+		props = props.WithMiddleware(middlwareFn)
+	}
+
+	parent := &localContext{self: NewLocalPID("foo")}
+	for i := 0; i < b.N; i++ {
+		parent.Spawn(props)
+	}
+}
+
+func BenchmarkLocalContext_SpawnWithMiddleware0(b *testing.B) {
+	benchmarkLocalContext_SpawnWithMiddlewareN(0, b)
+}
+
+func BenchmarkLocalContext_SpawnWithMiddleware1(b *testing.B) {
+	benchmarkLocalContext_SpawnWithMiddlewareN(1, b)
+}
+
+func BenchmarkLocalContext_SpawnWithMiddleware2(b *testing.B) {
+	benchmarkLocalContext_SpawnWithMiddlewareN(2, b)
+}
+
+func BenchmarkLocalContext_SpawnWithMiddleware5(b *testing.B) {
+	benchmarkLocalContext_SpawnWithMiddlewareN(5, b)
 }
 
 func TestActorContinueFutureInActor(t *testing.T) {
