@@ -435,12 +435,13 @@ func (ctx *localContext) AwaitFuture(f *Future, cont func(res interface{}, err e
 		cont(f.result, f.err)
 	}
 
+	message := ctx.message
 	//invoke the callback when the future completes
 	f.continueWith(func(res interface{}, err error) {
 		//send the wrapped callaback as a continuation message to self
 		ctx.self.sendSystemMessage(&continuation{
 			f:       wrapper,
-			message: ctx.message,
+			message: message,
 		})
 	})
 }
