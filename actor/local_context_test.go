@@ -1,9 +1,11 @@
 package actor
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -92,6 +94,52 @@ func BenchmarkLocalContext_ProcessMessageNoMiddleware(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		ctx.processMessage(m)
 	}
+}
+
+func TestLocalContext_Respond(t *testing.T) {
+	// Defined a responder actor
+	// It simply echoes a received string.
+	responder := Spawn(FromFunc(func(ctx Context) {
+		switch m := ctx.Message().(type) {
+		case string:
+			ctx.Respond(fmt.Sprintf("Got a string: %s", m))
+		}
+	}))
+
+	// Be prepared to catch a response that the responder will send to nil
+	var gotResponseToNil bool
+	deadLetterSubscriber = eventstream.Subscribe(func(msg interface{}) {
+		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
+			if deadLetter.PID == nil && deadLetter.Sender == responder {
+				gotResponseToNil = true
+			}
+		}
+	})
+
+	// Send a message to the responder using Request
+	// The responder should send something back.
+	timeout := 3 * time.Millisecond
+	res, err := responder.RequestFuture("hello", timeout).Result()
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
+
+	resStr, ok := res.(string)
+	assert.True(t, ok)
+	assert.Equal(t, "Got a string: hello", resStr)
+
+	// Ensure that the responder did not send anything to nil
+	time.Sleep(timeout)
+	assert.False(t, gotResponseToNil)
+
+	// Send a message using Tell
+	responder.Tell("hello")
+
+	// Ensure that the responder actually send something to nil
+	time.Sleep(timeout)
+	assert.True(t, gotResponseToNil)
+
+	// Cleanup
+	eventstream.Unsubscribe(deadLetterSubscriber)
 }
 
 func BenchmarkLocalContext_ProcessMessageWithMiddleware(b *testing.B) {
