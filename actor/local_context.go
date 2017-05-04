@@ -397,6 +397,12 @@ func (ctx *localContext) Unwatch(who *PID) {
 }
 
 func (ctx *localContext) Respond(response interface{}) {
+	// If the message is addressed to nil forward it to the dead letter channel
+	if ctx.Sender() == nil {
+		deadLetter.SendUserMessage(nil, response, ctx.Self())
+		return
+	}
+
 	ctx.Tell(ctx.Sender(), response)
 }
 
