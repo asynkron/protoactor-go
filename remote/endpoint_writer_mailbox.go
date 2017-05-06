@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/AsynkronIT/protoactor-go/internal/queue/goring"
-	"github.com/AsynkronIT/protoactor-go/internal/queue/lfqueue"
+	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
@@ -21,7 +21,7 @@ const (
 
 type endpointWriterMailbox struct {
 	userMailbox     *goring.Queue
-	systemMailbox   *lfqueue.LockfreeQueue
+	systemMailbox   *mpsc.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
 	invoker         mailbox.MessageInvoker
@@ -109,7 +109,7 @@ func (m *endpointWriterMailbox) run() {
 func newEndpointWriterMailbox(batchSize, initialSize int) mailbox.Producer {
 	return func(invoker mailbox.MessageInvoker, dispatcher mailbox.Dispatcher) mailbox.Inbound {
 		userMailbox := goring.New(int64(initialSize))
-		systemMailbox := lfqueue.NewLockfreeQueue()
+		systemMailbox := mpsc.New()
 		return &endpointWriterMailbox{
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
