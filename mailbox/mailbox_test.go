@@ -7,6 +7,10 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	rbqueue "github.com/Workiva/go-datastructures/queue"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type invoker struct {
@@ -98,4 +102,29 @@ func TestUnboundedLockfreeMailboxSysMessageConsistency(t *testing.T) {
 	}
 	wg.Wait()
 	time.Sleep(1 * time.Second)
+}
+
+func TestBoundedMailbox(t *testing.T) {
+	size := 3
+	m := boundedMailboxQueue{
+		userMailbox: rbqueue.NewRingBuffer(uint64(size)),
+		dropping:    false,
+	}
+	m.Push("1")
+	m.Push("2")
+	m.Push("3")
+	assert.Equal(t, "1", m.Pop())
+}
+
+func TestBoundedDroppingMailbox(t *testing.T) {
+	size := 3
+	m := boundedMailboxQueue{
+		userMailbox: rbqueue.NewRingBuffer(uint64(size)),
+		dropping:    true,
+	}
+	m.Push("1")
+	m.Push("2")
+	m.Push("3")
+	m.Push("4")
+	assert.Equal(t, "2", m.Pop())
 }
