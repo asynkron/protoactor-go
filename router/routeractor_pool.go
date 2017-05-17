@@ -40,7 +40,7 @@ func (a *poolRouterActor) Receive(context actor.Context) {
 		a.state.SetRoutees(r)
 		// sleep for 1ms before sending the poison pill
 		// This is to give some time to the routee actor receive all
-		// the messages. Sepcially due to the synchronization conditions in
+		// the messages. Specially due to the synchronization conditions in
 		// consistent hash router, where a copy of hmc can be obtained before
 		// the update and cause messages routed to a dead routee if there is no
 		// delay. This is a best effort approach and 1ms seems to be acceptable

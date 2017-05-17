@@ -7,7 +7,7 @@ import (
 )
 
 // Subscribe subscribes to events
-func Example_Subscribe() {
+func ExampleSubscribe() {
 	sub := eventstream.Subscribe(func(event interface{}) {
 		fmt.Println(event)
 	})
