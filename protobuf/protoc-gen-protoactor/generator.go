@@ -8,7 +8,7 @@ import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 )
 
-type gorelans struct {
+type grainGenerator struct {
 	*generator.Generator
 	generator.PluginImports
 	atleastOne bool
@@ -16,24 +16,24 @@ type gorelans struct {
 	overwrite  bool
 }
 
-func NewGorleans() *gorelans {
-	return &gorelans{}
+func newGrainGenerator() *grainGenerator {
+	return &grainGenerator{}
 }
 
-func (p *gorelans) Name() string {
+func (p *grainGenerator) Name() string {
 	return "gorelans"
 }
 
-func (p *gorelans) Overwrite() {
+func (p *grainGenerator) Overwrite() {
 	p.overwrite = true
 }
 
-func (p *gorelans) Init(g *generator.Generator) {
+func (p *grainGenerator) Init(g *generator.Generator) {
 	p.Generator = g
 }
 
 // GenerateImports generates the import declaration for this file.
-func (g *gorelans) GenerateImports(file *generator.FileDescriptor) {
+func (g *grainGenerator) GenerateImports(file *generator.FileDescriptor) {
 	if len(file.FileDescriptorProto.Service) == 0 {
 		return
 	}
@@ -47,11 +47,11 @@ func (g *gorelans) GenerateImports(file *generator.FileDescriptor) {
 	g.P()
 }
 
-func (p *gorelans) Generate(file *generator.FileDescriptor) {
+func (p *grainGenerator) Generate(file *generator.FileDescriptor) {
 
 	pkg := ProtoAst(file)
 
-	t := template.New("hello template")
+	t := template.New("grain")
 	t, _ = t.Parse(code)
 
 	var doc bytes.Buffer

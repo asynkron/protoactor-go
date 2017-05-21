@@ -246,11 +246,11 @@ func (ctx *localContext) processMessage(m interface{}) {
 }
 
 func (ctx *localContext) incarnateActor() {
-	actor := ctx.producer()
+	pid := ctx.producer()
 	ctx.restarting = false
 	ctx.stopping = false
-	ctx.actor = actor
-	ctx.receive = actor.Receive
+	ctx.actor = pid
+	ctx.receive = pid.Receive
 }
 
 func (ctx *localContext) InvokeSystemMessage(message interface{}) {
