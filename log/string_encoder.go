@@ -97,7 +97,7 @@ type ioEncoder struct {
 }
 
 func (e ioEncoder) EncodeBool(key string, val bool) {
-	fmt.Fprintf(e, "%s=%b", key, val)
+	fmt.Fprintf(e, "%s=%t", key, val)
 }
 
 func (e ioEncoder) EncodeFloat64(key string, val float64) {

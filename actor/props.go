@@ -97,7 +97,7 @@ func (props *Props) WithProducer(p Producer) *Props {
 	return props
 }
 
-//FromProducer creates a props whith the given actor producer assigned
+//FromProducer creates a props with the given actor producer assigned
 func FromProducer(actorProducer Producer) *Props {
 	return &Props{actorProducer: actorProducer}
 }

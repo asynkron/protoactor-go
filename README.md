@@ -83,7 +83,7 @@ For a more indepth description of the differences, see this thread [Actors vs. C
 
 You need to ensure that your `$GOPATH` variable is properly set.
 
-Next, install the [standard protocol buffer implementation](https://github.com/google/protobuf) and run the following commands to get all the neccessary tooling:
+Next, install the [standard protocol buffer implementation](https://github.com/google/protobuf) and run the following commands to get all the necessary tooling:
 ```
 go get github.com/gogo/protobuf/proto
 go get github.com/gogo/protobuf/protoc-gen-gogo
@@ -348,3 +348,6 @@ message Response {
 
 For more examples, see the example folder in this repository.
 
+### Support
+
+Many thanks to [JetBrains](https://www.jetbrains.com) for support!
