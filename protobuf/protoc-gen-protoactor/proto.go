@@ -7,23 +7,27 @@ import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 )
 
+// ProtoFile reprpesents a parsed proto file
 type ProtoFile struct {
 	PackageName string
 	Messages    []*ProtoMessage
 	Services    []*ProtoService
 }
 
+// ProtoMessage represents a parsed message in a proto file
 type ProtoMessage struct {
 	Name       string
 	PascalName string
 }
 
+// ProtoService represents a parsed service in a proto file
 type ProtoService struct {
 	Name       string
 	PascalName string
 	Methods    []*ProtoMethod
 }
 
+// ProtoMethod represents a parsed method in a proto service
 type ProtoMethod struct {
 	Name         string
 	PascalName   string
@@ -33,6 +37,7 @@ type ProtoMethod struct {
 	Output       *ProtoMessage
 }
 
+//ProtoAst transforms a FileDescriptor to an AST that can be used for code generation
 func ProtoAst(file *generator.FileDescriptor) *ProtoFile {
 
 	pkg := &ProtoFile{}
@@ -68,6 +73,7 @@ func ProtoAst(file *generator.FileDescriptor) *ProtoFile {
 	return pkg
 }
 
+// MakeFirstLowerCase makes the first character in a string lower case
 func MakeFirstLowerCase(s string) string {
 
 	if len(s) < 2 {

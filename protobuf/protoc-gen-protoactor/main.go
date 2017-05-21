@@ -7,7 +7,6 @@ func main() {
 	req := command.Read()
 	p := newGrainGenerator()
 	p.Overwrite()
-
-	resp := command.GeneratePlugin(req, p, "_protoactor.go")
+	resp := p.GenerateCode(req, p, "_protoactor.go", true)
 	command.Write(resp)
 }
