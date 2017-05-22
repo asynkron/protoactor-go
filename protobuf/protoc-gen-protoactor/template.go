@@ -3,6 +3,21 @@ package main
 const code = `
 package {{.PackageName}}
 
+
+import errors "errors"
+import log "log"
+import actor "github.com/AsynkronIT/protoactor-go/actor"
+import remote "github.com/AsynkronIT/protoactor-go/remote"
+import cluster "github.com/AsynkronIT/protoactor-go/cluster"
+
+import proto "github.com/gogo/protobuf/proto"
+import fmt "fmt"
+import math "math"
+
+var _ = proto.Marshal
+var _ = fmt.Errorf
+var _ = math.Inf
+
 {{ range $service := .Services}}	
 var x{{ $service.Name }}Factory func() {{ $service.Name }}
 

@@ -74,7 +74,7 @@ func (p *grainGenerator) GenerateCode(req *plugin.CodeGeneratorRequest, filename
 	response := &plugin.CodeGeneratorResponse{}
 	for _, f := range req.GetProtoFile() {
 		s := p.Generate(f)
-		fileName := f.GetName() + "_actor.go"
+		fileName := strings.Replace(f.GetName(), ".", "_", 1) + "actor.go"
 		r := &plugin.CodeGeneratorResponse_File{
 			Content: &s,
 			Name:    &fileName,
