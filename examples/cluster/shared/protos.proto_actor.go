@@ -1,4 +1,5 @@
 
+package shared
 
 	
 var xHelloFactory func() Hello

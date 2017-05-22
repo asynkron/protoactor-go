@@ -1,6 +1,7 @@
 package main
 
 const code = `
+package {{.PackageName}}
 
 {{ range $service := .Services}}	
 var x{{ $service.Name }}Factory func() {{ $service.Name }}
