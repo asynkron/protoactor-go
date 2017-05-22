@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
+	google_protobuf "github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 )
 
 // ProtoFile reprpesents a parsed proto file
@@ -38,10 +38,10 @@ type ProtoMethod struct {
 }
 
 //ProtoAst transforms a FileDescriptor to an AST that can be used for code generation
-func ProtoAst(file *generator.FileDescriptor) *ProtoFile {
+func ProtoAst(file *google_protobuf.FileDescriptorProto) *ProtoFile {
 
 	pkg := &ProtoFile{}
-	pkg.PackageName = file.PackageName()
+	pkg.PackageName = file.GetPackage()
 	messages := make(map[string]*ProtoMessage)
 	for _, message := range file.GetMessageType() {
 		m := &ProtoMessage{}

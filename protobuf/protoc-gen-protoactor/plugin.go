@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/gogo/protobuf/proto"
+	google_protobuf "github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 	plugin "github.com/gogo/protobuf/protoc-gen-gogo/plugin"
 )
@@ -51,7 +51,7 @@ func (p *grainGenerator) GenerateImports(file *generator.FileDescriptor) {
 	p.P()
 }
 
-func (p *grainGenerator) Generate(file *generator.FileDescriptor) {
+func (p *grainGenerator) Generate(file *google_protobuf.FileDescriptorProto) string {
 
 	pkg := ProtoAst(file)
 
@@ -62,39 +62,28 @@ func (p *grainGenerator) Generate(file *generator.FileDescriptor) {
 	t.Execute(&doc, pkg)
 	s := doc.String()
 
-	p.localName = generator.FileName(file)
-	p.P(s)
+	return s
 }
 
 func removePackagePrefix(name string, pname string) string {
 	return strings.Replace(name, "."+pname+".", "", 1)
 }
 
-func (*grainGenerator) GenerateCode(req *plugin.CodeGeneratorRequest, p generator.Plugin, filenameSuffix string, goFmt bool) *plugin.CodeGeneratorResponse {
-	g := generator.New()
-	g.Request = req
-	if len(g.Request.FileToGenerate) == 0 {
-		g.Fail("no files to generate")
-	}
+func (p *grainGenerator) GenerateCode(req *plugin.CodeGeneratorRequest, filenameSuffix string, goFmt bool) *plugin.CodeGeneratorResponse {
 
-	g.CommandLineParameters(g.Request.GetParameter())
-
-	g.WrapTypes()
-	g.SetPackageNames()
-	g.BuildTypeNameMap()
-	g.GeneratePlugin(p)
-
-	for i := 0; i < len(g.Response.File); i++ {
-		g.Response.File[i].Name = proto.String(
-			strings.Replace(*g.Response.File[i].Name, ".pb.go", filenameSuffix, -1),
-		)
-	}
-	if goFmt {
-		if err := goformat(g.Response); err != nil {
-			g.Error(err)
+	response := &plugin.CodeGeneratorResponse{}
+	for _, f := range req.GetProtoFile() {
+		s := p.Generate(f)
+		fileName := f.GetName() + "_actor.go"
+		r := &plugin.CodeGeneratorResponse_File{
+			Content: &s,
+			Name:    &fileName,
 		}
+
+		response.File = append(response.File, r)
 	}
-	return g.Response
+
+	return response
 }
 
 func goformat(resp *plugin.CodeGeneratorResponse) error {
