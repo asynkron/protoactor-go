@@ -1,0 +1,137 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "oxWdStqmvbu7mOHNM0YQS9XdSzI=",
+			"path": "github.com/AsynkronIT/goconsole",
+			"revision": "bfa12eebf7161a928e20d11a627cc689e99e2e50",
+			"revisionTime": "2016-05-04T19:26:49Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "Ge9f4cJaLow76G6Ry/fSq1zV+j8=",
+			"path": "github.com/AsynkronIT/gonet",
+			"revision": "0553637be2257d123c1c1877d1f3bbd23adce41d",
+			"revisionTime": "2016-11-27T09:19:28Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "3PMknFST2ZY/PQtkYmNAH8b7q/E=",
+			"path": "github.com/AsynkronIT/goring",
+			"revision": "5d0f2b2a81099dd0c8893c897ba9082ec62a1585",
+			"revisionTime": "2017-01-28T10:27:43Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "i3IR5aRHaLkKTcAMZBUCFA5phwU=",
+			"path": "github.com/Workiva/go-datastructures/queue",
+			"revision": "6e483a429c7b8d45d5487bcad780d0caa3a82146",
+			"revisionTime": "2017-01-19T19:47:36Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "CrB9+8jbzlMHF/hHARTRDQ9M4GY=",
+			"path": "github.com/couchbase/gocb",
+			"revision": "4b3f063ed841a109c1e239e688c131b1a3408124",
+			"revisionTime": "2017-01-31T01:11:37Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "dvabztWVQX8f6oMLRyv4dLH+TGY=",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "346938d642f2ec3594ed81d874461961cd0faa76",
+			"revisionTime": "2016-10-29T20:57:26Z"
+		},
+		{
+			"checksumSHA1": "J9QtjEsaUrgQXKdKQwmxyDTK3cQ=",
+			"path": "github.com/emirpasic/gods",
+			"revision": "fc3e4a43ff31b0accc20d750d64ea4b45ee61a5e",
+			"revisionTime": "2017-02-04T13:09:13Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "Vmj3Wi4sLvZzxRT43iOJGrR5cMc=",
+			"path": "github.com/gogo/protobuf",
+			"revision": "fb8a359905af6e2b6517cccda0ba25915322ee88",
+			"revisionTime": "2017-01-25T17:16:59Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "aoTcoBNopBiLsAPrSmWfVfKoGrY=",
+			"path": "github.com/golang/protobuf",
+			"revision": "8ee79997227bf9b34611aee7946ae64735e6fd93",
+			"revisionTime": "2016-11-17T03:31:26Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "ygEjA1d52B1RDmZu8+1WTwkrYDQ=",
+			"path": "github.com/hashicorp/consul/api",
+			"revision": "f228812746f270ffbd3bf10e861219f4b2ce1187",
+			"revisionTime": "2017-02-04T06:31:51Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "Uzyon2091lmwacNsl1hCytjhHtg=",
+			"path": "github.com/hashicorp/go-cleanhttp",
+			"revision": "ad28ea4487f05916463e2423a55166280e8254b5",
+			"revisionTime": "2016-04-07T17:41:26Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "6Dh3iCHn/xVABmYk3yt5WV0p2Zo=",
+			"path": "github.com/hashicorp/serf",
+			"revision": "78349c9fd938fca3f149051b8d816cc891c3851f",
+			"revisionTime": "2017-02-03T17:25:23Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "4sYO4T4ubmctwk2jyI3BTVTy4Tk=",
+			"path": "github.com/orcaman/concurrent-map",
+			"revision": "33c5bcbc98a8c1699b433720ec85c48dd6a62a6e",
+			"revisionTime": "2017-01-17T12:02:56Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
+			"path": "github.com/pmezard/go-difflib/difflib",
+			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
+			"revisionTime": "2016-01-10T10:55:54Z"
+		},
+		{
+			"checksumSHA1": "Yd3b0AmlpsFrp73PjiLEIk6lvC0=",
+			"path": "github.com/serialx/hashring",
+			"revision": "8d1c83b82963c5644493764c3b589c8bfff8090b",
+			"revisionTime": "2016-11-15T15:20:12Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "K0crHygPTP42i1nLKWphSlvOQJw=",
+			"path": "github.com/stretchr/objx",
+			"revision": "1a9d0bb9f541897e62256577b352fdbc1fb4fd94",
+			"revisionTime": "2015-09-28T12:21:52Z"
+		},
+		{
+			"checksumSHA1": "8txCwtZsB23D1o+OhMKY8DuIC34=",
+			"path": "github.com/stretchr/testify",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "bsbcUi8slGTzKZbOgNwP57y2Vgw=",
+			"path": "golang.org/x/net",
+			"revision": "41bba8d80bbfab43231ffdf4c210037baae5f6a3",
+			"revisionTime": "2017-01-27T14:21:26Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "pvXfLRl16ZdcWIct3+eilgrBi6o=",
+			"path": "google.golang.org/grpc",
+			"revision": "21f8ed309495401e6fd79b3a9fd549582aed1b4c",
+			"revisionTime": "2017-01-27T15:26:01Z",
+			"tree": true
+		}
+	],
+	"rootPath": "github.com/AsynkronIT/protoactor-go"
+}

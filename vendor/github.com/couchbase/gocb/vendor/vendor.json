@@ -1,0 +1,25 @@
+{
+	"comment": "",
+	"ignore": "",
+	"package": [
+		{
+			"checksumSHA1": "EaMNpZM8OAhqq2364ycvqE2YhgY=",
+			"path": "gopkg.in/brett19/jsonx.v1",
+			"revision": "5b7baa20429a46a5543ee259664cc86502738cad",
+			"revisionTime": "2016-12-13T19:40:16Z"
+		},
+		{
+			"checksumSHA1": "JheTIFABxJsF8v/h4RYXLUz+Foo=",
+			"path": "gopkg.in/couchbase/gocbcore.v2",
+			"revision": "22d72f05785ba26be033aa8b6726435b5e50a7a0",
+			"revisionTime": "2016-12-13T20:49:17Z"
+		},
+		{
+			"checksumSHA1": "WrGcxJrLI1TLH2MFmazJvMmzpBY=",
+			"path": "gopkg.in/couchbaselabs/gojcbmock.v1",
+			"revision": "cfa6b1efc2d6d8ae03e6b340a9d3be413ddc4dc5",
+			"revisionTime": "2017-01-17T22:33:38Z"
+		}
+	],
+	"rootPath": "github.com/couchbase/gocb"
+}
