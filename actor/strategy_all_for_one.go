@@ -27,7 +27,7 @@ func (strategy *allForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 	case ResumeDirective:
 		//resume the failing child
 		logFailure(child, reason, directive)
-		supervisor.RestartChildren(child)
+		supervisor.ResumeChildren(child)
 	case RestartDirective:
 		children := supervisor.Children()
 		//try restart the all the children
