@@ -6,17 +6,22 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using Proto;
 using Proto.Cluster;
+using Proto.Remote;
 
 namespace {{.CsNamespace}}
 {
-    public static class GrainFactory
+    public static class Grains
     {
 		{{ range $service := .Services}}	
         internal static Func<I{{ $service.Name }}> _{{$service.Name}}Factory;
 
-        public static void {{ $service.Name }}Factory(Func<I{{$service.Name}}> factory) => _{{$service.Name}}Factory = factory;
+        public static void {{ $service.Name }}Factory(Func<I{{$service.Name}}> factory) 
+        {
+            _{{$service.Name}}Factory = factory;
+            Remote.RegisterKnownKind("{{ $service.Name }}", Actor.FromProducer(() => new {{ $service.Name }}Actor()));
+        } 
 
-        public static {{ $service.Name }}Client {{$service.Name}}Client(string id) => new {{$service.Name}}Client(id);
+        public static {{ $service.Name }}Client {{$service.Name}}(string id) => new {{$service.Name}}Client(id);
 		{{ end }}	
     }
 
