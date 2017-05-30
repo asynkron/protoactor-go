@@ -75,7 +75,7 @@ namespace {{.CsNamespace}}
             {
                 case Started _:
                 {
-                    _inner = GrainFactory._{{$service.Name}}Factory();
+                    _inner = Grains._{{$service.Name}}Factory();
                     break;
                 }
                 case GrainRequest request:
