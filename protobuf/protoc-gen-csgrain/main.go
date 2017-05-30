@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"html/template"
 	"strings"
+	"text/template"
 
 	google_protobuf "github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 	plugin "github.com/gogo/protobuf/protoc-gen-gogo/plugin"
@@ -25,7 +25,7 @@ func generateCode(req *plugin.CodeGeneratorRequest, filenameSuffix string, goFmt
 	response := &plugin.CodeGeneratorResponse{}
 	for _, f := range req.GetProtoFile() {
 		s := generate(f)
-		fileName := strings.Replace(f.GetName(), ".", "_", 1) + "actor.go"
+		fileName := strings.Replace(f.GetName(), ".", "_", 1) + "actor.cs"
 		r := &plugin.CodeGeneratorResponse_File{
 			Content: &s,
 			Name:    &fileName,
