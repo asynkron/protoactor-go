@@ -7,7 +7,7 @@ using Google.Protobuf;
 using Proto;
 using Proto.Cluster;
 
-namespace {{.PackageName}}
+namespace {{.CsNamespace}}
 {
     public static class GrainFactory
     {
@@ -37,18 +37,19 @@ namespace {{.PackageName}}
             _id = id;
         }
 
-        public async Task<HelloResponse> SayHello(HelloRequest request)
+		{{ range $method := $service.Methods}}
+        public async Task< {{ $method.Output.Name }}> {{ $method.Name }}( {{ $method.Input.Name }} request)
         {
-            var pid = await Cluster.GetAsync(_id, "Hello");
+            var pid = await Cluster.GetAsync(_id, "{{ $service.Name }}");
             var gr = new GrainRequest
             {
-                Method = "SayHello",
+                Method = "{{ $method.Name }}",
                 MessageData = request.ToByteString()
             };
             var res = await pid.RequestAsync<object>(gr);
             if (res is GrainResponse grainResponse)
             {
-                return HelloResponse.Parser.ParseFrom(grainResponse.MessageData);
+                return {{ $method.Output.Name }}.Parser.ParseFrom(grainResponse.MessageData);
             }
             if (res is GrainErrorResponse grainErrorResponse)
             {
@@ -56,6 +57,7 @@ namespace {{.PackageName}}
             }
             throw new NotSupportedException();
         }
+		{{ end }}
     }
 
     public class {{$service.Name}}Actor : IActor

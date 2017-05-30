@@ -10,6 +10,7 @@ import (
 // ProtoFile reprpesents a parsed proto file
 type ProtoFile struct {
 	PackageName string
+	CsNamespace string
 	Messages    []*ProtoMessage
 	Services    []*ProtoService
 }
@@ -42,6 +43,7 @@ func ProtoAst(file *google_protobuf.FileDescriptorProto) *ProtoFile {
 
 	pkg := &ProtoFile{}
 	pkg.PackageName = file.GetPackage()
+	pkg.CsNamespace = file.Options.GetCsharpNamespace()
 	messages := make(map[string]*ProtoMessage)
 	for _, message := range file.GetMessageType() {
 		m := &ProtoMessage{}
