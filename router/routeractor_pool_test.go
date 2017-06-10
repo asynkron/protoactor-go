@@ -46,7 +46,7 @@ func TestPoolRouterActor_Receive_RemoveRoute(t *testing.T) {
 
 	p1, pr1 := spawnMockProcess("p1")
 	defer removeMockProcess(p1)
-	pr1.On("SendUserMessage", p1, &actor.PoisonPill{}, nilPID).Once()
+	pr1.On("SendUserMessage", p1, &actor.PoisonPill{}).Once()
 
 	p2 := actor.NewLocalPID("p2")
 	c := new(mockContext)
@@ -68,7 +68,7 @@ func TestPoolRouterActor_Receive_BroadcastMessage(t *testing.T) {
 	p2 := actor.NewLocalPID("p2")
 
 	child := new(mockProcess)
-	child.On("SendUserMessage", mock.Anything, mock.Anything, mock.Anything).Times(2)
+	child.On("SendUserMessage", mock.Anything, mock.Anything).Times(2)
 
 	actor.ProcessRegistry.Add(child, "p1")
 	actor.ProcessRegistry.Add(child, "p2")

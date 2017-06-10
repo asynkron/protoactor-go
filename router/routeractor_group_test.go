@@ -70,7 +70,7 @@ func TestGroupRouterActor_Receive_BroadcastMessage(t *testing.T) {
 	p2 := actor.NewLocalPID("p2")
 
 	child := new(mockProcess)
-	child.On("SendUserMessage", mock.Anything, mock.Anything, mock.Anything).Times(2)
+	child.On("SendUserMessage", mock.Anything, mock.Anything).Times(2)
 
 	actor.ProcessRegistry.Add(child, "p1")
 	actor.ProcessRegistry.Add(child, "p2")

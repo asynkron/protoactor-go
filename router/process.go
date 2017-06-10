@@ -17,15 +17,16 @@ type process struct {
 	stopping int32
 }
 
-func (ref *process) SendUserMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
+func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
+
+	msg, sender := actor.UnwrapEnvelope(message)
 	if _, ok := message.(ManagementMessage); ok {
 		r, _ := actor.ProcessRegistry.Get(ref.router)
-		r.SendUserMessage(pid, message, sender)
+		r.SendUserMessage(pid, msg)
 	} else {
-		ref.state.RouteMessage(message, sender)
+		ref.state.RouteMessage(msg, sender)
 	}
 }
-
 func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 	switch msg := message.(type) {
 	case *actor.Watch:

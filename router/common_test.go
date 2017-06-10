@@ -35,8 +35,9 @@ type mockProcess struct {
 	mock.Mock
 }
 
-func (m *mockProcess) SendUserMessage(pid *actor.PID, message interface{}, sender *actor.PID) {
-	m.Called(pid, message, sender)
+func (m *mockProcess) SendUserMessage(pid *actor.PID, message interface{}) {
+	msg, _ := actor.UnwrapEnvelope(message)
+	m.Called(pid, msg)
 }
 func (m *mockProcess) SendSystemMessage(pid *actor.PID, message interface{}) {
 	m.Called(pid, message)

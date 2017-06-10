@@ -16,8 +16,8 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 	child, p := spawnMockProcess("child")
 	defer removeMockProcess(child)
 
-	p.On("SendUserMessage", mock.Anything, "hello", mock.Anything)
-	p.On("SendSystemMessage", mock.Anything, mock.Anything, mock.Anything)
+	p.On("SendUserMessage", mock.Anything, "hello")
+	p.On("SendSystemMessage", mock.Anything, mock.Anything)
 
 	s1 := actor.NewPIDSet(child)
 
