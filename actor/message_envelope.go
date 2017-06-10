@@ -29,6 +29,13 @@ type MessageEnvelope struct {
 	Sender  *PID
 }
 
+func UnwrapEnvelope(message interface{}) (interface{}, *PID) {
+	if env, ok := message.(*MessageEnvelope); ok {
+		return env.Message, env.Sender
+	}
+	return message, nil
+}
+
 var (
 	emptyMessageHeader = make(messageHeader)
 )

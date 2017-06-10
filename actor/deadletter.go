@@ -39,10 +39,11 @@ type DeadLetterEvent struct {
 	Sender  *PID        // the process that sent the Message
 }
 
-func (*deadLetterProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
+func (*deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
+	msg, sender := UnwrapEnvelope(message)
 	eventstream.Publish(&DeadLetterEvent{
 		PID:     pid,
-		Message: message,
+		Message: msg,
 		Sender:  sender,
 	})
 }

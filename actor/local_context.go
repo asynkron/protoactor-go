@@ -48,8 +48,8 @@ func newLocalContext(producer Producer, supervisor SupervisorStrategy, inboundMi
 	}
 
 	// Construct the outbound middleware chain with the final sender at the end
-	this.outboundMiddleware = makeOutboundMiddlewareChain(outboundMiddleware, func(_ Context, target *PID, envelope MessageEnvelope) {
-		target.ref().SendUserMessage(target, envelope.Message, envelope.Sender)
+	this.outboundMiddleware = makeOutboundMiddlewareChain(outboundMiddleware, func(_ Context, target *PID, envelope *MessageEnvelope) {
+		target.ref().SendUserMessage(target, envelope)
 	})
 
 	this.incarnateActor()
@@ -85,40 +85,44 @@ func (ctx *localContext) MessageHeader() ReadonlyMessageHeader {
 }
 
 func (ctx *localContext) Tell(pid *PID, message interface{}) {
+	ctx.sendUserMessage(pid, message)
+}
+
+func (ctx *localContext) sendUserMessage(pid *PID, message interface{}) {
 	if ctx.outboundMiddleware != nil {
-		ctx.outboundMiddleware(ctx, pid, MessageEnvelope{
-			Header:  emptyMessageHeader,
-			Message: message,
-			Sender:  nil,
-		})
+		if env, ok := message.(*MessageEnvelope); ok {
+			ctx.outboundMiddleware(ctx, pid, env)
+		} else {
+			ctx.outboundMiddleware(ctx, pid, &MessageEnvelope{
+				Header:  emptyMessageHeader,
+				Message: message,
+				Sender:  nil,
+			})
+		}
 	} else {
-		pid.ref().SendUserMessage(pid, message, nil)
+		pid.ref().SendUserMessage(pid, message)
 	}
 }
 
 func (ctx *localContext) Request(pid *PID, message interface{}) {
-	if ctx.outboundMiddleware != nil {
-		ctx.outboundMiddleware(ctx, pid, MessageEnvelope{
-			Header:  emptyMessageHeader,
-			Message: message,
-			Sender:  ctx.Self(),
-		})
-	} else {
-		pid.ref().SendUserMessage(pid, message, ctx.Self())
+	env := &MessageEnvelope{
+		Header:  emptyMessageHeader,
+		Message: message,
+		Sender:  ctx.Self(),
 	}
+
+	ctx.sendUserMessage(pid, env)
 }
 
 func (ctx *localContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
 	future := NewFuture(timeout)
-	if ctx.outboundMiddleware != nil {
-		ctx.outboundMiddleware(ctx, pid, MessageEnvelope{
-			Header:  emptyMessageHeader,
-			Message: message,
-			Sender:  future.PID(),
-		})
-	} else {
-		pid.ref().SendUserMessage(pid, message, future.PID())
+	env := &MessageEnvelope{
+		Header:  emptyMessageHeader,
+		Message: message,
+		Sender:  future.PID(),
 	}
+	ctx.sendUserMessage(pid, env)
+
 	return future
 }
 
@@ -395,11 +399,10 @@ func (ctx *localContext) Unwatch(who *PID) {
 	})
 	ctx.watching.Remove(who)
 }
-
 func (ctx *localContext) Respond(response interface{}) {
 	// If the message is addressed to nil forward it to the dead letter channel
 	if ctx.Sender() == nil {
-		deadLetter.SendUserMessage(nil, response, ctx.Self())
+		deadLetter.SendUserMessage(nil, response)
 		return
 	}
 

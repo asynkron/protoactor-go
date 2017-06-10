@@ -35,8 +35,8 @@ type mockProcess struct {
 	mock.Mock
 }
 
-func (m *mockProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
-	m.Called(pid, message, sender)
+func (m *mockProcess) SendUserMessage(pid *PID, message interface{}) {
+	m.Called(pid, message)
 }
 func (m *mockProcess) SendSystemMessage(pid *PID, message interface{}) {
 	m.Called(pid, message)

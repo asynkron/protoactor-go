@@ -11,14 +11,9 @@ type localProcess struct {
 	dead    int32
 }
 
-func (ref *localProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
-	if sender != nil {
-		ref.mailbox.PostUserMessage(&MessageEnvelope{Message: message, Sender: sender})
-	} else {
-		ref.mailbox.PostUserMessage(message)
-	}
+func (ref *localProcess) SendUserMessage(pid *PID, message interface{}) {
+	ref.mailbox.PostUserMessage(message)
 }
-
 func (ref *localProcess) SendSystemMessage(pid *PID, message interface{}) {
 	ref.mailbox.PostSystemMessage(message)
 }

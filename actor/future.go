@@ -109,8 +109,9 @@ type futureProcess struct {
 	Future
 }
 
-func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}, sender *PID) {
-	ref.result = message
+func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}) {
+	msg, _ := UnwrapEnvelope(message)
+	ref.result = msg
 	ref.Stop(pid)
 }
 

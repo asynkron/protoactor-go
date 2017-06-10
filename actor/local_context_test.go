@@ -50,7 +50,7 @@ func TestLocalContext_Stop(t *testing.T) {
 func TestLocalContext_SendMessage_WithOutboundMiddleware(t *testing.T) {
 	// Define a local context with no-op outbound middlware
 	mw := func(next SenderFunc) SenderFunc {
-		return func(ctx Context, target *PID, envelope MessageEnvelope) {
+		return func(ctx Context, target *PID, envelope *MessageEnvelope) {
 			next(ctx, target, envelope)
 		}
 	}
@@ -110,7 +110,7 @@ func TestLocalContext_Respond(t *testing.T) {
 	var gotResponseToNil bool
 	deadLetterSubscriber = eventstream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
-			if deadLetter.PID == nil && deadLetter.Sender == responder {
+			if deadLetter.PID == nil {
 				gotResponseToNil = true
 			}
 		}
