@@ -34,11 +34,13 @@ func GetKnownKinds() []string {
 type activator struct {
 }
 
+//ActivatorForAddress returns a PID for the activator at the given address
 func ActivatorForAddress(address string) *actor.PID {
 	pid := actor.NewPID(address, "activator")
 	return pid
 }
 
+//SpawnFuture spawns a remote actor and returns a Future that completes once the actor is started
 func SpawnFuture(address, name, kind string, timeout time.Duration) *actor.Future {
 	activator := ActivatorForAddress(address)
 	f := activator.RequestFuture(&ActorPidRequest{
@@ -48,10 +50,12 @@ func SpawnFuture(address, name, kind string, timeout time.Duration) *actor.Futur
 	return f
 }
 
+//Spawn spawns a remote actor of a given type at a given address
 func Spawn(address, kind string, timeout time.Duration) (*actor.PID, error) {
 	return SpawnNamed(address, "", kind, timeout)
 }
 
+//SpawnNamed spawns a named remote actor of a given type at a given address
 func SpawnNamed(address, name, kind string, timeout time.Duration) (*actor.PID, error) {
 	activator := ActivatorForAddress(address)
 	res, err := activator.RequestFuture(&ActorPidRequest{

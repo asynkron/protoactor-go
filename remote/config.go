@@ -2,6 +2,7 @@ package remote
 
 import "google.golang.org/grpc"
 
+//RemotingOption configures how the remote infrastructure is started
 type RemotingOption func(*remoteConfig)
 
 func defaultRemoteConfig() *remoteConfig {
