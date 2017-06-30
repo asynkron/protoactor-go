@@ -1,45 +1,30 @@
 package remote
 
-import (
-	"reflect"
+var defaultSerializerID = 0
+var serializers []Serializer
 
-	"os"
-
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/gogo/protobuf/proto"
-)
-
-func serialize(message proto.Message) ([]byte, string, error) {
-	typeName := proto.MessageName(message)
-	ensureGoGo(typeName)
-	bytes, err := proto.Marshal(message)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return bytes, typeName, nil
+func init() {
+	RegisterSerializer(newProtoSerializer())
+	RegisterSerializer(newJsonSerializer())
 }
 
-func deserialize(message *MessageEnvelope, typeName string) proto.Message {
-
-	ensureGoGo(typeName)
-	t1 := proto.MessageType(typeName)
-	if t1 == nil {
-		plog.Error("Unknown message type", log.String("type", typeName))
-		os.Exit(1)
-	}
-	t := t1.Elem()
-
-	intPtr := reflect.New(t)
-	instance := intPtr.Interface().(proto.Message)
-	proto.Unmarshal(message.MessageData, instance)
-
-	return instance
+func RegisterSerializer(serializer Serializer) {
+	serializers = append(serializers, serializer)
 }
 
-func ensureGoGo(typeName string) {
-	if typeName == "" {
-		plog.Error("Message type name is empty string, make sure you have generated the Proto contacts with GOGO Proto: github.com/gogo/protobuf/proto")
-		os.Exit(1)
-	}
+type Serializer interface {
+	Serialize(msg interface{}) ([]byte, error)
+	Deserialize(typeName string, bytes []byte) (interface{}, error)
+	GetTypeName(msg interface{}) (string, error)
+}
+
+func serialize(message interface{}, serializerID int) ([]byte, string, error) {
+	res, err := serializers[serializerID].Serialize(message)
+	typeName, err := serializers[serializerID].GetTypeName(message)
+	return res, typeName, err
+}
+
+func deserialize(message *MessageEnvelope, typeName string, serializerID int) interface{} {
+	res, _ := serializers[serializerID].Deserialize(typeName, message.MessageData)
+	return res
 }

@@ -73,7 +73,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		}
 
 		//pass it off to the remote PID
-		sendRemoteMessage(msg.Watchee, w, nil)
+		SendMessage(msg.Watchee, w, nil, defaultSerializerID)
 
 	case *remoteUnwatch:
 
@@ -86,7 +86,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		}
 
 		//pass it off to the remote PID
-		sendRemoteMessage(msg.Watchee, uw, nil)
+		SendMessage(msg.Watchee, uw, nil, defaultSerializerID)
 
 	default:
 		plog.Error("EndpointWatcher received unknown message", log.String("address", state.address), log.Message(msg))
@@ -106,7 +106,6 @@ func (state *endpointWatcher) Terminated(ctx actor.Context) {
 				Who:               msg.Watchee,
 				AddressTerminated: true,
 			}
-
 			//send the address Terminated event to the Watcher
 			ref.SendSystemMessage(msg.Watcher, terminated)
 		}

@@ -76,7 +76,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	var targetID int32
 	for i, tmp := range msg {
 		rd := tmp.(*remoteDeliver)
-		bytes, typeName, _ := serialize(rd.message)
+		bytes, typeName, _ := serialize(rd.message, defaultSerializerID)
 		typeID, typeNamesArr = addToLookup(typeNames, typeName, typeNamesArr)
 		targetID, targetNamesArr = addToLookup(targetNames, rd.target.Id, targetNamesArr)
 

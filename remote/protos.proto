@@ -17,6 +17,7 @@ message MessageEnvelope {
   bytes message_data = 2;
   int32 target = 3;
   actor.PID sender = 4;
+  int32 serializer_id = 5;
 }
 
 message ActorPidRequest {
