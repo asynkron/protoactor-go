@@ -15,12 +15,7 @@ type jsonSerializer struct {
 
 func newJsonSerializer() Serializer {
 	return &jsonSerializer{
-		Marshaler: jsonpb.Marshaler{
-			OrigName:     true,
-			EnumsAsInts:  true,
-			EmitDefaults: true,
-			Indent:       "   ",
-		},
+		Marshaler: jsonpb.Marshaler{},
 		Unmarshaler: jsonpb.Unmarshaler{
 			AllowUnknownFields: true,
 		},
