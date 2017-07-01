@@ -76,15 +76,19 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	var targetID int32
 	for i, tmp := range msg {
 		rd := tmp.(*remoteDeliver)
-		bytes, typeName, _ := serialize(rd.message, defaultSerializerID)
+		bytes, typeName, err := serialize(rd.message, rd.serializerID)
+		if err != nil {
+			panic(err)
+		}
 		typeID, typeNamesArr = addToLookup(typeNames, typeName, typeNamesArr)
 		targetID, targetNamesArr = addToLookup(targetNames, rd.target.Id, targetNamesArr)
 
 		envelopes[i] = &MessageEnvelope{
-			MessageData: bytes,
-			Sender:      rd.sender,
-			Target:      targetID,
-			TypeId:      typeID,
+			MessageData:  bytes,
+			Sender:       rd.sender,
+			Target:       targetID,
+			TypeId:       typeID,
+			SerializerId: rd.serializerID,
 		}
 	}
 

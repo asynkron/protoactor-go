@@ -78,7 +78,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	messageCount := 1000000
-
+	remote.DefaultSerializerID = 1
 	remote.Start("127.0.0.1:8081")
 
 	props := actor.
@@ -87,8 +87,8 @@ func main() {
 
 	pid := actor.Spawn(props)
 
-	remote := actor.NewPID("127.0.0.1:8080", "remote")
-	remote.
+	remotePid := actor.NewPID("127.0.0.1:8080", "remote")
+	remotePid.
 		RequestFuture(&messages.StartRemote{
 			Sender: pid,
 		}, 5*time.Second).
@@ -101,7 +101,7 @@ func main() {
 
 	message := &messages.Ping{}
 	for i := 0; i < messageCount; i++ {
-		remote.Tell(message)
+		remotePid.Tell(message)
 	}
 
 	wg.Wait()

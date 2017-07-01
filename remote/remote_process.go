@@ -18,10 +18,10 @@ func newProcess(pid *actor.PID) actor.Process {
 
 func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
 	msg, sender := actor.UnwrapEnvelope(message)
-	SendMessage(pid, msg, sender, defaultSerializerID)
+	SendMessage(pid, msg, sender, DefaultSerializerID)
 }
 
-func SendMessage(pid *actor.PID, message interface{}, sender *actor.PID, serializerID int) {
+func SendMessage(pid *actor.PID, message interface{}, sender *actor.PID, serializerID int32) {
 	switch msg := message.(type) {
 	case proto.Message:
 
@@ -55,7 +55,7 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 		}
 		endpointManagerPID.Tell(ruw)
 	default:
-		SendMessage(pid, message, nil, defaultSerializerID)
+		SendMessage(pid, message, nil, DefaultSerializerID)
 	}
 }
 
@@ -64,8 +64,8 @@ func (ref *process) Stop(pid *actor.PID) {
 }
 
 type remoteDeliver struct {
-	message      proto.Message
+	message      interface{}
 	target       *actor.PID
 	sender       *actor.PID
-	serializerID int
+	serializerID int32
 }

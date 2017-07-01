@@ -17,7 +17,7 @@ func (s *server) Receive(stream Remoting_ReceiveServer) error {
 		for _, envelope := range batch.Envelopes {
 			targetName := batch.TargetNames[envelope.Target]
 			pid := actor.NewLocalPID(targetName)
-			message := deserialize(envelope, batch.TypeNames[envelope.TypeId], defaultSerializerID)
+			message := deserialize(envelope.MessageData, batch.TypeNames[envelope.TypeId], envelope.SerializerId)
 			//if message is system message send it as sysmsg instead of usermsg
 
 			sender := envelope.Sender

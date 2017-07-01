@@ -7,6 +7,7 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 option (gogoproto.gostring_all) = false;
 
 message PID {
+    option (gogoproto.typedecl) = false;
     option (gogoproto.stringer) = false;
     string address = 1;
     string id = 2;

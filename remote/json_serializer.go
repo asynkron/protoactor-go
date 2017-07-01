@@ -15,15 +15,22 @@ type jsonSerializer struct {
 
 func newJsonSerializer() Serializer {
 	return &jsonSerializer{
-		Marshaler:   jsonpb.Marshaler{},
-		Unmarshaler: jsonpb.Unmarshaler{},
+		Marshaler: jsonpb.Marshaler{
+			OrigName:     true,
+			EnumsAsInts:  true,
+			EmitDefaults: true,
+			Indent:       "   ",
+		},
+		Unmarshaler: jsonpb.Unmarshaler{
+			AllowUnknownFields: true,
+		},
 	}
 }
 
-func (json *jsonSerializer) Serialize(msg interface{}) ([]byte, error) {
+func (j *jsonSerializer) Serialize(msg interface{}) ([]byte, error) {
 	if message, ok := msg.(proto.Message); ok {
 
-		str, err := json.MarshalToString(message)
+		str, err := j.Marshaler.MarshalToString(message)
 		if err != nil {
 			return nil, err
 		}
@@ -33,7 +40,7 @@ func (json *jsonSerializer) Serialize(msg interface{}) ([]byte, error) {
 	return nil, fmt.Errorf("msg must be proto.Message")
 }
 
-func (json *jsonSerializer) Deserialize(typeName string, b []byte) (interface{}, error) {
+func (j *jsonSerializer) Deserialize(typeName string, b []byte) (interface{}, error) {
 	protoType := proto.MessageType(typeName)
 	if protoType == nil {
 		return nil, fmt.Errorf("Unknown message type %v", typeName)
@@ -41,14 +48,18 @@ func (json *jsonSerializer) Deserialize(typeName string, b []byte) (interface{},
 	t := protoType.Elem()
 
 	intPtr := reflect.New(t)
-	instance := intPtr.Interface().(proto.Message)
-	r := bytes.NewReader(b)
-	json.Unmarshal(r, instance)
+	instance, ok := intPtr.Interface().(proto.Message)
+	if ok {
+		r := bytes.NewReader(b)
+		j.Unmarshaler.Unmarshal(r, instance)
 
-	return instance, nil
+		return instance, nil
+	} else {
+		return nil, fmt.Errorf("msg must be proto.Message")
+	}
 }
 
-func (json *jsonSerializer) GetTypeName(msg interface{}) (string, error) {
+func (j *jsonSerializer) GetTypeName(msg interface{}) (string, error) {
 	if message, ok := msg.(proto.Message); ok {
 		typeName := proto.MessageName(message)
 
