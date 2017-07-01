@@ -1,8 +1,8 @@
 package actor
 
 import (
-	"fmt"
-	"github.com/gogo/protobuf/jsonpb"
+	//	"fmt"
+	//	"github.com/gogo/protobuf/jsonpb"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -13,19 +13,20 @@ type PID struct {
 	Address string `protobuf:"bytes,1,opt,name=Address,proto3" json:"Address,omitempty"`
 	Id      string `protobuf:"bytes,2,opt,name=Id,proto3" json:"Id,omitempty"`
 
-	p *Process `json:"-"`
+	XXX_p *Process `json:"-"`
 }
 
+/*
 func (m *PID) MarshalJSONPB(*jsonpb.Marshaler) ([]byte, error) {
 	str := fmt.Sprintf("{\"Address\":\"%v\", \"Id\":\"%v\"}", m.Address, m.Id)
 	return []byte(str), nil
-}
+}*/
 
 func (pid *PID) ref() Process {
-	p := (*Process)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p))))
+	p := (*Process)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&pid.XXX_p))))
 	if p != nil {
 		if l, ok := (*p).(*localProcess); ok && atomic.LoadInt32(&l.dead) == 1 {
-			atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p)), nil)
+			atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&pid.XXX_p)), nil)
 		} else {
 			return *p
 		}
@@ -33,7 +34,7 @@ func (pid *PID) ref() Process {
 
 	ref, exists := ProcessRegistry.Get(pid)
 	if exists {
-		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p)), unsafe.Pointer(&ref))
+		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&pid.XXX_p)), unsafe.Pointer(&ref))
 	}
 
 	return ref
