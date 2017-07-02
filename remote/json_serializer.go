@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
-	"log"
 	"reflect"
 )
 
@@ -39,7 +38,6 @@ func (j *jsonSerializer) Serialize(msg interface{}) ([]byte, error) {
 }
 
 func (j *jsonSerializer) Deserialize(typeName string, b []byte) (interface{}, error) {
-	log.Printf("GOT MESSAGE OF TYPE %v", typeName)
 	protoType := proto.MessageType(typeName)
 	if protoType == nil {
 		m := &JsonMessage{

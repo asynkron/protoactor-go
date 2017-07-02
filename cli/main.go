@@ -138,8 +138,7 @@ func main() {
 				TypeName: parts[2],
 			}
 			pid := actor.NewPID(address, id)
-			sid := int32(1)
-			remote.SendMessage(pid, m, nil, &sid)
+			remote.SendMessage(pid, m, nil, 1)
 
 		// case strings.HasPrefix(line, "mode "):
 		// 	switch line[5:] {

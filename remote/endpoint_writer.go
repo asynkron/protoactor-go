@@ -82,10 +82,10 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	for i, tmp := range msg {
 		rd := tmp.(*remoteDeliver)
 
-		if rd.serializerID == nil {
+		if rd.serializerID == -1 {
 			serializerID = state.defaultSerializerId
 		} else {
-			serializerID = *rd.serializerID
+			serializerID = rd.serializerID
 		}
 		bytes, typeName, err := serialize(rd.message, serializerID)
 		if err != nil {

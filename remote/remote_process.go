@@ -16,10 +16,10 @@ func newProcess(pid *actor.PID) actor.Process {
 
 func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
 	msg, sender := actor.UnwrapEnvelope(message)
-	SendMessage(pid, msg, sender, nil)
+	SendMessage(pid, msg, sender, -1)
 }
 
-func SendMessage(pid *actor.PID, message interface{}, sender *actor.PID, serializerID *int32) {
+func SendMessage(pid *actor.PID, message interface{}, sender *actor.PID, serializerID int32) {
 	rd := &remoteDeliver{
 		message:      message,
 		sender:       sender,
@@ -47,7 +47,7 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 		}
 		endpointManagerPID.Tell(ruw)
 	default:
-		SendMessage(pid, message, nil, nil)
+		SendMessage(pid, message, nil, -1)
 	}
 }
 
@@ -59,5 +59,5 @@ type remoteDeliver struct {
 	message      interface{}
 	target       *actor.PID
 	sender       *actor.PID
-	serializerID *int32
+	serializerID int32
 }
