@@ -10,6 +10,8 @@ import (
 
 	"github.com/chzyer/readline"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/remote"
 	proto "github.com/gogo/protobuf/proto"
 )
 
@@ -68,6 +70,15 @@ func filterInput(r rune) (rune, bool) {
 }
 
 func main() {
+	remote.DefaultSerializerID = 1
+	remote.Start("127.0.0.1:0")
+	actor.SpawnNamed(actor.FromFunc(func(ctx actor.Context) {
+		log.Printf("ECHO: %+v", ctx.Message())
+	}), "echo")
+
+	vars := make(map[string]string)
+	vars["%address%"] = actor.ProcessRegistry.Address
+	vars["%echo%"] = fmt.Sprintf(`{"Address":"%v", "Id":"echo"}`, actor.ProcessRegistry.Address)
 
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:          "\033[31m»\033[0m ",
@@ -79,6 +90,7 @@ func main() {
 		HistorySearchFold:   true,
 		FuncFilterInputRune: filterInput,
 	})
+
 	if err != nil {
 		panic(err)
 	}
@@ -105,7 +117,30 @@ func main() {
 		}
 
 		line = strings.TrimSpace(line)
+		for k, v := range vars {
+			line = strings.Replace(line, k, v, 1000)
+		}
+		log.Println(line)
 		switch {
+
+		case strings.HasPrefix(line, "connect "):
+			address := line[8:]
+			pid := actor.NewPID(address, "a")
+			pid.Tell(&remote.Unit{})
+		case strings.HasPrefix(line, "tell "):
+			parts := strings.SplitN(line, " ", 4)
+			i := parts[1]
+			x := strings.SplitN(i, "/", 2)
+			address := x[0]
+			id := x[1]
+			m := &remote.JsonMessage{
+				Json:     parts[3],
+				TypeName: parts[2],
+			}
+			pid := actor.NewPID(address, id)
+			sid := int32(1)
+			remote.SendMessage(pid, m, nil, &sid)
+
 		// case strings.HasPrefix(line, "mode "):
 		// 	switch line[5:] {
 		// 	case "vi":

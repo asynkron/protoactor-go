@@ -21,6 +21,11 @@ type remoteTerminate struct {
 	Watchee *actor.PID
 }
 
+type JsonMessage struct {
+	TypeName string
+	Json     string
+}
+
 var (
 	stopMessage interface{} = &actor.Stop{}
 )

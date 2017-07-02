@@ -31,6 +31,14 @@ message ActorPidResponse {
 
 message Unit {}
 
+message ConnectRequest {
+
+}
+message ConnectResponse {
+    int32 default_serializer_id = 1;
+}
+
 service Remoting {
+  rpc Connect(ConnectRequest) returns (ConnectResponse) {}
   rpc Receive (stream MessageBatch) returns (stream Unit) {}
 }

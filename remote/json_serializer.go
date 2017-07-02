@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
+	"log"
 	"reflect"
 )
 
@@ -23,7 +24,9 @@ func newJsonSerializer() Serializer {
 }
 
 func (j *jsonSerializer) Serialize(msg interface{}) ([]byte, error) {
-	if message, ok := msg.(proto.Message); ok {
+	if message, ok := msg.(*JsonMessage); ok {
+		return []byte(message.Json), nil
+	} else if message, ok := msg.(proto.Message); ok {
 
 		str, err := j.Marshaler.MarshalToString(message)
 		if err != nil {
@@ -36,9 +39,14 @@ func (j *jsonSerializer) Serialize(msg interface{}) ([]byte, error) {
 }
 
 func (j *jsonSerializer) Deserialize(typeName string, b []byte) (interface{}, error) {
+	log.Printf("GOT MESSAGE OF TYPE %v", typeName)
 	protoType := proto.MessageType(typeName)
 	if protoType == nil {
-		return nil, fmt.Errorf("Unknown message type %v", typeName)
+		m := &JsonMessage{
+			TypeName: typeName,
+			Json:     string(b),
+		}
+		return m, nil
 	}
 	t := protoType.Elem()
 
@@ -55,7 +63,9 @@ func (j *jsonSerializer) Deserialize(typeName string, b []byte) (interface{}, er
 }
 
 func (j *jsonSerializer) GetTypeName(msg interface{}) (string, error) {
-	if message, ok := msg.(proto.Message); ok {
+	if message, ok := msg.(*JsonMessage); ok {
+		return message.TypeName, nil
+	} else if message, ok := msg.(proto.Message); ok {
 		typeName := proto.MessageName(message)
 
 		return typeName, nil

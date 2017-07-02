@@ -19,10 +19,11 @@ func newEndpointWriter(address string, config *remoteConfig) actor.Producer {
 }
 
 type endpointWriter struct {
-	config  *remoteConfig
-	address string
-	conn    *grpc.ClientConn
-	stream  Remoting_ReceiveClient
+	config              *remoteConfig
+	address             string
+	conn                *grpc.ClientConn
+	stream              Remoting_ReceiveClient
+	defaultSerializerId int32
 }
 
 func (state *endpointWriter) initialize() {
@@ -41,6 +42,9 @@ func (state *endpointWriter) initializeInternal() error {
 	}
 	state.conn = conn
 	c := NewRemotingClient(conn)
+	resp, err := c.Connect(context.Background(), &ConnectRequest{})
+	state.defaultSerializerId = resp.DefaultSerializerId
+
 	//	log.Printf("Getting stream from address %v", state.address)
 	stream, err := c.Receive(context.Background(), state.config.callOptions...)
 	if err != nil {
@@ -74,9 +78,16 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	targetNamesArr := make([]string, 0)
 	var typeID int32
 	var targetID int32
+	var serializerID int32
 	for i, tmp := range msg {
 		rd := tmp.(*remoteDeliver)
-		bytes, typeName, err := serialize(rd.message, rd.serializerID)
+
+		if rd.serializerID == nil {
+			serializerID = state.defaultSerializerId
+		} else {
+			serializerID = *rd.serializerID
+		}
+		bytes, typeName, err := serialize(rd.message, serializerID)
 		if err != nil {
 			panic(err)
 		}
@@ -88,7 +99,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			Sender:       rd.sender,
 			Target:       targetID,
 			TypeId:       typeID,
-			SerializerId: rd.serializerID,
+			SerializerId: serializerID,
 		}
 	}
 

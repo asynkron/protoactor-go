@@ -2,8 +2,6 @@ package remote
 
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/gogo/protobuf/proto"
 )
 
 type process struct {
@@ -18,24 +16,18 @@ func newProcess(pid *actor.PID) actor.Process {
 
 func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
 	msg, sender := actor.UnwrapEnvelope(message)
-	SendMessage(pid, msg, sender, DefaultSerializerID)
+	SendMessage(pid, msg, sender, nil)
 }
 
-func SendMessage(pid *actor.PID, message interface{}, sender *actor.PID, serializerID int32) {
-	switch msg := message.(type) {
-	case proto.Message:
-
-		rd := &remoteDeliver{
-			message:      msg,
-			sender:       sender,
-			target:       pid,
-			serializerID: serializerID,
-		}
-
-		endpointManagerPID.Tell(rd)
-	default:
-		plog.Error("failed, trying to send non Proto message", log.TypeOf("type", msg), log.Stringer("pid", pid))
+func SendMessage(pid *actor.PID, message interface{}, sender *actor.PID, serializerID *int32) {
+	rd := &remoteDeliver{
+		message:      message,
+		sender:       sender,
+		target:       pid,
+		serializerID: serializerID,
 	}
+
+	endpointManagerPID.Tell(rd)
 }
 
 func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
@@ -55,7 +47,7 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 		}
 		endpointManagerPID.Tell(ruw)
 	default:
-		SendMessage(pid, message, nil, DefaultSerializerID)
+		SendMessage(pid, message, nil, nil)
 	}
 }
 
@@ -67,5 +59,5 @@ type remoteDeliver struct {
 	message      interface{}
 	target       *actor.PID
 	sender       *actor.PID
-	serializerID int32
+	serializerID *int32
 }

@@ -3,9 +3,14 @@ package remote
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
+	"golang.org/x/net/context"
 )
 
 type server struct{}
+
+func (s *server) Connect(ctx context.Context, req *ConnectRequest) (*ConnectResponse, error) {
+	return &ConnectResponse{DefaultSerializerId: DefaultSerializerID}, nil
+}
 
 func (s *server) Receive(stream Remoting_ReceiveServer) error {
 	for {
