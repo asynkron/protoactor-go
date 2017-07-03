@@ -24,6 +24,7 @@ var _ = math.Inf
 // Function constructor - constructs new function for listing given directory
 var completer = readline.NewPrefixCompleter(
 	readline.PcItem("tell"),
+	readline.PcItem("watch"),
 	readline.PcItem("exit"),
 )
 
@@ -36,6 +37,8 @@ func filterInput(r rune) (rune, bool) {
 	return r, true
 }
 
+var echoPID *actor.PID
+
 func main() {
 	logo := `
      ___         _         ___ _    ___
@@ -47,9 +50,7 @@ func main() {
 
 	remote.DefaultSerializerID = 1
 	remote.Start("127.0.0.1:0")
-	actor.SpawnNamed(actor.FromFunc(func(ctx actor.Context) {
-		fmt.Printf("ECHO: %+v\n", ctx.Message())
-	}), "echo")
+	spawnEcho()
 
 	vars := make(map[string]string)
 	vars["%address%"] = actor.ProcessRegistry.Address
@@ -92,7 +93,8 @@ func main() {
 
 		case strings.HasPrefix(line, "tell "):
 			tell(line)
-
+		case strings.HasPrefix(line, "watch "):
+			watch(line)
 		case line == "exit":
 			goto exit
 		case line == "":
@@ -101,6 +103,39 @@ func main() {
 		}
 	}
 exit:
+}
+func spawnEcho() {
+	echoPID, _ = actor.SpawnNamed(actor.FromFunc(func(ctx actor.Context) {
+		switch msg := ctx.Message().(type) {
+		case *actor.Started:
+			fmt.Println("ECHO: Started")
+		case *watchRequest:
+			fmt.Printf("ECHO: Watching %v\n", msg.target.String())
+			ctx.Watch(msg.target)
+		case *actor.Terminated:
+			fmt.Printf("ECHO:Actor %v terminated \n", msg.Who.String())
+		default:
+			fmt.Printf("ECHO: %+v\n", msg)
+		}
+
+	}), "echo")
+}
+func watch(line string) {
+	parts := strings.SplitN(line, " ", 2)
+
+	if len(parts) != 2 {
+		fmt.Printf("Wrong number of arguments for `watch`. expected: pid\n")
+	} else {
+
+		pidStr := parts[1]
+		x := strings.SplitN(pidStr, "/", 2)
+		address := x[0]
+		id := x[1]
+		pid := actor.NewPID(address, id)
+		echoPID.Tell(&watchRequest{
+			target: pid,
+		})
+	}
 }
 func tell(line string) {
 	parts := strings.SplitN(line, " ", 4)
@@ -129,6 +164,10 @@ func tell(line string) {
 			fmt.Printf("Invalid JSON payload: %v\n", err)
 		}
 	}
+}
+
+type watchRequest struct {
+	target *actor.PID
 }
 
 func parseJson(s string) error {
