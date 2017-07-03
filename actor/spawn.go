@@ -41,7 +41,7 @@ func spawn(id string, props *Props, parent *PID) (*PID, error) {
 	mb := props.produceMailbox(cell, props.getDispatcher())
 	lp.mailbox = mb
 	var ref Process = lp
-	pid.XXX_p = &ref
+	pid.p = &ref
 	cell.self = pid
 	mb.Start()
 	mb.PostSystemMessage(startedMessage)
