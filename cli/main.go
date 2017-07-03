@@ -10,6 +10,7 @@ import (
 
 	"github.com/chzyer/readline"
 
+	"encoding/json"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
 	proto "github.com/gogo/protobuf/proto"
@@ -47,7 +48,7 @@ func main() {
 	remote.DefaultSerializerID = 1
 	remote.Start("127.0.0.1:0")
 	actor.SpawnNamed(actor.FromFunc(func(ctx actor.Context) {
-		log.Printf("ECHO: %+v", ctx.Message())
+		fmt.Printf("ECHO: %+v\n", ctx.Message())
 	}), "echo")
 
 	vars := make(map[string]string)
@@ -87,11 +88,10 @@ func main() {
 		for k, v := range vars {
 			line = strings.Replace(line, k, v, 1000)
 		}
-		log.Println(line)
 		switch {
 
 		case strings.HasPrefix(line, "tell "):
-			line = tell(line)
+			tell(line)
 
 		case line == "exit":
 			goto exit
@@ -102,17 +102,36 @@ func main() {
 	}
 exit:
 }
-func tell(line string) string {
+func tell(line string) {
 	parts := strings.SplitN(line, " ", 4)
-	i := parts[1]
-	x := strings.SplitN(i, "/", 2)
-	address := x[0]
-	id := x[1]
-	m := &remote.JsonMessage{
-		Json:     parts[3],
-		TypeName: parts[2],
+
+	if len(parts) != 4 {
+		fmt.Printf("Wrong number of arguments for `tell`. expected: pid type-name json\n")
+	} else {
+
+		pidStr := parts[1]
+		typeNameStr := parts[2]
+		jsonStr := parts[3]
+
+		x := strings.SplitN(pidStr, "/", 2)
+		address := x[0]
+		id := x[1]
+
+		err := parseJson(jsonStr)
+		if err == nil {
+			m := &remote.JsonMessage{
+				Json:     jsonStr,
+				TypeName: typeNameStr,
+			}
+			pid := actor.NewPID(address, id)
+			remote.SendMessage(pid, m, nil, 1)
+		} else {
+			fmt.Printf("Invalid JSON payload: %v\n", err)
+		}
 	}
-	pid := actor.NewPID(address, id)
-	remote.SendMessage(pid, m, nil, 1)
-	return line
+}
+
+func parseJson(s string) error {
+	var js map[string]interface{}
+	return json.Unmarshal([]byte(s), &js)
 }
