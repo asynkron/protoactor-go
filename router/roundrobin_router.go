@@ -52,6 +52,10 @@ func (config *roundRobinGroupRouter) CreateRouterState() Interface {
 
 func roundRobinRoutee(index *int32, routees []actor.PID) actor.PID {
 	i := int(atomic.AddInt32(index, 1))
+	if i < 0 {
+		*index = 0
+		i = 0
+	}
 	mod := len(routees)
 	routee := routees[i%mod]
 	return routee
