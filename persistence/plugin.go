@@ -29,10 +29,8 @@ func (mixin *Mixin) Name() string {
 	return mixin.name
 }
 func (mixin *Mixin) PersistReceive(message proto.Message) {
-
 	mixin.providerState.PersistEvent(mixin.Name(), mixin.eventIndex, message)
 	mixin.eventIndex++
-	mixin.receiver.Receive(message)
 	if mixin.eventIndex%mixin.providerState.GetSnapshotInterval() == 0 {
 		mixin.receiver.Receive(&RequestSnapshot{})
 	}
