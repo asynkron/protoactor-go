@@ -66,12 +66,12 @@ func (l *Logger) Debug(msg string, fields ...Field) {
 
 func (l *Logger) Info(msg string, fields ...Field) {
 	if l.Level() < ErrorLevel {
-		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
+		es.Publish(Event{Time: time.Now(), Level: InfoLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
 	}
 }
 
 func (l *Logger) Error(msg string, fields ...Field) {
 	if l.Level() < OffLevel {
-		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
+		es.Publish(Event{Time: time.Now(), Level: ErrorLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
 	}
 }
