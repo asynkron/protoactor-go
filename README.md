@@ -331,7 +331,7 @@ func main() {
     remote.Start("localhost:8091")
 
     //register a name for our local actor so that it can be discovered remotely
-	remote.Register("hello", actor.FromInstance(&MyActor{}))
+    remote.Register("hello", actor.FromInstance(&MyActor{}))
     console.ReadLine()
 }
 ```
