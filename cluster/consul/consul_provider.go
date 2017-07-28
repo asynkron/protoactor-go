@@ -154,7 +154,7 @@ func (p *ConsulProvider) notifyStatuses() {
 			Host:     v.Service.Address,
 			Port:     v.Service.Port,
 			Kinds:    v.Service.Tags,
-			Alive:    v.Checks[1].Status == "passing",
+			Alive:    len(v.Checks) > 0 && v.Checks[0].Status == "passing",
 		}
 		res[i] = ms
 	}
