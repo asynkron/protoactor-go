@@ -18,15 +18,17 @@ type process struct {
 }
 
 func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
-
 	msg, sender := actor.UnwrapEnvelope(message)
-	if _, ok := message.(ManagementMessage); ok {
-		r, _ := actor.ProcessRegistry.Get(ref.router)
-		r.SendUserMessage(pid, msg)
-	} else {
+	if _, ok := msg.(ManagementMessage); !ok {
 		ref.state.RouteMessage(msg, sender)
+	} else {
+		r, _ := actor.ProcessRegistry.Get(ref.router)
+		// Always send the original message to the router actor,
+		// since if the message is enveloped, the sender need to get a response.
+		r.SendUserMessage(pid, message)
 	}
 }
+
 func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 	switch msg := message.(type) {
 	case *actor.Watch:
