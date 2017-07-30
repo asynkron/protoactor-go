@@ -30,6 +30,7 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 
 	routerPID := actor.Spawn(actor.FromSpawnFunc(spawner(grc)))
 	routerPID.Tell("hello")
+	routerPID.Request("hello", routerPID)
 
 	mock.AssertExpectationsForObjects(t, p, rs)
 }
