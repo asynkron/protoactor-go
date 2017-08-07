@@ -13,6 +13,7 @@ import (
 func Start(clusterName, address string, provider ClusterProvider) {
 	//TODO: make it possible to become a cluster even if remoting is already started
 	remote.Start(address)
+	address = actor.ProcessRegistry.Address
 	h, p := gonet.GetAddress(address)
 	plog.Info("Starting Proto.Actor cluster", log.String("address", address))
 	kinds := remote.GetKnownKinds()
