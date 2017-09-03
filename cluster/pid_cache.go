@@ -14,8 +14,8 @@ var (
 func spawnPidCacheActor() {
 	props := actor.FromProducer(newPidCacheActor())
 	pidCacheActorPid, _ = actor.SpawnNamed(props, "PidCache")
-
 }
+
 func newPidCacheActor() actor.Producer {
 	return func() actor.Actor {
 		return &pidCachePartitionActor{}
