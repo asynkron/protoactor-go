@@ -5,7 +5,6 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/AsynkronIT/protoactor-go/router"
 )
 
 var (
