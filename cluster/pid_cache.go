@@ -13,7 +13,7 @@ var (
 )
 
 func spawnPidCacheActor() {
-	props := router.NewConsistentHashPool(128).WithProducer(newPidCacheActor())
+	props := actor.FromProducer(newPidCacheActor())
 	pidCacheActorPid, _ = actor.SpawnNamed(props, "PidCache")
 
 }
