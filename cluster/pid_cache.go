@@ -5,7 +5,6 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/AsynkronIT/protoactor-go/router"
 )
 
 var (
@@ -13,10 +12,10 @@ var (
 )
 
 func spawnPidCacheActor() {
-	props := router.NewConsistentHashPool(128).WithProducer(newPidCacheActor())
+	props := actor.FromProducer(newPidCacheActor())
 	pidCacheActorPid, _ = actor.SpawnNamed(props, "PidCache")
-
 }
+
 func newPidCacheActor() actor.Producer {
 	return func() actor.Actor {
 		return &pidCachePartitionActor{}
