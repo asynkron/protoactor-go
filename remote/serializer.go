@@ -8,6 +8,11 @@ func init() {
 	RegisterSerializer(newJsonSerializer())
 }
 
+func RegisterSerializerAsDefault(serializer Serializer) {
+	serializers = append(serializers, serializer)
+	DefaultSerializerID = int32(len(serializers) - 1)
+}
+
 func RegisterSerializer(serializer Serializer) {
 	serializers = append(serializers, serializer)
 }
@@ -18,13 +23,13 @@ type Serializer interface {
 	GetTypeName(msg interface{}) (string, error)
 }
 
-func serialize(message interface{}, serializerID int32) ([]byte, string, error) {
+func Serialize(message interface{}, serializerID int32) ([]byte, string, error) {
 	res, err := serializers[serializerID].Serialize(message)
 	typeName, err := serializers[serializerID].GetTypeName(message)
 	return res, typeName, err
 }
 
-func deserialize(message []byte, typeName string, serializerID int32) interface{} {
+func Deserialize(message []byte, typeName string, serializerID int32) interface{} {
 	res, _ := serializers[serializerID].Deserialize(typeName, message)
 	return res
 }

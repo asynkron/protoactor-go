@@ -90,7 +90,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		} else {
 			serializerID = rd.serializerID
 		}
-		bytes, typeName, err := serialize(rd.message, serializerID)
+		bytes, typeName, err := Serialize(rd.message, serializerID)
 		if err != nil {
 			panic(err)
 		}

@@ -13,8 +13,8 @@ func TestJsonSerializer_round_trip(t *testing.T) {
 		Kind: "abc",
 		Name: "def",
 	}
-	b, typeName, _ := serialize(m, 1)
-	res := deserialize(b, typeName, 1)
+	b, typeName, _ := Serialize(m, 1)
+	res := Deserialize(b, typeName, 1)
 	typed := res.(*ActorPidRequest)
 
 	assert.Equal(t, "remote.ActorPidRequest", typeName)
@@ -30,8 +30,8 @@ func TestJsonSerializer_Serialize_PID_raw(t *testing.T) {
 
 func TestJsonSerializer_Serialize_PID(t *testing.T) {
 	m := actor.NewLocalPID("foo")
-	b, typeName, _ := serialize(m, 1)
-	res := deserialize(b, typeName, 1)
+	b, typeName, _ := Serialize(m, 1)
+	res := Deserialize(b, typeName, 1)
 	typed := res.(*actor.PID)
 
 	assert.Equal(t, "actor.PID", typeName)
