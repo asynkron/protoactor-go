@@ -29,7 +29,6 @@ func Serialize(message interface{}, serializerID int32) ([]byte, string, error) 
 	return res, typeName, err
 }
 
-func Deserialize(message []byte, typeName string, serializerID int32) interface{} {
-	res, _ := serializers[serializerID].Deserialize(typeName, message)
-	return res
+func Deserialize(message []byte, typeName string, serializerID int32) (interface{}, error) {
+	return serializers[serializerID].Deserialize(typeName, message)
 }
