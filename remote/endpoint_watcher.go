@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"fmt"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
 )
@@ -15,12 +16,12 @@ func newEndpointWatcher(address string) actor.Producer {
 
 type endpointWatcher struct {
 	address string
-	watched map[string]*actor.PID //key is the watching PID string, value is the watched PID
+	watched map[string]*PIDSet //key is the watching PID string, value is the watched PID
 }
 
 func (state *endpointWatcher) initialize() {
 	plog.Info("Started EndpointWatcher", log.String("address", state.address))
-	state.watched = make(map[string]*actor.PID)
+	state.watched = make(map[string]*PIDSet)
 }
 
 func (state *endpointWatcher) Receive(ctx actor.Context) {
@@ -29,10 +30,21 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		state.initialize()
 
 	case *remoteTerminate:
-		delete(state.watched, msg.Watcher.Id)
+		plog.Info("remoteTerminate handling terminated", log.String("address", state.address))
+		var watchee = msg.Watchee
 
+		if watchedPIDs, founded := state.watched[msg.Watcher.Id]; founded {
+			//The cache object pointer is different from the temporary object pointer interpreted by the reflector
+			if cacheWatchee, deleted := watchedPIDs.Remove(msg.Watchee.Id); deleted {
+				watchee = cacheWatchee
+
+				if watchedPIDs.Size() == 0 {
+					delete(state.watched, msg.Watcher.Id)
+				}
+			}
+		}
 		terminated := &actor.Terminated{
-			Who:               msg.Watchee,
+			Who:               watchee,
 			AddressTerminated: false,
 		}
 		ref, ok := actor.ProcessRegistry.GetLocal(msg.Watcher.Id)
@@ -41,45 +53,59 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		}
 
 	case *EndpointTerminatedEvent:
-		plog.Info("EndpointWatcher handling terminated", log.String("address", state.address))
-
-		for id, pid := range state.watched {
-
+		plog.Info("EndpointWatcher %v  handling terminated", log.String("address", state.address), log.String("address", state.address))
+		for id, pids := range state.watched {
 			//try to find the watcher ID in the local actor registry
 			ref, ok := actor.ProcessRegistry.GetLocal(id)
 			if ok {
+				for _, watchee := range pids.All() {
+					//create a terminated event for the Watched actor
 
-				//create a terminated event for the Watched actor
-				terminated := &actor.Terminated{
-					Who:               pid,
-					AddressTerminated: true,
+					terminated := &actor.Terminated{
+						Who:               watchee,
+						AddressTerminated: true,
+					}
+					watcher := actor.NewLocalPID(id)
+					//send the address Terminated event to the Watcher
+					ref.SendSystemMessage(watcher, terminated)
 				}
-
-				watcher := actor.NewLocalPID(id)
-				//send the address Terminated event to the Watcher
-				ref.SendSystemMessage(watcher, terminated)
+				pids.Clean()
 			}
 		}
 
-		ctx.SetBehavior(state.Terminated)
+		//todo:
+		// After the call SetBehavior, it will cause the faulty service node to restart after the success is still unrecognizable.
+		// Need to re-think from the architecture.
+		//ctx.SetBehavior(state.Terminated)
 
 	case *remoteWatch:
-
-		state.watched[msg.Watcher.Id] = msg.Watchee
+		var (
+			pids    *PIDSet
+			founded bool
+		)
+		if pids, founded = state.watched[msg.Watcher.Id]; !founded {
+			pids = &PIDSet{}
+			state.watched[msg.Watcher.Id] = pids
+		}
+		pids.Add(msg.Watchee)
 
 		//recreate the Watch command
 		w := &actor.Watch{
 			Watcher: msg.Watcher,
 		}
-
 		//pass it off to the remote PID
 		SendMessage(msg.Watchee, w, nil, -1)
 
 	case *remoteUnwatch:
-
 		//delete the watch entries
-		delete(state.watched, msg.Watcher.Id)
-
+		if watchedPIDs, founded := state.watched[msg.Watcher.Id]; founded {
+			//cached watchee ptr is not same from reflect from protobuf
+			if _, deleted := watchedPIDs.Remove(msg.Watchee.Id); deleted {
+				if watchedPIDs.Size() == 0 {
+					delete(state.watched, msg.Watcher.Id)
+				}
+			}
+		}
 		//recreate the Unwatch command
 		uw := &actor.Unwatch{
 			Watcher: msg.Watcher,
@@ -95,8 +121,9 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 
 func (state *endpointWatcher) Terminated(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
+	case *actor.Restarting:
+		ctx.SetBehavior(state.Receive)
 	case *remoteWatch:
-
 		//try to find the watcher ID in the local actor registry
 		ref, ok := actor.ProcessRegistry.GetLocal(msg.Watcher.Id)
 		if ok {
