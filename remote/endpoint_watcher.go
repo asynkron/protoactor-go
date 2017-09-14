@@ -34,8 +34,8 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 
 		if watchedPIDs, founded := state.watched[msg.Watcher.Id]; founded {
 			//The cache object pointer is different from the temporary object pointer interpreted by the reflector
-			if cacheWatchee, deleted := watchedPIDs.Remove(msg.Watchee.Id); deleted {
-				watchee = cacheWatchee
+			if cachedWatchee, deleted := watchedPIDs.Remove(msg.Watchee.Id); deleted {
+				watchee = cachedWatchee
 
 				if watchedPIDs.Size() == 0 {
 					delete(state.watched, msg.Watcher.Id)
@@ -53,11 +53,11 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 
 	case *EndpointTerminatedEvent:
 		plog.Info("EndpointWatcher %v  handling terminated", log.String("address", state.address), log.String("address", state.address))
-		for id, pids := range state.watched {
+		for id, watchedPIDs := range state.watched {
 			//try to find the watcher ID in the local actor registry
 			localWatcher, ok := actor.ProcessRegistry.GetLocal(id)
 			if ok {
-				for _, watchee := range pids.All() {
+				for _, watchee := range watchedPIDs.All() {
 					//create a terminated event for the Watched actor
 
 					terminated := &actor.Terminated{
@@ -68,7 +68,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 					//send the address Terminated event to the Watcher
 					localWatcher.SendSystemMessage(watcher, terminated)
 				}
-				pids.Clean()
+				watchedPIDs.Clean()
 			}
 		}
 
@@ -80,14 +80,14 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 
 	case *remoteWatch:
 		var (
-			pids    *PIDSet
-			founded bool
+			watchedPIDs *PIDSet
+			founded     bool
 		)
-		if pids, founded = state.watched[msg.Watcher.Id]; !founded {
-			pids = &PIDSet{}
-			state.watched[msg.Watcher.Id] = pids
+		if watchedPIDs, founded = state.watched[msg.Watcher.Id]; !founded {
+			watchedPIDs = &PIDSet{}
+			state.watched[msg.Watcher.Id] = watchedPIDs
 		}
-		pids.Add(msg.Watchee)
+		watchedPIDs.Add(msg.Watchee)
 
 		//recreate the Watch command
 		w := &actor.Watch{
