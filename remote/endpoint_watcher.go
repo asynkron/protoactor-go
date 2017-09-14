@@ -1,7 +1,6 @@
 package remote
 
 import (
-	"fmt"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
 )
@@ -56,7 +55,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		plog.Info("EndpointWatcher %v  handling terminated", log.String("address", state.address), log.String("address", state.address))
 		for id, pids := range state.watched {
 			//try to find the watcher ID in the local actor registry
-			ref, ok := actor.ProcessRegistry.GetLocal(id)
+			localWatcher, ok := actor.ProcessRegistry.GetLocal(id)
 			if ok {
 				for _, watchee := range pids.All() {
 					//create a terminated event for the Watched actor
@@ -67,15 +66,16 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 					}
 					watcher := actor.NewLocalPID(id)
 					//send the address Terminated event to the Watcher
-					ref.SendSystemMessage(watcher, terminated)
+					localWatcher.SendSystemMessage(watcher, terminated)
 				}
 				pids.Clean()
 			}
 		}
 
 		//todo:
-		// After the call SetBehavior, it will cause the faulty service node to restart after the success is still unrecognizable.
-		// Need to re-think from the architecture.
+		// When switch another behavior,  EndpointWatcher still can not be recovery if remote service is normal,
+		// Need to add more events to control behavior change ,used by [cluster.memberlistActor] and [remote.endpoint_manager]
+		// At there is a risk of remotewatch at this time ， because the behavior switch is disabled.
 		//ctx.SetBehavior(state.Terminated)
 
 	case *remoteWatch:
