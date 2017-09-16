@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"sync"
 	"time"
 )
 
@@ -13,13 +14,16 @@ var (
 )
 
 func init() {
-	l := &ioLogger{out: os.Stderr}
+	l := &ioLogger{lock: &sync.Mutex{}, out: os.Stderr}
 	sub = Subscribe(func(evt Event) {
+		l.lock.Lock()
 		l.WriteEvent(evt)
+		l.lock.Unlock()
 	})
 }
 
 type ioLogger struct {
+	lock *sync.Mutex
 	out io.Writer
 	buf []byte
 }

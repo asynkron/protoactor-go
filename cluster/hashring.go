@@ -7,7 +7,6 @@ import (
 )
 
 func getNode(key, kind string) string {
-	//v := hash(key)
 	members := getMembers(kind)
 	if members == nil {
 		plog.Error("getNode: failed to get member", log.String("kind", kind))
