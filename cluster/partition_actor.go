@@ -27,12 +27,12 @@ func subscribePartitionKindsToEventStream() {
 }
 
 func spawnPartitionActor(kind string) *actor.PID {
-	partitionPid, _ := actor.SpawnNamed(actor.FromProducer(newPartitionActor(kind)), "#partition-"+kind)
+	partitionPid, _ := actor.SpawnNamed(actor.FromProducer(newPartitionActor(kind)), "partition-"+kind)
 	return partitionPid
 }
 
 func partitionForKind(address, kind string) *actor.PID {
-	pid := actor.NewPID(address, "#partition-"+kind)
+	pid := actor.NewPID(address, "partition-"+kind)
 	return pid
 }
 
