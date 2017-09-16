@@ -22,7 +22,11 @@ func (s *server) Receive(stream Remoting_ReceiveServer) error {
 		for _, envelope := range batch.Envelopes {
 			targetName := batch.TargetNames[envelope.Target]
 			pid := actor.NewLocalPID(targetName)
-			message := deserialize(envelope.MessageData, batch.TypeNames[envelope.TypeId], envelope.SerializerId)
+			message, err := Deserialize(envelope.MessageData, batch.TypeNames[envelope.TypeId], envelope.SerializerId)
+			if err != nil {
+				plog.Debug("EndpointReader failed to deserialize", log.Error(err))
+				return err
+			}
 			//if message is system message send it as sysmsg instead of usermsg
 
 			sender := envelope.Sender
