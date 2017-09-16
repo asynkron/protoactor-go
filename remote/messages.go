@@ -6,6 +6,10 @@ type EndpointTerminatedEvent struct {
 	Address string
 }
 
+type EndpointConnectedEvent struct {
+	Address string
+}
+
 type remoteWatch struct {
 	Watcher *actor.PID
 	Watchee *actor.PID

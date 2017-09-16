@@ -35,7 +35,7 @@ func (state *endpointWriter) initialize() {
 
 func (state *endpointWriter) initializeInternal() error {
 	plog.Info("Started EndpointWriter", log.String("address", state.address))
-	plog.Info("EndpointWatcher connecting", log.String("address", state.address))
+	plog.Info("EndpointWriter connecting", log.String("address", state.address))
 	conn, err := grpc.Dial(state.address, state.config.dialOptions...)
 	if err != nil {
 		return err
@@ -67,6 +67,8 @@ func (state *endpointWriter) initializeInternal() error {
 	}()
 
 	plog.Info("EndpointWriter connected", log.String("address", state.address))
+	connected := &EndpointConnectedEvent{Address: state.address}
+	eventstream.Publish(connected)
 	state.stream = stream
 	return nil
 }

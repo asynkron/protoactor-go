@@ -20,8 +20,11 @@ func subscribeEndpointManager() {
 	eventstream.
 		Subscribe(endpointManagerPID.Tell).
 		WithPredicate(func(m interface{}) bool {
-			_, ok := m.(*EndpointTerminatedEvent)
-			return ok
+			switch m.(type) {
+			case *EndpointTerminatedEvent, *EndpointConnectedEvent:
+				return true				
+			}
+			return false
 		})
 }
 
@@ -51,6 +54,10 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 		plog.Debug("Started EndpointManager")
 
 	case *EndpointTerminatedEvent:
+		address := msg.Address
+		endpoint := state.ensureConnected(address, ctx)
+		endpoint.watcher.Tell(msg)
+	case *EndpointConnectedEvent:		
 		address := msg.Address
 		endpoint := state.ensureConnected(address, ctx)
 		endpoint.watcher.Tell(msg)

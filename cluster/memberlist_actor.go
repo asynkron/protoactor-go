@@ -69,23 +69,32 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 		}
 
 		//find the entires that only exist in the old set but not in the new
+		rmvds := make([]string, 0)
 		for key, old := range a.members {
-			new := tmp[key]
-			if new == nil {
-				a.notify(key, new, old)
+			status := tmp[key]
+			if status == nil || status != nil && !status.Alive {
+				a.notify(key, nil, old, &rmvds)				
 			}
+		}
+		for _, rmvd := range rmvds {
+			delete(a.members, rmvd)
 		}
 
 		//find all the entries that exist in the new set
+		rmvds = make([]string, 0)
 		for key, new := range tmp {
-			old := a.members[key]
-			a.members[key] = new
-			a.notify(key, new, old)
+			if a.members[key] == nil && new.Alive {
+				a.members[key] = new
+				a.notify(key, new, nil, &rmvds)
+			}
+		}		
+		for _, rmvd := range rmvds {
+			delete(a.members, rmvd)
 		}
 	}
 }
 
-func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatus) {
+func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatus, removed *[]string) {
 
 	if new == nil && old == nil {
 		//ignore, not possible
@@ -100,7 +109,8 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		}
 		left := &MemberLeftEvent{MemberMeta: meta}
 		eventstream.Publish(left)
-		delete(a.members, key) //remove this member as it has left
+		//delete(a.members, key) //remove this member as it has left
+		*removed = append(*removed, key)
 
 		rt := &remote.EndpointTerminatedEvent{
 			Address: fmt.Sprintf("%v:%v", old.Host, old.Port),

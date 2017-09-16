@@ -39,7 +39,8 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		if ok {
 			ref.SendSystemMessage(msg.Watcher, terminated)
 		}
-
+	case *EndpointConnectedEvent:
+		//Already connected, pass
 	case *EndpointTerminatedEvent:
 		plog.Info("EndpointWatcher handling terminated", log.String("address", state.address))
 
@@ -109,10 +110,12 @@ func (state *endpointWatcher) Terminated(ctx actor.Context) {
 			//send the address Terminated event to the Watcher
 			ref.SendSystemMessage(msg.Watcher, terminated)
 		}
-
+	case *EndpointConnectedEvent:
+		plog.Info("EndpointWatcher handling restart", log.String("address", state.address))		
+		ctx.SetBehavior(state.Receive)
 	case *remoteTerminate, *EndpointTerminatedEvent, *remoteUnwatch:
 		// pass
-
+		plog.Error("EndpointWatcher receive message for already terminated endpoint", log.String("address", state.address), log.Message(msg))		
 	default:
 		plog.Error("EndpointWatcher received unknown message", log.String("address", state.address), log.Message(msg))
 	}
