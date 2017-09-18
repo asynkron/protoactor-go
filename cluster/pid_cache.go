@@ -122,19 +122,23 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 		address := msg.Name()
 		a.removeCacheByMemberAddress(address)
 	case *actor.Terminated:
-		key := msg.Who.String()
-		//get the virtual name from the pid
-		name, ok := a.ReverseCache[key]
-		if !ok {
-			//we don't have it, just ignore
-			return
-		}
-		//drop both lookups as this actor is now dead
-		delete(a.Cache, name)
-		delete(a.ReverseCache, key)
-		if ks, ok := a.ReverseCacheByMemberAddress[msg.Who.Address]; ok {
-			ks.remove(key)
-		}
+		a.removeCacheByPid(msg.Who)
+	}
+}
+
+func (a *pidCachePartitionActor) removeCacheByPid(pid *actor.PID) {
+	key := pid.String()
+	//get the virtual name from the pid
+	name, ok := a.ReverseCache[key]
+	if !ok {
+		//we don't have it, just ignore
+		return
+	}
+	//drop both lookups as this actor is now dead
+	delete(a.Cache, name)
+	delete(a.ReverseCache, key)
+	if ks, ok := a.ReverseCacheByMemberAddress[pid.Address]; ok {
+		ks.remove(key)
 	}
 }
 
