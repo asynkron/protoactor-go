@@ -28,6 +28,7 @@ func Start(clusterName, address string, provider ClusterProvider) {
 	spawnPartitionActors(kinds)
 	subscribePartitionKindsToEventStream()
 	spawnPidCacheActor()
+	subscribePidCacheMemberStatusEventStream()
 	spawnMembershipActor()
 	subscribeMembershipActorToEventStream()
 	cp.RegisterMember(clusterName, h, p, kinds)
@@ -44,6 +45,7 @@ func Stop(graceful bool) {
 
 		unsubMembershipActorToEventStream()
 		stopMembershipActor()
+		unsubPidCacheMemberStatusEventStream()
 		stopPidCacheActor()
 		unsubPartitionKindsToEventStream()
 		stopPartitionActors()

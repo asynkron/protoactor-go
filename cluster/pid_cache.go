@@ -1,14 +1,17 @@
 package cluster
 
 import (
+	"github.com/AsynkronIT/protoactor-go/log"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
 var (
 	pidCacheActorPid *actor.PID
+	memberStatusSub  *eventstream.Subscription
 )
 
 func spawnPidCacheActor() {
@@ -26,10 +29,29 @@ func newPidCacheActor() actor.Producer {
 	}
 }
 
-type pidCachePartitionActor struct {
-	Cache        map[string]*actor.PID
-	ReverseCache map[string]string
+func subscribePidCacheMemberStatusEventStream() {
+	memberStatusSub = eventstream.
+		Subscribe(pidCacheActorPid.Tell).
+		WithPredicate(func(m interface{}) bool {
+			_, ok := m.(MemberStatusEvent)
+			return ok
+		})
 }
+
+func unsubPidCacheMemberStatusEventStream() {
+	eventstream.Unsubscribe(memberStatusSub)
+}
+
+type pidCachePartitionActor struct {
+	Cache                       map[string]*actor.PID
+	ReverseCache                map[string]string
+	ReverseCacheByMemberAddress map[string]keySet
+}
+
+type keySet map[string]bool
+
+func (s keySet) add(val string)    { s[val] = true }
+func (s keySet) remove(val string) { delete(s, val) }
 
 type pidCacheRequest struct {
 	name string
@@ -45,6 +67,7 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 	case *actor.Started:
 		a.Cache = make(map[string]*actor.PID)
 		a.ReverseCache = make(map[string]string)
+		a.ReverseCacheByMemberAddress = make(map[string]keySet)
 
 	case *pidCacheRequest:
 		if pid, ok := a.Cache[msg.name]; ok {
@@ -74,15 +97,30 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 				return
 			}
 
+			key := response.Pid.String()
+
 			a.Cache[name] = response.Pid
 			//make a lookup from pid to name
-			a.ReverseCache[response.Pid.String()] = name
+			a.ReverseCache[key] = name
+			//add to member address map
+			if ks, ok := a.ReverseCacheByMemberAddress[response.Pid.Address]; ok {
+				ks.add(key)
+			} else {
+				a.ReverseCacheByMemberAddress[response.Pid.Address] = keySet{key: true}
+			}
+
 			//watch the pid so we know if the node or pid dies
 			ctx.Watch(response.Pid)
 			//tell the original requester that we have a response
 			ctx.Respond(response)
 		})
 
+	case *MemberLeftEvent:
+		address := msg.Name()
+		a.removeCacheByMemberAddress(address)
+	case *MemberRejoinedEvent:
+		address := msg.Name()
+		a.removeCacheByMemberAddress(address)
 	case *actor.Terminated:
 		key := msg.Who.String()
 		//get the virtual name from the pid
@@ -94,5 +132,21 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 		//drop both lookups as this actor is now dead
 		delete(a.Cache, name)
 		delete(a.ReverseCache, key)
+		if ks, ok := a.ReverseCacheByMemberAddress[msg.Who.Address]; ok {
+			ks.remove(key)
+		}
+	}
+}
+
+func (a *pidCachePartitionActor) removeCacheByMemberAddress(address string) {
+	if ks, ok := a.ReverseCacheByMemberAddress[address]; ok {
+		for k := range ks {
+			if n, ok := a.ReverseCache[k]; ok {
+				delete(a.Cache, n)
+				delete(a.ReverseCache, k)
+			}
+		}
+		delete(a.ReverseCacheByMemberAddress, address)
+		plog.Error("PID caches removed from PidCache", log.Object("address", address))
 	}
 }
