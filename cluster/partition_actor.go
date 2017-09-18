@@ -56,8 +56,10 @@ func (state *partitionActor) Receive(context actor.Context) {
 		plog.Info("Started", log.String("id", context.Self().Id))
 	case *remote.ActorPidRequest:
 		state.spawn(msg, context)
+	case *actor.Terminated:
+		state.terminated(msg)
 	case *MemberJoinedEvent:
-		state.memberJoined(msg)
+		state.memberJoined(msg, context)
 	case *MemberRejoinedEvent:
 		state.memberRejoined(msg)
 	case *MemberLeftEvent:
@@ -67,8 +69,7 @@ func (state *partitionActor) Receive(context actor.Context) {
 	case *MemberUnavailableEvent:
 		plog.Info("Node unavailable", log.String("name", msg.Name()))
 	case *TakeOwnership:
-
-		state.takeOwnership(msg)
+		state.takeOwnership(msg, context)
 	default:
 		plog.Error("Partition got unknown message", log.Object("msg", msg))
 	}
@@ -95,6 +96,16 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 	context.Respond(response)
 }
 
+func (state *partitionActor) terminated(msg *actor.Terminated) {
+	//one of the actors we manage died, remove it from the lookup
+	for actorID, pid := range state.partition {
+		if pid.Equal(msg.Who) {
+			delete(state.partition, actorID)
+			return
+		}
+	}
+}
+
 func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
 	plog.Info("Node rejoined", log.String("name", msg.Name()))
 	for actorID, pid := range state.partition {
@@ -117,17 +128,17 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {
 	}
 }
 
-func (state *partitionActor) memberJoined(msg *MemberJoinedEvent) {
+func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.Context) {
 	plog.Info("Node joined", log.String("name", msg.Name()))
 	for actorID := range state.partition {
 		address := getNode(actorID, state.kind)
 		if address != actor.ProcessRegistry.Address {
-			state.transferOwnership(actorID, address)
+			state.transferOwnership(actorID, address, context)
 		}
 	}
 }
 
-func (state *partitionActor) transferOwnership(actorID string, address string) {
+func (state *partitionActor) transferOwnership(actorID string, address string, context actor.Context) {
 	pid := state.partition[actorID]
 	owner := partitionForKind(address, state.kind)
 	owner.Tell(&TakeOwnership{
@@ -136,8 +147,10 @@ func (state *partitionActor) transferOwnership(actorID string, address string) {
 	})
 	//we can safely delete this entry as the consisntent hash no longer points to us
 	delete(state.partition, actorID)
+	context.Unwatch(pid);	
 }
 
-func (state *partitionActor) takeOwnership(msg *TakeOwnership) {
+func (state *partitionActor) takeOwnership(msg *TakeOwnership, context actor.Context) {
 	state.partition[msg.Name] = msg.Pid
+	context.Watch(msg.Pid);	
 }
