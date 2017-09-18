@@ -65,7 +65,7 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 	p.kvKey = fmt.Sprintf("%v/%v:%v", clusterName, address, port)
 	_, err = p.client.KV().Put(&api.KVPair{
 		Key:   p.kvKey,
-		Value: []byte(time.Now().String()), //currently, just a semi unique id for this member
+		Value: []byte(time.Now().UTC().Format(time.RFC3339)), //currently, just a semi unique id for this member
 	}, &api.WriteOptions{})
 
 	if err != nil {
