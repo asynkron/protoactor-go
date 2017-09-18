@@ -16,6 +16,10 @@ func spawnPidCacheActor() {
 	pidCacheActorPid, _ = actor.SpawnNamed(props, "PidCache")
 }
 
+func stopPidCacheActor() {
+	pidCacheActorPid.GracefulStop()
+}
+
 func newPidCacheActor() actor.Producer {
 	return func() actor.Actor {
 		return &pidCachePartitionActor{}

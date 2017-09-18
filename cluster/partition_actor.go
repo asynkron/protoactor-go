@@ -11,10 +11,11 @@ import (
 
 var (
 	kindPIDMap map[string]*actor.PID
+	partitionKindsSub *eventstream.Subscription
 )
 
 func subscribePartitionKindsToEventStream() {
-	eventstream.Subscribe(func(m interface{}) {
+	partitionKindsSub = eventstream.Subscribe(func(m interface{}) {
 		if mse, ok := m.(MemberStatusEvent); ok {
 			for _, k := range mse.GetKinds() {
 				kindPID := kindPIDMap[k]
@@ -24,6 +25,24 @@ func subscribePartitionKindsToEventStream() {
 			}
 		}
 	})
+}
+
+func unsubPartitionKindsToEventStream() {
+	eventstream.Unsubscribe(partitionKindsSub)
+}
+
+func spawnPartitionActors(kinds []string) {
+	kindPIDMap = make(map[string]*actor.PID)	
+	for _, kind := range kinds {
+		kindPID := spawnPartitionActor(kind)
+		kindPIDMap[kind] = kindPID
+	}
+}
+
+func stopPartitionActors() {
+	for _, kindPID := range kindPIDMap {
+		kindPID.GracefulStop()
+	}
 }
 
 func spawnPartitionActor(kind string) *actor.PID {

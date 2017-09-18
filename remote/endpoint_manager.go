@@ -6,7 +6,10 @@ import (
 	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
-var endpointManagerPID *actor.PID
+var (
+	endpointManagerPID *actor.PID
+	endpointSub *eventstream.Subscription
+)
 
 func newEndpointManager(config *remoteConfig) actor.Producer {
 	return func() actor.Actor {
@@ -17,7 +20,7 @@ func newEndpointManager(config *remoteConfig) actor.Producer {
 }
 
 func subscribeEndpointManager() {
-	eventstream.
+	endpointSub = eventstream.
 		Subscribe(endpointManagerPID.Tell).
 		WithPredicate(func(m interface{}) bool {
 			switch m.(type) {
@@ -28,6 +31,10 @@ func subscribeEndpointManager() {
 		})
 }
 
+func unsubEndpointManager() {
+	eventstream.Unsubscribe(endpointSub)
+}
+
 func spawnEndpointManager(config *remoteConfig) {
 	props := actor.
 		FromProducer(newEndpointManager(config)).
@@ -35,6 +42,10 @@ func spawnEndpointManager(config *remoteConfig) {
 		WithSupervisor(actor.RestartingSupervisorStrategy())
 
 	endpointManagerPID = actor.Spawn(props)
+}
+
+func stopEndpointManager() {
+	endpointManagerPID.Tell(&StopEndpointManager{})
 }
 
 type endpoint struct {
@@ -52,7 +63,14 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 	case *actor.Started:
 		state.connections = make(map[string]*endpoint)
 		plog.Debug("Started EndpointManager")
-
+	case *StopEndpointManager:
+		for _, edp := range state.connections {
+			edp.watcher.GracefulStop()
+			edp.writer.GracefulStop()
+		}
+		state.connections = make(map[string]*endpoint)
+		ctx.SetBehavior(state.Terminated)		
+		plog.Debug("Stopped EndpointManager")		
 	case *EndpointTerminatedEvent:
 		address := msg.Address
 		endpoint := state.ensureConnected(address, ctx)
@@ -79,6 +97,9 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 		endpoint.writer.Tell(msg)
 	}
 }
+
+func (state *endpointManager) Terminated(ctx actor.Context) {}
+
 func (state *endpointManager) ensureConnected(address string, ctx actor.Context) *endpoint {
 	e, ok := state.connections[address]
 	if !ok {
