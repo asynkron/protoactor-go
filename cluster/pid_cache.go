@@ -1,11 +1,11 @@
 package cluster
 
 import (
-	"github.com/AsynkronIT/protoactor-go/log"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
+	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
