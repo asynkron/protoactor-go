@@ -1,6 +1,8 @@
 package remote
 
 import (
+	"time"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"golang.org/x/net/context"
@@ -16,14 +18,15 @@ func (s *endpointReader) Connect(ctx context.Context, req *ConnectRequest) (*Con
 
 func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 	for {
+		if s.suspended {
+			time.Sleep(time.Millisecond * 500)
+			continue
+		}
+
 		batch, err := stream.Recv()
 		if err != nil {
 			plog.Debug("EndpointReader failed to read", log.Error(err))
 			return err
-		}
-
-		if s.suspended {
-			continue
 		}
 
 		for _, envelope := range batch.Envelopes {
