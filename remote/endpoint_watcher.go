@@ -131,6 +131,8 @@ func (state *endpointWatcher) Terminated(ctx actor.Context) {
 	case *remoteTerminate, *EndpointTerminatedEvent, *remoteUnwatch:
 		// pass
 		plog.Error("EndpointWatcher receive message for already terminated endpoint", log.String("address", state.address), log.Message(msg))		
+	case actor.SystemMessage:
+		//ignore
 	default:
 		plog.Error("EndpointWatcher received unknown message", log.String("address", state.address), log.Message(msg))
 	}

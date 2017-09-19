@@ -101,7 +101,9 @@ func (*activator) Receive(context actor.Context) {
 			Pid: pid,
 		}
 		context.Respond(response)
+	case actor.SystemMessage:
+		//ignore
 	default:
-		plog.Error("Activator got unknown message", log.Message(msg))
+		plog.Error("Activator received unknown message", log.Message(msg))
 	}
 }
