@@ -35,10 +35,6 @@ func Start(clusterName, address string, provider ClusterProvider) {
 	cp.MonitorMemberStatusChanges()
 }
 
-func SetUnavailable() {
-	cp.DeregisterMember()
-}
-
 func Stop(graceful bool) {
 	if graceful {
 		cp.Shutdown()
