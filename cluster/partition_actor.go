@@ -107,7 +107,10 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 			plog.Error("Partition failed to spawn actor", log.String("name", msg.Name), log.String("kind", msg.Kind), log.String("address", random))
 			return
 		}
-		state.partition[msg.Name] = pid
+		//Hacky way to workaround blocking partition actor in Dotnet, DO NOT COMMIT TO DEV
+		if pid != nil {
+			state.partition[msg.Name] = pid
+		}
 	}
 	response := &remote.ActorPidResponse{
 		Pid: pid,
