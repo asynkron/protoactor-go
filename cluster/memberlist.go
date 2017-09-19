@@ -6,19 +6,21 @@ import "time"
 //TODO: this needs to be implemented,we could send a `Request` to the membership actor, but this seems flaky.
 //a threadsafe map would be better
 func getMembers(kind string) []string {
-	res, err := memberlistPID.RequestFuture(&MemberByKindRequest{kind: kind, onlyAlive: true}, 5*time.Second).Result()
-	if err != nil {
-		//TODO: lets say a node asks for an actor of kind X, which is not registered on the local node
-		//and no other nodes are currently avaialbe, what should be the behavior?
-		panic("No members found")
-	}
-	t, ok := res.(*MemberByKindResponse)
-	if !ok {
-		plog.Error("Failed to cast members by kind response")
-		return nil
+	var members []string
+
+	for {
+		res, err := memberlistPID.RequestFuture(&MemberByKindRequest{kind: kind, onlyAlive: true}, 5*time.Second).Result()
+		if err == nil {
+			t, ok := res.(*MemberByKindResponse)
+			if ok && len(t.members) > 0 {
+				members = t.members
+				break
+			}
+		}
+		time.Sleep(time.Millisecond * 500)
 	}
 
-	return t.members
+	return members
 }
 
 type MemberByKindRequest struct {
