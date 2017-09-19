@@ -1,7 +1,6 @@
 package remote
 
 import (
-	"fmt"
 	"io/ioutil"
 	slog "log"
 	"net"
@@ -14,8 +13,10 @@ import (
 	"google.golang.org/grpc/grpclog"
 )
 
-var s *grpc.Server
-var edpReader *endpointReader
+var (
+	s         *grpc.Server
+	edpReader *endpointReader
+)
 
 // Start the remote server
 func Start(address string, options ...RemotingOption) {
@@ -45,7 +46,7 @@ func Start(address string, options ...RemotingOption) {
 	go s.Serve(lis)
 }
 
-func Stop(graceful bool) {
+func Shutdown(graceful bool) {
 	if graceful {
 		edpReader.suspend(true)
 
@@ -63,12 +64,14 @@ func Stop(graceful bool) {
 		}()
 
 		select {
-		case res := <-c:
-			fmt.Println(res)
+		case <-c:
+			plog.Info("Stopped Proto.Actor server")
 		case <-time.After(time.Second * 10):
 			s.Stop()
+			plog.Info("Stopped Proto.Actor server", log.String("err", "timeout"))
 		}
 	} else {
 		s.Stop()
+		plog.Info("Killed Proto.Actor server")		
 	}
 }

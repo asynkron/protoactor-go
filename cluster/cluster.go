@@ -35,7 +35,7 @@ func Start(clusterName, address string, provider ClusterProvider) {
 	cp.MonitorMemberStatusChanges()
 }
 
-func Stop(graceful bool) {
+func Shutdown(graceful bool) {
 	if graceful {
 		cp.Shutdown()
 
@@ -47,7 +47,7 @@ func Stop(graceful bool) {
 		stopPartitionActors()
 	}
 
-	remote.Stop(graceful)
+	remote.Shutdown(graceful)
 
 	address := actor.ProcessRegistry.Address
 	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))	
