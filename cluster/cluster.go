@@ -81,3 +81,7 @@ func Get(name string, kind string) (*actor.PID, error) {
 	}
 	return typed.Pid, nil
 }
+
+func RemoveCache(name string) {
+	pidCacheActorPid.Tell(&removeCachedPIDRequest{name: name})
+}

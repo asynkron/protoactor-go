@@ -58,6 +58,10 @@ type pidCacheRequest struct {
 	kind string
 }
 
+type removeCachedPIDRequest struct {
+	name string
+}
+
 func (p *pidCacheRequest) Hash() string {
 	return p.name
 }
@@ -123,6 +127,8 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 		a.removeCacheByMemberAddress(address)
 	case *actor.Terminated:
 		a.removeCacheByPid(msg.Who)
+	case *removeCachedPIDRequest:
+		a.removeCacheByName(msg.name)
 	}
 }
 
@@ -139,6 +145,17 @@ func (a *pidCachePartitionActor) removeCacheByPid(pid *actor.PID) {
 	delete(a.ReverseCache, key)
 	if ks, ok := a.ReverseCacheByMemberAddress[pid.Address]; ok {
 		ks.remove(key)
+	}
+}
+
+func (a *pidCachePartitionActor) removeCacheByName(name string) {
+	if pid, ok := a.Cache[name]; ok {
+		key := pid.String()		
+		delete(a.Cache, name)
+		delete(a.ReverseCache, key)
+		if ks, ok := a.ReverseCacheByMemberAddress[pid.Address]; ok {
+			ks.remove(key)
+		}
 	}
 }
 
