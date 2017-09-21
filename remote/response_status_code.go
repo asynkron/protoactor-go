@@ -1,12 +1,13 @@
 package remote
 
-type ActorPidRequestStatusCode int32
+type ResponseStatusCode int32
 
 const (
-	ActorPidRequestStatusOK ActorPidRequestStatusCode = iota
-	ActorPidRequestStatusUNAVAILABLE
+	ResponseStatusCodeOK ResponseStatusCode = iota
+	ResponseStatusCodeUNAVAILABLE
+	ResponseStatusCodeTIMEOUT
 )
 
-func (c ActorPidRequestStatusCode) ToInt32() int32 {
+func (c ResponseStatusCode) ToInt32() int32 {
 	return int32(c)
 }

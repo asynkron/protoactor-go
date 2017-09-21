@@ -58,12 +58,21 @@ type pidCacheRequest struct {
 	kind string
 }
 
-type removeCachedPIDRequest struct {
+func (p *pidCacheRequest) Hash() string {
+	return p.name
+}
+
+type removePidCacheRequest struct {
 	name string
 }
 
-func (p *pidCacheRequest) Hash() string {
+func (p *removePidCacheRequest) Hash() string {
 	return p.name
+}
+
+type pidCacheResponse struct {
+	pid *actor.PID
+	status remote.ResponseStatusCode
 }
 
 func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
@@ -76,7 +85,7 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 	case *pidCacheRequest:
 		if pid, ok := a.Cache[msg.name]; ok {
 			//name was in cache, exit early
-			ctx.Respond(&remote.ActorPidResponse{Pid: pid})
+			ctx.Respond(&pidCacheResponse{pid: pid})
 			return
 		}
 		name := msg.name
@@ -101,8 +110,9 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 				return
 			}
 
-			switch remote.ActorPidRequestStatusCode(response.StatusCode) {
-			case remote.ActorPidRequestStatusOK:
+			statusCode := remote.ResponseStatusCode(response.StatusCode)
+			switch statusCode {
+			case remote.ResponseStatusCodeOK:
 				key := response.Pid.String()
 
 				a.Cache[name] = response.Pid
@@ -118,10 +128,10 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 				//watch the pid so we know if the node or pid dies
 				ctx.Watch(response.Pid)
 				//tell the original requester that we have a response
-				ctx.Respond(response)
+				ctx.Respond(&pidCacheResponse{response.Pid, statusCode})
 			default:
 				//forward to requester
-				ctx.Respond(response)
+				ctx.Respond(&pidCacheResponse{response.Pid, statusCode})
 			}
 		})
 
@@ -133,7 +143,7 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 		a.removeCacheByMemberAddress(address)
 	case *actor.Terminated:
 		a.removeCacheByPid(msg.Who)
-	case *removeCachedPIDRequest:
+	case *removePidCacheRequest:
 		a.removeCacheByName(msg.name)
 	}
 }

@@ -39,7 +39,7 @@ func GetKnownKinds() []string {
 type activator struct {
 }
 
-var ErrActivatorUnavailable = &ActivatorError{Code: ActorPidRequestStatusUNAVAILABLE.ToInt32()}
+var ErrActivatorUnavailable = &ActivatorError{Code: ResponseStatusCodeUNAVAILABLE.ToInt32()}
 
 type ActivatorError struct {
 	Code int32

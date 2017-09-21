@@ -114,13 +114,13 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 			return
 		}
 
-		switch remote.ActorPidRequestStatusCode(resp.StatusCode) {
-		case remote.ActorPidRequestStatusOK:
+		switch remote.ResponseStatusCode(resp.StatusCode) {
+		case remote.ResponseStatusCodeOK:
 			pid = resp.Pid
 			state.partition[msg.Name] = pid
 			context.Respond(resp)
 			break
-		case remote.ActorPidRequestStatusUNAVAILABLE:
+		case remote.ResponseStatusCodeUNAVAILABLE:
 			//Retry until failed
 			if retry != 0 {
 				continue

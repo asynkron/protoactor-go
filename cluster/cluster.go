@@ -70,25 +70,26 @@ func getRandomActivator(kind string) string {
 }
 
 //Get a PID to a virtual actor
-func Get(name string, kind string) (*remote.ActorPidResponse, error) {
+func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 
 	req := &pidCacheRequest{
 		kind: kind,
 		name: name,
 	}
 
-	res, err := pidCacheActorPid.RequestFuture(req, 5*time.Second).Result()
+	res, err := pidCacheActorPid.RequestFuture(req, 35*time.Second).Result()
 	if err != nil {
 		plog.Error("ActorPidRequest timed out", log.String("name", name), log.Error(err))
-		return nil, err
+		return nil, remote.ResponseStatusCodeTIMEOUT
 	}
-	typed, ok := res.(*remote.ActorPidResponse)
+	typed, ok := res.(*pidCacheResponse)
 	if !ok {
 		plog.Error("ActorPidRequest returned incorrect response", log.String("name", name))
+		return nil, remote.ResponseStatusCodeUNAVAILABLE
 	}
-	return typed, nil
+	return typed.pid, typed.status
 }
 
 func RemoveCache(name string) {
-	pidCacheActorPid.Tell(&removeCachedPIDRequest{name: name})
+	pidCacheActorPid.Tell(&removePidCacheRequest{name})
 }
