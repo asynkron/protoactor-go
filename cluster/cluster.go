@@ -10,7 +10,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-var(
+var (
 	cp ClusterProvider
 )
 
@@ -50,11 +50,18 @@ func Shutdown(graceful bool) {
 	remote.Shutdown(graceful)
 
 	address := actor.ProcessRegistry.Address
-	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))	
+	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))
+}
+
+func getNextActivator(kind string) string {
+	r := c.next()
+	members := getMembers(kind)
+	i := r % len(members)
+	member := members[i]
+	return member
 }
 
 func getRandomActivator(kind string) string {
-
 	r := rand.Int()
 	members := getMembers(kind)
 	i := r % len(members)
@@ -63,7 +70,7 @@ func getRandomActivator(kind string) string {
 }
 
 //Get a PID to a virtual actor
-func Get(name string, kind string) (*actor.PID, error) {
+func Get(name string, kind string) (*remote.ActorPidResponse, error) {
 
 	req := &pidCacheRequest{
 		kind: kind,
@@ -79,7 +86,7 @@ func Get(name string, kind string) (*actor.PID, error) {
 	if !ok {
 		plog.Error("ActorPidRequest returned incorrect response", log.String("name", name))
 	}
-	return typed.Pid, nil
+	return typed, nil
 }
 
 func RemoveCache(name string) {

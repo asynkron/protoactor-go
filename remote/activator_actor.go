@@ -2,6 +2,7 @@ package remote
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -38,6 +39,16 @@ func GetKnownKinds() []string {
 type activator struct {
 }
 
+var ErrActivatorUnavailable = &ActivatorError{Code: ActorPidRequestStatusUNAVAILABLE.ToInt32()}
+
+type ActivatorError struct {
+	Code int32
+}
+
+func (e *ActivatorError) Error() string {
+	return fmt.Sprint(e.Code)
+}
+
 //ActivatorForAddress returns a PID for the activator at the given address
 func ActivatorForAddress(address string) *actor.PID {
 	pid := actor.NewPID(address, "activator")
@@ -55,12 +66,12 @@ func SpawnFuture(address, name, kind string, timeout time.Duration) *actor.Futur
 }
 
 //Spawn spawns a remote actor of a given type at a given address
-func Spawn(address, kind string, timeout time.Duration) (*actor.PID, error) {
+func Spawn(address, kind string, timeout time.Duration) (*ActorPidResponse, error) {
 	return SpawnNamed(address, "", kind, timeout)
 }
 
 //SpawnNamed spawns a named remote actor of a given type at a given address
-func SpawnNamed(address, name, kind string, timeout time.Duration) (*actor.PID, error) {
+func SpawnNamed(address, name, kind string, timeout time.Duration) (*ActorPidResponse, error) {
 	activator := ActivatorForAddress(address)
 	res, err := activator.RequestFuture(&ActorPidRequest{
 		Name: name,
@@ -71,7 +82,7 @@ func SpawnNamed(address, name, kind string, timeout time.Duration) (*actor.PID, 
 	}
 	switch msg := res.(type) {
 	case *ActorPidResponse:
-		return msg.Pid, nil
+		return msg, nil
 	default:
 		return nil, errors.New("remote: Unknown response when remote activating")
 	}
@@ -96,11 +107,17 @@ func (*activator) Receive(context actor.Context) {
 			name = actor.ProcessRegistry.NextId()
 		}
 
-		pid, _ := actor.SpawnNamed(&props, "Remote$"+name)
-		response := &ActorPidResponse{
-			Pid: pid,
+		pid, err := actor.SpawnNamed(&props, "Remote$"+name)
+
+		if err == nil {
+			response := &ActorPidResponse{Pid: pid}
+			context.Respond(response)
+		} else if aErr, ok := err.(*ActivatorError); ok {
+			response := &ActorPidResponse{StatusCode: aErr.Code}
+			context.Respond(response)
+		} else {
+			panic(err)
 		}
-		context.Respond(response)
 	case actor.SystemMessage:
 		//ignore
 	default:

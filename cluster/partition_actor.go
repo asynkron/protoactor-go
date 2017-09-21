@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	kindPIDMap map[string]*actor.PID
+	kindPIDMap        map[string]*actor.PID
 	partitionKindsSub *eventstream.Subscription
 )
 
@@ -32,7 +32,7 @@ func unsubPartitionKindsToEventStream() {
 }
 
 func spawnPartitionActors(kinds []string) {
-	kindPIDMap = make(map[string]*actor.PID)	
+	kindPIDMap = make(map[string]*actor.PID)
 	for _, kind := range kinds {
 		kindPID := spawnPartitionActor(kind)
 		kindPIDMap[kind] = kindPID
@@ -98,24 +98,41 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 
 	//TODO: make this async
 	pid := state.partition[msg.Name]
-	if pid == nil {
+	if pid != nil {
+		response := &remote.ActorPidResponse{Pid: pid}
+		context.Respond(response)
+		return
+	}
+
+	for retry := 3; retry >= 0; retry-- {
 		//get a random node
-		random := getRandomActivator(msg.Kind)
-		var err error
-		pid, err = remote.SpawnNamed(random, msg.Name, msg.Kind, 5*time.Second)
+		random := getNextActivator(msg.Kind)
+		//spawn pid
+		resp, err := remote.SpawnNamed(random, msg.Name, msg.Kind, 5*time.Second)
 		if err != nil {
 			plog.Error("Partition failed to spawn actor", log.String("name", msg.Name), log.String("kind", msg.Kind), log.String("address", random))
 			return
 		}
-		//Hacky way to workaround blocking partition actor in Dotnet, DO NOT COMMIT TO DEV
-		if pid != nil {
+
+		switch remote.ActorPidRequestStatusCode(resp.StatusCode) {
+		case remote.ActorPidRequestStatusOK:
+			pid = resp.Pid
 			state.partition[msg.Name] = pid
+			context.Respond(resp)
+			break
+		case remote.ActorPidRequestStatusUNAVAILABLE:
+			//Retry until failed
+			if retry != 0 {
+				continue
+			}
+			context.Respond(resp)
+			return
+		default:
+			//Forward to requester
+			context.Respond(resp)
+			return
 		}
 	}
-	response := &remote.ActorPidResponse{
-		Pid: pid,
-	}
-	context.Respond(response)
 }
 
 func (state *partitionActor) terminated(msg *actor.Terminated) {
@@ -169,10 +186,10 @@ func (state *partitionActor) transferOwnership(actorID string, address string, c
 	})
 	//we can safely delete this entry as the consisntent hash no longer points to us
 	delete(state.partition, actorID)
-	context.Unwatch(pid);	
+	context.Unwatch(pid)
 }
 
 func (state *partitionActor) takeOwnership(msg *TakeOwnership, context actor.Context) {
 	state.partition[msg.Name] = msg.Pid
-	context.Watch(msg.Pid);	
+	context.Watch(msg.Pid)
 }

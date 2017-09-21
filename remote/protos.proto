@@ -27,6 +27,7 @@ message ActorPidRequest {
 
 message ActorPidResponse {
     actor.PID pid = 1;
+    int32 status_code = 2;
 }
 
 message Unit {}
