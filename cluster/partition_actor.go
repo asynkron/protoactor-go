@@ -180,7 +180,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {
 func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.Context) {
 	plog.Info("Member joined", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID := range state.partition {
-		address := getNode(actorID, state.kind)
+		address := getMember(actorID, state.kind)
 		if address != actor.ProcessRegistry.Address {
 			state.transferOwnership(actorID, address, context)
 		}

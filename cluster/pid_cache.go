@@ -91,7 +91,7 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 		name := msg.name
 		kind := msg.kind
 
-		address := getNode(name, kind)
+		address := getMember(name, kind)
 		remotePartition := partitionForKind(address, kind)
 
 		//re-package the request as a remote.ActorPidRequest
