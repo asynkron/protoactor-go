@@ -39,10 +39,11 @@ func GetKnownKinds() []string {
 type activator struct {
 }
 
-var ErrActivatorUnavailable = &ActivatorError{Code: ResponseStatusCodeUNAVAILABLE.ToInt32()}
+var ErrActivatorUnavailable = &ActivatorError{ResponseStatusCodeUNAVAILABLE.ToInt32(), true}
 
 type ActivatorError struct {
-	Code int32
+	Code       int32
+	DoNotPanic bool
 }
 
 func (e *ActivatorError) Error() string {
@@ -115,7 +116,12 @@ func (*activator) Receive(context actor.Context) {
 		} else if aErr, ok := err.(*ActivatorError); ok {
 			response := &ActorPidResponse{StatusCode: aErr.Code}
 			context.Respond(response)
+			if !aErr.DoNotPanic {
+				panic(err)
+			}
 		} else {
+			response := &ActorPidResponse{StatusCode: ResponseStatusCodeERROR.ToInt32()}
+			context.Respond(response)
 			panic(err)
 		}
 	case actor.SystemMessage:

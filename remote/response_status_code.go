@@ -6,6 +6,8 @@ const (
 	ResponseStatusCodeOK ResponseStatusCode = iota
 	ResponseStatusCodeUNAVAILABLE
 	ResponseStatusCodeTIMEOUT
+	ResponseStatusCodePROCESSNAMEALREADYEXIST
+	ResponseStatusCodeERROR
 )
 
 func (c ResponseStatusCode) ToInt32() int32 {
