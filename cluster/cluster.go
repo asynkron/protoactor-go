@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"math/rand"
 	"time"
 
 	"github.com/AsynkronIT/gonet"
@@ -51,22 +50,6 @@ func Shutdown(graceful bool) {
 
 	address := actor.ProcessRegistry.Address
 	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))
-}
-
-func getNextActivator(kind string) string {
-	r := c.next()
-	members := getMembers(kind)
-	i := r % len(members)
-	member := members[i]
-	return member
-}
-
-func getRandomActivator(kind string) string {
-	r := rand.Int()
-	members := getMembers(kind)
-	i := r % len(members)
-	member := members[i]
-	return member
 }
 
 //Get a PID to a virtual actor

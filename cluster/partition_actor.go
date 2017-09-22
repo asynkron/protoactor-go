@@ -60,6 +60,7 @@ func newPartitionActor(kind string) actor.Producer {
 		return &partitionActor{
 			partition: make(map[string]*actor.PID),
 			kind:      kind,
+			counter:   &counter{},
 		}
 	}
 }
@@ -67,12 +68,13 @@ func newPartitionActor(kind string) actor.Producer {
 type partitionActor struct {
 	partition map[string]*actor.PID //actor/grain name to PID
 	kind      string
+	counter   *counter
 }
 
 func (state *partitionActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		plog.Info("Started", log.String("id", context.Self().Id))
+		plog.Info("Started", log.String("kind", state.kind), log.String("id", context.Self().Id))
 	case *remote.ActorPidRequest:
 		state.spawn(msg, context)
 	case *actor.Terminated:
@@ -84,13 +86,13 @@ func (state *partitionActor) Receive(context actor.Context) {
 	case *MemberLeftEvent:
 		state.memberLeft(msg)
 	case *MemberAvailableEvent:
-		plog.Info("Node available", log.String("name", msg.Name()))
+		plog.Info("Member available", log.String("kind", state.kind), log.String("name", msg.Name()))
 	case *MemberUnavailableEvent:
-		plog.Info("Node unavailable", log.String("name", msg.Name()))
+		plog.Info("Member unavailable", log.String("kind", state.kind), log.String("name", msg.Name()))
 	case *TakeOwnership:
 		state.takeOwnership(msg, context)
 	default:
-		plog.Error("Partition got unknown message", log.Object("msg", msg))
+		plog.Error("Partition got unknown message", log.String("kind", state.kind), log.Object("msg", msg))
 	}
 }
 
@@ -104,13 +106,21 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		return
 	}
 
-	for retry := 3; retry >= 0; retry-- {
-		//get a random node
-		random := getNextActivator(msg.Kind)
+	members := getMembers(msg.Kind)
+	retrys := len(members) - 1
+
+	for retry := retrys; retry >= 0; retry-- {
+		//get next member node
+		if members == nil {
+			members = getMembers(msg.Kind)
+		}
+		activator := members[state.counter.next()%len(members)]
+		members = nil
+
 		//spawn pid
-		resp, err := remote.SpawnNamed(random, msg.Name, msg.Kind, 5*time.Second)
+		resp, err := remote.SpawnNamed(activator, msg.Name, msg.Kind, 5*time.Second)
 		if err != nil {
-			plog.Error("Partition failed to spawn actor", log.String("name", msg.Name), log.String("kind", msg.Kind), log.String("address", random))
+			plog.Error("Partition failed to spawn actor", log.String("name", msg.Name), log.String("kind", msg.Kind), log.String("address", activator))
 			return
 		}
 
@@ -146,7 +156,7 @@ func (state *partitionActor) terminated(msg *actor.Terminated) {
 }
 
 func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
-	plog.Info("Node rejoined", log.String("name", msg.Name()))
+	plog.Info("Member rejoined", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID, pid := range state.partition {
 		//if the mapped PID is on the address that left, forget it
 		if pid.Address == msg.Name() {
@@ -157,7 +167,7 @@ func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
 }
 
 func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {
-	plog.Info("Node left", log.String("name", msg.Name()))
+	plog.Info("Member left", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID, pid := range state.partition {
 		//if the mapped PID is on the address that left, forget it
 		if pid.Address == msg.Name() {
@@ -168,7 +178,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {
 }
 
 func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.Context) {
-	plog.Info("Node joined", log.String("name", msg.Name()))
+	plog.Info("Member joined", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID := range state.partition {
 		address := getNode(actorID, state.kind)
 		if address != actor.ProcessRegistry.Address {
