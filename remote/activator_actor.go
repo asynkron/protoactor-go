@@ -39,6 +39,9 @@ func GetKnownKinds() []string {
 type activator struct {
 }
 
+//ErrActivatorUnavailable : this error will not panic the Activator.
+//It simply tells Partition this Activator is not available
+//Partition will then find next available Activator to spawn
 var ErrActivatorUnavailable = &ActivatorError{ResponseStatusCodeUNAVAILABLE.ToInt32(), true}
 
 type ActivatorError struct {
@@ -113,14 +116,25 @@ func (*activator) Receive(context actor.Context) {
 		if err == nil {
 			response := &ActorPidResponse{Pid: pid}
 			context.Respond(response)
+		} else if err == actor.ErrNameExists {
+			response := &ActorPidResponse{
+				Pid: pid,
+				StatusCode: ResponseStatusCodePROCESSNAMEALREADYEXIST.ToInt32(), 
+			}
+			context.Respond(response)
+			panic(err)
 		} else if aErr, ok := err.(*ActivatorError); ok {
-			response := &ActorPidResponse{StatusCode: aErr.Code}
+			response := &ActorPidResponse{
+				StatusCode: aErr.Code,
+			}
 			context.Respond(response)
 			if !aErr.DoNotPanic {
 				panic(err)
 			}
 		} else {
-			response := &ActorPidResponse{StatusCode: ResponseStatusCodeERROR.ToInt32()}
+			response := &ActorPidResponse{
+				StatusCode: ResponseStatusCodeERROR.ToInt32(),
+			}
 			context.Respond(response)
 			panic(err)
 		}
