@@ -8,7 +8,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-type endpointReader struct{
+type endpointReader struct {
 	suspended bool
 }
 

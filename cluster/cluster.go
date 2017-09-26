@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"math/rand"
 	"time"
 
 	"github.com/AsynkronIT/gonet"
@@ -10,7 +9,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-var(
+var (
 	cp ClusterProvider
 )
 
@@ -50,20 +49,11 @@ func Shutdown(graceful bool) {
 	remote.Shutdown(graceful)
 
 	address := actor.ProcessRegistry.Address
-	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))	
-}
-
-func getRandomActivator(kind string) string {
-
-	r := rand.Int()
-	members := getMembers(kind)
-	i := r % len(members)
-	member := members[i]
-	return member
+	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))
 }
 
 //Get a PID to a virtual actor
-func Get(name string, kind string) (*actor.PID, error) {
+func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 
 	req := &pidCacheRequest{
 		kind: kind,
@@ -73,11 +63,16 @@ func Get(name string, kind string) (*actor.PID, error) {
 	res, err := pidCacheActorPid.RequestFuture(req, 5*time.Second).Result()
 	if err != nil {
 		plog.Error("ActorPidRequest timed out", log.String("name", name), log.Error(err))
-		return nil, err
+		return nil, remote.ResponseStatusCodeTIMEOUT
 	}
-	typed, ok := res.(*remote.ActorPidResponse)
+	typed, ok := res.(*pidCacheResponse)
 	if !ok {
 		plog.Error("ActorPidRequest returned incorrect response", log.String("name", name))
+		return nil, remote.ResponseStatusCodeUNAVAILABLE
 	}
-	return typed.Pid, nil
+	return typed.pid, typed.status
+}
+
+func RemoveCache(name string) {
+	pidCacheActorPid.Tell(&removePidCacheRequest{name})
 }

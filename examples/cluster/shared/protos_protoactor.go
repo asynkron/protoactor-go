@@ -45,9 +45,9 @@ type HelloGrain struct {
 func (g *HelloGrain) SayHello(r *HelloRequest, options ...cluster.GrainCallOption) (*HelloResponse, error) {
 	conf := cluster.ApplyGrainCallOptions(options)
 	fun := func() (*HelloResponse, error) {
-			pid, err := cluster.Get(g.ID, "Hello")
-			if err != nil {
-				return nil, err
+			pid, statusCode := cluster.Get(g.ID, "Hello")
+			if statusCode != remote.ResponseStatusCodeOK {
+				return nil, fmt.Errorf("Get PID failed with StatusCode: %v", statusCode)
 			}
 			bytes, err := proto.Marshal(r)
 			if err != nil {
@@ -103,9 +103,9 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...cluster.GrainCallO
 func (g *HelloGrain) Add(r *AddRequest, options ...cluster.GrainCallOption) (*AddResponse, error) {
 	conf := cluster.ApplyGrainCallOptions(options)
 	fun := func() (*AddResponse, error) {
-			pid, err := cluster.Get(g.ID, "Hello")
-			if err != nil {
-				return nil, err
+			pid, statusCode := cluster.Get(g.ID, "Hello")
+			if statusCode != remote.ResponseStatusCodeOK {
+				return nil, fmt.Errorf("Get PID failed with StatusCode: %v", statusCode)
 			}
 			bytes, err := proto.Marshal(r)
 			if err != nil {
@@ -161,9 +161,9 @@ func (g *HelloGrain) AddChan(r *AddRequest, options ...cluster.GrainCallOption) 
 func (g *HelloGrain) VoidFunc(r *AddRequest, options ...cluster.GrainCallOption) (*Unit, error) {
 	conf := cluster.ApplyGrainCallOptions(options)
 	fun := func() (*Unit, error) {
-			pid, err := cluster.Get(g.ID, "Hello")
-			if err != nil {
-				return nil, err
+			pid, statusCode := cluster.Get(g.ID, "Hello")
+			if statusCode != remote.ResponseStatusCodeOK {
+				return nil, fmt.Errorf("Get PID failed with StatusCode: %v", statusCode)
 			}
 			bytes, err := proto.Marshal(r)
 			if err != nil {

@@ -13,7 +13,7 @@ import (
 type ConsulProvider struct {
 	deregistered       bool
 	shutdown           bool
-	kvKey              string	
+	kvKey              string
 	id                 string
 	clusterName        string
 	index              uint64 //consul blocking index
@@ -117,9 +117,9 @@ func (p *ConsulProvider) DeregisterMember() error {
 	_, err = p.client.KV().Delete(p.kvKey, &api.WriteOptions{})
 	if err != nil {
 		fmt.Println(err)
-		return err		
+		return err
 	}
-	p.deregistered = true	
+	p.deregistered = true
 	return nil
 }
 

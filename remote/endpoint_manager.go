@@ -8,7 +8,7 @@ import (
 
 var (
 	endpointManagerPID *actor.PID
-	endpointSub *eventstream.Subscription
+	endpointSub        *eventstream.Subscription
 )
 
 func newEndpointManager(config *remoteConfig) actor.Producer {
@@ -25,7 +25,7 @@ func subscribeEndpointManager() {
 		WithPredicate(func(m interface{}) bool {
 			switch m.(type) {
 			case *EndpointTerminatedEvent, *EndpointConnectedEvent:
-				return true				
+				return true
 			}
 			return false
 		})
@@ -69,13 +69,13 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 			edp.writer.GracefulStop()
 		}
 		state.connections = make(map[string]*endpoint)
-		ctx.SetBehavior(state.Terminated)		
-		plog.Debug("Stopped EndpointManager")		
+		ctx.SetBehavior(state.Terminated)
+		plog.Debug("Stopped EndpointManager")
 	case *EndpointTerminatedEvent:
 		address := msg.Address
 		endpoint := state.ensureConnected(address, ctx)
 		endpoint.watcher.Tell(msg)
-	case *EndpointConnectedEvent:		
+	case *EndpointConnectedEvent:
 		address := msg.Address
 		endpoint := state.ensureConnected(address, ctx)
 		endpoint.watcher.Tell(msg)

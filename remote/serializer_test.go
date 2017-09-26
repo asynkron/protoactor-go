@@ -16,7 +16,7 @@ func TestJsonSerializer_round_trip(t *testing.T) {
 	b, typeName, _ := Serialize(m, 1)
 	res, err := Deserialize(b, typeName, 1)
 
-	assert.Nil(t, err)	
+	assert.Nil(t, err)
 
 	typed := res.(*ActorPidRequest)
 

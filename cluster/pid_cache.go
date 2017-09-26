@@ -62,6 +62,19 @@ func (p *pidCacheRequest) Hash() string {
 	return p.name
 }
 
+type removePidCacheRequest struct {
+	name string
+}
+
+func (p *removePidCacheRequest) Hash() string {
+	return p.name
+}
+
+type pidCacheResponse struct {
+	pid    *actor.PID
+	status remote.ResponseStatusCode
+}
+
 func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
@@ -72,14 +85,14 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 	case *pidCacheRequest:
 		if pid, ok := a.Cache[msg.name]; ok {
 			//name was in cache, exit early
-			ctx.Respond(&remote.ActorPidResponse{Pid: pid})
+			ctx.Respond(&pidCacheResponse{pid: pid})
 			return
 		}
 		name := msg.name
 		kind := msg.kind
 
-		address := getNode(name, kind)
-		remotePID := partitionForKind(address, kind)
+		address := getMember(name, kind)
+		remotePartition := partitionForKind(address, kind)
 
 		//re-package the request as a remote.ActorPidRequest
 		req := &remote.ActorPidRequest{
@@ -87,7 +100,7 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 			Name: name,
 		}
 		//ask the DHT partition for this name to give us a PID
-		f := remotePID.RequestFuture(req, 5*time.Second)
+		f := remotePartition.RequestFuture(req, 5*time.Second)
 		ctx.AwaitFuture(f, func(r interface{}, err error) {
 			if err != nil {
 				return
@@ -97,22 +110,29 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 				return
 			}
 
-			key := response.Pid.String()
+			statusCode := remote.ResponseStatusCode(response.StatusCode)
+			switch statusCode {
+			case remote.ResponseStatusCodeOK:
+				key := response.Pid.String()
 
-			a.Cache[name] = response.Pid
-			//make a lookup from pid to name
-			a.ReverseCache[key] = name
-			//add to member address map
-			if ks, ok := a.ReverseCacheByMemberAddress[response.Pid.Address]; ok {
-				ks.add(key)
-			} else {
-				a.ReverseCacheByMemberAddress[response.Pid.Address] = keySet{key: true}
+				a.Cache[name] = response.Pid
+				//make a lookup from pid to name
+				a.ReverseCache[key] = name
+				//add to member address map
+				if ks, ok := a.ReverseCacheByMemberAddress[response.Pid.Address]; ok {
+					ks.add(key)
+				} else {
+					a.ReverseCacheByMemberAddress[response.Pid.Address] = keySet{key: true}
+				}
+
+				//watch the pid so we know if the node or pid dies
+				ctx.Watch(response.Pid)
+				//tell the original requester that we have a response
+				ctx.Respond(&pidCacheResponse{response.Pid, statusCode})
+			default:
+				//forward to requester
+				ctx.Respond(&pidCacheResponse{response.Pid, statusCode})
 			}
-
-			//watch the pid so we know if the node or pid dies
-			ctx.Watch(response.Pid)
-			//tell the original requester that we have a response
-			ctx.Respond(response)
 		})
 
 	case *MemberLeftEvent:
@@ -123,6 +143,8 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 		a.removeCacheByMemberAddress(address)
 	case *actor.Terminated:
 		a.removeCacheByPid(msg.Who)
+	case *removePidCacheRequest:
+		a.removeCacheByName(msg.name)
 	}
 }
 
@@ -139,6 +161,17 @@ func (a *pidCachePartitionActor) removeCacheByPid(pid *actor.PID) {
 	delete(a.ReverseCache, key)
 	if ks, ok := a.ReverseCacheByMemberAddress[pid.Address]; ok {
 		ks.remove(key)
+	}
+}
+
+func (a *pidCachePartitionActor) removeCacheByName(name string) {
+	if pid, ok := a.Cache[name]; ok {
+		key := pid.String()
+		delete(a.Cache, name)
+		delete(a.ReverseCache, key)
+		if ks, ok := a.ReverseCacheByMemberAddress[pid.Address]; ok {
+			ks.remove(key)
+		}
 	}
 }
 
