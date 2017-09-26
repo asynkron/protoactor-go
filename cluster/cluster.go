@@ -10,26 +10,47 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
+var(
+	cp ClusterProvider
+)
+
 func Start(clusterName, address string, provider ClusterProvider) {
 	//TODO: make it possible to become a cluster even if remoting is already started
 	remote.Start(address)
+
+	cp = provider
 	address = actor.ProcessRegistry.Address
 	h, p := gonet.GetAddress(address)
 	plog.Info("Starting Proto.Actor cluster", log.String("address", address))
 	kinds := remote.GetKnownKinds()
-	kindPIDMap = make(map[string]*actor.PID)
 
 	//for each known kind, spin up a partition-kind actor to handle all requests for that kind
-	for _, kind := range kinds {
-		kindPID := spawnPartitionActor(kind)
-		kindPIDMap[kind] = kindPID
-	}
+	spawnPartitionActors(kinds)
 	subscribePartitionKindsToEventStream()
 	spawnPidCacheActor()
+	subscribePidCacheMemberStatusEventStream()
 	spawnMembershipActor()
 	subscribeMembershipActorToEventStream()
-	provider.RegisterMember(clusterName, h, p, kinds)
-	provider.MonitorMemberStatusChanges()
+	cp.RegisterMember(clusterName, h, p, kinds)
+	cp.MonitorMemberStatusChanges()
+}
+
+func Shutdown(graceful bool) {
+	if graceful {
+		cp.Shutdown()
+
+		unsubMembershipActorToEventStream()
+		stopMembershipActor()
+		unsubPidCacheMemberStatusEventStream()
+		stopPidCacheActor()
+		unsubPartitionKindsToEventStream()
+		stopPartitionActors()
+	}
+
+	remote.Shutdown(graceful)
+
+	address := actor.ProcessRegistry.Address
+	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))	
 }
 
 func getRandomActivator(kind string) string {

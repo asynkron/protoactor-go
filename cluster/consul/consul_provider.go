@@ -11,7 +11,9 @@ import (
 )
 
 type ConsulProvider struct {
+	deregistered       bool
 	shutdown           bool
+	kvKey              string	
 	id                 string
 	clusterName        string
 	index              uint64 //consul blocking index
@@ -60,10 +62,10 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 	//register a unique ID for the current process
 	//similar to UID for Akka ActorSystem
 	//TODO: Orleans just use an int32 for the unique id called Generation.
-	kvKey := fmt.Sprintf("%v/%v:%v", clusterName, address, port)
+	p.kvKey = fmt.Sprintf("%v/%v:%v", clusterName, address, port)
 	_, err = p.client.KV().Put(&api.KVPair{
-		Key:   kvKey,
-		Value: []byte(time.Now().String()), //currently, just a semi unique id for this member
+		Key:   p.kvKey,
+		Value: []byte(time.Now().UTC().Format(time.RFC3339)), //currently, just a semi unique id for this member
 	}, &api.WriteOptions{})
 
 	if err != nil {
@@ -98,7 +100,6 @@ func (p *ConsulProvider) blockingUpdateTTL() {
 }
 
 func (p *ConsulProvider) UpdateTTL() {
-
 	go func() {
 		for !p.shutdown {
 			p.blockingUpdateTTL()
@@ -107,11 +108,28 @@ func (p *ConsulProvider) UpdateTTL() {
 	}()
 }
 
-func (p *ConsulProvider) Shutdown() error {
-	p.shutdown = true
+func (p *ConsulProvider) DeregisterMember() error {
 	err := p.client.Agent().ServiceDeregister(p.id)
 	if err != nil {
+		fmt.Println(err)
 		return err
+	}
+	_, err = p.client.KV().Delete(p.kvKey, &api.WriteOptions{})
+	if err != nil {
+		fmt.Println(err)
+		return err		
+	}
+	p.deregistered = true	
+	return nil
+}
+
+func (p *ConsulProvider) Shutdown() error {
+	p.shutdown = true
+	if !p.deregistered {
+		err := p.DeregisterMember()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

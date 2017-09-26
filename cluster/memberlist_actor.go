@@ -10,10 +10,15 @@ import (
 
 var (
 	memberlistPID *actor.PID
+	membershipSub *eventstream.Subscription
 )
 
 func spawnMembershipActor() {
 	memberlistPID, _ = actor.SpawnNamed(actor.FromProducer(newMembershipActor()), "#membership")
+}
+
+func stopMembershipActor() {
+	memberlistPID.GracefulStop()
 }
 
 func newMembershipActor() actor.Producer {
@@ -23,12 +28,16 @@ func newMembershipActor() actor.Producer {
 }
 
 func subscribeMembershipActorToEventStream() {
-	eventstream.
+	membershipSub = eventstream.
 		Subscribe(memberlistPID.Tell).
 		WithPredicate(func(m interface{}) bool {
 			_, ok := m.(ClusterTopologyEvent)
 			return ok
 		})
+}
+
+func unsubMembershipActorToEventStream() {
+	eventstream.Unsubscribe(membershipSub)
 }
 
 // membershipActor is responsible to keep track of the current cluster topology
@@ -68,7 +77,7 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 			tmp[key] = new
 		}
 
-		//find the entires that only exist in the old set but not in the new
+		//first remove old ones
 		for key, old := range a.members {
 			new := tmp[key]
 			if new == nil {

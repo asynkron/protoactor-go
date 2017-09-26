@@ -35,7 +35,7 @@ func (state *endpointWriter) initialize() {
 
 func (state *endpointWriter) initializeInternal() error {
 	plog.Info("Started EndpointWriter", log.String("address", state.address))
-	plog.Info("EndpointWatcher connecting", log.String("address", state.address))
+	plog.Info("EndpointWriter connecting", log.String("address", state.address))
 	conn, err := grpc.Dial(state.address, state.config.dialOptions...)
 	if err != nil {
 		return err
@@ -67,6 +67,8 @@ func (state *endpointWriter) initializeInternal() error {
 	}()
 
 	plog.Info("EndpointWriter connected", log.String("address", state.address))
+	connected := &EndpointConnectedEvent{Address: state.address}
+	eventstream.Publish(connected)
 	state.stream = stream
 	return nil
 }
@@ -141,7 +143,9 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 		state.conn.Close()
 	case []interface{}:
 		state.sendEnvelopes(msg, ctx)
+	case actor.SystemMessage:
+		//ignore
 	default:
-		plog.Error("Unknown message", log.Message(msg))
+		plog.Error("EndpointWriter received unknown message", log.String("address", state.address), log.Message(msg))
 	}
 }

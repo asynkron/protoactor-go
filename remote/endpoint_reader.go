@@ -1,24 +1,34 @@
 package remote
 
 import (
+	"time"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"golang.org/x/net/context"
 )
 
-type server struct{}
+type endpointReader struct{
+	suspended bool
+}
 
-func (s *server) Connect(ctx context.Context, req *ConnectRequest) (*ConnectResponse, error) {
+func (s *endpointReader) Connect(ctx context.Context, req *ConnectRequest) (*ConnectResponse, error) {
 	return &ConnectResponse{DefaultSerializerId: DefaultSerializerID}, nil
 }
 
-func (s *server) Receive(stream Remoting_ReceiveServer) error {
+func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 	for {
+		if s.suspended {
+			time.Sleep(time.Millisecond * 500)
+			continue
+		}
+
 		batch, err := stream.Recv()
 		if err != nil {
 			plog.Debug("EndpointReader failed to read", log.Error(err))
 			return err
 		}
+
 		for _, envelope := range batch.Envelopes {
 			targetName := batch.TargetNames[envelope.Target]
 			pid := actor.NewLocalPID(targetName)
@@ -46,4 +56,8 @@ func (s *server) Receive(stream Remoting_ReceiveServer) error {
 			}
 		}
 	}
+}
+
+func (s *endpointReader) suspend(toSuspend bool) {
+	s.suspended = toSuspend
 }

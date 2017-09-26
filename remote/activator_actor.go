@@ -17,6 +17,10 @@ func spawnActivatorActor() {
 	activatorPid, _ = actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
 }
 
+func stopActivatorActor() {
+	activatorPid.GracefulStop()
+}
+
 //Register a known actor props by name
 func Register(kind string, props *actor.Props) {
 	nameLookup[kind] = *props
@@ -97,7 +101,9 @@ func (*activator) Receive(context actor.Context) {
 			Pid: pid,
 		}
 		context.Respond(response)
+	case actor.SystemMessage:
+		//ignore
 	default:
-		plog.Error("Activator got unknown message", log.Message(msg))
+		plog.Error("Activator received unknown message", log.Message(msg))
 	}
 }
