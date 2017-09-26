@@ -24,8 +24,8 @@ func init() {
 
 type ioLogger struct {
 	lock *sync.Mutex
-	out io.Writer
-	buf []byte
+	out  io.Writer
+	buf  []byte
 }
 
 // Cheap integer to fixed-width decimal ASCII.  Give a negative width to avoid zero-padding.

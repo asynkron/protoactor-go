@@ -118,8 +118,8 @@ func (*activator) Receive(context actor.Context) {
 			context.Respond(response)
 		} else if err == actor.ErrNameExists {
 			response := &ActorPidResponse{
-				Pid: pid,
-				StatusCode: ResponseStatusCodePROCESSNAMEALREADYEXIST.ToInt32(), 
+				Pid:        pid,
+				StatusCode: ResponseStatusCodePROCESSNAMEALREADYEXIST.ToInt32(),
 			}
 			context.Respond(response)
 			panic(err)

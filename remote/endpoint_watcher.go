@@ -54,7 +54,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 			//try to find the watcher ID in the local actor registry
 			ref, ok := actor.ProcessRegistry.GetLocal(id)
 			if ok {
-				pidSet.ForEach(func (i int, pid actor.PID) {
+				pidSet.ForEach(func(i int, pid actor.PID) {
 					//create a terminated event for the Watched actor
 					terminated := &actor.Terminated{
 						Who:               &pid,
@@ -126,11 +126,11 @@ func (state *endpointWatcher) Terminated(ctx actor.Context) {
 			ref.SendSystemMessage(msg.Watcher, terminated)
 		}
 	case *EndpointConnectedEvent:
-		plog.Info("EndpointWatcher handling restart", log.String("address", state.address))		
+		plog.Info("EndpointWatcher handling restart", log.String("address", state.address))
 		ctx.SetBehavior(state.Receive)
 	case *remoteTerminate, *EndpointTerminatedEvent, *remoteUnwatch:
 		// pass
-		plog.Error("EndpointWatcher receive message for already terminated endpoint", log.String("address", state.address), log.Message(msg))		
+		plog.Error("EndpointWatcher receive message for already terminated endpoint", log.String("address", state.address), log.Message(msg))
 	case actor.SystemMessage:
 		//ignore
 	default:

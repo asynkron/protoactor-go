@@ -72,6 +72,6 @@ func Shutdown(graceful bool) {
 		}
 	} else {
 		s.Stop()
-		plog.Info("Killed Proto.Actor server")		
+		plog.Info("Killed Proto.Actor server")
 	}
 }

@@ -60,7 +60,7 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 		name: name,
 	}
 
-	res, err := pidCacheActorPid.RequestFuture(req, 35*time.Second).Result()
+	res, err := pidCacheActorPid.RequestFuture(req, 5*time.Second).Result()
 	if err != nil {
 		plog.Error("ActorPidRequest timed out", log.String("name", name), log.Error(err))
 		return nil, remote.ResponseStatusCodeTIMEOUT

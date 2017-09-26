@@ -71,7 +71,7 @@ func (p *removePidCacheRequest) Hash() string {
 }
 
 type pidCacheResponse struct {
-	pid *actor.PID
+	pid    *actor.PID
 	status remote.ResponseStatusCode
 }
 
@@ -100,7 +100,7 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 			Name: name,
 		}
 		//ask the DHT partition for this name to give us a PID
-		f := remotePartition.RequestFuture(req, 30*time.Second)
+		f := remotePartition.RequestFuture(req, 5*time.Second)
 		ctx.AwaitFuture(f, func(r interface{}, err error) {
 			if err != nil {
 				return
