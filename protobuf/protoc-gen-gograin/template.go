@@ -43,9 +43,9 @@ type {{ $service.Name }}Grain struct {
 func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }}, options ...cluster.GrainCallOption) (*{{ $method.Output.Name }}, error) {
 	conf := cluster.ApplyGrainCallOptions(options)
 	fun := func() (*{{ $method.Output.Name }}, error) {
-			pid, err := cluster.Get(g.ID, "{{ $service.Name }}")
-			if err != nil {
-				return nil, err
+			pid, statusCode := cluster.Get(g.ID, "{{ $service.Name }}")
+			if statusCode != remote.ResponseStatusCodeOK {
+				return nil, fmt.Errorf("Get PID failed with StatusCode: %v", statusCode)
 			}
 			bytes, err := proto.Marshal(r)
 			if err != nil {
