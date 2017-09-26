@@ -115,7 +115,6 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 
 	retrys := len(members) - 1
 	for retry := retrys; retry >= 0; retry-- {
-		//get next member node
 		if members == nil {
 			members = getMembers(msg.Kind)
 			if members == nil {
@@ -124,6 +123,8 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 				return
 			}
 		}
+
+		//get next member node
 		activator := members[state.counter.next()%len(members)]
 		members = nil
 
@@ -131,6 +132,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		resp, err := remote.SpawnNamed(activator, msg.Name, msg.Kind, 5*time.Second)
 		if err != nil {
 			plog.Error("Partition failed to spawn actor", log.String("name", msg.Name), log.String("kind", msg.Kind), log.String("address", activator))
+			context.Respond(&remote.ActorPidResponse{StatusCode: remote.ResponseStatusCodeERROR.ToInt32()})
 			return
 		}
 
@@ -138,6 +140,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		case remote.ResponseStatusCodeOK:
 			pid = resp.Pid
 			state.partition[msg.Name] = pid
+			context.Watch(pid)
 			context.Respond(resp)
 			break
 		case remote.ResponseStatusCodeUNAVAILABLE:
@@ -191,7 +194,7 @@ func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.
 	plog.Info("Member joined", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID := range state.partition {
 		address := getMember(actorID, state.kind)
-		if address != actor.ProcessRegistry.Address {
+		if address != "" && address != actor.ProcessRegistry.Address {
 			state.transferOwnership(actorID, address, context)
 		}
 	}
