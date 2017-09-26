@@ -107,12 +107,22 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 	}
 
 	members := getMembers(msg.Kind)
-	retrys := len(members) - 1
+	if members == nil {
+		//No members currently available, return unavailable
+		context.Respond(&remote.ActorPidResponse{StatusCode: remote.ResponseStatusCodeUNAVAILABLE.ToInt32()})
+		return
+	}
 
+	retrys := len(members) - 1
 	for retry := retrys; retry >= 0; retry-- {
 		//get next member node
 		if members == nil {
 			members = getMembers(msg.Kind)
+			if members == nil {
+				//No members currently available, return unavailable
+				context.Respond(&remote.ActorPidResponse{StatusCode: remote.ResponseStatusCodeUNAVAILABLE.ToInt32()})
+				return
+			}
 		}
 		activator := members[state.counter.next()%len(members)]
 		members = nil
