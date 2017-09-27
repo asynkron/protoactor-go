@@ -92,6 +92,12 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 		kind := msg.kind
 
 		address := getMember(name, kind)
+		if address == "" {
+			//No available member found
+			ctx.Respond(&pidCacheResponse{status: remote.ResponseStatusCodeUNAVAILABLE})
+			return
+		}
+
 		remotePartition := partitionForKind(address, kind)
 
 		//re-package the request as a remote.ActorPidRequest
@@ -103,10 +109,12 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 		f := remotePartition.RequestFuture(req, 5*time.Second)
 		ctx.AwaitFuture(f, func(r interface{}, err error) {
 			if err != nil {
+				ctx.Respond(&pidCacheResponse{status: remote.ResponseStatusCodeERROR})
 				return
 			}
 			response, ok := r.(*remote.ActorPidResponse)
 			if !ok {
+				ctx.Respond(&pidCacheResponse{status: remote.ResponseStatusCodeERROR})
 				return
 			}
 

@@ -3,7 +3,6 @@ package cluster
 import (
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster/rendezvous"
 	"github.com/AsynkronIT/protoactor-go/log"
 )
@@ -12,30 +11,23 @@ import (
 //TODO: this needs to be implemented,we could send a `Request` to the membership actor, but this seems flaky.
 //a threadsafe map would be better
 func getMembers(kind string) []string {
-	var members []string
-
-	for {
-		res, err := memberlistPID.RequestFuture(&MemberByKindRequest{kind: kind, onlyAlive: true}, 5*time.Second).Result()
-		if err == nil {
-			t, ok := res.(*MemberByKindResponse)
-			if ok && len(t.members) > 0 {
-				members = t.members
-				break
-			}
+	res, err := memberlistPID.RequestFuture(&MemberByKindRequest{kind: kind, onlyAlive: true}, 5*time.Second).Result()
+	if err == nil {
+		if t, ok := res.(*MemberByKindResponse); ok && len(t.members) > 0 {
+			return t.members
 		}
-		time.Sleep(time.Millisecond * 500)
 	}
-
-	return members
+	return nil
 }
 
 func getMember(name, kind string) string {
 	members := getMembers(kind)
 	if members == nil {
-		plog.Error("getNode: failed to get member", log.String("kind", kind))
-		return actor.ProcessRegistry.Address
+		plog.Error("getMember: failed to get member", log.String("kind", kind))
+		return ""
 	}
 
+	//Can be optimized by caching members list, instead of hashing them everytime.
 	rdv := rendezvous.New(members...)
 	return rdv.Get(name)
 }
