@@ -5,7 +5,6 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
-	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
@@ -170,16 +169,10 @@ func (a *pidCachePartitionActor) removeCacheByName(name string) {
 }
 
 func (a *pidCachePartitionActor) removeCacheByMemberAddress(address string) {
-	var cnt int
 	for name, pid := range a.Cache {
 		if pid.Address == address {
 			delete(a.Cache, name)
 			delete(a.ReverseCache, pid.String())
-			cnt++
 		}
-	}
-
-	if cnt > 0 {
-		plog.Error("PID caches removed from PidCache", log.Int("Count", cnt), log.Object("address", address))
 	}
 }
