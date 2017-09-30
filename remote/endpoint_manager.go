@@ -73,8 +73,10 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 		plog.Debug("Stopped EndpointManager")
 	case *EndpointTerminatedEvent:
 		address := msg.Address
-		endpoint := state.ensureConnected(address, ctx)
-		endpoint.watcher.Tell(msg)
+		if connected, endpoint := state.checkConnected(address); connected {
+			endpoint.watcher.Tell(msg)
+			state.removeEndpoint(address)
+		}
 	case *EndpointConnectedEvent:
 		address := msg.Address
 		endpoint := state.ensureConnected(address, ctx)
@@ -100,6 +102,11 @@ func (state *endpointManager) Receive(ctx actor.Context) {
 
 func (state *endpointManager) Terminated(ctx actor.Context) {}
 
+func (state *endpointManager) checkConnected(address string) (bool, *endpoint) {
+	e, ok := state.connections[address]
+	return ok, e
+}
+
 func (state *endpointManager) ensureConnected(address string, ctx actor.Context) *endpoint {
 	e, ok := state.connections[address]
 	if !ok {
@@ -110,6 +117,14 @@ func (state *endpointManager) ensureConnected(address string, ctx actor.Context)
 		state.connections[address] = e
 	}
 	return e
+}
+
+func (state *endpointManager) removeEndpoint(address string) {
+	if e, ok := state.connections[address]; ok {
+		e.watcher.Stop()
+		e.writer.Stop()
+		delete(state.connections, address)
+	}
 }
 
 func (state *endpointManager) spawnEndpointWriter(address string, ctx actor.Context) *actor.PID {

@@ -1,8 +1,9 @@
 package remote
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"time"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"golang.org/x/net/context"
@@ -30,6 +31,10 @@ func (state *endpointWriter) initialize() {
 	err := state.initializeInternal()
 	if err != nil {
 		plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
+		//Wait 2 seconds to restart and retry
+		//Replace with Exponential Backoff
+		time.Sleep(2 * time.Second)
+		panic(err)
 	}
 }
 
