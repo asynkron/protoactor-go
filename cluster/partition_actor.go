@@ -196,7 +196,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 	//If the left member is self, transfer remaining pids to others
 	if msg.Name() == actor.ProcessRegistry.Address {
 		for actorID := range state.partition {
-			address := getMember(actorID, state.kind)
+			address := getMemberByDHT(actorID, state.kind)
 			if address != "" {
 				state.transferOwnership(actorID, address, context)
 			}
@@ -207,7 +207,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.Context) {
 	plog.Info("Member joined", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID := range state.partition {
-		address := getMember(actorID, state.kind)
+		address := getMemberByDHT(actorID, state.kind)
 		if address != "" && address != actor.ProcessRegistry.Address {
 			state.transferOwnership(actorID, address, context)
 		}

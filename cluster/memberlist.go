@@ -17,7 +17,7 @@ func getMembers(kind string) []string {
 	return nil
 }
 
-func getMember(name, kind string) string {
+func getMemberByDHT(name, kind string) string {
 	res, err := memberlistPID.RequestFuture(&MemberByDHTRequest{name, kind}, 5*time.Second).Result()
 	if err == nil {
 		if t, ok := res.(*MemberByDHTResponse); ok {

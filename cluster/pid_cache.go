@@ -89,7 +89,7 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 		name := msg.name
 		kind := msg.kind
 
-		address := getMember(name, kind)
+		address := getMemberByDHT(name, kind)
 		if address == "" {
 			//No available member found
 			ctx.Respond(&pidCacheResponse{status: remote.ResponseStatusCodeUNAVAILABLE})
