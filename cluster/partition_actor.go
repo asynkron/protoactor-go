@@ -81,6 +81,8 @@ func (state *partitionActor) Receive(context actor.Context) {
 		state.spawn(msg, context)
 	case *actor.Terminated:
 		state.terminated(msg)
+	case *TakeOwnership:
+		state.takeOwnership(msg, context)
 	case *MemberJoinedEvent:
 		state.memberJoined(msg, context)
 	case *MemberRejoinedEvent:
@@ -91,8 +93,6 @@ func (state *partitionActor) Receive(context actor.Context) {
 		plog.Info("Member available", log.String("kind", state.kind), log.String("name", msg.Name()))
 	case *MemberUnavailableEvent:
 		plog.Info("Member unavailable", log.String("kind", state.kind), log.String("name", msg.Name()))
-	case *TakeOwnership:
-		state.takeOwnership(msg, context)
 	default:
 		plog.Error("Partition got unknown message", log.String("kind", state.kind), log.Object("msg", msg))
 	}

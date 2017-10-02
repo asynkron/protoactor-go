@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/cluster/rendezvous"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
@@ -44,36 +45,42 @@ func unsubMembershipActorToEventStream() {
 // it does so by listening to changes from the ClusterProvider.
 // the default ClusterProvider is consul.ConsulProvider which uses the Consul HTTP API to scan for changes
 type memberlistActor struct {
-	members map[string]*MemberStatus
+	members        map[string]*MemberStatus
+	membersByKinds map[string]rendezvous.MemberNodeSet
 }
 
 func (a *memberlistActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		a.members = make(map[string]*MemberStatus)
-	case *MemberByKindRequest:
+		a.membersByKinds = make(map[string]rendezvous.MemberNodeSet)
+	case *MembersByKindRequest:
 		var res []string
 
-		//TODO: optimize this
-		for key, v := range a.members {
-			if !msg.onlyAlive || (msg.onlyAlive && v.Alive) {
-				for _, k := range v.Kinds {
-					if k == msg.kind {
-						res = append(res, key)
-					}
+		if members, ok := a.membersByKinds[msg.kind]; ok {
+			for key, n := range members {
+				if !msg.onlyAlive || (msg.onlyAlive && n.Alive) {
+					res = append(res, key)
 				}
 			}
 		}
-		ctx.Respond(&MemberByKindResponse{
+
+		ctx.Respond(&MembersByKindResponse{
 			members: res,
 		})
+	case *MemberByDHTRequest:
+		var member string
+		if members, ok := a.membersByKinds[msg.kind]; ok {
+			member = rendezvous.Get(members, msg.name)
+		}
+		ctx.Respond(&MemberByDHTResponse{member})
 	case ClusterTopologyEvent:
 
 		//build a lookup for the new statuses
 		tmp := make(map[string]*MemberStatus)
 		for _, new := range msg {
 			//key is address:port
-			key := fmt.Sprintf("%v:%v", new.Host, new.Port)
+			key := a.getKey(new)
 			tmp[key] = new
 		}
 
@@ -82,6 +89,7 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 			new := tmp[key]
 			if new == nil {
 				a.notify(key, new, old)
+				a.updateMembersByKind(key, new, old)
 			}
 		}
 
@@ -90,8 +98,13 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 			old := a.members[key]
 			a.members[key] = new
 			a.notify(key, new, old)
+			a.updateMembersByKind(key, new, old)
 		}
 	}
+}
+
+func (a *memberlistActor) getKey(m *MemberStatus) string {
+	return fmt.Sprintf("%v:%v", m.Host, m.Port)
 }
 
 func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatus) {
@@ -112,7 +125,7 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		delete(a.members, key) //remove this member as it has left
 
 		rt := &remote.EndpointTerminatedEvent{
-			Address: fmt.Sprintf("%v:%v", old.Host, old.Port),
+			Address: a.getKey(old),
 		}
 		eventstream.Publish(rt)
 
@@ -127,6 +140,7 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		}
 		joined := &MemberJoinedEvent{MemberMeta: meta}
 		eventstream.Publish(joined)
+
 		return
 	}
 	if new.MemberID != old.MemberID {
@@ -137,6 +151,7 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		}
 		joined := &MemberRejoinedEvent{MemberMeta: meta}
 		eventstream.Publish(joined)
+
 		return
 	}
 	if old.Alive && !new.Alive {
@@ -148,6 +163,7 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		}
 		unavailable := &MemberUnavailableEvent{MemberMeta: meta}
 		eventstream.Publish(unavailable)
+
 		return
 	}
 	if !old.Alive && new.Alive {
@@ -159,5 +175,26 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		}
 		available := &MemberAvailableEvent{MemberMeta: meta}
 		eventstream.Publish(available)
+	}
+}
+
+func (a *memberlistActor) updateMembersByKind(key string, new *MemberStatus, old *MemberStatus) {
+	if old != nil {
+		for _, k := range old.Kinds {
+			if s, ok := a.membersByKinds[k]; ok {
+				s.Remove(key)
+				if len(s) == 0 {
+					delete(a.membersByKinds, k)
+				}
+			}
+		}
+	}
+	if new != nil {
+		for _, k := range new.Kinds {
+			if _, ok := a.membersByKinds[k]; !ok {
+				a.membersByKinds[k] = make(rendezvous.MemberNodeSet)
+			}
+			a.membersByKinds[k].Add(key, new.Alive)
+		}
 	}
 }
