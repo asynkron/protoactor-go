@@ -88,7 +88,7 @@ func (state *partitionActor) Receive(context actor.Context) {
 	case *MemberRejoinedEvent:
 		state.memberRejoined(msg)
 	case *MemberLeftEvent:
-		state.memberLeft(msg)
+		state.memberLeft(msg, context)
 	case *MemberAvailableEvent:
 		plog.Info("Member available", log.String("kind", state.kind), log.String("name", msg.Name()))
 	case *MemberUnavailableEvent:
@@ -182,7 +182,7 @@ func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
 	}
 }
 
-func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {
+func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Context) {
 	plog.Info("Member left", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID, pid := range state.partition {
 		//if the mapped PID is on the address that left, forget it
@@ -190,6 +190,16 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {
 			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, msg.Name())
 			delete(state.partition, actorID)
 			delete(state.keyNameMap, pid.String())
+		}
+	}
+
+	//If the left member is self, transfer remaining pids to others
+	if msg.Name() == actor.ProcessRegistry.Address {
+		for actorID := range state.partition {
+			address := getMember(actorID, state.kind)
+			if address != "" {
+				state.transferOwnership(actorID, address, context)
+			}
 		}
 	}
 }
