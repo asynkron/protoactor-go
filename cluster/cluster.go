@@ -37,7 +37,8 @@ func Start(clusterName, address string, provider ClusterProvider) {
 func Shutdown(graceful bool) {
 	if graceful {
 		cp.Shutdown()
-
+		//This is to wait ownership transfering complete.
+		time.Sleep(2000)
 		unsubMembershipActorToEventStream()
 		stopMembershipActor()
 		unsubPidCacheMemberStatusEventStream()
