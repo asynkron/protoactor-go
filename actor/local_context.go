@@ -205,13 +205,12 @@ func (ctx *localContext) RestartStats() *RestartStatistics {
 
 func (ctx *localContext) EscalateFailure(reason interface{}, message interface{}) {
 	failure := &Failure{Reason: reason, Who: ctx.self, RestartStats: ctx.RestartStats()}
+	ctx.self.sendSystemMessage(suspendMailboxMessage)
 	if ctx.parent == nil {
 		handleRootFailure(failure)
 	} else {
 		//TODO: Akka recursively suspends all children also on failure
 		//Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
-
-		ctx.self.sendSystemMessage(suspendMailboxMessage)
 		ctx.parent.sendSystemMessage(failure)
 	}
 }

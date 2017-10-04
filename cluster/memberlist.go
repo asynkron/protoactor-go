@@ -27,6 +27,16 @@ func getMemberByDHT(name, kind string) string {
 	return ""
 }
 
+func getMemberByRoundRobin(kind string) string {
+	res, err := memberlistPID.RequestFuture(&MemberByRoundRobinRequest{kind}, 5*time.Second).Result()
+	if err == nil {
+		if t, ok := res.(*MemberByDHTResponse); ok {
+			return t.member
+		}
+	}
+	return ""
+}
+
 type MembersByKindRequest struct {
 	kind      string
 	onlyAlive bool
@@ -38,6 +48,10 @@ type MembersByKindResponse struct {
 
 type MemberByDHTRequest struct {
 	name string
+	kind string
+}
+
+type MemberByRoundRobinRequest struct {
 	kind string
 }
 

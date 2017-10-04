@@ -35,6 +35,7 @@ func New() (*ConsulProvider, error) {
 		refreshTTL:         1 * time.Second,
 		deregisterCritical: 10 * time.Second,
 		blockingWaitTime:   20 * time.Second,
+		weight:             5,
 	}
 	return p, nil
 }
@@ -65,7 +66,7 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 	p.kvKey = fmt.Sprintf("%v/%v:%v", clusterName, address, port)
 	_, err = p.client.KV().Put(&api.KVPair{
 		Key:   p.kvKey,
-		Value: []byte(time.Now().UTC().Format(time.RFC3339)), //currently, just a semi unique id for this member
+		Value: []byte(time.Now().UTC().Format(time.RFC3339) + "\n" + fmt.Sprint(5)), //currently, just a semi unique id for this member
 	}, &api.WriteOptions{})
 
 	if err != nil {

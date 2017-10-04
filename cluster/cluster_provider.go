@@ -6,6 +6,7 @@ type MemberStatus struct {
 	Port     int
 	Kinds    []string
 	Alive    bool
+	Weight   int
 }
 
 type ClusterTopologyEvent []*MemberStatus

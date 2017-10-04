@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster/rendezvous"
+	"github.com/AsynkronIT/protoactor-go/cluster/members"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
@@ -46,34 +46,32 @@ func unsubMembershipActorToEventStream() {
 // the default ClusterProvider is consul.ConsulProvider which uses the Consul HTTP API to scan for changes
 type memberlistActor struct {
 	members        map[string]*MemberStatus
-	membersByKinds map[string]rendezvous.MemberNodeSet
+	membersByKinds map[string]*members.MemberNodeSet
 }
 
 func (a *memberlistActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		a.members = make(map[string]*MemberStatus)
-		a.membersByKinds = make(map[string]rendezvous.MemberNodeSet)
+		a.membersByKinds = make(map[string]*members.MemberNodeSet)
 	case *MembersByKindRequest:
 		var res []string
-
 		if members, ok := a.membersByKinds[msg.kind]; ok {
-			for key, n := range members {
-				if !msg.onlyAlive || (msg.onlyAlive && n.Alive) {
-					res = append(res, key)
-				}
-			}
+			res = members.GetAllMemberAddresses(msg.onlyAlive)
 		}
-
-		ctx.Respond(&MembersByKindResponse{
-			members: res,
-		})
+		ctx.Respond(&MembersByKindResponse{members: res})
+	case *MemberByRoundRobinRequest:
+		var res string
+		if members, ok := a.membersByKinds[msg.kind]; ok {
+			res = members.GetByRoundRobin()
+		}
+		ctx.Respond(&MemberByDHTResponse{res})
 	case *MemberByDHTRequest:
-		var member string
+		var res string
 		if members, ok := a.membersByKinds[msg.kind]; ok {
-			member = rendezvous.Get(members, msg.name)
+			res = members.GetByRdv(msg.name)
 		}
-		ctx.Respond(&MemberByDHTResponse{member})
+		ctx.Respond(&MemberByDHTResponse{res})
 	case ClusterTopologyEvent:
 
 		//build a lookup for the new statuses
@@ -183,7 +181,7 @@ func (a *memberlistActor) updateMembersByKind(key string, new *MemberStatus, old
 		for _, k := range old.Kinds {
 			if s, ok := a.membersByKinds[k]; ok {
 				s.Remove(key)
-				if len(s) == 0 {
+				if s.Length() == 0 {
 					delete(a.membersByKinds, k)
 				}
 			}
@@ -192,9 +190,9 @@ func (a *memberlistActor) updateMembersByKind(key string, new *MemberStatus, old
 	if new != nil {
 		for _, k := range new.Kinds {
 			if _, ok := a.membersByKinds[k]; !ok {
-				a.membersByKinds[k] = make(rendezvous.MemberNodeSet)
+				a.membersByKinds[k] = members.NewMemberNodeSet()
 			}
-			a.membersByKinds[k].Add(key, new.Alive)
+			a.membersByKinds[k].Add(key, new.Alive, new.Weight)
 		}
 	}
 }

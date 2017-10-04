@@ -30,6 +30,7 @@ func Start(clusterName, address string, provider ClusterProvider) {
 	subscribePidCacheMemberStatusEventStream()
 	spawnMembershipActor()
 	subscribeMembershipActorToEventStream()
+
 	cp.RegisterMember(clusterName, h, p, kinds)
 	cp.MonitorMemberStatusChanges()
 }
