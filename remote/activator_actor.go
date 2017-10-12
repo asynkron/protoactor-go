@@ -122,7 +122,6 @@ func (*activator) Receive(context actor.Context) {
 				StatusCode: ResponseStatusCodePROCESSNAMEALREADYEXIST.ToInt32(),
 			}
 			context.Respond(response)
-			panic(err)
 		} else if aErr, ok := err.(*ActivatorError); ok {
 			response := &ActorPidResponse{
 				StatusCode: aErr.Code,
