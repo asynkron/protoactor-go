@@ -10,7 +10,7 @@ import (
 func getMembers(kind string) []string {
 	res, err := memberlistPID.RequestFuture(&MembersByKindRequest{kind: kind, onlyAlive: true}, 5*time.Second).Result()
 	if err == nil {
-		if t, ok := res.(*MembersByKindResponse); ok && len(t.members) > 0 {
+		if t, ok := res.(*MembersResponse); ok && len(t.members) > 0 {
 			return t.members
 		}
 	}
@@ -20,7 +20,7 @@ func getMembers(kind string) []string {
 func getMemberByDHT(name, kind string) string {
 	res, err := memberlistPID.RequestFuture(&MemberByDHTRequest{name, kind}, 5*time.Second).Result()
 	if err == nil {
-		if t, ok := res.(*MemberByDHTResponse); ok {
+		if t, ok := res.(*MemberResponse); ok {
 			return t.member
 		}
 	}
@@ -30,7 +30,7 @@ func getMemberByDHT(name, kind string) string {
 func getMemberByRoundRobin(kind string) string {
 	res, err := memberlistPID.RequestFuture(&MemberByRoundRobinRequest{kind}, 5*time.Second).Result()
 	if err == nil {
-		if t, ok := res.(*MemberByDHTResponse); ok {
+		if t, ok := res.(*MemberResponse); ok {
 			return t.member
 		}
 	}
@@ -42,10 +42,6 @@ type MembersByKindRequest struct {
 	onlyAlive bool
 }
 
-type MembersByKindResponse struct {
-	members []string
-}
-
 type MemberByDHTRequest struct {
 	name string
 	kind string
@@ -55,6 +51,10 @@ type MemberByRoundRobinRequest struct {
 	kind string
 }
 
-type MemberByDHTResponse struct {
+type MemberResponse struct {
 	member string
+}
+
+type MembersResponse struct {
+	members []string
 }

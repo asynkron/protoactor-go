@@ -59,19 +59,19 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 		if members, ok := a.membersByKinds[msg.kind]; ok {
 			res = members.GetAllMemberAddresses(msg.onlyAlive)
 		}
-		ctx.Respond(&MembersByKindResponse{members: res})
+		ctx.Respond(&MembersResponse{members: res})
 	case *MemberByRoundRobinRequest:
 		var res string
 		if members, ok := a.membersByKinds[msg.kind]; ok {
 			res = members.GetByRoundRobin()
 		}
-		ctx.Respond(&MemberByDHTResponse{res})
+		ctx.Respond(&MemberResponse{res})
 	case *MemberByDHTRequest:
 		var res string
 		if members, ok := a.membersByKinds[msg.kind]; ok {
 			res = members.GetByRdv(msg.name)
 		}
-		ctx.Respond(&MemberByDHTResponse{res})
+		ctx.Respond(&MemberResponse{res})
 	case ClusterTopologyEvent:
 
 		//build a lookup for the new statuses
