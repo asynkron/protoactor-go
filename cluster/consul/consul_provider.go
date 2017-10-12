@@ -28,19 +28,7 @@ type ConsulProvider struct {
 }
 
 func New() (*ConsulProvider, error) {
-	client, err := api.NewClient(&api.Config{})
-	if err != nil {
-		return nil, err
-	}
-	p := &ConsulProvider{
-		client:             client,
-		ttl:                3 * time.Second,
-		refreshTTL:         1 * time.Second,
-		deregisterCritical: 10 * time.Second,
-		blockingWaitTime:   20 * time.Second,
-		weight:             5,
-	}
-	return p, nil
+	return NewWithConfig(&api.Config{})
 }
 
 func NewWithConfig(consulConfig *api.Config) (*ConsulProvider, error) {
