@@ -33,6 +33,8 @@ func main() {
 	async()
 
 	console.ReadLine()
+
+	cluster.Shutdown(true)
 }
 
 func sync() {
