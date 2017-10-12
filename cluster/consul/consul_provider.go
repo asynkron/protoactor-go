@@ -17,6 +17,7 @@ type ConsulProvider struct {
 	id                 string
 	clusterName        string
 	index              uint64 //consul blocking index
+	weight             int
 	client             *api.Client
 	ttl                time.Duration
 	refreshTTL         time.Duration
