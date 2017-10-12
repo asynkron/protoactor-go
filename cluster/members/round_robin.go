@@ -48,7 +48,6 @@ func (m *MemberNodeSet) getMaxWeight() int {
 	return max
 }
 
-/*
 func (m *MemberNodeSet) getGcd() int {
 	if len(m.nodes) == 0 {
 		return 0
@@ -77,4 +76,3 @@ func ngcd(ints []int) int {
 	}
 	return gcd(ints[n-1], ngcd(ints[0:n-1]))
 }
-*/

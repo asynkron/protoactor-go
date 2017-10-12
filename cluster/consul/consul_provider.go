@@ -13,11 +13,13 @@ import (
 type ConsulProvider struct {
 	deregistered       bool
 	shutdown           bool
-	kvKey              string
 	id                 string
 	clusterName        string
-	index              uint64 //consul blocking index
+	address            string
+	port               int
+	knownKinds         []string
 	weight             int
+	index              uint64 //consul blocking index
 	client             *api.Client
 	ttl                time.Duration
 	refreshTTL         time.Duration
@@ -41,35 +43,35 @@ func New() (*ConsulProvider, error) {
 	return p, nil
 }
 
+func NewWithConfig(consulConfig *api.Config) (*ConsulProvider, error) {
+	client, err := api.NewClient(consulConfig)
+	if err != nil {
+		return nil, err
+	}
+	p := &ConsulProvider{
+		client:             client,
+		ttl:                3 * time.Second,
+		refreshTTL:         1 * time.Second,
+		deregisterCritical: 10 * time.Second,
+		blockingWaitTime:   20 * time.Second,
+		weight:             5,
+	}
+	return p, nil
+}
+
 func (p *ConsulProvider) RegisterMember(clusterName string, address string, port int, knownKinds []string) error {
 	p.id = fmt.Sprintf("%v@%v:%v", clusterName, address, port)
 	p.clusterName = clusterName
-	s := &api.AgentServiceRegistration{
-		ID:      p.id,
-		Name:    clusterName,
-		Tags:    knownKinds,
-		Address: address,
-		Port:    port,
-		Check: &api.AgentServiceCheck{
-			DeregisterCriticalServiceAfter: p.deregisterCritical.String(),
-			TTL: p.ttl.String(),
-		},
-	}
-	err := p.client.Agent().ServiceRegister(s)
+	p.address = address
+	p.port = port
+	p.knownKinds = knownKinds
 
+	err := p.registerService()
 	if err != nil {
 		return err
 	}
 
-	//register a unique ID for the current process
-	//similar to UID for Akka ActorSystem
-	//TODO: Orleans just use an int32 for the unique id called Generation.
-	p.kvKey = fmt.Sprintf("%v/%v:%v", clusterName, address, port)
-	_, err = p.client.KV().Put(&api.KVPair{
-		Key:   p.kvKey,
-		Value: []byte(time.Now().UTC().Format(time.RFC3339) + "\n" + fmt.Sprint(5)), //currently, just a semi unique id for this member
-	}, &api.WriteOptions{})
-
+	err = p.registerProcess()
 	if err != nil {
 		return err
 	}
@@ -84,6 +86,52 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 
 	p.UpdateTTL()
 	return nil
+}
+
+func (p *ConsulProvider) DeregisterMember() error {
+	err := p.deregisterService()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	err = p.deregisterProcess()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	p.deregistered = true
+	return nil
+}
+
+func (p *ConsulProvider) UpdateWeight(weight int) error {
+	if weight > 10 {
+		return fmt.Errorf("Currently only support maximum weight of 10 instead of %v", weight)
+	}
+	p.weight = weight
+	if p.address != "" {
+		return p.registerProcess()
+	}
+	return nil
+}
+
+func (p *ConsulProvider) Shutdown() error {
+	p.shutdown = true
+	if !p.deregistered {
+		err := p.DeregisterMember()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *ConsulProvider) UpdateTTL() {
+	go func() {
+		for !p.shutdown {
+			p.blockingUpdateTTL()
+			time.Sleep(p.refreshTTL)
+		}
+	}()
 }
 
 func (p *ConsulProvider) blockingUpdateTTL() {
@@ -101,39 +149,41 @@ func (p *ConsulProvider) blockingUpdateTTL() {
 	}
 }
 
-func (p *ConsulProvider) UpdateTTL() {
-	go func() {
-		for !p.shutdown {
-			p.blockingUpdateTTL()
-			time.Sleep(p.refreshTTL)
-		}
-	}()
+func (p *ConsulProvider) registerService() error {
+	s := &api.AgentServiceRegistration{
+		ID:      p.id,
+		Name:    p.clusterName,
+		Tags:    p.knownKinds,
+		Address: p.address,
+		Port:    p.port,
+		Check: &api.AgentServiceCheck{
+			DeregisterCriticalServiceAfter: p.deregisterCritical.String(),
+			TTL: p.ttl.String(),
+		},
+	}
+	return p.client.Agent().ServiceRegister(s)
 }
 
-func (p *ConsulProvider) DeregisterMember() error {
-	err := p.client.Agent().ServiceDeregister(p.id)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	_, err = p.client.KV().Delete(p.kvKey, &api.WriteOptions{})
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	p.deregistered = true
-	return nil
+func (p *ConsulProvider) deregisterService() error {
+	return p.client.Agent().ServiceDeregister(p.id)
 }
 
-func (p *ConsulProvider) Shutdown() error {
-	p.shutdown = true
-	if !p.deregistered {
-		err := p.DeregisterMember()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func (p *ConsulProvider) registerProcess() error {
+	//register a unique ID for the current process
+	//similar to UID for Akka ActorSystem
+	//TODO: Orleans just use an int32 for the unique id called Generation.
+	kvKey := fmt.Sprintf("%v/%v:%v", p.clusterName, p.address, p.port)
+	_, err := p.client.KV().Put(&api.KVPair{
+		Key:   kvKey,
+		Value: []byte(time.Now().UTC().Format(time.RFC3339) + "\n" + fmt.Sprint(p.weight)), //currently, just a semi unique id for this member
+	}, &api.WriteOptions{})
+	return err
+}
+
+func (p *ConsulProvider) deregisterProcess() error {
+	kvKey := fmt.Sprintf("%v/%v:%v", p.clusterName, p.address, p.port)
+	_, err := p.client.KV().Delete(kvKey, &api.WriteOptions{})
+	return err
 }
 
 //call this directly after registering the service
@@ -177,6 +227,11 @@ func (p *ConsulProvider) notifyStatuses() {
 			Alive:    len(v.Checks) > 0 && v.Checks.AggregatedStatus() == api.HealthPassing,
 		}
 		res[i] = ms
+
+		//Update Tags for this member
+		if memberID == p.id {
+			p.knownKinds = v.Service.Tags
+		}
 	}
 	//the reason why we want this in a batch and not as individual messages is that
 	//if we have an atomic batch, we can calculate what nodes have left the cluster
