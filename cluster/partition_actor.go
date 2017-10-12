@@ -142,7 +142,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 			state.partition[msg.Name] = pid
 			context.Watch(pid)
 			context.Respond(resp)
-			break
+			return
 		case remote.ResponseStatusCodeUNAVAILABLE:
 			//Retry until failed
 			if retry != 0 {
