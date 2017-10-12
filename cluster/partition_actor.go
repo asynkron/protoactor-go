@@ -93,8 +93,10 @@ func (state *partitionActor) Receive(context actor.Context) {
 		plog.Info("Member available", log.String("kind", state.kind), log.String("name", msg.Name()))
 	case *MemberUnavailableEvent:
 		plog.Info("Member unavailable", log.String("kind", state.kind), log.String("name", msg.Name()))
+	case actor.SystemMessage, actor.AutoReceiveMessage:
+		//ignore
 	default:
-		plog.Error("Partition got unknown message", log.String("kind", state.kind), log.Object("msg", msg))
+		plog.Error("Partition got unknown message", log.String("kind", state.kind), log.TypeOf("type", msg), log.Object("msg", msg))
 	}
 }
 

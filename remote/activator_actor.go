@@ -138,9 +138,9 @@ func (*activator) Receive(context actor.Context) {
 			context.Respond(response)
 			panic(err)
 		}
-	case actor.SystemMessage:
+	case actor.SystemMessage, actor.AutoReceiveMessage:
 		//ignore
 	default:
-		plog.Error("Activator received unknown message", log.Message(msg))
+		plog.Error("Activator received unknown message", log.TypeOf("type", msg), log.Message(msg))
 	}
 }

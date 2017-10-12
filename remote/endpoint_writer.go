@@ -148,9 +148,9 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 		state.conn.Close()
 	case []interface{}:
 		state.sendEnvelopes(msg, ctx)
-	case actor.SystemMessage:
+	case actor.SystemMessage, actor.AutoReceiveMessage:
 		//ignore
 	default:
-		plog.Error("EndpointWriter received unknown message", log.String("address", state.address), log.Message(msg))
+		plog.Error("EndpointWriter received unknown message", log.String("address", state.address), log.TypeOf("type", msg), log.Message(msg))
 	}
 }
