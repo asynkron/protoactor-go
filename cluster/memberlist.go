@@ -11,7 +11,7 @@ import (
 //TODO: this needs to be implemented,we could send a `Request` to the membership actor, but this seems flaky.
 //a threadsafe map would be better
 func getMembers(kind string) []string {
-	res, err := memberlistPID.RequestFuture(&MemberByKindRequest{kind: kind, onlyAlive: true}, 5*time.Second).Result()
+	res, err := memberlistPID.RequestFuture(&MemberByKindRequest{kind: kind, onlyAlive: false}, 5*time.Second).Result()
 	if err == nil {
 		if t, ok := res.(*MemberByKindResponse); ok && len(t.members) > 0 {
 			return t.members
