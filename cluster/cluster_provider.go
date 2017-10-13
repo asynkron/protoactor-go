@@ -12,7 +12,7 @@ type MemberStatus struct {
 type ClusterTopologyEvent []*MemberStatus
 
 type ClusterProvider interface {
-	RegisterMember(clusterName string, address string, port int, knownKinds []string) error
+	RegisterMember(clusterName string, address string, port int, weight int, knownKinds []string) error
 	MonitorMemberStatusChanges()
 	UpdateWeight(weight int) error
 	DeregisterMember() error

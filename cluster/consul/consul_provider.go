@@ -42,17 +42,17 @@ func NewWithConfig(consulConfig *api.Config) (*ConsulProvider, error) {
 		refreshTTL:         1 * time.Second,
 		deregisterCritical: 10 * time.Second,
 		blockingWaitTime:   20 * time.Second,
-		weight:             5,
 	}
 	return p, nil
 }
 
-func (p *ConsulProvider) RegisterMember(clusterName string, address string, port int, knownKinds []string) error {
+func (p *ConsulProvider) RegisterMember(clusterName string, address string, port int, weight int, knownKinds []string) error {
 	p.id = fmt.Sprintf("%v@%v:%v", clusterName, address, port)
 	p.clusterName = clusterName
 	p.address = address
 	p.port = port
 	p.knownKinds = knownKinds
+	p.weight = weight
 
 	err := p.registerService()
 	if err != nil {
@@ -92,9 +92,6 @@ func (p *ConsulProvider) DeregisterMember() error {
 }
 
 func (p *ConsulProvider) UpdateWeight(weight int) error {
-	if weight > 10 {
-		return fmt.Errorf("Currently only support maximum weight of 10 instead of %v", weight)
-	}
 	p.weight = weight
 	if p.address != "" {
 		return p.registerProcess()
