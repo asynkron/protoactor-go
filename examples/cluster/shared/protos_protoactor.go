@@ -10,7 +10,10 @@ import cluster "github.com/AsynkronIT/protoactor-go/cluster"
 
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
-import math "math"
+import (
+	math "math"
+	"time"
+)
 
 var _ = proto.Marshal
 var _ = fmt.Errorf
@@ -79,6 +82,10 @@ func (g *HelloGrain) SayHello(r *HelloRequest, options ...cluster.GrainCallOptio
 		res, err = fun()
 		if err == nil {
 			return res, nil
+		} else {
+			if conf.RetryAction != nil {
+				conf.RetryAction(i)
+			}
 		}
 	}
 	return nil, err

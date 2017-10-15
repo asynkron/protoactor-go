@@ -77,6 +77,10 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }
 		res, err = fun()
 		if err == nil {
 			return res, nil
+		} else {
+			if conf.RetryAction != nil {
+				conf.RetryAction(i)
+			}
 		}
 	}
 	return nil, err
