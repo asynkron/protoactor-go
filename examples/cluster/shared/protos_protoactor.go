@@ -12,7 +12,6 @@ import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import (
 	math "math"
-	"time"
 )
 
 var _ = proto.Marshal
