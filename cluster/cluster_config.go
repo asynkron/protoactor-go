@@ -24,7 +24,7 @@ func NewClusterConfig(name string, address string, clusterProvider ClusterProvid
 		ClusterProvider:             clusterProvider,
 		TimeoutTime:                 time.Second * 5,
 		InitialMemberStatusValue:    nil,
-		MemberStatusValueSerializer: &nilMemberStatusValueSerializer{},
+		MemberStatusValueSerializer: &NilMemberStatusValueSerializer{},
 		MemberStrategyBuilder:       newDefaultMemberStrategy,
 	}
 }

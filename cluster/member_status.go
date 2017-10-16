@@ -24,12 +24,12 @@ type MemberStatusValueSerializer interface {
 	FromValueBytes(val []byte) MemberStatusValue
 }
 
-type nilMemberStatusValueSerializer struct{}
+type NilMemberStatusValueSerializer struct{}
 
-func (s *nilMemberStatusValueSerializer) ToValueBytes(val MemberStatusValue) []byte {
+func (s *NilMemberStatusValueSerializer) ToValueBytes(val MemberStatusValue) []byte {
 	return nil
 }
 
-func (s *nilMemberStatusValueSerializer) FromValueBytes(val []byte) MemberStatusValue {
+func (s *NilMemberStatusValueSerializer) FromValueBytes(val []byte) MemberStatusValue {
 	return nil
 }
