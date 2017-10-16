@@ -32,7 +32,7 @@ func Get{{ $service.Name }}Grain(id string) *{{ $service.Name }}Grain {
 type {{ $service.Name }} interface {
 	Init(id string)
 	{{ range $method := $service.Methods}}	
-	{{ $method.Name }}(*{{ $method.Input.Name }}) (*{{ $method.Output.Name }}, error)
+	{{ $method.Name }}(*{{ $method.Input.Name }}, cluster.GrainContext) (*{{ $method.Output.Name }}, error)
 	{{ end }}	
 }
 type {{ $service.Name }}Grain struct {
@@ -112,7 +112,11 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 	case *actor.Started:
 		a.inner = x{{ $service.Name }}Factory()
 		id := ctx.Self().Id
-		a.inner.Init(id[7:len(id)]) //skip "remote$"
+		a.inner.Init(id[7:]) //skip "remote$"
+
+	case actor.AutoReceiveMessage: //pass
+	case actor.SystemMessage: //pass
+
 	case *cluster.GrainRequest:
 		switch msg.Method {
 		{{ range $method := $service.Methods}}	
@@ -122,7 +126,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 			if err != nil {
 				log.Fatalf("[GRAIN] proto.Unmarshal failed %v", err)
 			}
-			r0, err := a.inner.{{ $method.Name }}(req)
+			r0, err := a.inner.{{ $method.Name }}(req, ctx)
 			if err == nil {
 				bytes, err := proto.Marshal(r0)
 				if err != nil {
@@ -144,13 +148,17 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 {{ end }}	
 
 
-func init() {
-	{{ range $service := .Services}}
-	remote.Register("{{ $service.Name }}", actor.FromProducer(func() actor.Actor {
-		return &{{ $service.Name }}Actor {}
-		})		)
-	{{ end }}	
-}
+//Why has this been removed?
+//This should only be done on servers of the below Kinds
+//Clients should not be forced to also be servers
+
+//func init() {
+//	{{ range $service := .Services}}
+//	remote.Register("{{ $service.Name }}", actor.FromProducer(func() actor.Actor {
+//		return &{{ $service.Name }}Actor {}
+//		})		)
+//	{{ end }}
+//}
 
 
 {{ range $service := .Services}}
@@ -158,7 +166,7 @@ func init() {
 //	cluster.Grain
 // }
 {{ range $method := $service.Methods}}
-// func (*{{ $service.PascalName }}) {{ $method.Name }}(r *{{ $method.Input.Name }}) (*{{ $method.Output.Name }}, error) {
+// func (*{{ $service.PascalName }}) {{ $method.Name }}(r *{{ $method.Input.Name }}, cluster.GrainContext) (*{{ $method.Output.Name }}, error) {
 // 	return &{{ $method.Output.Name }}{}, nil
 // }
 {{ end }}
