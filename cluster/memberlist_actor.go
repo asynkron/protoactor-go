@@ -155,7 +155,7 @@ func (a *memberlistActor) updateAndNotify(new *MemberStatus, old *MemberStatus) 
 	}
 
 	//update MemberStrategy
-	if new.Alive != old.Alive || new.MemberID != old.MemberID || !new.StatusValue.IsSame(old.StatusValue) {
+	if new.Alive != old.Alive || new.MemberID != old.MemberID || new.StatusValue != nil && !new.StatusValue.IsSame(old.StatusValue) {
 		for _, k := range new.Kinds {
 			if _, ok := a.memberStrategyByKind[k]; !ok {
 				a.memberStrategyByKind[k] = cfg.MemberStrategyBuilder(k)
