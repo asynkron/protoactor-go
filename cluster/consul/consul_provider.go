@@ -11,20 +11,21 @@ import (
 )
 
 type ConsulProvider struct {
-	deregistered       bool
-	shutdown           bool
-	id                 string
-	clusterName        string
-	address            string
-	port               int
-	knownKinds         []string
-	weight             int
-	index              uint64 //consul blocking index
-	client             *api.Client
-	ttl                time.Duration
-	refreshTTL         time.Duration
-	deregisterCritical time.Duration
-	blockingWaitTime   time.Duration
+	deregistered          bool
+	shutdown              bool
+	id                    string
+	clusterName           string
+	address               string
+	port                  int
+	knownKinds            []string
+	index                 uint64 //consul blocking index
+	client                *api.Client
+	ttl                   time.Duration
+	refreshTTL            time.Duration
+	deregisterCritical    time.Duration
+	blockingWaitTime      time.Duration
+	statusValue           cluster.MemberStatusValue
+	statusValueSerializer cluster.MemberStatusValueSerializer
 }
 
 func New() (*ConsulProvider, error) {
@@ -46,20 +47,26 @@ func NewWithConfig(consulConfig *api.Config) (*ConsulProvider, error) {
 	return p, nil
 }
 
-func (p *ConsulProvider) RegisterMember(clusterName string, address string, port int, weight int, knownKinds []string) error {
+func (p *ConsulProvider) RegisterMember(clusterName string, address string, port int, knownKinds []string,
+	statusValue cluster.MemberStatusValue, serializer cluster.MemberStatusValueSerializer) error {
 	p.id = fmt.Sprintf("%v@%v:%v", clusterName, address, port)
 	p.clusterName = clusterName
 	p.address = address
 	p.port = port
 	p.knownKinds = knownKinds
-	p.weight = weight
+	p.statusValueSerializer = serializer
 
 	err := p.registerService()
 	if err != nil {
 		return err
 	}
 
-	err = p.registerProcess()
+	err = p.registerMemberID()
+	if err != nil {
+		return err
+	}
+
+	err = p.UpdateMemberStatusValue(statusValue)
 	if err != nil {
 		return err
 	}
@@ -82,20 +89,17 @@ func (p *ConsulProvider) DeregisterMember() error {
 		fmt.Println(err)
 		return err
 	}
-	err = p.deregisterProcess()
+	err = p.deregisterMemberID()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	err = p.deleteMemberStatusValue()
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 	p.deregistered = true
-	return nil
-}
-
-func (p *ConsulProvider) UpdateWeight(weight int) error {
-	p.weight = weight
-	if p.address != "" {
-		return p.registerProcess()
-	}
 	return nil
 }
 
@@ -117,6 +121,28 @@ func (p *ConsulProvider) UpdateTTL() {
 			time.Sleep(p.refreshTTL)
 		}
 	}()
+}
+
+func (p *ConsulProvider) UpdateMemberStatusValue(statusValue cluster.MemberStatusValue) error {
+	p.statusValue = statusValue
+	if p.statusValue == nil {
+		return nil
+	}
+	kvKey := fmt.Sprintf("%v/%v:%v/StatusValue", p.clusterName, p.address, p.port)
+	_, err := p.client.KV().Put(&api.KVPair{
+		Key:   kvKey,
+		Value: p.statusValueSerializer.ToValueBytes(p.statusValue), //currently, just a semi unique id for this member
+	}, &api.WriteOptions{})
+	return err
+}
+
+func (p *ConsulProvider) deleteMemberStatusValue() error {
+	if p.statusValue == nil {
+		return nil
+	}
+	kvKey := fmt.Sprintf("%v/%v:%v/StatusValue", p.clusterName, p.address, p.port)
+	_, err := p.client.KV().Delete(kvKey, &api.WriteOptions{})
+	return err
 }
 
 func (p *ConsulProvider) blockingUpdateTTL() {
@@ -153,20 +179,20 @@ func (p *ConsulProvider) deregisterService() error {
 	return p.client.Agent().ServiceDeregister(p.id)
 }
 
-func (p *ConsulProvider) registerProcess() error {
+func (p *ConsulProvider) registerMemberID() error {
 	//register a unique ID for the current process
 	//similar to UID for Akka ActorSystem
 	//TODO: Orleans just use an int32 for the unique id called Generation.
-	kvKey := fmt.Sprintf("%v/%v:%v", p.clusterName, p.address, p.port)
+	kvKey := fmt.Sprintf("%v/%v:%v/ID", p.clusterName, p.address, p.port)
 	_, err := p.client.KV().Put(&api.KVPair{
 		Key:   kvKey,
-		Value: []byte(time.Now().UTC().Format(time.RFC3339) + "\n" + fmt.Sprint(p.weight)), //currently, just a semi unique id for this member
+		Value: []byte(time.Now().UTC().Format(time.RFC3339)), //currently, just a semi unique id for this member
 	}, &api.WriteOptions{})
 	return err
 }
 
-func (p *ConsulProvider) deregisterProcess() error {
-	kvKey := fmt.Sprintf("%v/%v:%v", p.clusterName, p.address, p.port)
+func (p *ConsulProvider) deregisterMemberID() error {
+	kvKey := fmt.Sprintf("%v/%v:%v/ID", p.clusterName, p.address, p.port)
 	_, err := p.client.KV().Delete(kvKey, &api.WriteOptions{})
 	return err
 }
@@ -195,21 +221,23 @@ func (p *ConsulProvider) notifyStatuses() {
 		log.Printf("Error %v", err)
 		return
 	}
-	kvMap := make(map[string]string)
+	kvMap := make(map[string][]byte)
 	for _, v := range kv {
-		kvMap[v.Key] = string(v.Value)
+		kvMap[v.Key] = v.Value
 	}
 
 	res := make(cluster.ClusterTopologyEvent, len(statuses))
 	for i, v := range statuses {
 		key := fmt.Sprintf("%v/%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
-		memberID := kvMap[key]
+		memberID := string(kvMap[key+"/ID"])
+		memberStatusVal := p.statusValueSerializer.FromValueBytes(kvMap[key+"/StatusValue"])
 		ms := &cluster.MemberStatus{
-			MemberID: memberID,
-			Host:     v.Service.Address,
-			Port:     v.Service.Port,
-			Kinds:    v.Service.Tags,
-			Alive:    len(v.Checks) > 0 && v.Checks.AggregatedStatus() == api.HealthPassing,
+			MemberID:    memberID,
+			Host:        v.Service.Address,
+			Port:        v.Service.Port,
+			Kinds:       v.Service.Tags,
+			Alive:       len(v.Checks) > 0 && v.Checks.AggregatedStatus() == api.HealthPassing,
+			StatusValue: memberStatusVal,
 		}
 		res[i] = ms
 

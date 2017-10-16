@@ -1,10 +1,7 @@
 package cluster
 
 import (
-	"fmt"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster/members"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
@@ -45,31 +42,36 @@ func unsubMembershipActorToEventStream() {
 // it does so by listening to changes from the ClusterProvider.
 // the default ClusterProvider is consul.ConsulProvider which uses the Consul HTTP API to scan for changes
 type memberlistActor struct {
-	members        map[string]*MemberStatus
-	membersByKinds map[string]*members.MemberNodeSet
+	members              map[string]*MemberStatus
+	memberStrategyByKind map[string]MemberStrategy
 }
 
 func (a *memberlistActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		a.members = make(map[string]*MemberStatus)
-		a.membersByKinds = make(map[string]*members.MemberNodeSet)
+		a.memberStrategyByKind = make(map[string]MemberStrategy)
 	case *MembersByKindRequest:
-		var res []string
-		if members, ok := a.membersByKinds[msg.kind]; ok {
-			res = members.GetAllMemberAddresses(msg.onlyAlive)
+		res := make([]string, 0)
+		if memberStrategy, ok := a.memberStrategyByKind[msg.kind]; ok {
+			members := memberStrategy.GetAllMembers()
+			for _, m := range members {
+				if !msg.onlyAlive || m.Alive {
+					res = append(res, m.Address())
+				}
+			}
 		}
 		ctx.Respond(&MembersResponse{members: res})
-	case *MemberByRoundRobinRequest:
-		var res string
-		if members, ok := a.membersByKinds[msg.kind]; ok {
-			res = members.GetByRoundRobin()
-		}
-		ctx.Respond(&MemberResponse{res})
 	case *MemberByDHTRequest:
 		var res string
-		if members, ok := a.membersByKinds[msg.kind]; ok {
-			res = members.GetByRdv(msg.name)
+		if memberStrategy, ok := a.memberStrategyByKind[msg.kind]; ok {
+			res = memberStrategy.GetPartition(msg.name)
+		}
+		ctx.Respond(&MemberResponse{res})
+	case *MemberByRoundRobinRequest:
+		var res string
+		if memberStrategy, ok := a.memberStrategyByKind[msg.kind]; ok {
+			res = memberStrategy.GetActivator()
 		}
 		ctx.Respond(&MemberResponse{res})
 	case ClusterTopologyEvent:
@@ -77,17 +79,14 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 		//build a lookup for the new statuses
 		tmp := make(map[string]*MemberStatus)
 		for _, new := range msg {
-			//key is address:port
-			key := a.getKey(new)
-			tmp[key] = new
+			tmp[new.Address()] = new
 		}
 
 		//first remove old ones
 		for key, old := range a.members {
 			new := tmp[key]
 			if new == nil {
-				a.notify(key, new, old)
-				a.updateMembersByKind(key, new, old)
+				a.updateAndNotify(new, old)
 			}
 		}
 
@@ -95,23 +94,28 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 		for key, new := range tmp {
 			old := a.members[key]
 			a.members[key] = new
-			a.notify(key, new, old)
-			a.updateMembersByKind(key, new, old)
+			a.updateAndNotify(new, old)
 		}
 	}
 }
 
-func (a *memberlistActor) getKey(m *MemberStatus) string {
-	return fmt.Sprintf("%v:%v", m.Host, m.Port)
-}
-
-func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatus) {
+func (a *memberlistActor) updateAndNotify(new *MemberStatus, old *MemberStatus) {
 
 	if new == nil && old == nil {
 		//ignore, not possible
 		return
 	}
 	if new == nil {
+		//update MemberStrategy
+		for _, k := range old.Kinds {
+			if s, ok := a.memberStrategyByKind[k]; ok {
+				s.RemoveMember(old)
+				if len(s.GetAllMembers()) == 0 {
+					delete(a.memberStrategyByKind, k)
+				}
+			}
+		}
+
 		//notify left
 		meta := MemberMeta{
 			Host:  old.Host,
@@ -120,16 +124,24 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		}
 		left := &MemberLeftEvent{MemberMeta: meta}
 		eventstream.Publish(left)
-		delete(a.members, key) //remove this member as it has left
+		delete(a.members, old.Address()) //remove this member as it has left
 
 		rt := &remote.EndpointTerminatedEvent{
-			Address: a.getKey(old),
+			Address: old.Address(),
 		}
 		eventstream.Publish(rt)
 
 		return
 	}
 	if old == nil {
+		//update MemberStrategy
+		for _, k := range new.Kinds {
+			if _, ok := a.memberStrategyByKind[k]; !ok {
+				a.memberStrategyByKind[k] = cfg.MemberStrategyBuilder(k)
+			}
+			a.memberStrategyByKind[k].AddMember(new)
+		}
+
 		//notify joined
 		meta := MemberMeta{
 			Host:  new.Host,
@@ -141,7 +153,19 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 
 		return
 	}
+
+	//update MemberStrategy
+	if new.Alive != old.Alive || new.MemberID != old.MemberID || !new.StatusValue.IsSame(old.StatusValue) {
+		for _, k := range new.Kinds {
+			if _, ok := a.memberStrategyByKind[k]; !ok {
+				a.memberStrategyByKind[k] = cfg.MemberStrategyBuilder(k)
+			}
+			a.memberStrategyByKind[k].AddMember(new)
+		}
+	}
+
 	if new.MemberID != old.MemberID {
+		//notify member rejoined
 		meta := MemberMeta{
 			Host:  new.Host,
 			Port:  new.Port,
@@ -153,7 +177,7 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		return
 	}
 	if old.Alive && !new.Alive {
-		//notify node unavailable
+		//notify member unavailable
 		meta := MemberMeta{
 			Host:  new.Host,
 			Port:  new.Port,
@@ -165,7 +189,7 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		return
 	}
 	if !old.Alive && new.Alive {
-		//notify node reachable
+		//notify member reachable
 		meta := MemberMeta{
 			Host:  new.Host,
 			Port:  new.Port,
@@ -173,26 +197,5 @@ func (a *memberlistActor) notify(key string, new *MemberStatus, old *MemberStatu
 		}
 		available := &MemberAvailableEvent{MemberMeta: meta}
 		eventstream.Publish(available)
-	}
-}
-
-func (a *memberlistActor) updateMembersByKind(key string, new *MemberStatus, old *MemberStatus) {
-	if old != nil {
-		for _, k := range old.Kinds {
-			if s, ok := a.membersByKinds[k]; ok {
-				s.Remove(key)
-				if s.Length() == 0 {
-					delete(a.membersByKinds, k)
-				}
-			}
-		}
-	}
-	if new != nil {
-		for _, k := range new.Kinds {
-			if _, ok := a.membersByKinds[k]; !ok {
-				a.membersByKinds[k] = members.NewMemberNodeSet()
-			}
-			a.membersByKinds[k].Add(key, new.Alive, new.Weight)
-		}
 	}
 }

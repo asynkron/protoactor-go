@@ -1,8 +1,6 @@
 package cluster
 
 import (
-	"time"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -104,7 +102,7 @@ func (a *pidCachePartitionActor) Receive(ctx actor.Context) {
 			Name: name,
 		}
 		//ask the DHT partition for this name to give us a PID
-		f := remotePartition.RequestFuture(req, 5*time.Second)
+		f := remotePartition.RequestFuture(req, cfg.TimeoutTime)
 		ctx.AwaitFuture(f, func(r interface{}, err error) {
 			if err == actor.ErrTimeout {
 				plog.Error("PidCache Pid request timeout")

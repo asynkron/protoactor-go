@@ -1,8 +1,6 @@
 package cluster
 
 import (
-	"time"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -61,7 +59,6 @@ func newPartitionActor(kind string) actor.Producer {
 			partition:  make(map[string]*actor.PID),
 			keyNameMap: make(map[string]string),
 			kind:       kind,
-			counter:    &counter{},
 		}
 	}
 }
@@ -70,7 +67,6 @@ type partitionActor struct {
 	partition  map[string]*actor.PID //actor/grain name to PID
 	keyNameMap map[string]string     //actor/grain key to name
 	kind       string
-	counter    *counter
 }
 
 func (state *partitionActor) Receive(context actor.Context) {
@@ -128,7 +124,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		}
 
 		//spawn pid
-		resp, err := remote.SpawnNamed(activator, msg.Name, msg.Kind, 5*time.Second)
+		resp, err := remote.SpawnNamed(activator, msg.Name, msg.Kind, cfg.TimeoutTime)
 		if err != nil {
 			plog.Error("Partition failed to spawn actor", log.String("name", msg.Name), log.String("kind", msg.Kind), log.String("address", activator))
 			context.Respond(&remote.ActorPidResponse{StatusCode: remote.ResponseStatusCodeERROR.ToInt32()})

@@ -9,34 +9,17 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-type ClusterConfig struct {
-	Name     string
-	Address  string
-	Weight   int
-	Provider ClusterProvider
-}
-
 var cfg *ClusterConfig
 
 func Start(clusterName, address string, provider ClusterProvider) {
-	StartWithConfig(&ClusterConfig{
-		Name:     clusterName,
-		Address:  address,
-		Weight:   5, //Default Node Weight Value
-		Provider: provider,
-	})
+	StartWithConfig(NewClusterConfig(clusterName, address, provider))
 }
 
 func StartWithConfig(config *ClusterConfig) {
-	if config.Weight > 10 {
-		plog.Error("Currently only support maximum weight of 10")
-		config.Weight = 10
-	}
-
 	cfg = config
 
 	//TODO: make it possible to become a cluster even if remoting is already started
-	remote.Start(cfg.Address)
+	remote.Start(cfg.Address, cfg.RemotingOption...)
 
 	address := actor.ProcessRegistry.Address
 	h, p := gonet.GetAddress(address)
@@ -51,13 +34,13 @@ func StartWithConfig(config *ClusterConfig) {
 	spawnMembershipActor()
 	subscribeMembershipActorToEventStream()
 
-	cfg.Provider.RegisterMember(cfg.Name, h, p, cfg.Weight, kinds)
-	cfg.Provider.MonitorMemberStatusChanges()
+	cfg.ClusterProvider.RegisterMember(cfg.Name, h, p, kinds, cfg.InitialMemberStatusValue, cfg.MemberStatusValueSerializer)
+	cfg.ClusterProvider.MonitorMemberStatusChanges()
 }
 
 func Shutdown(graceful bool) {
 	if graceful {
-		cfg.Provider.Shutdown()
+		cfg.ClusterProvider.Shutdown()
 		//This is to wait ownership transfering complete.
 		time.Sleep(2000)
 		unsubMembershipActorToEventStream()
@@ -72,15 +55,6 @@ func Shutdown(graceful bool) {
 
 	address := actor.ProcessRegistry.Address
 	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))
-}
-
-func UpdateWeight(weight int) error {
-	if weight > 10 {
-		plog.Error("Currently only support maximum weight of 10")
-		weight = 10
-	}
-	cfg.Weight = weight
-	return cfg.Provider.UpdateWeight(weight)
 }
 
 //Get a PID to a virtual actor
