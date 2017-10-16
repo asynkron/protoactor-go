@@ -19,12 +19,17 @@ type GrainCallOption func(*GrainCallConfig)
 type GrainCallConfig struct {
 	RetryCount int
 	Timeout    time.Duration
+	RetryAction func(n int)
 }
 
 func DefaultGrainCallConfig() *GrainCallConfig {
 	return &GrainCallConfig{
-		RetryCount: 1,
+		RetryCount: 10,
 		Timeout:    5 * time.Second,
+		RetryAction: func(i int) {
+			i++
+			time.Sleep( time.Duration(i * i * 50))
+		},
 	}
 }
 
