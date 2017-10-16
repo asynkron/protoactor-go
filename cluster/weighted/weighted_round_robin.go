@@ -1,6 +1,8 @@
 package weighted
 
-import "github.com/AsynkronIT/protoactor-go/cluster"
+import (
+	"github.com/AsynkronIT/protoactor-go/cluster"
+)
 
 type WeightedRoundRobin struct {
 	currIndex  int

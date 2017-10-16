@@ -8,7 +8,7 @@ type WeightedMemberStrategy struct {
 	rdv     *cluster.Rendezvous
 }
 
-func newDefaultMemberStrategy(kind string) cluster.MemberStrategy {
+func NewWeightedMemberStrategy(kind string) cluster.MemberStrategy {
 	ms := &WeightedMemberStrategy{members: make([]*cluster.MemberStatus, 0)}
 	ms.wrr = NewWeightedRoundRobin(cluster.MemberStrategy(ms))
 	ms.rdv = cluster.NewRendezvous(cluster.MemberStrategy(ms))
