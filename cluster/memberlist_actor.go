@@ -62,13 +62,13 @@ func (a *memberlistActor) Receive(ctx actor.Context) {
 			}
 		}
 		ctx.Respond(&MembersResponse{members: res})
-	case *MemberByDHTRequest:
+	case *PartitionMemberRequest:
 		var res string
 		if memberStrategy, ok := a.memberStrategyByKind[msg.kind]; ok {
 			res = memberStrategy.GetPartition(msg.name)
 		}
 		ctx.Respond(&MemberResponse{res})
-	case *MemberByRoundRobinRequest:
+	case *ActivatorMemberRequest:
 		var res string
 		if memberStrategy, ok := a.memberStrategyByKind[msg.kind]; ok {
 			res = memberStrategy.GetActivator()

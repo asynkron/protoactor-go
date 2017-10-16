@@ -106,7 +106,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		return
 	}
 
-	activator := getMemberByRoundRobin(msg.Kind)
+	activator := getActivatorMember(msg.Kind)
 	if activator == "" {
 		//No activator currently available, return unavailable
 		context.Respond(&remote.ActorPidResponse{StatusCode: remote.ResponseStatusCodeUNAVAILABLE.ToInt32()})
@@ -115,7 +115,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 
 	for retry := 3; retry >= 0; retry-- {
 		if activator == "" {
-			activator = getMemberByRoundRobin(msg.Kind)
+			activator = getActivatorMember(msg.Kind)
 			if activator == "" {
 				//No activator currently available, return unavailable
 				context.Respond(&remote.ActorPidResponse{StatusCode: remote.ResponseStatusCodeUNAVAILABLE.ToInt32()})
@@ -190,7 +190,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 	//If the left member is self, transfer remaining pids to others
 	if msg.Name() == actor.ProcessRegistry.Address {
 		for actorID := range state.partition {
-			address := getMemberByDHT(actorID, state.kind)
+			address := getPartitionMember(actorID, state.kind)
 			if address != "" {
 				state.transferOwnership(actorID, address, context)
 			}
@@ -201,7 +201,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.Context) {
 	plog.Info("Member joined", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID := range state.partition {
-		address := getMemberByDHT(actorID, state.kind)
+		address := getPartitionMember(actorID, state.kind)
 		if address != "" && address != actor.ProcessRegistry.Address {
 			state.transferOwnership(actorID, address, context)
 		}

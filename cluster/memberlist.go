@@ -17,8 +17,8 @@ func getMembers(kind string) []string {
 	return nil
 }
 
-func getMemberByDHT(name, kind string) string {
-	res, err := memberlistPID.RequestFuture(&MemberByDHTRequest{name, kind}, 5*time.Second).Result()
+func getPartitionMember(name, kind string) string {
+	res, err := memberlistPID.RequestFuture(&PartitionMemberRequest{name, kind}, 5*time.Second).Result()
 	if err == nil {
 		if t, ok := res.(*MemberResponse); ok {
 			return t.member
@@ -27,8 +27,8 @@ func getMemberByDHT(name, kind string) string {
 	return ""
 }
 
-func getMemberByRoundRobin(kind string) string {
-	res, err := memberlistPID.RequestFuture(&MemberByRoundRobinRequest{kind}, 5*time.Second).Result()
+func getActivatorMember(kind string) string {
+	res, err := memberlistPID.RequestFuture(&ActivatorMemberRequest{kind}, 5*time.Second).Result()
 	if err == nil {
 		if t, ok := res.(*MemberResponse); ok {
 			return t.member
@@ -42,12 +42,12 @@ type MembersByKindRequest struct {
 	onlyAlive bool
 }
 
-type MemberByDHTRequest struct {
+type PartitionMemberRequest struct {
 	name string
 	kind string
 }
 
-type MemberByRoundRobinRequest struct {
+type ActivatorMemberRequest struct {
 	kind string
 }
 
