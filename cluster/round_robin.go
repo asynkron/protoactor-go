@@ -1,7 +1,9 @@
 package cluster
 
+import "sync/atomic"
+
 type SimpleRoundRobin struct {
-	val int
+	val int32
 	m   MemberStrategy
 }
 
@@ -18,6 +20,6 @@ func (r *SimpleRoundRobin) GetByRoundRobin() string {
 	if l == 1 {
 		return members[0].Address()
 	}
-	r.val++
-	return members[r.val%l].Address()
+	atomic.AddInt32(&r.val, 1)
+	return members[int(r.val)%l].Address()
 }
