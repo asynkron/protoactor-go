@@ -20,6 +20,6 @@ func (r *SimpleRoundRobin) GetByRoundRobin() string {
 	if l == 1 {
 		return members[0].Address()
 	}
-	atomic.AddInt32(&r.val, 1)
-	return members[int(r.val)%l].Address()
+	nv := atomic.AddInt32(&r.val, 1)
+	return members[int(nv)%l].Address()
 }

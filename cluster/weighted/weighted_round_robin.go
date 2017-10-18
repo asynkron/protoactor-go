@@ -33,19 +33,19 @@ func (r *WeightedRoundRobin) GetByRoundRobin() string {
 	}
 
 	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
 	for {
 		r.currIndex = (r.currIndex + 1) % l
 		if r.currIndex == 0 {
 			if r.currWeight > r.gcdValue {
-				r.currWeight = -r.gcdValue
+				r.currWeight -= r.gcdValue
 			} else {
 				r.currWeight = r.maxWeight
 			}
 		}
 		sv, _ := members[r.currIndex].StatusValue.(*WeightedMemberStatusValue)
 		if sv.Weight >= r.currWeight {
-			r.mutex.Unlock()
 			return members[r.currIndex].Address()
 		}
 	}
