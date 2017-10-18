@@ -9,16 +9,19 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-var (
-	cp ClusterProvider
-)
+var cfg *ClusterConfig
 
 func Start(clusterName, address string, provider ClusterProvider) {
-	//TODO: make it possible to become a cluster even if remoting is already started
-	remote.Start(address)
+	StartWithConfig(NewClusterConfig(clusterName, address, provider))
+}
 
-	cp = provider
-	address = actor.ProcessRegistry.Address
+func StartWithConfig(config *ClusterConfig) {
+	cfg = config
+
+	//TODO: make it possible to become a cluster even if remoting is already started
+	remote.Start(cfg.Address, cfg.RemotingOption...)
+
+	address := actor.ProcessRegistry.Address
 	h, p := gonet.GetAddress(address)
 	plog.Info("Starting Proto.Actor cluster", log.String("address", address))
 	kinds := remote.GetKnownKinds()
@@ -30,14 +33,16 @@ func Start(clusterName, address string, provider ClusterProvider) {
 	subscribePidCacheMemberStatusEventStream()
 	spawnMembershipActor()
 	subscribeMembershipActorToEventStream()
-	cp.RegisterMember(clusterName, h, p, kinds)
-	cp.MonitorMemberStatusChanges()
+
+	cfg.ClusterProvider.RegisterMember(cfg.Name, h, p, kinds, cfg.InitialMemberStatusValue, cfg.MemberStatusValueSerializer)
+	cfg.ClusterProvider.MonitorMemberStatusChanges()
 }
 
 func Shutdown(graceful bool) {
 	if graceful {
-		cp.Shutdown()
-
+		cfg.ClusterProvider.Shutdown()
+		//This is to wait ownership transfering complete.
+		time.Sleep(2000)
 		unsubMembershipActorToEventStream()
 		stopMembershipActor()
 		unsubPidCacheMemberStatusEventStream()

@@ -11,21 +11,29 @@ import (
 )
 
 type ConsulProvider struct {
-	deregistered       bool
-	shutdown           bool
-	kvKey              string
-	id                 string
-	clusterName        string
-	index              uint64 //consul blocking index
-	client             *api.Client
-	ttl                time.Duration
-	refreshTTL         time.Duration
-	deregisterCritical time.Duration
-	blockingWaitTime   time.Duration
+	deregistered          bool
+	shutdown              bool
+	id                    string
+	clusterName           string
+	address               string
+	port                  int
+	knownKinds            []string
+	index                 uint64 //consul blocking index
+	client                *api.Client
+	ttl                   time.Duration
+	refreshTTL            time.Duration
+	deregisterCritical    time.Duration
+	blockingWaitTime      time.Duration
+	statusValue           cluster.MemberStatusValue
+	statusValueSerializer cluster.MemberStatusValueSerializer
 }
 
 func New() (*ConsulProvider, error) {
-	client, err := api.NewClient(&api.Config{})
+	return NewWithConfig(&api.Config{})
+}
+
+func NewWithConfig(consulConfig *api.Config) (*ConsulProvider, error) {
+	client, err := api.NewClient(consulConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -39,35 +47,26 @@ func New() (*ConsulProvider, error) {
 	return p, nil
 }
 
-func (p *ConsulProvider) RegisterMember(clusterName string, address string, port int, knownKinds []string) error {
+func (p *ConsulProvider) RegisterMember(clusterName string, address string, port int, knownKinds []string,
+	statusValue cluster.MemberStatusValue, serializer cluster.MemberStatusValueSerializer) error {
 	p.id = fmt.Sprintf("%v@%v:%v", clusterName, address, port)
 	p.clusterName = clusterName
-	s := &api.AgentServiceRegistration{
-		ID:      p.id,
-		Name:    clusterName,
-		Tags:    knownKinds,
-		Address: address,
-		Port:    port,
-		Check: &api.AgentServiceCheck{
-			DeregisterCriticalServiceAfter: p.deregisterCritical.String(),
-			TTL: p.ttl.String(),
-		},
-	}
-	err := p.client.Agent().ServiceRegister(s)
+	p.address = address
+	p.port = port
+	p.knownKinds = knownKinds
+	p.statusValueSerializer = serializer
 
+	err := p.registerService()
 	if err != nil {
 		return err
 	}
 
-	//register a unique ID for the current process
-	//similar to UID for Akka ActorSystem
-	//TODO: Orleans just use an int32 for the unique id called Generation.
-	p.kvKey = fmt.Sprintf("%v/%v:%v", clusterName, address, port)
-	_, err = p.client.KV().Put(&api.KVPair{
-		Key:   p.kvKey,
-		Value: []byte(time.Now().UTC().Format(time.RFC3339)), //currently, just a semi unique id for this member
-	}, &api.WriteOptions{})
+	err = p.registerMemberID()
+	if err != nil {
+		return err
+	}
 
+	err = p.UpdateMemberStatusValue(statusValue)
 	if err != nil {
 		return err
 	}
@@ -84,37 +83,18 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 	return nil
 }
 
-func (p *ConsulProvider) blockingUpdateTTL() {
-	refresh := func() error {
-		err := p.client.Agent().PassTTL("service:"+p.id, "")
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	//	log.Println("[CLUSTER] [CONSUL] Refreshing service TTL")
-	err := refresh()
-	if err != nil {
-		log.Println("[CLUSTER] [CONSUL] Failure refreshing service TTL")
-	}
-}
-
-func (p *ConsulProvider) UpdateTTL() {
-	go func() {
-		for !p.shutdown {
-			p.blockingUpdateTTL()
-			time.Sleep(p.refreshTTL)
-		}
-	}()
-}
-
 func (p *ConsulProvider) DeregisterMember() error {
-	err := p.client.Agent().ServiceDeregister(p.id)
+	err := p.deregisterService()
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
-	_, err = p.client.KV().Delete(p.kvKey, &api.WriteOptions{})
+	err = p.deregisterMemberID()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	err = p.deleteMemberStatusValue()
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -132,6 +112,89 @@ func (p *ConsulProvider) Shutdown() error {
 		}
 	}
 	return nil
+}
+
+func (p *ConsulProvider) UpdateTTL() {
+	go func() {
+		for !p.shutdown {
+			p.blockingUpdateTTL()
+			time.Sleep(p.refreshTTL)
+		}
+	}()
+}
+
+func (p *ConsulProvider) UpdateMemberStatusValue(statusValue cluster.MemberStatusValue) error {
+	p.statusValue = statusValue
+	if p.statusValue == nil {
+		return nil
+	}
+	kvKey := fmt.Sprintf("%v/%v:%v/StatusValue", p.clusterName, p.address, p.port)
+	_, err := p.client.KV().Put(&api.KVPair{
+		Key:   kvKey,
+		Value: p.statusValueSerializer.ToValueBytes(p.statusValue), //currently, just a semi unique id for this member
+	}, &api.WriteOptions{})
+	return err
+}
+
+func (p *ConsulProvider) deleteMemberStatusValue() error {
+	if p.statusValue == nil {
+		return nil
+	}
+	kvKey := fmt.Sprintf("%v/%v:%v/StatusValue", p.clusterName, p.address, p.port)
+	_, err := p.client.KV().Delete(kvKey, &api.WriteOptions{})
+	return err
+}
+
+func (p *ConsulProvider) blockingUpdateTTL() {
+	refresh := func() error {
+		err := p.client.Agent().PassTTL("service:"+p.id, "")
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	//	log.Println("[CLUSTER] [CONSUL] Refreshing service TTL")
+	err := refresh()
+	if err != nil {
+		log.Println("[CLUSTER] [CONSUL] Failure refreshing service TTL")
+	}
+}
+
+func (p *ConsulProvider) registerService() error {
+	s := &api.AgentServiceRegistration{
+		ID:      p.id,
+		Name:    p.clusterName,
+		Tags:    p.knownKinds,
+		Address: p.address,
+		Port:    p.port,
+		Check: &api.AgentServiceCheck{
+			DeregisterCriticalServiceAfter: p.deregisterCritical.String(),
+			TTL: p.ttl.String(),
+		},
+	}
+	return p.client.Agent().ServiceRegister(s)
+}
+
+func (p *ConsulProvider) deregisterService() error {
+	return p.client.Agent().ServiceDeregister(p.id)
+}
+
+func (p *ConsulProvider) registerMemberID() error {
+	//register a unique ID for the current process
+	//similar to UID for Akka ActorSystem
+	//TODO: Orleans just use an int32 for the unique id called Generation.
+	kvKey := fmt.Sprintf("%v/%v:%v/ID", p.clusterName, p.address, p.port)
+	_, err := p.client.KV().Put(&api.KVPair{
+		Key:   kvKey,
+		Value: []byte(time.Now().UTC().Format(time.RFC3339)), //currently, just a semi unique id for this member
+	}, &api.WriteOptions{})
+	return err
+}
+
+func (p *ConsulProvider) deregisterMemberID() error {
+	kvKey := fmt.Sprintf("%v/%v:%v/ID", p.clusterName, p.address, p.port)
+	_, err := p.client.KV().Delete(kvKey, &api.WriteOptions{})
+	return err
 }
 
 //call this directly after registering the service
@@ -158,23 +221,30 @@ func (p *ConsulProvider) notifyStatuses() {
 		log.Printf("Error %v", err)
 		return
 	}
-	kvMap := make(map[string]string)
+	kvMap := make(map[string][]byte)
 	for _, v := range kv {
-		kvMap[v.Key] = string(v.Value)
+		kvMap[v.Key] = v.Value
 	}
 
 	res := make(cluster.ClusterTopologyEvent, len(statuses))
 	for i, v := range statuses {
 		key := fmt.Sprintf("%v/%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
-		memberID := kvMap[key]
+		memberID := string(kvMap[key+"/ID"])
+		memberStatusVal := p.statusValueSerializer.FromValueBytes(kvMap[key+"/StatusValue"])
 		ms := &cluster.MemberStatus{
-			MemberID: memberID,
-			Host:     v.Service.Address,
-			Port:     v.Service.Port,
-			Kinds:    v.Service.Tags,
-			Alive:    len(v.Checks) > 0 && v.Checks.AggregatedStatus() == api.HealthPassing,
+			MemberID:    memberID,
+			Host:        v.Service.Address,
+			Port:        v.Service.Port,
+			Kinds:       v.Service.Tags,
+			Alive:       len(v.Checks) > 0 && v.Checks.AggregatedStatus() == api.HealthPassing,
+			StatusValue: memberStatusVal,
 		}
 		res[i] = ms
+
+		//Update Tags for this member
+		if memberID == p.id {
+			p.knownKinds = v.Service.Tags
+		}
 	}
 	//the reason why we want this in a batch and not as individual messages is that
 	//if we have an atomic batch, we can calculate what nodes have left the cluster

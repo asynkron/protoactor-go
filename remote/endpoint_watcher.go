@@ -104,7 +104,8 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 
 		//pass it off to the remote PID
 		SendMessage(msg.Watchee, uw, nil, -1)
-
+	case actor.SystemMessage, actor.AutoReceiveMessage:
+		//ignore
 	default:
 		plog.Error("EndpointWatcher received unknown message", log.String("address", state.address), log.Message(msg))
 	}
@@ -131,9 +132,9 @@ func (state *endpointWatcher) Terminated(ctx actor.Context) {
 	case *remoteTerminate, *EndpointTerminatedEvent, *remoteUnwatch:
 		// pass
 		plog.Error("EndpointWatcher receive message for already terminated endpoint", log.String("address", state.address), log.Message(msg))
-	case actor.SystemMessage:
+	case actor.SystemMessage, actor.AutoReceiveMessage:
 		//ignore
 	default:
-		plog.Error("EndpointWatcher received unknown message", log.String("address", state.address), log.Message(msg))
+		plog.Error("EndpointWatcher received unknown message", log.String("address", state.address), log.TypeOf("type", msg), log.Message(msg))
 	}
 }

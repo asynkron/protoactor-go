@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 )
 
@@ -15,7 +16,7 @@ func TestRegisterMember(t *testing.T) {
 
 	p, _ := New()
 	defer p.Shutdown()
-	err := p.RegisterMember("mycluster", "127.0.0.1", 8000, []string{"a", "b"})
+	err := p.RegisterMember("mycluster", "127.0.0.1", 8000, []string{"a", "b"}, nil, &cluster.NilMemberStatusValueSerializer{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,7 +29,7 @@ func TestRefreshMemberTTL(t *testing.T) {
 
 	p, _ := New()
 	defer p.Shutdown()
-	err := p.RegisterMember("mycluster", "127.0.0.1", 8000, []string{"a", "b"})
+	err := p.RegisterMember("mycluster", "127.0.0.1", 8000, []string{"a", "b"}, nil, &cluster.NilMemberStatusValueSerializer{})
 	if err != nil {
 		log.Fatal(err)
 	}

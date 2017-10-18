@@ -32,4 +32,6 @@ func main() {
 	}
 	log.Printf("Message from grain: %v", res.Message)
 	console.ReadLine()
+
+	cluster.Shutdown(true)	
 }

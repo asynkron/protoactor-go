@@ -1,8 +1,6 @@
 package cluster
 
 import (
-	"time"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -58,17 +56,17 @@ func partitionForKind(address, kind string) *actor.PID {
 func newPartitionActor(kind string) actor.Producer {
 	return func() actor.Actor {
 		return &partitionActor{
-			partition: make(map[string]*actor.PID),
-			kind:      kind,
-			counter:   &counter{},
+			partition:  make(map[string]*actor.PID),
+			keyNameMap: make(map[string]string),
+			kind:       kind,
 		}
 	}
 }
 
 type partitionActor struct {
-	partition map[string]*actor.PID //actor/grain name to PID
-	kind      string
-	counter   *counter
+	partition  map[string]*actor.PID //actor/grain name to PID
+	keyNameMap map[string]string     //actor/grain key to name
+	kind       string
 }
 
 func (state *partitionActor) Receive(context actor.Context) {
@@ -79,20 +77,22 @@ func (state *partitionActor) Receive(context actor.Context) {
 		state.spawn(msg, context)
 	case *actor.Terminated:
 		state.terminated(msg)
+	case *TakeOwnership:
+		state.takeOwnership(msg, context)
 	case *MemberJoinedEvent:
 		state.memberJoined(msg, context)
 	case *MemberRejoinedEvent:
 		state.memberRejoined(msg)
 	case *MemberLeftEvent:
-		state.memberLeft(msg)
+		state.memberLeft(msg, context)
 	case *MemberAvailableEvent:
 		plog.Info("Member available", log.String("kind", state.kind), log.String("name", msg.Name()))
 	case *MemberUnavailableEvent:
 		plog.Info("Member unavailable", log.String("kind", state.kind), log.String("name", msg.Name()))
-	case *TakeOwnership:
-		state.takeOwnership(msg, context)
+	case actor.SystemMessage, actor.AutoReceiveMessage:
+		//ignore
 	default:
-		plog.Error("Partition got unknown message", log.String("kind", state.kind), log.Object("msg", msg))
+		plog.Error("Partition got unknown message", log.String("kind", state.kind), log.TypeOf("type", msg), log.Object("msg", msg))
 	}
 }
 
@@ -106,30 +106,25 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		return
 	}
 
-	members := getMembers(msg.Kind)
-	if members == nil {
-		//No members currently available, return unavailable
+	activator := getActivatorMember(msg.Kind)
+	if activator == "" {
+		//No activator currently available, return unavailable
 		context.Respond(&remote.ActorPidResponse{StatusCode: remote.ResponseStatusCodeUNAVAILABLE.ToInt32()})
 		return
 	}
 
-	retrys := len(members) - 1
-	for retry := retrys; retry >= 0; retry-- {
-		if members == nil {
-			members = getMembers(msg.Kind)
-			if members == nil {
-				//No members currently available, return unavailable
+	for retry := 3; retry >= 0; retry-- {
+		if activator == "" {
+			activator = getActivatorMember(msg.Kind)
+			if activator == "" {
+				//No activator currently available, return unavailable
 				context.Respond(&remote.ActorPidResponse{StatusCode: remote.ResponseStatusCodeUNAVAILABLE.ToInt32()})
 				return
 			}
 		}
 
-		//get next member node
-		activator := members[state.counter.next()%len(members)]
-		members = nil
-
 		//spawn pid
-		resp, err := remote.SpawnNamed(activator, msg.Name, msg.Kind, 5*time.Second)
+		resp, err := remote.SpawnNamed(activator, msg.Name, msg.Kind, cfg.TimeoutTime)
 		if err != nil {
 			plog.Error("Partition failed to spawn actor", log.String("name", msg.Name), log.String("kind", msg.Kind), log.String("address", activator))
 			context.Respond(&remote.ActorPidResponse{StatusCode: remote.ResponseStatusCodeERROR.ToInt32()})
@@ -140,12 +135,14 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		case remote.ResponseStatusCodeOK:
 			pid = resp.Pid
 			state.partition[msg.Name] = pid
+			state.keyNameMap[pid.String()] = msg.Name
 			context.Watch(pid)
 			context.Respond(resp)
 			return
 		case remote.ResponseStatusCodeUNAVAILABLE:
 			//Retry until failed
 			if retry != 0 {
+				activator = ""
 				continue
 			}
 			context.Respond(resp)
@@ -160,11 +157,10 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 
 func (state *partitionActor) terminated(msg *actor.Terminated) {
 	//one of the actors we manage died, remove it from the lookup
-	for actorID, pid := range state.partition {
-		if pid.Equal(msg.Who) {
-			delete(state.partition, actorID)
-			return
-		}
+	key := msg.Who.String()
+	if name, ok := state.keyNameMap[key]; ok {
+		delete(state.partition, name)
+		delete(state.keyNameMap, key)
 	}
 }
 
@@ -175,17 +171,29 @@ func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
 		if pid.Address == msg.Name() {
 			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, msg.Name())
 			delete(state.partition, actorID)
+			delete(state.keyNameMap, pid.String())
 		}
 	}
 }
 
-func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {
+func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Context) {
 	plog.Info("Member left", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID, pid := range state.partition {
 		//if the mapped PID is on the address that left, forget it
 		if pid.Address == msg.Name() {
 			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, msg.Name())
 			delete(state.partition, actorID)
+			delete(state.keyNameMap, pid.String())
+		}
+	}
+
+	//If the left member is self, transfer remaining pids to others
+	if msg.Name() == actor.ProcessRegistry.Address {
+		for actorID := range state.partition {
+			address := getPartitionMember(actorID, state.kind)
+			if address != "" {
+				state.transferOwnership(actorID, address, context)
+			}
 		}
 	}
 }
@@ -193,7 +201,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent) {
 func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.Context) {
 	plog.Info("Member joined", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID := range state.partition {
-		address := getMember(actorID, state.kind)
+		address := getPartitionMember(actorID, state.kind)
 		if address != "" && address != actor.ProcessRegistry.Address {
 			state.transferOwnership(actorID, address, context)
 		}
@@ -209,10 +217,12 @@ func (state *partitionActor) transferOwnership(actorID string, address string, c
 	})
 	//we can safely delete this entry as the consisntent hash no longer points to us
 	delete(state.partition, actorID)
+	delete(state.keyNameMap, pid.String())
 	context.Unwatch(pid)
 }
 
 func (state *partitionActor) takeOwnership(msg *TakeOwnership, context actor.Context) {
 	state.partition[msg.Name] = msg.Pid
+	state.keyNameMap[msg.Pid.String()] = msg.Name
 	context.Watch(msg.Pid)
 }
