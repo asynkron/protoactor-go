@@ -60,6 +60,7 @@ func getActivatorMember(kind string) string {
 func updateClusterTopology(m interface{}) {
 
 	ml.mutex.Lock()
+	defer ml.mutex.Unlock()
 
 	msg, _ := m.(ClusterTopologyEvent)
 
@@ -83,8 +84,6 @@ func updateClusterTopology(m interface{}) {
 		ml.members[key] = new
 		ml.updateAndNotify(new, old)
 	}
-
-	ml.mutex.Unlock()
 }
 
 // memberlist is responsible to keep track of the current cluster topology
