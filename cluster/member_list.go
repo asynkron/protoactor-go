@@ -1,105 +1,101 @@
 package cluster
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"sync"
+
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-var (
-	memberlistPID *actor.PID
-	membershipSub *eventstream.Subscription
-)
+var membershipSub *eventstream.Subscription
 
-func spawnMembershipActor() {
-	memberlistPID, _ = actor.SpawnNamed(actor.FromProducer(newMembershipActor()), "memberlist")
+var ml = &memberlist{
+	mutex:                &sync.Mutex{},
+	members:              make(map[string]*MemberStatus),
+	memberStrategyByKind: make(map[string]MemberStrategy),
 }
 
-func stopMembershipActor() {
-	memberlistPID.GracefulStop()
-}
-
-func newMembershipActor() actor.Producer {
-	return func() actor.Actor {
-		return &memberlistActor{}
-	}
-}
-
-func subscribeMembershipActorToEventStream() {
+func subscribeMemberlistToEventStream() {
 	membershipSub = eventstream.
-		Subscribe(memberlistPID.Tell).
+		Subscribe(updateClusterTopology).
 		WithPredicate(func(m interface{}) bool {
 			_, ok := m.(ClusterTopologyEvent)
 			return ok
 		})
 }
 
-func unsubMembershipActorToEventStream() {
+func unsubMemberlistToEventStream() {
 	eventstream.Unsubscribe(membershipSub)
 }
 
-// membershipActor is responsible to keep track of the current cluster topology
+func getMembers(kind string) []string {
+	res := make([]string, 0)
+	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
+		members := memberStrategy.GetAllMembers()
+		for _, m := range members {
+			if m.Alive {
+				res = append(res, m.Address())
+			}
+		}
+	}
+	return res
+}
+
+func getPartitionMember(name, kind string) string {
+	var res string
+	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
+		res = memberStrategy.GetPartition(name)
+	}
+	return res
+}
+
+func getActivatorMember(kind string) string {
+	var res string
+	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
+		res = memberStrategy.GetActivator()
+	}
+	return res
+}
+
+func updateClusterTopology(m interface{}) {
+
+	ml.mutex.Lock()
+	defer ml.mutex.Unlock()
+
+	msg, _ := m.(ClusterTopologyEvent)
+
+	//build a lookup for the new statuses
+	tmp := make(map[string]*MemberStatus)
+	for _, new := range msg {
+		tmp[new.Address()] = new
+	}
+
+	//first remove old ones
+	for key, old := range ml.members {
+		new := tmp[key]
+		if new == nil {
+			ml.updateAndNotify(new, old)
+		}
+	}
+
+	//find all the entries that exist in the new set
+	for key, new := range tmp {
+		old := ml.members[key]
+		ml.members[key] = new
+		ml.updateAndNotify(new, old)
+	}
+}
+
+// memberlist is responsible to keep track of the current cluster topology
 // it does so by listening to changes from the ClusterProvider.
 // the default ClusterProvider is consul.ConsulProvider which uses the Consul HTTP API to scan for changes
-type memberlistActor struct {
+type memberlist struct {
+	mutex                *sync.Mutex
 	members              map[string]*MemberStatus
 	memberStrategyByKind map[string]MemberStrategy
 }
 
-func (a *memberlistActor) Receive(ctx actor.Context) {
-	switch msg := ctx.Message().(type) {
-	case *actor.Started:
-		a.members = make(map[string]*MemberStatus)
-		a.memberStrategyByKind = make(map[string]MemberStrategy)
-	case *MembersByKindRequest:
-		res := make([]string, 0)
-		if memberStrategy, ok := a.memberStrategyByKind[msg.kind]; ok {
-			members := memberStrategy.GetAllMembers()
-			for _, m := range members {
-				if !msg.onlyAlive || m.Alive {
-					res = append(res, m.Address())
-				}
-			}
-		}
-		ctx.Respond(&MembersResponse{members: res})
-	case *PartitionMemberRequest:
-		var res string
-		if memberStrategy, ok := a.memberStrategyByKind[msg.kind]; ok {
-			res = memberStrategy.GetPartition(msg.name)
-		}
-		ctx.Respond(&MemberResponse{res})
-	case *ActivatorMemberRequest:
-		var res string
-		if memberStrategy, ok := a.memberStrategyByKind[msg.kind]; ok {
-			res = memberStrategy.GetActivator()
-		}
-		ctx.Respond(&MemberResponse{res})
-	case ClusterTopologyEvent:
-
-		//build a lookup for the new statuses
-		tmp := make(map[string]*MemberStatus)
-		for _, new := range msg {
-			tmp[new.Address()] = new
-		}
-
-		//first remove old ones
-		for key, old := range a.members {
-			new := tmp[key]
-			if new == nil {
-				a.updateAndNotify(new, old)
-			}
-		}
-
-		//find all the entries that exist in the new set
-		for key, new := range tmp {
-			old := a.members[key]
-			a.members[key] = new
-			a.updateAndNotify(new, old)
-		}
-	}
-}
-
-func (a *memberlistActor) updateAndNotify(new *MemberStatus, old *MemberStatus) {
+func (a *memberlist) updateAndNotify(new *MemberStatus, old *MemberStatus) {
 
 	if new == nil && old == nil {
 		//ignore, not possible

@@ -31,8 +31,7 @@ func StartWithConfig(config *ClusterConfig) {
 	subscribePartitionKindsToEventStream()
 	spawnPidCacheActor()
 	subscribePidCacheMemberStatusEventStream()
-	spawnMembershipActor()
-	subscribeMembershipActorToEventStream()
+	subscribeMemberlistToEventStream()
 
 	cfg.ClusterProvider.RegisterMember(cfg.Name, h, p, kinds, cfg.InitialMemberStatusValue, cfg.MemberStatusValueSerializer)
 	cfg.ClusterProvider.MonitorMemberStatusChanges()
@@ -43,8 +42,7 @@ func Shutdown(graceful bool) {
 		cfg.ClusterProvider.Shutdown()
 		//This is to wait ownership transfering complete.
 		time.Sleep(2000)
-		unsubMembershipActorToEventStream()
-		stopMembershipActor()
+		unsubMemberlistToEventStream()
 		unsubPidCacheMemberStatusEventStream()
 		stopPidCacheActor()
 		unsubPartitionKindsToEventStream()

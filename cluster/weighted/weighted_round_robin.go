@@ -1,10 +1,13 @@
 package weighted
 
 import (
+	"sync"
+
 	"github.com/AsynkronIT/protoactor-go/cluster"
 )
 
 type WeightedRoundRobin struct {
+	mutex      *sync.Mutex
 	currIndex  int
 	currWeight int
 	maxWeight  int
@@ -13,7 +16,7 @@ type WeightedRoundRobin struct {
 }
 
 func NewWeightedRoundRobin(memberStrategy cluster.MemberStrategy) *WeightedRoundRobin {
-	return &WeightedRoundRobin{m: memberStrategy}
+	return &WeightedRoundRobin{mutex: &sync.Mutex{}, m: memberStrategy}
 }
 
 func (r *WeightedRoundRobin) GetByRoundRobin() string {
@@ -29,11 +32,15 @@ func (r *WeightedRoundRobin) GetByRoundRobin() string {
 		return members[0].Address()
 	}
 
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
 	for {
 		r.currIndex = (r.currIndex + 1) % l
 		if r.currIndex == 0 {
-			r.currWeight = r.currWeight - r.gcdValue
-			if r.currWeight <= 0 {
+			if r.currWeight > r.gcdValue {
+				r.currWeight -= r.gcdValue
+			} else {
 				r.currWeight = r.maxWeight
 			}
 		}
@@ -53,8 +60,9 @@ func (r *WeightedRoundRobin) getMaxWeight() int {
 	max := 0
 	for _, m := range r.m.GetAllMembers() {
 		sv, _ := m.StatusValue.(*WeightedMemberStatusValue)
-		if sv.Weight > max {
-			max = sv.Weight
+		weight := sv.Weight
+		if weight > max {
+			max = weight
 		}
 	}
 	return max
