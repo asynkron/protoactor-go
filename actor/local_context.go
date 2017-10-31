@@ -138,11 +138,15 @@ func (ctx *localContext) cancelTimer() {
 	if ctx.t != nil {
 		ctx.t.Stop()
 		ctx.t = nil
+		ctx.receiveTimeout = 0
 	}
 }
 
 func (ctx *localContext) receiveTimeoutHandler() {
-	ctx.self.Tell(receiveTimeoutMessage)
+	if ctx.t != nil {
+		ctx.cancelTimer()
+		ctx.self.Tell(receiveTimeoutMessage)
+	}
 }
 
 func (ctx *localContext) SetReceiveTimeout(d time.Duration) {

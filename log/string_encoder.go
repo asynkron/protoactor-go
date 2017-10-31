@@ -5,27 +5,32 @@ import (
 	"io"
 	"os"
 	"reflect"
-	"sync"
 	"time"
 )
+
+type ioLogger struct {
+	c   chan Event
+	out io.Writer
+	buf []byte
+}
 
 var (
 	sub *Subscription
 )
 
 func init() {
-	l := &ioLogger{lock: &sync.Mutex{}, out: os.Stderr}
+	l := &ioLogger{c: make(chan Event, 100), out: os.Stderr}
 	sub = Subscribe(func(evt Event) {
-		l.lock.Lock()
-		l.WriteEvent(evt)
-		l.lock.Unlock()
+		l.c <- evt
 	})
+	go l.listenEvent()
 }
 
-type ioLogger struct {
-	lock *sync.Mutex
-	out  io.Writer
-	buf  []byte
+func (l *ioLogger) listenEvent() {
+	for true {
+		e := <-l.c
+		l.writeEvent(e)
+	}
 }
 
 // Cheap integer to fixed-width decimal ASCII.  Give a negative width to avoid zero-padding.
@@ -75,7 +80,7 @@ func (l *ioLogger) formatHeader(buf *[]byte, prefix string, t time.Time) {
 	}
 }
 
-func (l *ioLogger) WriteEvent(e Event) {
+func (l *ioLogger) writeEvent(e Event) {
 	l.buf = l.buf[:0]
 	l.formatHeader(&l.buf, e.Prefix, e.Time)
 	l.out.Write(l.buf)
