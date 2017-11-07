@@ -10,7 +10,7 @@ import (
 var membershipSub *eventstream.Subscription
 
 var ml = &memberlist{
-	mutex:                &sync.Mutex{},
+	mutex:                &sync.RWMutex{},
 	members:              make(map[string]*MemberStatus),
 	memberStrategyByKind: make(map[string]MemberStrategy),
 }
@@ -29,6 +29,9 @@ func unsubMemberlistToEventStream() {
 }
 
 func getMembers(kind string) []string {
+	ml.mutex.RLock()
+	defer ml.mutex.RUnlock()
+
 	res := make([]string, 0)
 	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
 		members := memberStrategy.GetAllMembers()
@@ -42,6 +45,9 @@ func getMembers(kind string) []string {
 }
 
 func getPartitionMember(name, kind string) string {
+	ml.mutex.RLock()
+	defer ml.mutex.RUnlock()
+
 	var res string
 	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
 		res = memberStrategy.GetPartition(name)
@@ -50,6 +56,9 @@ func getPartitionMember(name, kind string) string {
 }
 
 func getActivatorMember(kind string) string {
+	ml.mutex.RLock()
+	defer ml.mutex.RUnlock()
+
 	var res string
 	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
 		res = memberStrategy.GetActivator()
@@ -90,7 +99,7 @@ func updateClusterTopology(m interface{}) {
 // it does so by listening to changes from the ClusterProvider.
 // the default ClusterProvider is consul.ConsulProvider which uses the Consul HTTP API to scan for changes
 type memberlist struct {
-	mutex                *sync.Mutex
+	mutex                *sync.RWMutex
 	members              map[string]*MemberStatus
 	memberStrategyByKind map[string]MemberStrategy
 }
