@@ -82,7 +82,7 @@ func SpawnNamed(address, name, kind string, timeout time.Duration) (*ActorPidRes
 		Kind: kind,
 	}, timeout).Result()
 	if err != nil {
-		return nil, errors.New("remote: Remote activating timed out")
+		return nil, err
 	}
 	switch msg := res.(type) {
 	case *ActorPidResponse:

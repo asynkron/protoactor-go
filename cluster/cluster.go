@@ -69,8 +69,6 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 		return nil, remote.ResponseStatusCodeUNAVAILABLE
 	}
 
-	remotePartition := partitionForKind(address, kind)
-
 	//package the request as a remote.ActorPidRequest
 	req := &remote.ActorPidRequest{
 		Kind: kind,
@@ -78,6 +76,7 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	}
 
 	//ask the DHT partition for this name to give us a PID
+	remotePartition := partitionForKind(address, kind)
 	f := remotePartition.RequestFuture(req, cfg.TimeoutTime)
 	err := f.Wait()
 	if err == actor.ErrTimeout {
