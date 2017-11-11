@@ -29,7 +29,7 @@ func StartWithConfig(config *ClusterConfig) {
 	//for each known kind, spin up a partition-kind actor to handle all requests for that kind
 	spawnPartitionActors(kinds)
 	subscribePartitionKindsToEventStream()
-	spawnPidCacheActor()
+	setupPidCache()
 	subscribePidCacheMemberStatusEventStream()
 	subscribeMemberlistToEventStream()
 
@@ -44,7 +44,7 @@ func Shutdown(graceful bool) {
 		time.Sleep(2000)
 		unsubMemberlistToEventStream()
 		unsubPidCacheMemberStatusEventStream()
-		stopPidCacheActor()
+		stopPidCache()
 		unsubPartitionKindsToEventStream()
 		stopPartitionActors()
 	}
@@ -57,25 +57,10 @@ func Shutdown(graceful bool) {
 
 //Get a PID to a virtual actor
 func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
-
-	req := &pidCacheRequest{
-		kind: kind,
-		name: name,
-	}
-
-	res, err := pidCacheActorPid.RequestFuture(req, 5*time.Second).Result()
-	if err != nil {
-		plog.Error("ActorPidRequest timed out", log.String("name", name), log.Error(err))
-		return nil, remote.ResponseStatusCodeTIMEOUT
-	}
-	typed, ok := res.(*pidCacheResponse)
-	if !ok {
-		plog.Error("ActorPidRequest returned incorrect response", log.String("name", name))
-		return nil, remote.ResponseStatusCodeUNAVAILABLE
-	}
-	return typed.pid, typed.status
+	return getPid(name, kind)
 }
 
+//RemoveCache at PidCache
 func RemoveCache(name string) {
-	pidCacheActorPid.Tell(&removePidCacheRequest{name})
+	pc.removeCacheByName(name)
 }
