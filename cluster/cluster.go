@@ -57,7 +57,56 @@ func Shutdown(graceful bool) {
 
 //Get a PID to a virtual actor
 func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
-	return getPid(name, kind)
+	//Check Cache
+	if pid, ok := pc.getCache(name); ok {
+		return pid, remote.ResponseStatusCodeOK
+	}
+
+	//Get Pid
+	address := getPartitionMember(name, kind)
+	if address == "" {
+		//No available member found
+		return nil, remote.ResponseStatusCodeUNAVAILABLE
+	}
+
+	remotePartition := partitionForKind(address, kind)
+
+	//package the request as a remote.ActorPidRequest
+	req := &remote.ActorPidRequest{
+		Kind: kind,
+		Name: name,
+	}
+
+	//ask the DHT partition for this name to give us a PID
+	f := remotePartition.RequestFuture(req, cfg.TimeoutTime)
+	err := f.Wait()
+	if err == actor.ErrTimeout {
+		plog.Error("PidCache Pid request timeout")
+		return nil, remote.ResponseStatusCodeTIMEOUT
+	} else if err != nil {
+		plog.Error("PidCache Pid request error", log.Error(err))
+		return nil, remote.ResponseStatusCodeERROR
+	}
+
+	r, _ := f.Result()
+	response, ok := r.(*remote.ActorPidResponse)
+	if !ok {
+		return nil, remote.ResponseStatusCodeERROR
+	}
+
+	statusCode := remote.ResponseStatusCode(response.StatusCode)
+	switch statusCode {
+	case remote.ResponseStatusCodeOK:
+		//save cache
+		pc.addCache(name, response.Pid)
+		//watch the pid so we know if the node or pid dies
+		pidCacheWatcher.Tell(&watchPidRequest{response.Pid})
+		//tell the original requester that we have a response
+		return response.Pid, statusCode
+	default:
+		//forward to requester
+		return response.Pid, statusCode
+	}
 }
 
 //RemoveCache at PidCache
