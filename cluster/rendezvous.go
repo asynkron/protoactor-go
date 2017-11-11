@@ -22,13 +22,25 @@ func NewRendezvous(memberStrategy MemberStrategy) *Rendezvous {
 // Get returns the node with the highest score for the given key. If this Hash
 // has no nodes, an empty string is returned.
 func (r *Rendezvous) GetByRdv(key string) string {
+
+	members := r.m.GetAllMembers()
+	l := len(members)
+
+	if l == 0 {
+		return ""
+	}
+
+	if l == 1 {
+		return members[0].Address()
+	}
+
 	keyBytes := []byte(key)
 
 	var maxScore uint32
 	var maxMember *MemberStatus
 	var score uint32
 
-	for i, node := range r.m.GetAllMembers() {
+	for i, node := range members {
 		if node.Alive {
 			score = r.hash(r.memberHashes[i], keyBytes)
 			if score > maxScore {

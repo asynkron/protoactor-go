@@ -54,6 +54,7 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 	p.address = address
 	p.port = port
 	p.knownKinds = knownKinds
+	p.statusValue = statusValue
 	p.statusValueSerializer = serializer
 
 	err := p.registerService()
@@ -61,12 +62,7 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 		return err
 	}
 
-	err = p.registerMemberID()
-	if err != nil {
-		return err
-	}
-
-	err = p.UpdateMemberStatusValue(statusValue)
+	err = p.registerMember()
 	if err != nil {
 		return err
 	}
@@ -89,12 +85,7 @@ func (p *ConsulProvider) DeregisterMember() error {
 		fmt.Println(err)
 		return err
 	}
-	err = p.deregisterMemberID()
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	err = p.deleteMemberStatusValue()
+	err = p.deregisterMember()
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -136,15 +127,6 @@ func (p *ConsulProvider) UpdateMemberStatusValue(statusValue cluster.MemberStatu
 	return err
 }
 
-func (p *ConsulProvider) deleteMemberStatusValue() error {
-	if p.statusValue == nil {
-		return nil
-	}
-	kvKey := fmt.Sprintf("%v/%v:%v/StatusValue", p.clusterName, p.address, p.port)
-	_, err := p.client.KV().Delete(kvKey, &api.WriteOptions{})
-	return err
-}
-
 func (p *ConsulProvider) blockingUpdateTTL() {
 	refresh := func() error {
 		err := p.client.Agent().PassTTL("service:"+p.id, "")
@@ -179,21 +161,36 @@ func (p *ConsulProvider) deregisterService() error {
 	return p.client.Agent().ServiceDeregister(p.id)
 }
 
-func (p *ConsulProvider) registerMemberID() error {
+func (p *ConsulProvider) registerMember() error {
+
+	txn := api.KVTxnOps{}
+
 	//register a unique ID for the current process
 	//similar to UID for Akka ActorSystem
 	//TODO: Orleans just use an int32 for the unique id called Generation.
 	kvKey := fmt.Sprintf("%v/%v:%v/ID", p.clusterName, p.address, p.port)
-	_, err := p.client.KV().Put(&api.KVPair{
+	txn = append(txn, &api.KVTxnOp{
+		Verb:  api.KVSet,
 		Key:   kvKey,
-		Value: []byte(time.Now().UTC().Format(time.RFC3339)), //currently, just a semi unique id for this member
-	}, &api.WriteOptions{})
+		Value: []byte(time.Now().UTC().Format(time.RFC3339)),
+	})
+
+	if p.statusValue != nil {
+		statusValueKey := fmt.Sprintf("%v/%v:%v/StatusValue", p.clusterName, p.address, p.port)
+		txn = append(txn, &api.KVTxnOp{
+			Verb:  api.KVSet,
+			Key:   statusValueKey,
+			Value: p.statusValueSerializer.ToValueBytes(p.statusValue),
+		})
+	}
+
+	_, _, _, err := p.client.KV().Txn(txn, &api.QueryOptions{})
 	return err
 }
 
-func (p *ConsulProvider) deregisterMemberID() error {
-	kvKey := fmt.Sprintf("%v/%v:%v/ID", p.clusterName, p.address, p.port)
-	_, err := p.client.KV().Delete(kvKey, &api.WriteOptions{})
+func (p *ConsulProvider) deregisterMember() error {
+	kvKey := fmt.Sprintf("%v/%v:%v", p.clusterName, p.address, p.port)
+	_, err := p.client.KV().DeleteTree(kvKey, &api.WriteOptions{})
 	return err
 }
 
