@@ -7,16 +7,27 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-var (
+var partition *partitionValue
+
+type partitionValue struct {
 	kindPIDMap        map[string]*actor.PID
 	partitionKindsSub *eventstream.Subscription
-)
+}
 
-func subscribePartitionKindsToEventStream() {
-	partitionKindsSub = eventstream.Subscribe(func(m interface{}) {
+func setupPartition(kinds []string) {
+	partition = &partitionValue{
+		kindPIDMap: make(map[string]*actor.PID),
+	}
+
+	for _, kind := range kinds {
+		kindPID := spawnPartitionActor(kind)
+		partition.kindPIDMap[kind] = kindPID
+	}
+
+	partition.partitionKindsSub = eventstream.Subscribe(func(m interface{}) {
 		if mse, ok := m.(MemberStatusEvent); ok {
 			for _, k := range mse.GetKinds() {
-				kindPID := kindPIDMap[k]
+				kindPID := partition.kindPIDMap[k]
 				if kindPID != nil {
 					kindPID.Tell(m)
 				}
@@ -25,32 +36,34 @@ func subscribePartitionKindsToEventStream() {
 	})
 }
 
-func unsubPartitionKindsToEventStream() {
-	eventstream.Unsubscribe(partitionKindsSub)
-}
-
-func spawnPartitionActors(kinds []string) {
-	kindPIDMap = make(map[string]*actor.PID)
-	for _, kind := range kinds {
-		kindPID := spawnPartitionActor(kind)
-		kindPIDMap[kind] = kindPID
-	}
-}
-
-func stopPartitionActors() {
-	for _, kindPID := range kindPIDMap {
+func stopPartition() {
+	for _, kindPID := range partition.kindPIDMap {
 		kindPID.GracefulStop()
 	}
+	eventstream.Unsubscribe(partition.partitionKindsSub)
+	partition = nil
+}
+
+func (p *partitionValue) partitionForKind(address, kind string) *actor.PID {
+	pid := actor.NewPID(address, "partition-"+kind)
+	return pid
+}
+
+type spawningProcess struct {
+	future *actor.Future
+	valid  bool
+}
+
+type partitionActor struct {
+	partition  map[string]*actor.PID       //actor/grain name to PID
+	keyNameMap map[string]string           //actor/grain key to name
+	spawnings  map[string]*spawningProcess //spawning actor/grain futures
+	kind       string
 }
 
 func spawnPartitionActor(kind string) *actor.PID {
 	partitionPid, _ := actor.SpawnNamed(actor.FromProducer(newPartitionActor(kind)), "partition-"+kind)
 	return partitionPid
-}
-
-func partitionForKind(address, kind string) *actor.PID {
-	pid := actor.NewPID(address, "partition-"+kind)
-	return pid
 }
 
 func newPartitionActor(kind string) actor.Producer {
@@ -62,18 +75,6 @@ func newPartitionActor(kind string) actor.Producer {
 			kind:       kind,
 		}
 	}
-}
-
-type partitionActor struct {
-	partition  map[string]*actor.PID       //actor/grain name to PID
-	keyNameMap map[string]string           //actor/grain key to name
-	spawnings  map[string]*spawningProcess //spawning actor/grain futures
-	kind       string
-}
-
-type spawningProcess struct {
-	future *actor.Future
-	valid  bool
 }
 
 func (state *partitionActor) Receive(context actor.Context) {
@@ -124,7 +125,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		return
 	}
 
-	activator := getActivatorMember(msg.Kind)
+	activator := memberList.getActivatorMember(msg.Kind)
 	if activator == "" {
 		//No activator currently available, return unavailable
 		context.Respond(remote.ActorPidRespUnavailable)
@@ -158,7 +159,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 
 func (state *partitionActor) spawning(msg *remote.ActorPidRequest, activator string, retryLeft int, fPid *actor.PID) {
 	if activator == "" {
-		activator = getActivatorMember(msg.Kind)
+		activator = memberList.getActivatorMember(msg.Kind)
 		if activator == "" {
 			//No activator currently available, return unavailable
 			fPid.Tell(remote.ActorPidRespUnavailable)
@@ -212,13 +213,13 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 	//If the left member is self, transfer remaining pids to others
 	if msg.Name() == actor.ProcessRegistry.Address {
 		for actorID := range state.partition {
-			address := getPartitionMember(actorID, state.kind)
+			address := memberList.getPartitionMember(actorID, state.kind)
 			if address != "" {
 				state.transferOwnership(actorID, address, context)
 			}
 		}
 		for actorID, sp := range state.spawnings {
-			address := getPartitionMember(actorID, state.kind)
+			address := memberList.getPartitionMember(actorID, state.kind)
 			if address != "" {
 				sp.valid = false
 				sp.future.PID().Tell(remote.ActorPidRespUnavailable)
@@ -239,13 +240,13 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.Context) {
 	plog.Info("Member joined", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID := range state.partition {
-		address := getPartitionMember(actorID, state.kind)
+		address := memberList.getPartitionMember(actorID, state.kind)
 		if address != "" && address != actor.ProcessRegistry.Address {
 			state.transferOwnership(actorID, address, context)
 		}
 	}
 	for actorID, sp := range state.spawnings {
-		address := getPartitionMember(actorID, state.kind)
+		address := memberList.getPartitionMember(actorID, state.kind)
 		if address != "" && address != actor.ProcessRegistry.Address {
 			sp.valid = false
 			sp.future.PID().Tell(remote.ActorPidRespUnavailable)
@@ -255,7 +256,7 @@ func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.
 
 func (state *partitionActor) transferOwnership(actorID string, address string, context actor.Context) {
 	pid := state.partition[actorID]
-	owner := partitionForKind(address, state.kind)
+	owner := partition.partitionForKind(address, state.kind)
 	owner.Tell(&TakeOwnership{
 		Pid:  pid,
 		Name: actorID,

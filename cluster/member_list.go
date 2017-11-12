@@ -7,28 +7,40 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-var membershipSub *eventstream.Subscription
+var memberList *memberListValue
 
-var ml = &memberlist{
-	mutex:                &sync.RWMutex{},
-	members:              make(map[string]*MemberStatus),
-	memberStrategyByKind: make(map[string]MemberStrategy),
+// memberListValue is responsible to keep track of the current cluster topology
+// it does so by listening to changes from the ClusterProvider.
+// the default ClusterProvider is consul.ConsulProvider which uses the Consul HTTP API to scan for changes
+type memberListValue struct {
+	mutex                *sync.RWMutex
+	members              map[string]*MemberStatus
+	memberStrategyByKind map[string]MemberStrategy
+
+	membershipSub *eventstream.Subscription
 }
 
-func subscribeMemberlistToEventStream() {
-	membershipSub = eventstream.
-		Subscribe(updateClusterTopology).
+func setupMemberList() {
+	memberList = &memberListValue{
+		mutex:                &sync.RWMutex{},
+		members:              make(map[string]*MemberStatus),
+		memberStrategyByKind: make(map[string]MemberStrategy),
+	}
+
+	memberList.membershipSub = eventstream.
+		Subscribe(memberList.updateClusterTopology).
 		WithPredicate(func(m interface{}) bool {
 			_, ok := m.(ClusterTopologyEvent)
 			return ok
 		})
 }
 
-func unsubMemberlistToEventStream() {
-	eventstream.Unsubscribe(membershipSub)
+func stopMemberList() {
+	eventstream.Unsubscribe(memberList.membershipSub)
+	memberList = nil
 }
 
-func getMembers(kind string) []string {
+func (ml *memberListValue) getMembers(kind string) []string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()
 
@@ -44,7 +56,7 @@ func getMembers(kind string) []string {
 	return res
 }
 
-func getPartitionMember(name, kind string) string {
+func (ml *memberListValue) getPartitionMember(name, kind string) string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()
 
@@ -55,7 +67,7 @@ func getPartitionMember(name, kind string) string {
 	return res
 }
 
-func getActivatorMember(kind string) string {
+func (ml *memberListValue) getActivatorMember(kind string) string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()
 
@@ -66,7 +78,7 @@ func getActivatorMember(kind string) string {
 	return res
 }
 
-func updateClusterTopology(m interface{}) {
+func (ml *memberListValue) updateClusterTopology(m interface{}) {
 
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
@@ -95,16 +107,7 @@ func updateClusterTopology(m interface{}) {
 	}
 }
 
-// memberlist is responsible to keep track of the current cluster topology
-// it does so by listening to changes from the ClusterProvider.
-// the default ClusterProvider is consul.ConsulProvider which uses the Consul HTTP API to scan for changes
-type memberlist struct {
-	mutex                *sync.RWMutex
-	members              map[string]*MemberStatus
-	memberStrategyByKind map[string]MemberStrategy
-}
-
-func (a *memberlist) updateAndNotify(new *MemberStatus, old *MemberStatus) {
+func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus) {
 
 	if new == nil && old == nil {
 		//ignore, not possible
@@ -113,10 +116,10 @@ func (a *memberlist) updateAndNotify(new *MemberStatus, old *MemberStatus) {
 	if new == nil {
 		//update MemberStrategy
 		for _, k := range old.Kinds {
-			if s, ok := a.memberStrategyByKind[k]; ok {
+			if s, ok := ml.memberStrategyByKind[k]; ok {
 				s.RemoveMember(old)
 				if len(s.GetAllMembers()) == 0 {
-					delete(a.memberStrategyByKind, k)
+					delete(ml.memberStrategyByKind, k)
 				}
 			}
 		}
@@ -129,7 +132,7 @@ func (a *memberlist) updateAndNotify(new *MemberStatus, old *MemberStatus) {
 		}
 		left := &MemberLeftEvent{MemberMeta: meta}
 		eventstream.Publish(left)
-		delete(a.members, old.Address()) //remove this member as it has left
+		delete(ml.members, old.Address()) //remove this member as it has left
 
 		rt := &remote.EndpointTerminatedEvent{
 			Address: old.Address(),
@@ -141,10 +144,10 @@ func (a *memberlist) updateAndNotify(new *MemberStatus, old *MemberStatus) {
 	if old == nil {
 		//update MemberStrategy
 		for _, k := range new.Kinds {
-			if _, ok := a.memberStrategyByKind[k]; !ok {
-				a.memberStrategyByKind[k] = cfg.MemberStrategyBuilder(k)
+			if _, ok := ml.memberStrategyByKind[k]; !ok {
+				ml.memberStrategyByKind[k] = cfg.MemberStrategyBuilder(k)
 			}
-			a.memberStrategyByKind[k].AddMember(new)
+			ml.memberStrategyByKind[k].AddMember(new)
 		}
 
 		//notify joined
@@ -162,10 +165,10 @@ func (a *memberlist) updateAndNotify(new *MemberStatus, old *MemberStatus) {
 	//update MemberStrategy
 	if new.Alive != old.Alive || new.MemberID != old.MemberID || new.StatusValue != nil && !new.StatusValue.IsSame(old.StatusValue) {
 		for _, k := range new.Kinds {
-			if _, ok := a.memberStrategyByKind[k]; !ok {
-				a.memberStrategyByKind[k] = cfg.MemberStrategyBuilder(k)
+			if _, ok := ml.memberStrategyByKind[k]; !ok {
+				ml.memberStrategyByKind[k] = cfg.MemberStrategyBuilder(k)
 			}
-			a.memberStrategyByKind[k].AddMember(new)
+			ml.memberStrategyByKind[k].AddMember(new)
 		}
 	}
 

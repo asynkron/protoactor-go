@@ -27,11 +27,9 @@ func StartWithConfig(config *ClusterConfig) {
 	kinds := remote.GetKnownKinds()
 
 	//for each known kind, spin up a partition-kind actor to handle all requests for that kind
-	spawnPartitionActors(kinds)
-	subscribePartitionKindsToEventStream()
+	setupPartition(kinds)
 	setupPidCache()
-	subscribePidCacheMemberStatusEventStream()
-	subscribeMemberlistToEventStream()
+	setupMemberList()
 
 	cfg.ClusterProvider.RegisterMember(cfg.Name, h, p, kinds, cfg.InitialMemberStatusValue, cfg.MemberStatusValueSerializer)
 	cfg.ClusterProvider.MonitorMemberStatusChanges()
@@ -42,11 +40,9 @@ func Shutdown(graceful bool) {
 		cfg.ClusterProvider.Shutdown()
 		//This is to wait ownership transfering complete.
 		time.Sleep(2000)
-		unsubMemberlistToEventStream()
-		unsubPidCacheMemberStatusEventStream()
+		stopMemberList()
 		stopPidCache()
-		unsubPartitionKindsToEventStream()
-		stopPartitionActors()
+		stopPartition()
 	}
 
 	remote.Shutdown(graceful)
@@ -58,12 +54,12 @@ func Shutdown(graceful bool) {
 //Get a PID to a virtual actor
 func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	//Check Cache
-	if pid, ok := pc.getCache(name); ok {
+	if pid, ok := pidCache.getCache(name); ok {
 		return pid, remote.ResponseStatusCodeOK
 	}
 
 	//Get Pid
-	address := getPartitionMember(name, kind)
+	address := memberList.getPartitionMember(name, kind)
 	if address == "" {
 		//No available member found
 		return nil, remote.ResponseStatusCodeUNAVAILABLE
@@ -76,7 +72,7 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	}
 
 	//ask the DHT partition for this name to give us a PID
-	remotePartition := partitionForKind(address, kind)
+	remotePartition := partition.partitionForKind(address, kind)
 	f := remotePartition.RequestFuture(req, cfg.TimeoutTime)
 	err := f.Wait()
 	if err == actor.ErrTimeout {
@@ -97,9 +93,7 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	switch statusCode {
 	case remote.ResponseStatusCodeOK:
 		//save cache
-		pc.addCache(name, response.Pid)
-		//watch the pid so we know if the node or pid dies
-		pidCacheWatcher.Tell(&watchPidRequest{response.Pid})
+		pidCache.addCache(name, response.Pid)
 		//tell the original requester that we have a response
 		return response.Pid, statusCode
 	default:
@@ -110,5 +104,5 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 
 //RemoveCache at PidCache
 func RemoveCache(name string) {
-	pc.removeCacheByName(name)
+	pidCache.removeCacheByName(name)
 }
