@@ -105,6 +105,7 @@ func (state *partitionActor) Receive(context actor.Context) {
 }
 
 func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Context) {
+	//Check if exist in current partition dictionary
 	pid := state.partition[msg.Name]
 	if pid != nil {
 		response := &remote.ActorPidResponse{Pid: pid}
@@ -112,6 +113,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		return
 	}
 
+	//Check if is spawning, if so just await spawning finish.
 	sp := state.spawnings[msg.Name]
 	if sp != nil {
 		context.AwaitFuture(sp.future, func(r interface{}, err error) {
@@ -125,6 +127,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		return
 	}
 
+	//Get activator
 	activator := memberList.getActivatorMember(msg.Kind)
 	if activator == "" {
 		//No activator currently available, return unavailable
@@ -132,11 +135,14 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		return
 	}
 
+	//Create SpawningProcess and cache it in spawnings dictionary.
 	sp = &spawningProcess{
 		future: actor.NewFuture(cfg.TimeoutTime * 3),
 		valid:  true,
 	}
 	state.spawnings[msg.Name] = sp
+
+	//Await SpawningProcess
 	context.AwaitFuture(sp.future, func(r interface{}, err error) {
 		delete(state.spawnings, msg.Name)
 		if !sp.valid {
@@ -153,7 +159,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		context.Respond(resp)
 	})
 
-	//Spawning
+	//Perform Spawning
 	go state.spawning(msg, activator, 3, sp.future.PID())
 }
 
