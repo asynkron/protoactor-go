@@ -49,15 +49,10 @@ func (p *partitionValue) partitionForKind(address, kind string) *actor.PID {
 	return pid
 }
 
-type spawningProcess struct {
-	future *actor.Future
-	valid  bool
-}
-
 type partitionActor struct {
-	partition  map[string]*actor.PID       //actor/grain name to PID
-	keyNameMap map[string]string           //actor/grain key to name
-	spawnings  map[string]*spawningProcess //spawning actor/grain futures
+	partition  map[string]*actor.PID    //actor/grain name to PID
+	keyNameMap map[string]string        //actor/grain key to name
+	spawnings  map[string]*actor.Future //spawning actor/grain futures
 	kind       string
 }
 
@@ -71,7 +66,7 @@ func newPartitionActor(kind string) actor.Producer {
 		return &partitionActor{
 			partition:  make(map[string]*actor.PID),
 			keyNameMap: make(map[string]string),
-			spawnings:  make(map[string]*spawningProcess),
+			spawnings:  make(map[string]*actor.Future),
 			kind:       kind,
 		}
 	}
@@ -114,15 +109,15 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 	}
 
 	//Check if is spawning, if so just await spawning finish.
-	sp := state.spawnings[msg.Name]
-	if sp != nil {
-		context.AwaitFuture(sp.future, func(r interface{}, err error) {
-			if !sp.valid {
-				context.Respond(remote.ActorPidRespUnavailable)
-			} else {
-				response, _ := r.(*remote.ActorPidResponse)
-				context.Respond(response)
+	spawning := state.spawnings[msg.Name]
+	if spawning != nil {
+		context.AwaitFuture(spawning, func(r interface{}, err error) {
+			response, ok := r.(*remote.ActorPidResponse)
+			if !ok {
+				context.Respond(remote.ActorPidRespErr)
+				return
 			}
+			context.Respond(response)
 		})
 		return
 	}
@@ -136,31 +131,28 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 	}
 
 	//Create SpawningProcess and cache it in spawnings dictionary.
-	sp = &spawningProcess{
-		future: actor.NewFuture(cfg.TimeoutTime * 3),
-		valid:  true,
-	}
-	state.spawnings[msg.Name] = sp
+	spawning = actor.NewFuture(cfg.TimeoutTime * 3)
+	state.spawnings[msg.Name] = spawning
 
 	//Await SpawningProcess
-	context.AwaitFuture(sp.future, func(r interface{}, err error) {
+	context.AwaitFuture(spawning, func(r interface{}, err error) {
 		delete(state.spawnings, msg.Name)
-		if !sp.valid {
-			context.Respond(remote.ActorPidRespUnavailable)
+		response, ok := r.(*remote.ActorPidResponse)
+		if !ok {
+			context.Respond(remote.ActorPidRespErr)
 			return
 		}
-		resp, _ := r.(*remote.ActorPidResponse)
-		if resp.StatusCode == remote.ResponseStatusCodeOK.ToInt32() {
-			pid = resp.Pid
+		if response.StatusCode == remote.ResponseStatusCodeOK.ToInt32() {
+			pid = response.Pid
 			state.partition[msg.Name] = pid
 			state.keyNameMap[pid.String()] = msg.Name
 			context.Watch(pid)
 		}
-		context.Respond(resp)
+		context.Respond(response)
 	})
 
 	//Perform Spawning
-	go state.spawning(msg, activator, 3, sp.future.PID())
+	go state.spawning(msg, activator, 3, spawning.PID())
 }
 
 func (state *partitionActor) spawning(msg *remote.ActorPidRequest, activator string, retryLeft int, fPid *actor.PID) {
@@ -224,11 +216,10 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 				state.transferOwnership(actorID, address, context)
 			}
 		}
-		for actorID, sp := range state.spawnings {
+		for actorID, spawning := range state.spawnings {
 			address := memberList.getPartitionMember(actorID, state.kind)
 			if address != "" {
-				sp.valid = false
-				sp.future.PID().Tell(remote.ActorPidRespUnavailable)
+				spawning.PID().Tell(remote.ActorPidRespUnavailable)
 			}
 		}
 	}
@@ -251,11 +242,10 @@ func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.
 			state.transferOwnership(actorID, address, context)
 		}
 	}
-	for actorID, sp := range state.spawnings {
+	for actorID, spawning := range state.spawnings {
 		address := memberList.getPartitionMember(actorID, state.kind)
 		if address != "" && address != actor.ProcessRegistry.Address {
-			sp.valid = false
-			sp.future.PID().Tell(remote.ActorPidRespUnavailable)
+			spawning.PID().Tell(remote.ActorPidRespUnavailable)
 		}
 	}
 }
