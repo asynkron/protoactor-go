@@ -97,7 +97,7 @@ func (em *endpointManagerValue) ensureConnected(address string) *endpoint {
 	e, ok := em.connections.Load(address)
 	if !ok {
 		el := &endpointLazy{}
-		e, ok = em.connections.LoadOrStore(address, el)
+		e, _ = em.connections.LoadOrStore(address, el)
 	}
 
 	el := e.(*endpointLazy)

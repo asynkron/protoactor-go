@@ -1,18 +1,16 @@
 package cluster
 
 import (
-	"sync"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
+	"github.com/orcaman/concurrent-map"
 )
 
 var pidCache *pidCacheValue
 
 type pidCacheValue struct {
-	lock         *sync.Mutex
-	cache        map[string]*actor.PID
-	reverseCache map[string]string
+	cache        cmap.ConcurrentMap
+	reverseCache cmap.ConcurrentMap
 
 	watcher         *actor.PID
 	memberStatusSub *eventstream.Subscription
@@ -20,9 +18,8 @@ type pidCacheValue struct {
 
 func setupPidCache() {
 	pidCache = &pidCacheValue{
-		lock:         &sync.Mutex{},
-		cache:        make(map[string]*actor.PID),
-		reverseCache: make(map[string]string),
+		cache:        cmap.New(),
+		reverseCache: cmap.New(),
 	}
 
 	props := actor.FromProducer(newPidCacheWatcher())
@@ -53,64 +50,47 @@ func (c *pidCacheValue) onMemberStatusEvent(evn interface{}) {
 }
 
 func (c *pidCacheValue) getCache(name string) (*actor.PID, bool) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	pid, ok := pidCache.cache[name]
-	return pid, ok
+	v, ok := c.cache.Get(name)
+	if !ok {
+		return nil, false
+	}
+	return v.(*actor.PID), true
 }
 
 func (c *pidCacheValue) addCache(name string, pid *actor.PID) bool {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	if _, ok := c.cache[name]; ok {
-		return false
+	if c.cache.SetIfAbsent(name, pid) {
+		key := pid.String()
+		c.reverseCache.Set(key, name)
+		//watch the pid so we know if the node or pid dies
+		c.watcher.Tell(&watchPidRequest{pid})
+		return true
 	}
-
-	key := pid.String()
-	c.cache[name] = pid
-	c.reverseCache[key] = name
-	//watch the pid so we know if the node or pid dies
-	c.watcher.Tell(&watchPidRequest{pid})
-	return true
+	return false
 }
 
 func (c *pidCacheValue) removeCacheByPid(pid *actor.PID) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	key := pid.String()
-	//get the virtual name from the pid
-	name, ok := c.reverseCache[key]
-	if !ok {
-		//we don't have it, just ignore
-		return
+	if name, ok := c.reverseCache.Get(key); ok {
+		c.cache.Remove(name.(string))
+		c.reverseCache.Remove(key)
 	}
-	//drop both lookups as this actor is now dead
-	delete(c.cache, name)
-	delete(c.reverseCache, key)
 }
 
 func (c *pidCacheValue) removeCacheByName(name string) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	if pid, ok := c.cache[name]; ok {
-		key := pid.String()
-		delete(c.cache, name)
-		delete(c.reverseCache, key)
+	if pid, ok := c.cache.Get(name); ok {
+		key := pid.(*actor.PID).String()
+		c.cache.Remove(name)
+		c.reverseCache.Remove(key)
 	}
 }
 
 func (c *pidCacheValue) removeCacheByMemberAddress(address string) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	for name, pid := range c.cache {
+	for item := range c.cache.Iter() {
+		name := item.Key
+		pid := item.Val.(*actor.PID)
 		if pid.Address == address {
-			delete(c.cache, name)
-			delete(c.reverseCache, pid.String())
+			c.cache.Remove(name)
+			c.reverseCache.Remove(pid.String())
 		}
 	}
 }
