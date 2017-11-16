@@ -131,7 +131,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 	}
 
 	//Create SpawningProcess and cache it in spawnings dictionary.
-	spawning = actor.NewFuture(0)
+	spawning = actor.NewFuture(-1)
 	state.spawnings[msg.Name] = spawning
 
 	//Await SpawningProcess

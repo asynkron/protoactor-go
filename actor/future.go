@@ -22,7 +22,7 @@ func NewFuture(d time.Duration) *Future {
 	}
 
 	ref.pid = pid
-	if d > 0 {
+	if d >= 0 {
 		ref.t = time.AfterFunc(d, func() {
 			ref.err = ErrTimeout
 			ref.Stop(pid)
