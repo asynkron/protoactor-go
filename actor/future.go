@@ -22,10 +22,12 @@ func NewFuture(d time.Duration) *Future {
 	}
 
 	ref.pid = pid
-	ref.t = time.AfterFunc(d, func() {
-		ref.err = ErrTimeout
-		ref.Stop(pid)
-	})
+	if d > 0 {
+		ref.t = time.AfterFunc(d, func() {
+			ref.err = ErrTimeout
+			ref.Stop(pid)
+		})
+	}
 
 	return &ref.Future
 }
@@ -128,7 +130,9 @@ func (ref *futureProcess) Stop(pid *PID) {
 	}
 
 	ref.done = true
-	ref.t.Stop()
+	if ref.t != nil {
+		ref.t.Stop()
+	}
 	ProcessRegistry.Remove(pid)
 
 	ref.sendToPipes()
