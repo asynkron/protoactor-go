@@ -11,9 +11,8 @@ import (
 var endpointManager *endpointManagerValue
 
 type endpointLazy struct {
-	value    *endpoint
-	loadOnce sync.Once
-	unloaded uint32
+	valueFunc func() *endpoint
+	unloaded  uint32
 }
 
 type endpoint struct {
@@ -97,16 +96,22 @@ func (em *endpointManagerValue) ensureConnected(address string) *endpoint {
 	e, ok := em.connections.Load(address)
 	if !ok {
 		el := &endpointLazy{}
+		var once sync.Once
+		el.valueFunc = func() *endpoint {
+			once.Do(func() {
+				rst, _ := em.endpointSupervisor.RequestFuture(address, -1).Result()
+				ep := rst.(*endpoint)
+				el.valueFunc = func() *endpoint {
+					return ep
+				}
+			})
+			return el.valueFunc()
+		}
 		e, _ = em.connections.LoadOrStore(address, el)
 	}
 
 	el := e.(*endpointLazy)
-	el.loadOnce.Do(func() {
-		rst, _ := em.endpointSupervisor.RequestFuture(address, 0).Result()
-		el.value = rst.(*endpoint)
-	})
-
-	return el.value
+	return el.valueFunc()
 }
 
 func (em *endpointManagerValue) removeEndpoint(msg *EndpointTerminatedEvent) {
@@ -115,9 +120,10 @@ func (em *endpointManagerValue) removeEndpoint(msg *EndpointTerminatedEvent) {
 		le := v.(*endpointLazy)
 		if atomic.CompareAndSwapUint32(&le.unloaded, 0, 1) {
 			em.connections.Delete(msg.Address)
-			le.value.watcher.Tell(msg)
-			le.value.watcher.Stop()
-			le.value.writer.Stop()
+			ep := le.valueFunc()
+			ep.watcher.Tell(msg)
+			ep.watcher.Stop()
+			ep.writer.Stop()
 		}
 	}
 }
