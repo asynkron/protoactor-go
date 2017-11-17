@@ -27,7 +27,7 @@ func SendMessage(pid *actor.PID, message interface{}, sender *actor.PID, seriali
 		serializerID: serializerID,
 	}
 
-	endpointManagerPID.Tell(rd)
+	endpointManager.remoteDeliver(rd)
 }
 
 func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
@@ -39,13 +39,13 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 			Watcher: msg.Watcher,
 			Watchee: pid,
 		}
-		endpointManagerPID.Tell(rw)
+		endpointManager.remoteWatch(rw)
 	case *actor.Unwatch:
 		ruw := &remoteUnwatch{
 			Watcher: msg.Watcher,
 			Watchee: pid,
 		}
-		endpointManagerPID.Tell(ruw)
+		endpointManager.remoteUnwatch(ruw)
 	default:
 		SendMessage(pid, message, nil, -1)
 	}

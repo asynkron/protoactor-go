@@ -36,8 +36,7 @@ func Start(address string, options ...RemotingOption) {
 	actor.ProcessRegistry.Address = address
 
 	spawnActivatorActor()
-	spawnEndpointManager(config)
-	subscribeEndpointManager()
+	startEndpointManager(config)
 
 	s = grpc.NewServer(config.serverOptions...)
 	edpReader = &endpointReader{}
@@ -49,8 +48,6 @@ func Start(address string, options ...RemotingOption) {
 func Shutdown(graceful bool) {
 	if graceful {
 		edpReader.suspend(true)
-
-		unsubEndpointManager()
 		stopEndpointManager()
 		stopActivatorActor()
 

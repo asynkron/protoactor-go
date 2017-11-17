@@ -27,11 +27,9 @@ func StartWithConfig(config *ClusterConfig) {
 	kinds := remote.GetKnownKinds()
 
 	//for each known kind, spin up a partition-kind actor to handle all requests for that kind
-	spawnPartitionActors(kinds)
-	subscribePartitionKindsToEventStream()
-	spawnPidCacheActor()
-	subscribePidCacheMemberStatusEventStream()
-	subscribeMemberlistToEventStream()
+	setupPartition(kinds)
+	setupPidCache()
+	setupMemberList()
 
 	cfg.ClusterProvider.RegisterMember(cfg.Name, h, p, kinds, cfg.InitialMemberStatusValue, cfg.MemberStatusValueSerializer)
 	cfg.ClusterProvider.MonitorMemberStatusChanges()
@@ -41,12 +39,10 @@ func Shutdown(graceful bool) {
 	if graceful {
 		cfg.ClusterProvider.Shutdown()
 		//This is to wait ownership transfering complete.
-		time.Sleep(2000)
-		unsubMemberlistToEventStream()
-		unsubPidCacheMemberStatusEventStream()
-		stopPidCacheActor()
-		unsubPartitionKindsToEventStream()
-		stopPartitionActors()
+		time.Sleep(time.Millisecond * 2000)
+		stopMemberList()
+		stopPidCache()
+		stopPartition()
 	}
 
 	remote.Shutdown(graceful)
@@ -57,25 +53,56 @@ func Shutdown(graceful bool) {
 
 //Get a PID to a virtual actor
 func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
-
-	req := &pidCacheRequest{
-		kind: kind,
-		name: name,
+	//Check Cache
+	if pid, ok := pidCache.getCache(name); ok {
+		return pid, remote.ResponseStatusCodeOK
 	}
 
-	res, err := pidCacheActorPid.RequestFuture(req, 5*time.Second).Result()
-	if err != nil {
-		plog.Error("ActorPidRequest timed out", log.String("name", name), log.Error(err))
-		return nil, remote.ResponseStatusCodeTIMEOUT
-	}
-	typed, ok := res.(*pidCacheResponse)
-	if !ok {
-		plog.Error("ActorPidRequest returned incorrect response", log.String("name", name))
+	//Get Pid
+	address := memberList.getPartitionMember(name, kind)
+	if address == "" {
+		//No available member found
 		return nil, remote.ResponseStatusCodeUNAVAILABLE
 	}
-	return typed.pid, typed.status
+
+	//package the request as a remote.ActorPidRequest
+	req := &remote.ActorPidRequest{
+		Kind: kind,
+		Name: name,
+	}
+
+	//ask the DHT partition for this name to give us a PID
+	remotePartition := partition.partitionForKind(address, kind)
+	f := remotePartition.RequestFuture(req, cfg.TimeoutTime)
+	err := f.Wait()
+	if err == actor.ErrTimeout {
+		plog.Error("PidCache Pid request timeout")
+		return nil, remote.ResponseStatusCodeTIMEOUT
+	} else if err != nil {
+		plog.Error("PidCache Pid request error", log.Error(err))
+		return nil, remote.ResponseStatusCodeERROR
+	}
+
+	r, _ := f.Result()
+	response, ok := r.(*remote.ActorPidResponse)
+	if !ok {
+		return nil, remote.ResponseStatusCodeERROR
+	}
+
+	statusCode := remote.ResponseStatusCode(response.StatusCode)
+	switch statusCode {
+	case remote.ResponseStatusCodeOK:
+		//save cache
+		pidCache.addCache(name, response.Pid)
+		//tell the original requester that we have a response
+		return response.Pid, statusCode
+	default:
+		//forward to requester
+		return response.Pid, statusCode
+	}
 }
 
+//RemoveCache at PidCache
 func RemoveCache(name string) {
-	pidCacheActorPid.Tell(&removePidCacheRequest{name})
+	pidCache.removeCacheByName(name)
 }
