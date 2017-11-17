@@ -73,8 +73,7 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 
 	//ask the DHT partition for this name to give us a PID
 	remotePartition := partition.partitionForKind(address, kind)
-	f := remotePartition.RequestFuture(req, cfg.TimeoutTime)
-	err := f.Wait()
+	r, err := remotePartition.RequestFuture(req, cfg.TimeoutTime).Result()
 	if err == actor.ErrTimeout {
 		plog.Error("PidCache Pid request timeout")
 		return nil, remote.ResponseStatusCodeTIMEOUT
@@ -83,7 +82,6 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 		return nil, remote.ResponseStatusCodeERROR
 	}
 
-	r, _ := f.Result()
 	response, ok := r.(*remote.ActorPidResponse)
 	if !ok {
 		return nil, remote.ResponseStatusCodeERROR
