@@ -4,6 +4,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/AsynkronIT/protoactor-go/mailbox"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 )
@@ -30,7 +32,9 @@ type endpointManagerValue struct {
 func startEndpointManager(config *remoteConfig) {
 	plog.Debug("Started EndpointManager")
 
-	props := actor.FromProducer(newEndpointSupervisor).WithSupervisor(actor.RestartingSupervisorStrategy())
+	props := actor.FromProducer(newEndpointSupervisor).
+		WithSupervisor(actor.RestartingSupervisorStrategy()).
+		WithDispatcher(mailbox.NewSynchronizedDispatcher(300))
 	endpointSupervisor := actor.Spawn(props)
 
 	endpointManager = &endpointManagerValue{
