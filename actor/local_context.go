@@ -104,6 +104,15 @@ func (ctx *localContext) sendUserMessage(pid *PID, message interface{}) {
 	}
 }
 
+func (ctx *localContext)Forward(pid *PID ,message interface{})  {
+	env := &MessageEnvelope{
+		Header:  emptyMessageHeader,
+		Message: message,
+		Sender:  ctx.Sender(),
+	}
+	ctx.sendUserMessage(pid, env)
+}
+
 func (ctx *localContext) Request(pid *PID, message interface{}) {
 	env := &MessageEnvelope{
 		Header:  emptyMessageHeader,
