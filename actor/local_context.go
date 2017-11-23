@@ -1,10 +1,9 @@
 package actor
 
 import (
-	"time"
-
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
+	"time"
 )
 
 type localContext struct {
@@ -60,6 +59,23 @@ func (ctx *localContext) Actor() Actor {
 	return ctx.actor
 }
 
+func (ctx *localContext) Forward(pid *PID, message interface{}) {
+	env := &MessageEnvelope{
+		Header:  ctx.currentHeaderOrDefault(),
+		Message: message,
+		Sender:  ctx.Sender(),
+	}
+	ctx.sendUserMessage(pid, env)
+}
+
+func (ctx *localContext) currentHeaderOrDefault() messageHeader {
+	envelope, ok := ctx.message.(*MessageEnvelope)
+	if ok {
+		return envelope.Header
+	}
+	return emptyMessageHeader
+}
+
 func (ctx *localContext) Message() interface{} {
 	envelope, ok := ctx.message.(*MessageEnvelope)
 	if ok {
@@ -85,7 +101,12 @@ func (ctx *localContext) MessageHeader() ReadonlyMessageHeader {
 }
 
 func (ctx *localContext) Tell(pid *PID, message interface{}) {
-	ctx.sendUserMessage(pid, message)
+	env := &MessageEnvelope{
+		Header:  ctx.currentHeaderOrDefault(),
+		Message: message,
+		Sender:  nil,
+	}
+	ctx.sendUserMessage(pid, env)
 }
 
 func (ctx *localContext) sendUserMessage(pid *PID, message interface{}) {
@@ -94,7 +115,7 @@ func (ctx *localContext) sendUserMessage(pid *PID, message interface{}) {
 			ctx.outboundMiddleware(ctx, pid, env)
 		} else {
 			ctx.outboundMiddleware(ctx, pid, &MessageEnvelope{
-				Header:  emptyMessageHeader,
+				Header:  ctx.currentHeaderOrDefault(),
 				Message: message,
 				Sender:  nil,
 			})
@@ -104,18 +125,9 @@ func (ctx *localContext) sendUserMessage(pid *PID, message interface{}) {
 	}
 }
 
-func (ctx *localContext)Forward(pid *PID ,message interface{})  {
-	env := &MessageEnvelope{
-		Header:  emptyMessageHeader,
-		Message: message,
-		Sender:  ctx.Sender(),
-	}
-	ctx.sendUserMessage(pid, env)
-}
-
 func (ctx *localContext) Request(pid *PID, message interface{}) {
 	env := &MessageEnvelope{
-		Header:  emptyMessageHeader,
+		Header:  ctx.currentHeaderOrDefault(),
 		Message: message,
 		Sender:  ctx.Self(),
 	}
@@ -126,7 +138,7 @@ func (ctx *localContext) Request(pid *PID, message interface{}) {
 func (ctx *localContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
 	future := NewFuture(timeout)
 	env := &MessageEnvelope{
-		Header:  emptyMessageHeader,
+		Header:  ctx.currentHeaderOrDefault(),
 		Message: message,
 		Sender:  future.PID(),
 	}
