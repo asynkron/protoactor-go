@@ -113,12 +113,12 @@ type futureProcess struct {
 
 func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}) {
 	msg, _ := UnwrapEnvelope(message)
-	ref.result = msg
+	ref.processMessage(msg)
 	ref.Stop(pid)
 }
 
 func (ref *futureProcess) SendSystemMessage(pid *PID, message interface{}) {
-	ref.result = message
+	ref.processMessage(message)
 	ref.Stop(pid)
 }
 
@@ -139,6 +139,14 @@ func (ref *futureProcess) Stop(pid *PID) {
 	ref.runCompletions()
 	ref.cond.L.Unlock()
 	ref.cond.Signal()
+}
+
+func (ref *futureProcess) processMessage(message interface{}) {
+	if errMsg, ok := message.(error); ok {
+		ref.err = errMsg
+	} else {
+		ref.result = message
+	}
 }
 
 //TODO: we could replace "pipes" with this
