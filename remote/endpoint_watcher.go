@@ -86,7 +86,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		}
 
 		//pass it off to the remote PID
-		SendMessage(msg.Watchee, w, nil, -1)
+		SendMessage(msg.Watchee, nil, w, nil, -1)
 
 	case *remoteUnwatch:
 		//delete the watch entries
@@ -103,7 +103,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 		}
 
 		//pass it off to the remote PID
-		SendMessage(msg.Watchee, uw, nil, -1)
+		SendMessage(msg.Watchee, nil, uw, nil, -1)
 	case actor.SystemMessage, actor.AutoReceiveMessage:
 		//ignore
 	default:

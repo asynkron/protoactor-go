@@ -18,9 +18,23 @@ func (m messageHeader) Keys() []string {
 	return keys
 }
 
+func (m messageHeader) Length() int {
+	return len(m)
+}
+
+func (m messageHeader) ToMap() map[string]string {
+	mp := make(map[string]string)
+	for k, v := range m {
+		mp[k] = v
+	}
+	return mp
+}
+
 type ReadonlyMessageHeader interface {
 	Get(key string) string
 	Keys() []string
+	Length() int
+	ToMap() map[string]string
 }
 
 type MessageEnvelope struct {
@@ -29,11 +43,19 @@ type MessageEnvelope struct {
 	Sender  *PID
 }
 
-func UnwrapEnvelope(message interface{}) (interface{}, *PID) {
-	if env, ok := message.(*MessageEnvelope); ok {
-		return env.Message, env.Sender
+func (me *MessageEnvelope) CreateNewHeaderIfDefault() bool {
+	if &me.Header == &emptyMessageHeader {
+		me.Header = make(map[string]string)
+		return true
 	}
-	return message, nil
+	return false
+}
+
+func UnwrapEnvelope(message interface{}) (ReadonlyMessageHeader, interface{}, *PID) {
+	if env, ok := message.(*MessageEnvelope); ok {
+		return env.Header, env.Message, env.Sender
+	}
+	return nil, message, nil
 }
 
 var (

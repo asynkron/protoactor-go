@@ -18,9 +18,9 @@ type process struct {
 }
 
 func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
-	msg, sender := actor.UnwrapEnvelope(message)
+	_, msg, _ := actor.UnwrapEnvelope(message)
 	if _, ok := msg.(ManagementMessage); !ok {
-		ref.state.RouteMessage(msg, sender)
+		ref.state.RouteMessage(message)
 	} else {
 		r, _ := actor.ProcessRegistry.Get(ref.router)
 		// Always send the original message to the router actor,

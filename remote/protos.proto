@@ -14,10 +14,11 @@ message MessageBatch {
 
 message MessageEnvelope {
   int32 type_id = 1;
-  bytes message_data = 2;
-  int32 target = 3;
-  actor.PID sender = 4;
-  int32 serializer_id = 5;
+  map<string, string> message_header = 2;
+  bytes message_data = 3;
+  int32 target = 4;
+  actor.PID sender = 5;
+  int32 serializer_id = 6;
 }
 
 message ActorPidRequest {

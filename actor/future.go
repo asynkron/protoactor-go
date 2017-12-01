@@ -112,7 +112,7 @@ type futureProcess struct {
 }
 
 func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}) {
-	msg, _ := UnwrapEnvelope(message)
+	_, msg, _ := UnwrapEnvelope(message)
 	ref.result = msg
 	ref.Stop(pid)
 }

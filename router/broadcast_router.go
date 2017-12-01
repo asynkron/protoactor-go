@@ -22,9 +22,9 @@ func (state *broadcastRouterState) GetRoutees() *actor.PIDSet {
 	return state.routees
 }
 
-func (state *broadcastRouterState) RouteMessage(message interface{}, sender *actor.PID) {
+func (state *broadcastRouterState) RouteMessage(message interface{}) {
 	state.routees.ForEach(func(i int, pid actor.PID) {
-		pid.Request(message, sender)
+		pid.Tell(message)
 	})
 }
 
