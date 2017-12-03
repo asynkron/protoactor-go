@@ -44,14 +44,14 @@ type MessageEnvelope struct {
 }
 
 func (me *MessageEnvelope) GetHeader(key string) string {
-	if me.Header == nil || &me.Header == &emptyMessageHeader {
+	if me.Header == nil {
 		return ""
 	}
 	return me.Header.Get(key)
 }
 
 func (me *MessageEnvelope) SetHeader(key string, value string) {
-	if me.Header == nil || &me.Header == &emptyMessageHeader {
+	if me.Header == nil {
 		me.Header = make(map[string]string)
 	}
 	me.Header.Set(key, value)
