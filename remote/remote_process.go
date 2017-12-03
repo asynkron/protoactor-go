@@ -55,11 +55,3 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 func (ref *process) Stop(pid *actor.PID) {
 	ref.SendSystemMessage(pid, stopMessage)
 }
-
-type remoteDeliver struct {
-	header       actor.ReadonlyMessageHeader
-	message      interface{}
-	target       *actor.PID
-	sender       *actor.PID
-	serializerID int32
-}

@@ -43,7 +43,7 @@ type MessageEnvelope struct {
 	Sender  *PID
 }
 
-func (me *MessageEnvelope) CreateNewHeaderIfDefault() bool {
+func (me *MessageEnvelope) NewHeaderIfDefault() bool {
 	if &me.Header == &emptyMessageHeader {
 		me.Header = make(map[string]string)
 		return true
