@@ -44,7 +44,7 @@ type MessageEnvelope struct {
 }
 
 func (me *MessageEnvelope) NewHeaderIfDefault() bool {
-	if &me.Header == &emptyMessageHeader {
+	if me.Header == nil || &me.Header == &emptyMessageHeader {
 		me.Header = make(map[string]string)
 		return true
 	}
