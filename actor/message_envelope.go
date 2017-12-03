@@ -43,12 +43,18 @@ type MessageEnvelope struct {
 	Sender  *PID
 }
 
-func (me *MessageEnvelope) NewHeaderIfDefault() bool {
+func (me *MessageEnvelope) GetHeader(key string) string {
+	if me.Header == nil || &me.Header == &emptyMessageHeader {
+		return ""
+	}
+	return me.Header.Get(key)
+}
+
+func (me *MessageEnvelope) SetHeader(key string, value string) {
 	if me.Header == nil || &me.Header == &emptyMessageHeader {
 		me.Header = make(map[string]string)
-		return true
 	}
-	return false
+	me.Header.Set(key, value)
 }
 
 func UnwrapEnvelope(message interface{}) (ReadonlyMessageHeader, interface{}, *PID) {
