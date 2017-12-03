@@ -6,10 +6,9 @@ import (
 
 func ZipkinTracer(next actor.SenderFunc) actor.SenderFunc {
 	return func(ctx actor.Context, target *actor.PID, envelope *actor.MessageEnvelope) {
-		header := ctx.MessageHeader()
 
-		envelope.SetHeader("trace-id", header.Get("trace-id"))
-		envelope.SetHeader("span-id", header.Get("child-id"))
+		envelope.SetHeader("trace-id", envelope.GetHeader("trace-id"))
+		envelope.SetHeader("span-id", envelope.GetHeader("child-id"))
 		envelope.SetHeader("child-id", "123random")
 
 		next(ctx, target, envelope)
