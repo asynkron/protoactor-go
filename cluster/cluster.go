@@ -38,7 +38,7 @@ func StartWithConfig(config *ClusterConfig) {
 func Shutdown(graceful bool) {
 	if graceful {
 		cfg.ClusterProvider.Shutdown()
-		//This is to wait ownership transfering complete.
+		//This is to wait ownership transferring complete.
 		time.Sleep(time.Millisecond * 2000)
 		stopMemberList()
 		stopPidCache()
