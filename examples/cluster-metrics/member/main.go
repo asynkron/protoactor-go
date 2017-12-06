@@ -9,9 +9,9 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/cluster/consul"
+	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/examples/cluster/shared"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
 )
 
 const (
@@ -32,7 +32,6 @@ func Logger(next actor.ActorFunc) actor.ActorFunc {
 
 	return fn
 }
-
 
 func main() {
 	//this node knows about Hello kind

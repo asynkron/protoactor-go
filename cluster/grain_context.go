@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"time"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 

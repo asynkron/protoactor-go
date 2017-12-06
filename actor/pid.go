@@ -16,8 +16,6 @@ type PID struct {
 	p *Process
 }
 
-
-
 /*
 func (m *PID) MarshalJSONPB(*jsonpb.Marshaler) ([]byte, error) {
 	str := fmt.Sprintf("{\"Address\":\"%v\", \"Id\":\"%v\"}", m.Address, m.Id)
