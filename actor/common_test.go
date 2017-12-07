@@ -83,7 +83,9 @@ func (m *mockContext) MessageHeader() ReadonlyMessageHeader {
 func (m *mockContext) Tell(pid *PID, message interface{}) {
 	m.Called()
 }
-
+func (m *mockContext) Forward(pid *PID, message interface{}) {
+	m.Called()
+}
 func (m *mockContext) Request(pid *PID, message interface{}) {
 	m.Called()
 }
