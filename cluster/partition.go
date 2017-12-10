@@ -49,10 +49,15 @@ func (p *partitionValue) partitionForKind(address, kind string) *actor.PID {
 	return pid
 }
 
+type spawningProcess struct {
+	*actor.Future
+	spawningAddress string
+}
+
 type partitionActor struct {
-	partition  map[string]*actor.PID    //actor/grain name to PID
-	keyNameMap map[string]string        //actor/grain key to name
-	spawnings  map[string]*actor.Future //spawning actor/grain futures
+	partition  map[string]*actor.PID       //actor/grain name to PID
+	keyNameMap map[string]string           //actor/grain key to name
+	spawnings  map[string]*spawningProcess //spawning actor/grain futures
 	kind       string
 }
 
@@ -66,7 +71,7 @@ func newPartitionActor(kind string) actor.Producer {
 		return &partitionActor{
 			partition:  make(map[string]*actor.PID),
 			keyNameMap: make(map[string]string),
-			spawnings:  make(map[string]*actor.Future),
+			spawnings:  make(map[string]*spawningProcess),
 			kind:       kind,
 		}
 	}
@@ -111,7 +116,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 	//Check if is spawning, if so just await spawning finish.
 	spawning := state.spawnings[msg.Name]
 	if spawning != nil {
-		context.AwaitFuture(spawning, func(r interface{}, err error) {
+		context.AwaitFuture(spawning.Future, func(r interface{}, err error) {
 			response, ok := r.(*remote.ActorPidResponse)
 			if !ok {
 				context.Respond(remote.ActorPidRespErr)
@@ -130,12 +135,12 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		return
 	}
 
-	//Create SpawningProcess and cache it in spawning dictionary.
-	spawning = actor.NewFuture(-1)
+	//Create SpawningProcess and cache it in spawnings dictionary.
+	spawning = &spawningProcess{actor.NewFuture(-1), activator}
 	state.spawnings[msg.Name] = spawning
 
 	//Await SpawningProcess
-	context.AwaitFuture(spawning, func(r interface{}, err error) {
+	context.AwaitFuture(spawning.Future, func(r interface{}, err error) {
 		delete(state.spawnings, msg.Name)
 
 		//Check if exist in current partition dictionary
@@ -207,41 +212,57 @@ func (state *partitionActor) terminated(msg *actor.Terminated) {
 }
 
 func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
-	plog.Info("Member rejoined", log.String("kind", state.kind), log.String("name", msg.Name()))
+
+	memberAddress := msg.Name()
+
+	plog.Info("Member rejoined", log.String("kind", state.kind), log.String("name", memberAddress))
+
 	for actorID, pid := range state.partition {
 		//if the mapped PID is on the address that left, forget it
-		if pid.Address == msg.Name() {
-			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, msg.Name())
+		if pid.Address == memberAddress {
+			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, memberAddress)
 			delete(state.partition, actorID)
 			delete(state.keyNameMap, pid.String())
+		}
+	}
+
+	//Process Spawning Process
+	for _, spawning := range state.spawnings {
+		if spawning.spawningAddress == memberAddress {
+			spawning.PID().Tell(remote.ActorPidRespUnavailable)
 		}
 	}
 }
 
 func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Context) {
-	plog.Info("Member left", log.String("kind", state.kind), log.String("name", msg.Name()))
+
+	memberAddress := msg.Name()
+
+	plog.Info("Member left", log.String("kind", state.kind), log.String("name", memberAddress))
+
 	//If the left member is self, transfer remaining pids to others
-	if msg.Name() == actor.ProcessRegistry.Address {
+	if actor.ProcessRegistry.Address == memberAddress {
 		for actorID := range state.partition {
 			address := memberList.getPartitionMember(actorID, state.kind)
 			if address != "" {
 				state.transferOwnership(actorID, address, context)
 			}
 		}
-		for actorID, spawning := range state.spawnings {
-			address := memberList.getPartitionMember(actorID, state.kind)
-			if address != "" {
-				spawning.PID().Tell(remote.ActorPidRespUnavailable)
-			}
-		}
 	}
 
 	for actorID, pid := range state.partition {
 		//if the mapped PID is on the address that left, forget it
-		if pid.Address == msg.Name() {
-			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, msg.Name())
+		if pid.Address == memberAddress {
+			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, memberAddress)
 			delete(state.partition, actorID)
 			delete(state.keyNameMap, pid.String())
+		}
+	}
+
+	//Process Spawning Process
+	for _, spawning := range state.spawnings {
+		if spawning.spawningAddress == memberAddress {
+			spawning.PID().Tell(remote.ActorPidRespUnavailable)
 		}
 	}
 }
