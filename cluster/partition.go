@@ -130,24 +130,36 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		return
 	}
 
-	//Create SpawningProcess and cache it in spawnings dictionary.
+	//Create SpawningProcess and cache it in spawning dictionary.
 	spawning = actor.NewFuture(-1)
 	state.spawnings[msg.Name] = spawning
 
 	//Await SpawningProcess
 	context.AwaitFuture(spawning, func(r interface{}, err error) {
 		delete(state.spawnings, msg.Name)
+
+		//Check if exist in current partition dictionary
+		//This is necessary to avoid race condition during partition map transfering.
+		pid = state.partition[msg.Name]
+		if pid != nil {
+			response := &remote.ActorPidResponse{Pid: pid}
+			context.Respond(response)
+			return
+		}
+
 		response, ok := r.(*remote.ActorPidResponse)
 		if !ok {
 			context.Respond(remote.ActorPidRespErr)
 			return
 		}
+
 		if response.StatusCode == remote.ResponseStatusCodeOK.ToInt32() {
 			pid = response.Pid
 			state.partition[msg.Name] = pid
 			state.keyNameMap[pid.String()] = msg.Name
 			context.Watch(pid)
 		}
+
 		context.Respond(response)
 	})
 
@@ -264,6 +276,15 @@ func (state *partitionActor) transferOwnership(actorID string, address string, c
 }
 
 func (state *partitionActor) takeOwnership(msg *TakeOwnership, context actor.Context) {
+	//Check again if I'm the owner
+	address := memberList.getPartitionMember(msg.Name, state.kind)
+	if address != "" && address != actor.ProcessRegistry.Address {
+		//if not, forward to the correct owner
+		owner := partition.partitionForKind(address, state.kind)
+		owner.Tell(msg)
+		return
+	}
+	//Cache ownership
 	state.partition[msg.Name] = msg.Pid
 	state.keyNameMap[msg.Pid.String()] = msg.Name
 	context.Watch(msg.Pid)
