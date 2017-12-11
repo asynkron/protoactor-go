@@ -42,8 +42,11 @@ type HelloGrain struct {
 }
 
 	
-func (g *HelloGrain) SayHello(r *HelloRequest, options ...cluster.GrainCallOption) (*HelloResponse, error) {
-	conf := cluster.ApplyGrainCallOptions(options)
+func (g *HelloGrain) SayHello(r *HelloRequest) (*HelloResponse, error) {
+	return g.SayHelloWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *HelloGrain) SayHelloWithOpts(r *HelloRequest, opts *cluster.GrainCallOptions) (*HelloResponse, error) {
 	fun := func() (*HelloResponse, error) {
 			pid, statusCode := cluster.Get(g.ID, "Hello")
 			if statusCode != remote.ResponseStatusCodeOK {
@@ -54,7 +57,7 @@ func (g *HelloGrain) SayHello(r *HelloRequest, options ...cluster.GrainCallOptio
 				return nil, err
 			}
 			request := &cluster.GrainRequest{Method: "SayHello", MessageData: bytes}
-			response, err := pid.RequestFuture(request, conf.Timeout).Result()
+			response, err := pid.RequestFuture(request, opts.Timeout).Result()
 			if err != nil {
 				return nil, err
 			}
@@ -75,24 +78,28 @@ func (g *HelloGrain) SayHello(r *HelloRequest, options ...cluster.GrainCallOptio
 	
 	var res *HelloResponse
 	var err error
-	for i := 0; i < conf.RetryCount; i++ {
+	for i := 0; i < opts.RetryCount; i++ {
 		res, err = fun()
 		if err == nil {
 			return res, nil
 		} else {
-			if conf.RetryAction != nil {
-				conf.RetryAction(i)
+			if opts.RetryAction != nil {
+				opts.RetryAction(i)
 			}
 		}
 	}
 	return nil, err
 }
 
-func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...cluster.GrainCallOption) (<-chan *HelloResponse, <-chan error) {
+func (g *HelloGrain) SayHelloChan(r *HelloRequest) (<-chan *HelloResponse, <-chan error) {
+	return g.SayHelloChanWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *HelloGrain) SayHelloChanWithOpts(r *HelloRequest, opts *cluster.GrainCallOptions) (<-chan *HelloResponse, <-chan error) {
 	c := make(chan *HelloResponse)
 	e := make(chan error)
 	go func() {
-		res, err := g.SayHello(r, options...)
+		res, err := g.SayHelloWithOpts(r, opts)
 		if err != nil {
 			e <- err
 		} else {
@@ -104,8 +111,11 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...cluster.GrainCallO
 	return c, e
 }
 	
-func (g *HelloGrain) Add(r *AddRequest, options ...cluster.GrainCallOption) (*AddResponse, error) {
-	conf := cluster.ApplyGrainCallOptions(options)
+func (g *HelloGrain) Add(r *AddRequest) (*AddResponse, error) {
+	return g.AddWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *HelloGrain) AddWithOpts(r *AddRequest, opts *cluster.GrainCallOptions) (*AddResponse, error) {
 	fun := func() (*AddResponse, error) {
 			pid, statusCode := cluster.Get(g.ID, "Hello")
 			if statusCode != remote.ResponseStatusCodeOK {
@@ -116,7 +126,7 @@ func (g *HelloGrain) Add(r *AddRequest, options ...cluster.GrainCallOption) (*Ad
 				return nil, err
 			}
 			request := &cluster.GrainRequest{Method: "Add", MessageData: bytes}
-			response, err := pid.RequestFuture(request, conf.Timeout).Result()
+			response, err := pid.RequestFuture(request, opts.Timeout).Result()
 			if err != nil {
 				return nil, err
 			}
@@ -137,24 +147,28 @@ func (g *HelloGrain) Add(r *AddRequest, options ...cluster.GrainCallOption) (*Ad
 	
 	var res *AddResponse
 	var err error
-	for i := 0; i < conf.RetryCount; i++ {
+	for i := 0; i < opts.RetryCount; i++ {
 		res, err = fun()
 		if err == nil {
 			return res, nil
 		} else {
-			if conf.RetryAction != nil {
-				conf.RetryAction(i)
+			if opts.RetryAction != nil {
+				opts.RetryAction(i)
 			}
 		}
 	}
 	return nil, err
 }
 
-func (g *HelloGrain) AddChan(r *AddRequest, options ...cluster.GrainCallOption) (<-chan *AddResponse, <-chan error) {
+func (g *HelloGrain) AddChan(r *AddRequest) (<-chan *AddResponse, <-chan error) {
+	return g.AddChanWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *HelloGrain) AddChanWithOpts(r *AddRequest, opts *cluster.GrainCallOptions) (<-chan *AddResponse, <-chan error) {
 	c := make(chan *AddResponse)
 	e := make(chan error)
 	go func() {
-		res, err := g.Add(r, options...)
+		res, err := g.AddWithOpts(r, opts)
 		if err != nil {
 			e <- err
 		} else {
@@ -166,8 +180,11 @@ func (g *HelloGrain) AddChan(r *AddRequest, options ...cluster.GrainCallOption) 
 	return c, e
 }
 	
-func (g *HelloGrain) VoidFunc(r *AddRequest, options ...cluster.GrainCallOption) (*Unit, error) {
-	conf := cluster.ApplyGrainCallOptions(options)
+func (g *HelloGrain) VoidFunc(r *AddRequest) (*Unit, error) {
+	return g.VoidFuncWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *HelloGrain) VoidFuncWithOpts(r *AddRequest, opts *cluster.GrainCallOptions) (*Unit, error) {
 	fun := func() (*Unit, error) {
 			pid, statusCode := cluster.Get(g.ID, "Hello")
 			if statusCode != remote.ResponseStatusCodeOK {
@@ -178,7 +195,7 @@ func (g *HelloGrain) VoidFunc(r *AddRequest, options ...cluster.GrainCallOption)
 				return nil, err
 			}
 			request := &cluster.GrainRequest{Method: "VoidFunc", MessageData: bytes}
-			response, err := pid.RequestFuture(request, conf.Timeout).Result()
+			response, err := pid.RequestFuture(request, opts.Timeout).Result()
 			if err != nil {
 				return nil, err
 			}
@@ -199,24 +216,28 @@ func (g *HelloGrain) VoidFunc(r *AddRequest, options ...cluster.GrainCallOption)
 	
 	var res *Unit
 	var err error
-	for i := 0; i < conf.RetryCount; i++ {
+	for i := 0; i < opts.RetryCount; i++ {
 		res, err = fun()
 		if err == nil {
 			return res, nil
 		} else {
-			if conf.RetryAction != nil {
-				conf.RetryAction(i)
+			if opts.RetryAction != nil {
+				opts.RetryAction(i)
 			}
 		}
 	}
 	return nil, err
 }
 
-func (g *HelloGrain) VoidFuncChan(r *AddRequest, options ...cluster.GrainCallOption) (<-chan *Unit, <-chan error) {
+func (g *HelloGrain) VoidFuncChan(r *AddRequest) (<-chan *Unit, <-chan error) {
+	return g.VoidFuncChanWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *HelloGrain) VoidFuncChanWithOpts(r *AddRequest, opts *cluster.GrainCallOptions) (<-chan *Unit, <-chan error) {
 	c := make(chan *Unit)
 	e := make(chan error)
 	go func() {
-		res, err := g.VoidFunc(r, options...)
+		res, err := g.VoidFuncWithOpts(r, opts)
 		if err != nil {
 			e <- err
 		} else {
