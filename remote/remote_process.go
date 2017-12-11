@@ -15,12 +15,13 @@ func newProcess(pid *actor.PID) actor.Process {
 }
 
 func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
-	msg, sender := actor.UnwrapEnvelope(message)
-	SendMessage(pid, msg, sender, -1)
+	header, msg, sender := actor.UnwrapEnvelope(message)
+	SendMessage(pid, header, msg, sender, -1)
 }
 
-func SendMessage(pid *actor.PID, message interface{}, sender *actor.PID, serializerID int32) {
+func SendMessage(pid *actor.PID, header actor.ReadonlyMessageHeader, message interface{}, sender *actor.PID, serializerID int32) {
 	rd := &remoteDeliver{
+		header:       header,
 		message:      message,
 		sender:       sender,
 		target:       pid,
@@ -47,17 +48,10 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 		}
 		endpointManager.remoteUnwatch(ruw)
 	default:
-		SendMessage(pid, message, nil, -1)
+		SendMessage(pid, nil, message, nil, -1)
 	}
 }
 
 func (ref *process) Stop(pid *actor.PID) {
 	ref.SendSystemMessage(pid, stopMessage)
-}
-
-type remoteDeliver struct {
-	message      interface{}
-	target       *actor.PID
-	sender       *actor.PID
-	serializerID int32
 }

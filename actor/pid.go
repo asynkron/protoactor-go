@@ -50,7 +50,7 @@ func (pid *PID) Tell(message interface{}) {
 func (pid *PID) Request(message interface{}, respondTo *PID) {
 	env := &MessageEnvelope{
 		Message: message,
-		Header:  emptyMessageHeader,
+		Header:  nil,
 		Sender:  respondTo,
 	}
 	pid.ref().SendUserMessage(pid, env)
@@ -61,7 +61,7 @@ func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Futur
 	future := NewFuture(timeout)
 	env := &MessageEnvelope{
 		Message: message,
-		Header:  emptyMessageHeader,
+		Header:  nil,
 		Sender:  future.PID(),
 	}
 	pid.ref().SendUserMessage(pid, env)

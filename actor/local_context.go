@@ -79,7 +79,9 @@ func (ctx *localContext) Sender() *PID {
 func (ctx *localContext) MessageHeader() ReadonlyMessageHeader {
 	envelope, ok := ctx.message.(*MessageEnvelope)
 	if ok {
-		return envelope.Header
+		if envelope.Header != nil {
+			return envelope.Header
+		}
 	}
 	return emptyMessageHeader
 }
@@ -94,7 +96,7 @@ func (ctx *localContext) sendUserMessage(pid *PID, message interface{}) {
 			ctx.outboundMiddleware(ctx, pid, env)
 		} else {
 			ctx.outboundMiddleware(ctx, pid, &MessageEnvelope{
-				Header:  emptyMessageHeader,
+				Header:  nil,
 				Message: message,
 				Sender:  nil,
 			})
@@ -106,7 +108,7 @@ func (ctx *localContext) sendUserMessage(pid *PID, message interface{}) {
 
 func (ctx *localContext) Request(pid *PID, message interface{}) {
 	env := &MessageEnvelope{
-		Header:  emptyMessageHeader,
+		Header:  nil,
 		Message: message,
 		Sender:  ctx.Self(),
 	}
@@ -117,7 +119,7 @@ func (ctx *localContext) Request(pid *PID, message interface{}) {
 func (ctx *localContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
 	future := NewFuture(timeout)
 	env := &MessageEnvelope{
-		Header:  emptyMessageHeader,
+		Header:  nil,
 		Message: message,
 		Sender:  future.PID(),
 	}

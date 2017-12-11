@@ -7,8 +7,8 @@ import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
 option (gogoproto.gostring_all) = false;
 
 message MessageBatch {
-  repeated string type_names=1;
-  repeated string target_names=2;
+  repeated string type_names = 1;
+  repeated string target_names = 2;
   repeated MessageEnvelope envelopes = 3;
 }
 
@@ -18,25 +18,29 @@ message MessageEnvelope {
   int32 target = 3;
   actor.PID sender = 4;
   int32 serializer_id = 5;
+  MessageHeader message_header = 6;
+}
+
+message MessageHeader {
+  map<string, string> header_data = 1;
 }
 
 message ActorPidRequest {
-    string name = 1;
-    string kind = 2;
+  string name = 1;
+  string kind = 2;
 }
 
 message ActorPidResponse {
-    actor.PID pid = 1;
-    int32 status_code = 2;
+  actor.PID pid = 1;
+  int32 status_code = 2;
 }
 
 message Unit {}
 
-message ConnectRequest {
+message ConnectRequest {}
 
-}
 message ConnectResponse {
-    int32 default_serializer_id = 1;
+  int32 default_serializer_id = 1;
 }
 
 service Remoting {

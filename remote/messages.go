@@ -20,6 +20,14 @@ type remoteUnwatch struct {
 	Watchee *actor.PID
 }
 
+type remoteDeliver struct {
+	header       actor.ReadonlyMessageHeader
+	message      interface{}
+	target       *actor.PID
+	sender       *actor.PID
+	serializerID int32
+}
+
 type remoteTerminate struct {
 	Watcher *actor.PID
 	Watchee *actor.PID

@@ -23,7 +23,10 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 
 	rs := new(testRouterState)
 	rs.On("SetRoutees", s1)
-	rs.On("RouteMessage", "hello", mock.Anything)
+	rs.On("RouteMessage", mock.MatchedBy(func(env interface{}) bool {
+		_, msg, _ := actor.UnwrapEnvelope(env)
+		return msg.(string) == "hello"
+	}), mock.Anything)
 
 	grc := newGroupRouterConfig(child)
 	grc.On("CreateRouterState").Return(rs)
@@ -61,10 +64,10 @@ func (m *testRouterState) SetRoutees(routees *actor.PIDSet) {
 	m.routees = routees
 }
 
-func (m *testRouterState) RouteMessage(message interface{}, sender *actor.PID) {
-	m.Called(message, sender)
+func (m *testRouterState) RouteMessage(message interface{}) {
+	m.Called(message)
 	m.routees.ForEach(func(i int, pid actor.PID) {
-		pid.Request(message, sender)
+		pid.Tell(message)
 	})
 }
 

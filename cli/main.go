@@ -159,7 +159,7 @@ func tell(line string) {
 				TypeName: typeNameStr,
 			}
 			pid := actor.NewPID(address, id)
-			remote.SendMessage(pid, m, nil, 1)
+			remote.SendMessage(pid, nil, m, nil, 1)
 		} else {
 			fmt.Printf("Invalid JSON payload: %v\n", err)
 		}

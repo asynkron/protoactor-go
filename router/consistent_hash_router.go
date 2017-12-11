@@ -50,8 +50,9 @@ func (state *consistentHashRouterState) GetRoutees() *actor.PIDSet {
 	return &routees
 }
 
-func (state *consistentHashRouterState) RouteMessage(message interface{}, sender *actor.PID) {
-	switch msg := message.(type) {
+func (state *consistentHashRouterState) RouteMessage(message interface{}) {
+	_, uwpMsg, _ := actor.UnwrapEnvelope(message)
+	switch msg := uwpMsg.(type) {
 	case Hasher:
 		key := msg.Hash()
 		hmc := state.hmc
@@ -62,7 +63,7 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}, sender
 			return
 		}
 		if routee, ok := hmc.routeeMap[node]; ok {
-			routee.Request(msg, sender)
+			routee.Tell(message)
 		} else {
 			log.Println("[ROUTING] Consisten router failed to resolve node", node)
 		}

@@ -67,7 +67,16 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 				ref, _ := actor.ProcessRegistry.GetLocal(pid.Id)
 				ref.SendSystemMessage(pid, msg)
 			default:
-				pid.Request(message, sender)
+				var header map[string]string
+				if envelope.MessageHeader != nil {
+					header = envelope.MessageHeader.HeaderData
+				}
+				localEnvelope := &actor.MessageEnvelope{
+					Header:  header,
+					Message: message,
+					Sender:  sender,
+				}
+				pid.Tell(localEnvelope)
 			}
 		}
 	}
