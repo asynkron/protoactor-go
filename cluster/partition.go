@@ -144,7 +144,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		delete(state.spawnings, msg.Name)
 
 		//Check if exist in current partition dictionary
-		//This is necessary to avoid race condition during partition map transfering.
+		//This is necessary to avoid race condition during partition map transferring.
 		pid = state.partition[msg.Name]
 		if pid != nil {
 			response := &remote.ActorPidResponse{Pid: pid}
