@@ -86,7 +86,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	typeNamesArr := make([]string, 0)
 	targetNames := make(map[string]int32)
 	targetNamesArr := make([]string, 0)
-	var header map[string]string
+	var header *MessageHeader
 	var typeID int32
 	var targetID int32
 	var serializerID int32
@@ -102,7 +102,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		if rd.header == nil || rd.header.Length() == 0 {
 			header = nil
 		} else {
-			header = rd.header.ToMap()
+			header = &MessageHeader{rd.header.ToMap()}
 		}
 
 		bytes, typeName, err := Serialize(rd.message, serializerID)

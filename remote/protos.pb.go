@@ -10,6 +10,7 @@
 	It has these top-level messages:
 		MessageBatch
 		MessageEnvelope
+		MessageHeader
 		ActorPidRequest
 		ActorPidResponse
 		Unit
@@ -80,12 +81,12 @@ func (m *MessageBatch) GetEnvelopes() []*MessageEnvelope {
 }
 
 type MessageEnvelope struct {
-	TypeId        int32             `protobuf:"varint,1,opt,name=type_id,json=typeId,proto3" json:"type_id,omitempty"`
-	MessageHeader map[string]string `protobuf:"bytes,2,rep,name=message_header,json=messageHeader" json:"message_header,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	MessageData   []byte            `protobuf:"bytes,3,opt,name=message_data,json=messageData,proto3" json:"message_data,omitempty"`
-	Target        int32             `protobuf:"varint,4,opt,name=target,proto3" json:"target,omitempty"`
-	Sender        *actor.PID        `protobuf:"bytes,5,opt,name=sender" json:"sender,omitempty"`
-	SerializerId  int32             `protobuf:"varint,6,opt,name=serializer_id,json=serializerId,proto3" json:"serializer_id,omitempty"`
+	TypeId        int32          `protobuf:"varint,1,opt,name=type_id,json=typeId,proto3" json:"type_id,omitempty"`
+	MessageData   []byte         `protobuf:"bytes,2,opt,name=message_data,json=messageData,proto3" json:"message_data,omitempty"`
+	Target        int32          `protobuf:"varint,3,opt,name=target,proto3" json:"target,omitempty"`
+	Sender        *actor.PID     `protobuf:"bytes,4,opt,name=sender" json:"sender,omitempty"`
+	SerializerId  int32          `protobuf:"varint,5,opt,name=serializer_id,json=serializerId,proto3" json:"serializer_id,omitempty"`
+	MessageHeader *MessageHeader `protobuf:"bytes,6,opt,name=message_header,json=messageHeader" json:"message_header,omitempty"`
 }
 
 func (m *MessageEnvelope) Reset()                    { *m = MessageEnvelope{} }
@@ -97,13 +98,6 @@ func (m *MessageEnvelope) GetTypeId() int32 {
 		return m.TypeId
 	}
 	return 0
-}
-
-func (m *MessageEnvelope) GetMessageHeader() map[string]string {
-	if m != nil {
-		return m.MessageHeader
-	}
-	return nil
 }
 
 func (m *MessageEnvelope) GetMessageData() []byte {
@@ -134,6 +128,28 @@ func (m *MessageEnvelope) GetSerializerId() int32 {
 	return 0
 }
 
+func (m *MessageEnvelope) GetMessageHeader() *MessageHeader {
+	if m != nil {
+		return m.MessageHeader
+	}
+	return nil
+}
+
+type MessageHeader struct {
+	HeaderData map[string]string `protobuf:"bytes,1,rep,name=header_data,json=headerData" json:"header_data,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (m *MessageHeader) Reset()                    { *m = MessageHeader{} }
+func (*MessageHeader) ProtoMessage()               {}
+func (*MessageHeader) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{2} }
+
+func (m *MessageHeader) GetHeaderData() map[string]string {
+	if m != nil {
+		return m.HeaderData
+	}
+	return nil
+}
+
 type ActorPidRequest struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
@@ -141,7 +157,7 @@ type ActorPidRequest struct {
 
 func (m *ActorPidRequest) Reset()                    { *m = ActorPidRequest{} }
 func (*ActorPidRequest) ProtoMessage()               {}
-func (*ActorPidRequest) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{2} }
+func (*ActorPidRequest) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{3} }
 
 func (m *ActorPidRequest) GetName() string {
 	if m != nil {
@@ -164,7 +180,7 @@ type ActorPidResponse struct {
 
 func (m *ActorPidResponse) Reset()                    { *m = ActorPidResponse{} }
 func (*ActorPidResponse) ProtoMessage()               {}
-func (*ActorPidResponse) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{3} }
+func (*ActorPidResponse) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{4} }
 
 func (m *ActorPidResponse) GetPid() *actor.PID {
 	if m != nil {
@@ -185,14 +201,14 @@ type Unit struct {
 
 func (m *Unit) Reset()                    { *m = Unit{} }
 func (*Unit) ProtoMessage()               {}
-func (*Unit) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{4} }
+func (*Unit) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{5} }
 
 type ConnectRequest struct {
 }
 
 func (m *ConnectRequest) Reset()                    { *m = ConnectRequest{} }
 func (*ConnectRequest) ProtoMessage()               {}
-func (*ConnectRequest) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{5} }
+func (*ConnectRequest) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{6} }
 
 type ConnectResponse struct {
 	DefaultSerializerId int32 `protobuf:"varint,1,opt,name=default_serializer_id,json=defaultSerializerId,proto3" json:"default_serializer_id,omitempty"`
@@ -200,7 +216,7 @@ type ConnectResponse struct {
 
 func (m *ConnectResponse) Reset()                    { *m = ConnectResponse{} }
 func (*ConnectResponse) ProtoMessage()               {}
-func (*ConnectResponse) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{6} }
+func (*ConnectResponse) Descriptor() ([]byte, []int) { return fileDescriptorProtos, []int{7} }
 
 func (m *ConnectResponse) GetDefaultSerializerId() int32 {
 	if m != nil {
@@ -212,6 +228,7 @@ func (m *ConnectResponse) GetDefaultSerializerId() int32 {
 func init() {
 	proto.RegisterType((*MessageBatch)(nil), "remote.MessageBatch")
 	proto.RegisterType((*MessageEnvelope)(nil), "remote.MessageEnvelope")
+	proto.RegisterType((*MessageHeader)(nil), "remote.MessageHeader")
 	proto.RegisterType((*ActorPidRequest)(nil), "remote.ActorPidRequest")
 	proto.RegisterType((*ActorPidResponse)(nil), "remote.ActorPidResponse")
 	proto.RegisterType((*Unit)(nil), "remote.Unit")
@@ -297,14 +314,6 @@ func (this *MessageEnvelope) Equal(that interface{}) bool {
 	if this.TypeId != that1.TypeId {
 		return false
 	}
-	if len(this.MessageHeader) != len(that1.MessageHeader) {
-		return false
-	}
-	for i := range this.MessageHeader {
-		if this.MessageHeader[i] != that1.MessageHeader[i] {
-			return false
-		}
-	}
 	if !bytes.Equal(this.MessageData, that1.MessageData) {
 		return false
 	}
@@ -316,6 +325,44 @@ func (this *MessageEnvelope) Equal(that interface{}) bool {
 	}
 	if this.SerializerId != that1.SerializerId {
 		return false
+	}
+	if !this.MessageHeader.Equal(that1.MessageHeader) {
+		return false
+	}
+	return true
+}
+func (this *MessageHeader) Equal(that interface{}) bool {
+	if that == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	}
+
+	that1, ok := that.(*MessageHeader)
+	if !ok {
+		that2, ok := that.(MessageHeader)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return true
+		}
+		return false
+	} else if this == nil {
+		return false
+	}
+	if len(this.HeaderData) != len(that1.HeaderData) {
+		return false
+	}
+	for i := range this.HeaderData {
+		if this.HeaderData[i] != that1.HeaderData[i] {
+			return false
+		}
 	}
 	return true
 }
@@ -688,11 +735,65 @@ func (m *MessageEnvelope) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintProtos(dAtA, i, uint64(m.TypeId))
 	}
-	if len(m.MessageHeader) > 0 {
-		for k, _ := range m.MessageHeader {
-			dAtA[i] = 0x12
+	if len(m.MessageData) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.MessageData)))
+		i += copy(dAtA[i:], m.MessageData)
+	}
+	if m.Target != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintProtos(dAtA, i, uint64(m.Target))
+	}
+	if m.Sender != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintProtos(dAtA, i, uint64(m.Sender.Size()))
+		n1, err := m.Sender.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n1
+	}
+	if m.SerializerId != 0 {
+		dAtA[i] = 0x28
+		i++
+		i = encodeVarintProtos(dAtA, i, uint64(m.SerializerId))
+	}
+	if m.MessageHeader != nil {
+		dAtA[i] = 0x32
+		i++
+		i = encodeVarintProtos(dAtA, i, uint64(m.MessageHeader.Size()))
+		n2, err := m.MessageHeader.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n2
+	}
+	return i, nil
+}
+
+func (m *MessageHeader) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MessageHeader) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.HeaderData) > 0 {
+		for k, _ := range m.HeaderData {
+			dAtA[i] = 0xa
 			i++
-			v := m.MessageHeader[k]
+			v := m.HeaderData[k]
 			mapSize := 1 + len(k) + sovProtos(uint64(len(k))) + 1 + len(v) + sovProtos(uint64(len(v)))
 			i = encodeVarintProtos(dAtA, i, uint64(mapSize))
 			dAtA[i] = 0xa
@@ -704,32 +805,6 @@ func (m *MessageEnvelope) MarshalTo(dAtA []byte) (int, error) {
 			i = encodeVarintProtos(dAtA, i, uint64(len(v)))
 			i += copy(dAtA[i:], v)
 		}
-	}
-	if len(m.MessageData) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(len(m.MessageData)))
-		i += copy(dAtA[i:], m.MessageData)
-	}
-	if m.Target != 0 {
-		dAtA[i] = 0x20
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.Target))
-	}
-	if m.Sender != nil {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.Sender.Size()))
-		n1, err := m.Sender.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n1
-	}
-	if m.SerializerId != 0 {
-		dAtA[i] = 0x30
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.SerializerId))
 	}
 	return i, nil
 }
@@ -783,11 +858,11 @@ func (m *ActorPidResponse) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintProtos(dAtA, i, uint64(m.Pid.Size()))
-		n2, err := m.Pid.MarshalTo(dAtA[i:])
+		n3, err := m.Pid.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n2
+		i += n3
 	}
 	if m.StatusCode != 0 {
 		dAtA[i] = 0x10
@@ -913,14 +988,6 @@ func (m *MessageEnvelope) Size() (n int) {
 	if m.TypeId != 0 {
 		n += 1 + sovProtos(uint64(m.TypeId))
 	}
-	if len(m.MessageHeader) > 0 {
-		for k, v := range m.MessageHeader {
-			_ = k
-			_ = v
-			mapEntrySize := 1 + len(k) + sovProtos(uint64(len(k))) + 1 + len(v) + sovProtos(uint64(len(v)))
-			n += mapEntrySize + 1 + sovProtos(uint64(mapEntrySize))
-		}
-	}
 	l = len(m.MessageData)
 	if l > 0 {
 		n += 1 + l + sovProtos(uint64(l))
@@ -934,6 +1001,24 @@ func (m *MessageEnvelope) Size() (n int) {
 	}
 	if m.SerializerId != 0 {
 		n += 1 + sovProtos(uint64(m.SerializerId))
+	}
+	if m.MessageHeader != nil {
+		l = m.MessageHeader.Size()
+		n += 1 + l + sovProtos(uint64(l))
+	}
+	return n
+}
+
+func (m *MessageHeader) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.HeaderData) > 0 {
+		for k, v := range m.HeaderData {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + len(k) + sovProtos(uint64(len(k))) + 1 + len(v) + sovProtos(uint64(len(v)))
+			n += mapEntrySize + 1 + sovProtos(uint64(mapEntrySize))
+		}
 	}
 	return n
 }
@@ -1015,23 +1100,33 @@ func (this *MessageEnvelope) String() string {
 	if this == nil {
 		return "nil"
 	}
-	keysForMessageHeader := make([]string, 0, len(this.MessageHeader))
-	for k, _ := range this.MessageHeader {
-		keysForMessageHeader = append(keysForMessageHeader, k)
-	}
-	github_com_gogo_protobuf_sortkeys.Strings(keysForMessageHeader)
-	mapStringForMessageHeader := "map[string]string{"
-	for _, k := range keysForMessageHeader {
-		mapStringForMessageHeader += fmt.Sprintf("%v: %v,", k, this.MessageHeader[k])
-	}
-	mapStringForMessageHeader += "}"
 	s := strings.Join([]string{`&MessageEnvelope{`,
 		`TypeId:` + fmt.Sprintf("%v", this.TypeId) + `,`,
-		`MessageHeader:` + mapStringForMessageHeader + `,`,
 		`MessageData:` + fmt.Sprintf("%v", this.MessageData) + `,`,
 		`Target:` + fmt.Sprintf("%v", this.Target) + `,`,
 		`Sender:` + strings.Replace(fmt.Sprintf("%v", this.Sender), "PID", "actor.PID", 1) + `,`,
 		`SerializerId:` + fmt.Sprintf("%v", this.SerializerId) + `,`,
+		`MessageHeader:` + strings.Replace(fmt.Sprintf("%v", this.MessageHeader), "MessageHeader", "MessageHeader", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *MessageHeader) String() string {
+	if this == nil {
+		return "nil"
+	}
+	keysForHeaderData := make([]string, 0, len(this.HeaderData))
+	for k, _ := range this.HeaderData {
+		keysForHeaderData = append(keysForHeaderData, k)
+	}
+	github_com_gogo_protobuf_sortkeys.Strings(keysForHeaderData)
+	mapStringForHeaderData := "map[string]string{"
+	for _, k := range keysForHeaderData {
+		mapStringForHeaderData += fmt.Sprintf("%v: %v,", k, this.HeaderData[k])
+	}
+	mapStringForHeaderData += "}"
+	s := strings.Join([]string{`&MessageHeader{`,
+		`HeaderData:` + mapStringForHeaderData + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1283,6 +1378,108 @@ func (m *MessageEnvelope) Unmarshal(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MessageData", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MessageData = append(m.MessageData[:0], dAtA[iNdEx:postIndex]...)
+			if m.MessageData == nil {
+				m.MessageData = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Target", wireType)
+			}
+			m.Target = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Target |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sender", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Sender == nil {
+				m.Sender = &actor.PID{}
+			}
+			if err := m.Sender.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SerializerId", wireType)
+			}
+			m.SerializerId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.SerializerId |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MessageHeader", wireType)
 			}
 			var msglen int
@@ -1308,7 +1505,90 @@ func (m *MessageEnvelope) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.MessageHeader == nil {
-				m.MessageHeader = make(map[string]string)
+				m.MessageHeader = &MessageHeader{}
+			}
+			if err := m.MessageHeader.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MessageHeader) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MessageHeader: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MessageHeader: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HeaderData", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.HeaderData == nil {
+				m.HeaderData = make(map[string]string)
 			}
 			var mapkey string
 			var mapvalue string
@@ -1397,110 +1677,8 @@ func (m *MessageEnvelope) Unmarshal(dAtA []byte) error {
 					iNdEx += skippy
 				}
 			}
-			m.MessageHeader[mapkey] = mapvalue
+			m.HeaderData[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MessageData", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtos
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtos
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.MessageData = append(m.MessageData[:0], dAtA[iNdEx:postIndex]...)
-			if m.MessageData == nil {
-				m.MessageData = []byte{}
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Target", wireType)
-			}
-			m.Target = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtos
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Target |= (int32(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Sender", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtos
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtos
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Sender == nil {
-				m.Sender = &actor.PID{}
-			}
-			if err := m.Sender.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SerializerId", wireType)
-			}
-			m.SerializerId = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtos
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.SerializerId |= (int32(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipProtos(dAtA[iNdEx:])
@@ -2009,42 +2187,44 @@ var (
 func init() { proto.RegisterFile("protos.proto", fileDescriptorProtos) }
 
 var fileDescriptorProtos = []byte{
-	// 592 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x53, 0x3d, 0x6f, 0x13, 0x41,
-	0x10, 0xbd, 0xb5, 0xe3, 0x0b, 0x1e, 0x3b, 0x1f, 0x5a, 0x42, 0x62, 0x59, 0x70, 0x98, 0xa3, 0xb1,
-	0x10, 0xb1, 0x91, 0x23, 0x10, 0x20, 0x0a, 0xf2, 0x25, 0xe1, 0x02, 0x94, 0x1c, 0x50, 0x5b, 0x1b,
-	0xdf, 0xe4, 0x72, 0x8a, 0xbd, 0x6b, 0x6e, 0xd7, 0x91, 0x8c, 0x84, 0x44, 0x47, 0xcb, 0xcf, 0xe0,
-	0x7f, 0xd0, 0x50, 0xa6, 0xa4, 0x24, 0x47, 0x43, 0x99, 0x9f, 0x80, 0xf6, 0xc3, 0xc4, 0x49, 0x44,
-	0x75, 0x33, 0x6f, 0xde, 0xec, 0x7b, 0x33, 0x7b, 0x0b, 0xd5, 0x51, 0x26, 0x94, 0x90, 0x2d, 0xf3,
-	0xa1, 0x7e, 0x86, 0x43, 0xa1, 0xb0, 0xbe, 0x9e, 0xa4, 0xea, 0x68, 0x7c, 0xd0, 0xea, 0x8b, 0x61,
-	0x3b, 0x11, 0x89, 0x68, 0x9b, 0xf2, 0xc1, 0xf8, 0xd0, 0x64, 0x26, 0x31, 0x91, 0x6d, 0xab, 0x3f,
-	0x99, 0xa1, 0x6f, 0xca, 0x09, 0x3f, 0xce, 0x04, 0xef, 0xbe, 0xb3, 0x4d, 0xac, 0xaf, 0x44, 0xb6,
-	0x9e, 0x88, 0xb6, 0x09, 0xda, 0xb3, 0x72, 0xe1, 0x17, 0x02, 0xd5, 0xd7, 0x28, 0x25, 0x4b, 0x70,
-	0x8b, 0xa9, 0xfe, 0x11, 0xbd, 0x03, 0xa0, 0x26, 0x23, 0xec, 0x71, 0x36, 0x44, 0x59, 0x23, 0x8d,
-	0x62, 0xb3, 0x1c, 0x95, 0x35, 0xf2, 0x46, 0x03, 0xf4, 0x1e, 0x54, 0x15, 0xcb, 0x12, 0x54, 0x8e,
-	0x50, 0x30, 0x84, 0x8a, 0xc5, 0x2c, 0xe5, 0x31, 0x94, 0x91, 0x9f, 0xe0, 0x40, 0x8c, 0x50, 0xd6,
-	0x8a, 0x8d, 0x62, 0xb3, 0xd2, 0x59, 0x6b, 0xd9, 0xa9, 0x5a, 0x4e, 0x6a, 0xd7, 0xd5, 0xa3, 0x0b,
-	0x66, 0xf8, 0xbd, 0x00, 0x4b, 0x57, 0xca, 0x74, 0x0d, 0xe6, 0x8d, 0x99, 0x34, 0xae, 0x91, 0x06,
-	0x69, 0x96, 0x22, 0x5f, 0xa7, 0xdd, 0x98, 0xee, 0xc3, 0xe2, 0xd0, 0x72, 0x7b, 0x47, 0xc8, 0x62,
-	0xcc, 0x8c, 0x91, 0x4a, 0xe7, 0xc1, 0x7f, 0x84, 0xa6, 0xf9, 0x2b, 0x43, 0xde, 0xe5, 0x2a, 0x9b,
-	0x44, 0x0b, 0xc3, 0x59, 0x4c, 0x4f, 0x36, 0x3d, 0x32, 0x66, 0x8a, 0xd5, 0x8a, 0x0d, 0xd2, 0xac,
-	0x46, 0x15, 0x87, 0xed, 0x30, 0xc5, 0xe8, 0x2a, 0xf8, 0x76, 0xd0, 0xda, 0x9c, 0x73, 0x63, 0x32,
-	0x1a, 0x82, 0x2f, 0x91, 0x6b, 0x17, 0xa5, 0x06, 0x69, 0x56, 0x3a, 0xd0, 0x32, 0x9b, 0x6e, 0xed,
-	0x75, 0x77, 0x22, 0x57, 0xa1, 0xf7, 0x61, 0x41, 0x62, 0x96, 0xb2, 0x41, 0xfa, 0x11, 0x33, 0x3d,
-	0x90, 0x6f, 0x8e, 0xa8, 0x5e, 0x80, 0xdd, 0xb8, 0xfe, 0x12, 0xe8, 0x75, 0xa3, 0x74, 0x19, 0x8a,
-	0xc7, 0x38, 0x31, 0x1b, 0x28, 0x47, 0x3a, 0xa4, 0x2b, 0x50, 0x3a, 0x61, 0x83, 0x31, 0xd6, 0x0a,
-	0x06, 0xb3, 0xc9, 0xf3, 0xc2, 0x53, 0x12, 0x3e, 0x83, 0xa5, 0x4d, 0xad, 0xbd, 0x97, 0xc6, 0x11,
-	0x7e, 0x18, 0xa3, 0x54, 0x94, 0xc2, 0x9c, 0xbe, 0x2b, 0xd7, 0x6f, 0x62, 0x8d, 0x1d, 0xa7, 0x3c,
-	0x76, 0xfd, 0x26, 0x0e, 0xf7, 0x61, 0xf9, 0xa2, 0x55, 0x8e, 0x04, 0x97, 0x48, 0x6f, 0x43, 0x71,
-	0xe4, 0x96, 0x7f, 0x79, 0x2c, 0x0d, 0xd3, 0xbb, 0x50, 0x91, 0x8a, 0xa9, 0xb1, 0xec, 0xf5, 0x45,
-	0x6c, 0xcd, 0x94, 0x22, 0xb0, 0xd0, 0xb6, 0x88, 0x31, 0xf4, 0x61, 0xee, 0x3d, 0x4f, 0x55, 0xb8,
-	0x0c, 0x8b, 0xdb, 0x82, 0x73, 0xec, 0x2b, 0x67, 0x2a, 0xdc, 0x85, 0xa5, 0x7f, 0x88, 0xd3, 0xea,
-	0xc0, 0xad, 0x18, 0x0f, 0xd9, 0x78, 0xa0, 0x7a, 0x97, 0x37, 0x65, 0xaf, 0xfe, 0xa6, 0x2b, 0xbe,
-	0x9d, 0x59, 0x58, 0xe7, 0x13, 0xdc, 0x88, 0xf4, 0x85, 0xa7, 0x3c, 0xa1, 0x2f, 0x60, 0xde, 0x1d,
-	0x49, 0x57, 0xa7, 0xbf, 0xc1, 0x65, 0xd5, 0xfa, 0xda, 0x35, 0xdc, 0x6a, 0x87, 0x1e, 0xdd, 0x80,
-	0xf9, 0x08, 0xfb, 0x98, 0x9e, 0x20, 0x5d, 0xb9, 0xf2, 0x13, 0x99, 0x87, 0x51, 0xaf, 0x4e, 0x51,
-	0x33, 0x91, 0xd7, 0x24, 0x8f, 0xc8, 0xd6, 0xc3, 0xd3, 0xb3, 0xc0, 0xfb, 0x79, 0x16, 0x78, 0xe7,
-	0x67, 0x81, 0xf7, 0x39, 0x0f, 0xc8, 0xb7, 0x3c, 0x20, 0x3f, 0xf2, 0x80, 0x9c, 0xe6, 0x01, 0xf9,
-	0x95, 0x07, 0xe4, 0x4f, 0x1e, 0x78, 0xe7, 0x79, 0x40, 0xbe, 0xfe, 0x0e, 0xbc, 0x03, 0xdf, 0x3c,
-	0xb9, 0x8d, 0xbf, 0x01, 0x00, 0x00, 0xff, 0xff, 0x3e, 0xca, 0xaa, 0x3e, 0xf1, 0x03, 0x00, 0x00,
+	// 620 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x53, 0x3b, 0x6f, 0x13, 0x4b,
+	0x14, 0xde, 0x89, 0xe3, 0xcd, 0xf5, 0xb1, 0x13, 0x47, 0x73, 0xf3, 0xb0, 0xac, 0x7b, 0xf7, 0xfa,
+	0x2e, 0x42, 0x72, 0x41, 0xd6, 0xc8, 0x11, 0x08, 0x50, 0x28, 0xf2, 0x42, 0xb8, 0x00, 0x85, 0x05,
+	0x6a, 0x6b, 0xe2, 0x3d, 0x59, 0xaf, 0x62, 0xef, 0x98, 0x9d, 0x71, 0x24, 0x23, 0x21, 0xd1, 0xd1,
+	0x52, 0xf1, 0x1b, 0xf8, 0x29, 0x94, 0x29, 0x29, 0xc9, 0xd2, 0x50, 0x50, 0xe4, 0x27, 0xa0, 0x79,
+	0x24, 0xb1, 0x0d, 0xd5, 0x9e, 0xf3, 0x9d, 0xef, 0xbc, 0xbe, 0xb3, 0x03, 0x95, 0x51, 0xc6, 0x25,
+	0x17, 0x81, 0xfe, 0x50, 0x37, 0xc3, 0x21, 0x97, 0x58, 0xdf, 0x8a, 0x13, 0xd9, 0x1f, 0x1f, 0x07,
+	0x3d, 0x3e, 0x6c, 0xc5, 0x3c, 0xe6, 0x2d, 0x1d, 0x3e, 0x1e, 0x9f, 0x68, 0x4f, 0x3b, 0xda, 0x32,
+	0x69, 0xf5, 0xfb, 0x53, 0xf4, 0x5d, 0x31, 0x49, 0x4f, 0x33, 0x9e, 0x76, 0x5e, 0x99, 0x24, 0xd6,
+	0x93, 0x3c, 0xdb, 0x8a, 0x79, 0x4b, 0x1b, 0xad, 0xe9, 0x76, 0xfe, 0x07, 0x02, 0x95, 0x67, 0x28,
+	0x04, 0x8b, 0x71, 0x8f, 0xc9, 0x5e, 0x9f, 0xfe, 0x0b, 0x20, 0x27, 0x23, 0xec, 0xa6, 0x6c, 0x88,
+	0xa2, 0x46, 0x1a, 0x85, 0x66, 0x29, 0x2c, 0x29, 0xe4, 0xb9, 0x02, 0xe8, 0xff, 0x50, 0x91, 0x2c,
+	0x8b, 0x51, 0x5a, 0xc2, 0x82, 0x26, 0x94, 0x0d, 0x66, 0x28, 0xf7, 0xa0, 0x84, 0xe9, 0x19, 0x0e,
+	0xf8, 0x08, 0x45, 0xad, 0xd0, 0x28, 0x34, 0xcb, 0xed, 0xcd, 0xc0, 0x6c, 0x15, 0xd8, 0x56, 0x87,
+	0x36, 0x1e, 0xde, 0x30, 0xfd, 0x9f, 0x04, 0xaa, 0x73, 0x61, 0xba, 0x09, 0x4b, 0x7a, 0x98, 0x24,
+	0xaa, 0x91, 0x06, 0x69, 0x16, 0x43, 0x57, 0xb9, 0x9d, 0x48, 0x8d, 0x31, 0x34, 0xdc, 0x6e, 0xc4,
+	0x24, 0xab, 0x2d, 0x34, 0x48, 0xb3, 0x12, 0x96, 0x2d, 0x76, 0xc0, 0x24, 0xa3, 0x1b, 0xe0, 0x9a,
+	0xa9, 0x6a, 0x05, 0x9b, 0xaa, 0x3d, 0xea, 0x83, 0x2b, 0x30, 0x8d, 0x30, 0xab, 0x2d, 0x36, 0x48,
+	0xb3, 0xdc, 0x86, 0x40, 0xcb, 0x12, 0x1c, 0x75, 0x0e, 0x42, 0x1b, 0xa1, 0xb7, 0x60, 0x59, 0x60,
+	0x96, 0xb0, 0x41, 0xf2, 0x16, 0x33, 0xd5, 0xbd, 0xa8, 0x4b, 0x54, 0x6e, 0xc0, 0x4e, 0x44, 0x77,
+	0x60, 0xe5, 0x6a, 0x86, 0x3e, 0x32, 0x55, 0xd0, 0xd5, 0x05, 0xd7, 0xe7, 0x96, 0x7d, 0xaa, 0x83,
+	0xe1, 0xf2, 0x70, 0xda, 0xf5, 0x3f, 0x11, 0x58, 0x9e, 0x21, 0xd0, 0x27, 0x50, 0x36, 0x75, 0xcc,
+	0x4a, 0x44, 0x2b, 0x77, 0xfb, 0x8f, 0xc5, 0x02, 0xf3, 0x51, 0x7b, 0x1e, 0xa6, 0x32, 0x9b, 0x84,
+	0xd0, 0xbf, 0x06, 0xea, 0x8f, 0xa1, 0x3a, 0x17, 0xa6, 0xab, 0x50, 0x38, 0xc5, 0x89, 0xd6, 0xb0,
+	0x14, 0x2a, 0x93, 0xae, 0x41, 0xf1, 0x8c, 0x0d, 0xc6, 0xa8, 0x95, 0x2b, 0x85, 0xc6, 0x79, 0xb4,
+	0xf0, 0x80, 0xf8, 0x0f, 0xa1, 0xba, 0xab, 0x04, 0x39, 0x4a, 0xa2, 0x10, 0xdf, 0x8c, 0x51, 0x48,
+	0x4a, 0x61, 0x51, 0x5d, 0xdb, 0xe6, 0x6b, 0x5b, 0x61, 0xa7, 0x49, 0x1a, 0xd9, 0x7c, 0x6d, 0xfb,
+	0x2f, 0x60, 0xf5, 0x26, 0x55, 0x8c, 0x78, 0x2a, 0x90, 0xfe, 0x03, 0x85, 0x91, 0x3d, 0xdf, 0xac,
+	0xd6, 0x0a, 0xa6, 0xff, 0x41, 0x59, 0x48, 0x26, 0xc7, 0xa2, 0xdb, 0xe3, 0x91, 0x19, 0xa6, 0x18,
+	0x82, 0x81, 0xf6, 0x79, 0x84, 0xbe, 0x0b, 0x8b, 0xaf, 0xd3, 0x44, 0xfa, 0xab, 0xb0, 0xb2, 0xcf,
+	0xd3, 0x14, 0x7b, 0xd2, 0x0e, 0xe5, 0x1f, 0x42, 0xf5, 0x1a, 0xb1, 0xbd, 0xda, 0xb0, 0x1e, 0xe1,
+	0x09, 0x1b, 0x0f, 0x64, 0x77, 0xf6, 0x7c, 0xe6, 0xe7, 0xf9, 0xdb, 0x06, 0x5f, 0x4e, 0x5d, 0xb1,
+	0xfd, 0x0e, 0xfe, 0x0a, 0x95, 0xc2, 0x49, 0x1a, 0xd3, 0x1d, 0x58, 0xb2, 0x25, 0xe9, 0xc6, 0x95,
+	0xee, 0xb3, 0x5d, 0xeb, 0x9b, 0xbf, 0xe1, 0xa6, 0xb7, 0xef, 0xd0, 0x6d, 0x58, 0x0a, 0xb1, 0x87,
+	0xc9, 0x19, 0xd2, 0xb5, 0xb9, 0xab, 0xe9, 0xa7, 0x55, 0xaf, 0x5c, 0xa1, 0x7a, 0x23, 0xa7, 0x49,
+	0xee, 0x92, 0xbd, 0x3b, 0xe7, 0x17, 0x9e, 0xf3, 0xf5, 0xc2, 0x73, 0x2e, 0x2f, 0x3c, 0xe7, 0x7d,
+	0xee, 0x91, 0xcf, 0xb9, 0x47, 0xbe, 0xe4, 0x1e, 0x39, 0xcf, 0x3d, 0xf2, 0x2d, 0xf7, 0xc8, 0x8f,
+	0xdc, 0x73, 0x2e, 0x73, 0x8f, 0x7c, 0xfc, 0xee, 0x39, 0xc7, 0xae, 0x7e, 0xb4, 0xdb, 0xbf, 0x02,
+	0x00, 0x00, 0xff, 0xff, 0x32, 0xf3, 0x79, 0x19, 0x33, 0x04, 0x00, 0x00,
 }
