@@ -40,8 +40,11 @@ type {{ $service.Name }}Grain struct {
 }
 
 {{ range $method := $service.Methods}}	
-func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }}, options ...cluster.GrainCallOption) (*{{ $method.Output.Name }}, error) {
-	conf := cluster.ApplyGrainCallOptions(options)
+func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }}) (*{{ $method.Output.Name }}, error) {
+	return g.{{ $method.Name }}WithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Input.Name }}, opts *cluster.GrainCallOptions) (*{{ $method.Output.Name }}, error) {
 	fun := func() (*{{ $method.Output.Name }}, error) {
 			pid, statusCode := cluster.Get(g.ID, "{{ $service.Name }}")
 			if statusCode != remote.ResponseStatusCodeOK {
@@ -52,7 +55,7 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }
 				return nil, err
 			}
 			request := &cluster.GrainRequest{Method: "{{ $method.Name }}", MessageData: bytes}
-			response, err := pid.RequestFuture(request, conf.Timeout).Result()
+			response, err := pid.RequestFuture(request, opts.Timeout).Result()
 			if err != nil {
 				return nil, err
 			}
@@ -73,24 +76,28 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }
 	
 	var res *{{ $method.Output.Name }}
 	var err error
-	for i := 0; i < conf.RetryCount; i++ {
+	for i := 0; i < opts.RetryCount; i++ {
 		res, err = fun()
 		if err == nil {
 			return res, nil
 		} else {
-			if conf.RetryAction != nil {
-				conf.RetryAction(i)
+			if opts.RetryAction != nil {
+				opts.RetryAction(i)
 			}
 		}
 	}
 	return nil, err
 }
 
-func (g *{{ $service.Name }}Grain) {{ $method.Name }}Chan(r *{{ $method.Input.Name }}, options ...cluster.GrainCallOption) (<-chan *{{ $method.Output.Name }}, <-chan error) {
+func (g *{{ $service.Name }}Grain) {{ $method.Name }}Chan(r *{{ $method.Input.Name }}) (<-chan *{{ $method.Output.Name }}, <-chan error) {
+	return g.{{ $method.Name }}ChanWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *{{ $service.Name }}Grain) {{ $method.Name }}ChanWithOpts(r *{{ $method.Input.Name }}, opts *cluster.GrainCallOptions) (<-chan *{{ $method.Output.Name }}, <-chan error) {
 	c := make(chan *{{ $method.Output.Name }})
 	e := make(chan error)
 	go func() {
-		res, err := g.{{ $method.Name }}(r, options...)
+		res, err := g.{{ $method.Name }}WithOpts(r, opts)
 		if err != nil {
 			e <- err
 		} else {

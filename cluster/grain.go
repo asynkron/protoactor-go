@@ -14,18 +14,25 @@ func (g *Grain) Init(id string) {
 	g.id = id
 }
 
-type GrainCallOption func(*GrainCallConfig)
-
-type GrainCallConfig struct {
+type GrainCallOptions struct {
 	RetryCount  int
 	Timeout     time.Duration
 	RetryAction func(n int)
 }
 
-func DefaultGrainCallConfig() *GrainCallConfig {
-	return &GrainCallConfig{
+var defaultGrainCallOptions *GrainCallOptions
+
+func DefaultGrainCallOptions() *GrainCallOptions {
+	if defaultGrainCallOptions == nil {
+		defaultGrainCallOptions = NewGrainCallOptions()
+	}
+	return defaultGrainCallOptions
+}
+
+func NewGrainCallOptions() *GrainCallOptions {
+	return &GrainCallOptions{
 		RetryCount: 10,
-		Timeout:    5 * time.Second,
+		Timeout:    cfg.TimeoutTime,
 		RetryAction: func(i int) {
 			i++
 			time.Sleep(time.Duration(i * i * 50))
@@ -33,22 +40,17 @@ func DefaultGrainCallConfig() *GrainCallConfig {
 	}
 }
 
-func ApplyGrainCallOptions(options []GrainCallOption) *GrainCallConfig {
-	config := DefaultGrainCallConfig()
-	for _, o := range options {
-		o(config)
-	}
+func (config *GrainCallOptions) WithTimeout(timeout time.Duration) *GrainCallOptions {
+	config.Timeout = timeout
 	return config
 }
 
-func WithTimeout(timeout time.Duration) GrainCallOption {
-	return func(o *GrainCallConfig) {
-		o.Timeout = timeout
-	}
+func (config *GrainCallOptions) WithRetry(count int) *GrainCallOptions {
+	config.RetryCount = count
+	return config
 }
 
-func WithRetry(count int) GrainCallOption {
-	return func(o *GrainCallConfig) {
-		o.RetryCount = count
-	}
+func (config *GrainCallOptions) WithRetryAction(act func(i int)) *GrainCallOptions {
+	config.RetryAction = act
+	return config
 }

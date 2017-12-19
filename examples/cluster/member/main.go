@@ -39,8 +39,9 @@ func main() {
 
 func sync() {
 	hello := shared.GetHelloGrain("abc")
-	options := []cluster.GrainCallOption{cluster.WithTimeout(5 * time.Second), cluster.WithRetry(5)}
-	res, err := hello.SayHello(&shared.HelloRequest{Name: "GAM"}, options...)
+	options := cluster.NewGrainCallOptions().WithTimeout(5 * time.Second).WithRetry(5)
+
+	res, err := hello.SayHelloWithOpts(&shared.HelloRequest{Name: "GAM"}, options)
 	if err != nil {
 		log.Fatal(err)
 	}

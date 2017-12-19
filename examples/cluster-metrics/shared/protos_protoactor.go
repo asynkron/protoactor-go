@@ -30,11 +30,11 @@ func GetHelloGrain(id string) *HelloGrain {
 type Hello interface {
 	Init(id string)
 		
-	SayHello(*HelloRequest) (*HelloResponse, error)
+	SayHello(*HelloRequest, cluster.GrainContext) (*HelloResponse, error)
 		
-	Add(*AddRequest) (*AddResponse, error)
+	Add(*AddRequest, cluster.GrainContext) (*AddResponse, error)
 		
-	VoidFunc(*AddRequest) (*Unit, error)
+	VoidFunc(*AddRequest, cluster.GrainContext) (*Unit, error)
 		
 }
 type HelloGrain struct {
@@ -42,8 +42,11 @@ type HelloGrain struct {
 }
 
 	
-func (g *HelloGrain) SayHello(r *HelloRequest, options ...cluster.GrainCallOption) (*HelloResponse, error) {
-	conf := cluster.ApplyGrainCallOptions(options)
+func (g *HelloGrain) SayHello(r *HelloRequest) (*HelloResponse, error) {
+	return g.SayHelloWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *HelloGrain) SayHelloWithOpts(r *HelloRequest, opts *cluster.GrainCallOptions) (*HelloResponse, error) {
 	fun := func() (*HelloResponse, error) {
 			pid, statusCode := cluster.Get(g.ID, "Hello")
 			if statusCode != remote.ResponseStatusCodeOK {
@@ -54,7 +57,7 @@ func (g *HelloGrain) SayHello(r *HelloRequest, options ...cluster.GrainCallOptio
 				return nil, err
 			}
 			request := &cluster.GrainRequest{Method: "SayHello", MessageData: bytes}
-			response, err := pid.RequestFuture(request, conf.Timeout).Result()
+			response, err := pid.RequestFuture(request, opts.Timeout).Result()
 			if err != nil {
 				return nil, err
 			}
@@ -75,20 +78,28 @@ func (g *HelloGrain) SayHello(r *HelloRequest, options ...cluster.GrainCallOptio
 	
 	var res *HelloResponse
 	var err error
-	for i := 0; i < conf.RetryCount; i++ {
+	for i := 0; i < opts.RetryCount; i++ {
 		res, err = fun()
 		if err == nil {
 			return res, nil
+		} else {
+			if opts.RetryAction != nil {
+				opts.RetryAction(i)
+			}
 		}
 	}
 	return nil, err
 }
 
-func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...cluster.GrainCallOption) (<-chan *HelloResponse, <-chan error) {
+func (g *HelloGrain) SayHelloChan(r *HelloRequest) (<-chan *HelloResponse, <-chan error) {
+	return g.SayHelloChanWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *HelloGrain) SayHelloChanWithOpts(r *HelloRequest, opts *cluster.GrainCallOptions) (<-chan *HelloResponse, <-chan error) {
 	c := make(chan *HelloResponse)
 	e := make(chan error)
 	go func() {
-		res, err := g.SayHello(r, options...)
+		res, err := g.SayHelloWithOpts(r, opts)
 		if err != nil {
 			e <- err
 		} else {
@@ -100,8 +111,11 @@ func (g *HelloGrain) SayHelloChan(r *HelloRequest, options ...cluster.GrainCallO
 	return c, e
 }
 	
-func (g *HelloGrain) Add(r *AddRequest, options ...cluster.GrainCallOption) (*AddResponse, error) {
-	conf := cluster.ApplyGrainCallOptions(options)
+func (g *HelloGrain) Add(r *AddRequest) (*AddResponse, error) {
+	return g.AddWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *HelloGrain) AddWithOpts(r *AddRequest, opts *cluster.GrainCallOptions) (*AddResponse, error) {
 	fun := func() (*AddResponse, error) {
 			pid, statusCode := cluster.Get(g.ID, "Hello")
 			if statusCode != remote.ResponseStatusCodeOK {
@@ -112,7 +126,7 @@ func (g *HelloGrain) Add(r *AddRequest, options ...cluster.GrainCallOption) (*Ad
 				return nil, err
 			}
 			request := &cluster.GrainRequest{Method: "Add", MessageData: bytes}
-			response, err := pid.RequestFuture(request, conf.Timeout).Result()
+			response, err := pid.RequestFuture(request, opts.Timeout).Result()
 			if err != nil {
 				return nil, err
 			}
@@ -133,20 +147,28 @@ func (g *HelloGrain) Add(r *AddRequest, options ...cluster.GrainCallOption) (*Ad
 	
 	var res *AddResponse
 	var err error
-	for i := 0; i < conf.RetryCount; i++ {
+	for i := 0; i < opts.RetryCount; i++ {
 		res, err = fun()
 		if err == nil {
 			return res, nil
+		} else {
+			if opts.RetryAction != nil {
+				opts.RetryAction(i)
+			}
 		}
 	}
 	return nil, err
 }
 
-func (g *HelloGrain) AddChan(r *AddRequest, options ...cluster.GrainCallOption) (<-chan *AddResponse, <-chan error) {
+func (g *HelloGrain) AddChan(r *AddRequest) (<-chan *AddResponse, <-chan error) {
+	return g.AddChanWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *HelloGrain) AddChanWithOpts(r *AddRequest, opts *cluster.GrainCallOptions) (<-chan *AddResponse, <-chan error) {
 	c := make(chan *AddResponse)
 	e := make(chan error)
 	go func() {
-		res, err := g.Add(r, options...)
+		res, err := g.AddWithOpts(r, opts)
 		if err != nil {
 			e <- err
 		} else {
@@ -158,8 +180,11 @@ func (g *HelloGrain) AddChan(r *AddRequest, options ...cluster.GrainCallOption) 
 	return c, e
 }
 	
-func (g *HelloGrain) VoidFunc(r *AddRequest, options ...cluster.GrainCallOption) (*Unit, error) {
-	conf := cluster.ApplyGrainCallOptions(options)
+func (g *HelloGrain) VoidFunc(r *AddRequest) (*Unit, error) {
+	return g.VoidFuncWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *HelloGrain) VoidFuncWithOpts(r *AddRequest, opts *cluster.GrainCallOptions) (*Unit, error) {
 	fun := func() (*Unit, error) {
 			pid, statusCode := cluster.Get(g.ID, "Hello")
 			if statusCode != remote.ResponseStatusCodeOK {
@@ -170,7 +195,7 @@ func (g *HelloGrain) VoidFunc(r *AddRequest, options ...cluster.GrainCallOption)
 				return nil, err
 			}
 			request := &cluster.GrainRequest{Method: "VoidFunc", MessageData: bytes}
-			response, err := pid.RequestFuture(request, conf.Timeout).Result()
+			response, err := pid.RequestFuture(request, opts.Timeout).Result()
 			if err != nil {
 				return nil, err
 			}
@@ -191,20 +216,28 @@ func (g *HelloGrain) VoidFunc(r *AddRequest, options ...cluster.GrainCallOption)
 	
 	var res *Unit
 	var err error
-	for i := 0; i < conf.RetryCount; i++ {
+	for i := 0; i < opts.RetryCount; i++ {
 		res, err = fun()
 		if err == nil {
 			return res, nil
+		} else {
+			if opts.RetryAction != nil {
+				opts.RetryAction(i)
+			}
 		}
 	}
 	return nil, err
 }
 
-func (g *HelloGrain) VoidFuncChan(r *AddRequest, options ...cluster.GrainCallOption) (<-chan *Unit, <-chan error) {
+func (g *HelloGrain) VoidFuncChan(r *AddRequest) (<-chan *Unit, <-chan error) {
+	return g.VoidFuncChanWithOpts(r, cluster.DefaultGrainCallOptions())
+}
+
+func (g *HelloGrain) VoidFuncChanWithOpts(r *AddRequest, opts *cluster.GrainCallOptions) (<-chan *Unit, <-chan error) {
 	c := make(chan *Unit)
 	e := make(chan error)
 	go func() {
-		res, err := g.VoidFunc(r, options...)
+		res, err := g.VoidFuncWithOpts(r, opts)
 		if err != nil {
 			e <- err
 		} else {
@@ -226,7 +259,11 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 	case *actor.Started:
 		a.inner = xHelloFactory()
 		id := ctx.Self().Id
-		a.inner.Init(id[7:len(id)]) //skip "remote$"
+		a.inner.Init(id[7:]) //skip "remote$"
+
+	case actor.AutoReceiveMessage: //pass
+	case actor.SystemMessage: //pass
+
 	case *cluster.GrainRequest:
 		switch msg.Method {
 			
@@ -236,7 +273,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			if err != nil {
 				log.Fatalf("[GRAIN] proto.Unmarshal failed %v", err)
 			}
-			r0, err := a.inner.SayHello(req)
+			r0, err := a.inner.SayHello(req, ctx)
 			if err == nil {
 				bytes, err := proto.Marshal(r0)
 				if err != nil {
@@ -255,7 +292,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			if err != nil {
 				log.Fatalf("[GRAIN] proto.Unmarshal failed %v", err)
 			}
-			r0, err := a.inner.Add(req)
+			r0, err := a.inner.Add(req, ctx)
 			if err == nil {
 				bytes, err := proto.Marshal(r0)
 				if err != nil {
@@ -274,7 +311,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			if err != nil {
 				log.Fatalf("[GRAIN] proto.Unmarshal failed %v", err)
 			}
-			r0, err := a.inner.VoidFunc(req)
+			r0, err := a.inner.VoidFunc(req, ctx)
 			if err == nil {
 				bytes, err := proto.Marshal(r0)
 				if err != nil {
@@ -296,13 +333,17 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 	
 
 
-func init() {
-	
-	remote.Register("Hello", actor.FromProducer(func() actor.Actor {
-		return &HelloActor {}
-		})		)
-		
-}
+//Why has this been removed?
+//This should only be done on servers of the below Kinds
+//Clients should not be forced to also be servers
+
+//func init() {
+//	
+//	remote.Register("Hello", actor.FromProducer(func() actor.Actor {
+//		return &HelloActor {}
+//		})		)
+//	
+//}
 
 
 
@@ -310,15 +351,15 @@ func init() {
 //	cluster.Grain
 // }
 
-// func (*hello) SayHello(r *HelloRequest) (*HelloResponse, error) {
+// func (*hello) SayHello(r *HelloRequest, cluster.GrainContext) (*HelloResponse, error) {
 // 	return &HelloResponse{}, nil
 // }
 
-// func (*hello) Add(r *AddRequest) (*AddResponse, error) {
+// func (*hello) Add(r *AddRequest, cluster.GrainContext) (*AddResponse, error) {
 // 	return &AddResponse{}, nil
 // }
 
-// func (*hello) VoidFunc(r *AddRequest) (*Unit, error) {
+// func (*hello) VoidFunc(r *AddRequest, cluster.GrainContext) (*Unit, error) {
 // 	return &Unit{}, nil
 // }
 
