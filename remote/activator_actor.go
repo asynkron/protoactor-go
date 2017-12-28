@@ -15,7 +15,8 @@ var (
 )
 
 func spawnActivatorActor() {
-	activatorPid, _ = actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
+	props := actor.FromProducer(newActivatorActor()).WithGuardian(actor.RestartingSupervisorStrategy())
+	activatorPid, _ = actor.SpawnNamed(props, "activator")
 }
 
 func stopActivatorActor() {

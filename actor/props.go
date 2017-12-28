@@ -9,6 +9,7 @@ type OutboundMiddleware func(next SenderFunc) SenderFunc
 type Props struct {
 	actorProducer       Producer
 	mailboxProducer     mailbox.Producer
+	guardianStrategy    SupervisorStrategy
 	supervisionStrategy SupervisorStrategy
 	inboundMiddleware   []InboundMiddleware
 	outboundMiddleware  []OutboundMiddleware
@@ -58,6 +59,12 @@ func (props *Props) WithOutboundMiddleware(middleware ...OutboundMiddleware) *Pr
 //WithMailbox assigns the desired mailbox producer to the props
 func (props *Props) WithMailbox(mailbox mailbox.Producer) *Props {
 	props.mailboxProducer = mailbox
+	return props
+}
+
+//WithGuardian assigns a guardian strategy to the props
+func (props *Props) WithGuardian(guardian SupervisorStrategy) *Props {
+	props.guardianStrategy = guardian
 	return props
 }
 

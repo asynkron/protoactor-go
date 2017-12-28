@@ -22,7 +22,7 @@ func setupPidCache() {
 		reverseCache: cmap.New(),
 	}
 
-	props := actor.FromProducer(newPidCacheWatcher())
+	props := actor.FromProducer(newPidCacheWatcher()).WithGuardian(actor.RestartingSupervisorStrategy())
 	pidCache.watcher, _ = actor.SpawnNamed(props, "PidCacheWatcher")
 
 	pidCache.memberStatusSub = eventstream.Subscribe(pidCache.onMemberStatusEvent).
