@@ -62,7 +62,8 @@ type partitionActor struct {
 }
 
 func spawnPartitionActor(kind string) *actor.PID {
-	partitionPid, _ := actor.SpawnNamed(actor.FromProducer(newPartitionActor(kind)), "partition-"+kind)
+	props := actor.FromProducer(newPartitionActor(kind)).WithGuardian(actor.RestartingSupervisorStrategy())
+	partitionPid, _ := actor.SpawnNamed(props, "partition-"+kind)
 	return partitionPid
 }
 

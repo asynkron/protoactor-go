@@ -60,7 +60,7 @@ func (strategy *allForOneStrategy) requestRestartPermission(rs *RestartStatistic
 
 	rs.Fail()
 
-	if strategy.withinDuration == 0 || rs.IsWithinDuration(strategy.withinDuration) {
+	if strategy.maxNrOfRetries > 0 && (strategy.withinDuration == 0 || rs.IsWithinDuration(strategy.withinDuration)) {
 		return rs.FailureCount <= strategy.maxNrOfRetries
 	}
 

@@ -15,7 +15,8 @@ var (
 )
 
 func spawnActivatorActor() {
-	activatorPid, _ = actor.SpawnNamed(actor.FromProducer(newActivatorActor()), "activator")
+	props := actor.FromProducer(newActivatorActor()).WithGuardian(actor.RestartingSupervisorStrategy())
+	activatorPid, _ = actor.SpawnNamed(props, "activator")
 }
 
 func stopActivatorActor() {
@@ -122,7 +123,6 @@ func (*activator) Receive(context actor.Context) {
 				StatusCode: ResponseStatusCodePROCESSNAMEALREADYEXIST.ToInt32(),
 			}
 			context.Respond(response)
-			panic(err)
 		} else if aErr, ok := err.(*ActivatorError); ok {
 			response := &ActorPidResponse{
 				StatusCode: aErr.Code,

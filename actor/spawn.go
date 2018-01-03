@@ -14,20 +14,24 @@ var DefaultSpawner SpawnFunc = spawn
 
 // Spawn starts a new actor based on props and named with a unique id
 func Spawn(props *Props) *PID {
-	pid, _ := props.spawn(ProcessRegistry.NextId(), nil)
+	pid, _ := SpawnNamed(props, ProcessRegistry.NextId())
 	return pid
 }
 
 // SpawnPrefix starts a new actor based on props and named using a prefix followed by a unique id
 func SpawnPrefix(props *Props, prefix string) (*PID, error) {
-	return props.spawn(prefix+ProcessRegistry.NextId(), nil)
+	return SpawnNamed(props, prefix+ProcessRegistry.NextId())
 }
 
 // SpawnNamed starts a new actor based on props and named using the specified name
 //
 // If name exists, error will be ErrNameExists
 func SpawnNamed(props *Props, name string) (*PID, error) {
-	return props.spawn(name, nil)
+	var parent *PID
+	if props.guardianStrategy != nil {
+		parent = guardians.getGuardianPid(props.guardianStrategy)
+	}
+	return props.spawn(name, parent)
 }
 
 func spawn(id string, props *Props, parent *PID) (*PID, error) {

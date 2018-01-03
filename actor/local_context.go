@@ -1,6 +1,7 @@
 package actor
 
 import (
+	"errors"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -425,6 +426,10 @@ func (ctx *localContext) SpawnPrefix(props *Props, prefix string) *PID {
 }
 
 func (ctx *localContext) SpawnNamed(props *Props, name string) (*PID, error) {
+	if props.guardianStrategy != nil {
+		panic(errors.New("Props used to spawn child cannot have GuardianStrategy"))
+	}
+
 	pid, err := props.spawn(ctx.self.Id+"/"+name, ctx.self)
 	if err != nil {
 		return pid, err

@@ -33,9 +33,10 @@ func startEndpointManager(config *remoteConfig) {
 	plog.Debug("Started EndpointManager")
 
 	props := actor.FromProducer(newEndpointSupervisor).
+		WithGuardian(actor.RestartingSupervisorStrategy()).
 		WithSupervisor(actor.RestartingSupervisorStrategy()).
 		WithDispatcher(mailbox.NewSynchronizedDispatcher(300))
-	endpointSupervisor := actor.Spawn(props)
+	endpointSupervisor, _ := actor.SpawnNamed(props, "EndpointSupervisor")
 
 	endpointManager = &endpointManagerValue{
 		connections:        &sync.Map{},
