@@ -8,7 +8,7 @@ import (
 )
 
 type setBehaviorActor struct {
-	sync.WaitGroup
+	*sync.WaitGroup
 }
 
 // Receive is the default message handler when an actor is started
@@ -28,14 +28,14 @@ func (f *setBehaviorActor) Other(context actor.Context) {
 
 // SetBehavior allows an actor to change its Receive handler, providing basic support for state machines
 func ExampleContext_setBehavior() {
-	a := &setBehaviorActor{}
-	a.Add(1)
-	pid := actor.Spawn(actor.FromInstance(a))
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	pid := actor.Spawn(actor.FromProducer(func() actor.Actor { return &setBehaviorActor{wg} }))
 	defer pid.GracefulStop()
 
 	pid.Tell("other")
 	pid.Tell("foo")
-	a.Wait()
+	wg.Wait()
 
 	// Output: foo
 }

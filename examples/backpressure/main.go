@@ -49,7 +49,7 @@ func (p *producer) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		//spawn our worker
-		workerProps := actor.FromInstance(&worker{}).WithMailbox(mailbox.Unbounded(&requestWorkBehavior{
+		workerProps := actor.FromProducer(func() actor.Actor { return &worker{} }).WithMailbox(mailbox.Unbounded(&requestWorkBehavior{
 			producer: ctx.Self(),
 		}))
 		p.worker = ctx.Spawn(workerProps)
@@ -87,7 +87,7 @@ type work struct {
 }
 
 func main() {
-	producerProps := actor.FromInstance(&producer{})
+	producerProps := actor.FromProducer(func() actor.Actor { return &producer{} })
 	actor.Spawn(producerProps)
 
 	console.ReadLine()

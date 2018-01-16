@@ -9,7 +9,7 @@ import (
 )
 
 type setReceiveTimeoutActor struct {
-	sync.WaitGroup
+	*sync.WaitGroup
 }
 
 // Receive is the default message handler when an actor is started
@@ -32,13 +32,13 @@ func (f *setReceiveTimeoutActor) Receive(context actor.Context) {
 // SetReceiveTimeout allows an actor to be notified repeatedly if it does not receive any messages
 // for a specified duration
 func ExampleContext_setReceiveTimeout() {
-	a := &setReceiveTimeoutActor{}
-	a.Add(1)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
 
-	pid := actor.Spawn(actor.FromInstance(a))
+	pid := actor.Spawn(actor.FromProducer(func() actor.Actor { return &setReceiveTimeoutActor{wg} }))
 	defer pid.GracefulStop()
 
-	a.Wait() // wait for the ReceiveTimeout message
+	wg.Wait() // wait for the ReceiveTimeout message
 
 	// Output: timed out
 }

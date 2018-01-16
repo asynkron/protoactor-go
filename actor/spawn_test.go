@@ -37,7 +37,7 @@ func (a *GorgeousActor) Receive(context Context) {
 func TestLookupById(t *testing.T) {
 	ID := "UniqueID"
 	{
-		props := FromInstance(&GorgeousActor{Counter: Counter{value: 0}})
+		props := FromProducer(func() Actor { return &GorgeousActor{Counter: Counter{value: 0}} })
 		pid, _ := SpawnNamed(props, ID)
 		defer pid.Stop()
 
@@ -51,7 +51,7 @@ func TestLookupById(t *testing.T) {
 		assert.Equal(t, 1, value.(int))
 	}
 	{
-		props := FromInstance(&GorgeousActor{Counter: Counter{value: 0}})
+		props := FromProducer(func() Actor { return &GorgeousActor{Counter: Counter{value: 0}} })
 		pid, _ := SpawnNamed(props, ID)
 		result := pid.RequestFuture(Increment{}, testTimeout)
 		value, err := result.Result()

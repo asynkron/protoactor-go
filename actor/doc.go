@@ -28,7 +28,7 @@ Alternatively, a type which conforms to the Actor interface, by defining a singl
 		// process messages
 	}
 
-	var props Props = actor.FromInstance(&MyActor{})
+	var props Props = actor.FromProducer(func() Actor { return &MyActor{} })
 
 Spawn and SpawnNamed use the given props to create a running instances of an actor. Once spawned, the actor is
 ready to process incoming messages. To spawn an actor with a unique name, use
@@ -48,14 +48,7 @@ An actor processes messages via its Receive handler. The signature of this funct
 	Receive(c actor.Context)
 
 The actor system guarantees that this method is called synchronously, therefore there is no requirement to protect
-shared state inside calls to this function. See the caution above
-
-CAUTION: whilst spawning multiple actors from the same Props will have their own private mailbox, using FromInstance or
-FromFunc will reference the same instance or function and therefore should not modify shared state. Use FromProducer,
-which accepts a function that produces new Actor instances:
-
-	var props Props = actor.FromProducer(func() actor.Actor { return &MyActor{} })
-
+shared state inside calls to this function.
 
 Communicating With Actors
 

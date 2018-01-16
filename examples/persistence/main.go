@@ -79,7 +79,7 @@ func main() {
 	provider := NewProvider(3)
 	provider.InitState("persistent", 4, 3)
 
-	props := actor.FromInstance(&Actor{}).WithMiddleware(persistence.Using(provider))
+	props := actor.FromProducer(func() actor.Actor { return &Actor{} }).WithMiddleware(persistence.Using(provider))
 	pid, _ := actor.SpawnNamed(props, "persistent")
 	pid.Tell(&Message{protoMsg: protoMsg{state: "state4"}})
 	pid.Tell(&Message{protoMsg: protoMsg{state: "state5"}})

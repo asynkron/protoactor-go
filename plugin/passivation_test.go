@@ -25,7 +25,7 @@ func TestPassivation(t *testing.T) {
 	UnitOfTime := time.Duration(200 * time.Millisecond)
 	PassivationDuration := time.Duration(3 * UnitOfTime)
 	props := actor.
-		FromInstance(&SmartActor{}).
+		FromProducer(func() actor.Actor { return &SmartActor{} }).
 		WithMiddleware(Use(&PassivationPlugin{Duration: PassivationDuration}))
 
 	pid := actor.Spawn(props)

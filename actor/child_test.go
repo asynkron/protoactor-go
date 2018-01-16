@@ -90,7 +90,7 @@ func TestActorCanStopChildren(t *testing.T) {
 }
 
 func TestActorReceivesTerminatedFromWatched(t *testing.T) {
-	child := Spawn(FromInstance(nullReceive))
+	child := Spawn(FromFunc(nullReceive))
 	future := NewFuture(testTimeout)
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -109,7 +109,7 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 		}
 	}
 
-	Spawn(FromInstance(r))
+	Spawn(FromFunc(r))
 	wg.Wait()
 	child.Stop()
 
@@ -117,7 +117,7 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 }
 
 func TestFutureDoesTimeout(t *testing.T) {
-	pid := Spawn(FromInstance(nullReceive))
+	pid := Spawn(FromFunc(nullReceive))
 	_, err := pid.RequestFuture("", time.Millisecond).Result()
 	assert.EqualError(t, err, ErrTimeout.Error())
 }
@@ -131,7 +131,7 @@ func TestFutureDoesNotTimeout(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		c.Respond("foo")
 	}
-	pid := Spawn(FromInstance(r))
+	pid := Spawn(FromFunc(r))
 	reply, err := pid.RequestFuture("", 2*time.Second).Result()
 	assert.NoError(t, err)
 	assert.Equal(t, "foo", reply)
