@@ -14,7 +14,7 @@ type actorWithSupervisor struct {
 func (a *actorWithSupervisor) Receive(ctx Context) {
 	switch ctx.Message().(type) {
 	case *Started:
-		child := ctx.Spawn(FromInstance(&failingChildActor{}))
+		child := ctx.Spawn(FromProducer(func() Actor { return &failingChildActor{} }))
 		ctx.Tell(child, "Fail!")
 	}
 }
@@ -35,8 +35,7 @@ func (a *failingChildActor) Receive(ctx Context) {
 func TestActorWithOwnSupervisorCanHandleFailure(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	parent := &actorWithSupervisor{wg: wg}
-	props := FromInstance(parent)
+	props := FromProducer(func() Actor { return &actorWithSupervisor{wg: wg} })
 	Spawn(props)
 	wg.Wait()
 }
@@ -85,7 +84,7 @@ func (e *Expector) ExpectNoMsg(t *testing.T) {
 
 func TestActorStopsAfterXRestars(t *testing.T) {
 	m, e := NewObserver()
-	props := FromInstance(&failingChildActor{}).WithMiddleware(m)
+	props := FromProducer(func() Actor { return &failingChildActor{} }).WithMiddleware(m)
 	child := Spawn(props)
 	fail := "fail!"
 

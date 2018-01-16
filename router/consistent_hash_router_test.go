@@ -60,8 +60,7 @@ func (state *managerActor) Receive(context actor.Context) {
 				//log.Println(v)
 
 			} else {
-
-				props := actor.FromInstance(&routerActor{})
+				props := actor.FromProducer(func() actor.Actor { return &routerActor{} })
 				pid := actor.Spawn(props)
 				state.rpid.Tell(&router.AddRoutee{pid})
 				//log.Println(v)
@@ -80,15 +79,15 @@ func TestConcurrency(t *testing.T) {
 	}
 
 	wait.Add(100 * 10000)
-	rpid := actor.Spawn(router.NewConsistentHashPool(100).WithInstance(&routerActor{}))
+	rpid := actor.Spawn(router.NewConsistentHashPool(100).WithProducer(func() actor.Actor { return &routerActor{} }))
 
-	props := actor.FromInstance(&tellerActor{})
+	props := actor.FromProducer(func() actor.Actor { return &tellerActor{} })
 	for i := 0; i < 10000; i++ {
 		pid := actor.Spawn(props)
 		pid.Tell(&myMessage{i, rpid})
 	}
 
-	props = actor.FromInstance(&managerActor{})
+	props = actor.FromProducer(func() actor.Actor { return &managerActor{} })
 	pid := actor.Spawn(props)
 	pid.Tell(&getRoutees{rpid})
 	wait.Wait()

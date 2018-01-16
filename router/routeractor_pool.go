@@ -11,7 +11,7 @@ type poolRouterActor struct {
 	props  *actor.Props
 	config RouterConfig
 	state  Interface
-	wg     sync.WaitGroup
+	wg     *sync.WaitGroup
 }
 
 func (a *poolRouterActor) Receive(context actor.Context) {

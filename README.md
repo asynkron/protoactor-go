@@ -132,7 +132,7 @@ func (state *HelloActor) Receive(context actor.Context) {
 }
 
 func main() {
-    props := actor.FromInstance(&HelloActor{})
+    props := actor.FromProducer(func() actor.Actor { return &HelloActor{} })
     pid := actor.Spawn(props)
     pid.Tell(Hello{Who: "Roger"})
     console.ReadLine()
@@ -197,7 +197,7 @@ func (state *HelloActor) Receive(context actor.Context) {
 }
 
 func main() {
-    props := actor.FromInstance(&HelloActor{})
+    props := actor.FromProducer(func() actor.Actor { return &HelloActor{} })
     pid := actor.Spawn(props)
     actor.Tell(pid, Hello{Who: "Roger"})
 
@@ -331,7 +331,7 @@ func main() {
     remote.Start("localhost:8091")
 
     //register a name for our local actor so that it can be discovered remotely
-    remote.Register("hello", actor.FromInstance(&MyActor{}))
+    remote.Register("hello", actor.FromProducer(func() actor.Actor { return &MyActor{} }))
     console.ReadLine()
 }
 ```

@@ -88,13 +88,7 @@ func (props *Props) WithSpawnFunc(spawn SpawnFunc) *Props {
 
 //WithFunc assigns a receive func to the props
 func (props *Props) WithFunc(f ActorFunc) *Props {
-	props.actorProducer = makeProducerFromInstance(f)
-	return props
-}
-
-//WithInstance creates a custom actor producer from a given instance and assigns it to the props
-func (props *Props) WithInstance(a Actor) *Props {
-	props.actorProducer = makeProducerFromInstance(a)
+	props.actorProducer = func() Actor { return f }
 	return props
 }
 
@@ -104,27 +98,8 @@ func (props *Props) WithProducer(p Producer) *Props {
 	return props
 }
 
-//FromProducer creates a props with the given actor producer assigned
-func FromProducer(actorProducer Producer) *Props {
-	return &Props{actorProducer: actorProducer}
-}
-
-//FromFunc creates a props with the given receive func assigned as the actor producer
-func FromFunc(f ActorFunc) *Props {
-	return FromInstance(f)
-}
-
-//FromInstance creates a props with the given instance assigned as the actor producer
-func FromInstance(template Actor) *Props {
-	return &Props{actorProducer: makeProducerFromInstance(template)}
-}
-
-func makeProducerFromInstance(a Actor) Producer {
-	return func() Actor {
-		return a
-	}
-}
-
-func FromSpawnFunc(spawn SpawnFunc) *Props {
-	return &Props{spawner: spawn}
+//Deprecated: WithInstance is deprecated.
+func (props *Props) WithInstance(a Actor) *Props {
+	props.actorProducer = makeProducerFromInstance(a)
+	return props
 }

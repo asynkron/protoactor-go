@@ -44,7 +44,7 @@ func (p *NamerPlugin) OnOtherMessage(ctx actor.Context, usrMsg interface{}) {}
 
 func main() {
 	props := actor.
-		FromInstance(&myActor{}).
+		FromProducer(func() actor.Actor { return &myActor{} }).
 		WithMiddleware(
 			plugin.Use(&NamerPlugin{}),
 			middleware.Logger,
