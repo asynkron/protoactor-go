@@ -1,29 +1,46 @@
 package actor
 
-import "time"
+import (
+	"time"
+)
 
 //RestartStatistics keeps track of how many times an actor have restarted and when
 type RestartStatistics struct {
-	FailureCount    int
-	LastFailureTime time.Time
+	failureTimes []time.Time
+}
+
+//NewRestartStatistics construct a RestartStatistics
+func NewRestartStatistics() *RestartStatistics {
+	return &RestartStatistics{[]time.Time{}}
+}
+
+//FailureCount returns failure count
+func (rs *RestartStatistics) FailureCount() int {
+	return len(rs.failureTimes)
 }
 
 //Fail increases the associated actors failure count
 func (rs *RestartStatistics) Fail() {
-	rs.FailureCount++
+	rs.failureTimes = append(rs.failureTimes, time.Now())
 }
 
 //Reset the associated actors failure count
 func (rs *RestartStatistics) Reset() {
-	rs.FailureCount = 0
+	rs.failureTimes = []time.Time{}
 }
 
-//Restart sets the last failure timestamp for the associated actor
-func (rs *RestartStatistics) Restart() {
-	rs.LastFailureTime = time.Now()
-}
+//NumberOfFailures returns number of failures within a given duration
+func (rs *RestartStatistics) NumberOfFailures(withinDuration time.Duration) int {
+	if withinDuration == 0 {
+		return len(rs.failureTimes)
+	}
 
-//IsWithinDuration checks if a given duration is within the timespan from now to the last falure timestamp
-func (rs *RestartStatistics) IsWithinDuration(withinDuration time.Duration) bool {
-	return time.Since(rs.LastFailureTime) < withinDuration
+	num := 0
+	currTime := time.Now()
+	for _, t := range rs.failureTimes {
+		if currTime.Sub(t) < withinDuration {
+			num++
+		}
+	}
+	return num
 }

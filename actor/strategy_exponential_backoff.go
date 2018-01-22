@@ -24,7 +24,7 @@ type exponentialBackoffStrategy struct {
 func (strategy *exponentialBackoffStrategy) HandleFailure(supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
 	strategy.setFailureCount(rs)
 
-	backoff := rs.FailureCount * int(strategy.initialBackoff.Nanoseconds())
+	backoff := rs.FailureCount() * int(strategy.initialBackoff.Nanoseconds())
 	noise := rand.Intn(500)
 	dur := time.Duration(backoff + noise)
 	time.AfterFunc(dur, func() {
@@ -33,13 +33,9 @@ func (strategy *exponentialBackoffStrategy) HandleFailure(supervisor Supervisor,
 }
 
 func (strategy *exponentialBackoffStrategy) setFailureCount(rs *RestartStatistics) {
-	rs.Fail()
-
-	// if we are within the backoff window, exit early
-	if rs.IsWithinDuration(strategy.backoffWindow) {
-		return
+	if rs.NumberOfFailures(strategy.backoffWindow) == 0 {
+		rs.Reset()
 	}
 
-	//we are past the backoff limit, reset the failure counter
-	rs.Reset()
+	rs.Fail()
 }

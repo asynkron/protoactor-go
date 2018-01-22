@@ -30,12 +30,12 @@ func (strategy *oneForOne) HandleFailure(supervisor Supervisor, child *PID, rs *
 		supervisor.ResumeChildren(child)
 	case RestartDirective:
 		//try restart the failing child
-		if strategy.requestRestartPermission(rs) {
-			logFailure(child, reason, RestartDirective)
-			supervisor.RestartChildren(child)
-		} else {
+		if strategy.shouldStop(rs) {
 			logFailure(child, reason, StopDirective)
 			supervisor.StopChildren(child)
+		} else {
+			logFailure(child, reason, RestartDirective)
+			supervisor.RestartChildren(child)
 		}
 	case StopDirective:
 		//stop the failing child, no need to involve the crs
@@ -49,20 +49,19 @@ func (strategy *oneForOne) HandleFailure(supervisor Supervisor, child *PID, rs *
 	}
 }
 
-func (strategy *oneForOne) requestRestartPermission(rs *RestartStatistics) bool {
+func (strategy *oneForOne) shouldStop(rs *RestartStatistics) bool {
 
-	//supervisor says this child may not restart
+	// supervisor says this child may not restart
 	if strategy.maxNrOfRetries == 0 {
-		return false
+		return true
 	}
 
 	rs.Fail()
 
-	if strategy.maxNrOfRetries > 0 && (strategy.withinDuration == 0 || rs.IsWithinDuration(strategy.withinDuration)) {
-		return rs.FailureCount <= strategy.maxNrOfRetries
+	if rs.NumberOfFailures(strategy.withinDuration) > strategy.maxNrOfRetries {
+		rs.Reset()
+		return true
 	}
 
-	//we are past the time limit, we can safely reset the failure count and restart
-	rs.Reset()
-	return true
+	return false
 }

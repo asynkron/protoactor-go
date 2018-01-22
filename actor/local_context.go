@@ -203,9 +203,7 @@ func (ctx *localContext) RestartStats() *RestartStatistics {
 	//lazy initialize the child restart stats if this is the first time
 	//further mutations are handled within "restart"
 	if ctx.restartStats == nil {
-		ctx.restartStats = &RestartStatistics{
-			FailureCount: 0,
-		}
+		ctx.restartStats = NewRestartStatistics()
 	}
 	return ctx.restartStats
 }
@@ -356,7 +354,6 @@ func (ctx *localContext) tryRestartOrTerminate() {
 func (ctx *localContext) restart() {
 	ctx.incarnateActor()
 	ctx.InvokeUserMessage(startedMessage)
-	ctx.RestartStats().Restart()
 	if ctx.stash != nil {
 		for !ctx.stash.Empty() {
 			msg, _ := ctx.stash.Pop()
