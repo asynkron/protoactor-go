@@ -61,7 +61,7 @@ func (state *endpointWriter) initializeInternal() error {
 	go func() {
 		_, err := stream.Recv()
 		if err != nil {
-			plog.Info("EndpointWriter lost connection to address", log.String("address", state.address))
+			plog.Info("EndpointWriter lost connection to address", log.String("address", state.address), log.Error(err))
 
 			//notify that the endpoint terminated
 			terminated := &EndpointTerminatedEvent{
