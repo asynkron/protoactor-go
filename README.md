@@ -354,6 +354,7 @@ message Response {
   string SomeValue = 1;
 }
 ```
+Notice: always use "gogoslick_out" instead of "go_out" when generating proto code. "gogoslick_out" will create type names which will be used during serialization.
 
 For more examples, see the example folder in this repository.
 
