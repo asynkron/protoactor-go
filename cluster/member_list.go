@@ -168,7 +168,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			if _, ok := ml.memberStrategyByKind[k]; !ok {
 				ml.memberStrategyByKind[k] = cfg.MemberStrategyBuilder(k)
 			}
-			ml.memberStrategyByKind[k].AddMember(new)
+			ml.memberStrategyByKind[k].UpdateMember(new)
 		}
 	}
 
