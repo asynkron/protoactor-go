@@ -85,7 +85,7 @@ func (c *pidCacheValue) removeCacheByName(name string) {
 }
 
 func (c *pidCacheValue) removeCacheByMemberAddress(address string) {
-	for item := range c.cache.Iter() {
+	for item := range c.cache.IterBuffered() {
 		name := item.Key
 		pid := item.Val.(*actor.PID)
 		if pid.Address == address {
