@@ -22,6 +22,9 @@ type Context interface {
 	//Tell sends a message to the given PID
 	Tell(pid *PID, message interface{})
 
+	//Forward forwards current message to the given PID
+	Forward(pid *PID)
+
 	//Request sends a message to the given PID and also provides a Sender PID
 	Request(pid *PID, message interface{})
 

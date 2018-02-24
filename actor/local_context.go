@@ -91,6 +91,15 @@ func (ctx *localContext) Tell(pid *PID, message interface{}) {
 	ctx.sendUserMessage(pid, message)
 }
 
+func (ctx *localContext) Forward(pid *PID) {
+	if msg, ok := ctx.Message().(SystemMessage); ok {
+		// SystemMessage cannot be forwarded
+		plog.Error("SystemMessage cannot be forwarded", log.Message(msg))
+		return
+	}
+	ctx.sendUserMessage(pid, ctx.message)
+}
+
 func (ctx *localContext) sendUserMessage(pid *PID, message interface{}) {
 	if ctx.outboundMiddleware != nil {
 		if env, ok := message.(*MessageEnvelope); ok {
