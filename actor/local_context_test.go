@@ -142,6 +142,38 @@ func TestLocalContext_Respond(t *testing.T) {
 	eventstream.Unsubscribe(deadLetterSubscriber)
 }
 
+func TestLocalContext_Forward(t *testing.T) {
+
+	// Defined a respond actor
+	// It simply respond the string message
+	responder := Spawn(FromFunc(func(ctx Context) {
+		switch m := ctx.Message().(type) {
+		case string:
+			ctx.Respond(fmt.Sprintf("Got a string: %s", m))
+		}
+	}))
+
+	// Defined a forwarder actor
+	// It simply forward the string message to responder
+	forwarder := Spawn(FromFunc(func(ctx Context) {
+		switch ctx.Message().(type) {
+		case string:
+			ctx.Forward(responder)
+		}
+	}))
+
+	// Send a message to the responder using Request
+	// The responder should send something back.
+	timeout := 3 * time.Millisecond
+	res, err := forwarder.RequestFuture("hello", timeout).Result()
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
+
+	resStr, ok := res.(string)
+	assert.True(t, ok)
+	assert.Equal(t, "Got a string: hello", resStr)
+}
+
 func BenchmarkLocalContext_ProcessMessageWithMiddleware(b *testing.B) {
 	var m interface{} = 1
 

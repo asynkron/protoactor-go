@@ -85,6 +85,10 @@ func (m *mockContext) Tell(pid *actor.PID, message interface{}) {
 	m.Called()
 }
 
+func (m *mockContext) Forward(pid *actor.PID) {
+	m.Called()
+}
+
 func (m *mockContext) Request(pid *actor.PID, message interface{}) {
 	m.Called()
 }
