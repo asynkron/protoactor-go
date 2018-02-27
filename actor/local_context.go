@@ -8,6 +8,16 @@ import (
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 )
 
+type contextState int32
+
+const (
+	stateNone contextState = iota
+	stateAlive
+	stateRestarting
+	stateStopping
+	stateStopped
+)
+
 type localContext struct {
 	message            interface{}
 	parent             *PID
@@ -23,8 +33,7 @@ type localContext struct {
 	watchers           PIDSet
 	watching           PIDSet
 	stash              *linkedliststack.Stack
-	stopping           bool
-	restarting         bool
+	state              contextState
 	receiveTimeout     time.Duration
 	t                  *time.Timer
 	restartStats       *RestartStatistics
@@ -230,6 +239,11 @@ func (ctx *localContext) EscalateFailure(reason interface{}, message interface{}
 }
 
 func (ctx *localContext) InvokeUserMessage(md interface{}) {
+	if ctx.state == stateStopped {
+		//already stopped
+		return
+	}
+
 	influenceTimeout := true
 	if ctx.receiveTimeout > 0 {
 		_, influenceTimeout = md.(NotInfluenceReceiveTimeout)
@@ -264,13 +278,17 @@ func (ctx *localContext) processMessage(m interface{}) {
 
 func (ctx *localContext) incarnateActor() {
 	pid := ctx.producer()
-	ctx.restarting = false
-	ctx.stopping = false
+	ctx.state = stateAlive
 	ctx.actor = pid
 	ctx.receive = pid.Receive
 }
 
 func (ctx *localContext) InvokeSystemMessage(message interface{}) {
+	if ctx.state == stateStopped {
+		//already stopped
+		return
+	}
+
 	switch msg := message.(type) {
 	case *continuation:
 		ctx.message = msg.message // apply the message that was present when we started the await
@@ -279,13 +297,9 @@ func (ctx *localContext) InvokeSystemMessage(message interface{}) {
 	case *Started:
 		ctx.InvokeUserMessage(msg) // forward
 	case *Watch:
-		if ctx.stopping {
-			msg.Watcher.sendSystemMessage(&Terminated{Who: ctx.self})
-		} else {
-			ctx.watchers.Add(msg.Watcher)
-		}
+		ctx.handleWatch(msg)
 	case *Unwatch:
-		ctx.watchers.Remove(msg.Watcher)
+		ctx.handleUnwatch(msg)
 	case *Stop:
 		ctx.handleStop(msg)
 	case *Terminated:
@@ -299,9 +313,22 @@ func (ctx *localContext) InvokeSystemMessage(message interface{}) {
 	}
 }
 
+func (ctx *localContext) handleWatch(msg *Watch) {
+	if ctx.state >= stateStopping {
+		msg.Watcher.sendSystemMessage(&Terminated{
+			Who: ctx.self,
+		})
+	} else {
+		ctx.watchers.Add(msg.Watcher)
+	}
+}
+
+func (ctx *localContext) handleUnwatch(msg *Unwatch) {
+	ctx.watchers.Remove(msg.Watcher)
+}
+
 func (ctx *localContext) handleRestart(msg *Restart) {
-	ctx.stopping = false
-	ctx.restarting = true
+	ctx.state = stateRestarting
 	ctx.InvokeUserMessage(restartingMessage)
 	ctx.children.ForEach(func(_ int, pid PID) {
 		pid.Stop()
@@ -311,8 +338,12 @@ func (ctx *localContext) handleRestart(msg *Restart) {
 
 //I am stopping
 func (ctx *localContext) handleStop(msg *Stop) {
-	ctx.stopping = true
-	ctx.restarting = false
+	if ctx.state >= stateStopping {
+		//already stopping or stopped
+		return
+	}
+
+	ctx.state = stateStopping
 
 	ctx.InvokeUserMessage(stoppingMessage)
 	ctx.children.ForEach(func(_ int, pid PID) {
@@ -350,12 +381,10 @@ func (ctx *localContext) tryRestartOrTerminate() {
 		return
 	}
 
-	if ctx.restarting {
+	switch ctx.state {
+	case stateRestarting:
 		ctx.restart()
-		return
-	}
-
-	if ctx.stopping {
+	case stateStopping:
 		ctx.stopped()
 	}
 }
@@ -379,6 +408,7 @@ func (ctx *localContext) stopped() {
 	ctx.watchers.ForEach(func(i int, pid PID) {
 		pid.sendSystemMessage(otherStopped)
 	})
+	ctx.state = stateStopped
 }
 
 func (ctx *localContext) SetBehavior(behavior ActorFunc) {
