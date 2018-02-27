@@ -3,6 +3,7 @@ package actor_test
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
@@ -18,6 +19,7 @@ func Example() {
 	pid := actor.Spawn(props)
 
 	pid.Tell("Hello World")
+	time.Sleep(time.Millisecond * 100)
 	pid.GracefulStop() // wait for the actor to stop
 
 	// Output: Hello World
