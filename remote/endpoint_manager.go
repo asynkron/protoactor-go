@@ -127,8 +127,7 @@ func (em *endpointManagerValue) removeEndpoint(msg *EndpointTerminatedEvent) {
 			em.connections.Delete(msg.Address)
 			ep := le.valueFunc()
 			ep.watcher.Tell(msg)
-			ep.watcher.Stop()
-			ep.writer.Stop()
+			ep.writer.Tell(msg)
 		}
 	}
 }
