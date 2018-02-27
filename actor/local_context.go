@@ -284,11 +284,6 @@ func (ctx *localContext) incarnateActor() {
 }
 
 func (ctx *localContext) InvokeSystemMessage(message interface{}) {
-	if ctx.state == stateStopped {
-		//already stopped
-		return
-	}
-
 	switch msg := message.(type) {
 	case *continuation:
 		ctx.message = msg.message // apply the message that was present when we started the await
