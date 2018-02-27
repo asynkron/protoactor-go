@@ -155,6 +155,8 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 		state.conn.Close()
 	case *actor.Restarting:
 		state.conn.Close()
+	case *EndpointTerminatedEvent:
+		ctx.Self().Stop()
 	case []interface{}:
 		state.sendEnvelopes(msg, ctx)
 	case actor.SystemMessage, actor.AutoReceiveMessage:
