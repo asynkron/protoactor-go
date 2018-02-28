@@ -72,6 +72,7 @@ func (pid *PID) sendSystemMessage(message interface{}) {
 	pid.ref().SendSystemMessage(pid, message)
 }
 
+// StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
 func (pid *PID) StopFuture() *Future {
 	future := NewFuture(10 * time.Second)
 
@@ -81,13 +82,34 @@ func (pid *PID) StopFuture() *Future {
 	return future
 }
 
+// GracefulStop will wait actor to stop immediately regardless of existing user messages in mailbox
 func (pid *PID) GracefulStop() {
 	pid.StopFuture().Wait()
 }
 
-//Stop the given PID
+// Stop will stop actor immediately regardless of existing user messages in mailbox.
 func (pid *PID) Stop() {
 	pid.ref().Stop(pid)
+}
+
+// PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
+func (pid *PID) PoisonFuture() *Future {
+	future := NewFuture(10 * time.Second)
+
+	pid.sendSystemMessage(&Watch{Watcher: future.pid})
+	pid.Poison()
+
+	return future
+}
+
+// GracefulPoison will tell and wait actor to stop after processing current user messages in mailbox.
+func (pid *PID) GracefulPoison() {
+	pid.PoisonFuture().Wait()
+}
+
+// Poison will tell actor to stop after processing current user messages in mailbox.
+func (pid *PID) Poison() {
+	pid.Tell(&PoisonPill{})
 }
 
 func pidFromKey(key string, p *PID) {
