@@ -1,6 +1,11 @@
 package router
 
-import "github.com/AsynkronIT/protoactor-go/actor"
+import (
+	"sync/atomic"
+	"unsafe"
+
+	"github.com/AsynkronIT/protoactor-go/actor"
+)
 
 type broadcastGroupRouter struct {
 	GroupRouter
@@ -15,11 +20,16 @@ type broadcastRouterState struct {
 }
 
 func (state *broadcastRouterState) SetRoutees(routees *actor.PIDSet) {
-	state.routees = routees
+	rts := *routees
+	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees)), unsafe.Pointer(&rts))
 }
 
 func (state *broadcastRouterState) GetRoutees() *actor.PIDSet {
-	return state.routees
+	newSet := &actor.PIDSet{}
+	state.routees.ForEach(func(i int, pid actor.PID) {
+		newSet.Add(&pid)
+	})
+	return newSet
 }
 
 func (state *broadcastRouterState) RouteMessage(message interface{}) {
