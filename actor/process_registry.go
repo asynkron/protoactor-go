@@ -7,10 +7,10 @@ import (
 )
 
 type ProcessRegistryValue struct {
+	SequenceID     uint64
 	Address        string
 	LocalPIDs      cmap.ConcurrentMap
 	RemoteHandlers []AddressResolver
-	SequenceID     uint64
 }
 
 var (

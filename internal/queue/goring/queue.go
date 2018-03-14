@@ -13,8 +13,8 @@ type ringBuffer struct {
 }
 
 type Queue struct {
-	content *ringBuffer
 	len     int64
+	content *ringBuffer
 	lock    sync.Mutex
 }
 
