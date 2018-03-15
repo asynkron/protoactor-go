@@ -2,6 +2,8 @@ package router
 
 import (
 	"math/rand"
+	"sync/atomic"
+	"unsafe"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
@@ -16,12 +18,13 @@ type randomPoolRouter struct {
 
 type randomRouterState struct {
 	routees *actor.PIDSet
-	values  []actor.PID
+	values  *[]actor.PID
 }
 
 func (state *randomRouterState) SetRoutees(routees *actor.PIDSet) {
 	state.routees = routees
-	state.values = routees.Values()
+	values := routees.Values()
+	atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&state.values)), unsafe.Pointer(&values))
 }
 
 func (state *randomRouterState) GetRoutees() *actor.PIDSet {
@@ -29,9 +32,7 @@ func (state *randomRouterState) GetRoutees() *actor.PIDSet {
 }
 
 func (state *randomRouterState) RouteMessage(message interface{}) {
-	l := len(state.values)
-	r := rand.Intn(l)
-	pid := state.values[r]
+	pid := randomRoutee(*state.values)
 	pid.Tell(message)
 }
 
@@ -49,4 +50,11 @@ func (config *randomPoolRouter) CreateRouterState() Interface {
 
 func (config *randomGroupRouter) CreateRouterState() Interface {
 	return &randomRouterState{}
+}
+
+func randomRoutee(routees []actor.PID) actor.PID {
+	l := len(routees)
+	r := rand.Intn(l)
+	pid := routees[r]
+	return pid
 }

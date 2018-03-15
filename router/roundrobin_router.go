@@ -2,6 +2,7 @@ package router
 
 import (
 	"sync/atomic"
+	"unsafe"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
@@ -17,12 +18,13 @@ type roundRobinPoolRouter struct {
 type roundRobinState struct {
 	index   int32
 	routees *actor.PIDSet
-	values  []actor.PID
+	values  *[]actor.PID
 }
 
 func (state *roundRobinState) SetRoutees(routees *actor.PIDSet) {
 	state.routees = routees
-	state.values = routees.Values()
+	values := routees.Values()
+	atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&state.values)), unsafe.Pointer(&values))
 }
 
 func (state *roundRobinState) GetRoutees() *actor.PIDSet {
@@ -30,7 +32,7 @@ func (state *roundRobinState) GetRoutees() *actor.PIDSet {
 }
 
 func (state *roundRobinState) RouteMessage(message interface{}) {
-	pid := roundRobinRoutee(&state.index, state.values)
+	pid := roundRobinRoutee(&state.index, *state.values)
 	pid.Tell(message)
 }
 

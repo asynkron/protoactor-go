@@ -2,6 +2,8 @@ package router
 
 import (
 	"log"
+	"sync/atomic"
+	"unsafe"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/serialx/hashring"
@@ -39,7 +41,7 @@ func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 	})
 	//initialize hashring for mapping message keys to node names
 	hmc.hashring = hashring.New(nodes)
-	state.hmc = &hmc
+	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.hmc)), unsafe.Pointer(&hmc))
 }
 
 func (state *consistentHashRouterState) GetRoutees() *actor.PIDSet {
