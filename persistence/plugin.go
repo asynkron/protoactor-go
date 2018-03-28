@@ -21,6 +21,10 @@ type Mixin struct {
 	recovering    bool
 }
 
+// enforces that Mixin implements persistent interface
+// (if they diverge, code breaks in other packages)
+var _ persistent = (*Mixin)(nil)
+
 func (mixin *Mixin) Recovering() bool {
 	return mixin.recovering
 }
@@ -30,10 +34,10 @@ func (mixin *Mixin) Name() string {
 }
 func (mixin *Mixin) PersistReceive(message proto.Message) {
 	mixin.providerState.PersistEvent(mixin.Name(), mixin.eventIndex, message)
-	mixin.eventIndex++
 	if mixin.eventIndex%mixin.providerState.GetSnapshotInterval() == 0 {
 		mixin.receiver.Receive(&RequestSnapshot{})
 	}
+	mixin.eventIndex++
 }
 
 func (mixin *Mixin) PersistSnapshot(snapshot proto.Message) {
