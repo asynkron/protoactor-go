@@ -17,8 +17,9 @@ func NewPIDSet(pids ...*PID) *PIDSet {
 }
 
 func (p *PIDSet) indexOf(v *PID) int {
+	key := v.key()
 	for i, pid := range p.s {
-		if v.key() == pid {
+		if key == pid {
 			return i
 		}
 	}
@@ -140,4 +141,21 @@ func (p *PIDSet) ForEach(f func(i int, pid PID)) {
 			i++
 		}
 	}
+}
+
+func (p *PIDSet) Clone() *PIDSet {
+	var s PIDSet
+	if p.s != nil {
+		s.s = make([]string, len(p.s))
+		for i, v := range p.s {
+			s.s[i] = v
+		}
+	}
+	if p.m != nil {
+		s.m = make(map[string]struct{}, len(p.m))
+		for v := range p.m {
+			s.m[v] = struct{}{}
+		}
+	}
+	return &s
 }

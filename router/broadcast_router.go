@@ -25,11 +25,7 @@ func (state *broadcastRouterState) SetRoutees(routees *actor.PIDSet) {
 }
 
 func (state *broadcastRouterState) GetRoutees() *actor.PIDSet {
-	newSet := &actor.PIDSet{}
-	state.routees.ForEach(func(i int, pid actor.PID) {
-		newSet.Add(&pid)
-	})
-	return newSet
+	return state.routees.Clone()
 }
 
 func (state *broadcastRouterState) RouteMessage(message interface{}) {
