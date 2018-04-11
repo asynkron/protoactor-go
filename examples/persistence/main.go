@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 
@@ -83,6 +84,10 @@ func main() {
 	pid, _ := actor.SpawnNamed(props, "persistent")
 	pid.Tell(&Message{protoMsg: protoMsg{state: "state4"}})
 	pid.Tell(&Message{protoMsg: protoMsg{state: "state5"}})
+
+	pid.GracefulPoison()
+	fmt.Printf("*** restart ***\n")
+	pid, _ = actor.SpawnNamed(props, "persistent")
 
 	console.ReadLine()
 }
