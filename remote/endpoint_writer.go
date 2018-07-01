@@ -91,6 +91,13 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	var targetID int32
 	var serializerID int32
 	for i, tmp := range msg {
+
+		switch unwrapped := tmp.(type) {
+		case *EndpointTerminatedEvent, EndpointTerminatedEvent:
+			plog.Debug("Handling array wrapped terminate event", log.String("address", state.address), log.Object("msg", unwrapped))
+			ctx.Self().Stop()
+			return
+		}
 		rd := tmp.(*remoteDeliver)
 
 		if rd.serializerID == -1 {
