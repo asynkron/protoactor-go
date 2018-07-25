@@ -247,6 +247,12 @@ func (ctx *localContext) InvokeUserMessage(md interface{}) {
 	influenceTimeout := true
 	if ctx.receiveTimeout > 0 {
 		_, influenceTimeout = md.(NotInfluenceReceiveTimeout)
+
+		envelope, ok := md.(*MessageEnvelope)
+		if ok {
+			_, influenceTimeout = envelope.Message.(NotInfluenceReceiveTimeout)
+		}
+
 		influenceTimeout = !influenceTimeout
 		if influenceTimeout {
 			ctx.t.Stop()
