@@ -100,6 +100,19 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	}
 }
 
+// Get PIDs of members for the specified kind
+func GetMemberPIDs(kind string) actor.PIDSet {
+	pids := actor.PIDSet{}
+	for _, value := range memberList.members {
+		for _, memberKind := range value.Kinds {
+			if kind == memberKind  {
+				pids.Add(actor.NewPID(value.Address(), kind))
+			}
+		}
+	}
+	return pids
+}
+
 //RemoveCache at PidCache
 func RemoveCache(name string) {
 	pidCache.removeCacheByName(name)
