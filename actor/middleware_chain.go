@@ -1,25 +1,37 @@
 package actor
 
-func makeInboundMiddlewareChain(middleware []InboundMiddleware, lastReceiver ActorFunc) ActorFunc {
-	if len(middleware) == 0 {
+func makeReceiverMiddlewareChain(receiverMiddleware []ReceiverMiddleware, lastReceiver ReceiverFunc) ReceiverFunc {
+	if len(receiverMiddleware) == 0 {
 		return nil
 	}
 
-	h := middleware[len(middleware)-1](lastReceiver)
-	for i := len(middleware) - 2; i >= 0; i-- {
-		h = middleware[i](h)
+	h := receiverMiddleware[len(receiverMiddleware)-1](lastReceiver)
+	for i := len(receiverMiddleware) - 2; i >= 0; i-- {
+		h = receiverMiddleware[i](h)
 	}
 	return h
 }
 
-func makeOutboundMiddlewareChain(outboundMiddleware []OutboundMiddleware, lastSender SenderFunc) SenderFunc {
-	if len(outboundMiddleware) == 0 {
+func makeSenderMiddlewareChain(senderMiddleware []SenderMiddleware, lastSender SenderFunc) SenderFunc {
+	if len(senderMiddleware) == 0 {
 		return nil
 	}
 
-	h := outboundMiddleware[len(outboundMiddleware)-1](lastSender)
-	for i := len(outboundMiddleware) - 2; i >= 0; i-- {
-		h = outboundMiddleware[i](h)
+	h := senderMiddleware[len(senderMiddleware)-1](lastSender)
+	for i := len(senderMiddleware) - 2; i >= 0; i-- {
+		h = senderMiddleware[i](h)
+	}
+	return h
+}
+
+func makeContextDecoratorChain(decorator []ContextDecorator, lastDecorator ContextDecoratorFunc) ContextDecoratorFunc {
+	if len(decorator) == 0 {
+		return nil
+	}
+
+	h := decorator[len(decorator)-1](lastDecorator)
+	for i := len(decorator) - 2; i >= 0; i-- {
+		h = decorator[i](h)
 	}
 	return h
 }

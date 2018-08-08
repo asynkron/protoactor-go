@@ -1,20 +1,63 @@
 package actor
 
-import "github.com/AsynkronIT/protoactor-go/mailbox"
+import (
+	"errors"
 
-type InboundMiddleware func(next ActorFunc) ActorFunc
-type OutboundMiddleware func(next SenderFunc) SenderFunc
+	"github.com/AsynkronIT/protoactor-go/mailbox"
+)
+
+// Props types
+type SpawnFunc func(id string, props *Props, parent *PID) (*PID, error)
+type ReceiverMiddleware func(next ReceiverFunc) ReceiverFunc
+type SenderMiddleware func(next SenderFunc) SenderFunc
+type ContextDecorator func(next ContextDecoratorFunc) ContextDecoratorFunc
+
+// Default values
+var (
+	defaultDispatcher      = mailbox.NewDefaultDispatcher(300)
+	defaultMailboxProducer = mailbox.Unbounded()
+	defaultSpawner         = func(id string, props *Props, parent *PID) (*PID, error) {
+		ctx := newActorContext(props, parent)
+		mb := props.produceMailbox()
+		dp := props.dispatcher
+		proc := newActorProcess(mb)
+		pid, absent := ProcessRegistry.Add(proc, id)
+		if !absent {
+			return pid, ErrNameExists
+		}
+		ctx.self = pid
+		mb.Start()
+		mb.RegisterHandlers(ctx, dp)
+		mb.PostSystemMessage(startedMessage)
+
+		return pid, nil
+	}
+)
+
+// ErrNameExists is the error used when an existing name is used for spawning an actor.
+var ErrNameExists = errors.New("spawn: name exists")
 
 // Props represents configuration to define how an actor should be created
 type Props struct {
-	actorProducer       Producer
-	mailboxProducer     mailbox.Producer
-	guardianStrategy    SupervisorStrategy
-	supervisionStrategy SupervisorStrategy
-	inboundMiddleware   []InboundMiddleware
-	outboundMiddleware  []OutboundMiddleware
-	dispatcher          mailbox.Dispatcher
-	spawner             SpawnFunc
+	spawner                 SpawnFunc
+	producer                Producer
+	mailboxProducer         mailbox.Producer
+	guardianStrategy        SupervisorStrategy
+	supervisionStrategy     SupervisorStrategy
+	dispatcher              mailbox.Dispatcher
+	receiverMiddleware      []ReceiverMiddleware
+	senderMiddleware        []SenderMiddleware
+	receiverMiddlewareChain ReceiverFunc
+	senderMiddlewareChain   SenderFunc
+	contextDecorator        []ContextDecorator
+	contextDecoratorChain   ContextDecoratorFunc
+}
+
+func (props *Props) getSpawner() SpawnFunc {
+	if props.spawner == nil {
+		return defaultSpawner
+	}
+	return props.spawner
 }
 
 func (props *Props) getDispatcher() mailbox.Dispatcher {
@@ -31,34 +74,43 @@ func (props *Props) getSupervisor() SupervisorStrategy {
 	return props.supervisionStrategy
 }
 
-func (props *Props) produceMailbox(invoker mailbox.MessageInvoker, dispatcher mailbox.Dispatcher) mailbox.Inbound {
+func (props *Props) produceMailbox() mailbox.Mailbox {
 	if props.mailboxProducer == nil {
-		return defaultMailboxProducer(invoker, dispatcher)
+		return defaultMailboxProducer()
 	}
-	return props.mailboxProducer(invoker, dispatcher)
+	return props.mailboxProducer()
 }
 
-func (props *Props) spawn(id string, parent *PID) (*PID, error) {
-	if props.spawner != nil {
-		return props.spawner(id, props, parent)
-	}
-	return DefaultSpawner(id, props, parent)
+func (props *Props) spawn(name string, parent *PID) (*PID, error) {
+	return props.getSpawner()(name, props, parent)
 }
 
-// Assign one or more middlewares to the props
-func (props *Props) WithMiddleware(middleware ...InboundMiddleware) *Props {
-	props.inboundMiddleware = append(props.inboundMiddleware, middleware...)
+//WithProducer assigns a actor producer to the props
+func (props *Props) WithProducer(p Producer) *Props {
+	props.producer = p
 	return props
 }
 
-func (props *Props) WithOutboundMiddleware(middleware ...OutboundMiddleware) *Props {
-	props.outboundMiddleware = append(props.outboundMiddleware, middleware...)
+//WithDispatcher assigns a dispatcher to the props
+func (props *Props) WithDispatcher(dispatcher mailbox.Dispatcher) *Props {
+	props.dispatcher = dispatcher
 	return props
 }
 
 //WithMailbox assigns the desired mailbox producer to the props
 func (props *Props) WithMailbox(mailbox mailbox.Producer) *Props {
 	props.mailboxProducer = mailbox
+	return props
+}
+
+//WithContextDecorator assigns context decorator to the props
+func (props *Props) WithContextDecorator(contextDecorator ...ContextDecorator) *Props {
+	props.contextDecorator = append(props.contextDecorator, contextDecorator...)
+
+	props.contextDecoratorChain = makeContextDecoratorChain(props.contextDecorator, func(ctx Context) Context {
+		return ctx
+	})
+
 	return props
 }
 
@@ -74,9 +126,26 @@ func (props *Props) WithSupervisor(supervisor SupervisorStrategy) *Props {
 	return props
 }
 
-//WithDispatcher assigns a dispatcher to the props
-func (props *Props) WithDispatcher(dispatcher mailbox.Dispatcher) *Props {
-	props.dispatcher = dispatcher
+// Assign one or more middlewares to the props
+func (props *Props) WithReceiverMiddleware(middleware ...ReceiverMiddleware) *Props {
+	props.receiverMiddleware = append(props.receiverMiddleware, middleware...)
+
+	// Construct the receiver middleware chain with the final receiver at the end
+	props.receiverMiddlewareChain = makeReceiverMiddlewareChain(props.receiverMiddleware, func(ctx ReceiverContext, envelope *MessageEnvelope) {
+		ctx.Receive(envelope)
+	})
+
+	return props
+}
+
+func (props *Props) WithSenderMiddleware(middleware ...SenderMiddleware) *Props {
+	props.senderMiddleware = append(props.senderMiddleware, middleware...)
+
+	// Construct the sender middleware chain with the final sender at the end
+	props.senderMiddlewareChain = makeSenderMiddlewareChain(props.senderMiddleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
+		target.sendUserMessage(envelope)
+	})
+
 	return props
 }
 
@@ -88,18 +157,16 @@ func (props *Props) WithSpawnFunc(spawn SpawnFunc) *Props {
 
 //WithFunc assigns a receive func to the props
 func (props *Props) WithFunc(f ActorFunc) *Props {
-	props.actorProducer = func() Actor { return f }
+	props.producer = func() Actor { return f }
 	return props
 }
 
-//WithProducer assigns a actor producer to the props
-func (props *Props) WithProducer(p Producer) *Props {
-	props.actorProducer = p
-	return props
+//PropsFromProducer creates a props with the given actor producer assigned
+func PropsFromProducer(producer Producer) *Props {
+	return &Props{producer: producer}
 }
 
-//Deprecated: WithInstance is deprecated.
-func (props *Props) WithInstance(a Actor) *Props {
-	props.actorProducer = makeProducerFromInstance(a)
-	return props
+//PropsFromFunc creates a props with the given receive func assigned as the actor producer
+func PropsFromFunc(f ActorFunc) *Props {
+	return PropsFromProducer(func() Actor { return f })
 }

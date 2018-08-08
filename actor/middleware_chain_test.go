@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func middleware(called *int) InboundMiddleware {
+func middleware(called *int) ReceiverMiddleware {
 	return func(next ActorFunc) ActorFunc {
 		fn := func(context Context) {
 			*called = context.Message().(int)
@@ -17,10 +17,10 @@ func middleware(called *int) InboundMiddleware {
 	}
 }
 
-func TestMakeInboundMiddleware_CallsInCorrectOrder(t *testing.T) {
+func TestMakeReceiverMiddleware_CallsInCorrectOrder(t *testing.T) {
 	var c [3]int
 
-	r := []InboundMiddleware{
+	r := []ReceiverMiddleware{
 		middleware(&c[0]),
 		middleware(&c[1]),
 		middleware(&c[2]),
@@ -31,7 +31,7 @@ func TestMakeInboundMiddleware_CallsInCorrectOrder(t *testing.T) {
 	mc.On("Message").Return(2).Once()
 	mc.On("Message").Return(3).Once()
 
-	chain := makeInboundMiddlewareChain(r, func(_ Context) {})
+	chain := makeReceiverMiddlewareChain(r, func(_ Context) {})
 	chain(mc)
 
 	assert.Equal(t, 1, c[0])
@@ -41,5 +41,5 @@ func TestMakeInboundMiddleware_CallsInCorrectOrder(t *testing.T) {
 }
 
 func TestMakeInboundMiddleware_ReturnsNil(t *testing.T) {
-	assert.Nil(t, makeInboundMiddlewareChain([]InboundMiddleware{}, func(_ Context) {}))
+	assert.Nil(t, makeReceiverMiddlewareChain([]InboundMiddleware{}, func(_ Context) {}))
 }

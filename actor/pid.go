@@ -25,7 +25,7 @@ func (m *PID) MarshalJSONPB(*jsonpb.Marshaler) ([]byte, error) {
 func (pid *PID) ref() Process {
 	p := (*Process)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p))))
 	if p != nil {
-		if l, ok := (*p).(*localProcess); ok && atomic.LoadInt32(&l.dead) == 1 {
+		if l, ok := (*p).(*actorProcess); ok && atomic.LoadInt32(&l.dead) == 1 {
 			atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p)), nil)
 		} else {
 			return *p
@@ -40,32 +40,9 @@ func (pid *PID) ref() Process {
 	return ref
 }
 
-// Tell sends a messages asynchronously to the PID
-func (pid *PID) Tell(message interface{}) {
+// sendUserMessage sends a messages asynchronously to the PID
+func (pid *PID) sendUserMessage(message interface{}) {
 	pid.ref().SendUserMessage(pid, message)
-}
-
-// Request sends a messages asynchronously to the PID. The actor may send a response back via respondTo, which is
-// available to the receiving actor via Context.Sender
-func (pid *PID) Request(message interface{}, respondTo *PID) {
-	env := &MessageEnvelope{
-		Message: message,
-		Header:  nil,
-		Sender:  respondTo,
-	}
-	pid.ref().SendUserMessage(pid, env)
-}
-
-// RequestFuture sends a message to a given PID and returns a Future
-func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Future {
-	future := NewFuture(timeout)
-	env := &MessageEnvelope{
-		Message: message,
-		Header:  nil,
-		Sender:  future.PID(),
-	}
-	pid.ref().SendUserMessage(pid, env)
-	return future
 }
 
 func (pid *PID) sendSystemMessage(message interface{}) {
@@ -109,18 +86,7 @@ func (pid *PID) GracefulPoison() {
 
 // Poison will tell actor to stop after processing current user messages in mailbox.
 func (pid *PID) Poison() {
-	pid.Tell(&PoisonPill{})
-}
-
-func pidFromKey(key string, p *PID) {
-	i := strings.IndexByte(key, '#')
-	if i == -1 {
-		p.Address = ProcessRegistry.Address
-		p.Id = key
-	} else {
-		p.Address = key[:i]
-		p.Id = key[i+1:]
-	}
+	pid.sendUserMessage(&PoisonPill{})
 }
 
 func (pid *PID) key() string {
@@ -150,5 +116,16 @@ func NewLocalPID(id string) *PID {
 	return &PID{
 		Address: ProcessRegistry.Address,
 		Id:      id,
+	}
+}
+
+func pidFromKey(key string, p *PID) {
+	i := strings.IndexByte(key, '#')
+	if i == -1 {
+		p.Address = ProcessRegistry.Address
+		p.Id = key
+	} else {
+		p.Address = key[:i]
+		p.Id = key[i+1:]
 	}
 }

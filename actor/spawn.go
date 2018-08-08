@@ -1,14 +1,6 @@
 package actor
 
-import (
-	"errors"
-)
-
-// ErrNameExists is the error used when an existing name is used for spawning an actor.
-var ErrNameExists = errors.New("spawn: name exists")
-
-type SpawnFunc func(id string, props *Props, parent *PID) (*PID, error)
-
+/*
 // DefaultSpawner conforms to Spawner and is used to spawn a local actor
 var DefaultSpawner SpawnFunc = spawn
 
@@ -41,7 +33,7 @@ func spawn(id string, props *Props, parent *PID) (*PID, error) {
 		return pid, ErrNameExists
 	}
 
-	cell := newLocalContext(props.actorProducer, props.getSupervisor(), props.inboundMiddleware, props.outboundMiddleware, parent)
+	cell := newLocalContext(props.producer, props.getSupervisor(), props.inboundMiddleware, props.outboundMiddleware, parent)
 	mb := props.produceMailbox(cell, props.getDispatcher())
 	lp.mailbox = mb
 	var ref Process = lp
@@ -52,3 +44,4 @@ func spawn(id string, props *Props, parent *PID) (*PID, error) {
 
 	return pid, nil
 }
+*/

@@ -22,15 +22,16 @@ type MessageInvoker interface {
 	EscalateFailure(reason interface{}, message interface{})
 }
 
-// The Inbound interface is used to enqueue messages to the mailbox
-type Inbound interface {
+// The mailbox interface is used to enqueue messages to the mailbox
+type Mailbox interface {
 	PostUserMessage(message interface{})
 	PostSystemMessage(message interface{})
+	RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher)
 	Start()
 }
 
 // Producer is a function which creates a new mailbox
-type Producer func(invoker MessageInvoker, dispatcher Dispatcher) Inbound
+type Producer func() Mailbox
 
 const (
 	idle int32 = iota
@@ -65,6 +66,11 @@ func (m *defaultMailbox) PostSystemMessage(message interface{}) {
 	m.systemMailbox.Push(message)
 	atomic.AddInt32(&m.sysMessages, 1)
 	m.schedule()
+}
+
+func (m *defaultMailbox) RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher) {
+	m.invoker = invoker
+	m.dispatcher = dispatcher
 }
 
 func (m *defaultMailbox) schedule() {

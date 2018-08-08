@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestLocalContext_SpawnNamed(t *testing.T) {
+func TestActorContext_SpawnNamed(t *testing.T) {
 	pid, p := spawnMockProcess("foo/bar")
 	defer removeMockProcess(pid)
 	p.On("SendSystemMessage", matchPID(pid), mock.Anything)
@@ -22,14 +22,14 @@ func TestLocalContext_SpawnNamed(t *testing.T) {
 		},
 	}
 
-	parent := &localContext{self: NewLocalPID("foo")}
+	parent := &actorContext{self: NewLocalPID("foo")}
 	parent.SpawnNamed(props, "bar")
 	p.AssertExpectations(t)
 }
 
-// TestLocalContext_Stop verifies if context is stopping and receives a Watch message, it should
+// TestActorContext_Stop verifies if context is stopping and receives a Watch message, it should
 // immediately respond with a Terminated message
-func TestLocalContext_Stop(t *testing.T) {
+func TestActorContext_Stop(t *testing.T) {
 	pid, p := spawnMockProcess("foo")
 	defer removeMockProcess(pid)
 
@@ -38,7 +38,7 @@ func TestLocalContext_Stop(t *testing.T) {
 
 	o.On("SendSystemMessage", other, &Terminated{Who: pid})
 
-	lc := newLocalContext(nullProducer, DefaultSupervisorStrategy(), nil, nil, nil)
+	lc := newActorContext(nullProducer, DefaultSupervisorStrategy(), nil, nil, nil)
 	lc.self = pid
 	lc.InvokeSystemMessage(&Stop{})
 	lc.InvokeSystemMessage(&Watch{Watcher: other})
@@ -47,7 +47,7 @@ func TestLocalContext_Stop(t *testing.T) {
 	o.AssertExpectations(t)
 }
 
-func TestLocalContext_SendMessage_WithOutboundMiddleware(t *testing.T) {
+func TestActorContext_SendMessage_WithOutboundMiddleware(t *testing.T) {
 	// Define a local context with no-op outbound middlware
 	mw := func(next SenderFunc) SenderFunc {
 		return func(ctx Context, target *PID, envelope *MessageEnvelope) {
@@ -55,7 +55,7 @@ func TestLocalContext_SendMessage_WithOutboundMiddleware(t *testing.T) {
 		}
 	}
 
-	ctx := newLocalContext(nullProducer, DefaultSupervisorStrategy(), nil, []OutboundMiddleware{mw}, nil)
+	ctx := newActorContext(nullProducer, DefaultSupervisorStrategy(), nil, []OutboundMiddleware{mw}, nil)
 
 	// Define a receiver to which the local context will send a message
 	var counter int
@@ -86,17 +86,17 @@ func TestLocalContext_SendMessage_WithOutboundMiddleware(t *testing.T) {
 	assert.Equal(t, 1, counter)
 }
 
-func BenchmarkLocalContext_ProcessMessageNoMiddleware(b *testing.B) {
+func BenchmarkActorContext_ProcessMessageNoMiddleware(b *testing.B) {
 	var m interface{} = 1
 
-	ctx := &localContext{actor: nullReceive}
+	ctx := &actorContext{actor: nullReceive}
 	ctx.SetBehavior(nullReceive.Receive)
 	for i := 0; i < b.N; i++ {
 		ctx.processMessage(m)
 	}
 }
 
-func TestLocalContext_Respond(t *testing.T) {
+func TestActorContext_Respond(t *testing.T) {
 	// Defined a responder actor
 	// It simply echoes a received string.
 	responder := Spawn(FromFunc(func(ctx Context) {
@@ -142,7 +142,7 @@ func TestLocalContext_Respond(t *testing.T) {
 	eventstream.Unsubscribe(deadLetterSubscriber)
 }
 
-func TestLocalContext_Forward(t *testing.T) {
+func TestActorContext_Forward(t *testing.T) {
 
 	// Defined a respond actor
 	// It simply respond the string message
@@ -174,7 +174,7 @@ func TestLocalContext_Forward(t *testing.T) {
 	assert.Equal(t, "Got a string: hello", resStr)
 }
 
-func BenchmarkLocalContext_ProcessMessageWithMiddleware(b *testing.B) {
+func BenchmarkActorContext_ProcessMessageWithMiddleware(b *testing.B) {
 	var m interface{} = 1
 
 	fn := func(next ActorFunc) ActorFunc {
@@ -183,14 +183,14 @@ func BenchmarkLocalContext_ProcessMessageWithMiddleware(b *testing.B) {
 		}
 	}
 
-	ctx := newLocalContext(nullProducer, DefaultSupervisorStrategy(), []InboundMiddleware{fn, fn}, nil, nil)
+	ctx := newActorContext(nullProducer, DefaultSupervisorStrategy(), []InboundMiddleware{fn, fn}, nil, nil)
 
 	for i := 0; i < b.N; i++ {
 		ctx.processMessage(m)
 	}
 }
 
-func benchmarkLocalContext_SpawnWithMiddlewareN(n int, b *testing.B) {
+func benchmarkActorContext_SpawnWithMiddlewareN(n int, b *testing.B) {
 	middlwareFn := func(next ActorFunc) ActorFunc {
 		return func(context Context) {
 			next(context)
@@ -202,26 +202,26 @@ func benchmarkLocalContext_SpawnWithMiddlewareN(n int, b *testing.B) {
 		props = props.WithMiddleware(middlwareFn)
 	}
 
-	parent := &localContext{self: NewLocalPID("foo")}
+	parent := &actorContext{self: NewLocalPID("foo")}
 	for i := 0; i < b.N; i++ {
 		parent.Spawn(props)
 	}
 }
 
-func BenchmarkLocalContext_SpawnWithMiddleware0(b *testing.B) {
-	benchmarkLocalContext_SpawnWithMiddlewareN(0, b)
+func BenchmarkActorContext_SpawnWithMiddleware0(b *testing.B) {
+	benchmarkActorContext_SpawnWithMiddlewareN(0, b)
 }
 
-func BenchmarkLocalContext_SpawnWithMiddleware1(b *testing.B) {
-	benchmarkLocalContext_SpawnWithMiddlewareN(1, b)
+func BenchmarkActorContext_SpawnWithMiddleware1(b *testing.B) {
+	benchmarkActorContext_SpawnWithMiddlewareN(1, b)
 }
 
-func BenchmarkLocalContext_SpawnWithMiddleware2(b *testing.B) {
-	benchmarkLocalContext_SpawnWithMiddlewareN(2, b)
+func BenchmarkActorContext_SpawnWithMiddleware2(b *testing.B) {
+	benchmarkActorContext_SpawnWithMiddlewareN(2, b)
 }
 
-func BenchmarkLocalContext_SpawnWithMiddleware5(b *testing.B) {
-	benchmarkLocalContext_SpawnWithMiddlewareN(5, b)
+func BenchmarkActorContext_SpawnWithMiddleware5(b *testing.B) {
+	benchmarkActorContext_SpawnWithMiddlewareN(5, b)
 }
 
 func TestActorContinueFutureInActor(t *testing.T) {
