@@ -393,7 +393,6 @@ func (ctx *actorContext) handleStop(msg *Stop) {
 func (ctx *actorContext) handleTerminated(msg *Terminated) {
 	if ctx.extras != nil {
 		ctx.extras.removeChild(msg.Who)
-		ctx.extras.unwatch(msg.Who)
 	}
 
 	ctx.InvokeUserMessage(msg)
@@ -449,10 +448,15 @@ func (ctx *actorContext) finalizeStop() {
 	ProcessRegistry.Remove(ctx.self)
 	ctx.InvokeUserMessage(stoppedMessage)
 	otherStopped := &Terminated{Who: ctx.self}
+	//Notify watchers
 	if ctx.extras != nil {
 		ctx.extras.watchers.ForEach(func(i int, pid PID) {
 			pid.sendSystemMessage(otherStopped)
 		})
+	}
+	//Notify parent
+	if ctx.parent != nil {
+		ctx.parent.sendSystemMessage(otherStopped)
 	}
 	ctx.state = stateStopped
 }
@@ -500,7 +504,6 @@ func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	}
 
 	ctx.ensureExtras().addChild(pid)
-	ctx.Watch(pid)
 
 	return pid, nil
 }
