@@ -101,7 +101,7 @@ Windows users can use Cygwin to run make: [www.cygwin.com](https://www.cygwin.co
 This command exectutes all tests in the repository except for consul integration tests (you need consul for running those tests). We also skip directories that don't contain any tests.
 
 ```
-go test `go list ./... | grep -v consul` | grep 'no test files'
+go test `go list ./... | grep -v consul` | grep -v 'no test files'
 ```
 
 If everything is ok, you will get the output:
