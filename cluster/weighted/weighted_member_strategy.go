@@ -34,7 +34,10 @@ func (m *WeightedMemberStrategy) UpdateMember(member *cluster.MemberStatus) {
 func (m *WeightedMemberStrategy) RemoveMember(member *cluster.MemberStatus) {
 	for i, mb := range m.members {
 		if mb.Address() == member.Address() {
-			m.members = append(m.members[:i], m.members[i+1:]...)
+			copy(m.members[i:], m.members[i+1:])
+			m.members[len(m.members)-1] = nil
+			m.members = m.members[:len(m.members)-1]
+
 			m.wrr.UpdateRR()
 			m.rdv.UpdateRdv()
 			return
