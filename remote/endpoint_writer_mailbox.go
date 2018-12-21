@@ -41,6 +41,14 @@ func (m *endpointWriterMailbox) PostSystemMessage(message interface{}) {
 	m.schedule()
 }
 
+func (m *endpointWriterMailbox) RegisterHandlers(invoker mailbox.MessageInvoker, dispatcher mailbox.Dispatcher) {
+	m.invoker = invoker
+	m.dispatcher = dispatcher
+}
+
+func (m *endpointWriterMailbox) Start() {
+}
+
 func (m *endpointWriterMailbox) schedule() {
 	atomic.StoreInt32(&m.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
 	if atomic.CompareAndSwapInt32(&m.schedulerStatus, mailboxIdle, mailboxRunning) {
@@ -106,8 +114,8 @@ func (m *endpointWriterMailbox) run() {
 	}
 }
 
-func newEndpointWriterMailbox(batchSize, initialSize int) mailbox.Producer {
-	return func(invoker mailbox.MessageInvoker, dispatcher mailbox.Dispatcher) mailbox.Inbound {
+func endpointWriterMailboxProducer(batchSize, initialSize int) mailbox.Producer {
+	return func() mailbox.Mailbox {
 		userMailbox := goring.New(int64(initialSize))
 		systemMailbox := mpsc.New()
 		return &endpointWriterMailbox{
@@ -116,11 +124,6 @@ func newEndpointWriterMailbox(batchSize, initialSize int) mailbox.Producer {
 			hasMoreMessages: mailboxHasNoMessages,
 			schedulerStatus: mailboxIdle,
 			batchSize:       batchSize,
-			invoker:         invoker,
-			dispatcher:      dispatcher,
 		}
 	}
-}
-
-func (m *endpointWriterMailbox) Start() {
 }

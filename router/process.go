@@ -11,7 +11,7 @@ import (
 // optimization avoids serializing router messages through an actor
 type process struct {
 	router   *actor.PID
-	state    Interface
+	state    RouterState
 	mu       sync.Mutex
 	watchers actor.PIDSet
 	stopping int32

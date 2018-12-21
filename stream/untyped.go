@@ -22,7 +22,7 @@ func (s *UntypedStream) Close() {
 
 func NewUntypedStream() *UntypedStream {
 	c := make(chan interface{})
-	props := actor.FromFunc(func(ctx actor.Context) {
+	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
 		case actor.AutoReceiveMessage, actor.SystemMessage:
 		// ignore terminate
@@ -30,7 +30,7 @@ func NewUntypedStream() *UntypedStream {
 			c <- msg
 		}
 	})
-	pid := actor.Spawn(props)
+	pid, _ := actor.EmptyRootContext.Spawn(props)
 
 	return &UntypedStream{
 		c:   c,

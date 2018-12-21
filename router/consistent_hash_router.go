@@ -65,7 +65,7 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 			return
 		}
 		if routee, ok := hmc.routeeMap[node]; ok {
-			routee.Tell(message)
+			actor.EmptyRootContext.Send(routee, message)
 		} else {
 			log.Println("[ROUTING] Consisten router failed to resolve node", node)
 		}
@@ -79,17 +79,17 @@ func (state *consistentHashRouterState) InvokeRouterManagementMessage(msg Manage
 }
 
 func NewConsistentHashPool(size int) *actor.Props {
-	return actor.FromSpawnFunc(spawner(&consistentHashPoolRouter{PoolRouter{PoolSize: size}}))
+	return (&actor.Props{}).WithSpawnFunc(spawner(&consistentHashPoolRouter{PoolRouter{PoolSize: size}}))
 }
 
 func NewConsistentHashGroup(routees ...*actor.PID) *actor.Props {
-	return actor.FromSpawnFunc(spawner(&consistentHashGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
+	return (&actor.Props{}).WithSpawnFunc(spawner(&consistentHashGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
-func (config *consistentHashPoolRouter) CreateRouterState() Interface {
+func (config *consistentHashPoolRouter) CreateRouterState() RouterState {
 	return &consistentHashRouterState{}
 }
 
-func (config *consistentHashGroupRouter) CreateRouterState() Interface {
+func (config *consistentHashGroupRouter) CreateRouterState() RouterState {
 	return &consistentHashRouterState{}
 }

@@ -7,15 +7,19 @@ import (
 
 func newEndpointWatcher(address string) actor.Producer {
 	return func() actor.Actor {
-		return &endpointWatcher{
-			address: address,
+		watcher := &endpointWatcher{
+			behavior: actor.NewBehavior(),
+			address:  address,
 		}
+		watcher.behavior.Become(watcher.connected)
+		return watcher
 	}
 }
 
 type endpointWatcher struct {
-	address string
-	watched map[string]*actor.PIDSet //key is the watching PID string, value is the watched PID
+	behavior actor.Behavior
+	address  string
+	watched  map[string]*actor.PIDSet //key is the watching PID string, value is the watched PID
 }
 
 func (state *endpointWatcher) initialize() {
@@ -24,6 +28,10 @@ func (state *endpointWatcher) initialize() {
 }
 
 func (state *endpointWatcher) Receive(ctx actor.Context) {
+	state.behavior.Receive(ctx)
+}
+
+func (state *endpointWatcher) connected(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		state.initialize()
@@ -70,7 +78,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 
 		//Clear watcher's map
 		state.watched = make(map[string]*actor.PIDSet)
-		ctx.SetBehavior(state.Terminated)
+		state.behavior.Become(state.terminated)
 		ctx.Self().Stop()
 
 	case *remoteWatch:
@@ -112,7 +120,7 @@ func (state *endpointWatcher) Receive(ctx actor.Context) {
 	}
 }
 
-func (state *endpointWatcher) Terminated(ctx actor.Context) {
+func (state *endpointWatcher) terminated(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *remoteWatch:
 		//try to find the watcher ID in the local actor registry
@@ -129,7 +137,7 @@ func (state *endpointWatcher) Terminated(ctx actor.Context) {
 		}
 	case *EndpointConnectedEvent:
 		plog.Info("EndpointWatcher handling restart", log.String("address", state.address))
-		ctx.SetBehavior(state.Receive)
+		state.behavior.Become(state.connected)
 	case *remoteTerminate, *EndpointTerminatedEvent, *remoteUnwatch:
 		// pass
 		plog.Error("EndpointWatcher receive message for already terminated endpoint", log.String("address", state.address), log.Message(msg))

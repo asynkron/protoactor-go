@@ -76,7 +76,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 					Message: message,
 					Sender:  sender,
 				}
-				pid.Tell(localEnvelope)
+				actor.EmptyRootContext.Send(pid, localEnvelope)
 			}
 		}
 	}

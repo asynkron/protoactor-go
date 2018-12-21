@@ -43,7 +43,7 @@ func (state *tellerActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *myMessage:
 		for i := 0; i < 100; i++ {
-			msg.pid.Tell(msg)
+			context.Send(msg.pid, msg)
 			time.Sleep(10 * time.Millisecond)
 		}
 
@@ -56,20 +56,20 @@ func (state *managerActor) Receive(context actor.Context) {
 		state.set = msg.PIDs
 		for i, v := range state.set {
 			if i%2 == 0 {
-				state.rpid.Tell(&router.RemoveRoutee{v})
+				context.Send(state.rpid, &router.RemoveRoutee{v})
 				//log.Println(v)
 
 			} else {
-				props := actor.FromProducer(func() actor.Actor { return &routerActor{} })
-				pid := actor.Spawn(props)
-				state.rpid.Tell(&router.AddRoutee{pid})
+				props := actor.PropsFromProducer(func() actor.Actor { return &routerActor{} })
+				pid := context.Spawn(props)
+				context.Send(state.rpid, &router.AddRoutee{pid})
 				//log.Println(v)
 			}
 		}
-		context.Self().Tell(&getRoutees{state.rpid})
+		context.Send(context.Self(), &getRoutees{state.rpid})
 	case *getRoutees:
 		state.rpid = msg.pid
-		msg.pid.Request(&router.GetRoutees{}, context.Self())
+		context.Request(msg.pid, &router.GetRoutees{})
 	}
 }
 
@@ -79,16 +79,16 @@ func TestConcurrency(t *testing.T) {
 	}
 
 	wait.Add(100 * 10000)
-	rpid := actor.Spawn(router.NewConsistentHashPool(100).WithProducer(func() actor.Actor { return &routerActor{} }))
+	rpid, _ := actor.EmptyRootContext.Spawn(router.NewConsistentHashPool(100).WithProducer(func() actor.Actor { return &routerActor{} }))
 
-	props := actor.FromProducer(func() actor.Actor { return &tellerActor{} })
+	props := actor.PropsFromProducer(func() actor.Actor { return &tellerActor{} })
 	for i := 0; i < 10000; i++ {
-		pid := actor.Spawn(props)
-		pid.Tell(&myMessage{i, rpid})
+		pid, _ := actor.EmptyRootContext.Spawn(props)
+		actor.EmptyRootContext.Send(pid, &myMessage{i, rpid})
 	}
 
-	props = actor.FromProducer(func() actor.Actor { return &managerActor{} })
-	pid := actor.Spawn(props)
-	pid.Tell(&getRoutees{rpid})
+	props = actor.PropsFromProducer(func() actor.Actor { return &managerActor{} })
+	pid, _ := actor.EmptyRootContext.Spawn(props)
+	actor.EmptyRootContext.Send(pid, &getRoutees{rpid})
 	wait.Wait()
 }
