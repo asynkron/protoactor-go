@@ -16,40 +16,51 @@ You can use Stashing to reprocess the current message with the new behavior.
 
 The API to change behaviors is available to the actor instance is very simple:
 
-* `SetBehavior` - Replaces the message handler with the specified delegate;
-* `PushBehavior` - Adds the specified message handler to the top of the behavior stack, while maintaining the previous ones;
-* `PopBehavior` - Reverts to the previous message handler from the stack (only works with PushBehavior);
+* `Become` - Replaces the message handler with the specified delegate;
+* `BecomeStacked` - Adds the specified message handler to the top of the behavior stack, while maintaining the previous ones;
+* `UnbecomeStacked` - Reverts to the previous message handler from the stack (only works with PushBehavior);
 
 ```go
 ...
 
 type Hello struct{ Who string }
-type SetBehaviorActor struct{}
+type SetBehaviorActor struct {
+	behavior actor.Behavior
+}
 
 func (state *SetBehaviorActor) Receive(context actor.Context) {
-    switch msg := context.Message().(type) {
-    case Hello:
-        fmt.Printf("Hello %v\n", msg.Who)
-        context.SetBehavior(state.Other)
-    }
+	state.behavior.Receive(context)
+}
+
+func (state *SetBehaviorActor) One(context actor.Context) {
+	switch msg := context.Message().(type) {
+	case Hello:
+		fmt.Printf("Hello %v\n", msg.Who)
+		state.behavior.Become(state.Other)
+	}
 }
 
 func (state *SetBehaviorActor) Other(context actor.Context) {
-    switch msg := context.Message().(type) {
-    case Hello:
-        fmt.Printf("%v, ey we are now handling messages in another behavior", msg.Who)
-    }
+	switch msg := context.Message().(type) {
+	case Hello:
+		fmt.Printf("%v, ey we are now handling messages in another behavior", msg.Who)
+	}
 }
 
 func NewSetBehaviorActor() actor.Actor {
-    return &SetBehaviorActor{}
+	act := &SetBehaviorActor{
+		behavior: actor.NewBehavior(),
+	}
+	act.behavior.Become(act.One)
+	return act
 }
 
 func main() {
-    props := actor.FromProducer(NewSetBehaviorActor)
-    pid := actor.Spawn(props)
-    pid.Tell(Hello{Who: "Roger"})
-    pid.Tell(Hello{Who: "Roger"})
-    console.ReadLine()
+	rootContext := actor.EmptyRootContext()
+	props := actor.PropsFromProducer(NewSetBehaviorActor)
+	pid, _ := rootContext.Spawn(props)
+	rootContext.Send(pid, Hello{Who: "Roger"})
+	rootContext.Send(pid, Hello{Who: "Roger"})
+	console.ReadLine()
 }
 ```

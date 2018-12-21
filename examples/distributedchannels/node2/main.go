@@ -4,7 +4,7 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/distributedchannels/messages"
 	"github.com/AsynkronIT/protoactor-go/remote"
@@ -17,12 +17,15 @@ func main() {
 	channel := make(chan *messages.MyMessage)
 
 	//create an actor receiving messages and pushing them onto the channel
-	props := actor.FromFunc(func(context actor.Context) {
+	props := actor.PropsFromFunc(func(context actor.Context) {
 		if msg, ok := context.Message().(*messages.MyMessage); ok {
 			channel <- msg
 		}
 	})
-	actor.SpawnNamed(props, "MyMessage")
+	//define root context
+	rootContext = actor.EmptyRootContext()
+
+	rootContext.SpawnNamed(props, "MyMessage")
 
 	//consume the channel just like you use to
 	go func() {

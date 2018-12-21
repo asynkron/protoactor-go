@@ -81,17 +81,17 @@ func main() {
 	//remote.DefaultSerializerID = 1
 	remote.Start("127.0.0.1:8081")
 
+	rootContext := actor.EmptyRootContext()
 	props := actor.
-		FromProducer(newLocalActor(&wg, messageCount)).
+		PropsFromProducer(newLocalActor(&wg, messageCount)).
 		WithMailbox(mailbox.Bounded(1000000))
 
-	pid := actor.Spawn(props)
+	pid, _ := rootContext.Spawn(props)
 
 	remotePid := actor.NewPID("127.0.0.1:8080", "remote")
-	remotePid.
-		RequestFuture(&messages.StartRemote{
-			Sender: pid,
-		}, 5*time.Second).
+	rootContext.RequestFuture(remotePid, &messages.StartRemote{
+		Sender: pid,
+	}, 5*time.Second).
 		Wait()
 
 	wg.Add(1)
@@ -101,7 +101,7 @@ func main() {
 
 	message := &messages.Ping{}
 	for i := 0; i < messageCount; i++ {
-		remotePid.Tell(message)
+		rootContext.Send(remotePid, message)
 	}
 
 	wg.Wait()

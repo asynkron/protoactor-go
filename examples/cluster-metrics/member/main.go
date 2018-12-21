@@ -35,9 +35,9 @@ func Logger(next actor.ActorFunc) actor.ActorFunc {
 
 func main() {
 	//this node knows about Hello kind
-	remote.Register("Hello", actor.FromProducer(func() actor.Actor {
+	remote.Register("Hello", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.HelloActor{}
-	}).WithMiddleware(Logger))
+	}).WithReceiverMiddleware(Logger))
 
 	//
 	eventstream.Subscribe(func(event interface{}) {

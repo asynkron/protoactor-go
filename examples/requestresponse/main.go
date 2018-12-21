@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
@@ -18,9 +18,10 @@ func Receive(context actor.Context) {
 }
 
 func main() {
-	props := actor.FromFunc(Receive)
-	pid := actor.Spawn(props)
-	result, _ := pid.RequestFuture(Hello{Who: "Roger"}, 30*time.Second).Result() // await result
+	context := actor.EmptyRootContext
+	props := actor.PropsFromFunc(Receive)
+	pid, _ := context.Spawn(props)
+	result, _ := context.RequestFuture(pid, Hello{Who: "Roger"}, 30*time.Second).Result() // await result
 
 	fmt.Println(result)
 	console.ReadLine()

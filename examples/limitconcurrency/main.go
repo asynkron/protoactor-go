@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/router"
 )
@@ -20,9 +20,10 @@ func doWork(ctx actor.Context) {
 }
 
 func main() {
-	pid := actor.Spawn(router.NewRoundRobinPool(maxConcurrency).WithFunc(doWork))
+	rootContext := actor.EmptyRootContext()
+	pid, _ := rootContext.Spawn(router.NewRoundRobinPool(maxConcurrency).WithFunc(doWork))
 	for i := 0; i < 1000; i++ {
-		pid.Tell(&workItem{i})
+		rootContext.Send(pid, &workItem{i})
 	}
 	console.ReadLine()
 }

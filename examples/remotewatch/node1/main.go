@@ -13,7 +13,8 @@ func main() {
 	timeout := 5 * time.Second
 	remote.Start("127.0.0.1:8081")
 
-	props := actor.FromFunc(func(ctx actor.Context) {
+	context := actor.EmptyRootContext()
+	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
 		case *actor.Started:
 			log.Println("Local actor started")
@@ -29,6 +30,7 @@ func main() {
 			log.Printf("Local got terminated message %+v", msg)
 		}
 	})
-	actor.Spawn(props)
+
+	context.Spawn(props)
 	console.ReadLine()
 }

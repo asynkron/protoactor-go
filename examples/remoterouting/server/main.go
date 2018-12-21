@@ -40,11 +40,13 @@ func newRemoteActor(name string) actor.Producer {
 
 func newRemote(bind, name string) {
 	remote.Start(bind)
+
+	context := actor.EmptyRootContext()
 	props := actor.
-		FromProducer(newRemoteActor(name)).
+		PropsFromProducer(newRemoteActor(name)).
 		WithMailbox(mailbox.Bounded(10000))
 
-	actor.SpawnNamed(props, "remote")
+	context.SpawnNamed(props, "remote")
 
 	log.Println(name, "Ready")
 }

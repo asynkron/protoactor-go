@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
@@ -18,8 +18,9 @@ func (state *helloActor) Receive(context actor.Context) {
 }
 
 func main() {
-	props := actor.FromProducer(func() actor.Actor { return &helloActor{} })
-	pid := actor.Spawn(props)
-	pid.Tell(&hello{Who: "Roger"})
+	props := actor.PropsFromProducer(func() actor.Actor { return &helloActor{} })
+	rootContext := actor.EmptyRootContext()
+	pid, _ := rootContext.Spawn(props)
+	rootContext.Send(pid, &hello{Who: "Roger"})
 	console.ReadLine()
 }
