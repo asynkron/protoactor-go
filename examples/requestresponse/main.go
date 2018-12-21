@@ -18,10 +18,10 @@ func Receive(context actor.Context) {
 }
 
 func main() {
-	context := actor.EmptyRootContext
+	rootContext := actor.EmptyRootContext()
 	props := actor.PropsFromFunc(Receive)
-	pid, _ := context.Spawn(props)
-	result, _ := context.RequestFuture(pid, Hello{Who: "Roger"}, 30*time.Second).Result() // await result
+	pid, _ := rootContext.Spawn(props)
+	result, _ := rootContext.RequestFuture(pid, Hello{Who: "Roger"}, 30*time.Second).Result() // await result
 
 	fmt.Println(result)
 	console.ReadLine()

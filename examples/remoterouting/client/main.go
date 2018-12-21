@@ -24,19 +24,19 @@ func main() {
 	p1 := actor.NewPID("127.0.0.1:8101", "remote")
 	p2 := actor.NewPID("127.0.0.1:8102", "remote")
 
-	context := actor.EmptyRootContext()
-	remotePID := context.Spawn(router.NewConsistentHashGroup(p1, p2))
+	rootContext := actor.EmptyRootContext()
+
+	remotePID, _ := rootContext.Spawn(router.NewConsistentHashGroup(p1, p2))
 
 	messageCount := 1000000
 
 	var wgStop sync.WaitGroup
 
-	context := actor.EmptyRootContext()
 	props := actor.
 		PropsFromProducer(newLocalActor(&wgStop, messageCount)).
 		WithMailbox(mailbox.Bounded(10000))
 
-	pid, _ := context.Spawn(props)
+	pid, _ := rootContext.Spawn(props)
 
 	log.Println("Starting to send")
 
@@ -44,7 +44,7 @@ func main() {
 
 	for i := 0; i < messageCount; i++ {
 		message := &messages.Ping{User: fmt.Sprintf("User_%d", i)}
-		context.Request(remotePID, message)
+		rootContext.Request(remotePID, message)
 	}
 
 	wgStop.Wait()

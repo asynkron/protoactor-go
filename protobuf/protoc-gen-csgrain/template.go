@@ -51,7 +51,7 @@ namespace {{.CsNamespace}}
                 Method = "{{ $method.Name }}",
                 MessageData = request.ToByteString()
             };
-            var res = await pid.RequestAsync<object>(gr);
+            var res = await RootContext.Empty.RequestAsync<object>(pid, gr);
             if (res is GrainResponse grainResponse)
             {
                 return {{ $method.Output.Name }}.Parser.ParseFrom(grainResponse.MessageData);

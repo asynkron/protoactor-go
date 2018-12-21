@@ -21,6 +21,8 @@ var _ = math.Inf
 {{ range $service := .Services}}	
 var x{{ $service.Name }}Factory func() {{ $service.Name }}
 
+var rootContext = actor.EmptyRootContext()
+
 func {{ $service.Name }}Factory(factory func() {{ $service.Name }}) {
 	x{{ $service.Name }}Factory = factory
 }
@@ -55,7 +57,7 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Inpu
 				return nil, err
 			}
 			request := &cluster.GrainRequest{Method: "{{ $method.Name }}", MessageData: bytes}
-			response, err := pid.RequestFuture(request, opts.Timeout).Result()
+			response, err := rootContext.RequestFuture(pid, request, opts.Timeout).Result()
 			if err != nil {
 				return nil, err
 			}

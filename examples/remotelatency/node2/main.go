@@ -84,12 +84,12 @@ func main() {
 	runtime.GC()
 
 	remote.Start("127.0.0.1:8080", remote.WithEndpointWriterBatchSize(10000))
-	context := actor.EmptyRootContext
+	rootContext := actor.EmptyRootContext()
 	props := actor.
 		PropsFromProducer(newRemoteActor()).
 		WithMailbox(mailbox.Bounded(1000))
 
-	context.SpawnNamed(props, "remote")
+	rootContext.SpawnNamed(props, "remote")
 
 	console.ReadLine()
 }

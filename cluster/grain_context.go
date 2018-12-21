@@ -20,7 +20,7 @@ type GrainContext interface {
 	Sender() *actor.PID
 
 	//Tell sends a message to the given PID
-	Tell(pid *actor.PID, message interface{})
+	Send(pid *actor.PID, message interface{})
 
 	//Request sends a message to the given PID and also provides a Sender PID
 	Request(pid *actor.PID, message interface{})

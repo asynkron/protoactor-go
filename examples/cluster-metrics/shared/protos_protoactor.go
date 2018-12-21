@@ -16,6 +16,8 @@ var _ = math.Inf
 
 var xHelloFactory func() Hello
 
+var rootContext = actor.EmptyRootContext()
+
 func HelloFactory(factory func() Hello) {
 	xHelloFactory = factory
 }
@@ -52,7 +54,7 @@ func (g *HelloGrain) SayHelloWithOpts(r *HelloRequest, opts *cluster.GrainCallOp
 			return nil, err
 		}
 		request := &cluster.GrainRequest{Method: "SayHello", MessageData: bytes}
-		response, err := pid.RequestFuture(request, opts.Timeout).Result()
+		response, err := rootContext.RequestFuture(pid, request, opts.Timeout).Result()
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +123,7 @@ func (g *HelloGrain) AddWithOpts(r *AddRequest, opts *cluster.GrainCallOptions) 
 			return nil, err
 		}
 		request := &cluster.GrainRequest{Method: "Add", MessageData: bytes}
-		response, err := pid.RequestFuture(request, opts.Timeout).Result()
+		response, err := rootContext.RequestFuture(pid, request, opts.Timeout).Result()
 		if err != nil {
 			return nil, err
 		}
@@ -190,7 +192,7 @@ func (g *HelloGrain) VoidFuncWithOpts(r *AddRequest, opts *cluster.GrainCallOpti
 			return nil, err
 		}
 		request := &cluster.GrainRequest{Method: "VoidFunc", MessageData: bytes}
-		response, err := pid.RequestFuture(request, opts.Timeout).Result()
+		response, err := rootContext.RequestFuture(pid, request, opts.Timeout).Result()
 		if err != nil {
 			return nil, err
 		}

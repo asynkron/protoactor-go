@@ -22,9 +22,11 @@ func main() {
 			channel <- msg
 		}
 	})
-	//define root context
-	rootContext = actor.EmptyRootContext()
 
+	//define root context
+	rootContext := actor.EmptyRootContext()
+
+	//spawn
 	rootContext.SpawnNamed(props, "MyMessage")
 
 	//consume the channel just like you use to
