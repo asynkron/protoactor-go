@@ -19,7 +19,7 @@ var (
 	defaultSpawner         = func(id string, props *Props, parent *PID) (*PID, error) {
 		ctx := newActorContext(props, parent)
 		mb := props.produceMailbox()
-		dp := props.dispatcher
+		dp := props.getDispatcher()
 		proc := NewActorProcess(mb)
 		pid, absent := ProcessRegistry.Add(proc, id)
 		if !absent {
@@ -36,6 +36,9 @@ var (
 		return ctx
 	}
 )
+
+// DefaultSpawner this is a hacking way to allow Proto.Router access default spawner func
+var DefaultSpawner SpawnFunc = defaultSpawner
 
 // ErrNameExists is the error used when an existing name is used for spawning an actor.
 var ErrNameExists = errors.New("spawn: name exists")
@@ -75,6 +78,13 @@ func (props *Props) getSupervisor() SupervisorStrategy {
 		return defaultSupervisionStrategy
 	}
 	return props.supervisionStrategy
+}
+
+func (props *Props) getContextDecoratorChain() ContextDecoratorFunc {
+	if props.contextDecoratorChain == nil {
+		return defaultContextDecorator
+	}
+	return props.contextDecoratorChain
 }
 
 func (props *Props) produceMailbox() mailbox.Mailbox {
@@ -167,12 +177,8 @@ func (props *Props) WithFunc(f ActorFunc) *Props {
 //PropsFromProducer creates a props with the given actor producer assigned
 func PropsFromProducer(producer Producer) *Props {
 	return &Props{
-		producer:              producer,
-		mailboxProducer:       defaultMailboxProducer,
-		supervisionStrategy:   defaultSupervisionStrategy,
-		dispatcher:            defaultDispatcher,
-		contextDecorator:      make([]ContextDecorator, 0),
-		contextDecoratorChain: defaultContextDecorator,
+		producer:         producer,
+		contextDecorator: make([]ContextDecorator, 0),
 	}
 }
 
