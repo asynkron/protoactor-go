@@ -33,7 +33,7 @@ func (state *randomRouterState) GetRoutees() *actor.PIDSet {
 
 func (state *randomRouterState) RouteMessage(message interface{}) {
 	pid := randomRoutee(*state.values)
-	actor.EmptyRootContext.Send(&pid, message)
+	rootContext.Send(&pid, message)
 }
 
 func NewRandomPool(size int) *actor.Props {

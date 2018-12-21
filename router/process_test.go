@@ -31,9 +31,9 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 	grc := newGroupRouterConfig(child)
 	grc.On("CreateRouterState").Return(rs)
 
-	routerPID, _ := actor.EmptyRootContext.Spawn((&actor.Props{}).WithSpawnFunc(spawner(grc)))
-	actor.EmptyRootContext.Send(routerPID, "hello")
-	actor.EmptyRootContext.Request(routerPID, "hello")
+	routerPID, _ := rootContext.Spawn((&actor.Props{}).WithSpawnFunc(spawner(grc)))
+	rootContext.Send(routerPID, "hello")
+	rootContext.Request(routerPID, "hello")
 
 	mock.AssertExpectationsForObjects(t, p, rs)
 }
@@ -67,7 +67,7 @@ func (m *testRouterState) SetRoutees(routees *actor.PIDSet) {
 func (m *testRouterState) RouteMessage(message interface{}) {
 	m.Called(message)
 	m.routees.ForEach(func(i int, pid actor.PID) {
-		actor.EmptyRootContext.Send(&pid, message)
+		rootContext.Send(&pid, message)
 	})
 }
 

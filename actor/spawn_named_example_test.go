@@ -13,6 +13,9 @@ func ExampleSpawnNamed() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
+	//create root context
+	context := actor.EmptyRootContext()
+
 	//define the actor props
 	//props define the creation process of an actor
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
@@ -27,7 +30,7 @@ func ExampleSpawnNamed() {
 	})
 
 	// spawn the actor based on the props
-	_, err := actor.EmptyRootContext.SpawnNamed(props, "my-actor")
+	_, err := context.SpawnNamed(props, "my-actor")
 	if err != nil {
 		log.Fatal("The actor name is already in use")
 	}

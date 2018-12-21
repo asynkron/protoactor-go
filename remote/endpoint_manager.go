@@ -36,7 +36,7 @@ func startEndpointManager(config *remoteConfig) {
 		WithGuardian(actor.RestartingSupervisorStrategy()).
 		WithSupervisor(actor.RestartingSupervisorStrategy()).
 		WithDispatcher(mailbox.NewSynchronizedDispatcher(300))
-	endpointSupervisor, _ := actor.EmptyRootContext.SpawnNamed(props, "EndpointSupervisor")
+	endpointSupervisor, _ := rootContext.SpawnNamed(props, "EndpointSupervisor")
 
 	endpointManager = &endpointManagerValue{
 		connections:        &sync.Map{},
@@ -69,32 +69,32 @@ func (em *endpointManagerValue) endpointEvent(evn interface{}) {
 		em.removeEndpoint(msg)
 	case *EndpointConnectedEvent:
 		endpoint := em.ensureConnected(msg.Address)
-		actor.EmptyRootContext.Send(endpoint.watcher, msg)
+		rootContext.Send(endpoint.watcher, msg)
 	}
 }
 
 func (em *endpointManagerValue) remoteTerminate(msg *remoteTerminate) {
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
-	actor.EmptyRootContext.Send(endpoint.watcher, msg)
+	rootContext.Send(endpoint.watcher, msg)
 }
 
 func (em *endpointManagerValue) remoteWatch(msg *remoteWatch) {
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
-	actor.EmptyRootContext.Send(endpoint.watcher, msg)
+	rootContext.Send(endpoint.watcher, msg)
 }
 
 func (em *endpointManagerValue) remoteUnwatch(msg *remoteUnwatch) {
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
-	actor.EmptyRootContext.Send(endpoint.watcher, msg)
+	rootContext.Send(endpoint.watcher, msg)
 }
 
 func (em *endpointManagerValue) remoteDeliver(msg *remoteDeliver) {
 	address := msg.target.Address
 	endpoint := em.ensureConnected(address)
-	actor.EmptyRootContext.Send(endpoint.writer, msg)
+	rootContext.Send(endpoint.writer, msg)
 }
 
 func (em *endpointManagerValue) ensureConnected(address string) *endpoint {
@@ -104,7 +104,7 @@ func (em *endpointManagerValue) ensureConnected(address string) *endpoint {
 		var once sync.Once
 		el.valueFunc = func() *endpoint {
 			once.Do(func() {
-				rst, _ := actor.EmptyRootContext.RequestFuture(em.endpointSupervisor, address, -1).Result()
+				rst, _ := rootContext.RequestFuture(em.endpointSupervisor, address, -1).Result()
 				ep := rst.(*endpoint)
 				el.valueFunc = func() *endpoint {
 					return ep
@@ -126,8 +126,8 @@ func (em *endpointManagerValue) removeEndpoint(msg *EndpointTerminatedEvent) {
 		if atomic.CompareAndSwapUint32(&le.unloaded, 0, 1) {
 			em.connections.Delete(msg.Address)
 			ep := le.valueFunc()
-			actor.EmptyRootContext.Send(ep.watcher, msg)
-			actor.EmptyRootContext.Send(ep.writer, msg)
+			rootContext.Send(ep.watcher, msg)
+			rootContext.Send(ep.writer, msg)
 		}
 	}
 }

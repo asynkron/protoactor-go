@@ -61,7 +61,7 @@ func TestActorContext_SendMessage_WithSenderdMiddleware(t *testing.T) {
 
 	// Define a receiver to which the local context will send a message
 	var counter int
-	receiver, err := EmptyRootContext.Spawn(PropsFromFunc(func(ctx Context) {
+	receiver, err := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch ctx.Message().(type) {
 		case bool:
 			counter++
@@ -101,7 +101,7 @@ func BenchmarkActorContext_ProcessMessageNoMiddleware(b *testing.B) {
 func TestActorContext_Respond(t *testing.T) {
 	// Defined a responder actor
 	// It simply echoes a received string.
-	responder, err := EmptyRootContext.Spawn(PropsFromFunc(func(ctx Context) {
+	responder, err := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch m := ctx.Message().(type) {
 		case string:
 			ctx.Respond(fmt.Sprintf("Got a string: %s", m))
@@ -122,7 +122,7 @@ func TestActorContext_Respond(t *testing.T) {
 	// Send a message to the responder using Request
 	// The responder should send something back.
 	timeout := 3 * time.Millisecond
-	res, err := EmptyRootContext.RequestFuture(responder, "hello", timeout).Result()
+	res, err := rootContext.RequestFuture(responder, "hello", timeout).Result()
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
 
@@ -135,7 +135,7 @@ func TestActorContext_Respond(t *testing.T) {
 	assert.False(t, gotResponseToNil)
 
 	// Send a message using Tell
-	EmptyRootContext.Send(responder, "hello")
+	rootContext.Send(responder, "hello")
 
 	// Ensure that the responder actually send something to nil
 	time.Sleep(timeout)
@@ -149,7 +149,7 @@ func TestActorContext_Forward(t *testing.T) {
 
 	// Defined a respond actor
 	// It simply respond the string message
-	responder, err := EmptyRootContext.Spawn(PropsFromFunc(func(ctx Context) {
+	responder, err := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch m := ctx.Message().(type) {
 		case string:
 			ctx.Respond(fmt.Sprintf("Got a string: %s", m))
@@ -159,7 +159,7 @@ func TestActorContext_Forward(t *testing.T) {
 
 	// Defined a forwarder actor
 	// It simply forward the string message to responder
-	forwarder, err := EmptyRootContext.Spawn(PropsFromFunc(func(ctx Context) {
+	forwarder, err := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch ctx.Message().(type) {
 		case string:
 			ctx.Forward(responder)
@@ -170,7 +170,7 @@ func TestActorContext_Forward(t *testing.T) {
 	// Send a message to the responder using Request
 	// The responder should send something back.
 	timeout := 3 * time.Millisecond
-	res, err := EmptyRootContext.RequestFuture(forwarder, "hello", timeout).Result()
+	res, err := rootContext.RequestFuture(forwarder, "hello", timeout).Result()
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
 
@@ -231,7 +231,7 @@ func BenchmarkActorContext_SpawnWithMiddleware5(b *testing.B) {
 }
 
 func TestActorContinueFutureInActor(t *testing.T) {
-	pid, err := EmptyRootContext.Spawn(PropsFromFunc(func(ctx Context) {
+	pid, err := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		if ctx.Message() == "request" {
 			ctx.Respond("done")
 		}
@@ -243,7 +243,7 @@ func TestActorContinueFutureInActor(t *testing.T) {
 		}
 	}))
 	assert.NoError(t, err)
-	res, err := EmptyRootContext.RequestFuture(pid, "start", time.Second).Result()
+	res, err := rootContext.RequestFuture(pid, "start", time.Second).Result()
 	assert.NoError(t, err)
 	assert.Equal(t, "done", res)
 }

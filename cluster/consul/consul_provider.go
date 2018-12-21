@@ -151,7 +151,7 @@ func (p *ConsulProvider) registerService() error {
 		Port:    p.port,
 		Check: &api.AgentServiceCheck{
 			DeregisterCriticalServiceAfter: p.deregisterCritical.String(),
-			TTL: p.ttl.String(),
+			TTL:                            p.ttl.String(),
 		},
 	}
 	return p.client.Agent().ServiceRegister(s)

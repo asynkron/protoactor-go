@@ -28,14 +28,14 @@ func NewCreateChildActor() Actor {
 }
 
 func TestActorCanCreateChildren(t *testing.T) {
-	a, err := EmptyRootContext.Spawn(PropsFromProducer(NewCreateChildActor))
+	a, err := rootContext.Spawn(PropsFromProducer(NewCreateChildActor))
 	assert.NoError(t, err)
 	defer a.Stop()
 	expected := 10
 	for i := 0; i < expected; i++ {
-		EmptyRootContext.Send(a, CreateChildMessage{})
+		rootContext.Send(a, CreateChildMessage{})
 	}
-	fut := EmptyRootContext.RequestFuture(a, GetChildCountRequest{}, testTimeout)
+	fut := rootContext.RequestFuture(a, GetChildCountRequest{}, testTimeout)
 	response := assertFutureSuccess(fut, t)
 	assert.Equal(t, expected, response.(GetChildCountResponse).ChildCount)
 }
@@ -68,16 +68,16 @@ func NewCreateChildThenStopActor() Actor {
 
 func TestActorCanStopChildren(t *testing.T) {
 
-	actor, err := EmptyRootContext.Spawn(PropsFromProducer(NewCreateChildThenStopActor))
+	actor, err := rootContext.Spawn(PropsFromProducer(NewCreateChildThenStopActor))
 	assert.NoError(t, err)
 	count := 10
 	for i := 0; i < count; i++ {
-		EmptyRootContext.Send(actor, CreateChildMessage{})
+		rootContext.Send(actor, CreateChildMessage{})
 	}
 
 	future := NewFuture(testTimeout)
 	future2 := NewFuture(testTimeout)
-	EmptyRootContext.Send(actor, GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.PID()})
+	rootContext.Send(actor, GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.PID()})
 
 	//wait for the actor to reply to the first responsePID
 	assertFutureSuccess(future, t)
@@ -92,7 +92,7 @@ func TestActorCanStopChildren(t *testing.T) {
 }
 
 func TestActorReceivesTerminatedFromWatched(t *testing.T) {
-	child, err := EmptyRootContext.Spawn(PropsFromFunc(nullReceive))
+	child, err := rootContext.Spawn(PropsFromFunc(nullReceive))
 	assert.NoError(t, err)
 	future := NewFuture(testTimeout)
 	var wg sync.WaitGroup
@@ -112,7 +112,7 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 		}
 	}
 
-	EmptyRootContext.Spawn(PropsFromFunc(r))
+	rootContext.Spawn(PropsFromFunc(r))
 	wg.Wait()
 	child.Stop()
 
@@ -120,9 +120,9 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 }
 
 func TestFutureDoesTimeout(t *testing.T) {
-	pid, err := EmptyRootContext.Spawn(PropsFromFunc(nullReceive))
+	pid, err := rootContext.Spawn(PropsFromFunc(nullReceive))
 	assert.NoError(t, err)
-	_, err = EmptyRootContext.RequestFuture(pid, "", time.Millisecond).Result()
+	_, err = rootContext.RequestFuture(pid, "", time.Millisecond).Result()
 	assert.EqualError(t, err, ErrTimeout.Error())
 }
 
@@ -135,9 +135,9 @@ func TestFutureDoesNotTimeout(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		c.Respond("foo")
 	}
-	pid, err := EmptyRootContext.Spawn(PropsFromFunc(r))
+	pid, err := rootContext.Spawn(PropsFromFunc(r))
 	assert.NoError(t, err)
-	reply, err := EmptyRootContext.RequestFuture(pid, "", 2*time.Second).Result()
+	reply, err := rootContext.RequestFuture(pid, "", 2*time.Second).Result()
 	assert.NoError(t, err)
 	assert.Equal(t, "foo", reply)
 }

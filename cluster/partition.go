@@ -29,7 +29,7 @@ func setupPartition(kinds []string) {
 			for _, k := range mse.GetKinds() {
 				kindPID := partition.kindPIDMap[k]
 				if kindPID != nil {
-					kindPID.Tell(m)
+					rootContext.Send(kindPID, m)
 				}
 			}
 		}
@@ -62,8 +62,8 @@ type partitionActor struct {
 }
 
 func spawnPartitionActor(kind string) *actor.PID {
-	props := actor.FromProducer(newPartitionActor(kind)).WithGuardian(actor.RestartingSupervisorStrategy())
-	partitionPid, _ := actor.SpawnNamed(props, "partition-"+kind)
+	props := actor.PropsFromProducer(newPartitionActor(kind)).WithGuardian(actor.RestartingSupervisorStrategy())
+	partitionPid, _ := rootContext.SpawnNamed(props, "partition-"+kind)
 	return partitionPid
 }
 
@@ -91,7 +91,7 @@ func (state *partitionActor) Receive(context actor.Context) {
 	case *MemberJoinedEvent:
 		state.memberJoined(msg, context)
 	case *MemberRejoinedEvent:
-		state.memberRejoined(msg)
+		state.memberRejoined(msg, context)
 	case *MemberLeftEvent:
 		state.memberLeft(msg, context)
 	case *MemberAvailableEvent:
@@ -170,15 +170,15 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 	})
 
 	//Perform Spawning
-	go state.spawning(msg, activator, 3, spawning.PID())
+	go state.spawning(msg, activator, 3, spawning.PID(), context)
 }
 
-func (state *partitionActor) spawning(msg *remote.ActorPidRequest, activator string, retryLeft int, fPid *actor.PID) {
+func (state *partitionActor) spawning(msg *remote.ActorPidRequest, activator string, retryLeft int, fPid *actor.PID, context actor.Context) {
 	if activator == "" {
 		activator = memberList.getActivatorMember(msg.Kind)
 		if activator == "" {
 			//No activator currently available, return unavailable
-			fPid.Tell(remote.ActorPidRespUnavailable)
+			context.Send(fPid, remote.ActorPidRespUnavailable)
 			return
 		}
 	}
@@ -187,20 +187,20 @@ func (state *partitionActor) spawning(msg *remote.ActorPidRequest, activator str
 	if err != nil {
 		plog.Error("Partition failed to spawn actor", log.String("name", msg.Name), log.String("kind", msg.Kind), log.String("address", activator), log.Error(err))
 		if err == actor.ErrTimeout {
-			fPid.Tell(remote.ActorPidRespTimeout)
+			context.Send(fPid, remote.ActorPidRespTimeout)
 		} else {
-			fPid.Tell(remote.ActorPidRespErr)
+			context.Send(fPid, remote.ActorPidRespErr)
 		}
 		return
 	}
 
 	if pidResp.StatusCode == remote.ResponseStatusCodeUNAVAILABLE.ToInt32() && retryLeft != 0 {
 		retryLeft--
-		state.spawning(msg, "", retryLeft, fPid)
+		state.spawning(msg, "", retryLeft, fPid, context)
 		return
 	}
 
-	fPid.Tell(pidResp)
+	context.Send(fPid, pidResp)
 }
 
 func (state *partitionActor) terminated(msg *actor.Terminated) {
@@ -212,7 +212,7 @@ func (state *partitionActor) terminated(msg *actor.Terminated) {
 	}
 }
 
-func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
+func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent, context actor.Context) {
 
 	memberAddress := msg.Name()
 
@@ -230,7 +230,7 @@ func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
 	//Process Spawning Process
 	for _, spawning := range state.spawnings {
 		if spawning.spawningAddress == memberAddress {
-			spawning.PID().Tell(remote.ActorPidRespUnavailable)
+			context.Send(spawning.PID(), remote.ActorPidRespUnavailable)
 		}
 	}
 }
@@ -263,7 +263,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 	//Process Spawning Process
 	for _, spawning := range state.spawnings {
 		if spawning.spawningAddress == memberAddress {
-			spawning.PID().Tell(remote.ActorPidRespUnavailable)
+			context.Send(spawning.PID(), remote.ActorPidRespUnavailable)
 		}
 	}
 }
@@ -279,7 +279,7 @@ func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.
 	for actorID, spawning := range state.spawnings {
 		address := memberList.getPartitionMember(actorID, state.kind)
 		if address != "" && address != actor.ProcessRegistry.Address {
-			spawning.PID().Tell(remote.ActorPidRespUnavailable)
+			context.Send(spawning.PID(), remote.ActorPidRespUnavailable)
 		}
 	}
 }
@@ -287,7 +287,7 @@ func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.
 func (state *partitionActor) transferOwnership(actorID string, address string, context actor.Context) {
 	pid := state.partition[actorID]
 	owner := partition.partitionForKind(address, state.kind)
-	owner.Tell(&TakeOwnership{
+	context.Send(owner, &TakeOwnership{
 		Pid:  pid,
 		Name: actorID,
 	})
@@ -303,7 +303,7 @@ func (state *partitionActor) takeOwnership(msg *TakeOwnership, context actor.Con
 	if address != "" && address != actor.ProcessRegistry.Address {
 		//if not, forward to the correct owner
 		owner := partition.partitionForKind(address, state.kind)
-		owner.Tell(msg)
+		context.Send(owner, msg)
 		return
 	}
 	//Cache ownership

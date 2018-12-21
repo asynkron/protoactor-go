@@ -39,10 +39,10 @@ func (EchoSetBehaviorActor) other(context Context) {
 }
 
 func TestActorCanSetBehavior(t *testing.T) {
-	pid, _ := EmptyRootContext.Spawn(PropsFromProducer(NewEchoBehaviorActor))
+	pid, _ := rootContext.Spawn(PropsFromProducer(NewEchoBehaviorActor))
 	defer pid.Stop()
-	EmptyRootContext.Send(pid, BehaviorMessage{})
-	fut := EmptyRootContext.RequestFuture(pid, EchoRequest{}, testTimeout)
+	rootContext.Send(pid, BehaviorMessage{})
+	fut := rootContext.RequestFuture(pid, EchoRequest{}, testTimeout)
 	assertFutureSuccess(fut, t)
 }
 
@@ -81,10 +81,10 @@ func (state *EchoPopBehaviorActor) other(context Context) {
 }
 
 func TestActorCanPopBehavior(t *testing.T) {
-	a, err := EmptyRootContext.Spawn(PropsFromProducer(NewEchoUnbecomeActor))
+	a, err := rootContext.Spawn(PropsFromProducer(NewEchoUnbecomeActor))
 	assert.NoError(t, err)
-	EmptyRootContext.Send(a, BehaviorMessage{})
-	EmptyRootContext.Send(a, PopBehaviorMessage{})
-	fut := EmptyRootContext.RequestFuture(a, EchoRequest{}, testTimeout)
+	rootContext.Send(a, BehaviorMessage{})
+	rootContext.Send(a, PopBehaviorMessage{})
+	fut := rootContext.RequestFuture(a, EchoRequest{}, testTimeout)
 	assertFutureSuccess(fut, t)
 }

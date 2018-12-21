@@ -12,6 +12,9 @@ func ExampleSpawn() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
+	//create root context
+	context := actor.EmptyRootContext()
+
 	//define the actor props
 	//props define the creation process of an actor
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
@@ -26,7 +29,7 @@ func ExampleSpawn() {
 	})
 
 	// spawn the actor based on the props
-	actor.EmptyRootContext.Spawn(props)
+	context.Spawn(props)
 	wg.Wait()
 	// Output: hello world
 }

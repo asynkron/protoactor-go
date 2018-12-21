@@ -36,7 +36,7 @@ func TestActorWithOwnSupervisorCanHandleFailure(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	props := PropsFromProducer(func() Actor { return &actorWithSupervisor{wg: wg} })
-	EmptyRootContext.Spawn(props)
+	rootContext.Spawn(props)
 	wg.Wait()
 }
 
@@ -85,19 +85,19 @@ func (e *Expector) ExpectNoMsg(t *testing.T) {
 func TestActorStopsAfterXRestars(t *testing.T) {
 	m, e := NewObserver()
 	props := PropsFromProducer(func() Actor { return &failingChildActor{} }).WithReceiverMiddleware(m)
-	child, _ := EmptyRootContext.Spawn(props)
+	child, _ := rootContext.Spawn(props)
 	fail := "fail!"
 
 	e.ExpectMsg(startedMessage, t)
 
 	//root supervisor allows 10 restarts
 	for i := 0; i < 10; i++ {
-		EmptyRootContext.Send(child, fail)
+		rootContext.Send(child, fail)
 		e.ExpectMsg(fail, t)
 		e.ExpectMsg(restartingMessage, t)
 		e.ExpectMsg(startedMessage, t)
 	}
-	EmptyRootContext.Send(child, fail)
+	rootContext.Send(child, fail)
 	e.ExpectMsg(fail, t)
 	//the 11th time should cause a termination
 	e.ExpectMsg(stoppingMessage, t)

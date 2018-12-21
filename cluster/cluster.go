@@ -11,6 +11,8 @@ import (
 
 var cfg *ClusterConfig
 
+var rootContext *actor.RootContext = actor.EmptyRootContext()
+
 func Start(clusterName, address string, provider ClusterProvider) {
 	StartWithConfig(NewClusterConfig(clusterName, address, provider))
 }
@@ -73,7 +75,7 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 
 	//ask the DHT partition for this name to give us a PID
 	remotePartition := partition.partitionForKind(address, kind)
-	r, err := remotePartition.RequestFuture(req, cfg.TimeoutTime).Result()
+	r, err := rootContext.RequestFuture(remotePartition, req, cfg.TimeoutTime).Result()
 	if err == actor.ErrTimeout {
 		plog.Error("PidCache Pid request timeout")
 		return nil, remote.ResponseStatusCodeTIMEOUT

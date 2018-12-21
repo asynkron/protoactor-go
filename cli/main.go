@@ -11,6 +11,7 @@ import (
 	"github.com/chzyer/readline"
 
 	"encoding/json"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
 	proto "github.com/gogo/protobuf/proto"
@@ -38,6 +39,7 @@ func filterInput(r rune) (rune, bool) {
 }
 
 var echoPID *actor.PID
+var rootContext = actor.EmptyRootContext()
 
 func main() {
 	logo := `
@@ -105,7 +107,7 @@ func main() {
 exit:
 }
 func spawnEcho() {
-	echoPID, _ = actor.SpawnNamed(actor.FromFunc(func(ctx actor.Context) {
+	echoPID, _ = rootContext.SpawnNamed(actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
 		case *actor.Started:
 			fmt.Println("ECHO: Started")
@@ -132,7 +134,7 @@ func watch(line string) {
 		address := x[0]
 		id := x[1]
 		pid := actor.NewPID(address, id)
-		echoPID.Tell(&watchRequest{
+		rootContext.Send(echoPID, &watchRequest{
 			target: pid,
 		})
 	}

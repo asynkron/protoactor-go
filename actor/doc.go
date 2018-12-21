@@ -16,7 +16,7 @@ Creating Actors
 Props provide the building blocks for declaring how actors should be created. The following example defines an actor
 using a function literal to process messages:
 
-	var props Props = actor.FromFunc(func(c Context) {
+	var props Props = actor.PropsFromFunc(func(c Context) {
 		// process messages
 	})
 
@@ -28,12 +28,12 @@ Alternatively, a type which conforms to the Actor interface, by defining a singl
 		// process messages
 	}
 
-	var props Props = actor.FromProducer(func() Actor { return &MyActor{} })
+	var props Props = actor.PropsFromProducer(func() Actor { return &MyActor{} })
 
 Spawn and SpawnNamed use the given props to create a running instances of an actor. Once spawned, the actor is
 ready to process incoming messages. To spawn an actor with a unique name, use
 
-	pid := actor.Spawn(props)
+	pid := context.Spawn(props)
 
 The result of calling Spawn is a unique PID or process identifier.
 

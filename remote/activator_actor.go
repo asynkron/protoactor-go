@@ -16,7 +16,7 @@ var (
 
 func spawnActivatorActor() {
 	props := actor.PropsFromProducer(newActivatorActor()).WithGuardian(actor.RestartingSupervisorStrategy())
-	activatorPid, _ = actor.EmptyRootContext.SpawnNamed(props, "activator")
+	activatorPid, _ = rootContext.SpawnNamed(props, "activator")
 }
 
 func stopActivatorActor() {
@@ -63,7 +63,7 @@ func ActivatorForAddress(address string) *actor.PID {
 //SpawnFuture spawns a remote actor and returns a Future that completes once the actor is started
 func SpawnFuture(address, name, kind string, timeout time.Duration) *actor.Future {
 	activator := ActivatorForAddress(address)
-	f := actor.EmptyRootContext.RequestFuture(activator, &ActorPidRequest{
+	f := rootContext.RequestFuture(activator, &ActorPidRequest{
 		Name: name,
 		Kind: kind,
 	}, timeout)
@@ -78,7 +78,7 @@ func Spawn(address, kind string, timeout time.Duration) (*ActorPidResponse, erro
 //SpawnNamed spawns a named remote actor of a given type at a given address
 func SpawnNamed(address, name, kind string, timeout time.Duration) (*ActorPidResponse, error) {
 	activator := ActivatorForAddress(address)
-	res, err := actor.EmptyRootContext.RequestFuture(activator, &ActorPidRequest{
+	res, err := rootContext.RequestFuture(activator, &ActorPidRequest{
 		Name: name,
 		Kind: kind,
 	}, timeout).Result()
@@ -112,7 +112,7 @@ func (*activator) Receive(context actor.Context) {
 			name = actor.ProcessRegistry.NextId()
 		}
 
-		pid, err := actor.EmptyRootContext.SpawnNamed(&props, "Remote$"+name)
+		pid, err := rootContext.SpawnNamed(&props, "Remote$"+name)
 
 		if err == nil {
 			response := &ActorPidResponse{Pid: pid}

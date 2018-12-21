@@ -79,16 +79,16 @@ func TestConcurrency(t *testing.T) {
 	}
 
 	wait.Add(100 * 10000)
-	rpid, _ := actor.EmptyRootContext.Spawn(router.NewConsistentHashPool(100).WithProducer(func() actor.Actor { return &routerActor{} }))
+	rpid, _ := rootContext.Spawn(router.NewConsistentHashPool(100).WithProducer(func() actor.Actor { return &routerActor{} }))
 
 	props := actor.PropsFromProducer(func() actor.Actor { return &tellerActor{} })
 	for i := 0; i < 10000; i++ {
-		pid, _ := actor.EmptyRootContext.Spawn(props)
-		actor.EmptyRootContext.Send(pid, &myMessage{i, rpid})
+		pid, _ := rootContext.Spawn(props)
+		rootContext.Send(pid, &myMessage{i, rpid})
 	}
 
 	props = actor.PropsFromProducer(func() actor.Actor { return &managerActor{} })
-	pid, _ := actor.EmptyRootContext.Spawn(props)
-	actor.EmptyRootContext.Send(pid, &getRoutees{rpid})
+	pid, _ := rootContext.Spawn(props)
+	rootContext.Send(pid, &getRoutees{rpid})
 	wait.Wait()
 }

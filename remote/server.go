@@ -18,6 +18,9 @@ var (
 	edpReader *endpointReader
 )
 
+// remote root context
+var rootContext = actor.EmptyRootContext()
+
 // Start the remote server
 func Start(address string, options ...RemotingOption) {
 	grpclog.SetLogger(slog.New(ioutil.Discard, "", 0))

@@ -8,7 +8,7 @@ import (
 
 func TestActorCanReplyOnStarting(t *testing.T) {
 	future := NewFuture(testTimeout)
-	a, err := EmptyRootContext.Spawn(PropsFromFunc(func(context Context) {
+	a, err := rootContext.Spawn(PropsFromFunc(func(context Context) {
 		switch context.Message().(type) {
 		case *Started:
 			context.Send(future.PID(), EchoResponse{})
@@ -21,7 +21,7 @@ func TestActorCanReplyOnStarting(t *testing.T) {
 
 func TestActorCanReplyOnStopping(t *testing.T) {
 	future := NewFuture(testTimeout)
-	a, err := EmptyRootContext.Spawn(PropsFromFunc(func(context Context) {
+	a, err := rootContext.Spawn(PropsFromFunc(func(context Context) {
 		switch context.Message().(type) {
 		case *Stopping:
 			context.Send(future.PID(), EchoResponse{})
