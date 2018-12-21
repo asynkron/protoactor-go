@@ -127,20 +127,20 @@ func TestRecovery(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
-			props := actor.FromProducer(makeActor).
-				WithMiddleware(Using(tc.init))
-			pid, err := actor.SpawnNamed(props, ActorName)
+			props := actor.PropsFromProducer(makeActor).
+				WithReceiverMiddleware(Using(tc.init))
+			pid, err := actor.EmptyRootContext.SpawnNamed(props, ActorName)
 			require.NoError(t, err)
 
 			// send a bunch of messages
 			for _, msg := range tc.msgs {
-				pid.Tell(newMessage(msg))
+				actor.EmptyRootContext.Send(pid, newMessage(msg))
 			}
 
 			// ugly way to block on a response....
 			// TODO: I need some help here
 			queryWg.Add(1)
-			pid.Tell(&Query{})
+			actor.EmptyRootContext.Send(pid, &Query{})
 			queryWg.Wait()
 			// check the state after all these messages
 			assert.Equal(t, tc.afterMsgs, queryState)
@@ -148,13 +148,13 @@ func TestRecovery(t *testing.T) {
 			// wait for shutdown
 			pid.GracefulPoison()
 
-			pid, err = actor.SpawnNamed(props, ActorName)
+			pid, err = actor.EmptyRootContext.SpawnNamed(props, ActorName)
 			require.NoError(t, err)
 
 			// ugly way to block on a response....
 			// TODO: I need some help here
 			queryWg.Add(1)
-			pid.Tell(&Query{})
+			actor.EmptyRootContext.Send(pid, &Query{})
 			queryWg.Wait()
 			// check the state after all these messages
 			assert.Equal(t, tc.afterMsgs, queryState)

@@ -25,17 +25,17 @@ func TestPassivation(t *testing.T) {
 	UnitOfTime := time.Duration(200 * time.Millisecond)
 	PassivationDuration := time.Duration(3 * UnitOfTime)
 	props := actor.
-		FromProducer(func() actor.Actor { return &SmartActor{} }).
-		WithMiddleware(Use(&PassivationPlugin{Duration: PassivationDuration}))
+		PropsFromProducer(func() actor.Actor { return &SmartActor{} }).
+		WithReceiverMiddleware(Use(&PassivationPlugin{Duration: PassivationDuration}))
 
-	pid := actor.Spawn(props)
+	pid, _ := actor.EmptyRootContext.Spawn(props)
 	time.Sleep(UnitOfTime)
 	time.Sleep(UnitOfTime)
 	{
 		_, found := actor.ProcessRegistry.LocalPIDs.Get(pid.Id)
 		assert.True(t, found)
 	}
-	pid.Tell("keepalive")
+	actor.EmptyRootContext.Send(pid, "keepalive")
 	time.Sleep(UnitOfTime)
 	time.Sleep(UnitOfTime)
 	{
