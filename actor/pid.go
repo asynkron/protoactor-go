@@ -25,7 +25,7 @@ func (m *PID) MarshalJSONPB(*jsonpb.Marshaler) ([]byte, error) {
 func (pid *PID) ref() Process {
 	p := (*Process)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p))))
 	if p != nil {
-		if l, ok := (*p).(*actorProcess); ok && atomic.LoadInt32(&l.dead) == 1 {
+		if l, ok := (*p).(*ActorProcess); ok && atomic.LoadInt32(&l.dead) == 1 {
 			atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p)), nil)
 		} else {
 			return *p

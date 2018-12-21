@@ -7,11 +7,12 @@ import (
 )
 
 func middleware(called *int) ReceiverMiddleware {
-	return func(next ActorFunc) ActorFunc {
-		fn := func(context Context) {
-			*called = context.Message().(int)
+	return func(next ReceiverFunc) ReceiverFunc {
+		fn := func(ctx ReceiverContext, env *MessageEnvelope) {
+			env.Message = env.Message.(int) + 1
+			*called = env.Message.(int)
 
-			next(context)
+			next(ctx, env)
 		}
 		return fn
 	}
@@ -27,19 +28,19 @@ func TestMakeReceiverMiddleware_CallsInCorrectOrder(t *testing.T) {
 	}
 
 	mc := &mockContext{}
-	mc.On("Message").Return(1).Once()
-	mc.On("Message").Return(2).Once()
-	mc.On("Message").Return(3).Once()
 
-	chain := makeReceiverMiddlewareChain(r, func(_ Context) {})
-	chain(mc)
+	env := &MessageEnvelope{
+		Message: 0,
+	}
+
+	chain := makeReceiverMiddlewareChain(r, func(_ ReceiverContext, env *MessageEnvelope) {})
+	chain(mc, env)
 
 	assert.Equal(t, 1, c[0])
 	assert.Equal(t, 2, c[1])
 	assert.Equal(t, 3, c[2])
-	mc.AssertExpectations(t)
 }
 
 func TestMakeInboundMiddleware_ReturnsNil(t *testing.T) {
-	assert.Nil(t, makeReceiverMiddlewareChain([]InboundMiddleware{}, func(_ Context) {}))
+	assert.Nil(t, makeReceiverMiddlewareChain([]ReceiverMiddleware{}, func(_ ReceiverContext, _ *MessageEnvelope) {}))
 }

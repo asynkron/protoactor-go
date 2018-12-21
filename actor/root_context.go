@@ -2,16 +2,14 @@ package actor
 
 import "time"
 
-/*
-type RootContext interface {
-	SpawnContext
-	SenderContext
-}
-*/
-
 type RootContext struct {
 	senderMiddleware SenderFunc
 	headers          messageHeader
+}
+
+var EmptyRootContext = &RootContext{
+	senderMiddleware: nil,
+	headers:          emptyMessageHeader,
 }
 
 func NewRootContext(header map[string]string, middleware ...SenderMiddleware) *RootContext {
@@ -21,31 +19,6 @@ func NewRootContext(header map[string]string, middleware ...SenderMiddleware) *R
 		}),
 		headers: messageHeader(header),
 	}
-}
-
-func NewEmptyRootContext() *RootContext {
-	return &RootContext{
-		senderMiddleware: nil,
-		headers:          emptyMessageHeader,
-	}
-}
-
-func (rc *RootContext) Spawn(props *Props) (*PID, error) {
-	name := ProcessRegistry.NextId()
-	return rc.SpawnNamed(props, name)
-}
-
-func (rc *RootContext) SpawnPrefix(props *Props, prefix string) (*PID, error) {
-	name := prefix + ProcessRegistry.NextId()
-	return rc.SpawnNamed(props, name)
-}
-
-func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
-	var parent *PID = nil
-	if props.guardianStrategy != nil {
-		parent = guardians.getGuardianPid(props.guardianStrategy)
-	}
-	return props.spawn(name, parent)
 }
 
 func (rc *RootContext) WithHeaders(headers map[string]string) *RootContext {
@@ -59,6 +32,10 @@ func (rc *RootContext) WithSenderMiddleware(middleware ...SenderMiddleware) *Roo
 	})
 	return rc
 }
+
+//
+// Interface: SenderContext
+//
 
 func (rc *RootContext) Message() interface{} {
 	return nil
@@ -101,4 +78,26 @@ func (rc *RootContext) sendUserMessage(pid *PID, message interface{}) {
 	}
 	//Default path
 	pid.sendUserMessage(message)
+}
+
+//
+// Interface: SpawnerContext
+//
+
+func (rc *RootContext) Spawn(props *Props) (*PID, error) {
+	name := ProcessRegistry.NextId()
+	return rc.SpawnNamed(props, name)
+}
+
+func (rc *RootContext) SpawnPrefix(props *Props, prefix string) (*PID, error) {
+	name := prefix + ProcessRegistry.NextId()
+	return rc.SpawnNamed(props, name)
+}
+
+func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
+	var parent *PID = nil
+	if props.guardianStrategy != nil {
+		parent = guardians.getGuardianPid(props.guardianStrategy)
+	}
+	return props.spawn(name, parent)
 }

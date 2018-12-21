@@ -20,7 +20,7 @@ var (
 		ctx := newActorContext(props, parent)
 		mb := props.produceMailbox()
 		dp := props.dispatcher
-		proc := newActorProcess(mb)
+		proc := NewActorProcess(mb)
 		pid, absent := ProcessRegistry.Add(proc, id)
 		if !absent {
 			return pid, ErrNameExists
@@ -31,6 +31,9 @@ var (
 		mb.PostSystemMessage(startedMessage)
 
 		return pid, nil
+	}
+	defaultContextDecorator = func(ctx Context) Context {
+		return ctx
 	}
 )
 
@@ -163,7 +166,14 @@ func (props *Props) WithFunc(f ActorFunc) *Props {
 
 //PropsFromProducer creates a props with the given actor producer assigned
 func PropsFromProducer(producer Producer) *Props {
-	return &Props{producer: producer}
+	return &Props{
+		producer:              producer,
+		mailboxProducer:       defaultMailboxProducer,
+		supervisionStrategy:   defaultSupervisionStrategy,
+		dispatcher:            defaultDispatcher,
+		contextDecorator:      make([]ContextDecorator, 0),
+		contextDecoratorChain: defaultContextDecorator,
+	}
 }
 
 //PropsFromFunc creates a props with the given receive func assigned as the actor producer

@@ -16,7 +16,7 @@ type CreateChildActor struct{}
 func (*CreateChildActor) Receive(context Context) {
 	switch context.Message().(type) {
 	case CreateChildMessage:
-		context.Spawn(FromProducer(NewBlackHoleActor))
+		context.Spawn(PropsFromProducer(NewBlackHoleActor))
 	case GetChildCountRequest:
 		reply := GetChildCountResponse{ChildCount: len(context.Children())}
 		context.Respond(reply)
@@ -28,13 +28,14 @@ func NewCreateChildActor() Actor {
 }
 
 func TestActorCanCreateChildren(t *testing.T) {
-	a := Spawn(FromProducer(NewCreateChildActor))
+	a, err := EmptyRootContext.Spawn(PropsFromProducer(NewCreateChildActor))
+	assert.NoError(t, err)
 	defer a.Stop()
 	expected := 10
 	for i := 0; i < expected; i++ {
-		a.Tell(CreateChildMessage{})
+		EmptyRootContext.Send(a, CreateChildMessage{})
 	}
-	fut := a.RequestFuture(GetChildCountRequest{}, testTimeout)
+	fut := EmptyRootContext.RequestFuture(a, GetChildCountRequest{}, testTimeout)
 	response := assertFutureSuccess(fut, t)
 	assert.Equal(t, expected, response.(GetChildCountResponse).ChildCount)
 }
@@ -51,13 +52,13 @@ type GetChildCountMessage2 struct {
 func (state *CreateChildThenStopActor) Receive(context Context) {
 	switch msg := context.Message().(type) {
 	case CreateChildMessage:
-		context.Spawn(FromProducer(NewBlackHoleActor))
+		context.Spawn(PropsFromProducer(NewBlackHoleActor))
 	case GetChildCountMessage2:
-		context.Tell(msg.ReplyDirectly, true)
+		context.Send(msg.ReplyDirectly, true)
 		state.replyTo = msg.ReplyAfterStop
 	case *Stopped:
 		reply := GetChildCountResponse{ChildCount: len(context.Children())}
-		context.Tell(state.replyTo, reply)
+		context.Send(state.replyTo, reply)
 	}
 }
 
@@ -67,15 +68,16 @@ func NewCreateChildThenStopActor() Actor {
 
 func TestActorCanStopChildren(t *testing.T) {
 
-	actor := Spawn(FromProducer(NewCreateChildThenStopActor))
+	actor, err := EmptyRootContext.Spawn(PropsFromProducer(NewCreateChildThenStopActor))
+	assert.NoError(t, err)
 	count := 10
 	for i := 0; i < count; i++ {
-		actor.Tell(CreateChildMessage{})
+		EmptyRootContext.Send(actor, CreateChildMessage{})
 	}
 
 	future := NewFuture(testTimeout)
 	future2 := NewFuture(testTimeout)
-	actor.Tell(GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.PID()})
+	EmptyRootContext.Send(actor, GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.PID()})
 
 	//wait for the actor to reply to the first responsePID
 	assertFutureSuccess(future, t)
@@ -90,7 +92,8 @@ func TestActorCanStopChildren(t *testing.T) {
 }
 
 func TestActorReceivesTerminatedFromWatched(t *testing.T) {
-	child := Spawn(FromFunc(nullReceive))
+	child, err := EmptyRootContext.Spawn(PropsFromFunc(nullReceive))
+	assert.NoError(t, err)
 	future := NewFuture(testTimeout)
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -102,14 +105,14 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 			wg.Done()
 
 		case *Terminated:
-			ac := c.(*localContext)
-			if msg.Who.Equal(child) && ac.watching.Empty() {
-				c.Tell(future.PID(), true)
+			ac := c.(*actorContext)
+			if msg.Who.Equal(child) && ac.ensureExtras().watchers.Empty() {
+				c.Send(future.PID(), true)
 			}
 		}
 	}
 
-	Spawn(FromFunc(r))
+	EmptyRootContext.Spawn(PropsFromFunc(r))
 	wg.Wait()
 	child.Stop()
 
@@ -117,8 +120,9 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 }
 
 func TestFutureDoesTimeout(t *testing.T) {
-	pid := Spawn(FromFunc(nullReceive))
-	_, err := pid.RequestFuture("", time.Millisecond).Result()
+	pid, err := EmptyRootContext.Spawn(PropsFromFunc(nullReceive))
+	assert.NoError(t, err)
+	_, err = EmptyRootContext.RequestFuture(pid, "", time.Millisecond).Result()
 	assert.EqualError(t, err, ErrTimeout.Error())
 }
 
@@ -131,8 +135,9 @@ func TestFutureDoesNotTimeout(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		c.Respond("foo")
 	}
-	pid := Spawn(FromFunc(r))
-	reply, err := pid.RequestFuture("", 2*time.Second).Result()
+	pid, err := EmptyRootContext.Spawn(PropsFromFunc(r))
+	assert.NoError(t, err)
+	reply, err := EmptyRootContext.RequestFuture(pid, "", 2*time.Second).Result()
 	assert.NoError(t, err)
 	assert.Equal(t, "foo", reply)
 }

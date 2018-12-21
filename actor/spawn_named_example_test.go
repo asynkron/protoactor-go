@@ -15,7 +15,7 @@ func ExampleSpawnNamed() {
 
 	//define the actor props
 	//props define the creation process of an actor
-	props := actor.FromFunc(func(ctx actor.Context) {
+	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		// check if the message is a *actor.Started message
 		// this is the first message all actors get
 		// actor.Started is received async and can be used
@@ -27,7 +27,7 @@ func ExampleSpawnNamed() {
 	})
 
 	// spawn the actor based on the props
-	_, err := actor.SpawnNamed(props, "my-actor")
+	_, err := actor.EmptyRootContext.SpawnNamed(props, "my-actor")
 	if err != nil {
 		log.Fatal("The actor name is already in use")
 	}

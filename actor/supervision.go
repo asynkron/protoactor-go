@@ -1,6 +1,10 @@
 package actor
 
-import "github.com/AsynkronIT/protoactor-go/eventstream"
+import (
+	"time"
+
+	"github.com/AsynkronIT/protoactor-go/eventstream"
+)
 
 // DeciderFunc is a function which is called by a SupervisorStrategy
 type DeciderFunc func(reason interface{}) Directive
@@ -33,7 +37,7 @@ func DefaultDecider(_ interface{}) Directive {
 }
 
 var (
-	defaultSupervisionStrategy    = NewOneForOneStrategy(10, 0, DefaultDecider)
+	defaultSupervisionStrategy    = NewOneForOneStrategy(10, 10*time.Second, DefaultDecider)
 	restartingSupervisionStrategy = NewRestartingStrategy()
 )
 

@@ -7,33 +7,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBehaviorStack_Len(t *testing.T) {
-	var bs behaviorStack
+func TestBehavior_Len(t *testing.T) {
+	var bs Behavior
 	assert.Len(t, bs, 0)
-	bs.Push(func(Context) {})
-	bs.Push(func(Context) {})
+	bs.push(func(Context) {})
+	bs.push(func(Context) {})
 	assert.Len(t, bs, 2)
 }
 
-func TestBehaviorStack_Push(t *testing.T) {
-	var bs behaviorStack
+func TestBehavior_Push(t *testing.T) {
+	var bs Behavior
 	assert.Len(t, bs, 0)
-	bs.Push(func(Context) {})
+	bs.push(func(Context) {})
 	assert.Len(t, bs, 1)
-	bs.Push(func(Context) {})
+	bs.push(func(Context) {})
 	assert.Len(t, bs, 2)
 }
 
-func TestBehaviorStack_Clear(t *testing.T) {
-	var bs behaviorStack
-	bs.Push(func(Context) {})
-	bs.Push(func(Context) {})
+func TestBehavior_Clear(t *testing.T) {
+	var bs Behavior
+	bs.push(func(Context) {})
+	bs.push(func(Context) {})
 	assert.Len(t, bs, 2)
-	bs.Clear()
+	bs.clear()
 	assert.Len(t, bs, 0)
 }
 
-func TestBehaviorStack_Peek(t *testing.T) {
+func TestBehavior_Peek(t *testing.T) {
 	called := 0
 	fn1 := ActorFunc(func(Context) { called = 1 })
 	fn2 := ActorFunc(func(Context) { called = 2 })
@@ -48,11 +48,11 @@ func TestBehaviorStack_Peek(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run("", func(t *testing.T) {
-			var bs behaviorStack
+			var bs Behavior
 			for _, fn := range tc.items {
-				bs.Push(fn)
+				bs.push(fn)
 			}
-			a, _ := bs.Peek()
+			a, _ := bs.peek()
 			a(nil)
 			assert.Equal(t, tc.expected, called)
 		})
@@ -74,13 +74,13 @@ func TestBehaviorStack_Pop_ExpectedOrder(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run("order "+strconv.Itoa(i), func(t *testing.T) {
-			var bs behaviorStack
+			var bs Behavior
 			for _, fn := range tc.items {
-				bs.Push(fn)
+				bs.push(fn)
 			}
 
 			for _, e := range tc.expected {
-				a, _ := bs.Pop()
+				a, _ := bs.pop()
 				a(nil)
 				assert.Equal(t, e, called)
 				called = 0

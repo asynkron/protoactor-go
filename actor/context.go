@@ -6,19 +6,38 @@ import "time"
 type Context interface {
 	SenderContext
 	ReceiverContext
-	SpawnContext
+	SpawnerContext
+
+	// Parent returns the PID for the current actors parent
+	Parent() *PID
+
+	// Self returns the PID for the current actor
+	Self() *PID
 
 	// Sender returns the PID of actor that sent currently processed message
 	Sender() *PID
+
+	// Actor returns the actor associated with this context
+	Actor() Actor
+
+	// ReceiveTimeout returns the current timeout
+	ReceiveTimeout() time.Duration
+
+	// Returns a slice of the actors children
+	Children() []*PID
+
+	// Respond sends a response to the to the current `Sender`
+	// If the Sender is nil, the actor will panic
+	Respond(response interface{})
+
+	// Stash stashes the current message on a stack for reprocessing when the actor restarts
+	Stash()
 
 	// Watch registers the actor as a monitor for the specified PID
 	Watch(pid *PID)
 
 	// Unwatch unregisters the actor as a monitor for the specified PID
 	Unwatch(pid *PID)
-
-	//Forward forwards current message to the given PID
-	Forward(pid *PID)
 
 	// SetReceiveTimeout sets the inactivity timeout, after which a ReceiveTimeout message will be sent to the actor.
 	// A duration of less than 1ms will disable the inactivity timer.
@@ -27,28 +46,10 @@ type Context interface {
 	// the NotInfluenceReceiveTimeout interface, the timer will not be reset
 	SetReceiveTimeout(d time.Duration)
 
-	// ReceiveTimeout returns the current timeout
-	ReceiveTimeout() time.Duration
+	CancelReceiveTimeout()
 
-	// Self returns the PID for the current actor
-	Self() *PID
-
-	// Parent returns the PID for the current actors parent
-	Parent() *PID
-
-	// Returns a slice of the actors children
-	Children() []*PID
-
-	// Stash stashes the current message on a stack for reprocessing when the actor restarts
-	Stash()
-
-	// Respond sends a response to the to the current `Sender`
-	//
-	// If the Sender is nil, the actor will panic
-	Respond(response interface{})
-
-	// Actor returns the actor associated with this context
-	Actor() Actor
+	//Forward forwards current message to the given PID
+	Forward(pid *PID)
 
 	AwaitFuture(f *Future, continuation func(res interface{}, err error))
 }
@@ -74,7 +75,7 @@ type ReceiverContext interface {
 	Receive(envelope *MessageEnvelope)
 }
 
-type SpawnContext interface {
+type SpawnerContext interface {
 	// Spawn starts a new child actor based on props and named with a unique id
 	Spawn(props *Props) *PID
 

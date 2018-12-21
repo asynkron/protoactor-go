@@ -6,23 +6,23 @@ import (
 	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
-type actorProcess struct {
+type ActorProcess struct {
 	mailbox mailbox.Mailbox
 	dead    int32
 }
 
-func newActorProcess(mailbox mailbox.Mailbox) *actorProcess {
-	return &actorProcess{mailbox: mailbox}
+func NewActorProcess(mailbox mailbox.Mailbox) *ActorProcess {
+	return &ActorProcess{mailbox: mailbox}
 }
 
-func (ref *actorProcess) SendUserMessage(pid *PID, message interface{}) {
+func (ref *ActorProcess) SendUserMessage(pid *PID, message interface{}) {
 	ref.mailbox.PostUserMessage(message)
 }
-func (ref *actorProcess) SendSystemMessage(pid *PID, message interface{}) {
+func (ref *ActorProcess) SendSystemMessage(pid *PID, message interface{}) {
 	ref.mailbox.PostSystemMessage(message)
 }
 
-func (ref *actorProcess) Stop(pid *PID) {
+func (ref *ActorProcess) Stop(pid *PID) {
 	atomic.StoreInt32(&ref.dead, 1)
 	ref.SendSystemMessage(pid, stopMessage)
 }

@@ -34,59 +34,66 @@ func newActorContextExtras(context Context) *actorContextExtras {
 	return this
 }
 
-func (this *actorContextExtras) restartStats() *RestartStatistics {
+func (ctxExt *actorContextExtras) restartStats() *RestartStatistics {
 	//lazy initialize the child restart stats if this is the first time
 	//further mutations are handled within "restart"
-	if this.rs == nil {
-		this.rs = NewRestartStatistics()
+	if ctxExt.rs == nil {
+		ctxExt.rs = NewRestartStatistics()
 	}
-	return this.rs
+	return ctxExt.rs
 }
 
-func (this *actorContextExtras) initReceiveTimeoutTimer(timer *time.Timer) {
-	this.receiveTimeoutTimer = timer
+func (ctxExt *actorContextExtras) initReceiveTimeoutTimer(timer *time.Timer) {
+	ctxExt.receiveTimeoutTimer = timer
 }
 
-func (this *actorContextExtras) resetReceiveTimeoutTimer(time time.Duration) {
-	this.receiveTimeoutTimer.Reset(time)
+func (ctxExt *actorContextExtras) resetReceiveTimeoutTimer(time time.Duration) {
+	if ctxExt.receiveTimeoutTimer == nil {
+		return
+	}
+	ctxExt.receiveTimeoutTimer.Reset(time)
 }
 
-func (this *actorContextExtras) stopReceiveTimeoutTimer() {
-	this.receiveTimeoutTimer.Stop()
+func (ctxExt *actorContextExtras) stopReceiveTimeoutTimer() {
+	if ctxExt.receiveTimeoutTimer == nil {
+		return
+	}
+	ctxExt.receiveTimeoutTimer.Stop()
 }
 
-func (this *actorContextExtras) killReceiveTimeoutTimer() {
-	this.receiveTimeoutTimer.Stop()
-	this.receiveTimeoutTimer = nil
+func (ctxExt *actorContextExtras) killReceiveTimeoutTimer() {
+	if ctxExt.receiveTimeoutTimer == nil {
+		return
+	}
+	ctxExt.receiveTimeoutTimer.Stop()
+	ctxExt.receiveTimeoutTimer = nil
 }
 
-func (this *actorContextExtras) addChild(pid *PID) {
-	this.children.Add(pid)
+func (ctxExt *actorContextExtras) addChild(pid *PID) {
+	ctxExt.children.Add(pid)
 }
 
-func (this *actorContextExtras) removeChild(pid *PID) {
-	this.children.Remove(pid)
+func (ctxExt *actorContextExtras) removeChild(pid *PID) {
+	ctxExt.children.Remove(pid)
 }
 
-func (this *actorContextExtras) watch(watcher *PID) {
-	this.watchers.Add(watcher)
+func (ctxExt *actorContextExtras) watch(watcher *PID) {
+	ctxExt.watchers.Add(watcher)
 }
 
-func (this *actorContextExtras) unwatch(watcher *PID) {
-	this.watchers.Remove(watcher)
+func (ctxExt *actorContextExtras) unwatch(watcher *PID) {
+	ctxExt.watchers.Remove(watcher)
 }
 
 type actorContext struct {
-	actor          Actor
-	extras         *actorContextExtras
-	props          *Props
-	parent         *PID
-	self           *PID
-	receiveTimeout time.Duration
-	supervisor     SupervisorStrategy
-	producer       Producer
-	//behavior       behaviorStack
-	//receive        ActorFunc
+	actor             Actor
+	extras            *actorContextExtras
+	props             *Props
+	parent            *PID
+	self              *PID
+	receiveTimeout    time.Duration
+	supervisor        SupervisorStrategy
+	producer          Producer
 	messageOrEnvelope interface{}
 	state             contextState
 }
@@ -112,24 +119,113 @@ func (ctx *actorContext) ensureExtras() *actorContextExtras {
 	return ctx.extras
 }
 
-func (ctx *actorContext) Actor() Actor {
-	return ctx.actor
+//
+// Interface: Context
+//
+
+func (ctx *actorContext) Parent() *PID {
+	return ctx.parent
 }
 
-func (ctx *actorContext) Message() interface{} {
-	return UnwrapEnvelopeMessage(ctx.messageOrEnvelope)
+func (ctx *actorContext) Self() *PID {
+	return ctx.self
 }
 
 func (ctx *actorContext) Sender() *PID {
 	return UnwrapEnvelopeSender(ctx.messageOrEnvelope)
 }
 
-func (ctx *actorContext) MessageHeader() ReadonlyMessageHeader {
-	return UnwrapEnvelopeHeader(ctx.messageOrEnvelope)
+func (ctx *actorContext) Actor() Actor {
+	return ctx.actor
 }
 
-func (ctx *actorContext) Send(pid *PID, message interface{}) {
-	ctx.sendUserMessage(pid, message)
+func (ctx *actorContext) ReceiveTimeout() time.Duration {
+	return ctx.receiveTimeout
+}
+
+func (ctx *actorContext) Children() []*PID {
+	if ctx.extras == nil {
+		return make([]*PID, 0)
+	}
+
+	r := make([]*PID, ctx.extras.children.Len())
+	ctx.extras.children.ForEach(func(i int, p PID) {
+		r[i] = &p
+	})
+	return r
+}
+
+func (ctx *actorContext) Respond(response interface{}) {
+	// If the message is addressed to nil forward it to the dead letter channel
+	if ctx.Sender() == nil {
+		deadLetter.SendUserMessage(nil, response)
+		return
+	}
+
+	ctx.Send(ctx.Sender(), response)
+}
+
+func (ctx *actorContext) Stash() {
+	extra := ctx.ensureExtras()
+	if extra.stash == nil {
+		extra.stash = linkedliststack.New()
+	}
+	extra.stash.Push(ctx.Message())
+}
+
+func (ctx *actorContext) Watch(who *PID) {
+	who.sendSystemMessage(&Watch{
+		Watcher: ctx.self,
+	})
+}
+
+func (ctx *actorContext) Unwatch(who *PID) {
+	who.sendSystemMessage(&Unwatch{
+		Watcher: ctx.self,
+	})
+}
+
+func (ctx *actorContext) SetReceiveTimeout(d time.Duration) {
+	if d <= 0 {
+		panic("Duration must be greater than zero")
+	}
+
+	if d == ctx.receiveTimeout {
+		return
+	}
+
+	if d < time.Millisecond {
+		// anything less than than 1 millisecond is set to zero
+		d = 0
+	}
+
+	ctx.receiveTimeout = d
+
+	ctx.ensureExtras()
+	ctx.extras.stopReceiveTimeoutTimer()
+	if d > 0 {
+		if ctx.extras.receiveTimeoutTimer == nil {
+			ctx.extras.initReceiveTimeoutTimer(time.AfterFunc(d, ctx.receiveTimeoutHandler))
+		} else {
+			ctx.extras.resetReceiveTimeoutTimer(d)
+		}
+	}
+}
+
+func (ctx *actorContext) CancelReceiveTimeout() {
+	if ctx.extras == nil || ctx.extras.receiveTimeoutTimer == nil {
+		return
+	}
+
+	ctx.extras.killReceiveTimeoutTimer()
+	ctx.receiveTimeout = 0
+}
+
+func (ctx *actorContext) receiveTimeoutHandler() {
+	if ctx.extras != nil && ctx.extras.receiveTimeoutTimer != nil {
+		ctx.CancelReceiveTimeout()
+		ctx.Send(ctx.self, receiveTimeoutMessage)
+	}
 }
 
 func (ctx *actorContext) Forward(pid *PID) {
@@ -139,6 +235,38 @@ func (ctx *actorContext) Forward(pid *PID) {
 		return
 	}
 	ctx.sendUserMessage(pid, ctx.messageOrEnvelope)
+}
+
+func (ctx *actorContext) AwaitFuture(f *Future, cont func(res interface{}, err error)) {
+	wrapper := func() {
+		cont(f.result, f.err)
+	}
+
+	message := ctx.messageOrEnvelope
+	//invoke the callback when the future completes
+	f.continueWith(func(res interface{}, err error) {
+		//send the wrapped callaback as a continuation message to self
+		ctx.self.sendSystemMessage(&continuation{
+			f:       wrapper,
+			message: message,
+		})
+	})
+}
+
+//
+// Interface: SenderContext
+//
+
+func (ctx *actorContext) Message() interface{} {
+	return UnwrapEnvelopeMessage(ctx.messageOrEnvelope)
+}
+
+func (ctx *actorContext) MessageHeader() ReadonlyMessageHeader {
+	return UnwrapEnvelopeHeader(ctx.messageOrEnvelope)
+}
+
+func (ctx *actorContext) Send(pid *PID, message interface{}) {
+	ctx.sendUserMessage(pid, message)
 }
 
 func (ctx *actorContext) sendUserMessage(pid *PID, message interface{}) {
@@ -171,80 +299,9 @@ func (ctx *actorContext) RequestFuture(pid *PID, message interface{}, timeout ti
 	return future
 }
 
-func (ctx *actorContext) Stash() {
-	extra := ctx.ensureExtras()
-	if extra.stash == nil {
-		extra.stash = linkedliststack.New()
-	}
-	extra.stash.Push(ctx.Message())
-}
-
-func (ctx *actorContext) cancelTimer() {
-	if ctx.extras == nil || ctx.extras.receiveTimeoutTimer == nil {
-		return
-	}
-
-	ctx.extras.killReceiveTimeoutTimer()
-	ctx.receiveTimeout = 0
-}
-
-func (ctx *actorContext) receiveTimeoutHandler() {
-	if ctx.extras != nil && ctx.extras.receiveTimeoutTimer != nil {
-		ctx.cancelTimer()
-		ctx.Send(ctx.self, receiveTimeoutMessage)
-	}
-}
-
-func (ctx *actorContext) SetReceiveTimeout(d time.Duration) {
-	if d <= 0 {
-		panic("Duration must be greater than zero")
-	}
-
-	if d == ctx.receiveTimeout {
-		return
-	}
-
-	if d < time.Millisecond {
-		// anything less than than 1 millisecond is set to zero
-		d = 0
-	}
-
-	ctx.receiveTimeout = d
-
-	ctx.ensureExtras()
-	ctx.extras.stopReceiveTimeoutTimer()
-	if d > 0 {
-		if ctx.extras.receiveTimeoutTimer == nil {
-			ctx.extras.initReceiveTimeoutTimer(time.AfterFunc(d, ctx.receiveTimeoutHandler))
-		} else {
-			ctx.extras.resetReceiveTimeoutTimer(d)
-		}
-	}
-}
-
-func (ctx *actorContext) ReceiveTimeout() time.Duration {
-	return ctx.receiveTimeout
-}
-
-func (ctx *actorContext) Children() []*PID {
-	if ctx.extras == nil {
-		return make([]*PID, 0)
-	}
-
-	r := make([]*PID, ctx.extras.children.Len())
-	ctx.extras.children.ForEach(func(i int, p PID) {
-		r[i] = &p
-	})
-	return r
-}
-
-func (ctx *actorContext) Self() *PID {
-	return ctx.self
-}
-
-func (ctx *actorContext) Parent() *PID {
-	return ctx.parent
-}
+//
+// Interface: ReceiverContext
+//
 
 func (ctx *actorContext) Receive(envelope *MessageEnvelope) {
 	ctx.messageOrEnvelope = envelope
@@ -267,17 +324,38 @@ func (ctx *actorContext) defaultReceive() {
 	ctx.actor.Receive(Context(ctx))
 }
 
-func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {
-	failure := &Failure{Reason: reason, Who: ctx.self, RestartStats: ctx.ensureExtras().restartStats(), Message: message}
-	ctx.self.sendSystemMessage(suspendMailboxMessage)
-	if ctx.parent == nil {
-		ctx.handleRootFailure(failure)
-	} else {
-		//TODO: Akka recursively suspends all children also on failure
-		//Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
-		ctx.parent.sendSystemMessage(failure)
-	}
+//
+// Interface: SpawnerContext
+//
+
+func (ctx *actorContext) Spawn(props *Props) *PID {
+	pid, _ := ctx.SpawnNamed(props, ProcessRegistry.NextId())
+	return pid
 }
+
+func (ctx *actorContext) SpawnPrefix(props *Props, prefix string) *PID {
+	pid, _ := ctx.SpawnNamed(props, prefix+ProcessRegistry.NextId())
+	return pid
+}
+
+func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
+	if props.guardianStrategy != nil {
+		panic(errors.New("Props used to spawn child cannot have GuardianStrategy"))
+	}
+
+	pid, err := props.spawn(ctx.self.Id+"/"+name, ctx.self)
+	if err != nil {
+		return pid, err
+	}
+
+	ctx.ensureExtras().addChild(pid)
+
+	return pid, nil
+}
+
+//
+// Interface: MessageInvoker
+//
 
 func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 	if ctx.state == stateStopped {
@@ -422,7 +500,7 @@ func (ctx *actorContext) tryRestartOrTerminate() {
 		return
 	}
 
-	ctx.cancelTimer()
+	ctx.CancelReceiveTimeout()
 
 	switch ctx.state {
 	case stateRestarting:
@@ -461,75 +539,20 @@ func (ctx *actorContext) finalizeStop() {
 	ctx.state = stateStopped
 }
 
-func (ctx *actorContext) Watch(who *PID) {
-	who.sendSystemMessage(&Watch{
-		Watcher: ctx.self,
-	})
-}
+//
+// Interface: Supervisor
+//
 
-func (ctx *actorContext) Unwatch(who *PID) {
-	who.sendSystemMessage(&Unwatch{
-		Watcher: ctx.self,
-	})
-}
-
-func (ctx *actorContext) Respond(response interface{}) {
-	// If the message is addressed to nil forward it to the dead letter channel
-	if ctx.Sender() == nil {
-		deadLetter.SendUserMessage(nil, response)
-		return
+func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {
+	failure := &Failure{Reason: reason, Who: ctx.self, RestartStats: ctx.ensureExtras().restartStats(), Message: message}
+	ctx.self.sendSystemMessage(suspendMailboxMessage)
+	if ctx.parent == nil {
+		ctx.handleRootFailure(failure)
+	} else {
+		//TODO: Akka recursively suspends all children also on failure
+		//Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
+		ctx.parent.sendSystemMessage(failure)
 	}
-
-	ctx.Send(ctx.Sender(), response)
-}
-
-func (ctx *actorContext) Spawn(props *Props) *PID {
-	pid, _ := ctx.SpawnNamed(props, ProcessRegistry.NextId())
-	return pid
-}
-
-func (ctx *actorContext) SpawnPrefix(props *Props, prefix string) *PID {
-	pid, _ := ctx.SpawnNamed(props, prefix+ProcessRegistry.NextId())
-	return pid
-}
-
-func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
-	if props.guardianStrategy != nil {
-		panic(errors.New("Props used to spawn child cannot have GuardianStrategy"))
-	}
-
-	pid, err := props.spawn(ctx.self.Id+"/"+name, ctx.self)
-	if err != nil {
-		return pid, err
-	}
-
-	ctx.ensureExtras().addChild(pid)
-
-	return pid, nil
-}
-
-func (ctx *actorContext) GoString() string {
-	return ctx.self.String()
-}
-
-func (ctx *actorContext) String() string {
-	return ctx.self.String()
-}
-
-func (ctx *actorContext) AwaitFuture(f *Future, cont func(res interface{}, err error)) {
-	wrapper := func() {
-		cont(f.result, f.err)
-	}
-
-	message := ctx.messageOrEnvelope
-	//invoke the callback when the future completes
-	f.continueWith(func(res interface{}, err error) {
-		//send the wrapped callaback as a continuation message to self
-		ctx.self.sendSystemMessage(&continuation{
-			f:       wrapper,
-			message: message,
-		})
-	})
 }
 
 func (*actorContext) RestartChildren(pids ...*PID) {
@@ -548,4 +571,16 @@ func (*actorContext) ResumeChildren(pids ...*PID) {
 	for _, pid := range pids {
 		pid.sendSystemMessage(resumeMailboxMessage)
 	}
+}
+
+//
+// Miscellaneous
+//
+
+func (ctx *actorContext) GoString() string {
+	return ctx.self.String()
+}
+
+func (ctx *actorContext) String() string {
+	return ctx.self.String()
 }
