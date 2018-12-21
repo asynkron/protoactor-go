@@ -161,7 +161,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 
 //func init() {
 //	{{ range $service := .Services}}
-//	remote.Register("{{ $service.Name }}", actor.FromProducer(func() actor.Actor {
+//	remote.Register("{{ $service.Name }}", actor.PropsFromProducer(func() actor.Actor {
 //		return &{{ $service.Name }}Actor {}
 //		})		)
 //	{{ end }}

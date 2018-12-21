@@ -132,8 +132,12 @@ func (state *HelloActor) Receive(context actor.Context) {
 }
 
 func main() {
-    props := actor.FromProducer(func() actor.Actor { return &HelloActor{} })
-    pid := actor.Spawn(props)
+    context := actor.EmptyRootContext()
+    props := actor.PropsFromProducer(func() actor.Actor { return &HelloActor{} })
+    pid, err := context.Spawn(props)
+    if err != nil {
+        panic(err)
+    }
     pid.Tell(Hello{Who: "Roger"})
     console.ReadLine()
 }
@@ -165,8 +169,12 @@ func NewSetBehaviorActor() actor.Actor {
 }
 
 func main() {
-    props := actor.FromProducer(NewSetBehaviorActor)
-    pid := actor.Spawn(props)
+    context := actor.EmptyRootContext()
+    props := actor.PropsFromProducer(NewSetBehaviorActor)
+    pid, err := context.Spawn(props)
+    if err != nil {
+        panic(err)
+    }
     pid.Tell(Hello{Who: "Roger"})
     pid.Tell(Hello{Who: "Roger"})
     console.ReadLine()
@@ -197,8 +205,12 @@ func (state *HelloActor) Receive(context actor.Context) {
 }
 
 func main() {
-    props := actor.FromProducer(func() actor.Actor { return &HelloActor{} })
-    pid := actor.Spawn(props)
+    context := actor.EmptyRootContext()
+    props := actor.PropsFromProducer(func() actor.Actor { return &HelloActor{} })
+    pid, err := context.Spawn(props)
+    if err != nil {
+        panic(err)
+    }
     actor.Tell(pid, Hello{Who: "Roger"})
 
     //why wait?
@@ -227,7 +239,7 @@ type ParentActor struct{}
 func (state *ParentActor) Receive(context actor.Context) {
     switch msg := context.Message().(type) {
     case Hello:
-        props := actor.FromProducer(NewChildActor)
+        props := actor.PropsFromProducer(NewChildActor)
         child := context.Spawn(props)
         child.Tell(msg)
     }
@@ -265,12 +277,17 @@ func main() {
         return actor.StopDirective
     }
     supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
+
+    context := actor.EmptyRootContext()
     props := actor.
         FromProducer(NewParentActor).
         WithSupervisor(supervisor)
 
-    pid := actor.Spawn(props)
-    pid.Tell(Hello{Who: "Roger"})
+    pid, err := context.Spawn(props)
+    if err != nil {
+        panic(err)
+    }
+    context.Send(pid, Hello{Who: "Roger"})
 
     console.ReadLine()
 }
@@ -331,7 +348,7 @@ func main() {
     remote.Start("localhost:8091")
 
     //register a name for our local actor so that it can be discovered remotely
-    remote.Register("hello", actor.FromProducer(func() actor.Actor { return &MyActor{} }))
+    remote.Register("hello", actor.PropsFromProducer(func() actor.Actor { return &MyActor{} }))
     console.ReadLine()
 }
 ```
