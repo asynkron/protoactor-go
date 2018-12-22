@@ -50,7 +50,10 @@ func (r *Rendezvous) GetByRdv(key string) string {
 		}
 	}
 
-	return maxMember.Address()
+	if maxMember != nil {
+		return maxMember.Address()
+	}
+	return ""
 }
 
 func (r *Rendezvous) UpdateRdv() {

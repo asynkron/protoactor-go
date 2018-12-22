@@ -102,6 +102,25 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	}
 }
 
+// GetMemberPIDs returns PIDs of members for the specified kind
+func GetMemberPIDs(kind string) actor.PIDSet {
+	memberList.mutex.RLock()
+	defer memberList.mutex.RUnlock()
+
+	pids := actor.PIDSet{}
+	if memberList == nil {
+		return pids
+	}
+	for _, value := range memberList.members {
+		for _, memberKind := range value.Kinds {
+			if kind == memberKind {
+				pids.Add(actor.NewPID(value.Address(), kind))
+			}
+		}
+	}
+	return pids
+}
+
 //RemoveCache at PidCache
 func RemoveCache(name string) {
 	pidCache.removeCacheByName(name)
