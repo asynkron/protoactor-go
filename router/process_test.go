@@ -16,7 +16,10 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 	child, p := spawnMockProcess("child")
 	defer removeMockProcess(child)
 
-	p.On("SendUserMessage", mock.Anything, "hello")
+	p.On("SendUserMessage", mock.Anything, mock.MatchedBy(func(env interface{}) bool {
+		_, msg, _ := actor.UnwrapEnvelope(env)
+		return msg.(string) == "hello"
+	}))
 	p.On("SendSystemMessage", mock.Anything, mock.Anything)
 
 	s1 := actor.NewPIDSet(child)

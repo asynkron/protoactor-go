@@ -81,7 +81,8 @@ func TestPoolRouterActor_Receive_BroadcastMessage(t *testing.T) {
 
 	c := new(mockContext)
 	c.On("Message").Return(&BroadcastMessage{"hi"})
-	c.On("Request").Twice()
+	c.On("Sender").Return((*actor.PID)(nil))
+	c.On("RequestWithCustomSender").Twice()
 
 	state.On("GetRoutees").Return(actor.NewPIDSet(p1, p2))
 
