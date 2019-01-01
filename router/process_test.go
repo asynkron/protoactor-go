@@ -33,7 +33,7 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 
 	routerPID, _ := rootContext.Spawn((&actor.Props{}).WithSpawnFunc(spawner(grc)))
 	rootContext.Send(routerPID, "hello")
-	rootContext.Request(routerPID, "hello")
+	rootContext.RequestWithCustomSender(routerPID, "hello", routerPID)
 
 	mock.AssertExpectationsForObjects(t, p, rs)
 }

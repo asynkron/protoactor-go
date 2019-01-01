@@ -51,8 +51,9 @@ func (a *poolRouterActor) Receive(context actor.Context) {
 
 	case *BroadcastMessage:
 		msg := m.Message
+		sender := context.Sender()
 		a.state.GetRoutees().ForEach(func(i int, pid actor.PID) {
-			context.Request(&pid, msg)
+			context.RequestWithCustomSender(&pid, msg, sender)
 		})
 
 	case *GetRoutees:

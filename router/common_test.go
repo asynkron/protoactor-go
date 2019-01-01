@@ -109,9 +109,25 @@ func (m *mockContext) Send(pid *actor.PID, message interface{}) {
 }
 
 func (m *mockContext) Request(pid *actor.PID, message interface{}) {
+	args := m.Called()
+	p, _ := actor.ProcessRegistry.Get(pid)
+	env := &actor.MessageEnvelope{
+		Header:  nil,
+		Message: message,
+		Sender:  args.Get(0).(*actor.PID),
+	}
+	p.SendUserMessage(pid, env)
+}
+
+func (m *mockContext) RequestWithCustomSender(pid *actor.PID, message interface{}, sender *actor.PID) {
 	m.Called()
 	p, _ := actor.ProcessRegistry.Get(pid)
-	p.SendUserMessage(pid, message)
+	env := &actor.MessageEnvelope{
+		Header:  nil,
+		Message: message,
+		Sender:  sender,
+	}
+	p.SendUserMessage(pid, env)
 }
 
 func (m *mockContext) RequestFuture(pid *actor.PID, message interface{}, timeout time.Duration) *actor.Future {

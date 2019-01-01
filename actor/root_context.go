@@ -57,6 +57,15 @@ func (rc *RootContext) Request(pid *PID, message interface{}) {
 	rc.sendUserMessage(pid, message)
 }
 
+func (rc *RootContext) RequestWithCustomSender(pid *PID, message interface{}, sender *PID) {
+	env := &MessageEnvelope{
+		Header:  nil,
+		Message: message,
+		Sender:  sender,
+	}
+	rc.sendUserMessage(pid, env)
+}
+
 // RequestFuture sends a message to a given PID and returns a Future
 func (rc *RootContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
 	future := NewFuture(timeout)

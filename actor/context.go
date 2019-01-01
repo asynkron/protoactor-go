@@ -67,6 +67,9 @@ type SenderContext interface {
 	//Request sends a message to the given PID and also provides a Sender PID
 	Request(pid *PID, message interface{})
 
+	//Request sends a message to the given PID and also provides a Sender PID
+	RequestWithCustomSender(pid *PID, message interface{}, sender *PID)
+
 	// RequestFuture sends a message to a given PID and returns a Future
 	RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future
 }
