@@ -300,7 +300,8 @@ func (state *MyActor) Receive(context actor.Context) {
 func main() {
     remote.Start("localhost:8090")
 
-    pid := actor.SpawnTemplate(&MyActor{})
+    props := actor.FromProducer(func() actor.Actor { return &MyActor{} })
+    pid := actor.Spawn(props)
     message := &messages.Echo{Message: "hej", Sender: pid}
 
     //this is the remote actor we want to communicate with
@@ -330,8 +331,9 @@ func (*MyActor) Receive(context actor.Context) {
 func main() {
     remote.Start("localhost:8091")
 
-    //register a name for our local actor so that it can be discovered remotely
-    remote.Register("hello", actor.FromProducer(func() actor.Actor { return &MyActor{} }))
+    //spawn a named actor "myactor" so it can be discovered remotely
+    props := actor.FromProducer(func() actor.Actor { return &MyActor{} })
+    actor.SpawnNamed(props, "myactor")
     console.ReadLine()
 }
 ```
