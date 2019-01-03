@@ -302,12 +302,12 @@ Proto Actor's networking layer is built as a thin wrapper ontop of gRPC and mess
 #### Node 1
 
 ```go
-type MyActor struct{
+type MyActor struct {
     count int
 }
 
 func (state *MyActor) Receive(context actor.Context) {
-    switch msg := context.Message().(type) {
+    switch context.Message().(type) {
     case *messages.Response:
         state.count++
         fmt.Println(state.count)
@@ -317,13 +317,18 @@ func (state *MyActor) Receive(context actor.Context) {
 func main() {
     remote.Start("localhost:8090")
 
-    pid := actor.SpawnTemplate(&MyActor{})
+    rootCtx := actor.EmptyRootContext()
+    props := actor.PropsFromProducer(func() actor.Actor { return &MyActor{} })
+    pid, _ := rootCtx.Spawn(props)
     message := &messages.Echo{Message: "hej", Sender: pid}
 
-    //this is the remote actor we want to communicate with
-    remote := actor.NewPID("localhost:8091", "myactor")
+    //this is to spawn remote actor we want to communicate with
+    spawnResponse, _ := remote.SpawnNamed("localhost:8091", "myactor", "hello", time.Second)
+
+    //get spawned PID
+    spawnedPID := spawnResponse.Pid
     for i := 0; i < 10; i++ {
-        remote.Tell(message)
+        rootCtx.Send(spawnedPID, message)
     }
 
     console.ReadLine()
@@ -338,7 +343,7 @@ type MyActor struct{}
 func (*MyActor) Receive(context actor.Context) {
     switch msg := context.Message().(type) {
     case *messages.Echo:
-        msg.Sender.Tell(&messages.Response{
+        context.Send(msg.Sender, &messages.Response{
             SomeValue: "result",
         })
     }
@@ -347,7 +352,7 @@ func (*MyActor) Receive(context actor.Context) {
 func main() {
     remote.Start("localhost:8091")
 
-    //register a name for our local actor so that it can be discovered remotely
+    //register a name for our local actor so that it can be spawned remotely
     remote.Register("hello", actor.PropsFromProducer(func() actor.Actor { return &MyActor{} }))
     console.ReadLine()
 }
