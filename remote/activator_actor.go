@@ -104,7 +104,17 @@ func (*activator) Receive(context actor.Context) {
 	case *actor.Started:
 		plog.Debug("Started Activator")
 	case *ActorPidRequest:
-		props := nameLookup[msg.Kind]
+		props, exist := nameLookup[msg.Kind]
+
+		//if props not exist, return error code UNAVAILABLE
+		if !exist {
+			response := &ActorPidResponse{
+				StatusCode: ResponseStatusCodeUNAVAILABLE.ToInt32(),
+			}
+			context.Respond(response)
+			return
+		}
+
 		name := msg.Name
 
 		//unnamed actor, assign auto ID
