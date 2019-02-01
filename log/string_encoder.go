@@ -70,8 +70,8 @@ func (l *ioLogger) formatHeader(buf *[]byte, prefix string, t time.Time) {
 	itoa(buf, sec, 2)
 
 	// no microseconds
-	//*buf = append(*buf, '.')
-	//itoa(buf, t.Nanosecond()/1e3, 6)
+	// *buf = append(*buf, '.')
+	// itoa(buf, t.Nanosecond()/1e3, 6)
 
 	*buf = append(*buf, ' ')
 	if len(prefix) > 0 {

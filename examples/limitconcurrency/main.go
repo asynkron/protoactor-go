@@ -14,7 +14,7 @@ const maxConcurrency = 5
 
 func doWork(ctx actor.Context) {
 	if msg, ok := ctx.Message().(*workItem); ok {
-		//this is guaranteed to only execute with a max concurrency level of `maxConcurrency`
+		// this is guaranteed to only execute with a max concurrency level of `maxConcurrency`
 		log.Printf("%v got message %d", ctx.Self(), msg.i)
 	}
 }

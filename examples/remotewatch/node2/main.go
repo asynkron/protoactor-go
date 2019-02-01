@@ -11,7 +11,7 @@ import (
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	//empty actor just to have something to remote spawn
+	// empty actor just to have something to remote spawn
 	props := actor.PropsFromFunc(func(ctx actor.Context) {})
 	remote.Register("remote", props)
 

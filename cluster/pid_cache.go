@@ -61,7 +61,7 @@ func (c *pidCacheValue) addCache(name string, pid *actor.PID) bool {
 	if c.cache.SetIfAbsent(name, pid) {
 		key := pid.String()
 		c.reverseCache.Set(key, name)
-		//watch the pid so we know if the node or pid dies
+		// watch the pid so we know if the node or pid dies
 		rootContext.Send(c.watcher, &watchPidRequest{pid})
 		return true
 	}

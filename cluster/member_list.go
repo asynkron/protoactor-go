@@ -85,13 +85,13 @@ func (ml *memberListValue) updateClusterTopology(m interface{}) {
 
 	msg, _ := m.(ClusterTopologyEvent)
 
-	//build a lookup for the new statuses
+	// build a lookup for the new statuses
 	tmp := make(map[string]*MemberStatus)
 	for _, new := range msg {
 		tmp[new.Address()] = new
 	}
 
-	//first remove old ones
+	// first remove old ones
 	for key, old := range ml.members {
 		new := tmp[key]
 		if new == nil {
@@ -99,7 +99,7 @@ func (ml *memberListValue) updateClusterTopology(m interface{}) {
 		}
 	}
 
-	//find all the entries that exist in the new set
+	// find all the entries that exist in the new set
 	for key, new := range tmp {
 		old := ml.members[key]
 		ml.members[key] = new
@@ -110,11 +110,11 @@ func (ml *memberListValue) updateClusterTopology(m interface{}) {
 func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus) {
 
 	if new == nil && old == nil {
-		//ignore, not possible
+		// ignore, not possible
 		return
 	}
 	if new == nil {
-		//update MemberStrategy
+		// update MemberStrategy
 		for _, k := range old.Kinds {
 			if s, ok := ml.memberStrategyByKind[k]; ok {
 				s.RemoveMember(old)
@@ -124,7 +124,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			}
 		}
 
-		//notify left
+		// notify left
 		meta := MemberMeta{
 			Host:  old.Host,
 			Port:  old.Port,
@@ -132,7 +132,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 		}
 		left := &MemberLeftEvent{MemberMeta: meta}
 		eventstream.Publish(left)
-		delete(ml.members, old.Address()) //remove this member as it has left
+		delete(ml.members, old.Address()) // remove this member as it has left
 
 		rt := &remote.EndpointTerminatedEvent{
 			Address: old.Address(),
@@ -142,7 +142,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 		return
 	}
 	if old == nil {
-		//update MemberStrategy
+		// update MemberStrategy
 		for _, k := range new.Kinds {
 			if _, ok := ml.memberStrategyByKind[k]; !ok {
 				ml.memberStrategyByKind[k] = cfg.MemberStrategyBuilder(k)
@@ -150,7 +150,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			ml.memberStrategyByKind[k].AddMember(new)
 		}
 
-		//notify joined
+		// notify joined
 		meta := MemberMeta{
 			Host:  new.Host,
 			Port:  new.Port,
@@ -162,7 +162,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 		return
 	}
 
-	//update MemberStrategy
+	// update MemberStrategy
 	if new.Alive != old.Alive || new.MemberID != old.MemberID || new.StatusValue != nil && !new.StatusValue.IsSame(old.StatusValue) {
 		for _, k := range new.Kinds {
 			if _, ok := ml.memberStrategyByKind[k]; !ok {
@@ -173,7 +173,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 	}
 
 	if new.MemberID != old.MemberID {
-		//notify member rejoined
+		// notify member rejoined
 		meta := MemberMeta{
 			Host:  new.Host,
 			Port:  new.Port,
@@ -185,7 +185,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 		return
 	}
 	if old.Alive && !new.Alive {
-		//notify member unavailable
+		// notify member unavailable
 		meta := MemberMeta{
 			Host:  new.Host,
 			Port:  new.Port,
@@ -197,7 +197,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 		return
 	}
 	if !old.Alive && new.Alive {
-		//notify member reachable
+		// notify member reachable
 		meta := MemberMeta{
 			Host:  new.Host,
 			Port:  new.Port,

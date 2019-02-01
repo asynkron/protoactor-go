@@ -79,15 +79,15 @@ func TestActorCanStopChildren(t *testing.T) {
 	future2 := NewFuture(testTimeout)
 	rootContext.Send(actor, GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.PID()})
 
-	//wait for the actor to reply to the first responsePID
+	// wait for the actor to reply to the first responsePID
 	assertFutureSuccess(future, t)
 
-	//then send a stop command
+	// then send a stop command
 	actor.Stop()
 
-	//wait for the actor to stop and get the result from the stopped handler
+	// wait for the actor to stop and get the result from the stopped handler
 	response := assertFutureSuccess(future2, t)
-	//we should have 0 children when the actor is stopped
+	// we should have 0 children when the actor is stopped
 	assert.Equal(t, 0, response.(GetChildCountResponse).ChildCount)
 }
 

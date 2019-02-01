@@ -19,10 +19,10 @@ type GrainContext interface {
 	// Sender returns the PID of actor that sent currently processed message
 	Sender() *actor.PID
 
-	//Tell sends a message to the given PID
+	// Tell sends a message to the given PID
 	Send(pid *actor.PID, message interface{})
 
-	//Request sends a message to the given PID and also provides a Sender PID
+	// Request sends a message to the given PID and also provides a Sender PID
 	Request(pid *actor.PID, message interface{})
 
 	// RequestFuture sends a message to a given PID and returns a Future

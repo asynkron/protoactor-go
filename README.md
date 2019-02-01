@@ -213,10 +213,10 @@ func main() {
     }
     actor.Tell(pid, Hello{Who: "Roger"})
 
-    //why wait?
-    //Stop is a system message and is not processed through the user message mailbox
-    //thus, it will be handled _before_ any user message
-    //we only do this to show the correct order of events in the console
+    // why wait?
+    // Stop is a system message and is not processed through the user message mailbox
+    // thus, it will be handled _before_ any user message
+    // we only do this to show the correct order of events in the console
     time.Sleep(1 * time.Second)
     pid.Stop()
 
@@ -322,10 +322,10 @@ func main() {
     pid, _ := rootCtx.Spawn(props)
     message := &messages.Echo{Message: "hej", Sender: pid}
 
-    //this is to spawn remote actor we want to communicate with
+    // this is to spawn remote actor we want to communicate with
     spawnResponse, _ := remote.SpawnNamed("localhost:8091", "myactor", "hello", time.Second)
 
-    //get spawned PID
+    // get spawned PID
     spawnedPID := spawnResponse.Pid
     for i := 0; i < 10; i++ {
         rootCtx.Send(spawnedPID, message)
@@ -352,7 +352,7 @@ func (*MyActor) Receive(context actor.Context) {
 func main() {
     remote.Start("localhost:8091")
 
-    //register a name for our local actor so that it can be spawned remotely
+    // register a name for our local actor so that it can be spawned remotely
     remote.Register("hello", actor.PropsFromProducer(func() actor.Actor { return &MyActor{} }))
     console.ReadLine()
 }
@@ -363,15 +363,15 @@ func main() {
 ```proto
 syntax = "proto3";
 package messages;
-import "actor.proto"; //we need to import actor.proto, so our messages can include PID's
+import "actor.proto"; // we need to import actor.proto, so our messages can include PID's
 
-//this is the message the actor on node 1 will send to the remote actor on node 2
+// this is the message the actor on node 1 will send to the remote actor on node 2
 message Echo {
-  actor.PID Sender = 1; //this is the PID the remote actor should reply to
+  actor.PID Sender = 1; // this is the PID the remote actor should reply to
   string Message = 2;
 }
 
-//this is the message the remote actor should reply with
+// this is the message the remote actor should reply with
 message Response {
   string SomeValue = 1;
 }

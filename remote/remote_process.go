@@ -33,7 +33,7 @@ func SendMessage(pid *actor.PID, header actor.ReadonlyMessageHeader, message int
 
 func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 
-	//intercept any Watch messages and direct them to the endpoint manager
+	// intercept any Watch messages and direct them to the endpoint manager
 	switch msg := message.(type) {
 	case *actor.Watch:
 		rw := &remoteWatch{

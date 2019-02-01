@@ -31,7 +31,7 @@ type endpointWriterMailbox struct {
 }
 
 func (m *endpointWriterMailbox) PostUserMessage(message interface{}) {
-	//batching mailbox only use the message part
+	// batching mailbox only use the message part
 	m.userMailbox.Push(message)
 	m.schedule()
 }
@@ -50,14 +50,14 @@ func (m *endpointWriterMailbox) Start() {
 }
 
 func (m *endpointWriterMailbox) schedule() {
-	atomic.StoreInt32(&m.hasMoreMessages, mailboxHasMoreMessages) //we have more messages to process
+	atomic.StoreInt32(&m.hasMoreMessages, mailboxHasMoreMessages) // we have more messages to process
 	if atomic.CompareAndSwapInt32(&m.schedulerStatus, mailboxIdle, mailboxRunning) {
 		m.dispatcher.Schedule(m.processMessages)
 	}
 }
 
 func (m *endpointWriterMailbox) processMessages() {
-	//we are about to start processing messages, we can safely reset the message flag of the mailbox
+	// we are about to start processing messages, we can safely reset the message flag of the mailbox
 	atomic.StoreInt32(&m.hasMoreMessages, mailboxHasNoMessages)
 process:
 	m.run()

@@ -75,7 +75,7 @@ func TestMpscQueueConsistency(t *testing.T) {
 
 	wg.Wait()
 	time.Sleep(500 * time.Millisecond)
-	//queue should be empty
+	// queue should be empty
 	for i := 0; i < 100; i++ {
 		r := q.Pop()
 		if r != nil {

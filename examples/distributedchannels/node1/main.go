@@ -10,7 +10,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-//define root context
+// define root context
 var rootContext = actor.EmptyRootContext()
 
 func newMyMessageSenderChannel() chan<- *messages.MyMessage {

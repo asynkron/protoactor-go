@@ -78,7 +78,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	messageCount := 1000000
-	//remote.DefaultSerializerID = 1
+	// remote.DefaultSerializerID = 1
 	remote.Start("127.0.0.1:8081")
 
 	rootContext := actor.EmptyRootContext()

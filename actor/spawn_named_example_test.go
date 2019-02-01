@@ -13,11 +13,11 @@ func ExampleSpawnNamed() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	//create root context
+	// create root context
 	context := actor.EmptyRootContext()
 
-	//define the actor props
-	//props define the creation process of an actor
+	// define the actor props
+	// props define the creation process of an actor
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		// check if the message is a *actor.Started message
 		// this is the first message all actors get

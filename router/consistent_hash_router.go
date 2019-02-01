@@ -30,7 +30,7 @@ type consistentHashRouterState struct {
 }
 
 func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
-	//lookup from node name to PID
+	// lookup from node name to PID
 	hmc := hashmapContainer{}
 	hmc.routeeMap = make(map[string]*actor.PID)
 	nodes := make([]string, routees.Len())
@@ -39,7 +39,7 @@ func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 		nodes[i] = nodeName
 		hmc.routeeMap[nodeName] = &pid
 	})
-	//initialize hashring for mapping message keys to node names
+	// initialize hashring for mapping message keys to node names
 	hmc.hashring = hashring.New(nodes)
 	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.hmc)), unsafe.Pointer(&hmc))
 }

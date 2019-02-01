@@ -78,7 +78,7 @@ func (e *Expector) ExpectNoMsg(t *testing.T) {
 		at := reflect.TypeOf(actual)
 		t.Errorf("Expected no message got %v:%v", at, actual)
 	case <-time.After(time.Second * 1):
-		//pass
+		// pass
 	}
 }
 
@@ -90,7 +90,7 @@ func TestActorStopsAfterXRestars(t *testing.T) {
 
 	e.ExpectMsg(startedMessage, t)
 
-	//root supervisor allows 10 restarts
+	// root supervisor allows 10 restarts
 	for i := 0; i < 10; i++ {
 		rootContext.Send(child, fail)
 		e.ExpectMsg(fail, t)
@@ -99,6 +99,6 @@ func TestActorStopsAfterXRestars(t *testing.T) {
 	}
 	rootContext.Send(child, fail)
 	e.ExpectMsg(fail, t)
-	//the 11th time should cause a termination
+	// the 11th time should cause a termination
 	e.ExpectMsg(stoppingMessage, t)
 }

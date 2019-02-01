@@ -28,13 +28,13 @@ func TestDeadLetterAfterStop(t *testing.T) {
 }
 
 func TestDeadLetterWatchRespondsWithTerminate(t *testing.T) {
-	//create an actor
+	// create an actor
 	pid, err := rootContext.Spawn(PropsFromProducer(NewBlackHoleActor))
 	assert.NoError(t, err)
-	//stop id
+	// stop id
 	pid.GracefulStop()
 	f := NewFuture(testTimeout)
-	//send a watch message, from our future
+	// send a watch message, from our future
 	pid.sendSystemMessage(&Watch{Watcher: f.PID()})
 	assertFutureSuccess(f, t)
 }

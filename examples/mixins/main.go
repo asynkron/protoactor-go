@@ -16,7 +16,7 @@ type myActor struct {
 func (state *myActor) Receive(context actor.Context) {
 	switch context.Message().(type) {
 	case *actor.Started:
-		//this actor have been initialized by the receive pipeline
+		// this actor have been initialized by the receive pipeline
 		fmt.Printf("My name is %v\n", state.name)
 	}
 }

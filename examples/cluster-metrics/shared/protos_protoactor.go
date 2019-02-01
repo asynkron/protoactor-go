@@ -255,10 +255,10 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 	case *actor.Started:
 		a.inner = xHelloFactory()
 		id := ctx.Self().Id
-		a.inner.Init(id[7:]) //skip "remote$"
+		a.inner.Init(id[7:]) // skip "remote$"
 
-	case actor.AutoReceiveMessage: //pass
-	case actor.SystemMessage: //pass
+	case actor.AutoReceiveMessage: // pass
+	case actor.SystemMessage: // pass
 
 	case *cluster.GrainRequest:
 		switch msg.Method {
@@ -326,17 +326,17 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 	}
 }
 
-//Why has this been removed?
-//This should only be done on servers of the below Kinds
-//Clients should not be forced to also be servers
+// Why has this been removed?
+// This should only be done on servers of the below Kinds
+// Clients should not be forced to also be servers
 
-//func init() {
+// func init() {
 //
 //	remote.Register("Hello", actor.PropsFromProducer(func() actor.Actor {
 //		return &HelloActor {}
 //		})		)
 //
-//}
+// }
 
 // type hello struct {
 //	cluster.Grain
@@ -355,7 +355,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 // }
 
 // func init() {
-// 	//apply DI and setup logic
+// 	// apply DI and setup logic
 
 // 	HelloFactory(func() Hello { return &hello{} })
 

@@ -32,10 +32,10 @@ func main() {
 	pid, _ := rootContext.Spawn(props)
 	rootContext.Send(pid, &hello{Who: "Roger"})
 
-	//why wait?
-	//Stop is a system message and is not processed through the user message mailbox
-	//thus, it will be handled _before_ any user message
-	//we only do this to show the correct order of events in the console
+	// why wait?
+	// Stop is a system message and is not processed through the user message mailbox
+	// thus, it will be handled _before_ any user message
+	// we only do this to show the correct order of events in the console
 	time.Sleep(1 * time.Second)
 	pid.Stop()
 

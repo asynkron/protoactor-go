@@ -98,25 +98,25 @@ func (props *Props) spawn(name string, parent *PID) (*PID, error) {
 	return props.getSpawner()(name, props, parent)
 }
 
-//WithProducer assigns a actor producer to the props
+// WithProducer assigns a actor producer to the props
 func (props *Props) WithProducer(p Producer) *Props {
 	props.producer = p
 	return props
 }
 
-//WithDispatcher assigns a dispatcher to the props
+// WithDispatcher assigns a dispatcher to the props
 func (props *Props) WithDispatcher(dispatcher mailbox.Dispatcher) *Props {
 	props.dispatcher = dispatcher
 	return props
 }
 
-//WithMailbox assigns the desired mailbox producer to the props
+// WithMailbox assigns the desired mailbox producer to the props
 func (props *Props) WithMailbox(mailbox mailbox.Producer) *Props {
 	props.mailboxProducer = mailbox
 	return props
 }
 
-//WithContextDecorator assigns context decorator to the props
+// WithContextDecorator assigns context decorator to the props
 func (props *Props) WithContextDecorator(contextDecorator ...ContextDecorator) *Props {
 	props.contextDecorator = append(props.contextDecorator, contextDecorator...)
 
@@ -127,13 +127,13 @@ func (props *Props) WithContextDecorator(contextDecorator ...ContextDecorator) *
 	return props
 }
 
-//WithGuardian assigns a guardian strategy to the props
+// WithGuardian assigns a guardian strategy to the props
 func (props *Props) WithGuardian(guardian SupervisorStrategy) *Props {
 	props.guardianStrategy = guardian
 	return props
 }
 
-//WithSupervisor assigns a supervision strategy to the props
+// WithSupervisor assigns a supervision strategy to the props
 func (props *Props) WithSupervisor(supervisor SupervisorStrategy) *Props {
 	props.supervisionStrategy = supervisor
 	return props
@@ -162,19 +162,19 @@ func (props *Props) WithSenderMiddleware(middleware ...SenderMiddleware) *Props 
 	return props
 }
 
-//WithSpawnFunc assigns a custom spawn func to the props, this is mainly for internal usage
+// WithSpawnFunc assigns a custom spawn func to the props, this is mainly for internal usage
 func (props *Props) WithSpawnFunc(spawn SpawnFunc) *Props {
 	props.spawner = spawn
 	return props
 }
 
-//WithFunc assigns a receive func to the props
+// WithFunc assigns a receive func to the props
 func (props *Props) WithFunc(f ActorFunc) *Props {
 	props.producer = func() Actor { return f }
 	return props
 }
 
-//PropsFromProducer creates a props with the given actor producer assigned
+// PropsFromProducer creates a props with the given actor producer assigned
 func PropsFromProducer(producer Producer) *Props {
 	return &Props{
 		producer:         producer,
@@ -182,7 +182,7 @@ func PropsFromProducer(producer Producer) *Props {
 	}
 }
 
-//PropsFromFunc creates a props with the given receive func assigned as the actor producer
+// PropsFromFunc creates a props with the given receive func assigned as the actor producer
 func PropsFromFunc(f ActorFunc) *Props {
 	return PropsFromProducer(func() Actor { return f })
 }

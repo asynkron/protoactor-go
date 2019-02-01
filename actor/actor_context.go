@@ -35,8 +35,8 @@ func newActorContextExtras(context Context) *actorContextExtras {
 }
 
 func (ctxExt *actorContextExtras) restartStats() *RestartStatistics {
-	//lazy initialize the child restart stats if this is the first time
-	//further mutations are handled within "restart"
+	// lazy initialize the child restart stats if this is the first time
+	// further mutations are handled within "restart"
 	if ctxExt.rs == nil {
 		ctxExt.rs = NewRestartStatistics()
 	}
@@ -243,9 +243,9 @@ func (ctx *actorContext) AwaitFuture(f *Future, cont func(res interface{}, err e
 	}
 
 	message := ctx.messageOrEnvelope
-	//invoke the callback when the future completes
+	// invoke the callback when the future completes
 	f.continueWith(func(res interface{}, err error) {
-		//send the wrapped callaback as a continuation message to self
+		// send the wrapped callaback as a continuation message to self
 		ctx.self.sendSystemMessage(&continuation{
 			f:       wrapper,
 			message: message,
@@ -324,7 +324,7 @@ func (ctx *actorContext) defaultReceive() {
 		return
 	}
 
-	//are we using decorators, if so, ensure it has been created
+	// are we using decorators, if so, ensure it has been created
 	if ctx.props.contextDecoratorChain != nil {
 		ctx.actor.Receive(ctx.ensureExtras().context)
 		return
@@ -368,7 +368,7 @@ func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 
 func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 	if ctx.state == stateStopped {
-		//already stopped
+		// already stopped
 		return
 	}
 
@@ -401,7 +401,7 @@ func (ctx *actorContext) processMessage(m interface{}) {
 
 	ctx.messageOrEnvelope = m
 	ctx.defaultReceive()
-	ctx.messageOrEnvelope = nil //release message
+	ctx.messageOrEnvelope = nil // release message
 }
 
 func (ctx *actorContext) incarnateActor() {
@@ -462,10 +462,10 @@ func (ctx *actorContext) handleRestart(msg *Restart) {
 	ctx.tryRestartOrTerminate()
 }
 
-//I am stopping
+// I am stopping
 func (ctx *actorContext) handleStop(msg *Stop) {
 	if ctx.state >= stateStopping {
-		//already stopping or stopped
+		// already stopping or stopped
 		return
 	}
 
@@ -476,7 +476,7 @@ func (ctx *actorContext) handleStop(msg *Stop) {
 	ctx.tryRestartOrTerminate()
 }
 
-//child stopped, check if we can stop or restart (if needed)
+// child stopped, check if we can stop or restart (if needed)
 func (ctx *actorContext) handleTerminated(msg *Terminated) {
 	if ctx.extras != nil {
 		ctx.extras.removeChild(msg.Who)
@@ -486,7 +486,7 @@ func (ctx *actorContext) handleTerminated(msg *Terminated) {
 	ctx.tryRestartOrTerminate()
 }
 
-//offload the supervision completely to the supervisor strategy
+// offload the supervision completely to the supervisor strategy
 func (ctx *actorContext) handleFailure(msg *Failure) {
 	if strategy, ok := ctx.actor.(SupervisorStrategy); ok {
 		strategy.HandleFailure(ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
@@ -535,13 +535,13 @@ func (ctx *actorContext) finalizeStop() {
 	ProcessRegistry.Remove(ctx.self)
 	ctx.InvokeUserMessage(stoppedMessage)
 	otherStopped := &Terminated{Who: ctx.self}
-	//Notify watchers
+	// Notify watchers
 	if ctx.extras != nil {
 		ctx.extras.watchers.ForEach(func(i int, pid PID) {
 			pid.sendSystemMessage(otherStopped)
 		})
 	}
-	//Notify parent
+	// Notify parent
 	if ctx.parent != nil {
 		ctx.parent.sendSystemMessage(otherStopped)
 	}
@@ -558,8 +558,8 @@ func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}
 	if ctx.parent == nil {
 		ctx.handleRootFailure(failure)
 	} else {
-		//TODO: Akka recursively suspends all children also on failure
-		//Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
+		// TODO: Akka recursively suspends all children also on failure
+		// Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
 		ctx.parent.sendSystemMessage(failure)
 	}
 }

@@ -34,7 +34,7 @@ func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
 }
 
 func main() {
-	//this node knows about Hello kind
+	// this node knows about Hello kind
 	remote.Register("Hello", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.HelloActor{}
 	}).WithReceiverMiddleware(Logger))
@@ -91,7 +91,7 @@ func async() {
 	for {
 		select {
 		case <-time.After(100 * time.Millisecond):
-			log.Println("Tick..") //this might not happen if res returns fast enough
+			log.Println("Tick..") // this might not happen if res returns fast enough
 		case err := <-e:
 			log.Fatal(err)
 		case res := <-c:

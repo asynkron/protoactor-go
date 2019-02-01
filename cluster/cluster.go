@@ -20,7 +20,7 @@ func Start(clusterName, address string, provider ClusterProvider) {
 func StartWithConfig(config *ClusterConfig) {
 	cfg = config
 
-	//TODO: make it possible to become a cluster even if remoting is already started
+	// TODO: make it possible to become a cluster even if remoting is already started
 	remote.Start(cfg.Address, cfg.RemotingOption...)
 
 	address := actor.ProcessRegistry.Address
@@ -28,7 +28,7 @@ func StartWithConfig(config *ClusterConfig) {
 	plog.Info("Starting Proto.Actor cluster", log.String("address", address))
 	kinds := remote.GetKnownKinds()
 
-	//for each known kind, spin up a partition-kind actor to handle all requests for that kind
+	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
 	setupPartition(kinds)
 	setupPidCache()
 	setupMemberList()
@@ -40,7 +40,7 @@ func StartWithConfig(config *ClusterConfig) {
 func Shutdown(graceful bool) {
 	if graceful {
 		cfg.ClusterProvider.Shutdown()
-		//This is to wait ownership transferring complete.
+		// This is to wait ownership transferring complete.
 		time.Sleep(time.Millisecond * 2000)
 		stopMemberList()
 		stopPidCache()
@@ -53,27 +53,27 @@ func Shutdown(graceful bool) {
 	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))
 }
 
-//Get a PID to a virtual actor
+// Get a PID to a virtual actor
 func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
-	//Check Cache
+	// Check Cache
 	if pid, ok := pidCache.getCache(name); ok {
 		return pid, remote.ResponseStatusCodeOK
 	}
 
-	//Get Pid
+	// Get Pid
 	address := memberList.getPartitionMember(name, kind)
 	if address == "" {
-		//No available member found
+		// No available member found
 		return nil, remote.ResponseStatusCodeUNAVAILABLE
 	}
 
-	//package the request as a remote.ActorPidRequest
+	// package the request as a remote.ActorPidRequest
 	req := &remote.ActorPidRequest{
 		Kind: kind,
 		Name: name,
 	}
 
-	//ask the DHT partition for this name to give us a PID
+	// ask the DHT partition for this name to give us a PID
 	remotePartition := partition.partitionForKind(address, kind)
 	r, err := rootContext.RequestFuture(remotePartition, req, cfg.TimeoutTime).Result()
 	if err == actor.ErrTimeout {
@@ -92,12 +92,12 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	statusCode := remote.ResponseStatusCode(response.StatusCode)
 	switch statusCode {
 	case remote.ResponseStatusCodeOK:
-		//save cache
+		// save cache
 		pidCache.addCache(name, response.Pid)
-		//tell the original requester that we have a response
+		// tell the original requester that we have a response
 		return response.Pid, statusCode
 	default:
-		//forward to requester
+		// forward to requester
 		return response.Pid, statusCode
 	}
 }
@@ -122,7 +122,7 @@ func GetMemberPIDs(kind string) actor.PIDSet {
 	return pids
 }
 
-//RemoveCache at PidCache
+// RemoveCache at PidCache
 func RemoveCache(name string) {
 	pidCache.removeCacheByName(name)
 }

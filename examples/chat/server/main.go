@@ -10,7 +10,7 @@ import (
 	"github.com/emirpasic/gods/sets/hashset"
 )
 
-//define root context
+// define root context
 var rootContext = actor.EmptyRootContext()
 
 func notifyAll(clients *hashset.Set, message interface{}) {

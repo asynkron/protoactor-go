@@ -1,8 +1,8 @@
 package cluster
 
-//Rendezvous.go
-//A revised FNV1A32 version of
-//https://github.com/tysonmote/rendezvous/blob/master/rendezvous.go
+// Rendezvous.go
+// A revised FNV1A32 version of
+// https://github.com/tysonmote/rendezvous/blob/master/rendezvous.go
 
 import (
 	"hash"

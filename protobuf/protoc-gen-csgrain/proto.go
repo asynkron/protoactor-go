@@ -38,7 +38,7 @@ type ProtoMethod struct {
 	Output       *ProtoMessage
 }
 
-//ProtoAst transforms a FileDescriptor to an AST that can be used for code generation
+// ProtoAst transforms a FileDescriptor to an AST that can be used for code generation
 func ProtoAst(file *google_protobuf.FileDescriptorProto) *ProtoFile {
 
 	pkg := &ProtoFile{}

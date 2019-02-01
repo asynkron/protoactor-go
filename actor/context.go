@@ -2,7 +2,7 @@ package actor
 
 import "time"
 
-//Context contains contextual information for actors
+// Context contains contextual information for actors
 type Context interface {
 	SenderContext
 	ReceiverContext
@@ -48,7 +48,7 @@ type Context interface {
 
 	CancelReceiveTimeout()
 
-	//Forward forwards current message to the given PID
+	// Forward forwards current message to the given PID
 	Forward(pid *PID)
 
 	AwaitFuture(f *Future, continuation func(res interface{}, err error))
@@ -58,16 +58,16 @@ type SenderContext interface {
 	// Message returns the current message to be processed
 	Message() interface{}
 
-	//MessageHeader returns the meta information for the currently processed message
+	// MessageHeader returns the meta information for the currently processed message
 	MessageHeader() ReadonlyMessageHeader
 
-	//Send sends a message to the given PID
+	// Send sends a message to the given PID
 	Send(pid *PID, message interface{})
 
-	//Request sends a message to the given PID and also provides a Sender PID
+	// Request sends a message to the given PID and also provides a Sender PID
 	Request(pid *PID, message interface{})
 
-	//Request sends a message to the given PID and also provides a Sender PID
+	// Request sends a message to the given PID and also provides a Sender PID
 	RequestWithCustomSender(pid *PID, message interface{}, sender *PID)
 
 	// RequestFuture sends a message to a given PID and returns a Future

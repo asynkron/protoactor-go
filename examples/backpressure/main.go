@@ -10,7 +10,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
-//sent to producer to request more work
+// sent to producer to request more work
 type requestMoreWork struct {
 	items int
 }
@@ -48,7 +48,7 @@ type producer struct {
 func (p *producer) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
-		//spawn our worker
+		// spawn our worker
 		workerProps := actor.PropsFromProducer(func() actor.Actor { return &worker{} }).WithMailbox(mailbox.Unbounded(&requestWorkBehavior{
 			producer: ctx.Self(),
 		}))
@@ -58,11 +58,11 @@ func (p *producer) Receive(ctx actor.Context) {
 		log.Println("Producer got a new work request")
 		ctx.Send(ctx.Self(), &produce{})
 	case *produce:
-		//produce more work
+		// produce more work
 		log.Println("Producer is producing work")
 		ctx.Send(p.worker, &work{})
 
-		//decrease our workload and tell ourselves to produce more work
+		// decrease our workload and tell ourselves to produce more work
 		if p.requestedWork > 0 {
 			p.requestedWork--
 			ctx.Send(ctx.Self(), &produce{})

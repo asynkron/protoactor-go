@@ -103,7 +103,7 @@ func (pid *PID) String() string {
 	return pid.Address + "/" + pid.Id
 }
 
-//NewPID returns a new instance of the PID struct
+// NewPID returns a new instance of the PID struct
 func NewPID(address, id string) *PID {
 	return &PID{
 		Address: address,
@@ -111,7 +111,7 @@ func NewPID(address, id string) *PID {
 	}
 }
 
-//NewLocalPID returns a new instance of the PID struct with the address preset
+// NewLocalPID returns a new instance of the PID struct with the address preset
 func NewLocalPID(id string) *PID {
 	return &PID{
 		Address: ProcessRegistry.Address,

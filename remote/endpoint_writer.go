@@ -31,8 +31,8 @@ func (state *endpointWriter) initialize() {
 	err := state.initializeInternal()
 	if err != nil {
 		plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
-		//Wait 2 seconds to restart and retry
-		//Replace with Exponential Backoff
+		// Wait 2 seconds to restart and retry
+		// Replace with Exponential Backoff
 		time.Sleep(2 * time.Second)
 		panic(err)
 	}
@@ -63,7 +63,7 @@ func (state *endpointWriter) initializeInternal() error {
 		if err != nil {
 			plog.Info("EndpointWriter lost connection to address", log.String("address", state.address), log.Error(err))
 
-			//notify that the endpoint terminated
+			// notify that the endpoint terminated
 			terminated := &EndpointTerminatedEvent{
 				Address: state.address,
 			}
@@ -81,7 +81,7 @@ func (state *endpointWriter) initializeInternal() error {
 func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context) {
 	envelopes := make([]*MessageEnvelope, len(msg))
 
-	//type name uniqueness map name string to type index
+	// type name uniqueness map name string to type index
 	typeNames := make(map[string]int32)
 	typeNamesArr := make([]string, 0)
 	targetNames := make(map[string]int32)
@@ -167,7 +167,7 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 	case []interface{}:
 		state.sendEnvelopes(msg, ctx)
 	case actor.SystemMessage, actor.AutoReceiveMessage:
-		//ignore
+		// ignore
 	default:
 		plog.Error("EndpointWriter received unknown message", log.String("address", state.address), log.TypeOf("type", msg), log.Message(msg))
 	}
