@@ -75,9 +75,13 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 	// IMPORTANT: do these ops sync directly after registering.
 	// this will ensure that the local node sees its own information upon startup.
 
-	// force our own TTL to be OK
-	p.blockingUpdateTTL()
-	// force our own existence to be part of the first status update
+	//force our own TTL to be OK
+	err = p.blockingUpdateTTL()
+	if err != nil {
+		return err
+	}
+
+	//force our own existence to be part of the first status update
 	p.blockingStatusChange()
 
 	p.UpdateTTL()
@@ -113,7 +117,39 @@ func (p *ConsulProvider) Shutdown() error {
 func (p *ConsulProvider) UpdateTTL() {
 	go func() {
 		for !p.shutdown {
-			p.blockingUpdateTTL()
+
+			err := p.blockingUpdateTTL()
+			if err == nil {
+				time.Sleep(p.refreshTTL)
+				continue
+			}
+
+			log.Println("[CLUSTER] [CONSUL] Failure refreshing service TTL. Trying to reregister service if not in consul.")
+
+			services, err := p.client.Agent().Services()
+			for id := range services {
+				if id == p.id {
+					log.Println("[CLUSTER] [CONSUL] Service found in consul -> doing nothing")
+					time.Sleep(p.refreshTTL)
+					continue
+				}
+			}
+
+			err = p.registerService()
+			if err != nil {
+				log.Println("[CLUSTER] [CONSUL] Error reregistering service ", err)
+				time.Sleep(p.refreshTTL)
+				continue
+			}
+
+			err = p.registerMember()
+			if err != nil {
+				log.Println("[CLUSTER] [CONSUL] Error reregistering member", err)
+				time.Sleep(p.refreshTTL)
+				continue
+			}
+
+			log.Println("[CLUSTER] [CONSUL] Reregistered service in consul")
 			time.Sleep(p.refreshTTL)
 		}
 	}()
@@ -132,23 +168,8 @@ func (p *ConsulProvider) UpdateMemberStatusValue(statusValue cluster.MemberStatu
 	return err
 }
 
-func (p *ConsulProvider) blockingUpdateTTL() {
-	refresh := func() error {
-		err := p.client.Agent().PassTTL("service:"+p.id, "")
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	//	log.Println("[CLUSTER] [CONSUL] Refreshing service TTL")
-	err := refresh()
-	if err != nil {
-		log.Println("[CLUSTER] [CONSUL] Failure refreshing service TTL")
-	}
-
-	healthStatusMutes.Lock()
-	p.clusterHealth = err
-	healthStatusMutes.Unlock()
+func (p *ConsulProvider) blockingUpdateTTL() error {
+	return p.client.Agent().UpdateTTL("service:"+p.id, "", api.HealthPassing)
 }
 
 func (p *ConsulProvider) registerService() error {
@@ -160,7 +181,7 @@ func (p *ConsulProvider) registerService() error {
 		Port:    p.port,
 		Check: &api.AgentServiceCheck{
 			DeregisterCriticalServiceAfter: p.deregisterCritical.String(),
-			TTL:                            p.ttl.String(),
+			TTL: p.ttl.String(),
 		},
 	}
 	return p.client.Agent().ServiceRegister(s)
