@@ -38,7 +38,27 @@ func (rc *RootContext) WithSenderMiddleware(middleware ...SenderMiddleware) *Roo
 }
 
 //
-// Interface: SenderContext
+// Interface: info
+//
+
+func (rc *RootContext) Parent() *PID {
+	return nil
+}
+
+func (rc *RootContext) Self() *PID {
+	return nil
+}
+
+func (rc *RootContext) Sender() *PID {
+	return nil
+}
+
+func (rc *RootContext) Actor() Actor {
+	return nil
+}
+
+//
+// Interface: sender
 //
 
 func (rc *RootContext) Message() interface{} {
@@ -94,7 +114,7 @@ func (rc *RootContext) sendUserMessage(pid *PID, message interface{}) {
 }
 
 //
-// Interface: SpawnerContext
+// Interface: spawner
 //
 
 func (rc *RootContext) Spawn(props *Props) (*PID, error) {

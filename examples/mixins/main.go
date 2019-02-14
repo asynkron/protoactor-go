@@ -36,7 +36,7 @@ func (state *NameAwareHolder) SetName(name string) {
 type NamerPlugin struct{}
 
 func (p *NamerPlugin) OnStart(ctx actor.ReceiverContext) {
-	if p, ok := ctx.(actor.Context).Actor().(NameAware); ok {
+	if p, ok := ctx.Actor().(NameAware); ok {
 		p.SetName("GAM")
 	}
 }

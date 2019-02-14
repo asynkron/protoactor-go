@@ -4,10 +4,24 @@ import "time"
 
 // Context contains contextual information for actors
 type Context interface {
-	SenderContext
-	ReceiverContext
-	SpawnerContext
+	infoPart
+	basePart
+	senderPart
+	receiverPart
+	spawnerPart
+}
 
+type SenderContext interface {
+	infoPart
+	senderPart
+}
+
+type ReceiverContext interface {
+	infoPart
+	receiverPart
+}
+
+type infoPart interface {
 	// Parent returns the PID for the current actors parent
 	Parent() *PID
 
@@ -19,7 +33,9 @@ type Context interface {
 
 	// Actor returns the actor associated with this context
 	Actor() Actor
+}
 
+type basePart interface {
 	// ReceiveTimeout returns the current timeout
 	ReceiveTimeout() time.Duration
 
@@ -54,7 +70,7 @@ type Context interface {
 	AwaitFuture(f *Future, continuation func(res interface{}, err error))
 }
 
-type SenderContext interface {
+type senderPart interface {
 	// Message returns the current message to be processed
 	Message() interface{}
 
@@ -74,11 +90,11 @@ type SenderContext interface {
 	RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future
 }
 
-type ReceiverContext interface {
+type receiverPart interface {
 	Receive(envelope *MessageEnvelope)
 }
 
-type SpawnerContext interface {
+type spawnerPart interface {
 	// Spawn starts a new child actor based on props and named with a unique id
 	Spawn(props *Props) *PID
 

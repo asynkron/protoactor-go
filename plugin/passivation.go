@@ -51,13 +51,13 @@ type PassivationPlugin struct {
 }
 
 func (pp *PassivationPlugin) OnStart(ctx actor.ReceiverContext) {
-	if a, ok := ctx.(actor.Context).Actor().(PassivationAware); ok {
-		a.Init(ctx.(actor.Context).Self(), pp.Duration)
+	if a, ok := ctx.Actor().(PassivationAware); ok {
+		a.Init(ctx.Self(), pp.Duration)
 	}
 }
 
 func (pp *PassivationPlugin) OnOtherMessage(ctx actor.ReceiverContext, env *actor.MessageEnvelope) {
-	if p, ok := ctx.(actor.Context).Actor().(PassivationAware); ok {
+	if p, ok := ctx.Actor().(PassivationAware); ok {
 		switch env.Message.(type) {
 		case *actor.Stopped:
 			p.Cancel()

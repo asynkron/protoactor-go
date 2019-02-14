@@ -15,9 +15,9 @@ func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
 	fn := func(context actor.ReceiverContext, env *actor.MessageEnvelope) {
 		switch env.Message.(type) {
 		case *actor.Started:
-			log.Printf("actor started " + context.(actor.Context).Self().String())
+			log.Printf("actor started " + context.Self().String())
 		case *actor.Stopped:
-			log.Printf("actor stopped " + context.(actor.Context).Self().String())
+			log.Printf("actor stopped " + context.Self().String())
 		}
 		next(context, env)
 	}

@@ -13,10 +13,10 @@ func Using(provider Provider) func(next actor.ReceiverFunc) actor.ReceiverFunc {
 			switch env.Message.(type) {
 			case *actor.Started:
 				next(ctx, env)
-				if p, ok := ctx.(actor.Context).Actor().(persistent); ok {
+				if p, ok := ctx.Actor().(persistent); ok {
 					p.init(provider, ctx.(actor.Context))
 				} else {
-					log.Fatalf("Actor type %v is not persistent", reflect.TypeOf(ctx.(actor.Context).Actor()))
+					log.Fatalf("Actor type %v is not persistent", reflect.TypeOf(ctx.Actor()))
 				}
 			default:
 				next(ctx, env)
