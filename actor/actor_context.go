@@ -369,7 +369,7 @@ func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 }
 
 //
-// Interface: StopperContext
+// Interface: stopper
 //
 
 // Stop will stop actor immediately regardless of existing user messages in mailbox.
