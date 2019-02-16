@@ -28,9 +28,6 @@ type infoPart interface {
 	// Self returns the PID for the current actor
 	Self() *PID
 
-	// Sender returns the PID of actor that sent currently processed message
-	Sender() *PID
-
 	// Actor returns the actor associated with this context
 	Actor() Actor
 }
@@ -71,6 +68,9 @@ type basePart interface {
 }
 
 type senderPart interface {
+	// Sender returns the PID of actor that sent currently processed message
+	Sender() *PID
+
 	// Message returns the current message to be processed
 	Message() interface{}
 
@@ -80,7 +80,7 @@ type senderPart interface {
 	// Send sends a message to the given PID
 	Send(pid *PID, message interface{})
 
-	// Request sends a message to the given PID and also provides a Sender PID
+	// Request sends a message to the given PID
 	Request(pid *PID, message interface{})
 
 	// Request sends a message to the given PID and also provides a Sender PID
