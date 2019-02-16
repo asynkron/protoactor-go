@@ -104,5 +104,7 @@ type spawnerPart interface {
 	// SpawnNamed starts a new child actor based on props and named using the specified name
 	//
 	// ErrNameExists will be returned if id already exists
+	//
+	// Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1"
 	SpawnNamed(props *Props, id string) (*PID, error)
 }

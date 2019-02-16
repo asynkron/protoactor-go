@@ -117,6 +117,7 @@ func (rc *RootContext) sendUserMessage(pid *PID, message interface{}) {
 // Interface: spawner
 //
 
+// Spawn starts a new actor based on props and named with a unique id
 func (rc *RootContext) Spawn(props *Props) *PID {
 	pid, err := rc.SpawnNamed(props, ProcessRegistry.NextId())
 	if err != nil {
@@ -125,6 +126,7 @@ func (rc *RootContext) Spawn(props *Props) *PID {
 	return pid
 }
 
+// SpawnPrefix starts a new actor based on props and named using a prefix followed by a unique id
 func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
 	pid, err := rc.SpawnNamed(props, prefix+ProcessRegistry.NextId())
 	if err != nil {
@@ -133,6 +135,11 @@ func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
 	return pid
 }
 
+// SpawnNamed starts a new actor based on props and named using the specified name
+//
+// ErrNameExists will be returned if id already exists
+//
+// Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1"
 func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	var parent *PID
 	if props.guardianStrategy != nil {
