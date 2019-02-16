@@ -56,7 +56,7 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Inpu
 			if err != nil {
 				return nil, err
 			}
-			request := &cluster.GrainRequest{Method: "{{ $method.Name }}", MessageData: bytes}
+			request := &cluster.GrainRequest{MethodIndex: {{ $method.Index }}, MessageData: bytes}
 			response, err := rootContext.RequestFuture(pid, request, opts.Timeout).Result()
 			if err != nil {
 				return nil, err
@@ -127,9 +127,9 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 	case actor.SystemMessage: // pass
 
 	case *cluster.GrainRequest:
-		switch msg.Method {
+		switch msg.MethodIndex {
 		{{ range $method := $service.Methods}}	
-		case "{{ $method.Name }}":
+		case {{ $method.Index }}:
 			req := &{{ $method.Input.Name }}{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
