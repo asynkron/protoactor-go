@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
@@ -19,7 +19,8 @@ func main() {
 
 	c := 0
 
-	act := actor.FromFunc(func(context actor.Context) {
+	rootContext := actor.EmptyRootContext()
+	props := actor.PropsFromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *actor.Started:
 			context.SetReceiveTimeout(1 * time.Second)
@@ -41,9 +42,9 @@ func main() {
 		}
 	})
 
-	pid := actor.Spawn(act)
+	pid := rootContext.Spawn(props)
 	for i := 0; i < 6; i++ {
-		pid.Tell("hello")
+		rootContext.Send(pid, "hello")
 		time.Sleep(500 * time.Millisecond)
 	}
 
@@ -51,13 +52,13 @@ func main() {
 	console.ReadLine()
 
 	for i := 0; i < 6; i++ {
-		pid.Tell(NoInfluence("hello"))
+		rootContext.Send(pid, NoInfluence("hello"))
 		time.Sleep(500 * time.Millisecond)
 	}
 
 	log.Println("hit [return] to send a message to cancel the timeout")
 	console.ReadLine()
-	pid.Tell("cancel")
+	rootContext.Send(pid, "cancel")
 
 	log.Println("hit [return] to finish")
 	console.ReadLine()

@@ -20,7 +20,7 @@ type request struct {
 }
 
 var (
-	props = actor.FromProducer(newState).WithMailbox(mailbox.UnboundedLockfree())
+	props = actor.PropsFromProducer(newState).WithMailbox(mailbox.UnboundedLockfree())
 )
 
 type state struct {
@@ -44,18 +44,18 @@ func (s *state) Receive(ctx actor.Context) {
 		s.replies = msg.div
 		s.replyTo = ctx.Sender()
 		for i := 0; i < msg.div; i++ {
-			child := actor.Spawn(props)
-			child.Request(&request{
+			child := ctx.Spawn(props)
+			ctx.Request(child, &request{
 				num:  msg.num + i*(msg.size/msg.div),
 				size: msg.size / msg.div,
 				div:  msg.div,
-			}, ctx.Self())
+			})
 		}
 	case int:
 		s.sum += msg
 		s.replies--
 		if s.replies == 0 {
-			s.replyTo.Tell(s.sum)
+			ctx.Send(s.replyTo, s.sum)
 		}
 	}
 }
@@ -76,9 +76,11 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	runtime.GC()
 
+	rootContext := actor.EmptyRootContext()
+
 	start := time.Now()
-	pid := actor.Spawn(props)
-	res, _ := pid.RequestFuture(&request{
+	pid := rootContext.Spawn(props)
+	res, _ := rootContext.RequestFuture(pid, &request{
 		num:  0,
 		size: 1000000,
 		div:  10,

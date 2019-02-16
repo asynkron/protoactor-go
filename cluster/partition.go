@@ -29,7 +29,7 @@ func setupPartition(kinds []string) {
 			for _, k := range mse.GetKinds() {
 				kindPID := partition.kindPIDMap[k]
 				if kindPID != nil {
-					kindPID.Tell(m)
+					rootContext.Send(kindPID, m)
 				}
 			}
 		}
@@ -55,15 +55,15 @@ type spawningProcess struct {
 }
 
 type partitionActor struct {
-	partition  map[string]*actor.PID       //actor/grain name to PID
-	keyNameMap map[string]string           //actor/grain key to name
-	spawnings  map[string]*spawningProcess //spawning actor/grain futures
+	partition  map[string]*actor.PID       // actor/grain name to PID
+	keyNameMap map[string]string           // actor/grain key to name
+	spawnings  map[string]*spawningProcess // spawning actor/grain futures
 	kind       string
 }
 
 func spawnPartitionActor(kind string) *actor.PID {
-	props := actor.FromProducer(newPartitionActor(kind)).WithGuardian(actor.RestartingSupervisorStrategy())
-	partitionPid, _ := actor.SpawnNamed(props, "partition-"+kind)
+	props := actor.PropsFromProducer(newPartitionActor(kind)).WithGuardian(actor.RestartingSupervisorStrategy())
+	partitionPid, _ := rootContext.SpawnNamed(props, "partition-"+kind)
 	return partitionPid
 }
 
@@ -91,7 +91,7 @@ func (state *partitionActor) Receive(context actor.Context) {
 	case *MemberJoinedEvent:
 		state.memberJoined(msg, context)
 	case *MemberRejoinedEvent:
-		state.memberRejoined(msg)
+		state.memberRejoined(msg, context)
 	case *MemberLeftEvent:
 		state.memberLeft(msg, context)
 	case *MemberAvailableEvent:
@@ -99,14 +99,14 @@ func (state *partitionActor) Receive(context actor.Context) {
 	case *MemberUnavailableEvent:
 		plog.Info("Member unavailable", log.String("kind", state.kind), log.String("name", msg.Name()))
 	case actor.SystemMessage, actor.AutoReceiveMessage:
-		//ignore
+		// ignore
 	default:
 		plog.Error("Partition got unknown message", log.String("kind", state.kind), log.TypeOf("type", msg), log.Object("msg", msg))
 	}
 }
 
 func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Context) {
-	//Check if exist in current partition dictionary
+	// Check if exist in current partition dictionary
 	pid := state.partition[msg.Name]
 	if pid != nil {
 		response := &remote.ActorPidResponse{Pid: pid}
@@ -114,7 +114,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		return
 	}
 
-	//Check if is spawning, if so just await spawning finish.
+	// Check if is spawning, if so just await spawning finish.
 	spawning := state.spawnings[msg.Name]
 	if spawning != nil {
 		context.AwaitFuture(spawning.Future, func(r interface{}, err error) {
@@ -128,24 +128,24 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		return
 	}
 
-	//Get activator
+	// Get activator
 	activator := memberList.getActivatorMember(msg.Kind)
 	if activator == "" {
-		//No activator currently available, return unavailable
+		// No activator currently available, return unavailable
 		context.Respond(remote.ActorPidRespUnavailable)
 		return
 	}
 
-	//Create SpawningProcess and cache it in spawnings dictionary.
+	// Create SpawningProcess and cache it in spawnings dictionary.
 	spawning = &spawningProcess{actor.NewFuture(-1), activator}
 	state.spawnings[msg.Name] = spawning
 
-	//Await SpawningProcess
+	// Await SpawningProcess
 	context.AwaitFuture(spawning.Future, func(r interface{}, err error) {
 		delete(state.spawnings, msg.Name)
 
-		//Check if exist in current partition dictionary
-		//This is necessary to avoid race condition during partition map transferring.
+		// Check if exist in current partition dictionary
+		// This is necessary to avoid race condition during partition map transferring.
 		pid = state.partition[msg.Name]
 		if pid != nil {
 			response := &remote.ActorPidResponse{Pid: pid}
@@ -169,16 +169,16 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 		context.Respond(response)
 	})
 
-	//Perform Spawning
-	go state.spawning(msg, activator, 3, spawning.PID())
+	// Perform Spawning
+	go state.spawning(msg, activator, 3, spawning.PID(), context)
 }
 
-func (state *partitionActor) spawning(msg *remote.ActorPidRequest, activator string, retryLeft int, fPid *actor.PID) {
+func (state *partitionActor) spawning(msg *remote.ActorPidRequest, activator string, retryLeft int, fPid *actor.PID, context actor.Context) {
 	if activator == "" {
 		activator = memberList.getActivatorMember(msg.Kind)
 		if activator == "" {
-			//No activator currently available, return unavailable
-			fPid.Tell(remote.ActorPidRespUnavailable)
+			// No activator currently available, return unavailable
+			context.Send(fPid, remote.ActorPidRespUnavailable)
 			return
 		}
 	}
@@ -187,24 +187,24 @@ func (state *partitionActor) spawning(msg *remote.ActorPidRequest, activator str
 	if err != nil {
 		plog.Error("Partition failed to spawn actor", log.String("name", msg.Name), log.String("kind", msg.Kind), log.String("address", activator), log.Error(err))
 		if err == actor.ErrTimeout {
-			fPid.Tell(remote.ActorPidRespTimeout)
+			context.Send(fPid, remote.ActorPidRespTimeout)
 		} else {
-			fPid.Tell(remote.ActorPidRespErr)
+			context.Send(fPid, remote.ActorPidRespErr)
 		}
 		return
 	}
 
 	if pidResp.StatusCode == remote.ResponseStatusCodeUNAVAILABLE.ToInt32() && retryLeft != 0 {
 		retryLeft--
-		state.spawning(msg, "", retryLeft, fPid)
+		state.spawning(msg, "", retryLeft, fPid, context)
 		return
 	}
 
-	fPid.Tell(pidResp)
+	context.Send(fPid, pidResp)
 }
 
 func (state *partitionActor) terminated(msg *actor.Terminated) {
-	//one of the actors we manage died, remove it from the lookup
+	// one of the actors we manage died, remove it from the lookup
 	key := msg.Who.String()
 	if name, ok := state.keyNameMap[key]; ok {
 		delete(state.partition, name)
@@ -212,14 +212,14 @@ func (state *partitionActor) terminated(msg *actor.Terminated) {
 	}
 }
 
-func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
+func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent, context actor.Context) {
 
 	memberAddress := msg.Name()
 
 	plog.Info("Member rejoined", log.String("kind", state.kind), log.String("name", memberAddress))
 
 	for actorID, pid := range state.partition {
-		//if the mapped PID is on the address that left, forget it
+		// if the mapped PID is on the address that left, forget it
 		if pid.Address == memberAddress {
 			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, memberAddress)
 			delete(state.partition, actorID)
@@ -227,10 +227,10 @@ func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent) {
 		}
 	}
 
-	//Process Spawning Process
+	// Process Spawning Process
 	for _, spawning := range state.spawnings {
 		if spawning.spawningAddress == memberAddress {
-			spawning.PID().Tell(remote.ActorPidRespUnavailable)
+			context.Send(spawning.PID(), remote.ActorPidRespUnavailable)
 		}
 	}
 }
@@ -241,7 +241,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 
 	plog.Info("Member left", log.String("kind", state.kind), log.String("name", memberAddress))
 
-	//If the left member is self, transfer remaining pids to others
+	// If the left member is self, transfer remaining pids to others
 	if actor.ProcessRegistry.Address == memberAddress {
 		for actorID := range state.partition {
 			address := memberList.getPartitionMember(actorID, state.kind)
@@ -252,7 +252,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 	}
 
 	for actorID, pid := range state.partition {
-		//if the mapped PID is on the address that left, forget it
+		// if the mapped PID is on the address that left, forget it
 		if pid.Address == memberAddress {
 			//	log.Printf("[CLUSTER] Forgetting '%v' - '%v'", actorID, memberAddress)
 			delete(state.partition, actorID)
@@ -260,10 +260,10 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 		}
 	}
 
-	//Process Spawning Process
+	// Process Spawning Process
 	for _, spawning := range state.spawnings {
 		if spawning.spawningAddress == memberAddress {
-			spawning.PID().Tell(remote.ActorPidRespUnavailable)
+			context.Send(spawning.PID(), remote.ActorPidRespUnavailable)
 		}
 	}
 }
@@ -279,7 +279,7 @@ func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.
 	for actorID, spawning := range state.spawnings {
 		address := memberList.getPartitionMember(actorID, state.kind)
 		if address != "" && address != actor.ProcessRegistry.Address {
-			spawning.PID().Tell(remote.ActorPidRespUnavailable)
+			context.Send(spawning.PID(), remote.ActorPidRespUnavailable)
 		}
 	}
 }
@@ -287,26 +287,26 @@ func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.
 func (state *partitionActor) transferOwnership(actorID string, address string, context actor.Context) {
 	pid := state.partition[actorID]
 	owner := partition.partitionForKind(address, state.kind)
-	owner.Tell(&TakeOwnership{
+	context.Send(owner, &TakeOwnership{
 		Pid:  pid,
 		Name: actorID,
 	})
-	//we can safely delete this entry as the consisntent hash no longer points to us
+	// we can safely delete this entry as the consisntent hash no longer points to us
 	delete(state.partition, actorID)
 	delete(state.keyNameMap, pid.String())
 	context.Unwatch(pid)
 }
 
 func (state *partitionActor) takeOwnership(msg *TakeOwnership, context actor.Context) {
-	//Check again if I'm the owner
+	// Check again if I'm the owner
 	address := memberList.getPartitionMember(msg.Name, state.kind)
 	if address != "" && address != actor.ProcessRegistry.Address {
-		//if not, forward to the correct owner
+		// if not, forward to the correct owner
 		owner := partition.partitionForKind(address, state.kind)
-		owner.Tell(msg)
+		context.Send(owner, msg)
 		return
 	}
-	//Cache ownership
+	// Cache ownership
 	state.partition[msg.Name] = msg.Pid
 	state.keyNameMap[msg.Pid.String()] = msg.Name
 	context.Watch(msg.Pid)

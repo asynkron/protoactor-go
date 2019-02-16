@@ -16,7 +16,10 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 	child, p := spawnMockProcess("child")
 	defer removeMockProcess(child)
 
-	p.On("SendUserMessage", mock.Anything, "hello")
+	p.On("SendUserMessage", mock.Anything, mock.MatchedBy(func(env interface{}) bool {
+		_, msg, _ := actor.UnwrapEnvelope(env)
+		return msg.(string) == "hello"
+	}))
 	p.On("SendSystemMessage", mock.Anything, mock.Anything)
 
 	s1 := actor.NewPIDSet(child)
@@ -31,9 +34,9 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 	grc := newGroupRouterConfig(child)
 	grc.On("CreateRouterState").Return(rs)
 
-	routerPID := actor.Spawn(actor.FromSpawnFunc(spawner(grc)))
-	routerPID.Tell("hello")
-	routerPID.Request("hello", routerPID)
+	routerPID := rootContext.Spawn((&actor.Props{}).WithSpawnFunc(spawner(grc)))
+	rootContext.Send(routerPID, "hello")
+	rootContext.RequestWithCustomSender(routerPID, "hello", routerPID)
 
 	mock.AssertExpectationsForObjects(t, p, rs)
 }
@@ -49,7 +52,7 @@ func newGroupRouterConfig(routees ...*actor.PID) *testGroupRouter {
 	return r
 }
 
-func (m *testGroupRouter) CreateRouterState() Interface {
+func (m *testGroupRouter) CreateRouterState() RouterState {
 	args := m.Called()
 	return args.Get(0).(*testRouterState)
 }
@@ -67,7 +70,7 @@ func (m *testRouterState) SetRoutees(routees *actor.PIDSet) {
 func (m *testRouterState) RouteMessage(message interface{}) {
 	m.Called(message)
 	m.routees.ForEach(func(i int, pid actor.PID) {
-		pid.Tell(message)
+		rootContext.Send(&pid, message)
 	})
 }
 

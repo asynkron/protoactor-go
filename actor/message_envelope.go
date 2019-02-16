@@ -57,6 +57,17 @@ func (me *MessageEnvelope) SetHeader(key string, value string) {
 	me.Header.Set(key, value)
 }
 
+var (
+	emptyMessageHeader = make(messageHeader)
+)
+
+func WrapEnvelope(message interface{}) *MessageEnvelope {
+	if e, ok := message.(*MessageEnvelope); ok {
+		return e
+	}
+	return &MessageEnvelope{nil, message, nil}
+}
+
 func UnwrapEnvelope(message interface{}) (ReadonlyMessageHeader, interface{}, *PID) {
 	if env, ok := message.(*MessageEnvelope); ok {
 		return env.Header, env.Message, env.Sender
@@ -64,6 +75,23 @@ func UnwrapEnvelope(message interface{}) (ReadonlyMessageHeader, interface{}, *P
 	return nil, message, nil
 }
 
-var (
-	emptyMessageHeader = make(messageHeader)
-)
+func UnwrapEnvelopeHeader(message interface{}) ReadonlyMessageHeader {
+	if env, ok := message.(*MessageEnvelope); ok {
+		return env.Header
+	}
+	return nil
+}
+
+func UnwrapEnvelopeMessage(message interface{}) interface{} {
+	if env, ok := message.(*MessageEnvelope); ok {
+		return env.Message
+	}
+	return message
+}
+
+func UnwrapEnvelopeSender(message interface{}) *PID {
+	if env, ok := message.(*MessageEnvelope); ok {
+		return env.Sender
+	}
+	return nil
+}

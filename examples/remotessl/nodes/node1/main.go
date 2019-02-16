@@ -18,7 +18,7 @@ func (a *node1Actor) Receive(context actor.Context) {
 	case *messages.EncryptedMessage:
 		if message.Message == "SYN" {
 			log.Printf("%s received SYN from %s", context.Self(), context.Sender())
-			context.Sender().Request(&messages.EncryptedMessage{Message: "ACK"}, context.Self())
+			context.Request(context.Sender(), &messages.EncryptedMessage{Message: "ACK"})
 		}
 	}
 }
@@ -42,8 +42,9 @@ func main() {
 	remote.Start("localhost:8090", sslDialOption, sslServerOption)
 
 	// start the local actor which looks for SYN messages from node2
-	props := actor.FromProducer(func() actor.Actor { return &node1Actor{} })
-	_, err = actor.SpawnNamed(props, "node1")
+	rootContext := actor.EmptyRootContext()
+	props := actor.PropsFromProducer(func() actor.Actor { return &node1Actor{} })
+	_, err = rootContext.SpawnNamed(props, "node1")
 	if err != nil {
 		panic(err)
 	}

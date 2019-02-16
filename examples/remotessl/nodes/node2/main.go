@@ -41,8 +41,9 @@ func main() {
 	remote.Start("localhost:8091", sslDialOption, sslServerOption)
 
 	// start the local actor which looks for ACK messages from node1
-	props := actor.FromProducer(func() actor.Actor { return &node2Actor{} })
-	pid, err := actor.SpawnNamed(props, "node2")
+	context := actor.EmptyRootContext()
+	props := actor.PropsFromProducer(func() actor.Actor { return &node2Actor{} })
+	pid, err := context.SpawnNamed(props, "node2")
 	if err != nil {
 		panic(err)
 	}
@@ -50,7 +51,7 @@ func main() {
 	// send a SYN message to the remove node1
 	remotePID := actor.NewPID("localhost:8090", "node1")
 	log.Printf("%s sending SYN to %s", pid, remotePID)
-	remotePID.Request(&messages.EncryptedMessage{Message: "SYN"}, pid)
+	context.RequestWithCustomSender(remotePID, &messages.EncryptedMessage{Message: "SYN"}, pid)
 
 	console.ReadLine()
 }

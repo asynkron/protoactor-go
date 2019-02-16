@@ -8,11 +8,11 @@ import (
 )
 
 // Logger is message middleware which logs messages before continuing to the next middleware
-func Logger(next actor.ActorFunc) actor.ActorFunc {
-	fn := func(c actor.Context) {
-		message := c.Message()
+func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
+	fn := func(c actor.ReceiverContext, env *actor.MessageEnvelope) {
+		message := env.Message
 		log.Printf("%v got %v %+v", c.Self(), reflect.TypeOf(message), message)
-		next(c)
+		next(c, env)
 	}
 
 	return fn

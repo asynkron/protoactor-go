@@ -25,7 +25,7 @@ func TestJsonSerializer_round_trip(t *testing.T) {
 }
 
 func TestJsonSerializer_Serialize_PID_raw(t *testing.T) {
-	m, _ := actor.SpawnNamed(actor.FromFunc(func(ctx actor.Context) {}), "actorpid")
+	m, _ := rootContext.SpawnNamed(actor.PropsFromFunc(func(ctx actor.Context) {}), "actorpid")
 	ser := jsonpb.Marshaler{}
 	res, _ := ser.MarshalToString(m)
 	assert.Equal(t, "{\"Address\":\"nonhost\",\"Id\":\"actorpid\"}", res)

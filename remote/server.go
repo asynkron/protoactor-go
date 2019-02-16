@@ -18,6 +18,9 @@ var (
 	edpReader *endpointReader
 )
 
+// remote root context
+var rootContext = actor.EmptyRootContext()
+
 // Start the remote server
 func Start(address string, options ...RemotingOption) {
 	grpclog.SetLogger(slog.New(ioutil.Discard, "", 0))
@@ -51,9 +54,9 @@ func Shutdown(graceful bool) {
 		stopEndpointManager()
 		stopActivatorActor()
 
-		//For some reason GRPC doesn't want to stop
-		//Setup timeout as walkaround but need to figure out in the future.
-		//TODO: grpc not stopping
+		// For some reason GRPC doesn't want to stop
+		// Setup timeout as walkaround but need to figure out in the future.
+		// TODO: grpc not stopping
 		c := make(chan bool, 1)
 		go func() {
 			s.GracefulStop()

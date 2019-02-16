@@ -10,7 +10,7 @@ import (
 type poolRouterActor struct {
 	props  *actor.Props
 	config RouterConfig
-	state  Interface
+	state  RouterState
 	wg     *sync.WaitGroup
 }
 
@@ -47,13 +47,13 @@ func (a *poolRouterActor) Receive(context actor.Context) {
 		// in terms of both delay it cause to the router actor and the time it
 		// provides for the routee to receive messages before it dies.
 		time.Sleep(time.Millisecond * 1)
-		m.PID.Tell(&actor.PoisonPill{})
+		context.Send(m.PID, &actor.PoisonPill{})
 
 	case *BroadcastMessage:
 		msg := m.Message
 		sender := context.Sender()
 		a.state.GetRoutees().ForEach(func(i int, pid actor.PID) {
-			pid.Request(msg, sender)
+			context.RequestWithCustomSender(&pid, msg, sender)
 		})
 
 	case *GetRoutees:

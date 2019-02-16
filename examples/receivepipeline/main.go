@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/actor/middleware"
 )
@@ -18,8 +18,9 @@ func receive(context actor.Context) {
 }
 
 func main() {
-	props := actor.FromFunc(receive).WithMiddleware(middleware.Logger)
-	pid := actor.Spawn(props)
-	pid.Tell(&hello{Who: "Roger"})
+	rootContext := actor.EmptyRootContext()
+	props := actor.PropsFromFunc(receive).WithReceiverMiddleware(middleware.Logger)
+	pid := rootContext.Spawn(props)
+	rootContext.Send(pid, &hello{Who: "Roger"})
 	console.ReadLine()
 }

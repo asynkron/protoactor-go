@@ -36,7 +36,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 			return err
 		}
 
-		//only grow pid lookup if needed
+		// only grow pid lookup if needed
 		if len(batch.TargetNames) > len(targets) {
 			targets = make([]*actor.PID, len(batch.TargetNames))
 		}
@@ -52,7 +52,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 				plog.Debug("EndpointReader failed to deserialize", log.Error(err))
 				return err
 			}
-			//if message is system message send it as sysmsg instead of usermsg
+			// if message is system message send it as sysmsg instead of usermsg
 
 			sender := envelope.Sender
 
@@ -76,7 +76,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 					Message: message,
 					Sender:  sender,
 				}
-				pid.Tell(localEnvelope)
+				rootContext.Send(pid, localEnvelope)
 			}
 		}
 	}

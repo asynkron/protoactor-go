@@ -8,7 +8,7 @@ import (
 
 	"fmt"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remotelatency/messages"
 	"github.com/AsynkronIT/protoactor-go/mailbox"
@@ -84,11 +84,12 @@ func main() {
 	runtime.GC()
 
 	remote.Start("127.0.0.1:8080", remote.WithEndpointWriterBatchSize(10000))
+	rootContext := actor.EmptyRootContext()
 	props := actor.
-		FromProducer(newRemoteActor()).
+		PropsFromProducer(newRemoteActor()).
 		WithMailbox(mailbox.Bounded(1000))
 
-	actor.SpawnNamed(props, "remote")
+	rootContext.SpawnNamed(props, "remote")
 
 	console.ReadLine()
 }

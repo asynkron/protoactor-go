@@ -6,10 +6,10 @@ import (
 
 func TestActorCanReplyOnStarting(t *testing.T) {
 	future := NewFuture(testTimeout)
-	a := Spawn(FromFunc(func(context Context) {
+	a := rootContext.Spawn(PropsFromFunc(func(context Context) {
 		switch context.Message().(type) {
 		case *Started:
-			context.Tell(future.PID(), EchoResponse{})
+			context.Send(future.PID(), EchoResponse{})
 		}
 	}))
 	a.GracefulStop()
@@ -18,10 +18,10 @@ func TestActorCanReplyOnStarting(t *testing.T) {
 
 func TestActorCanReplyOnStopping(t *testing.T) {
 	future := NewFuture(testTimeout)
-	a := Spawn(FromFunc(func(context Context) {
+	a := rootContext.Spawn(PropsFromFunc(func(context Context) {
 		switch context.Message().(type) {
 		case *Stopping:
-			context.Tell(future.PID(), EchoResponse{})
+			context.Send(future.PID(), EchoResponse{})
 		}
 	}))
 	a.GracefulStop()

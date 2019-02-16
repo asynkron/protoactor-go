@@ -19,7 +19,7 @@ func NewBlackHoleActor() Actor {
 }
 
 func TestSpawnProducesProcess(t *testing.T) {
-	actor := Spawn(FromProducer(NewBlackHoleActor))
+	actor := rootContext.Spawn(PropsFromProducer(NewBlackHoleActor))
 	defer actor.Stop()
 	assert.NotNil(t, actor)
 }
@@ -42,9 +42,9 @@ func (*EchoActor) Receive(context Context) {
 }
 
 func TestActorCanReplyToMessage(t *testing.T) {
-	pid := Spawn(FromProducer(NewEchoActor))
+	pid := rootContext.Spawn(PropsFromProducer(NewEchoActor))
 	defer pid.Stop()
-	err := pid.RequestFuture(EchoRequest{}, testTimeout).Wait()
+	err := rootContext.RequestFuture(pid, EchoRequest{}, testTimeout).Wait()
 	if err != nil {
 		assert.Fail(t, "timed out")
 		return

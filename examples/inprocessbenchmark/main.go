@@ -23,7 +23,7 @@ type Start struct {
 	Sender *actor.PID
 }
 
-//type Started struct{}
+// type Started struct{}
 
 type pingActor struct {
 	count        int
@@ -43,7 +43,7 @@ func (state *pingActor) sendBatch(context actor.Context, sender *actor.PID) bool
 	}
 
 	for i := 0; i < state.batchSize; i++ {
-		sender.Tell(m)
+		context.Send(sender, m)
 	}
 
 	state.messageCount -= state.batchSize
@@ -118,16 +118,17 @@ func main() {
 		d := mailbox.NewDefaultDispatcher(tp)
 
 		clientProps := actor.
-			FromProducer(newPingActor(&wg, messageCount, batchSize)).
+			PropsFromProducer(newPingActor(&wg, messageCount, batchSize)).
 			WithMailbox(mailbox.Bounded(batchSize + 10)).
 			WithDispatcher(d)
+		rootContext := actor.EmptyRootContext()
 
 		echoProps := actor.
-			FromFunc(
+			PropsFromFunc(
 				func(context actor.Context) {
 					switch msg := context.Message().(type) {
 					case *Msg:
-						msg.Sender.Tell(msg)
+						context.Send(msg.Sender, msg)
 					}
 				}).
 			WithMailbox(mailbox.Bounded(batchSize + 10)).
@@ -137,8 +138,8 @@ func main() {
 		echos := make([]*actor.PID, 0)
 		clientCount := runtime.NumCPU() * 2
 		for i := 0; i < clientCount; i++ {
-			client := actor.Spawn(clientProps)
-			echo := actor.Spawn(echoProps)
+			client := rootContext.Spawn(clientProps)
+			echo := rootContext.Spawn(echoProps)
 			clients = append(clients, client)
 			echos = append(echos, echo)
 			wg.Add(1)
@@ -149,7 +150,7 @@ func main() {
 			client := clients[i]
 			echo := echos[i]
 
-			client.Tell(&Start{
+			rootContext.Send(client, &Start{
 				Sender: echo,
 			})
 		}

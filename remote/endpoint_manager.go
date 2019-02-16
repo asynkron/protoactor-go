@@ -32,11 +32,11 @@ type endpointManagerValue struct {
 func startEndpointManager(config *remoteConfig) {
 	plog.Debug("Started EndpointManager")
 
-	props := actor.FromProducer(newEndpointSupervisor).
+	props := actor.PropsFromProducer(newEndpointSupervisor).
 		WithGuardian(actor.RestartingSupervisorStrategy()).
 		WithSupervisor(actor.RestartingSupervisorStrategy()).
 		WithDispatcher(mailbox.NewSynchronizedDispatcher(300))
-	endpointSupervisor, _ := actor.SpawnNamed(props, "EndpointSupervisor")
+	endpointSupervisor, _ := rootContext.SpawnNamed(props, "EndpointSupervisor")
 
 	endpointManager = &endpointManagerValue{
 		connections:        &sync.Map{},
@@ -69,32 +69,32 @@ func (em *endpointManagerValue) endpointEvent(evn interface{}) {
 		em.removeEndpoint(msg)
 	case *EndpointConnectedEvent:
 		endpoint := em.ensureConnected(msg.Address)
-		endpoint.watcher.Tell(msg)
+		rootContext.Send(endpoint.watcher, msg)
 	}
 }
 
 func (em *endpointManagerValue) remoteTerminate(msg *remoteTerminate) {
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
-	endpoint.watcher.Tell(msg)
+	rootContext.Send(endpoint.watcher, msg)
 }
 
 func (em *endpointManagerValue) remoteWatch(msg *remoteWatch) {
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
-	endpoint.watcher.Tell(msg)
+	rootContext.Send(endpoint.watcher, msg)
 }
 
 func (em *endpointManagerValue) remoteUnwatch(msg *remoteUnwatch) {
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
-	endpoint.watcher.Tell(msg)
+	rootContext.Send(endpoint.watcher, msg)
 }
 
 func (em *endpointManagerValue) remoteDeliver(msg *remoteDeliver) {
 	address := msg.target.Address
 	endpoint := em.ensureConnected(address)
-	endpoint.writer.Tell(msg)
+	rootContext.Send(endpoint.writer, msg)
 }
 
 func (em *endpointManagerValue) ensureConnected(address string) *endpoint {
@@ -104,7 +104,7 @@ func (em *endpointManagerValue) ensureConnected(address string) *endpoint {
 		var once sync.Once
 		el.valueFunc = func() *endpoint {
 			once.Do(func() {
-				rst, _ := em.endpointSupervisor.RequestFuture(address, -1).Result()
+				rst, _ := rootContext.RequestFuture(em.endpointSupervisor, address, -1).Result()
 				ep := rst.(*endpoint)
 				el.valueFunc = func() *endpoint {
 					return ep
@@ -126,8 +126,8 @@ func (em *endpointManagerValue) removeEndpoint(msg *EndpointTerminatedEvent) {
 		if atomic.CompareAndSwapUint32(&le.unloaded, 0, 1) {
 			em.connections.Delete(msg.Address)
 			ep := le.valueFunc()
-			ep.watcher.Tell(msg)
-			ep.writer.Tell(msg)
+			rootContext.Send(ep.watcher, msg)
+			rootContext.Send(ep.writer, msg)
 		}
 	}
 }
@@ -154,15 +154,15 @@ func (state *endpointSupervisor) HandleFailure(supervisor actor.Supervisor, chil
 
 func (state *endpointSupervisor) spawnEndpointWriter(address string, ctx actor.Context) *actor.PID {
 	props := actor.
-		FromProducer(newEndpointWriter(address, endpointManager.config)).
-		WithMailbox(newEndpointWriterMailbox(endpointManager.config.endpointWriterBatchSize, endpointManager.config.endpointWriterQueueSize))
+		PropsFromProducer(endpointWriterProducer(address, endpointManager.config)).
+		WithMailbox(endpointWriterMailboxProducer(endpointManager.config.endpointWriterBatchSize, endpointManager.config.endpointWriterQueueSize))
 	pid := ctx.Spawn(props)
 	return pid
 }
 
 func (state *endpointSupervisor) spawnEndpointWatcher(address string, ctx actor.Context) *actor.PID {
 	props := actor.
-		FromProducer(newEndpointWatcher(address))
+		PropsFromProducer(newEndpointWatcher(address))
 	pid := ctx.Spawn(props)
 	return pid
 }

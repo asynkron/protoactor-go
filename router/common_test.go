@@ -17,37 +17,51 @@ func init() {
 	log.SetOutput(ioutil.Discard)
 }
 
-func spawnMockProcess(name string) (*actor.PID, *mockProcess) {
-	p := &mockProcess{}
-	pid, ok := actor.ProcessRegistry.Add(p, name)
-	if !ok {
-		panic(fmt.Errorf("did not spawn named process '%s'", name))
-	}
-
-	return pid, p
-}
-
-func removeMockProcess(pid *actor.PID) {
-	actor.ProcessRegistry.Remove(pid)
-}
-
-type mockProcess struct {
-	mock.Mock
-}
-
-func (m *mockProcess) SendUserMessage(pid *actor.PID, message interface{}) {
-	_, msg, _ := actor.UnwrapEnvelope(message)
-	m.Called(pid, msg)
-}
-func (m *mockProcess) SendSystemMessage(pid *actor.PID, message interface{}) {
-	m.Called(pid, message)
-}
-func (m *mockProcess) Stop(pid *actor.PID) {
-	m.Called(pid)
-}
-
+// mockContext
 type mockContext struct {
 	mock.Mock
+}
+
+//
+// Interface: Context
+//
+
+func (m *mockContext) Parent() *actor.PID {
+	args := m.Called()
+	return args.Get(0).(*actor.PID)
+}
+
+func (m *mockContext) Self() *actor.PID {
+	args := m.Called()
+	return args.Get(0).(*actor.PID)
+}
+
+func (m *mockContext) Sender() *actor.PID {
+	args := m.Called()
+	return args.Get(0).(*actor.PID)
+}
+
+func (m *mockContext) Actor() actor.Actor {
+	args := m.Called()
+	return args.Get(0).(actor.Actor)
+}
+
+func (m *mockContext) ReceiveTimeout() time.Duration {
+	args := m.Called()
+	return args.Get(0).(time.Duration)
+}
+
+func (m *mockContext) Children() []*actor.PID {
+	args := m.Called()
+	return args.Get(0).([]*actor.PID)
+}
+
+func (m *mockContext) Respond(response interface{}) {
+	m.Called(response)
+}
+
+func (m *mockContext) Stash() {
+	m.Called()
 }
 
 func (m *mockContext) Watch(pid *actor.PID) {
@@ -58,30 +72,11 @@ func (m *mockContext) Unwatch(pid *actor.PID) {
 	m.Called(pid)
 }
 
-func (m *mockContext) Message() interface{} {
-	args := m.Called()
-	return args.Get(0)
-}
-
 func (m *mockContext) SetReceiveTimeout(d time.Duration) {
 	m.Called(d)
 }
-func (m *mockContext) ReceiveTimeout() time.Duration {
-	args := m.Called()
-	return args.Get(0).(time.Duration)
-}
 
-func (m *mockContext) Sender() *actor.PID {
-	args := m.Called()
-	return args.Get(0).(*actor.PID)
-}
-
-func (m *mockContext) MessageHeader() actor.ReadonlyMessageHeader {
-	args := m.Called()
-	return args.Get(0).(actor.ReadonlyMessageHeader)
-}
-
-func (m *mockContext) Tell(pid *actor.PID, message interface{}) {
+func (m *mockContext) CancelReceiveTimeout() {
 	m.Called()
 }
 
@@ -89,31 +84,71 @@ func (m *mockContext) Forward(pid *actor.PID) {
 	m.Called()
 }
 
+func (m *mockContext) AwaitFuture(f *actor.Future, cont func(res interface{}, err error)) {
+	m.Called(f, cont)
+}
+
+//
+// Interface: SenderContext
+//
+
+func (m *mockContext) Message() interface{} {
+	args := m.Called()
+	return args.Get(0)
+}
+
+func (m *mockContext) MessageHeader() actor.ReadonlyMessageHeader {
+	args := m.Called()
+	return args.Get(0).(actor.ReadonlyMessageHeader)
+}
+
+func (m *mockContext) Send(pid *actor.PID, message interface{}) {
+	m.Called()
+	p, _ := actor.ProcessRegistry.Get(pid)
+	p.SendUserMessage(pid, message)
+}
+
 func (m *mockContext) Request(pid *actor.PID, message interface{}) {
-	m.Called()
-}
-
-func (m *mockContext) SetBehavior(r actor.ActorFunc) {
-	m.Called(r)
-}
-
-func (m *mockContext) PushBehavior(r actor.ActorFunc) {
-	m.Called(r)
-}
-
-func (m *mockContext) PopBehavior() {
-	m.Called()
-}
-
-func (m *mockContext) Self() *actor.PID {
 	args := m.Called()
-	return args.Get(0).(*actor.PID)
+	p, _ := actor.ProcessRegistry.Get(pid)
+	env := &actor.MessageEnvelope{
+		Header:  nil,
+		Message: message,
+		Sender:  args.Get(0).(*actor.PID),
+	}
+	p.SendUserMessage(pid, env)
 }
 
-func (m *mockContext) Parent() *actor.PID {
-	args := m.Called()
-	return args.Get(0).(*actor.PID)
+func (m *mockContext) RequestWithCustomSender(pid *actor.PID, message interface{}, sender *actor.PID) {
+	m.Called()
+	p, _ := actor.ProcessRegistry.Get(pid)
+	env := &actor.MessageEnvelope{
+		Header:  nil,
+		Message: message,
+		Sender:  sender,
+	}
+	p.SendUserMessage(pid, env)
 }
+
+func (m *mockContext) RequestFuture(pid *actor.PID, message interface{}, timeout time.Duration) *actor.Future {
+	args := m.Called()
+	m.Called()
+	p, _ := actor.ProcessRegistry.Get(pid)
+	p.SendUserMessage(pid, message)
+	return args.Get(0).(*actor.Future)
+}
+
+//
+// Interface: ReceiverContext
+//
+
+func (m *mockContext) Receive(envelope *actor.MessageEnvelope) {
+	m.Called(envelope)
+}
+
+//
+// Interface: SpawnerContext
+//
 
 func (m *mockContext) Spawn(p *actor.Props) *actor.PID {
 	args := m.Called(p)
@@ -130,29 +165,33 @@ func (m *mockContext) SpawnNamed(p *actor.Props, name string) (*actor.PID, error
 	return args.Get(0).(*actor.PID), args.Get(1).(error)
 }
 
-func (m *mockContext) Children() []*actor.PID {
-	args := m.Called()
-	return args.Get(0).([]*actor.PID)
+// mockProcess
+type mockProcess struct {
+	mock.Mock
 }
 
-func (m *mockContext) Stash() {
-	m.Called()
+func spawnMockProcess(name string) (*actor.PID, *mockProcess) {
+	p := &mockProcess{}
+	pid, ok := actor.ProcessRegistry.Add(p, name)
+	if !ok {
+		panic(fmt.Errorf("did not spawn named process '%s'", name))
+	}
+
+	return pid, p
 }
 
-func (m *mockContext) Respond(response interface{}) {
-	m.Called(response)
+func removeMockProcess(pid *actor.PID) {
+	actor.ProcessRegistry.Remove(pid)
 }
 
-func (m *mockContext) Actor() actor.Actor {
-	args := m.Called()
-	return args.Get(0).(actor.Actor)
+func (m *mockProcess) SendUserMessage(pid *actor.PID, message interface{}) {
+	m.Called(pid, message)
 }
 
-func (m *mockContext) AwaitFuture(f *actor.Future, cont func(res interface{}, err error)) {
-	m.Called(f, cont)
+func (m *mockProcess) SendSystemMessage(pid *actor.PID, message interface{}) {
+	m.Called(pid, message)
 }
 
-func (m *mockContext) RequestFuture(pid *actor.PID, message interface{}, timeout time.Duration) *actor.Future {
-	args := m.Called()
-	return args.Get(0).(*actor.Future)
+func (m *mockProcess) Stop(pid *actor.PID) {
+	m.Called(pid)
 }

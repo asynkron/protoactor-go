@@ -3,7 +3,7 @@ package cluster
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
-	"github.com/orcaman/concurrent-map"
+	cmap "github.com/orcaman/concurrent-map"
 )
 
 var pidCache *pidCacheValue
@@ -22,8 +22,8 @@ func setupPidCache() {
 		reverseCache: cmap.New(),
 	}
 
-	props := actor.FromProducer(newPidCacheWatcher()).WithGuardian(actor.RestartingSupervisorStrategy())
-	pidCache.watcher, _ = actor.SpawnNamed(props, "PidCacheWatcher")
+	props := actor.PropsFromProducer(newPidCacheWatcher()).WithGuardian(actor.RestartingSupervisorStrategy())
+	pidCache.watcher, _ = rootContext.SpawnNamed(props, "PidCacheWatcher")
 
 	pidCache.memberStatusSub = eventstream.Subscribe(pidCache.onMemberStatusEvent).
 		WithPredicate(func(m interface{}) bool {
@@ -61,8 +61,8 @@ func (c *pidCacheValue) addCache(name string, pid *actor.PID) bool {
 	if c.cache.SetIfAbsent(name, pid) {
 		key := pid.String()
 		c.reverseCache.Set(key, name)
-		//watch the pid so we know if the node or pid dies
-		c.watcher.Tell(&watchPidRequest{pid})
+		// watch the pid so we know if the node or pid dies
+		rootContext.Send(c.watcher, &watchPidRequest{pid})
 		return true
 	}
 	return false

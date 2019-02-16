@@ -25,12 +25,12 @@ func (strategy *allForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 	directive := strategy.decider(reason)
 	switch directive {
 	case ResumeDirective:
-		//resume the failing child
+		// resume the failing child
 		logFailure(child, reason, directive)
 		supervisor.ResumeChildren(child)
 	case RestartDirective:
 		children := supervisor.Children()
-		//try restart the all the children
+		// try restart the all the children
 		if strategy.shouldStop(rs) {
 			logFailure(child, reason, StopDirective)
 			supervisor.StopChildren(children...)
@@ -40,14 +40,14 @@ func (strategy *allForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 		}
 	case StopDirective:
 		children := supervisor.Children()
-		//stop all the children, no need to involve the crs
+		// stop all the children, no need to involve the crs
 		logFailure(child, reason, directive)
 		supervisor.StopChildren(children...)
 	case EscalateDirective:
-		//send failure to parent
-		//supervisor mailbox
-		//do not log here, log in the parent handling the error
-		supervisor.EscalateFailure(reason, message)
+		// send failure to parent
+		// supervisor mailbox
+		// do not log here, log in the parent handling the error
+		supervisor.EscalateFailure(reason, child)
 	}
 }
 

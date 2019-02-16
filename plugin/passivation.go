@@ -50,15 +50,15 @@ type PassivationPlugin struct {
 	Duration time.Duration
 }
 
-func (pp *PassivationPlugin) OnStart(ctx actor.Context) {
+func (pp *PassivationPlugin) OnStart(ctx actor.ReceiverContext) {
 	if a, ok := ctx.Actor().(PassivationAware); ok {
 		a.Init(ctx.Self(), pp.Duration)
 	}
 }
 
-func (pp *PassivationPlugin) OnOtherMessage(ctx actor.Context, msg interface{}) {
+func (pp *PassivationPlugin) OnOtherMessage(ctx actor.ReceiverContext, env *actor.MessageEnvelope) {
 	if p, ok := ctx.Actor().(PassivationAware); ok {
-		switch msg.(type) {
+		switch env.Message.(type) {
 		case *actor.Stopped:
 			p.Cancel()
 		default:

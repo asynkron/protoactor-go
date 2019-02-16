@@ -9,7 +9,7 @@ import (
 type groupRouterActor struct {
 	props  *actor.Props
 	config RouterConfig
-	state  Interface
+	state  RouterState
 	wg     *sync.WaitGroup
 }
 
@@ -42,7 +42,7 @@ func (a *groupRouterActor) Receive(context actor.Context) {
 		msg := m.Message
 		sender := context.Sender()
 		a.state.GetRoutees().ForEach(func(i int, pid actor.PID) {
-			pid.Request(msg, sender)
+			context.RequestWithCustomSender(&pid, msg, sender)
 		})
 
 	case *GetRoutees:

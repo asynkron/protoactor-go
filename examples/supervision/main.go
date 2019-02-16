@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
@@ -13,9 +13,9 @@ type parentActor struct{}
 func (state *parentActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *hello:
-		props := actor.FromProducer(newChildActor)
+		props := actor.PropsFromProducer(newChildActor)
 		child := context.Spawn(props)
-		child.Tell(msg)
+		context.Send(child, msg)
 	}
 }
 
@@ -51,12 +51,13 @@ func main() {
 		return actor.StopDirective
 	}
 	supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
+	rootContext := actor.EmptyRootContext()
 	props := actor.
-		FromProducer(newParentActor).
+		PropsFromProducer(newParentActor).
 		WithSupervisor(supervisor)
 
-	pid := actor.Spawn(props)
-	pid.Tell(&hello{Who: "Roger"})
+	pid := rootContext.Spawn(props)
+	rootContext.Send(pid, &hello{Who: "Roger"})
 
 	console.ReadLine()
 }

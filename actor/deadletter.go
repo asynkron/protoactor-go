@@ -19,13 +19,13 @@ func init() {
 		}
 	})
 
-	//this subscriber may not be deactivated.
-	//it ensures that Watch commands that reach a stopped actor gets a Terminated message back.
-	//This can happen if one actor tries to Watch a PID, while another thread sends a Stop message.
+	// this subscriber may not be deactivated.
+	// it ensures that Watch commands that reach a stopped actor gets a Terminated message back.
+	// This can happen if one actor tries to Watch a PID, while another thread sends a Stop message.
 	eventstream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			if m, ok := deadLetter.Message.(*Watch); ok {
-				//we know that this is a local actor since we get it on our own event stream, thus the address is not terminated
+				// we know that this is a local actor since we get it on our own event stream, thus the address is not terminated
 				m.Watcher.sendSystemMessage(&Terminated{AddressTerminated: false, Who: deadLetter.PID})
 			}
 		}

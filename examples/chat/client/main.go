@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/chat/messages"
 	"github.com/AsynkronIT/protoactor-go/remote"
@@ -13,8 +13,12 @@ func main() {
 	remote.Start("127.0.0.1:0")
 
 	server := actor.NewPID("127.0.0.1:8080", "chatserver")
-	//spawn our chat client inline
-	props := actor.FromFunc(func(context actor.Context) {
+
+	// define root context
+	rootContext := actor.EmptyRootContext()
+
+	// spawn our chat client inline
+	props := actor.PropsFromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *messages.Connected:
 			log.Println(msg.Message)
@@ -25,22 +29,22 @@ func main() {
 		}
 	})
 
-	client := actor.Spawn(props)
+	client := rootContext.Spawn(props)
 
-	server.Tell(&messages.Connect{
+	rootContext.Send(server, &messages.Connect{
 		Sender: client,
 	})
 
 	nick := "Roger"
 	cons := console.NewConsole(func(text string) {
-		server.Tell(&messages.SayRequest{
+		rootContext.Send(server, &messages.SayRequest{
 			UserName: nick,
 			Message:  text,
 		})
 	})
-	//write /nick NAME to change your chat username
+	// write /nick NAME to change your chat username
 	cons.Command("/nick", func(newNick string) {
-		server.Tell(&messages.NickRequest{
+		rootContext.Send(server, &messages.NickRequest{
 			OldUserName: nick,
 			NewUserName: newNick,
 		})

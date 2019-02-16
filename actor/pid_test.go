@@ -19,8 +19,8 @@ func TestStopFuture(t *testing.T) {
 
 	ID := "UniqueID"
 	{
-		props := FromProducer(func() Actor { return &ShortLivingActor{} })
-		a, _ := SpawnNamed(props, ID)
+		props := PropsFromProducer(func() Actor { return &ShortLivingActor{} })
+		a, _ := rootContext.SpawnNamed(props, ID)
 
 		fut := a.StopFuture()
 

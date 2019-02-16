@@ -2,34 +2,55 @@ package actor
 
 import "time"
 
-//Context contains contextual information for actors
+// Context contains contextual information for actors
 type Context interface {
+	infoPart
+	basePart
+	senderPart
+	receiverPart
+	spawnerPart
+}
+
+type SenderContext interface {
+	infoPart
+	senderPart
+}
+
+type ReceiverContext interface {
+	infoPart
+	receiverPart
+}
+
+type infoPart interface {
+	// Parent returns the PID for the current actors parent
+	Parent() *PID
+
+	// Self returns the PID for the current actor
+	Self() *PID
+
+	// Actor returns the actor associated with this context
+	Actor() Actor
+}
+
+type basePart interface {
+	// ReceiveTimeout returns the current timeout
+	ReceiveTimeout() time.Duration
+
+	// Returns a slice of the actors children
+	Children() []*PID
+
+	// Respond sends a response to the to the current `Sender`
+	// If the Sender is nil, the actor will panic
+	Respond(response interface{})
+
+	// Stash stashes the current message on a stack for reprocessing when the actor restarts
+	Stash()
+
 	// Watch registers the actor as a monitor for the specified PID
 	Watch(pid *PID)
 
 	// Unwatch unregisters the actor as a monitor for the specified PID
 	Unwatch(pid *PID)
-
-	// Message returns the current message to be processed
-	Message() interface{}
-
-	// Sender returns the PID of actor that sent currently processed message
-	Sender() *PID
-
-	//MessageHeader returns the meta information for the currently processed message
-	MessageHeader() ReadonlyMessageHeader
-
-	//Tell sends a message to the given PID
-	Tell(pid *PID, message interface{})
-
-	//Forward forwards current message to the given PID
-	Forward(pid *PID)
-
-	//Request sends a message to the given PID and also provides a Sender PID
-	Request(pid *PID, message interface{})
-
-	// RequestFuture sends a message to a given PID and returns a Future
-	RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future
 
 	// SetReceiveTimeout sets the inactivity timeout, after which a ReceiveTimeout message will be sent to the actor.
 	// A duration of less than 1ms will disable the inactivity timer.
@@ -38,24 +59,42 @@ type Context interface {
 	// the NotInfluenceReceiveTimeout interface, the timer will not be reset
 	SetReceiveTimeout(d time.Duration)
 
-	// ReceiveTimeout returns the current timeout
-	ReceiveTimeout() time.Duration
+	CancelReceiveTimeout()
 
-	// SetBehavior replaces the actors current behavior stack with the new behavior
-	SetBehavior(behavior ActorFunc)
+	// Forward forwards current message to the given PID
+	Forward(pid *PID)
 
-	// PushBehavior pushes the current behavior on the stack and sets the current Receive handler to the new behavior
-	PushBehavior(behavior ActorFunc)
+	AwaitFuture(f *Future, continuation func(res interface{}, err error))
+}
 
-	// PopBehavior reverts to the previous Receive handler
-	PopBehavior()
+type senderPart interface {
+	// Sender returns the PID of actor that sent currently processed message
+	Sender() *PID
 
-	// Self returns the PID for the current actor
-	Self() *PID
+	// Message returns the current message to be processed
+	Message() interface{}
 
-	// Parent returns the PID for the current actors parent
-	Parent() *PID
+	// MessageHeader returns the meta information for the currently processed message
+	MessageHeader() ReadonlyMessageHeader
 
+	// Send sends a message to the given PID
+	Send(pid *PID, message interface{})
+
+	// Request sends a message to the given PID
+	Request(pid *PID, message interface{})
+
+	// Request sends a message to the given PID and also provides a Sender PID
+	RequestWithCustomSender(pid *PID, message interface{}, sender *PID)
+
+	// RequestFuture sends a message to a given PID and returns a Future
+	RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future
+}
+
+type receiverPart interface {
+	Receive(envelope *MessageEnvelope)
+}
+
+type spawnerPart interface {
 	// Spawn starts a new child actor based on props and named with a unique id
 	Spawn(props *Props) *PID
 
@@ -65,21 +104,7 @@ type Context interface {
 	// SpawnNamed starts a new child actor based on props and named using the specified name
 	//
 	// ErrNameExists will be returned if id already exists
-	SpawnNamed(props *Props, id string) (*PID, error)
-
-	// Returns a slice of the actors children
-	Children() []*PID
-
-	// Stash stashes the current message on a stack for reprocessing when the actor restarts
-	Stash()
-
-	// Respond sends a response to the to the current `Sender`
 	//
-	// If the Sender is nil, the actor will panic
-	Respond(response interface{})
-
-	// Actor returns the actor associated with this context
-	Actor() Actor
-
-	AwaitFuture(f *Future, continuation func(res interface{}, err error))
+	// Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1"
+	SpawnNamed(props *Props, id string) (*PID, error)
 }

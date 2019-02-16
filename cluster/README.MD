@@ -74,7 +74,7 @@ This is essentially a type which is powered by a GAM actor behind the scenes.
 ```go
 package shared
 
-//a Go struct implementing the Hello interface
+// a Go struct implementing the Hello interface
 type hello struct {
 }
 
@@ -86,10 +86,10 @@ func (*hello) Add(r *AddRequest) *AddResponse {
 	return &AddResponse{Result: r.A + r.B}
 }
 
-//Register what implementation GAM should use when 
-//creating actors for a certain grain type.
+// Register what implementation GAM should use when 
+// creating actors for a certain grain type.
 func init() {
-	//apply DI and setup logic
+	// apply DI and setup logic
 	HelloFactory(func() Hello { return &hello{} })
 }
 ```
@@ -109,7 +109,7 @@ func main() {
 func main() {
 	cluster.Start("127.0.0.1:0", "127.0.0.1:7711")
 
-    //get a reference to the virtual actor called "abc" of type Hello
+    // get a reference to the virtual actor called "abc" of type Hello
 	hello := shared.GetHelloGrain("abc")
 	res := hello.SayHello(&shared.HelloRequest{Name: "GAM"})
 	log.Printf("Message from grain %v", res.Message)

@@ -25,11 +25,11 @@ func (strategy *oneForOne) HandleFailure(supervisor Supervisor, child *PID, rs *
 
 	switch directive {
 	case ResumeDirective:
-		//resume the failing child
+		// resume the failing child
 		logFailure(child, reason, directive)
 		supervisor.ResumeChildren(child)
 	case RestartDirective:
-		//try restart the failing child
+		// try restart the failing child
 		if strategy.shouldStop(rs) {
 			logFailure(child, reason, StopDirective)
 			supervisor.StopChildren(child)
@@ -38,13 +38,13 @@ func (strategy *oneForOne) HandleFailure(supervisor Supervisor, child *PID, rs *
 			supervisor.RestartChildren(child)
 		}
 	case StopDirective:
-		//stop the failing child, no need to involve the crs
+		// stop the failing child, no need to involve the crs
 		logFailure(child, reason, directive)
 		supervisor.StopChildren(child)
 	case EscalateDirective:
-		//send failure to parent
-		//supervisor mailbox
-		//do not log here, log in the parent handling the error
+		// send failure to parent
+		// supervisor mailbox
+		// do not log here, log in the parent handling the error
 		supervisor.EscalateFailure(reason, message)
 	}
 }

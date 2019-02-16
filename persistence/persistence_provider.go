@@ -4,7 +4,7 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
-//Provider is the abstraction used for persistence
+// Provider is the abstraction used for persistence
 type Provider interface {
 	GetState() ProviderState
 }

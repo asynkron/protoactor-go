@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
@@ -27,16 +27,17 @@ func (state *helloActor) Receive(context actor.Context) {
 }
 
 func main() {
-	props := actor.FromProducer(func() actor.Actor { return &helloActor{} })
-	actor := actor.Spawn(props)
-	actor.Tell(&hello{Who: "Roger"})
+	rootContext := actor.EmptyRootContext()
+	props := actor.PropsFromProducer(func() actor.Actor { return &helloActor{} })
+	pid := rootContext.Spawn(props)
+	rootContext.Send(pid, &hello{Who: "Roger"})
 
-	//why wait?
-	//Stop is a system message and is not processed through the user message mailbox
-	//thus, it will be handled _before_ any user message
-	//we only do this to show the correct order of events in the console
+	// why wait?
+	// Stop is a system message and is not processed through the user message mailbox
+	// thus, it will be handled _before_ any user message
+	// we only do this to show the correct order of events in the console
 	time.Sleep(1 * time.Second)
-	actor.Stop()
+	pid.Stop()
 
 	console.ReadLine()
 }

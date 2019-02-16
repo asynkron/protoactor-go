@@ -38,7 +38,7 @@ func BoundedDropping(size int, mailboxStats ...Statistics) Producer {
 }
 
 func bounded(size int, dropping bool, mailboxStats ...Statistics) Producer {
-	return func(invoker MessageInvoker, dispatcher Dispatcher) Inbound {
+	return func() Mailbox {
 		q := &boundedMailboxQueue{
 			userMailbox: rbqueue.NewRingBuffer(uint64(size)),
 			dropping:    dropping,
@@ -46,9 +46,7 @@ func bounded(size int, dropping bool, mailboxStats ...Statistics) Producer {
 		return &defaultMailbox{
 			systemMailbox: mpsc.New(),
 			userMailbox:   q,
-			invoker:       invoker,
 			mailboxStats:  mailboxStats,
-			dispatcher:    dispatcher,
 		}
 	}
 }

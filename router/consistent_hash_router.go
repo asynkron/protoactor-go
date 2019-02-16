@@ -30,7 +30,7 @@ type consistentHashRouterState struct {
 }
 
 func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
-	//lookup from node name to PID
+	// lookup from node name to PID
 	hmc := hashmapContainer{}
 	hmc.routeeMap = make(map[string]*actor.PID)
 	nodes := make([]string, routees.Len())
@@ -39,7 +39,7 @@ func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 		nodes[i] = nodeName
 		hmc.routeeMap[nodeName] = &pid
 	})
-	//initialize hashring for mapping message keys to node names
+	// initialize hashring for mapping message keys to node names
 	hmc.hashring = hashring.New(nodes)
 	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.hmc)), unsafe.Pointer(&hmc))
 }
@@ -65,7 +65,7 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 			return
 		}
 		if routee, ok := hmc.routeeMap[node]; ok {
-			routee.Tell(message)
+			rootContext.Send(routee, message)
 		} else {
 			log.Println("[ROUTING] Consisten router failed to resolve node", node)
 		}
@@ -79,17 +79,17 @@ func (state *consistentHashRouterState) InvokeRouterManagementMessage(msg Manage
 }
 
 func NewConsistentHashPool(size int) *actor.Props {
-	return actor.FromSpawnFunc(spawner(&consistentHashPoolRouter{PoolRouter{PoolSize: size}}))
+	return (&actor.Props{}).WithSpawnFunc(spawner(&consistentHashPoolRouter{PoolRouter{PoolSize: size}}))
 }
 
 func NewConsistentHashGroup(routees ...*actor.PID) *actor.Props {
-	return actor.FromSpawnFunc(spawner(&consistentHashGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
+	return (&actor.Props{}).WithSpawnFunc(spawner(&consistentHashGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
-func (config *consistentHashPoolRouter) CreateRouterState() Interface {
+func (config *consistentHashPoolRouter) CreateRouterState() RouterState {
 	return &consistentHashRouterState{}
 }
 
-func (config *consistentHashGroupRouter) CreateRouterState() Interface {
+func (config *consistentHashGroupRouter) CreateRouterState() RouterState {
 	return &consistentHashRouterState{}
 }

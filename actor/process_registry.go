@@ -68,7 +68,7 @@ func (pr *ProcessRegistryValue) Add(process Process, id string) (*PID, bool) {
 
 func (pr *ProcessRegistryValue) Remove(pid *PID) {
 	ref, _ := pr.LocalPIDs.Pop(pid.Id)
-	if l, ok := ref.(*localProcess); ok {
+	if l, ok := ref.(*ActorProcess); ok {
 		atomic.StoreInt32(&l.dead, 1)
 	}
 }

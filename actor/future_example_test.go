@@ -13,7 +13,7 @@ func ExampleFuture_PipeTo() {
 	wg.Add(1)
 
 	// test actor that will be the target of the future PipeTo
-	pid := actor.Spawn(actor.FromFunc(func(ctx actor.Context) {
+	pid := actor.EmptyRootContext().Spawn(actor.PropsFromFunc(func(ctx actor.Context) {
 		// check if the message is a string and therefore
 		// the "hello world" message piped from the future
 		if m, ok := ctx.Message().(string); ok {
@@ -25,7 +25,7 @@ func ExampleFuture_PipeTo() {
 	f := actor.NewFuture(50 * time.Millisecond)
 	f.PipeTo(pid)
 	// resolve the future and pipe to waiting actor
-	f.PID().Tell("hello world")
+	actor.EmptyRootContext().Send(f.PID(), "hello world")
 	wg.Wait()
 
 	// Output: hello world

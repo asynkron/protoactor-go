@@ -3,7 +3,7 @@ package main
 import (
 	"runtime"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remoteactivate/messages"
 	"github.com/AsynkronIT/protoactor-go/remote"
@@ -25,7 +25,7 @@ func newHelloActor() actor.Actor {
 }
 
 func init() {
-	remote.Register("hello", actor.FromProducer(newHelloActor))
+	remote.Register("hello", actor.PropsFromProducer(newHelloActor))
 }
 
 func main() {

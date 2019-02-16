@@ -3,14 +3,16 @@ package stream
 import (
 	"testing"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReceiveFromStream(t *testing.T) {
 	s := NewUntypedStream()
 	go func() {
-		s.PID().Tell("hello")
-		s.PID().Tell("you")
+		rootContext := actor.EmptyRootContext()
+		rootContext.Send(s.PID(), "hello")
+		rootContext.Send(s.PID(), "you")
 	}()
 	res := <-s.C()
 	res2 := <-s.C()

@@ -11,15 +11,15 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-func Logger(next actor.ActorFunc) actor.ActorFunc {
-	fn := func(context actor.Context) {
-		switch context.Message().(type) {
+func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
+	fn := func(context actor.ReceiverContext, env *actor.MessageEnvelope) {
+		switch env.Message.(type) {
 		case *actor.Started:
 			log.Printf("actor started " + context.Self().String())
 		case *actor.Stopped:
 			log.Printf("actor stopped " + context.Self().String())
 		}
-		next(context)
+		next(context, env)
 	}
 
 	return fn
@@ -27,10 +27,10 @@ func Logger(next actor.ActorFunc) actor.ActorFunc {
 
 func main() {
 
-	//this node knows about Hello kind
-	remote.Register("Hello", actor.FromProducer(func() actor.Actor {
+	// this node knows about Hello kind
+	remote.Register("Hello", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.HelloActor{}
-	}).WithMiddleware(Logger))
+	}).WithReceiverMiddleware(Logger))
 
 	cp, err := consul.New()
 	if err != nil {

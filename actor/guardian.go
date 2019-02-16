@@ -52,7 +52,7 @@ func (g *guardianProcess) SendSystemMessage(pid *PID, message interface{}) {
 }
 
 func (g *guardianProcess) Stop(pid *PID) {
-	//Ignore
+	// Ignore
 }
 
 func (g *guardianProcess) Children() []*PID {

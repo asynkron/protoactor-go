@@ -132,8 +132,12 @@ func (state *HelloActor) Receive(context actor.Context) {
 }
 
 func main() {
-    props := actor.FromProducer(func() actor.Actor { return &HelloActor{} })
-    pid := actor.Spawn(props)
+    context := actor.EmptyRootContext()
+    props := actor.PropsFromProducer(func() actor.Actor { return &HelloActor{} })
+    pid, err := context.Spawn(props)
+    if err != nil {
+        panic(err)
+    }
     pid.Tell(Hello{Who: "Roger"})
     console.ReadLine()
 }
@@ -165,8 +169,12 @@ func NewSetBehaviorActor() actor.Actor {
 }
 
 func main() {
-    props := actor.FromProducer(NewSetBehaviorActor)
-    pid := actor.Spawn(props)
+    context := actor.EmptyRootContext()
+    props := actor.PropsFromProducer(NewSetBehaviorActor)
+    pid, err := context.Spawn(props)
+    if err != nil {
+        panic(err)
+    }
     pid.Tell(Hello{Who: "Roger"})
     pid.Tell(Hello{Who: "Roger"})
     console.ReadLine()
@@ -197,14 +205,18 @@ func (state *HelloActor) Receive(context actor.Context) {
 }
 
 func main() {
-    props := actor.FromProducer(func() actor.Actor { return &HelloActor{} })
-    pid := actor.Spawn(props)
-    pid.Tell(Hello{Who: "Roger"})
+    context := actor.EmptyRootContext()
+    props := actor.PropsFromProducer(func() actor.Actor { return &HelloActor{} })
+    pid, err := context.Spawn(props)
+    if err != nil {
+        panic(err)
+    }
+    actor.Tell(pid, Hello{Who: "Roger"})
 
-    //why wait?
-    //Stop is a system message and is not processed through the user message mailbox
-    //thus, it will be handled _before_ any user message
-    //we only do this to show the correct order of events in the console
+    // why wait?
+    // Stop is a system message and is not processed through the user message mailbox
+    // thus, it will be handled _before_ any user message
+    // we only do this to show the correct order of events in the console
     time.Sleep(1 * time.Second)
     pid.Stop()
 
@@ -227,7 +239,7 @@ type ParentActor struct{}
 func (state *ParentActor) Receive(context actor.Context) {
     switch msg := context.Message().(type) {
     case Hello:
-        props := actor.FromProducer(NewChildActor)
+        props := actor.PropsFromProducer(NewChildActor)
         child := context.Spawn(props)
         child.Tell(msg)
     }
@@ -265,12 +277,17 @@ func main() {
         return actor.StopDirective
     }
     supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
+
+    context := actor.EmptyRootContext()
     props := actor.
         FromProducer(NewParentActor).
         WithSupervisor(supervisor)
 
-    pid := actor.Spawn(props)
-    pid.Tell(Hello{Who: "Roger"})
+    pid, err := context.Spawn(props)
+    if err != nil {
+        panic(err)
+    }
+    context.Send(pid, Hello{Who: "Roger"})
 
     console.ReadLine()
 }
@@ -285,12 +302,12 @@ Proto Actor's networking layer is built as a thin wrapper ontop of gRPC and mess
 #### Node 1
 
 ```go
-type MyActor struct{
+type MyActor struct {
     count int
 }
 
 func (state *MyActor) Receive(context actor.Context) {
-    switch msg := context.Message().(type) {
+    switch context.Message().(type) {
     case *messages.Response:
         state.count++
         fmt.Println(state.count)
@@ -300,14 +317,18 @@ func (state *MyActor) Receive(context actor.Context) {
 func main() {
     remote.Start("localhost:8090")
 
-    props := actor.FromProducer(func() actor.Actor { return &MyActor{} })
-    pid := actor.Spawn(props)
+    rootCtx := actor.EmptyRootContext()
+    props := actor.PropsFromProducer(func() actor.Actor { return &MyActor{} })
+    pid, _ := rootCtx.Spawn(props)
     message := &messages.Echo{Message: "hej", Sender: pid}
 
-    //this is the remote actor we want to communicate with
-    remote := actor.NewPID("localhost:8091", "myactor")
+    // this is to spawn remote actor we want to communicate with
+    spawnResponse, _ := remote.SpawnNamed("localhost:8091", "myactor", "hello", time.Second)
+
+    // get spawned PID
+    spawnedPID := spawnResponse.Pid
     for i := 0; i < 10; i++ {
-        remote.Tell(message)
+        rootCtx.Send(spawnedPID, message)
     }
 
     console.ReadLine()
@@ -322,7 +343,7 @@ type MyActor struct{}
 func (*MyActor) Receive(context actor.Context) {
     switch msg := context.Message().(type) {
     case *messages.Echo:
-        msg.Sender.Tell(&messages.Response{
+        context.Send(msg.Sender, &messages.Response{
             SomeValue: "result",
         })
     }
@@ -331,9 +352,8 @@ func (*MyActor) Receive(context actor.Context) {
 func main() {
     remote.Start("localhost:8091")
 
-    //spawn a named actor "myactor" so it can be discovered remotely
-    props := actor.FromProducer(func() actor.Actor { return &MyActor{} })
-    actor.SpawnNamed(props, "myactor")
+    // register a name for our local actor so that it can be spawned remotely
+    remote.Register("hello", actor.PropsFromProducer(func() actor.Actor { return &MyActor{} }))
     console.ReadLine()
 }
 ```
@@ -343,15 +363,15 @@ func main() {
 ```proto
 syntax = "proto3";
 package messages;
-import "actor.proto"; //we need to import actor.proto, so our messages can include PID's
+import "actor.proto"; // we need to import actor.proto, so our messages can include PID's
 
-//this is the message the actor on node 1 will send to the remote actor on node 2
+// this is the message the actor on node 1 will send to the remote actor on node 2
 message Echo {
-  actor.PID Sender = 1; //this is the PID the remote actor should reply to
+  actor.PID Sender = 1; // this is the PID the remote actor should reply to
   string Message = 2;
 }
 
-//this is the message the remote actor should reply with
+// this is the message the remote actor should reply with
 message Response {
   string SomeValue = 1;
 }

@@ -53,6 +53,8 @@ func TestPoolRouterActor_Receive_RemoveRoute(t *testing.T) {
 	c.On("Message").Return(&RemoveRoutee{p1})
 	c.On("Unwatch", p1).Once()
 
+	c.On("Send")
+
 	state.On("GetRoutees").Return(actor.NewPIDSet(p1, p2))
 	state.On("SetRoutees", actor.NewPIDSet(p2)).Once()
 
@@ -80,6 +82,7 @@ func TestPoolRouterActor_Receive_BroadcastMessage(t *testing.T) {
 	c := new(mockContext)
 	c.On("Message").Return(&BroadcastMessage{"hi"})
 	c.On("Sender").Return((*actor.PID)(nil))
+	c.On("RequestWithCustomSender").Twice()
 
 	state.On("GetRoutees").Return(actor.NewPIDSet(p1, p2))
 

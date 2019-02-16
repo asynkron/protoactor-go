@@ -4,16 +4,16 @@ import "testing"
 import "github.com/stretchr/testify/assert"
 
 func TestNormalMessageGivesEmptyMessageHeaders(t *testing.T) {
-	props := FromFunc(func(ctx Context) {
+	props := PropsFromFunc(func(ctx Context) {
 		switch ctx.Message().(type) {
 		case string:
 			l := len(ctx.MessageHeader().Keys())
 			ctx.Respond(l)
 		}
 	})
-	a := Spawn(props)
+	a := rootContext.Spawn(props)
 	defer a.GracefulStop()
-	f := a.RequestFuture("hello", testTimeout)
+	f := rootContext.RequestFuture(a, "hello", testTimeout)
 	res := assertFutureSuccess(f, t).(int)
 	assert.Equal(t, 0, res)
 }

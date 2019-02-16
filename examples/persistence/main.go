@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/persistence"
 )
@@ -80,14 +80,15 @@ func main() {
 	provider := NewProvider(3)
 	provider.InitState("persistent", 4, 3)
 
-	props := actor.FromProducer(func() actor.Actor { return &Actor{} }).WithMiddleware(persistence.Using(provider))
-	pid, _ := actor.SpawnNamed(props, "persistent")
-	pid.Tell(&Message{protoMsg: protoMsg{state: "state4"}})
-	pid.Tell(&Message{protoMsg: protoMsg{state: "state5"}})
+	rootContext := actor.EmptyRootContext()
+	props := actor.PropsFromProducer(func() actor.Actor { return &Actor{} }).WithReceiverMiddleware(persistence.Using(provider))
+	pid, _ := rootContext.SpawnNamed(props, "persistent")
+	rootContext.Send(pid, &Message{protoMsg: protoMsg{state: "state4"}})
+	rootContext.Send(pid, &Message{protoMsg: protoMsg{state: "state5"}})
 
 	pid.GracefulPoison()
 	fmt.Printf("*** restart ***\n")
-	pid, _ = actor.SpawnNamed(props, "persistent")
+	pid, _ = rootContext.SpawnNamed(props, "persistent")
 
 	console.ReadLine()
 }

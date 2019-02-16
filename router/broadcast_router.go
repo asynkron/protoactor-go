@@ -30,22 +30,22 @@ func (state *broadcastRouterState) GetRoutees() *actor.PIDSet {
 
 func (state *broadcastRouterState) RouteMessage(message interface{}) {
 	state.routees.ForEach(func(i int, pid actor.PID) {
-		pid.Tell(message)
+		rootContext.Send(&pid, message)
 	})
 }
 
 func NewBroadcastPool(size int) *actor.Props {
-	return actor.FromSpawnFunc(spawner(&broadcastPoolRouter{PoolRouter{PoolSize: size}}))
+	return (&actor.Props{}).WithSpawnFunc(spawner(&broadcastPoolRouter{PoolRouter{PoolSize: size}}))
 }
 
 func NewBroadcastGroup(routees ...*actor.PID) *actor.Props {
-	return actor.FromSpawnFunc(spawner(&broadcastGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
+	return (&actor.Props{}).WithSpawnFunc(spawner(&broadcastGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
-func (config *broadcastPoolRouter) CreateRouterState() Interface {
+func (config *broadcastPoolRouter) CreateRouterState() RouterState {
 	return &broadcastRouterState{}
 }
 
-func (config *broadcastGroupRouter) CreateRouterState() Interface {
+func (config *broadcastGroupRouter) CreateRouterState() RouterState {
 	return &broadcastRouterState{}
 }

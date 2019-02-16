@@ -2,7 +2,7 @@ package shared
 
 import "github.com/AsynkronIT/protoactor-go/cluster"
 
-//a Go struct implementing the Hello interface
+// a Go struct implementing the Hello interface
 type hello struct {
 	cluster.Grain
 }
@@ -20,6 +20,6 @@ func (*hello) VoidFunc(r *AddRequest, ctx cluster.GrainContext) (*Unit, error) {
 }
 
 func init() {
-	//apply DI and setup logic
+	// apply DI and setup logic
 	HelloFactory(func() Hello { return &hello{} })
 }

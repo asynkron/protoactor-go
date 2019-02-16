@@ -13,14 +13,14 @@ func TestBroadcastRouterThreadSafe(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
-	props := actor.FromFunc(func(c actor.Context) {})
+	props := actor.PropsFromFunc(func(c actor.Context) {})
 
-	grp := actor.Spawn(NewBroadcastGroup())
+	grp := rootContext.Spawn(NewBroadcastGroup())
 	go func() {
 		count := 100
 		for i := 0; i < count; i++ {
-			pid, _ := actor.SpawnNamed(props, strconv.Itoa(i))
-			grp.Tell(&AddRoutee{pid})
+			pid, _ := rootContext.SpawnNamed(props, strconv.Itoa(i))
+			rootContext.Send(grp, &AddRoutee{pid})
 			time.Sleep(10 * time.Millisecond)
 		}
 		wg.Done()
@@ -28,7 +28,7 @@ func TestBroadcastRouterThreadSafe(t *testing.T) {
 	go func() {
 		count := 100
 		for c := 0; c < count; c++ {
-			grp.Tell(struct{}{})
+			rootContext.Send(grp, struct{}{})
 			time.Sleep(10 * time.Millisecond)
 		}
 		wg.Done()

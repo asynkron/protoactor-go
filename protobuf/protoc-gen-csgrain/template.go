@@ -18,7 +18,7 @@ namespace {{.CsNamespace}}
         public static void {{ $service.Name }}Factory(Func<I{{$service.Name}}> factory) 
         {
             _{{$service.Name}}Factory = factory;
-            Remote.RegisterKnownKind("{{ $service.Name }}", Actor.FromProducer(() => new {{ $service.Name }}Actor()));
+            Remote.RegisterKnownKind("{{ $service.Name }}", Actor.PropsFromProducer(() => new {{ $service.Name }}Actor()));
         } 
 
         public static {{ $service.Name }}Client {{$service.Name}}(string id) => new {{$service.Name}}Client(id);
@@ -51,7 +51,7 @@ namespace {{.CsNamespace}}
                 Method = "{{ $method.Name }}",
                 MessageData = request.ToByteString()
             };
-            var res = await pid.RequestAsync<object>(gr);
+            var res = await RootContext.Empty.RequestAsync<object>(pid, gr);
             if (res is GrainResponse grainResponse)
             {
                 return {{ $method.Output.Name }}.Parser.ParseFrom(grainResponse.MessageData);

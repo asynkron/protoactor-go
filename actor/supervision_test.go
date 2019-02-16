@@ -14,8 +14,8 @@ type actorWithSupervisor struct {
 func (a *actorWithSupervisor) Receive(ctx Context) {
 	switch ctx.Message().(type) {
 	case *Started:
-		child := ctx.Spawn(FromProducer(func() Actor { return &failingChildActor{} }))
-		ctx.Tell(child, "Fail!")
+		child := ctx.Spawn(PropsFromProducer(func() Actor { return &failingChildActor{} }))
+		ctx.Send(child, "Fail!")
 	}
 }
 
@@ -35,19 +35,19 @@ func (a *failingChildActor) Receive(ctx Context) {
 func TestActorWithOwnSupervisorCanHandleFailure(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	props := FromProducer(func() Actor { return &actorWithSupervisor{wg: wg} })
-	Spawn(props)
+	props := PropsFromProducer(func() Actor { return &actorWithSupervisor{wg: wg} })
+	rootContext.Spawn(props)
 	wg.Wait()
 }
 
-func NewObserver() (func(ActorFunc) ActorFunc, *Expector) {
+func NewObserver() (func(ReceiverFunc) ReceiverFunc, *Expector) {
 	c := make(chan interface{})
 	e := &Expector{C: c}
-	f := func(next ActorFunc) ActorFunc {
-		fn := func(context Context) {
-			message := context.Message()
+	f := func(next ReceiverFunc) ReceiverFunc {
+		fn := func(context ReceiverContext, env *MessageEnvelope) {
+			message := env.Message
 			c <- message
-			next(context)
+			next(context, env)
 		}
 
 		return fn
@@ -78,27 +78,27 @@ func (e *Expector) ExpectNoMsg(t *testing.T) {
 		at := reflect.TypeOf(actual)
 		t.Errorf("Expected no message got %v:%v", at, actual)
 	case <-time.After(time.Second * 1):
-		//pass
+		// pass
 	}
 }
 
 func TestActorStopsAfterXRestars(t *testing.T) {
 	m, e := NewObserver()
-	props := FromProducer(func() Actor { return &failingChildActor{} }).WithMiddleware(m)
-	child := Spawn(props)
+	props := PropsFromProducer(func() Actor { return &failingChildActor{} }).WithReceiverMiddleware(m)
+	child := rootContext.Spawn(props)
 	fail := "fail!"
 
 	e.ExpectMsg(startedMessage, t)
 
-	//root supervisor allows 10 restarts
+	// root supervisor allows 10 restarts
 	for i := 0; i < 10; i++ {
-		child.Tell(fail)
+		rootContext.Send(child, fail)
 		e.ExpectMsg(fail, t)
 		e.ExpectMsg(restartingMessage, t)
 		e.ExpectMsg(startedMessage, t)
 	}
-	child.Tell(fail)
+	rootContext.Send(child, fail)
 	e.ExpectMsg(fail, t)
-	//the 11th time should cause a termination
+	// the 11th time should cause a termination
 	e.ExpectMsg(stoppingMessage, t)
 }

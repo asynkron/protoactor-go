@@ -10,7 +10,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
-//sent to producer to request more work
+// sent to producer to request more work
 type requestMoreWork struct {
 	items int
 }
@@ -37,7 +37,7 @@ func (m *requestWorkBehavior) MailboxEmpty() {
 func (m *requestWorkBehavior) requestMore() {
 	log.Println("Requesting more tokens")
 	m.tokens = 50
-	m.producer.Tell(&requestMoreWork{items: 50})
+	context.Send(m.producer, &requestMoreWork{items: 50})
 }
 
 type producer struct {
@@ -48,24 +48,24 @@ type producer struct {
 func (p *producer) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
-		//spawn our worker
-		workerProps := actor.FromProducer(func() actor.Actor { return &worker{} }).WithMailbox(mailbox.Unbounded(&requestWorkBehavior{
+		// spawn our worker
+		workerProps := actor.PropsFromProducer(func() actor.Actor { return &worker{} }).WithMailbox(mailbox.Unbounded(&requestWorkBehavior{
 			producer: ctx.Self(),
 		}))
 		p.worker = ctx.Spawn(workerProps)
 	case *requestMoreWork:
 		p.requestedWork += msg.items
 		log.Println("Producer got a new work request")
-		ctx.Self().Tell(&produce{})
+		ctx.Send(ctx.Self(), &produce{})
 	case *produce:
-		//produce more work
+		// produce more work
 		log.Println("Producer is producing work")
-		p.worker.Tell(&work{})
+		ctx.Send(p.worker, &work{})
 
-		//decrease our workload and tell ourselves to produce more work
+		// decrease our workload and tell ourselves to produce more work
 		if p.requestedWork > 0 {
 			p.requestedWork--
-			ctx.Self().Tell(&produce{})
+			ctx.Send(ctx.Self(), &produce{})
 		}
 	}
 }
@@ -86,9 +86,12 @@ func (w *worker) Receive(ctx actor.Context) {
 type work struct {
 }
 
+var context *actor.RootContext
+
 func main() {
-	producerProps := actor.FromProducer(func() actor.Actor { return &producer{} })
-	actor.Spawn(producerProps)
+	context := actor.EmptyRootContext()
+	producerProps := actor.PropsFromProducer(func() actor.Actor { return &producer{} })
+	context.Spawn(producerProps)
 
 	console.ReadLine()
 }

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/AsynkronIT/goconsole"
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/actor/middleware"
 	"github.com/AsynkronIT/protoactor-go/plugin"
@@ -16,7 +16,7 @@ type myActor struct {
 func (state *myActor) Receive(context actor.Context) {
 	switch context.Message().(type) {
 	case *actor.Started:
-		//this actor have been initialized by the receive pipeline
+		// this actor have been initialized by the receive pipeline
 		fmt.Printf("My name is %v\n", state.name)
 	}
 }
@@ -35,22 +35,23 @@ func (state *NameAwareHolder) SetName(name string) {
 
 type NamerPlugin struct{}
 
-func (p *NamerPlugin) OnStart(ctx actor.Context) {
+func (p *NamerPlugin) OnStart(ctx actor.ReceiverContext) {
 	if p, ok := ctx.Actor().(NameAware); ok {
 		p.SetName("GAM")
 	}
 }
-func (p *NamerPlugin) OnOtherMessage(ctx actor.Context, usrMsg interface{}) {}
+func (p *NamerPlugin) OnOtherMessage(ctx actor.ReceiverContext, env *actor.MessageEnvelope) {}
 
 func main() {
+	rootContext := actor.EmptyRootContext()
 	props := actor.
-		FromProducer(func() actor.Actor { return &myActor{} }).
-		WithMiddleware(
+		PropsFromProducer(func() actor.Actor { return &myActor{} }).
+		WithReceiverMiddleware(
 			plugin.Use(&NamerPlugin{}),
 			middleware.Logger,
 		)
 
-	pid := actor.Spawn(props)
-	pid.Tell("bar")
+	pid := rootContext.Spawn(props)
+	rootContext.Send(pid, "bar")
 	console.ReadLine()
 }

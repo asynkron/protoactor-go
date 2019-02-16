@@ -49,7 +49,8 @@ func TestUnboundedLockfreeMailboxUsermessageConsistency(t *testing.T) {
 		max: max,
 		wg:  &wg,
 	}
-	q := p(mi, NewDefaultDispatcher(300))
+	q := p()
+	q.RegisterHandlers(mi, NewDefaultDispatcher(300))
 
 	for j := 0; j < c; j++ {
 		cmax := max / c
@@ -84,7 +85,8 @@ func TestUnboundedLockfreeMailboxSysMessageConsistency(t *testing.T) {
 		max: max,
 		wg:  &wg,
 	}
-	q := p(mi, NewDefaultDispatcher(300))
+	q := p()
+	q.RegisterHandlers(mi, NewDefaultDispatcher(300))
 
 	for j := 0; j < c; j++ {
 		cmax := max / c

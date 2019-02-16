@@ -23,16 +23,17 @@ func main() {
 
 	remote.Start("127.0.0.1:8081", remote.WithEndpointWriterBatchSize(10000))
 
+	rootContext := actor.EmptyRootContext()
+
 	remote := actor.NewPID("127.0.0.1:8080", "remote")
-	remote.
-		RequestFuture(&messages.Start{}, 5*time.Second).
+	rootContext.RequestFuture(remote, &messages.Start{}, 5*time.Second).
 		Wait()
 
 	for i := 0; i < messageCount; i++ {
 		message := &messages.Ping{
 			Time: makeTimestamp(),
 		}
-		remote.Tell(message)
+		rootContext.Send(remote, message)
 		if i%1000 == 0 {
 			time.Sleep(500)
 		}

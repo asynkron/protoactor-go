@@ -18,7 +18,7 @@ type ConsulProvider struct {
 	address               string
 	port                  int
 	knownKinds            []string
-	index                 uint64 //consul blocking index
+	index                 uint64 // consul blocking index
 	client                *api.Client
 	ttl                   time.Duration
 	refreshTTL            time.Duration
@@ -67,12 +67,12 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 		return err
 	}
 
-	//IMPORTANT: do these ops sync directly after registering.
-	//this will ensure that the local node sees its own information upon startup.
+	// IMPORTANT: do these ops sync directly after registering.
+	// this will ensure that the local node sees its own information upon startup.
 
-	//force our own TTL to be OK
+	// force our own TTL to be OK
 	p.blockingUpdateTTL()
-	//force our own existence to be part of the first status update
+	// force our own existence to be part of the first status update
 	p.blockingStatusChange()
 
 	p.UpdateTTL()
@@ -122,7 +122,7 @@ func (p *ConsulProvider) UpdateMemberStatusValue(statusValue cluster.MemberStatu
 	kvKey := fmt.Sprintf("%v/%v:%v/StatusValue", p.clusterName, p.address, p.port)
 	_, err := p.client.KV().Put(&api.KVPair{
 		Key:   kvKey,
-		Value: p.statusValueSerializer.ToValueBytes(p.statusValue), //currently, just a semi unique id for this member
+		Value: p.statusValueSerializer.ToValueBytes(p.statusValue), // currently, just a semi unique id for this member
 	}, &api.WriteOptions{})
 	return err
 }
@@ -151,7 +151,7 @@ func (p *ConsulProvider) registerService() error {
 		Port:    p.port,
 		Check: &api.AgentServiceCheck{
 			DeregisterCriticalServiceAfter: p.deregisterCritical.String(),
-			TTL: p.ttl.String(),
+			TTL:                            p.ttl.String(),
 		},
 	}
 	return p.client.Agent().ServiceRegister(s)
@@ -165,9 +165,9 @@ func (p *ConsulProvider) registerMember() error {
 
 	txn := api.KVTxnOps{}
 
-	//register a unique ID for the current process
-	//similar to UID for Akka ActorSystem
-	//TODO: Orleans just use an int32 for the unique id called Generation.
+	// register a unique ID for the current process
+	// similar to UID for Akka ActorSystem
+	// TODO: Orleans just use an int32 for the unique id called Generation.
 	kvKey := fmt.Sprintf("%v/%v:%v/ID", p.clusterName, p.address, p.port)
 	txn = append(txn, &api.KVTxnOp{
 		Verb:  api.KVSet,
@@ -194,7 +194,7 @@ func (p *ConsulProvider) deregisterMember() error {
 	return err
 }
 
-//call this directly after registering the service
+// call this directly after registering the service
 func (p *ConsulProvider) blockingStatusChange() {
 	p.notifyStatuses()
 }
@@ -211,7 +211,7 @@ func (p *ConsulProvider) notifyStatuses() {
 	}
 	p.index = meta.LastIndex
 
-	//fetch additional info per member from the consul KV store
+	// fetch additional info per member from the consul KV store
 	kvKey := p.clusterName + "/"
 	kv, _, err := p.client.KV().List(kvKey, &api.QueryOptions{})
 	if err != nil {
@@ -238,16 +238,16 @@ func (p *ConsulProvider) notifyStatuses() {
 		}
 		res[i] = ms
 
-		//Update Tags for this member
+		// Update Tags for this member
 		if memberID == p.id {
 			p.knownKinds = v.Service.Tags
 		}
 	}
-	//the reason why we want this in a batch and not as individual messages is that
-	//if we have an atomic batch, we can calculate what nodes have left the cluster
-	//passing events one by one, we can't know if someone left or just havent changed status for a long time
+	// the reason why we want this in a batch and not as individual messages is that
+	// if we have an atomic batch, we can calculate what nodes have left the cluster
+	// passing events one by one, we can't know if someone left or just havent changed status for a long time
 
-	//publish the current cluster topology onto the event stream
+	// publish the current cluster topology onto the event stream
 	eventstream.Publish(res)
 }
 

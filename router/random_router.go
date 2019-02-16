@@ -33,22 +33,22 @@ func (state *randomRouterState) GetRoutees() *actor.PIDSet {
 
 func (state *randomRouterState) RouteMessage(message interface{}) {
 	pid := randomRoutee(*state.values)
-	pid.Tell(message)
+	rootContext.Send(&pid, message)
 }
 
 func NewRandomPool(size int) *actor.Props {
-	return actor.FromSpawnFunc(spawner(&randomPoolRouter{PoolRouter{PoolSize: size}}))
+	return (&actor.Props{}).WithSpawnFunc(spawner(&randomPoolRouter{PoolRouter{PoolSize: size}}))
 }
 
 func NewRandomGroup(routees ...*actor.PID) *actor.Props {
-	return actor.FromSpawnFunc(spawner(&randomGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
+	return (&actor.Props{}).WithSpawnFunc(spawner(&randomGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
-func (config *randomPoolRouter) CreateRouterState() Interface {
+func (config *randomPoolRouter) CreateRouterState() RouterState {
 	return &randomRouterState{}
 }
 
-func (config *randomGroupRouter) CreateRouterState() Interface {
+func (config *randomGroupRouter) CreateRouterState() RouterState {
 	return &randomRouterState{}
 }
 

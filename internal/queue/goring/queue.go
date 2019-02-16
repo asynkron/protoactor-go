@@ -45,7 +45,7 @@ func (q *Queue) Push(item interface{}) {
 			buffIndex := (c.tail + i) % c.mod
 			newBuff[i] = c.buffer[buffIndex]
 		}
-		//set the new buffer and reset head and tail
+		// set the new buffer and reset head and tail
 		newContent := &ringBuffer{
 			buffer: newBuff,
 			head:   0,
@@ -67,13 +67,13 @@ func (q *Queue) Empty() bool {
 	return q.Length() == 0
 }
 
-//single consumer
+// single consumer
 func (q *Queue) Pop() (interface{}, bool) {
 
 	if q.Empty() {
 		return nil, false
 	}
-	//as we are a single consumer, no other thread can have poped the items there are guaranteed to be items now
+	// as we are a single consumer, no other thread can have poped the items there are guaranteed to be items now
 
 	q.lock.Lock()
 	c := q.content
