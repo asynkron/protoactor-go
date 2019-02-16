@@ -20,7 +20,7 @@ func Receive(context actor.Context) {
 func main() {
 	rootContext := actor.EmptyRootContext()
 	props := actor.PropsFromFunc(Receive)
-	pid, _ := rootContext.Spawn(props)
+	pid := rootContext.Spawn(props)
 	result, _ := rootContext.RequestFuture(pid, Hello{Who: "Roger"}, 30*time.Second).Result() // await result
 
 	fmt.Println(result)

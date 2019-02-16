@@ -2,8 +2,6 @@ package actor
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type BehaviorMessage struct{}
@@ -39,7 +37,7 @@ func (EchoSetBehaviorActor) other(context Context) {
 }
 
 func TestActorCanSetBehavior(t *testing.T) {
-	pid, _ := rootContext.Spawn(PropsFromProducer(NewEchoBehaviorActor))
+	pid := rootContext.Spawn(PropsFromProducer(NewEchoBehaviorActor))
 	defer pid.Stop()
 	rootContext.Send(pid, BehaviorMessage{})
 	fut := rootContext.RequestFuture(pid, EchoRequest{}, testTimeout)
@@ -81,8 +79,7 @@ func (state *EchoPopBehaviorActor) other(context Context) {
 }
 
 func TestActorCanPopBehavior(t *testing.T) {
-	a, err := rootContext.Spawn(PropsFromProducer(NewEchoUnbecomeActor))
-	assert.NoError(t, err)
+	a := rootContext.Spawn(PropsFromProducer(NewEchoUnbecomeActor))
 	rootContext.Send(a, BehaviorMessage{})
 	rootContext.Send(a, PopBehaviorMessage{})
 	fut := rootContext.RequestFuture(a, EchoRequest{}, testTimeout)

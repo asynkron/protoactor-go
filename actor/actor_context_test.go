@@ -61,13 +61,12 @@ func TestActorContext_SendMessage_WithSenderdMiddleware(t *testing.T) {
 
 	// Define a receiver to which the local context will send a message
 	var counter int
-	receiver, err := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
+	receiver := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch ctx.Message().(type) {
 		case bool:
 			counter++
 		}
 	}))
-	assert.NoError(t, err)
 
 	// Send a message with Tell
 	// Then wait a little to allow the receiver to process the message
@@ -101,13 +100,12 @@ func BenchmarkActorContext_ProcessMessageNoMiddleware(b *testing.B) {
 func TestActorContext_Respond(t *testing.T) {
 	// Defined a responder actor
 	// It simply echoes a received string.
-	responder, err := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
+	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch m := ctx.Message().(type) {
 		case string:
 			ctx.Respond(fmt.Sprintf("Got a string: %s", m))
 		}
 	}))
-	assert.NoError(t, err)
 
 	// Be prepared to catch a response that the responder will send to nil
 	var gotResponseToNil bool
@@ -149,23 +147,21 @@ func TestActorContext_Forward(t *testing.T) {
 
 	// Defined a respond actor
 	// It simply respond the string message
-	responder, err := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
+	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch m := ctx.Message().(type) {
 		case string:
 			ctx.Respond(fmt.Sprintf("Got a string: %s", m))
 		}
 	}))
-	assert.NoError(t, err)
 
 	// Defined a forwarder actor
 	// It simply forward the string message to responder
-	forwarder, err := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
+	forwarder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch ctx.Message().(type) {
 		case string:
 			ctx.Forward(responder)
 		}
 	}))
-	assert.NoError(t, err)
 
 	// Send a message to the responder using Request
 	// The responder should send something back.
@@ -231,7 +227,7 @@ func BenchmarkActorContext_SpawnWithMiddleware5(b *testing.B) {
 }
 
 func TestActorContinueFutureInActor(t *testing.T) {
-	pid, err := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
+	pid := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		if ctx.Message() == "request" {
 			ctx.Respond("done")
 		}
@@ -242,7 +238,6 @@ func TestActorContinueFutureInActor(t *testing.T) {
 			})
 		}
 	}))
-	assert.NoError(t, err)
 	res, err := rootContext.RequestFuture(pid, "start", time.Second).Result()
 	assert.NoError(t, err)
 	assert.Equal(t, "done", res)

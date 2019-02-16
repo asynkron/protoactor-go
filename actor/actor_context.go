@@ -254,7 +254,7 @@ func (ctx *actorContext) AwaitFuture(f *Future, cont func(res interface{}, err e
 }
 
 //
-// Interface: SenderContext
+// Interface: sender
 //
 
 func (ctx *actorContext) Message() interface{} {
@@ -309,7 +309,7 @@ func (ctx *actorContext) RequestFuture(pid *PID, message interface{}, timeout ti
 }
 
 //
-// Interface: ReceiverContext
+// Interface: receiver
 //
 
 func (ctx *actorContext) Receive(envelope *MessageEnvelope) {
@@ -334,16 +334,22 @@ func (ctx *actorContext) defaultReceive() {
 }
 
 //
-// Interface: SpawnerContext
+// Interface: spawner
 //
 
 func (ctx *actorContext) Spawn(props *Props) *PID {
-	pid, _ := ctx.SpawnNamed(props, ProcessRegistry.NextId())
+	pid, err := ctx.SpawnNamed(props, ProcessRegistry.NextId())
+	if err != nil {
+		panic(err)
+	}
 	return pid
 }
 
 func (ctx *actorContext) SpawnPrefix(props *Props, prefix string) *PID {
-	pid, _ := ctx.SpawnNamed(props, prefix+ProcessRegistry.NextId())
+	pid, err := ctx.SpawnNamed(props, prefix+ProcessRegistry.NextId())
+	if err != nil {
+		panic(err)
+	}
 	return pid
 }
 

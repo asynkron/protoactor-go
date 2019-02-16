@@ -42,7 +42,7 @@ func main() {
 		}
 	})
 
-	pid, _ := rootContext.Spawn(props)
+	pid := rootContext.Spawn(props)
 	for i := 0; i < 6; i++ {
 		rootContext.Send(pid, "hello")
 		time.Sleep(500 * time.Millisecond)

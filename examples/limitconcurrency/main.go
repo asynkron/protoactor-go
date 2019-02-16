@@ -21,7 +21,7 @@ func doWork(ctx actor.Context) {
 
 func main() {
 	rootContext := actor.EmptyRootContext()
-	pid, _ := rootContext.Spawn(router.NewRoundRobinPool(maxConcurrency).WithFunc(doWork))
+	pid := rootContext.Spawn(router.NewRoundRobinPool(maxConcurrency).WithFunc(doWork))
 	for i := 0; i < 1000; i++ {
 		rootContext.Send(pid, &workItem{i})
 	}

@@ -17,7 +17,7 @@ func Example() {
 		}
 	})
 
-	pid, _ := context.Spawn(props)
+	pid := context.Spawn(props)
 
 	context.Send(pid, "Hello World")
 	time.Sleep(time.Millisecond * 100)
@@ -33,7 +33,7 @@ func Example_synchronous() {
 	wg.Add(1)
 
 	// callee will wait for the PING message
-	callee, _ := actor.EmptyRootContext().Spawn(actor.PropsFromFunc(func(c actor.Context) {
+	callee := actor.EmptyRootContext().Spawn(actor.PropsFromFunc(func(c actor.Context) {
 		if msg, ok := c.Message().(string); ok {
 			fmt.Println(msg) // outputs PING
 			c.Respond("PONG")
@@ -41,7 +41,7 @@ func Example_synchronous() {
 	}))
 
 	// caller will send a PING message and wait for the PONG
-	caller, _ := actor.EmptyRootContext().Spawn(actor.PropsFromFunc(func(c actor.Context) {
+	caller := actor.EmptyRootContext().Spawn(actor.PropsFromFunc(func(c actor.Context) {
 		switch msg := c.Message().(type) {
 		// the first message an actor receives after it has started
 		case *actor.Started:

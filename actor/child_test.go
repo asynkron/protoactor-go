@@ -28,8 +28,7 @@ func NewCreateChildActor() Actor {
 }
 
 func TestActorCanCreateChildren(t *testing.T) {
-	a, err := rootContext.Spawn(PropsFromProducer(NewCreateChildActor))
-	assert.NoError(t, err)
+	a := rootContext.Spawn(PropsFromProducer(NewCreateChildActor))
 	defer a.Stop()
 	expected := 10
 	for i := 0; i < expected; i++ {
@@ -68,8 +67,7 @@ func NewCreateChildThenStopActor() Actor {
 
 func TestActorCanStopChildren(t *testing.T) {
 
-	actor, err := rootContext.Spawn(PropsFromProducer(NewCreateChildThenStopActor))
-	assert.NoError(t, err)
+	actor := rootContext.Spawn(PropsFromProducer(NewCreateChildThenStopActor))
 	count := 10
 	for i := 0; i < count; i++ {
 		rootContext.Send(actor, CreateChildMessage{})
@@ -92,8 +90,7 @@ func TestActorCanStopChildren(t *testing.T) {
 }
 
 func TestActorReceivesTerminatedFromWatched(t *testing.T) {
-	child, err := rootContext.Spawn(PropsFromFunc(nullReceive))
-	assert.NoError(t, err)
+	child := rootContext.Spawn(PropsFromFunc(nullReceive))
 	future := NewFuture(testTimeout)
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -120,9 +117,8 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 }
 
 func TestFutureDoesTimeout(t *testing.T) {
-	pid, err := rootContext.Spawn(PropsFromFunc(nullReceive))
-	assert.NoError(t, err)
-	_, err = rootContext.RequestFuture(pid, "", time.Millisecond).Result()
+	pid := rootContext.Spawn(PropsFromFunc(nullReceive))
+	_, err := rootContext.RequestFuture(pid, "", time.Millisecond).Result()
 	assert.EqualError(t, err, ErrTimeout.Error())
 }
 
@@ -135,8 +131,7 @@ func TestFutureDoesNotTimeout(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		c.Respond("foo")
 	}
-	pid, err := rootContext.Spawn(PropsFromFunc(r))
-	assert.NoError(t, err)
+	pid := rootContext.Spawn(PropsFromFunc(r))
 	reply, err := rootContext.RequestFuture(pid, "", 2*time.Second).Result()
 	assert.NoError(t, err)
 	assert.Equal(t, "foo", reply)

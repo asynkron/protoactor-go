@@ -29,7 +29,7 @@ func (state *helloActor) Receive(context actor.Context) {
 func main() {
 	rootContext := actor.EmptyRootContext()
 	props := actor.PropsFromProducer(func() actor.Actor { return &helloActor{} })
-	pid, _ := rootContext.Spawn(props)
+	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, &hello{Who: "Roger"})
 
 	// why wait?

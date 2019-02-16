@@ -138,8 +138,8 @@ func main() {
 		echos := make([]*actor.PID, 0)
 		clientCount := runtime.NumCPU() * 2
 		for i := 0; i < clientCount; i++ {
-			client, _ := rootContext.Spawn(clientProps)
-			echo, _ := rootContext.Spawn(echoProps)
+			client := rootContext.Spawn(clientProps)
+			echo := rootContext.Spawn(echoProps)
 			clients = append(clients, client)
 			echos = append(echos, echo)
 			wg.Add(1)

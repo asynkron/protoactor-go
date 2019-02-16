@@ -85,7 +85,7 @@ func (e *Expector) ExpectNoMsg(t *testing.T) {
 func TestActorStopsAfterXRestars(t *testing.T) {
 	m, e := NewObserver()
 	props := PropsFromProducer(func() Actor { return &failingChildActor{} }).WithReceiverMiddleware(m)
-	child, _ := rootContext.Spawn(props)
+	child := rootContext.Spawn(props)
 	fail := "fail!"
 
 	e.ExpectMsg(startedMessage, t)

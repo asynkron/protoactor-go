@@ -13,7 +13,7 @@ func ExampleFuture_PipeTo() {
 	wg.Add(1)
 
 	// test actor that will be the target of the future PipeTo
-	pid, _ := actor.EmptyRootContext().Spawn(actor.PropsFromFunc(func(ctx actor.Context) {
+	pid := actor.EmptyRootContext().Spawn(actor.PropsFromFunc(func(ctx actor.Context) {
 		// check if the message is a string and therefore
 		// the "hello world" message piped from the future
 		if m, ok := ctx.Message().(string); ok {

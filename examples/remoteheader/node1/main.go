@@ -24,7 +24,7 @@ func main() {
 			}
 		})
 
-	pid, _ := rootContext.Spawn(props)
+	pid := rootContext.Spawn(props)
 
 	remotePid := actor.NewPID("127.0.0.1:8080", "remote")
 	rootContext.RequestFuture(remotePid, &messages.StartRemote{

@@ -26,7 +26,7 @@ func main() {
 
 	rootContext := actor.EmptyRootContext()
 
-	remotePID, _ := rootContext.Spawn(router.NewConsistentHashGroup(p1, p2))
+	remotePID := rootContext.Spawn(router.NewConsistentHashGroup(p1, p2))
 
 	messageCount := 1000000
 
@@ -36,7 +36,7 @@ func main() {
 		PropsFromProducer(newLocalActor(&wgStop, messageCount)).
 		WithMailbox(mailbox.Bounded(10000))
 
-	pid, _ := rootContext.Spawn(props)
+	pid := rootContext.Spawn(props)
 
 	log.Println("Starting to send")
 

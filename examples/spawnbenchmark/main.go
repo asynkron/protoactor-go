@@ -79,7 +79,7 @@ func main() {
 	rootContext := actor.EmptyRootContext()
 
 	start := time.Now()
-	pid, _ := rootContext.Spawn(props)
+	pid := rootContext.Spawn(props)
 	res, _ := rootContext.RequestFuture(pid, &request{
 		num:  0,
 		size: 1000000,

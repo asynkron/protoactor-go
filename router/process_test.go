@@ -34,7 +34,7 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 	grc := newGroupRouterConfig(child)
 	grc.On("CreateRouterState").Return(rs)
 
-	routerPID, _ := rootContext.Spawn((&actor.Props{}).WithSpawnFunc(spawner(grc)))
+	routerPID := rootContext.Spawn((&actor.Props{}).WithSpawnFunc(spawner(grc)))
 	rootContext.Send(routerPID, "hello")
 	rootContext.RequestWithCustomSender(routerPID, "hello", routerPID)
 

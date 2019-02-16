@@ -28,25 +28,25 @@ func main() {
 		}
 	}
 
-	pid, _ := rootContext.Spawn(router.NewRoundRobinPool(5).WithFunc(act))
+	pid := rootContext.Spawn(router.NewRoundRobinPool(5).WithFunc(act))
 	for i := 0; i < 10; i++ {
 		rootContext.Send(pid, &myMessage{i})
 	}
 	time.Sleep(1 * time.Second)
 	log.Println("Random routing:")
-	pid, _ = rootContext.Spawn(router.NewRandomPool(5).WithFunc(act))
+	pid = rootContext.Spawn(router.NewRandomPool(5).WithFunc(act))
 	for i := 0; i < 10; i++ {
 		rootContext.Send(pid, &myMessage{i})
 	}
 	time.Sleep(1 * time.Second)
 	log.Println("ConsistentHash routing:")
-	pid, _ = rootContext.Spawn(router.NewConsistentHashPool(5).WithFunc(act))
+	pid = rootContext.Spawn(router.NewConsistentHashPool(5).WithFunc(act))
 	for i := 0; i < 10; i++ {
 		rootContext.Send(pid, &myMessage{i})
 	}
 	time.Sleep(1 * time.Second)
 	log.Println("BroadcastPool routing:")
-	pid, _ = rootContext.Spawn(router.NewBroadcastPool(5).WithFunc(act))
+	pid = rootContext.Spawn(router.NewBroadcastPool(5).WithFunc(act))
 	for i := 0; i < 10; i++ {
 		rootContext.Send(pid, &myMessage{i})
 	}

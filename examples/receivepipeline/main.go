@@ -20,7 +20,7 @@ func receive(context actor.Context) {
 func main() {
 	rootContext := actor.EmptyRootContext()
 	props := actor.PropsFromFunc(receive).WithReceiverMiddleware(middleware.Logger)
-	pid, _ := rootContext.Spawn(props)
+	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, &hello{Who: "Roger"})
 	console.ReadLine()
 }

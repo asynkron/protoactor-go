@@ -8,8 +8,7 @@ import (
 )
 
 func TestDeadLetterAfterStop(t *testing.T) {
-	a, err := rootContext.Spawn(PropsFromProducer(NewBlackHoleActor))
-	assert.NoError(t, err)
+	a := rootContext.Spawn(PropsFromProducer(NewBlackHoleActor))
 	done := false
 	sub := eventstream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
@@ -29,8 +28,7 @@ func TestDeadLetterAfterStop(t *testing.T) {
 
 func TestDeadLetterWatchRespondsWithTerminate(t *testing.T) {
 	// create an actor
-	pid, err := rootContext.Spawn(PropsFromProducer(NewBlackHoleActor))
-	assert.NoError(t, err)
+	pid := rootContext.Spawn(PropsFromProducer(NewBlackHoleActor))
 	// stop id
 	pid.GracefulStop()
 	f := NewFuture(testTimeout)

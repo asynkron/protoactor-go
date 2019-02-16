@@ -32,7 +32,7 @@ func NewUntypedStream() *UntypedStream {
 			c <- msg
 		}
 	})
-	pid, _ := rootContext.Spawn(props)
+	pid := rootContext.Spawn(props)
 
 	return &UntypedStream{
 		c:   c,

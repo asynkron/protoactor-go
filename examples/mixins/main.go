@@ -51,7 +51,7 @@ func main() {
 			middleware.Logger,
 		)
 
-	pid, _ := rootContext.Spawn(props)
+	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, "bar")
 	console.ReadLine()
 }

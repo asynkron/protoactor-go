@@ -117,18 +117,24 @@ func (rc *RootContext) sendUserMessage(pid *PID, message interface{}) {
 // Interface: spawner
 //
 
-func (rc *RootContext) Spawn(props *Props) (*PID, error) {
-	name := ProcessRegistry.NextId()
-	return rc.SpawnNamed(props, name)
+func (rc *RootContext) Spawn(props *Props) *PID {
+	pid, err := rc.SpawnNamed(props, ProcessRegistry.NextId())
+	if err != nil {
+		panic(err)
+	}
+	return pid
 }
 
-func (rc *RootContext) SpawnPrefix(props *Props, prefix string) (*PID, error) {
-	name := prefix + ProcessRegistry.NextId()
-	return rc.SpawnNamed(props, name)
+func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
+	pid, err := rc.SpawnNamed(props, prefix+ProcessRegistry.NextId())
+	if err != nil {
+		panic(err)
+	}
+	return pid
 }
 
 func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
-	var parent *PID = nil
+	var parent *PID
 	if props.guardianStrategy != nil {
 		parent = guardians.getGuardianPid(props.guardianStrategy)
 	}

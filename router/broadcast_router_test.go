@@ -15,7 +15,7 @@ func TestBroadcastRouterThreadSafe(t *testing.T) {
 
 	props := actor.PropsFromFunc(func(c actor.Context) {})
 
-	grp, _ := rootContext.Spawn(NewBroadcastGroup())
+	grp := rootContext.Spawn(NewBroadcastGroup())
 	go func() {
 		count := 100
 		for i := 0; i < count; i++ {

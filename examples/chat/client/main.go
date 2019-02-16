@@ -29,7 +29,7 @@ func main() {
 		}
 	})
 
-	client, _ := rootContext.Spawn(props)
+	client := rootContext.Spawn(props)
 
 	rootContext.Send(server, &messages.Connect{
 		Sender: client,
