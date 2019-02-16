@@ -86,7 +86,7 @@ func main() {
 	rootContext.Send(pid, &Message{protoMsg: protoMsg{state: "state4"}})
 	rootContext.Send(pid, &Message{protoMsg: protoMsg{state: "state5"}})
 
-	pid.GracefulPoison()
+	rootContext.PoisonFuture(pid).Wait()
 	fmt.Printf("*** restart ***\n")
 	pid, _ = rootContext.SpawnNamed(props, "persistent")
 

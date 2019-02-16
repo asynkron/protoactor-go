@@ -147,7 +147,7 @@ func TestRecovery(t *testing.T) {
 			assert.Equal(t, tc.afterMsgs, queryState)
 
 			// wait for shutdown
-			pid.GracefulPoison()
+			rootContext.PoisonFuture(pid).Wait()
 
 			pid, err = rootContext.SpawnNamed(props, ActorName)
 			require.NoError(t, err)
@@ -161,7 +161,7 @@ func TestRecovery(t *testing.T) {
 			assert.Equal(t, tc.afterMsgs, queryState)
 
 			// shutdown at end of test for cleanup
-			pid.GracefulPoison()
+			rootContext.PoisonFuture(pid).Wait()
 		})
 	}
 }

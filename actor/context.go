@@ -9,6 +9,7 @@ type Context interface {
 	senderPart
 	receiverPart
 	spawnerPart
+	stopperPart
 }
 
 type SenderContext interface {
@@ -107,4 +108,18 @@ type spawnerPart interface {
 	//
 	// Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1"
 	SpawnNamed(props *Props, id string) (*PID, error)
+}
+
+type stopperPart interface {
+	// Stop will stop actor immediately regardless of existing user messages in mailbox.
+	Stop(pid *PID)
+
+	// StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
+	StopFuture(pid *PID) *Future
+
+	// Poison will tell actor to stop after processing current user messages in mailbox.
+	Poison(pid *PID)
+
+	// PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
+	PoisonFuture(pid *PID) *Future
 }

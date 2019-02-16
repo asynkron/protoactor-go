@@ -2,6 +2,8 @@ package stream
 
 import "github.com/AsynkronIT/protoactor-go/actor"
 
+var rootContext = actor.EmptyRootContext()
+
 type UntypedStream struct {
 	c   chan interface{}
 	pid *actor.PID
@@ -16,14 +18,13 @@ func (s *UntypedStream) PID() *actor.PID {
 }
 
 func (s *UntypedStream) Close() {
-	s.pid.Stop()
+	rootContext.Stop(s.pid)
 	close(s.c)
 }
 
 func NewUntypedStream() *UntypedStream {
 	c := make(chan interface{})
 
-	rootContext := actor.EmptyRootContext()
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
 		case actor.AutoReceiveMessage, actor.SystemMessage:

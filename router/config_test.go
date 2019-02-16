@@ -15,7 +15,7 @@ func TestSpawn(t *testing.T) {
 	_, exists := actor.ProcessRegistry.Get(actor.NewLocalPID("foo/router"))
 	assert.True(t, exists)
 
-	pid.StopFuture().Wait()
+	rootContext.StopFuture(pid).Wait()
 
 	_, exists = actor.ProcessRegistry.Get(actor.NewLocalPID("foo/router"))
 	assert.False(t, exists)

@@ -63,5 +63,5 @@ func main() {
 	log.Println("hit [return] to finish")
 	console.ReadLine()
 
-	pid.Stop()
+	rootContext.Stop(pid)
 }

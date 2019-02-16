@@ -21,7 +21,7 @@ func Example() {
 
 	context.Send(pid, "Hello World")
 	time.Sleep(time.Millisecond * 100)
-	pid.GracefulStop() // wait for the actor to stop
+	context.StopFuture(pid).Wait() // wait for the actor to stop
 
 	// Output: Hello World
 }
@@ -31,6 +31,8 @@ func Example() {
 func Example_synchronous() {
 	var wg sync.WaitGroup
 	wg.Add(1)
+
+	context := actor.EmptyRootContext()
 
 	// callee will wait for the PING message
 	callee := actor.EmptyRootContext().Spawn(actor.PropsFromFunc(func(c actor.Context) {
@@ -56,8 +58,8 @@ func Example_synchronous() {
 	}))
 
 	wg.Wait()
-	callee.GracefulStop()
-	caller.GracefulStop()
+	context.StopFuture(callee).Wait()
+	context.StopFuture(caller).Wait()
 
 	// Output:
 	// PING
