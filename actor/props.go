@@ -2,22 +2,22 @@ package actor
 
 import (
 	"errors"
-
 	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
 // Props types
-type SpawnFunc func(id string, props *Props, parent *PID) (*PID, error)
+type SpawnFunc func(id string, props *Props, parentContext SpawnerContext) (*PID, error)
 type ReceiverMiddleware func(next ReceiverFunc) ReceiverFunc
 type SenderMiddleware func(next SenderFunc) SenderFunc
 type ContextDecorator func(next ContextDecoratorFunc) ContextDecoratorFunc
+type SpawnMiddleware func(next SpawnFunc) SpawnFunc
 
 // Default values
 var (
 	defaultDispatcher      = mailbox.NewDefaultDispatcher(300)
 	defaultMailboxProducer = mailbox.Unbounded()
-	defaultSpawner         = func(id string, props *Props, parent *PID) (*PID, error) {
-		ctx := newActorContext(props, parent)
+	defaultSpawner         = func(id string, props *Props, parentContext SpawnerContext) (*PID, error) {
+		ctx := newActorContext(props, parentContext.Self())
 		mb := props.produceMailbox()
 		dp := props.getDispatcher()
 		proc := NewActorProcess(mb)
@@ -53,8 +53,10 @@ type Props struct {
 	dispatcher              mailbox.Dispatcher
 	receiverMiddleware      []ReceiverMiddleware
 	senderMiddleware        []SenderMiddleware
+	spawnMiddleware         []SpawnMiddleware
 	receiverMiddlewareChain ReceiverFunc
 	senderMiddlewareChain   SenderFunc
+	spawnMiddlewareChain    SpawnFunc
 	contextDecorator        []ContextDecorator
 	contextDecoratorChain   ContextDecoratorFunc
 }
@@ -94,8 +96,8 @@ func (props *Props) produceMailbox() mailbox.Mailbox {
 	return props.mailboxProducer()
 }
 
-func (props *Props) spawn(name string, parent *PID) (*PID, error) {
-	return props.getSpawner()(name, props, parent)
+func (props *Props) spawn(name string, parentContext SpawnerContext) (*PID, error) {
+	return props.getSpawner()(name, props, parentContext)
 }
 
 // WithProducer assigns a actor producer to the props
@@ -171,6 +173,20 @@ func (props *Props) WithSpawnFunc(spawn SpawnFunc) *Props {
 // WithFunc assigns a receive func to the props
 func (props *Props) WithFunc(f ActorFunc) *Props {
 	props.producer = func() Actor { return f }
+	return props
+}
+
+func (props *Props) WithSpawnMiddleware(middleware ...SpawnMiddleware) *Props {
+	props.spawnMiddleware = append(props.spawnMiddleware, middleware...)
+
+	// Construct the spawner middleware chain with the final spawner at the end
+	props.spawnMiddlewareChain = makeSpawnMiddlewareChain(props.spawnMiddleware, func(id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
+		if props.spawner == nil {
+			return defaultSpawner(id, props, parentContext)
+		}
+		return props.spawner(id, props, parentContext)
+	})
+
 	return props
 }
 

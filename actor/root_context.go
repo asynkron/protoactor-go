@@ -2,21 +2,24 @@ package actor
 
 import "time"
 
-// RootContext a Context can be used outside of Actor
 type RootContext struct {
 	senderMiddleware SenderFunc
+	spawnMiddleware  SpawnFunc
 	headers          messageHeader
+	guardianStrategy SupervisorStrategy
 }
 
-// EmptyRootContext returns the default RootContext.
-// Please do not set any headers/middlewares to this context.
 var EmptyRootContext = &RootContext{
 	senderMiddleware: nil,
+	spawnMiddleware:  nil,
 	headers:          EmptyMessageHeader,
+	guardianStrategy: nil,
 }
 
-// NewRootContext creates a new RootContext that can be customized with headers and middlewares.
 func NewRootContext(header map[string]string, middleware ...SenderMiddleware) *RootContext {
+	if header == nil {
+		header = make(map[string]string)
+	}
 	return &RootContext{
 		senderMiddleware: makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
 			target.sendUserMessage(envelope)
@@ -25,17 +28,31 @@ func NewRootContext(header map[string]string, middleware ...SenderMiddleware) *R
 	}
 }
 
-// WithHeaders set headers to RootContext.
+func (rc RootContext) Copy() *RootContext {
+	return &rc
+}
+
 func (rc *RootContext) WithHeaders(headers map[string]string) *RootContext {
 	rc.headers = headers
 	return rc
 }
 
-// WithSenderMiddleware set SenderMiddlewares to RootContext.
 func (rc *RootContext) WithSenderMiddleware(middleware ...SenderMiddleware) *RootContext {
 	rc.senderMiddleware = makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
 		target.sendUserMessage(envelope)
 	})
+	return rc
+}
+
+func (rc *RootContext) WithSpawnMiddleware(middleware ...SpawnMiddleware) *RootContext {
+	rc.spawnMiddleware = makeSpawnMiddlewareChain(middleware, func(id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
+		return props.spawn(id, rc)
+	})
+	return rc
+}
+
+func (rc *RootContext) WithGuardian(guardian SupervisorStrategy) *RootContext {
+	rc.guardianStrategy = guardian
 	return rc
 }
 
@@ -48,6 +65,9 @@ func (rc *RootContext) Parent() *PID {
 }
 
 func (rc *RootContext) Self() *PID {
+	if rc.guardianStrategy != nil {
+		return guardians.getGuardianPid(rc.guardianStrategy)
+	}
 	return nil
 }
 
@@ -143,9 +163,12 @@ func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
 //
 // Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1"
 func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
-	var parent *PID
+	rootContext := rc
 	if props.guardianStrategy != nil {
-		parent = guardians.getGuardianPid(props.guardianStrategy)
+		rootContext = rc.Copy().WithGuardian(props.guardianStrategy)
 	}
-	return props.spawn(name, parent)
+	if rootContext.spawnMiddleware != nil {
+		return rc.spawnMiddleware(name, props, rootContext)
+	}
+	return props.spawn(name, rootContext)
 }
