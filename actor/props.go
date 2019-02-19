@@ -179,7 +179,7 @@ func (props *Props) WithFunc(f ActorFunc) *Props {
 func (props *Props) WithSpawnMiddleware(middleware ...SpawnMiddleware) *Props {
 	props.spawnMiddleware = append(props.spawnMiddleware, middleware...)
 
-	// Construct the sender middleware chain with the final sender at the end
+	// Construct the spawner middleware chain with the final spawner at the end
 	props.spawnMiddlewareChain = makeSpawnMiddlewareChain(props.spawnMiddleware, func(id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
 		if props.spawner == nil {
 			return defaultSpawner(id, props, parentContext)
