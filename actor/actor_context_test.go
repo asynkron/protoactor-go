@@ -21,7 +21,7 @@ func TestActorContext_SpawnNamed(t *testing.T) {
 		},
 	}
 
-	parent := &actorContext{self: NewLocalPID("foo")}
+	parent := &actorContext{self: NewLocalPID("foo"), props: props}
 	child, err := parent.SpawnNamed(props, "bar")
 	assert.NoError(t, err)
 	assert.Equal(t, parent.Children()[0], child)
@@ -204,7 +204,7 @@ func benchmarkActorContext_SpawnWithMiddlewareN(n int, b *testing.B) {
 		props = props.WithSenderMiddleware(middlwareFn)
 	}
 
-	parent := &actorContext{self: NewLocalPID("foo")}
+	parent := &actorContext{self: NewLocalPID("foo"), props: props}
 	for i := 0; i < b.N; i++ {
 		parent.Spawn(props)
 	}
