@@ -21,6 +21,11 @@ type ReceiverContext interface {
 	receiverPart
 }
 
+type SpawnerContext interface {
+	infoPart
+	spawnerPart
+}
+
 type infoPart interface {
 	// Parent returns the PID for the current actors parent
 	Parent() *PID

@@ -15,7 +15,7 @@ func TestActorContext_SpawnNamed(t *testing.T) {
 	defer removeMockProcess(pid)
 
 	props := &Props{
-		spawner: func(id string, _ *Props, _ *PID) (*PID, error) {
+		spawner: func(id string, _ *Props, _ SpawnerContext) (*PID, error) {
 			assert.Equal(t, "foo/bar", id)
 			return NewLocalPID(id), nil
 		},

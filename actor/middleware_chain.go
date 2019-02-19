@@ -35,3 +35,15 @@ func makeContextDecoratorChain(decorator []ContextDecorator, lastDecorator Conte
 	}
 	return h
 }
+
+func makeSpawnMiddlewareChain(spawnMiddleware []SpawnMiddleware, lastSpawn SpawnFunc) SpawnFunc {
+	if len(spawnMiddleware) == 0 {
+		return nil
+	}
+
+	h := spawnMiddleware[len(spawnMiddleware)-1](lastSpawn)
+	for i := len(spawnMiddleware) - 2; i >= 0; i-- {
+		h = spawnMiddleware[i](h)
+	}
+	return h
+}

@@ -4,11 +4,13 @@ import "time"
 
 type RootContext struct {
 	senderMiddleware SenderFunc
+	spawnMiddleware  SpawnFunc
 	headers          messageHeader
 }
 
 var emptyRootContext = &RootContext{
 	senderMiddleware: nil,
+	spawnMiddleware:  nil,
 	headers:          emptyMessageHeader,
 }
 
@@ -33,6 +35,13 @@ func (rc *RootContext) WithHeaders(headers map[string]string) *RootContext {
 func (rc *RootContext) WithSenderMiddleware(middleware ...SenderMiddleware) *RootContext {
 	rc.senderMiddleware = makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
 		target.sendUserMessage(envelope)
+	})
+	return rc
+}
+
+func (rc *RootContext) WithSpawnMiddleware(middleware ...SpawnMiddleware) *RootContext {
+	rc.spawnMiddleware = makeSpawnMiddlewareChain(middleware, func(id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
+		return props.spawn(id, rc)
 	})
 	return rc
 }
@@ -141,9 +150,42 @@ func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
 //
 // Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1"
 func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
-	var parent *PID
+	var context SpawnerContext = rc
 	if props.guardianStrategy != nil {
-		parent = guardians.getGuardianPid(props.guardianStrategy)
+		context = &guardianDecoratingContext{context: rc, guardianStrategy: props.guardianStrategy}
 	}
-	return props.spawn(name, parent)
+	if rc.spawnMiddleware != nil {
+		return rc.spawnMiddleware(name, props, context)
+	}
+	return props.spawn(name, context)
 }
+
+type guardianDecoratingContext struct {
+	context          SpawnerContext
+	guardianStrategy SupervisorStrategy
+}
+
+func (decoratedContext *guardianDecoratingContext) Parent() *PID {
+	return decoratedContext.Parent()
+}
+
+func (decoratedContext *guardianDecoratingContext) Self() *PID {
+	return guardians.getGuardianPid(decoratedContext.guardianStrategy)
+}
+
+func (decoratedContext *guardianDecoratingContext) Actor() Actor {
+	return decoratedContext.Actor()
+}
+
+func (decoratedContext *guardianDecoratingContext) Spawn(props *Props) *PID {
+	return decoratedContext.Spawn(props)
+}
+
+func (decoratedContext *guardianDecoratingContext) SpawnPrefix(props *Props, prefix string) *PID {
+	return decoratedContext.SpawnPrefix(props, prefix)
+}
+
+func (decoratedContext *guardianDecoratingContext) SpawnNamed(props *Props, id string) (*PID, error) {
+	return decoratedContext.SpawnNamed(props, id)
+}
+
