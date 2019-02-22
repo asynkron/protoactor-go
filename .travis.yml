@@ -1,24 +1,3 @@
 language: go
-before_install:
-  - go get -v github.com/golang/lint/golint
-  - go get github.com/AsynkronIT/gonet
-  - go get github.com/AsynkronIT/goconsole
-  - go get github.com/Workiva/go-datastructures
-  - go get github.com/hashicorp/memberlist
-  - go get github.com/hashicorp/consul/api
-  - go get github.com/serialx/hashring
-  - go get github.com/couchbase/gocb
-  - go get github.com/emirpasic/gods/sets/hashset
-  - go get github.com/emirpasic/gods/stacks/linkedliststack
-  - go get github.com/stretchr/testify/assert
-  - go get github.com/orcaman/concurrent-map
-  - go get github.com/gogo/protobuf/proto
-  - go get github.com/gogo/protobuf/protoc-gen-gogo
-  - go get github.com/gogo/protobuf/gogoproto
-  - go get github.com/gogo/protobuf/protoc-gen-gofast
-  - go get google.golang.org/grpc
-  - go get github.com/gogo/protobuf/protoc-gen-gogoslick
-  - go get github.com/chzyer/readline
-
 script:
-  - go test ./... -short
+  - env GO111MODULE=on go test ./... -short
