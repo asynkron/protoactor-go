@@ -13,7 +13,7 @@ func main() {
 	timeout := 5 * time.Second
 	remote.Start("127.0.0.1:8081")
 
-	context := actor.EmptyRootContext()
+	context := actor.EmptyRootContext
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
 		case *actor.Started:

@@ -19,7 +19,7 @@ var (
 )
 
 // remote root context
-var rootContext = actor.EmptyRootContext()
+var rootContext = actor.EmptyRootContext
 
 // Start the remote server
 func Start(address string, options ...RemotingOption) {

@@ -19,7 +19,7 @@ func main() {
 
 	c := 0
 
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 	props := actor.PropsFromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *actor.Started:

@@ -21,7 +21,7 @@ var _ = math.Inf
 {{ range $service := .Services}}	
 var x{{ $service.Name }}Factory func() {{ $service.Name }}
 
-var rootContext = actor.EmptyRootContext()
+var rootContext = actor.EmptyRootContext
 
 func {{ $service.Name }}Factory(factory func() {{ $service.Name }}) {
 	x{{ $service.Name }}Factory = factory

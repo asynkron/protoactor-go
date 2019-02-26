@@ -78,7 +78,7 @@ func TestConcurrency(t *testing.T) {
 		t.SkipNow()
 	}
 
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 
 	wait.Add(100 * 10000)
 	rpid := rootContext.Spawn(router.NewConsistentHashPool(100).WithProducer(func() actor.Actor { return &routerActor{} }))

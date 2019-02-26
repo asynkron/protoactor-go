@@ -81,7 +81,7 @@ func main() {
 	// remote.DefaultSerializerID = 1
 	remote.Start("127.0.0.1:8081")
 
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 	props := actor.
 		PropsFromProducer(newLocalActor(&wg, messageCount)).
 		WithMailbox(mailbox.Bounded(1000000))

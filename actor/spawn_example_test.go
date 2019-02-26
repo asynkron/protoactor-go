@@ -13,7 +13,7 @@ func ExampleSpawn() {
 	wg.Add(1)
 
 	// create root context
-	context := actor.EmptyRootContext()
+	context := actor.EmptyRootContext
 
 	// define the actor props
 	// props define the creation process of an actor

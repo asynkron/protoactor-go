@@ -24,7 +24,7 @@ func (m *mailboxLogger) MailboxEmpty() {
 }
 
 func main() {
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 
 	}).WithMailbox(mailbox.Unbounded(&mailboxLogger{}))

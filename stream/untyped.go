@@ -23,7 +23,7 @@ func (s *UntypedStream) Close() {
 func NewUntypedStream() *UntypedStream {
 	c := make(chan interface{})
 
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
 		case actor.AutoReceiveMessage, actor.SystemMessage:

@@ -42,7 +42,7 @@ func main() {
 	remote.Start("localhost:8090", sslDialOption, sslServerOption)
 
 	// start the local actor which looks for SYN messages from node2
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 	props := actor.PropsFromProducer(func() actor.Actor { return &node1Actor{} })
 	_, err = rootContext.SpawnNamed(props, "node1")
 	if err != nil {

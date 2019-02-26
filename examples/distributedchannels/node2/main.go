@@ -24,7 +24,7 @@ func main() {
 	})
 
 	// define root context
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 
 	// spawn
 	rootContext.SpawnNamed(props, "MyMessage")

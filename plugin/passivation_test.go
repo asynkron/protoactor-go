@@ -24,7 +24,7 @@ func TestPassivation(t *testing.T) {
 
 	UnitOfTime := time.Duration(200 * time.Millisecond)
 	PassivationDuration := time.Duration(3 * UnitOfTime)
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 	props := actor.
 		PropsFromProducer(func() actor.Actor { return &SmartActor{} }).
 		WithReceiverMiddleware(Use(&PassivationPlugin{Duration: PassivationDuration}))

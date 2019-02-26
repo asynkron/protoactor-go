@@ -41,7 +41,7 @@ func main() {
 	remote.Start("localhost:8091", sslDialOption, sslServerOption)
 
 	// start the local actor which looks for ACK messages from node1
-	context := actor.EmptyRootContext()
+	context := actor.EmptyRootContext
 	props := actor.PropsFromProducer(func() actor.Actor { return &node2Actor{} })
 	pid, err := context.SpawnNamed(props, "node2")
 	if err != nil {

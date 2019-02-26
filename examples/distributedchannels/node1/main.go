@@ -11,7 +11,7 @@ import (
 )
 
 // define root context
-var rootContext = actor.EmptyRootContext()
+var rootContext = actor.EmptyRootContext
 
 func newMyMessageSenderChannel() chan<- *messages.MyMessage {
 	channel := make(chan *messages.MyMessage)
