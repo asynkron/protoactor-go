@@ -5,6 +5,7 @@ import (
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/actor/middleware/opentracing"
+	"github.com/AsynkronIT/protoactor-go/router"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jaegerlog "github.com/uber/jaeger-client-go/log"
@@ -20,7 +21,7 @@ func main() {
 
 	rootContext := actor.NewRootContext(nil).WithSpawnMiddleware(opentracing.TracingMiddleware())
 
-	pid := rootContext.SpawnPrefix(createProps(5), "root")
+	pid := rootContext.SpawnPrefix(createProps(router.NewRoundRobinPool, 3), "root")
 	for i := 0; i < 3; i++ {
 		rootContext.RequestFuture(pid, &request{i}, 10*time.Second).Wait()
 	}
@@ -59,11 +60,10 @@ func initJaeger() io.Closer {
 	return closer
 }
 
-func createProps(levels int) *actor.Props {
-	if levels <= 1 {
+func createProps(routerFunc func(size int) *actor.Props, levels int) *actor.Props {
+	if levels == 1 {
 		sleep := time.Duration(rand.Intn(5000))
-
-		return actor.PropsFromFunc(func(c actor.Context) {
+		return routerFunc(3).WithFunc(func(c actor.Context) {
 			switch msg := c.Message().(type) {
 			case *request:
 				time.Sleep(sleep * time.Millisecond)
@@ -73,16 +73,13 @@ func createProps(levels int) *actor.Props {
 			}
 		})
 	}
-
-	var childs []*actor.PID
-	return actor.PropsFromFunc(func(c actor.Context) {
+	var childPID *actor.PID
+	return routerFunc(5).WithFunc(func(c actor.Context) {
 		switch c.Message().(type) {
 		case *actor.Started:
-			for i := 0; i < 3; i++ {
-				childs = append(childs, c.Spawn(createProps(levels-1)))
-			}
+			childPID = c.Spawn(createProps(routerFunc, levels-1))
 		case *request:
-			c.Forward(childs[rand.Intn(len(childs))])
+			c.Forward(childPID)
 		}
 	})
 }
