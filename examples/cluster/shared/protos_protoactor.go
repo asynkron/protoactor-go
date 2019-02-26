@@ -19,7 +19,7 @@ var _ = math.Inf
 	
 var xHelloFactory func() Hello
 
-var rootContext = actor.EmptyRootContext()
+var rootContext = actor.EmptyRootContext
 
 func HelloFactory(factory func() Hello) {
 	xHelloFactory = factory

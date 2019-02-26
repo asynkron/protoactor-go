@@ -127,7 +127,7 @@ func TestRecovery(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
-			rootContext := actor.EmptyRootContext()
+			rootContext := actor.EmptyRootContext
 			props := actor.PropsFromProducer(makeActor).
 				WithReceiverMiddleware(Using(tc.init))
 			pid, err := rootContext.SpawnNamed(props, ActorName)

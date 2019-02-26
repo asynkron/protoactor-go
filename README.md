@@ -132,7 +132,7 @@ func (state *HelloActor) Receive(context actor.Context) {
 }
 
 func main() {
-    context := actor.EmptyRootContext()
+    context := actor.EmptyRootContext
     props := actor.PropsFromProducer(func() actor.Actor { return &HelloActor{} })
     pid, err := context.Spawn(props)
     if err != nil {
@@ -169,7 +169,7 @@ func NewSetBehaviorActor() actor.Actor {
 }
 
 func main() {
-    context := actor.EmptyRootContext()
+    context := actor.EmptyRootContext
     props := actor.PropsFromProducer(NewSetBehaviorActor)
     pid, err := context.Spawn(props)
     if err != nil {
@@ -205,7 +205,7 @@ func (state *HelloActor) Receive(context actor.Context) {
 }
 
 func main() {
-    context := actor.EmptyRootContext()
+    context := actor.EmptyRootContext
     props := actor.PropsFromProducer(func() actor.Actor { return &HelloActor{} })
     pid, err := context.Spawn(props)
     if err != nil {
@@ -278,7 +278,7 @@ func main() {
     }
     supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
 
-    context := actor.EmptyRootContext()
+    context := actor.EmptyRootContext
     props := actor.
         FromProducer(NewParentActor).
         WithSupervisor(supervisor)
@@ -317,7 +317,7 @@ func (state *MyActor) Receive(context actor.Context) {
 func main() {
     remote.Start("localhost:8090")
 
-    rootCtx := actor.EmptyRootContext()
+    rootCtx := actor.EmptyRootContext
     props := actor.PropsFromProducer(func() actor.Actor { return &MyActor{} })
     pid, _ := rootCtx.Spawn(props)
     message := &messages.Echo{Message: "hej", Sender: pid}

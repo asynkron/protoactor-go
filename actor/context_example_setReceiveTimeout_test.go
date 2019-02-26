@@ -33,7 +33,7 @@ func ExampleContext_setReceiveTimeout() {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 
-	pid := actor.EmptyRootContext().Spawn(actor.PropsFromProducer(func() actor.Actor { return &setReceiveTimeoutActor{wg} }))
+	pid := actor.EmptyRootContext.Spawn(actor.PropsFromProducer(func() actor.Actor { return &setReceiveTimeoutActor{wg} }))
 	defer pid.GracefulStop()
 
 	wg.Wait() // wait for the ReceiveTimeout message
