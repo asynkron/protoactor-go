@@ -9,7 +9,7 @@ type RootContext struct {
 
 var emptyRootContext = &RootContext{
 	senderMiddleware: nil,
-	headers:          emptyMessageHeader,
+	headers:          EmptyMessageHeader,
 }
 
 func EmptyRootContext() *RootContext {
