@@ -39,5 +39,5 @@ func TestPropagator(t *testing.T) {
 
 	root.StopFuture().Wait()
 
-	assert.Equal(t, 5, spawningCounter)
+	assert.Equal(t, spawningCounter, 5)
 }
