@@ -109,14 +109,14 @@ func Stack() Field {
 	var pc [16]uintptr
 
 	n := runtime.Callers(4, pc[:])
-	for _, pc := range pc[:n] {
-		fn := runtime.FuncForPC(pc)
-		if fn == nil {
-			continue
-		}
-		file, line = fn.FileLine(pc)
-		name = fn.Name()
-		if !strings.HasPrefix(name, "runtime.") {
+	callers := pc[:n]
+	frames := runtime.CallersFrames(callers)
+	for {
+		frame, more := frames.Next()
+		file = frame.File
+		line = frame.Line
+		name = frame.Function
+		if !strings.HasPrefix(name, "runtime.") || !more {
 			break
 		}
 	}
