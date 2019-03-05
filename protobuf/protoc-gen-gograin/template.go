@@ -18,10 +18,10 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+var rootContext = actor.EmptyRootContext
+
 {{ range $service := .Services}}	
 var x{{ $service.Name }}Factory func() {{ $service.Name }}
-
-var rootContext = actor.EmptyRootContext
 
 func {{ $service.Name }}Factory(factory func() {{ $service.Name }}) {
 	x{{ $service.Name }}Factory = factory
