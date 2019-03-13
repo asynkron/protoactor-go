@@ -100,8 +100,9 @@ type actorContext struct {
 
 func newActorContext(props *Props, parent *PID) *actorContext {
 	this := &actorContext{
-		parent: parent,
-		props:  props,
+		parent:     parent,
+		props:      props,
+		supervisor: props.supervisionStrategy,
 	}
 
 	this.incarnateActor()
