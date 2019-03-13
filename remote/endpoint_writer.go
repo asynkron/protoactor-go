@@ -6,16 +6,26 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/jpillora/backoff"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
 func endpointWriterProducer(address string, config *remoteConfig) actor.Producer {
 	return func() actor.Actor {
-		return &endpointWriter{
-			address: address,
-			config:  config,
+		epw := &endpointWriter{
+			address:  address,
+			config:   config,
+			behavior: actor.NewBehavior(),
+			backoff: backoff.Backoff{
+				Factor: 2,
+				Jitter: true,
+				Min:    100 * time.Millisecond,
+				Max:    10 * time.Second,
+			},
 		}
+		epw.behavior.Become(epw.Connecting)
+		return epw
 	}
 }
 
@@ -25,20 +35,11 @@ type endpointWriter struct {
 	conn                *grpc.ClientConn
 	stream              Remoting_ReceiveClient
 	defaultSerializerId int32
+	behavior            actor.Behavior
+	backoff             backoff.Backoff
 }
 
-func (state *endpointWriter) initialize() {
-	err := state.initializeInternal()
-	if err != nil {
-		plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
-		// Wait 2 seconds to restart and retry
-		// Replace with Exponential Backoff
-		time.Sleep(2 * time.Second)
-		panic(err)
-	}
-}
-
-func (state *endpointWriter) initializeInternal() error {
+func (state *endpointWriter) initialize() error {
 	plog.Info("Started EndpointWriter", log.String("address", state.address))
 	plog.Info("EndpointWriter connecting", log.String("address", state.address))
 	conn, err := grpc.Dial(state.address, state.config.dialOptions...)
@@ -91,13 +92,6 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	var targetID int32
 	var serializerID int32
 	for i, tmp := range msg {
-
-		switch unwrapped := tmp.(type) {
-		case *EndpointTerminatedEvent, EndpointTerminatedEvent:
-			plog.Debug("Handling array wrapped terminate event", log.String("address", state.address), log.Object("msg", unwrapped))
-			ctx.Stop(ctx.Self())
-			return
-		}
 		rd := tmp.(*remoteDeliver)
 
 		if rd.serializerID == -1 {
@@ -155,15 +149,40 @@ func addToLookup(m map[string]int32, name string, a []string) (int32, []string) 
 }
 
 func (state *endpointWriter) Receive(ctx actor.Context) {
+	switch ctx.Message().(type) {
+	case *EndpointTerminatedEvent:
+		ctx.Stop(ctx.Self())
+	default:
+		state.behavior.Receive(ctx)
+	}
+}
+
+func (state *endpointWriter) Connecting(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started:
-		state.initialize()
+	case *actor.Started, *actor.ReceiveTimeout, []interface{}:
+		err := state.initialize()
+		if err != nil {
+			d := state.backoff.Duration()
+			plog.Error("EndpointWriter failed to connect", log.String("backoff", d.String()), log.String("address", state.address), log.TypeOf("type", msg), log.Error(err))
+			ctx.SetReceiveTimeout(d)
+		} else {
+			state.backoff.Reset()
+			state.behavior.Become(state.Connected)
+			state.behavior.Receive(ctx)
+		}
+	case actor.SystemMessage, actor.AutoReceiveMessage:
+		// ignore
+	default:
+		plog.Error("EndpointWriter received unknown message", log.String("address", state.address), log.TypeOf("type", msg), log.Message(msg))
+	}
+}
+
+func (state *endpointWriter) Connected(ctx actor.Context) {
+	switch msg := ctx.Message().(type) {
 	case *actor.Stopped:
 		state.conn.Close()
 	case *actor.Restarting:
 		state.conn.Close()
-	case *EndpointTerminatedEvent:
-		ctx.Stop(ctx.Self())
 	case []interface{}:
 		state.sendEnvelopes(msg, ctx)
 	case actor.SystemMessage, actor.AutoReceiveMessage:

@@ -4,6 +4,7 @@ import (
 	"runtime"
 	"sync/atomic"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/internal/queue/goring"
 	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -21,6 +22,7 @@ const (
 
 type endpointWriterMailbox struct {
 	userMailbox     *goring.Queue
+	priorityMailbox *goring.Queue
 	systemMailbox   *mpsc.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
@@ -31,8 +33,13 @@ type endpointWriterMailbox struct {
 }
 
 func (m *endpointWriterMailbox) PostUserMessage(message interface{}) {
-	// batching mailbox only use the message part
-	m.userMailbox.Push(message)
+	switch message.(type) {
+	case *EndpointTerminatedEvent, *actor.ReceiveTimeout:
+		m.priorityMailbox.Push(message)
+	default:
+		// batching mailbox only use the message part
+		m.userMailbox.Push(message)
+	}
 	m.schedule()
 }
 
@@ -104,7 +111,10 @@ func (m *endpointWriterMailbox) run() {
 		}
 
 		var ok bool
-		if msg, ok = m.userMailbox.PopMany(int64(m.batchSize)); ok {
+
+		if msg, ok = m.priorityMailbox.Pop(); ok {
+			m.invoker.InvokeUserMessage(msg)
+		} else if msg, ok = m.userMailbox.PopMany(int64(m.batchSize)); ok {
 			m.invoker.InvokeUserMessage(msg)
 		} else {
 			return
@@ -117,10 +127,12 @@ func (m *endpointWriterMailbox) run() {
 func endpointWriterMailboxProducer(batchSize, initialSize int) mailbox.Producer {
 	return func() mailbox.Mailbox {
 		userMailbox := goring.New(int64(initialSize))
+		priorityMailbox := goring.New(100)
 		systemMailbox := mpsc.New()
 		return &endpointWriterMailbox{
 			userMailbox:     userMailbox,
 			systemMailbox:   systemMailbox,
+			priorityMailbox: priorityMailbox,
 			hasMoreMessages: mailboxHasNoMessages,
 			schedulerStatus: mailboxIdle,
 			batchSize:       batchSize,
