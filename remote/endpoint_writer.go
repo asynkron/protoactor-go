@@ -27,7 +27,17 @@ type endpointWriter struct {
 	defaultSerializerId int32
 }
 
-func (state *endpointWriter) initialize() {
+func (state *endpointWriter) initialize() bool {
+
+	if !state.config.connectionDecider(state.address) {
+		plog.Info("EndpointWriter not connecting based on connection decider", log.String("address", state.address))
+		terminated := &EndpointTerminatedEvent{
+			Address: state.address,
+		}
+		eventstream.Publish(terminated)
+		return false
+	}
+
 	err := state.initializeInternal()
 	if err != nil {
 		plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
@@ -36,6 +46,8 @@ func (state *endpointWriter) initialize() {
 		time.Sleep(2 * time.Second)
 		panic(err)
 	}
+
+	return true
 }
 
 func (state *endpointWriter) initializeInternal() error {
@@ -157,15 +169,23 @@ func addToLookup(m map[string]int32, name string, a []string) (int32, []string) 
 func (state *endpointWriter) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
-		state.initialize()
+		if !state.initialize() {
+			ctx.Self().Stop()
+		}
 	case *actor.Stopped:
-		state.conn.Close()
+		if state.conn != nil {
+			state.conn.Close()
+		}
 	case *actor.Restarting:
-		state.conn.Close()
+		if state.conn != nil {
+			state.conn.Close()
+		}
 	case *EndpointTerminatedEvent:
 		ctx.Self().Stop()
 	case []interface{}:
-		state.sendEnvelopes(msg, ctx)
+		if state.stream != nil {
+			state.sendEnvelopes(msg, ctx)
+		}
 	case actor.SystemMessage, actor.AutoReceiveMessage:
 		// ignore
 	default:

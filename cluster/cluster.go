@@ -122,7 +122,23 @@ func GetMemberPIDs(kind string) actor.PIDSet {
 	return pids
 }
 
-// RemoveCache at PidCache
+// GetMemberAddresses returns the list of addresses of all currently known cluster members.
+func GetMemberAddresses() []string {
+	addresses := []string{}
+	if memberList == nil {
+		return addresses
+	}
+
+	memberList.mutex.RLock()
+	defer memberList.mutex.RUnlock()
+
+	for _, value := range memberList.members {
+		addresses = append(addresses, value.Address())
+	}
+	return addresses
+}
+
+//RemoveCache at PidCache
 func RemoveCache(name string) {
 	pidCache.removeCacheByName(name)
 }

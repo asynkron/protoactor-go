@@ -12,6 +12,7 @@ func defaultRemoteConfig() *remoteConfig {
 		endpointManagerBatchSize: 1000,
 		endpointWriterQueueSize:  1000000,
 		endpointManagerQueueSize: 1000000,
+		connectionDecider:        func(string) bool { return true },
 	}
 }
 
@@ -57,6 +58,12 @@ func WithCallOptions(options ...grpc.CallOption) RemotingOption {
 	}
 }
 
+func WithConnectionDecider(decider func(string) bool) RemotingOption {
+	return func(config *remoteConfig) {
+		config.connectionDecider = decider
+	}
+}
+
 type remoteConfig struct {
 	serverOptions            []grpc.ServerOption
 	callOptions              []grpc.CallOption
@@ -65,4 +72,5 @@ type remoteConfig struct {
 	endpointWriterQueueSize  int
 	endpointManagerBatchSize int
 	endpointManagerQueueSize int
+	connectionDecider        func(string) bool
 }
