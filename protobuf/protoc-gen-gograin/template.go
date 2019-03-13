@@ -1,56 +1,63 @@
 package main
 
-const code = `
+const code = `{{ if .Services }}
 package {{.PackageName}}
 
+import (
+	"errors"
+	"fmt"
+	"log"
+	"math"
+	"time"
 
-import errors "errors"
-import log "log"
-import actor "github.com/AsynkronIT/protoactor-go/actor"
-import remote "github.com/AsynkronIT/protoactor-go/remote"
-import cluster "github.com/AsynkronIT/protoactor-go/cluster"
-
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
+	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/gogo/protobuf/proto"
+)
 
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
 var rootContext = actor.EmptyRootContext
-
 {{ range $service := .Services}}	
 var x{{ $service.Name }}Factory func() {{ $service.Name }}
 
+// {{ $service.Name }}Factory produces a {{ $service.Name }}
 func {{ $service.Name }}Factory(factory func() {{ $service.Name }}) {
 	x{{ $service.Name }}Factory = factory
 }
 
+// Get{{ $service.Name }}Grain instantiates a new {{ $service.Name }}Grain with given ID
 func Get{{ $service.Name }}Grain(id string) *{{ $service.Name }}Grain {
 	return &{{ $service.Name }}Grain{ID: id}
 }
 
+// {{ $service.Name }} interfaces the services available to the {{ $service.Name }}
 type {{ $service.Name }} interface {
 	Init(id string)
 	{{ range $method := $service.Methods}}	
 	{{ $method.Name }}(*{{ $method.Input.Name }}, cluster.GrainContext) (*{{ $method.Output.Name }}, error)
 	{{ end }}	
 }
+
+// {{ $service.Name }}Grain holds the base data for the {{ $service.Name }}Grain
 type {{ $service.Name }}Grain struct {
 	ID string
 }
-
 {{ range $method := $service.Methods}}	
+// {{ $method.Name }} requests the execution on to the cluster using default options
 func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }}) (*{{ $method.Output.Name }}, error) {
 	return g.{{ $method.Name }}WithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
+// {{ $method.Name }}WithOpts requests the execution on to the cluster
 func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Input.Name }}, opts *cluster.GrainCallOptions) (*{{ $method.Output.Name }}, error) {
 	fun := func() (*{{ $method.Output.Name }}, error) {
 			pid, statusCode := cluster.Get(g.ID, "{{ $service.Name }}")
 			if statusCode != remote.ResponseStatusCodeOK {
-				return nil, fmt.Errorf("Get PID failed with StatusCode: %v", statusCode)
+				return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 			}
 			bytes, err := proto.Marshal(r)
 			if err != nil {
@@ -72,7 +79,7 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Inpu
 			case *cluster.GrainErrorResponse:
 				return nil, errors.New(msg.Err)
 			default:
-				return nil, errors.New("Unknown response")
+				return nil, errors.New("unknown response")
 			}
 		}
 	
@@ -82,19 +89,19 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Inpu
 		res, err = fun()
 		if err == nil {
 			return res, nil
-		} else {
-			if opts.RetryAction != nil {
+		} else if opts.RetryAction != nil {
 				opts.RetryAction(i)
-			}
 		}
 	}
 	return nil, err
 }
 
+// {{ $method.Name }}Chan allows to use a channel to execute the method using default options
 func (g *{{ $service.Name }}Grain) {{ $method.Name }}Chan(r *{{ $method.Input.Name }}) (<-chan *{{ $method.Output.Name }}, <-chan error) {
 	return g.{{ $method.Name }}ChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
+// {{ $method.Name }}ChanWithOpts allows to use a channel to execute the method
 func (g *{{ $service.Name }}Grain) {{ $method.Name }}ChanWithOpts(r *{{ $method.Input.Name }}, opts *cluster.GrainCallOptions) (<-chan *{{ $method.Output.Name }}, <-chan error) {
 	c := make(chan *{{ $method.Output.Name }})
 	e := make(chan error)
@@ -112,16 +119,21 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}ChanWithOpts(r *{{ $method.
 }
 {{ end }}	
 
+// {{ $service.Name }}Actor represents the actor structure
 type {{ $service.Name }}Actor struct {
 	inner {{ $service.Name }}
 }
 
+// Receive ensures the lifecycle of the actor for the received message
 func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		a.inner = x{{ $service.Name }}Factory()
 		id := ctx.Self().Id
 		a.inner.Init(id[7:]) // skip "remote$"
+		ctx.SetReceiveTimeout(20 * time.Second)
+	case *actor.ReceiveTimeout:
+		ctx.Self().Poison()
 
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
@@ -137,8 +149,8 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 			}
 			r0, err := a.inner.{{ $method.Name }}(req, ctx)
 			if err == nil {
-				bytes, err := proto.Marshal(r0)
-				if err != nil {
+				bytes, errMarshal := proto.Marshal(r0)
+				if errMarshal != nil {
 					log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
 				}
 				resp := &cluster.GrainResponse{MessageData: bytes}
@@ -156,37 +168,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 
 {{ end }}	
 
-
-// Why has this been removed?
-// This should only be done on servers of the below Kinds
-// Clients should not be forced to also be servers
-
-// func init() {
-//	{{ range $service := .Services}}
-//	remote.Register("{{ $service.Name }}", actor.PropsFromProducer(func() actor.Actor {
-//		return &{{ $service.Name }}Actor {}
-//		})		)
-//	{{ end }}
-// }
-
-
-{{ range $service := .Services}}
-// type {{ $service.PascalName }} struct {
-//	cluster.Grain
-// }
-{{ range $method := $service.Methods}}
-// func (*{{ $service.PascalName }}) {{ $method.Name }}(r *{{ $method.Input.Name }}, cluster.GrainContext) (*{{ $method.Output.Name }}, error) {
-// 	return &{{ $method.Output.Name }}{}, nil
-// }
-{{ end }}
-{{ end }}
-
-// func init() {
-// 	// apply DI and setup logic
-{{ range $service := .Services}}
-// 	{{ $service.Name }}Factory(func() {{ $service.Name }} { return &{{ $service.PascalName }}{} })
-{{ end }}
-// }
+{{ end}}
 
 
 
