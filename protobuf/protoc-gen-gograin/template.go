@@ -151,7 +151,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 			if err == nil {
 				bytes, errMarshal := proto.Marshal(r0)
 				if errMarshal != nil {
-					log.Fatalf("[GRAIN] proto.Marshal failed %v", err)
+					log.Fatalf("[GRAIN] proto.Marshal failed %v", errMarshal)
 				}
 				resp := &cluster.GrainResponse{MessageData: bytes}
 				ctx.Respond(resp)
