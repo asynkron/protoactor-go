@@ -36,7 +36,7 @@ type ProtoMethod struct {
 func ProtoAst(file *generator.FileDescriptor) *ProtoFile {
 
 	pkg := &ProtoFile{}
-	pkg.PackageName = file.PackageName()
+	pkg.PackageName = file.GoPackageName()
 	messages := make(map[string]*ProtoMessage)
 	for _, message := range file.GetMessageType() {
 		m := &ProtoMessage{}

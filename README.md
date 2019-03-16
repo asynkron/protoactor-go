@@ -95,6 +95,7 @@ go get github.com/Workiva/go-datastructures/queue
 go get github.com/emirpasic/gods/stacks/linkedliststack
 go get github.com/orcaman/concurrent-map
 go get github.com/AsynkronIT/gonet
+go get github.com/AsynkronIT/goring
 go get github.com/hashicorp/consul/api
 go get github.com/AsynkronIT/goconsole
 go get github.com/emirpasic/gods/sets/hashset

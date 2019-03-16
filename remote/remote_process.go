@@ -52,7 +52,3 @@ func (ref *remoteProcess) SendSystemMessage(pid *actor.PID, message actor.System
 		sendRemoteMessage(pid, message, nil)
 	}
 }
-
-func (ref *remoteProcess) Stop(pid *actor.PID) {
-	ref.SendSystemMessage(pid, &actor.Stop{})
-}

@@ -4,5 +4,5 @@ package actor
 type Process interface {
 	SendUserMessage(pid *PID, message interface{}, sender *PID)
 	SendSystemMessage(pid *PID, message SystemMessage)
-	Stop(pid *PID)
+	// Stop(pid *PID)
 }

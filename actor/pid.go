@@ -47,7 +47,7 @@ func (pid *PID) StopFuture() *Future {
 //Stop the given PID
 func (pid *PID) Stop() {
 	ref, _ := ProcessRegistry.Get(pid)
-	ref.Stop(pid)
+	ref.SendSystemMessage(pid, stopMessage)
 }
 
 func pidFromKey(key string, p *PID) {

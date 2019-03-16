@@ -39,9 +39,7 @@ func (m *mockProcess) SendUserMessage(pid *actor.PID, message interface{}, sende
 func (m *mockProcess) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
 	m.Called(pid, message)
 }
-func (m *mockProcess) Stop(pid *actor.PID) {
-	m.Called(pid)
-}
+
 type mockContext struct {
 	mock.Mock
 }

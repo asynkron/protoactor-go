@@ -21,7 +21,3 @@ func (ref *localProcess) SendUserMessage(pid *PID, message interface{}, sender *
 func (ref *localProcess) SendSystemMessage(pid *PID, message SystemMessage) {
 	ref.mailbox.PostSystemMessage(message)
 }
-
-func (ref *localProcess) Stop(pid *PID) {
-	ref.SendSystemMessage(pid, stopMessage)
-}

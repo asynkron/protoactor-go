@@ -26,7 +26,3 @@ func (*deadLetterProcess) SendSystemMessage(pid *PID, message SystemMessage) {
 		Message: message,
 	})
 }
-
-func (ref *deadLetterProcess) Stop(pid *PID) {
-	ref.SendSystemMessage(pid, stopMessage)
-}

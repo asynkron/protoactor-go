@@ -20,7 +20,3 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message actor.SystemMessag
 	r, _ := actor.ProcessRegistry.Get(ref.router)
 	r.SendSystemMessage(pid, message)
 }
-
-func (ref *process) Stop(pid *actor.PID) {
-	ref.SendSystemMessage(pid, &actor.Stop{})
-}
