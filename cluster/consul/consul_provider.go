@@ -17,6 +17,7 @@ type ConsulProvider struct {
 	clusterName           string
 	address               string
 	port                  int
+	clusterHealth         error
 	knownKinds            []string
 	index                 uint64 // consul blocking index
 	client                *api.Client
@@ -140,6 +141,7 @@ func (p *ConsulProvider) blockingUpdateTTL() {
 	if err != nil {
 		log.Println("[CLUSTER] [CONSUL] Failure refreshing service TTL")
 	}
+	p.clusterHealth = err
 }
 
 func (p *ConsulProvider) registerService() error {
@@ -258,4 +260,9 @@ func (p *ConsulProvider) MonitorMemberStatusChanges() {
 			p.notifyStatuses()
 		}
 	}()
+}
+
+// GetHealthStatus returns an error if the cluster health status has problems
+func (p *ConsulProvider) GetHealthStatus() error {
+	return p.clusterHealth
 }
