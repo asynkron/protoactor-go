@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/cluster"
@@ -28,6 +29,9 @@ type ConsulProvider struct {
 	statusValue           cluster.MemberStatusValue
 	statusValueSerializer cluster.MemberStatusValueSerializer
 }
+
+// HealthStatus mutex to avoid concurrent writes
+var healthStatusMutes = &sync.Mutex{}
 
 func New() (*ConsulProvider, error) {
 	return NewWithConfig(&api.Config{})
@@ -141,7 +145,10 @@ func (p *ConsulProvider) blockingUpdateTTL() {
 	if err != nil {
 		log.Println("[CLUSTER] [CONSUL] Failure refreshing service TTL")
 	}
+
+	healthStatusMutes.Lock()
 	p.clusterHealth = err
+	healthStatusMutes.Unlock()
 }
 
 func (p *ConsulProvider) registerService() error {
