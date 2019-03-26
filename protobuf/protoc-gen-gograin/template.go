@@ -54,6 +54,7 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }
 
 // {{ $method.Name }}WithOpts requests the execution on to the cluster
 func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Input.Name }}, opts *cluster.GrainCallOptions) (*{{ $method.Output.Name }}, error) {
+	result := &{{ $method.Output.Name }}{}
 	fun := func() (*{{ $method.Output.Name }}, error) {
 			pid, statusCode := cluster.Get(g.ID, "{{ $service.Name }}")
 			if statusCode != remote.ResponseStatusCodeOK {
@@ -70,16 +71,15 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Inpu
 			}
 			switch msg := response.(type) {
 			case *cluster.GrainResponse:
-				result := &{{ $method.Output.Name }}{}
 				err = proto.Unmarshal(msg.MessageData, result)
 				if err != nil {
-					return nil, err
+					return result, err
 				}
 				return result, nil
 			case *cluster.GrainErrorResponse:
-				return nil, errors.New(msg.Err)
+				return result, errors.New(msg.Err)
 			default:
-				return nil, errors.New("unknown response")
+				return result, errors.New("unknown response")
 			}
 		}
 	
@@ -87,13 +87,13 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Inpu
 	var err error
 	for i := 0; i < opts.RetryCount; i++ {
 		res, err = fun()
-		if err == nil {
+		if err == nil || err.Error() != "future: timeout" {
 			return res, nil
 		} else if opts.RetryAction != nil {
 				opts.RetryAction(i)
 		}
 	}
-	return nil, err
+	return result, err
 }
 
 // {{ $method.Name }}Chan allows to use a channel to execute the method using default options
@@ -169,9 +169,5 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 {{ end }}	
 
 {{ end}}
-
-
-
-
 
 `
