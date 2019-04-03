@@ -88,7 +88,7 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Inpu
 	for i := 0; i < opts.RetryCount; i++ {
 		res, err = fun()
 		if err == nil || err.Error() != "future: timeout" {
-			return res, nil
+			return res, err
 		} else if opts.RetryAction != nil {
 				opts.RetryAction(i)
 		}
