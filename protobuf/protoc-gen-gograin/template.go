@@ -54,7 +54,6 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }
 
 // {{ $method.Name }}WithOpts requests the execution on to the cluster
 func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Input.Name }}, opts *cluster.GrainCallOptions) (*{{ $method.Output.Name }}, error) {
-	result := &{{ $method.Output.Name }}{}
 	fun := func() (*{{ $method.Output.Name }}, error) {
 			pid, statusCode := cluster.Get(g.ID, "{{ $service.Name }}")
 			if statusCode != remote.ResponseStatusCodeOK {
@@ -71,15 +70,16 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Inpu
 			}
 			switch msg := response.(type) {
 			case *cluster.GrainResponse:
+				result := &{{ $method.Output.Name }}{}
 				err = proto.Unmarshal(msg.MessageData, result)
 				if err != nil {
-					return result, err
+					return nil, err
 				}
 				return result, nil
 			case *cluster.GrainErrorResponse:
-				return result, errors.New(msg.Err)
+				return nil, errors.New(msg.Err)
 			default:
-				return result, errors.New("unknown response")
+				return nil, errors.New("unknown response")
 			}
 		}
 	
@@ -93,7 +93,7 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Inpu
 				opts.RetryAction(i)
 		}
 	}
-	return result, err
+	return nil, err
 }
 
 // {{ $method.Name }}Chan allows to use a channel to execute the method using default options
