@@ -87,8 +87,8 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Inpu
 	var err error
 	for i := 0; i < opts.RetryCount; i++ {
 		res, err = fun()
-		if err == nil {
-			return res, nil
+		if err == nil || err.Error() != "future: timeout" {
+			return res, err
 		} else if opts.RetryAction != nil {
 				opts.RetryAction(i)
 		}
@@ -169,9 +169,5 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 {{ end }}	
 
 {{ end}}
-
-
-
-
 
 `
