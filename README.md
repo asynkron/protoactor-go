@@ -1,3 +1,14 @@
+# _RisingStars Fork_ ⑂
+
+This is the RisingStars fork of the [protoactor-go](https://github.com/AsynkronIT/protoactor-go) library with some improvements/fixes that might not have made it into the upstream repository (yet). This includes:
+* Cluster reregistration upon failed TTL updates in Consul
+* Failed connections are not attempted to be reused (`WithConnectionDecider`)
+
+The `risingstars` branch should always be a couple of commits ahead of the `dev` branch and the `dev` branch should alwys be in sync with the "upstream" `dev` branch.
+
+---
+
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/AsynkronIT/protoactor-go)](https://goreportcard.com/report/github.com/AsynkronIT/protoactor-go) 
 [![GoDoc](https://godoc.org/github.com/AsynkronIT/protoactor-go?status.svg)](https://godoc.org/github.com/AsynkronIT/protoactor-go)
 [![Build Status](https://travis-ci.org/AsynkronIT/protoactor-go.svg?branch=dev)](https://travis-ci.org/AsynkronIT/protoactor-go)
