@@ -1,6 +1,7 @@
 package log
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -34,7 +35,7 @@ func (l *ioLogger) listenEvent() {
 }
 
 // Cheap integer to fixed-width decimal ASCII.  Give a negative width to avoid zero-padding.
-func itoa(buf *[]byte, i int, wid int) {
+func itoa(buf bytes.Buffer, i int, wid int) {
 	// Assemble decimal in reverse order.
 	var b [20]byte
 	bp := len(b) - 1
@@ -47,58 +48,58 @@ func itoa(buf *[]byte, i int, wid int) {
 	}
 	// i < 10
 	b[bp] = byte('0' + i)
-	*buf = append(*buf, b[bp:]...)
+	buf.Write(b[bp:])
 }
 
-func (l *ioLogger) formatHeader(buf *[]byte, prefix string, t time.Time) {
+func (l *ioLogger) formatHeader(buf bytes.Buffer, prefix string, t time.Time) {
 	t = t.UTC()
 	// Y/M/D
 	year, month, day := t.Date()
 	itoa(buf, year, 4)
-	*buf = append(*buf, '/')
+	buf.WriteByte('/')
 	itoa(buf, int(month), 2)
-	*buf = append(*buf, '/')
+	buf.WriteByte('/')
 	itoa(buf, day, 2)
-	*buf = append(*buf, ' ')
+	buf.WriteByte(' ')
 
 	// H/M/S
 	hour, min, sec := t.Clock()
 	itoa(buf, hour, 2)
-	*buf = append(*buf, ':')
+	buf.WriteByte(':')
 	itoa(buf, min, 2)
-	*buf = append(*buf, ':')
+	buf.WriteByte(':')
 	itoa(buf, sec, 2)
 
 	// no microseconds
 	// *buf = append(*buf, '.')
 	// itoa(buf, t.Nanosecond()/1e3, 6)
 
-	*buf = append(*buf, ' ')
+	buf.WriteByte(' ')
 	if len(prefix) > 0 {
-		*buf = append(*buf, prefix...)
-		*buf = append(*buf, ' ')
+		buf.WriteString(prefix)
+		buf.WriteByte(' ')
 	}
 }
 
 func (l *ioLogger) writeEvent(e Event) {
-	l.buf = l.buf[:0]
-	l.formatHeader(&l.buf, e.Prefix, e.Time)
-	l.out.Write(l.buf)
+	var buf = bytes.Buffer{}
+	l.formatHeader(buf, e.Prefix, e.Time)
 	if len(e.Message) > 0 {
-		l.out.Write([]byte(e.Message))
-		l.out.Write([]byte{' '})
+		buf.WriteString(e.Message)
+		buf.WriteByte(' ')
 	}
 
-	wr := ioEncoder{l.out}
+	wr := ioEncoder{&buf}
 	for _, f := range e.Context {
 		f.Encode(wr)
-		l.out.Write([]byte{' '})
+		buf.WriteByte(' ')
 	}
 	for _, f := range e.Fields {
 		f.Encode(wr)
-		l.out.Write([]byte{' '})
+		buf.WriteByte(' ')
 	}
-	wr.Write([]byte{'\n'})
+	buf.WriteByte('\n')
+	l.out.Write(buf.Bytes())
 }
 
 type ioEncoder struct {
