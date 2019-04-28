@@ -12,7 +12,11 @@ func TestNormalMessageGivesEmptyMessageHeaders(t *testing.T) {
 		}
 	})
 	a := rootContext.Spawn(props)
-	defer a.GracefulStop()
+
+	defer func() {
+		rootContext.StopFuture(a).Wait()
+	}()
+
 	f := rootContext.RequestFuture(a, "hello", testTimeout)
 	res := assertFutureSuccess(f, t).(int)
 	assert.Equal(t, 0, res)

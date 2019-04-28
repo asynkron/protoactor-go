@@ -22,7 +22,7 @@ func TestStopFuture(t *testing.T) {
 		props := PropsFromProducer(func() Actor { return &ShortLivingActor{} })
 		a, _ := rootContext.SpawnNamed(props, ID)
 
-		fut := a.StopFuture()
+		fut := rootContext.StopFuture(a)
 
 		res, errR := fut.Result()
 		if errR != nil {

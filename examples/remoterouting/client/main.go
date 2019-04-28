@@ -49,7 +49,7 @@ func main() {
 
 	wgStop.Wait()
 
-	pid.Stop()
+	rootContext.Stop(pid)
 
 	fmt.Printf("elapsed: %v\n", time.Since(t))
 

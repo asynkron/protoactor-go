@@ -20,7 +20,7 @@ func spawnActivatorActor() {
 }
 
 func stopActivatorActor() {
-	activatorPid.GracefulStop()
+	rootContext.StopFuture(activatorPid).Wait()
 }
 
 // Register a known actor props by name

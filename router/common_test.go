@@ -165,6 +165,28 @@ func (m *mockContext) SpawnNamed(p *actor.Props, name string) (*actor.PID, error
 	return args.Get(0).(*actor.PID), args.Get(1).(error)
 }
 
+//
+// Interface: StopperContext
+//
+
+func (m *mockContext) Stop(pid *actor.PID) {
+	m.Called(pid)
+}
+
+func (m *mockContext) StopFuture(pid *actor.PID) *actor.Future {
+	args := m.Called(pid)
+	return args.Get(0).(*actor.Future)
+}
+
+func (m *mockContext) Poison(pid *actor.PID) {
+	m.Called(pid)
+}
+
+func (m *mockContext) PoisonFuture(pid *actor.PID) *actor.Future {
+	args := m.Called(pid)
+	return args.Get(0).(*actor.Future)
+}
+
 // mockProcess
 type mockProcess struct {
 	mock.Mock
