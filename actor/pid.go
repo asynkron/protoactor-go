@@ -49,46 +49,6 @@ func (pid *PID) sendSystemMessage(message interface{}) {
 	pid.ref().SendSystemMessage(pid, message)
 }
 
-// StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
-func (pid *PID) StopFuture() *Future {
-	future := NewFuture(10 * time.Second)
-
-	pid.sendSystemMessage(&Watch{Watcher: future.pid})
-	pid.Stop()
-
-	return future
-}
-
-// GracefulStop will wait actor to stop immediately regardless of existing user messages in mailbox
-func (pid *PID) GracefulStop() {
-	pid.StopFuture().Wait()
-}
-
-// Stop will stop actor immediately regardless of existing user messages in mailbox.
-func (pid *PID) Stop() {
-	pid.ref().Stop(pid)
-}
-
-// PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
-func (pid *PID) PoisonFuture() *Future {
-	future := NewFuture(10 * time.Second)
-
-	pid.sendSystemMessage(&Watch{Watcher: future.pid})
-	pid.Poison()
-
-	return future
-}
-
-// GracefulPoison will tell and wait actor to stop after processing current user messages in mailbox.
-func (pid *PID) GracefulPoison() {
-	pid.PoisonFuture().Wait()
-}
-
-// Poison will tell actor to stop after processing current user messages in mailbox.
-func (pid *PID) Poison() {
-	pid.sendUserMessage(&PoisonPill{})
-}
-
 func (pid *PID) key() string {
 	if pid.Address == ProcessRegistry.Address {
 		return pid.Id
@@ -146,4 +106,56 @@ func (pid *PID) Request(message interface{}, respondTo *PID) {
 func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Future {
 	ctx := EmptyRootContext
 	return ctx.RequestFuture(pid, message, timeout)
+}
+
+// StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
+//
+// Deprecated: Use Context.StopFuture instead
+func (pid *PID) StopFuture() *Future {
+	future := NewFuture(10 * time.Second)
+
+	pid.sendSystemMessage(&Watch{Watcher: future.pid})
+	pid.Stop()
+
+	return future
+}
+
+// GracefulStop will stop actor immediately regardless of existing user messages in mailbox.
+//
+// Deprecated: Use Context.StopFuture(pid).Wait() instead
+func (pid *PID) GracefulStop() {
+	pid.StopFuture().Wait()
+}
+
+// Stop will stop actor immediately regardless of existing user messages in mailbox.
+//
+// Deprecated: Use Context.Stop instead
+func (pid *PID) Stop() {
+	pid.ref().Stop(pid)
+}
+
+// PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
+//
+// Deprecated: Use Context.PoisonFuture instead
+func (pid *PID) PoisonFuture() *Future {
+	future := NewFuture(10 * time.Second)
+
+	pid.sendSystemMessage(&Watch{Watcher: future.pid})
+	pid.Poison()
+
+	return future
+}
+
+// GracefulPoison will tell and wait actor to stop after processing current user messages in mailbox.
+//
+// Deprecated: Use Context.PoisonFuture(pid).Wait() instead
+func (pid *PID) GracefulPoison() {
+	pid.PoisonFuture().Wait()
+}
+
+// Poison will tell actor to stop after processing current user messages in mailbox.
+//
+// Deprecated: Use Context.Poison instead
+func (pid *PID) Poison() {
+	pid.sendUserMessage(&PoisonPill{})
 }

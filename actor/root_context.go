@@ -102,17 +102,12 @@ func (rc *RootContext) RequestFuture(pid *PID, message interface{}, timeout time
 
 func (rc *RootContext) sendUserMessage(pid *PID, message interface{}) {
 	if rc.senderMiddleware != nil {
-		if envelope, ok := message.(*MessageEnvelope); ok {
-			// Request based middleware
-			rc.senderMiddleware(rc, pid, envelope)
-		} else {
-			// tell based middleware
-			rc.senderMiddleware(rc, pid, &MessageEnvelope{nil, message, nil})
-		}
-		return
+		// Request based middleware
+		rc.senderMiddleware(rc, pid, WrapEnvelope(message))
+	} else {
+		// tell based middleware
+		pid.sendUserMessage(message)
 	}
-	// Default path
-	pid.sendUserMessage(message)
 }
 
 //
@@ -148,4 +143,38 @@ func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
 		parent = guardians.getGuardianPid(props.guardianStrategy)
 	}
 	return props.spawn(name, parent)
+}
+
+//
+// Interface: StopperContext
+//
+
+// Stop will stop actor immediately regardless of existing user messages in mailbox.
+func (rc *RootContext) Stop(pid *PID) {
+	pid.ref().Stop(pid)
+}
+
+// StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
+func (rc *RootContext) StopFuture(pid *PID) *Future {
+	future := NewFuture(10 * time.Second)
+
+	pid.sendSystemMessage(&Watch{Watcher: future.pid})
+	rc.Stop(pid)
+
+	return future
+}
+
+// Poison will tell actor to stop after processing current user messages in mailbox.
+func (rc *RootContext) Poison(pid *PID) {
+	pid.sendUserMessage(&PoisonPill{})
+}
+
+// PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
+func (rc *RootContext) PoisonFuture(pid *PID) *Future {
+	future := NewFuture(10 * time.Second)
+
+	pid.sendSystemMessage(&Watch{Watcher: future.pid})
+	rc.Poison(pid)
+
+	return future
 }

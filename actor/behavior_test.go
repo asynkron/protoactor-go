@@ -38,7 +38,7 @@ func (EchoSetBehaviorActor) other(context Context) {
 
 func TestActorCanSetBehavior(t *testing.T) {
 	pid := rootContext.Spawn(PropsFromProducer(NewEchoBehaviorActor))
-	defer pid.Stop()
+	defer rootContext.Stop(pid)
 	rootContext.Send(pid, BehaviorMessage{})
 	fut := rootContext.RequestFuture(pid, EchoRequest{}, testTimeout)
 	assertFutureSuccess(fut, t)

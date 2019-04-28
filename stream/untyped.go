@@ -16,14 +16,13 @@ func (s *UntypedStream) PID() *actor.PID {
 }
 
 func (s *UntypedStream) Close() {
-	s.pid.Stop()
+	actor.EmptyRootContext.Stop(s.pid)
 	close(s.c)
 }
 
 func NewUntypedStream() *UntypedStream {
 	c := make(chan interface{})
 
-	rootContext := actor.EmptyRootContext
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
 		case actor.AutoReceiveMessage, actor.SystemMessage:
@@ -32,7 +31,7 @@ func NewUntypedStream() *UntypedStream {
 			c <- msg
 		}
 	})
-	pid := rootContext.Spawn(props)
+	pid := actor.EmptyRootContext.Spawn(props)
 
 	return &UntypedStream{
 		c:   c,

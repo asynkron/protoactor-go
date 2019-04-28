@@ -79,7 +79,7 @@ func (state *endpointWatcher) connected(ctx actor.Context) {
 		// Clear watcher's map
 		state.watched = make(map[string]*actor.PIDSet)
 		state.behavior.Become(state.terminated)
-		ctx.Self().Stop()
+		ctx.Stop(ctx.Self())
 
 	case *remoteWatch:
 		// add watchee to watcher's map

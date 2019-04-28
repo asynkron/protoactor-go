@@ -95,7 +95,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		switch unwrapped := tmp.(type) {
 		case *EndpointTerminatedEvent, EndpointTerminatedEvent:
 			plog.Debug("Handling array wrapped terminate event", log.String("address", state.address), log.Object("msg", unwrapped))
-			ctx.Self().Stop()
+			ctx.Stop(ctx.Self())
 			return
 		}
 		rd := tmp.(*remoteDeliver)
@@ -163,7 +163,7 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 	case *actor.Restarting:
 		state.conn.Close()
 	case *EndpointTerminatedEvent:
-		ctx.Self().Stop()
+		ctx.Stop(ctx.Self())
 	case []interface{}:
 		state.sendEnvelopes(msg, ctx)
 	case actor.SystemMessage, actor.AutoReceiveMessage:

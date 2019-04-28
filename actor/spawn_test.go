@@ -39,7 +39,7 @@ func TestLookupById(t *testing.T) {
 	{
 		props := PropsFromProducer(func() Actor { return &GorgeousActor{Counter: Counter{value: 0}} })
 		pid, _ := rootContext.SpawnNamed(props, ID)
-		defer pid.Stop()
+		defer rootContext.Stop(pid)
 
 		result := rootContext.RequestFuture(pid, Increment{}, testTimeout)
 		value, err := result.Result()

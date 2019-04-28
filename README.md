@@ -138,7 +138,7 @@ func main() {
     if err != nil {
         panic(err)
     }
-    pid.Tell(Hello{Who: "Roger"})
+    context.Send(pid, Hello{Who: "Roger"})
     console.ReadLine()
 }
 ```
@@ -175,8 +175,8 @@ func main() {
     if err != nil {
         panic(err)
     }
-    pid.Tell(Hello{Who: "Roger"})
-    pid.Tell(Hello{Who: "Roger"})
+    context.Send(Hello{Who: "Roger"})
+    context.Send(Hello{Who: "Roger"})
     console.ReadLine()
 }
 ```
@@ -211,14 +211,14 @@ func main() {
     if err != nil {
         panic(err)
     }
-    actor.Tell(pid, Hello{Who: "Roger"})
+    context.Send(pid, Hello{Who: "Roger"})
 
     // why wait?
     // Stop is a system message and is not processed through the user message mailbox
     // thus, it will be handled _before_ any user message
     // we only do this to show the correct order of events in the console
     time.Sleep(1 * time.Second)
-    pid.Stop()
+    context.Stop(pid)
 
     console.ReadLine()
 }
@@ -241,7 +241,7 @@ func (state *ParentActor) Receive(context actor.Context) {
     case Hello:
         props := actor.PropsFromProducer(NewChildActor)
         child := context.Spawn(props)
-        child.Tell(msg)
+        context.Send(child, msg)
     }
 }
 
@@ -317,9 +317,9 @@ func (state *MyActor) Receive(context actor.Context) {
 func main() {
     remote.Start("localhost:8090")
 
-    rootCtx := actor.EmptyRootContext
+    context := actor.EmptyRootContext
     props := actor.PropsFromProducer(func() actor.Actor { return &MyActor{} })
-    pid, _ := rootCtx.Spawn(props)
+    pid, _ := context.Spawn(props)
     message := &messages.Echo{Message: "hej", Sender: pid}
 
     // this is to spawn remote actor we want to communicate with
@@ -328,7 +328,7 @@ func main() {
     // get spawned PID
     spawnedPID := spawnResponse.Pid
     for i := 0; i < 10; i++ {
-        rootCtx.Send(spawnedPID, message)
+        context.Send(spawnedPID, message)
     }
 
     console.ReadLine()
