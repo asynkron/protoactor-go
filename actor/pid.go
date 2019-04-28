@@ -108,7 +108,6 @@ func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Futur
 	return ctx.RequestFuture(pid, message, timeout)
 }
 
-/*
 // StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
 //
 // Deprecated: Use Context.StopFuture instead
@@ -158,4 +157,3 @@ func (pid *PID) GracefulPoison() {
 func (pid *PID) Poison() {
 	pid.sendUserMessage(&PoisonPill{})
 }
-*/
