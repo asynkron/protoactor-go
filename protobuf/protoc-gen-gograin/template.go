@@ -37,6 +37,7 @@ func Get{{ $service.Name }}Grain(id string) *{{ $service.Name }}Grain {
 // {{ $service.Name }} interfaces the services available to the {{ $service.Name }}
 type {{ $service.Name }} interface {
 	Init(id string)
+	Terminate()
 	{{ range $method := $service.Methods}}	
 	{{ $method.Name }}(*{{ $method.Input.Name }}, cluster.GrainContext) (*{{ $method.Output.Name }}, error)
 	{{ end }}	
@@ -122,6 +123,7 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}ChanWithOpts(r *{{ $method.
 // {{ $service.Name }}Actor represents the actor structure
 type {{ $service.Name }}Actor struct {
 	inner {{ $service.Name }}
+	Timeout *time.Duration
 }
 
 // Receive ensures the lifecycle of the actor for the received message
@@ -131,8 +133,11 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 		a.inner = x{{ $service.Name }}Factory()
 		id := ctx.Self().Id
 		a.inner.Init(id[7:]) // skip "remote$"
-		ctx.SetReceiveTimeout(20 * time.Second)
+		if a.Timeout != nil {
+			ctx.SetReceiveTimeout(*a.Timeout)
+		}
 	case *actor.ReceiveTimeout:
+		a.inner.Terminate()
 		ctx.Self().Poison()
 
 	case actor.AutoReceiveMessage: // pass
