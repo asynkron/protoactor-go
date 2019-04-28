@@ -32,8 +32,6 @@ func Example_synchronous() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	context := actor.EmptyRootContext()
-
 	// callee will wait for the PING message
 	callee := actor.EmptyRootContext().Spawn(actor.PropsFromFunc(func(c actor.Context) {
 		if msg, ok := c.Message().(string); ok {
@@ -58,8 +56,8 @@ func Example_synchronous() {
 	}))
 
 	wg.Wait()
-	context.StopFuture(callee).Wait()
-	context.StopFuture(caller).Wait()
+	actor.EmptyRootContext.StopFuture(callee).Wait()
+	actor.EmptyRootContext.StopFuture(caller).Wait()
 
 	// Output:
 	// PING
