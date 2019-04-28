@@ -120,6 +120,8 @@ func (pid *PID) StopFuture() *Future {
 	return future
 }
 
+// GracefulStop will stop actor immediately regardless of existing user messages in mailbox.
+//
 // Deprecated: Use Context.StopFuture(pid).Wait() instead
 func (pid *PID) GracefulStop() {
 	pid.StopFuture().Wait()
