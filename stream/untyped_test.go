@@ -10,7 +10,7 @@ import (
 func TestReceiveFromStream(t *testing.T) {
 	s := NewUntypedStream()
 	go func() {
-		rootContext := actor.EmptyRootContext()
+		rootContext := actor.EmptyRootContext
 		rootContext.Send(s.PID(), "hello")
 		rootContext.Send(s.PID(), "you")
 	}()

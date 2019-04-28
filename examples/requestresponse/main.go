@@ -18,7 +18,7 @@ func Receive(context actor.Context) {
 }
 
 func main() {
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 	props := actor.PropsFromFunc(Receive)
 	pid := rootContext.Spawn(props)
 	result, _ := rootContext.RequestFuture(pid, Hello{Who: "Roger"}, 30*time.Second).Result() // await result

@@ -2,8 +2,6 @@ package stream
 
 import "github.com/AsynkronIT/protoactor-go/actor"
 
-var rootContext = actor.EmptyRootContext()
-
 type UntypedStream struct {
 	c   chan interface{}
 	pid *actor.PID
@@ -18,7 +16,7 @@ func (s *UntypedStream) PID() *actor.PID {
 }
 
 func (s *UntypedStream) Close() {
-	rootContext.Stop(s.pid)
+	actor.EmptyRootContext.Stop(s.pid)
 	close(s.c)
 }
 
@@ -33,7 +31,7 @@ func NewUntypedStream() *UntypedStream {
 			c <- msg
 		}
 	})
-	pid := rootContext.Spawn(props)
+	pid := actor.EmptyRootContext.Spawn(props)
 
 	return &UntypedStream{
 		c:   c,

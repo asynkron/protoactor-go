@@ -11,7 +11,7 @@ import (
 )
 
 // define root context
-var rootContext = actor.EmptyRootContext()
+var rootContext = actor.EmptyRootContext
 
 func notifyAll(clients *hashset.Set, message interface{}) {
 	for _, tmp := range clients.Values() {

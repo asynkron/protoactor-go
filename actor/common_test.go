@@ -10,7 +10,7 @@ import (
 var nullProducer Producer = func() Actor { return nullReceive }
 var nullReceive ActorFunc = func(Context) {}
 var nilPID *PID
-var rootContext = EmptyRootContext()
+var rootContext = EmptyRootContext
 
 func matchPID(with *PID) interface{} {
 	return mock.MatchedBy(func(v *PID) bool {

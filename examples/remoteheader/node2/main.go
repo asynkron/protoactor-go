@@ -12,7 +12,7 @@ import (
 func main() {
 	remote.Start("127.0.0.1:8080")
 	var sender *actor.PID
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 	props := actor.
 		PropsFromFunc(
 			func(context actor.Context) {

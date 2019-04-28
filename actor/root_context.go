@@ -2,20 +2,20 @@ package actor
 
 import "time"
 
+// RootContext a Context can be used outside of Actor
 type RootContext struct {
 	senderMiddleware SenderFunc
 	headers          messageHeader
 }
 
-var emptyRootContext = &RootContext{
+// EmptyRootContext returns the default RootContext.
+// Please do not set any headers/middlewares to this context.
+var EmptyRootContext = &RootContext{
 	senderMiddleware: nil,
-	headers:          emptyMessageHeader,
+	headers:          EmptyMessageHeader,
 }
 
-func EmptyRootContext() *RootContext {
-	return emptyRootContext
-}
-
+// NewRootContext creates a new RootContext that can be customized with headers and middlewares.
 func NewRootContext(header map[string]string, middleware ...SenderMiddleware) *RootContext {
 	return &RootContext{
 		senderMiddleware: makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
@@ -25,11 +25,13 @@ func NewRootContext(header map[string]string, middleware ...SenderMiddleware) *R
 	}
 }
 
+// WithHeaders set headers to RootContext.
 func (rc *RootContext) WithHeaders(headers map[string]string) *RootContext {
 	rc.headers = headers
 	return rc
 }
 
+// WithSenderMiddleware set SenderMiddlewares to RootContext.
 func (rc *RootContext) WithSenderMiddleware(middleware ...SenderMiddleware) *RootContext {
 	rc.senderMiddleware = makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
 		target.sendUserMessage(envelope)

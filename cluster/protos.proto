@@ -12,12 +12,12 @@ message TakeOwnership {
 }
 
 message GrainRequest {
-  string method = 1;
-  bytes message_data = 2;
+    int32 method_index = 1;
+    bytes message_data = 2;
 }
 
 message GrainResponse {
-  bytes message_data = 1;
+    bytes message_data = 1;
 }
 
 message GrainErrorResponse {

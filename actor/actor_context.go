@@ -92,7 +92,6 @@ type actorContext struct {
 	parent            *PID
 	self              *PID
 	receiveTimeout    time.Duration
-	supervisor        SupervisorStrategy
 	producer          Producer
 	messageOrEnvelope interface{}
 	state             contextState
@@ -532,7 +531,7 @@ func (ctx *actorContext) handleFailure(msg *Failure) {
 		strategy.HandleFailure(ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
 		return
 	}
-	ctx.supervisor.HandleFailure(ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
+	ctx.props.getSupervisor().HandleFailure(ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
 }
 
 func (ctx *actorContext) stopAllChildren() {

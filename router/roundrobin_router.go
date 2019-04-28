@@ -1,6 +1,7 @@
 package router
 
 import (
+	"log"
 	"sync/atomic"
 	"unsafe"
 
@@ -32,6 +33,10 @@ func (state *roundRobinState) GetRoutees() *actor.PIDSet {
 }
 
 func (state *roundRobinState) RouteMessage(message interface{}) {
+	if len(*state.values) <= 0{
+		log.Println("[ROUTING]RoundRobin route message failed, empty routees")
+		return
+	}
 	pid := roundRobinRoutee(&state.index, *state.values)
 	rootContext.Send(&pid, message)
 }

@@ -39,7 +39,7 @@ func filterInput(r rune) (rune, bool) {
 }
 
 var echoPID *actor.PID
-var rootContext = actor.EmptyRootContext()
+var rootContext = actor.EmptyRootContext
 
 func main() {
 	logo := `

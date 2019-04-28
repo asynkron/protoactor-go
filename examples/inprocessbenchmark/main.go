@@ -121,7 +121,7 @@ func main() {
 			PropsFromProducer(newPingActor(&wg, messageCount, batchSize)).
 			WithMailbox(mailbox.Bounded(batchSize + 10)).
 			WithDispatcher(d)
-		rootContext := actor.EmptyRootContext()
+		rootContext := actor.EmptyRootContext
 
 		echoProps := actor.
 			PropsFromFunc(

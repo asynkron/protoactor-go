@@ -138,7 +138,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 
 	if err != nil {
 		ctx.Stash()
-		plog.Debug("gRPC Failed to send", log.String("address", state.address))
+		plog.Debug("gRPC Failed to send", log.String("address", state.address), log.Error(err))
 		panic("restart it")
 	}
 }

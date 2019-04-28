@@ -10,6 +10,7 @@ import (
 // process serves as a proxy to the router implementation and forwards messages directly to the routee. This
 // optimization avoids serializing router messages through an actor
 type process struct {
+	parent   *actor.PID
 	router   *actor.PID
 	state    RouterState
 	mu       sync.Mutex
@@ -51,10 +52,18 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 		term := &actor.Terminated{Who: pid}
 		ref.mu.Lock()
 		ref.watchers.ForEach(func(_ int, other actor.PID) {
-			if r, ok := actor.ProcessRegistry.Get(&other); ok {
-				r.SendSystemMessage(&other, term)
+			if !other.Equal(ref.parent) {
+				if r, ok := actor.ProcessRegistry.Get(&other); ok {
+					r.SendSystemMessage(&other, term)
+				}
 			}
 		})
+		// Notify parent
+		if ref.parent != nil {
+			if r, ok := actor.ProcessRegistry.Get(ref.parent); ok {
+				r.SendSystemMessage(ref.parent, term)
+			}
+		}				     
 		ref.mu.Unlock()
 
 	default:
