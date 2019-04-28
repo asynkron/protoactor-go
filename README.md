@@ -317,9 +317,9 @@ func (state *MyActor) Receive(context actor.Context) {
 func main() {
     remote.Start("localhost:8090")
 
-    rootCtx := actor.EmptyRootContext
+    context := actor.EmptyRootContext
     props := actor.PropsFromProducer(func() actor.Actor { return &MyActor{} })
-    pid, _ := rootCtx.Spawn(props)
+    pid, _ := context.Spawn(props)
     message := &messages.Echo{Message: "hej", Sender: pid}
 
     // this is to spawn remote actor we want to communicate with
@@ -328,7 +328,7 @@ func main() {
     // get spawned PID
     spawnedPID := spawnResponse.Pid
     for i := 0; i < 10; i++ {
-        rootCtx.Send(spawnedPID, message)
+        context.Send(spawnedPID, message)
     }
 
     console.ReadLine()
