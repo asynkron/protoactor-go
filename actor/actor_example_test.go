@@ -10,7 +10,7 @@ import (
 
 // Demonstrates how to create an actor using a function literal and how to send a message asynchronously
 func Example() {
-	var context *actor.RootContext = actor.EmptyRootContext()
+	var context *actor.RootContext = actor.EmptyRootContext
 	var props *actor.Props = actor.PropsFromFunc(func(c actor.Context) {
 		if msg, ok := c.Message().(string); ok {
 			fmt.Println(msg) // outputs "Hello World"
@@ -21,7 +21,7 @@ func Example() {
 
 	context.Send(pid, "Hello World")
 	time.Sleep(time.Millisecond * 100)
-	pid.GracefulStop() // wait for the actor to stop
+	context.StopFuture(pid).Wait() // wait for the actor to stop
 
 	// Output: Hello World
 }
@@ -33,7 +33,7 @@ func Example_synchronous() {
 	wg.Add(1)
 
 	// callee will wait for the PING message
-	callee := actor.EmptyRootContext().Spawn(actor.PropsFromFunc(func(c actor.Context) {
+	callee := actor.EmptyRootContext.Spawn(actor.PropsFromFunc(func(c actor.Context) {
 		if msg, ok := c.Message().(string); ok {
 			fmt.Println(msg) // outputs PING
 			c.Respond("PONG")
@@ -41,7 +41,7 @@ func Example_synchronous() {
 	}))
 
 	// caller will send a PING message and wait for the PONG
-	caller := actor.EmptyRootContext().Spawn(actor.PropsFromFunc(func(c actor.Context) {
+	caller := actor.EmptyRootContext.Spawn(actor.PropsFromFunc(func(c actor.Context) {
 		switch msg := c.Message().(type) {
 		// the first message an actor receives after it has started
 		case *actor.Started:
@@ -56,8 +56,8 @@ func Example_synchronous() {
 	}))
 
 	wg.Wait()
-	callee.GracefulStop()
-	caller.GracefulStop()
+	actor.EmptyRootContext.StopFuture(callee).Wait()
+	actor.EmptyRootContext.StopFuture(caller).Wait()
 
 	// Output:
 	// PING

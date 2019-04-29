@@ -1,6 +1,7 @@
 package router
 
 import (
+	"log"
 	"math/rand"
 	"sync/atomic"
 	"unsafe"
@@ -32,6 +33,10 @@ func (state *randomRouterState) GetRoutees() *actor.PIDSet {
 }
 
 func (state *randomRouterState) RouteMessage(message interface{}) {
+	if len(*state.values) <= 0{
+		log.Println("[ROUTING]RandomRouter route message failed, empty routees")
+		return
+	}
 	pid := randomRoutee(*state.values)
 	rootContext.Send(&pid, message)
 }

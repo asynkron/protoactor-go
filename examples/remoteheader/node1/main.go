@@ -14,7 +14,7 @@ func main() {
 
 	remote.Start("127.0.0.1:8081")
 
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 	props := actor.
 		PropsFromFunc(func(context actor.Context) {
 			switch context.Message().(type) {

@@ -19,7 +19,7 @@ func main() {
 
 	c := 0
 
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 	props := actor.PropsFromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *actor.Started:
@@ -63,5 +63,5 @@ func main() {
 	log.Println("hit [return] to finish")
 	console.ReadLine()
 
-	pid.Stop()
+	rootContext.Stop(pid)
 }

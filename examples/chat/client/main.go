@@ -15,7 +15,7 @@ func main() {
 	server := actor.NewPID("127.0.0.1:8080", "chatserver")
 
 	// define root context
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 
 	// spawn our chat client inline
 	props := actor.PropsFromFunc(func(context actor.Context) {

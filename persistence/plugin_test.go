@@ -127,7 +127,7 @@ func TestRecovery(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
-			rootContext := actor.EmptyRootContext()
+			rootContext := actor.EmptyRootContext
 			props := actor.PropsFromProducer(makeActor).
 				WithReceiverMiddleware(Using(tc.init))
 			pid, err := rootContext.SpawnNamed(props, ActorName)
@@ -147,7 +147,7 @@ func TestRecovery(t *testing.T) {
 			assert.Equal(t, tc.afterMsgs, queryState)
 
 			// wait for shutdown
-			pid.GracefulPoison()
+			rootContext.PoisonFuture(pid).Wait()
 
 			pid, err = rootContext.SpawnNamed(props, ActorName)
 			require.NoError(t, err)
@@ -161,7 +161,7 @@ func TestRecovery(t *testing.T) {
 			assert.Equal(t, tc.afterMsgs, queryState)
 
 			// shutdown at end of test for cleanup
-			pid.GracefulPoison()
+			rootContext.PoisonFuture(pid).Wait()
 		})
 	}
 }

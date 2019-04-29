@@ -51,7 +51,7 @@ func main() {
 		return actor.StopDirective
 	}
 	supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 	props := actor.
 		PropsFromProducer(newParentActor).
 		WithSupervisor(supervisor)

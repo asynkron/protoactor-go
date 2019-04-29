@@ -76,7 +76,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	runtime.GC()
 
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 
 	start := time.Now()
 	pid := rootContext.Spawn(props)

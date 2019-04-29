@@ -26,6 +26,7 @@ type ConsulProvider struct {
 	blockingWaitTime      time.Duration
 	statusValue           cluster.MemberStatusValue
 	statusValueSerializer cluster.MemberStatusValueSerializer
+	clusterError          error
 }
 
 func New() (*ConsulProvider, error) {
@@ -41,7 +42,7 @@ func NewWithConfig(consulConfig *api.Config) (*ConsulProvider, error) {
 		client:             client,
 		ttl:                3 * time.Second,
 		refreshTTL:         1 * time.Second,
-		deregisterCritical: 10 * time.Second,
+		deregisterCritical: 60 * time.Second,
 		blockingWaitTime:   20 * time.Second,
 	}
 	return p, nil
@@ -164,7 +165,8 @@ func (p *ConsulProvider) UpdateMemberStatusValue(statusValue cluster.MemberStatu
 }
 
 func (p *ConsulProvider) blockingUpdateTTL() error {
-	return p.client.Agent().UpdateTTL("service:"+p.id, "", api.HealthPassing)
+	p.clusterError = p.client.Agent().UpdateTTL("service:"+p.id, "", api.HealthPassing)
+	return p.clusterError
 }
 
 func (p *ConsulProvider) registerService() error {
@@ -176,7 +178,7 @@ func (p *ConsulProvider) registerService() error {
 		Port:    p.port,
 		Check: &api.AgentServiceCheck{
 			DeregisterCriticalServiceAfter: p.deregisterCritical.String(),
-			TTL:                            p.ttl.String(),
+			TTL: p.ttl.String(),
 		},
 	}
 	return p.client.Agent().ServiceRegister(s)
@@ -283,4 +285,9 @@ func (p *ConsulProvider) MonitorMemberStatusChanges() {
 			p.notifyStatuses()
 		}
 	}()
+}
+
+// GetHealthStatus returns an error if the cluster health status has problems
+func (p *ConsulProvider) GetHealthStatus() error {
+	return p.clusterError
 }

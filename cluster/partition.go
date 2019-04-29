@@ -38,7 +38,7 @@ func setupPartition(kinds []string) {
 
 func stopPartition() {
 	for _, kindPID := range partition.kindPIDMap {
-		kindPID.GracefulStop()
+		rootContext.StopFuture(kindPID).Wait()
 	}
 	eventstream.Unsubscribe(partition.partitionKindsSub)
 	partition = nil

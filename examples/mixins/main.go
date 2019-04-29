@@ -43,7 +43,7 @@ func (p *NamerPlugin) OnStart(ctx actor.ReceiverContext) {
 func (p *NamerPlugin) OnOtherMessage(ctx actor.ReceiverContext, env *actor.MessageEnvelope) {}
 
 func main() {
-	rootContext := actor.EmptyRootContext()
+	rootContext := actor.EmptyRootContext
 	props := actor.
 		PropsFromProducer(func() actor.Actor { return &myActor{} }).
 		WithReceiverMiddleware(

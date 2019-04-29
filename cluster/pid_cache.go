@@ -33,7 +33,7 @@ func setupPidCache() {
 }
 
 func stopPidCache() {
-	pidCache.watcher.GracefulStop()
+	rootContext.StopFuture(pidCache.watcher).Wait()
 	eventstream.Unsubscribe(pidCache.memberStatusSub)
 	pidCache = nil
 }

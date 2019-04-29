@@ -33,7 +33,7 @@ func (state *PassivationHolder) Init(pid *actor.PID, duration time.Duration) {
 	go func() {
 		select {
 		case <-state.timer.C:
-			pid.Stop()
+			actor.EmptyRootContext.Stop(pid)
 			state.done = true
 			break
 		}

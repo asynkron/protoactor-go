@@ -6,19 +6,28 @@ import "time"
 type Context interface {
 	infoPart
 	basePart
+  messagePart
 	senderPart
 	receiverPart
 	spawnerPart
+	stopperPart
 }
 
 type SenderContext interface {
 	infoPart
 	senderPart
+	messagePart
 }
 
 type ReceiverContext interface {
 	infoPart
 	receiverPart
+	messagePart
+}
+
+type SpawnerContext interface {
+	infoPart
+	spawnerPart
 }
 
 type infoPart interface {
@@ -67,15 +76,17 @@ type basePart interface {
 	AwaitFuture(f *Future, continuation func(res interface{}, err error))
 }
 
-type senderPart interface {
-	// Sender returns the PID of actor that sent currently processed message
-	Sender() *PID
-
+type messagePart interface {
 	// Message returns the current message to be processed
 	Message() interface{}
 
 	// MessageHeader returns the meta information for the currently processed message
 	MessageHeader() ReadonlyMessageHeader
+}
+
+type senderPart interface {
+	// Sender returns the PID of actor that sent currently processed message
+	Sender() *PID
 
 	// Send sends a message to the given PID
 	Send(pid *PID, message interface{})
@@ -107,4 +118,18 @@ type spawnerPart interface {
 	//
 	// Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1"
 	SpawnNamed(props *Props, id string) (*PID, error)
+}
+
+type stopperPart interface {
+	// Stop will stop actor immediately regardless of existing user messages in mailbox.
+	Stop(pid *PID)
+
+	// StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
+	StopFuture(pid *PID) *Future
+
+	// Poison will tell actor to stop after processing current user messages in mailbox.
+	Poison(pid *PID)
+
+	// PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
+	PoisonFuture(pid *PID) *Future
 }

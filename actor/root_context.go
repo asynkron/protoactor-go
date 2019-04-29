@@ -4,25 +4,32 @@ import "time"
 
 type RootContext struct {
 	senderMiddleware SenderFunc
+	spawnMiddleware  SpawnFunc
 	headers          messageHeader
+	guardianStrategy SupervisorStrategy
 }
 
-var emptyRootContext = &RootContext{
+var EmptyRootContext = &RootContext{
 	senderMiddleware: nil,
-	headers:          emptyMessageHeader,
-}
-
-func EmptyRootContext() *RootContext {
-	return emptyRootContext
+	spawnMiddleware:  nil,
+	headers:          EmptyMessageHeader,
+	guardianStrategy: nil,
 }
 
 func NewRootContext(header map[string]string, middleware ...SenderMiddleware) *RootContext {
+	if header == nil {
+		header = make(map[string]string)
+	}
 	return &RootContext{
 		senderMiddleware: makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
 			target.sendUserMessage(envelope)
 		}),
 		headers: messageHeader(header),
 	}
+}
+
+func (rc RootContext) Copy() *RootContext {
+	return &rc
 }
 
 func (rc *RootContext) WithHeaders(headers map[string]string) *RootContext {
@@ -37,6 +44,18 @@ func (rc *RootContext) WithSenderMiddleware(middleware ...SenderMiddleware) *Roo
 	return rc
 }
 
+func (rc *RootContext) WithSpawnMiddleware(middleware ...SpawnMiddleware) *RootContext {
+	rc.spawnMiddleware = makeSpawnMiddlewareChain(middleware, func(id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
+		return props.spawn(id, rc)
+	})
+	return rc
+}
+
+func (rc *RootContext) WithGuardian(guardian SupervisorStrategy) *RootContext {
+	rc.guardianStrategy = guardian
+	return rc
+}
+
 //
 // Interface: info
 //
@@ -46,6 +65,9 @@ func (rc *RootContext) Parent() *PID {
 }
 
 func (rc *RootContext) Self() *PID {
+	if rc.guardianStrategy != nil {
+		return guardians.getGuardianPid(rc.guardianStrategy)
+	}
 	return nil
 }
 
@@ -100,17 +122,12 @@ func (rc *RootContext) RequestFuture(pid *PID, message interface{}, timeout time
 
 func (rc *RootContext) sendUserMessage(pid *PID, message interface{}) {
 	if rc.senderMiddleware != nil {
-		if envelope, ok := message.(*MessageEnvelope); ok {
-			// Request based middleware
-			rc.senderMiddleware(rc, pid, envelope)
-		} else {
-			// tell based middleware
-			rc.senderMiddleware(rc, pid, &MessageEnvelope{nil, message, nil})
-		}
-		return
+		// Request based middleware
+		rc.senderMiddleware(rc, pid, WrapEnvelope(message))
+	} else {
+		// tell based middleware
+		pid.sendUserMessage(message)
 	}
-	// Default path
-	pid.sendUserMessage(message)
 }
 
 //
@@ -141,9 +158,46 @@ func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
 //
 // Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1"
 func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
-	var parent *PID
+	rootContext := rc
 	if props.guardianStrategy != nil {
-		parent = guardians.getGuardianPid(props.guardianStrategy)
+		rootContext = rc.Copy().WithGuardian(props.guardianStrategy)
 	}
-	return props.spawn(name, parent)
+	if rootContext.spawnMiddleware != nil {
+		return rc.spawnMiddleware(name, props, rootContext)
+	}
+	return props.spawn(name, rootContext)
+}
+
+//
+// Interface: StopperContext
+//
+
+// Stop will stop actor immediately regardless of existing user messages in mailbox.
+func (rc *RootContext) Stop(pid *PID) {
+	pid.ref().Stop(pid)
+}
+
+// StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
+func (rc *RootContext) StopFuture(pid *PID) *Future {
+	future := NewFuture(10 * time.Second)
+
+	pid.sendSystemMessage(&Watch{Watcher: future.pid})
+	rc.Stop(pid)
+
+	return future
+}
+
+// Poison will tell actor to stop after processing current user messages in mailbox.
+func (rc *RootContext) Poison(pid *PID) {
+	pid.sendUserMessage(&PoisonPill{})
+}
+
+// PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
+func (rc *RootContext) PoisonFuture(pid *PID) *Future {
+	future := NewFuture(10 * time.Second)
+
+	pid.sendSystemMessage(&Watch{Watcher: future.pid})
+	rc.Poison(pid)
+
+	return future
 }

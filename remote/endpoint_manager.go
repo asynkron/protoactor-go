@@ -57,7 +57,7 @@ func startEndpointManager(config *remoteConfig) {
 
 func stopEndpointManager() {
 	eventstream.Unsubscribe(endpointManager.endpointSub)
-	endpointManager.endpointSupervisor.GracefulStop()
+	rootContext.StopFuture(endpointManager.endpointSupervisor).Wait()
 	endpointManager.endpointSub = nil
 	endpointManager.connections = nil
 	plog.Debug("Stopped EndpointManager")
