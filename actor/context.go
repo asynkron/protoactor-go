@@ -6,6 +6,7 @@ import "time"
 type Context interface {
 	infoPart
 	basePart
+  messagePart
 	senderPart
 	receiverPart
 	spawnerPart
@@ -15,11 +16,18 @@ type Context interface {
 type SenderContext interface {
 	infoPart
 	senderPart
+	messagePart
 }
 
 type ReceiverContext interface {
 	infoPart
 	receiverPart
+	messagePart
+}
+
+type SpawnerContext interface {
+	infoPart
+	spawnerPart
 }
 
 type infoPart interface {
@@ -68,15 +76,17 @@ type basePart interface {
 	AwaitFuture(f *Future, continuation func(res interface{}, err error))
 }
 
-type senderPart interface {
-	// Sender returns the PID of actor that sent currently processed message
-	Sender() *PID
-
+type messagePart interface {
 	// Message returns the current message to be processed
 	Message() interface{}
 
 	// MessageHeader returns the meta information for the currently processed message
 	MessageHeader() ReadonlyMessageHeader
+}
+
+type senderPart interface {
+	// Sender returns the PID of actor that sent currently processed message
+	Sender() *PID
 
 	// Send sends a message to the given PID
 	Send(pid *PID, message interface{})

@@ -357,7 +357,14 @@ func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 		panic(errors.New("Props used to spawn child cannot have GuardianStrategy"))
 	}
 
-	pid, err := props.spawn(ctx.self.Id+"/"+name, ctx.self)
+	var pid *PID
+	var err error
+	if ctx.props.spawnMiddlewareChain != nil {
+		pid, err = ctx.props.spawnMiddlewareChain(ctx.self.Id+"/"+name, props, ctx)
+	} else {
+		pid, err = props.spawn(ctx.self.Id+"/"+name, ctx)
+	}
+
 	if err != nil {
 		return pid, err
 	}

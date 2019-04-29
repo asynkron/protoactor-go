@@ -51,12 +51,12 @@ func (config *PoolRouter) RouterType() RouterType {
 }
 
 func spawner(config RouterConfig) actor.SpawnFunc {
-	return func(id string, props *actor.Props, parent *actor.PID) (*actor.PID, error) {
-		return spawn(id, config, props, parent)
+	return func(id string, props *actor.Props, parentContext actor.SpawnerContext) (*actor.PID, error) {
+		return spawn(id, config, props, parentContext)
 	}
 }
 
-func spawn(id string, config RouterConfig, props *actor.Props, parent *actor.PID) (*actor.PID, error) {
+func spawn(id string, config RouterConfig, props *actor.Props, parentContext actor.SpawnerContext) (*actor.PID, error) {
 	ref := &process{}
 	proxy, absent := actor.ProcessRegistry.Add(ref, id)
 	if !absent {
@@ -77,7 +77,7 @@ func spawn(id string, config RouterConfig, props *actor.Props, parent *actor.PID
 				state:  ref.state,
 				wg:     wg,
 			}
-		}), parent)
+		}), parentContext)
 		wg.Wait() // wait for routerActor to start
 	} else {
 		wg := &sync.WaitGroup{}
@@ -89,10 +89,10 @@ func spawn(id string, config RouterConfig, props *actor.Props, parent *actor.PID
 				state:  ref.state,
 				wg:     wg,
 			}
-		}), parent)
+		}), parentContext)
 		wg.Wait() // wait for routerActor to start
 	}
 
-	ref.parent = parent
+	ref.parent = parentContext.Self()
 	return proxy, nil
 }
