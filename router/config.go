@@ -93,6 +93,6 @@ func spawn(id string, config RouterConfig, props *actor.Props, parentContext act
 		wg.Wait() // wait for routerActor to start
 	}
 
-	ref.parent = parent
+	ref.parent = parentContext.Self()
 	return proxy, nil
 }
