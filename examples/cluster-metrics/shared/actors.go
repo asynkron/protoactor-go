@@ -19,6 +19,8 @@ func (*hello) VoidFunc(r *AddRequest, ctx cluster.GrainContext) (*Unit, error) {
 	return &Unit{}, nil
 }
 
+func (*hello) Terminate()  {}
+
 func init() {
 	// apply DI and setup logic
 	HelloFactory(func() Hello { return &hello{} })
