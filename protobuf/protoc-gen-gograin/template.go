@@ -57,7 +57,7 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }
 func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Input.Name }}, opts *cluster.GrainCallOptions) (*{{ $method.Output.Name }}, error) {
 	fun := func() (*{{ $method.Output.Name }}, error) {
 			pid, statusCode := cluster.Get(g.ID, "{{ $service.Name }}")
-			if statusCode != remote.ResponseStatusCodeOK {
+			if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
 				return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 			}
 			bytes, err := proto.Marshal(r)
