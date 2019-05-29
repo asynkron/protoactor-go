@@ -286,13 +286,13 @@ func (ctx *actorContext) Request(pid *PID, message interface{}) {
 	ctx.sendUserMessage(pid, env)
 }
 
-func (rc *actorContext) RequestWithCustomSender(pid *PID, message interface{}, sender *PID) {
+func (ctx *actorContext) RequestWithCustomSender(pid *PID, message interface{}, sender *PID) {
 	env := &MessageEnvelope{
 		Header:  nil,
 		Message: message,
 		Sender:  sender,
 	}
-	rc.sendUserMessage(pid, env)
+	ctx.sendUserMessage(pid, env)
 }
 
 func (ctx *actorContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
