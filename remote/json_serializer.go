@@ -55,9 +55,9 @@ func (j *jsonSerializer) Deserialize(typeName string, b []byte) (interface{}, er
 		j.Unmarshaler.Unmarshal(r, instance)
 
 		return instance, nil
-	} else {
-		return nil, fmt.Errorf("msg must be proto.Message")
 	}
+	
+	return nil, fmt.Errorf("msg must be proto.Message")
 }
 
 func (j *jsonSerializer) GetTypeName(msg interface{}) (string, error) {

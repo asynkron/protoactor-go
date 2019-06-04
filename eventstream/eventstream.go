@@ -38,34 +38,34 @@ func (es *EventStream) Subscribe(fn func(evt interface{})) *Subscription {
 	return sub
 }
 
-func (ps *EventStream) Unsubscribe(sub *Subscription) {
+func (es *EventStream) Unsubscribe(sub *Subscription) {
 	if sub.i == -1 {
 		return
 	}
 
-	ps.Lock()
+	es.Lock()
 	i := sub.i
-	l := len(ps.subscriptions) - 1
+	l := len(es.subscriptions) - 1
 
-	ps.subscriptions[i] = ps.subscriptions[l]
-	ps.subscriptions[i].i = i
-	ps.subscriptions[l] = nil
-	ps.subscriptions = ps.subscriptions[:l]
+	es.subscriptions[i] = es.subscriptions[l]
+	es.subscriptions[i].i = i
+	es.subscriptions[l] = nil
+	es.subscriptions = es.subscriptions[:l]
 	sub.i = -1
 
 	// TODO(SGC): implement resizing
-	if len(ps.subscriptions) == 0 {
-		ps.subscriptions = nil
+	if len(es.subscriptions) == 0 {
+		es.subscriptions = nil
 	}
 
-	ps.Unlock()
+	es.Unlock()
 }
 
-func (ps *EventStream) Publish(evt interface{}) {
-	ps.RLock()
-	defer ps.RUnlock()
+func (es *EventStream) Publish(evt interface{}) {
+	es.RLock()
+	defer es.RUnlock()
 
-	for _, s := range ps.subscriptions {
+	for _, s := range es.subscriptions {
 		if s.p == nil || s.p(evt) {
 			s.fn(evt)
 		}
