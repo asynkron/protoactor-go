@@ -3,9 +3,10 @@ package remote
 import (
 	"bytes"
 	"fmt"
+	"reflect"
+
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
-	"reflect"
 )
 
 type jsonSerializer struct {
@@ -56,7 +57,7 @@ func (j *jsonSerializer) Deserialize(typeName string, b []byte) (interface{}, er
 
 		return instance, nil
 	}
-	
+
 	return nil, fmt.Errorf("msg must be proto.Message")
 }
 

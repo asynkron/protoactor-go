@@ -2,8 +2,9 @@ package remote
 
 import (
 	"fmt"
-	"github.com/gogo/protobuf/proto"
 	"reflect"
+
+	"github.com/gogo/protobuf/proto"
 )
 
 type protoSerializer struct{}

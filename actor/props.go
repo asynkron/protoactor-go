@@ -2,6 +2,7 @@ package actor
 
 import (
 	"errors"
+
 	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
