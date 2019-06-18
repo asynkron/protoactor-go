@@ -33,7 +33,7 @@ func (state *randomRouterState) GetRoutees() *actor.PIDSet {
 }
 
 func (state *randomRouterState) RouteMessage(message interface{}) {
-	if len(*state.values) <= 0{
+	if len(*state.values) <= 0 {
 		log.Println("[ROUTING]RandomRouter route message failed, empty routees")
 		return
 	}

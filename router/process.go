@@ -63,7 +63,7 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 			if r, ok := actor.ProcessRegistry.Get(ref.parent); ok {
 				r.SendSystemMessage(ref.parent, term)
 			}
-		}				     
+		}
 		ref.mu.Unlock()
 
 	default:

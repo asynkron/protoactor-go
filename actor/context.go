@@ -6,7 +6,7 @@ import "time"
 type Context interface {
 	infoPart
 	basePart
-  messagePart
+	messagePart
 	senderPart
 	receiverPart
 	spawnerPart

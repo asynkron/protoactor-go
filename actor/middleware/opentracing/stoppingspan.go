@@ -1,9 +1,10 @@
 package opentracing
 
 import (
+	"sync"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/opentracing/opentracing-go"
-	"sync"
 )
 
 var stoppingSpans = sync.Map{}
