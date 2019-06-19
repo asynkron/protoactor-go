@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"log"
+	"sync/atomic"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -15,26 +16,26 @@ type PassivationAware interface {
 
 type PassivationHolder struct {
 	timer *time.Timer
-	done  bool
+	done  int32
 }
 
 func (state *PassivationHolder) Reset(duration time.Duration) {
 	if state.timer == nil {
 		log.Fatalf("Cannot reset passivation of a non-started actor")
 	}
-	if !state.done {
+	if atomic.LoadInt32(&state.done) == 0 {
 		state.timer.Reset(duration)
 	}
 }
 
 func (state *PassivationHolder) Init(pid *actor.PID, duration time.Duration) {
 	state.timer = time.NewTimer(duration)
-	state.done = false
+	state.done = 0
 	go func() {
 		select {
 		case <-state.timer.C:
 			actor.EmptyRootContext.Stop(pid)
-			state.done = true
+			atomic.StoreInt32(&state.done, 1)
 			break
 		}
 	}()
