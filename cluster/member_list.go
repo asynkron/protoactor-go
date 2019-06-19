@@ -79,7 +79,6 @@ func (ml *memberListValue) getActivatorMember(kind string) string {
 }
 
 func (ml *memberListValue) updateClusterTopology(m interface{}) {
-
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
 
@@ -108,7 +107,6 @@ func (ml *memberListValue) updateClusterTopology(m interface{}) {
 }
 
 func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus) {
-
 	if new == nil && old == nil {
 		// ignore, not possible
 		return

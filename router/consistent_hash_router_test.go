@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	actor "github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/router"
 )
 
@@ -14,6 +14,7 @@ type myMessage struct {
 	i   int
 	pid *actor.PID
 }
+
 type getRoutees struct {
 	pid *actor.PID
 }
@@ -39,6 +40,7 @@ func (state *routerActor) Receive(context actor.Context) {
 		wait.Done()
 	}
 }
+
 func (state *tellerActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *myMessage:
@@ -56,13 +58,13 @@ func (state *managerActor) Receive(context actor.Context) {
 		state.set = msg.PIDs
 		for i, v := range state.set {
 			if i%2 == 0 {
-				context.Send(state.rpid, &router.RemoveRoutee{v})
+				context.Send(state.rpid, &router.RemoveRoutee{PID: v})
 				// log.Println(v)
 
 			} else {
 				props := actor.PropsFromProducer(func() actor.Actor { return &routerActor{} })
 				pid := context.Spawn(props)
-				context.Send(state.rpid, &router.AddRoutee{pid})
+				context.Send(state.rpid, &router.AddRoutee{PID: pid})
 				// log.Println(v)
 			}
 		}

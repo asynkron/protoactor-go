@@ -22,7 +22,7 @@ type MessageInvoker interface {
 	EscalateFailure(reason interface{}, message interface{})
 }
 
-// The mailbox interface is used to enqueue messages to the mailbox
+// Mailbox interface is used to enqueue messages to the mailbox
 type Mailbox interface {
 	PostUserMessage(message interface{})
 	PostSystemMessage(message interface{})
@@ -80,7 +80,6 @@ func (m *defaultMailbox) schedule() {
 }
 
 func (m *defaultMailbox) processMessages() {
-
 process:
 	m.run()
 

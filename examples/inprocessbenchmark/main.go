@@ -23,8 +23,6 @@ type Start struct {
 	Sender *actor.PID
 }
 
-// type Started struct{}
-
 type pingActor struct {
 	count        int
 	wgStop       *sync.WaitGroup

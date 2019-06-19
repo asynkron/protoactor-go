@@ -189,7 +189,6 @@ func (p *ConsulProvider) deregisterService() error {
 }
 
 func (p *ConsulProvider) registerMember() error {
-
 	txn := api.KVTxnOps{}
 
 	// register a unique ID for the current process
@@ -227,7 +226,6 @@ func (p *ConsulProvider) blockingStatusChange() {
 }
 
 func (p *ConsulProvider) notifyStatuses() {
-
 	statuses, meta, err := p.client.Health().Service(p.clusterName, "", false, &api.QueryOptions{
 		WaitIndex: p.index,
 		WaitTime:  p.blockingWaitTime,
@@ -272,14 +270,13 @@ func (p *ConsulProvider) notifyStatuses() {
 	}
 	// the reason why we want this in a batch and not as individual messages is that
 	// if we have an atomic batch, we can calculate what nodes have left the cluster
-	// passing events one by one, we can't know if someone left or just havent changed status for a long time
+	// passing events one by one, we can't know if someone left or just haven't changed status for a long time
 
 	// publish the current cluster topology onto the event stream
 	eventstream.Publish(res)
 }
 
 func (p *ConsulProvider) MonitorMemberStatusChanges() {
-
 	go func() {
 		for !p.shutdown {
 			p.notifyStatuses()

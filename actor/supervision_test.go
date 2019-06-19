@@ -72,7 +72,6 @@ func (e *Expector) ExpectMsg(expected interface{}, t *testing.T) {
 }
 
 func (e *Expector) ExpectNoMsg(t *testing.T) {
-
 	select {
 	case actual := <-e.C:
 		at := reflect.TypeOf(actual)
@@ -82,7 +81,7 @@ func (e *Expector) ExpectNoMsg(t *testing.T) {
 	}
 }
 
-func TestActorStopsAfterXRestars(t *testing.T) {
+func TestActorStopsAfterXRestarts(t *testing.T) {
 	m, e := NewObserver()
 	props := PropsFromProducer(func() Actor { return &failingChildActor{} }).WithReceiverMiddleware(m)
 	child := rootContext.Spawn(props)

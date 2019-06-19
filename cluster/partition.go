@@ -213,7 +213,6 @@ func (state *partitionActor) terminated(msg *actor.Terminated) {
 }
 
 func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent, context actor.Context) {
-
 	memberAddress := msg.Name()
 
 	plog.Info("Member rejoined", log.String("kind", state.kind), log.String("name", memberAddress))
@@ -236,7 +235,6 @@ func (state *partitionActor) memberRejoined(msg *MemberRejoinedEvent, context ac
 }
 
 func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Context) {
-
 	memberAddress := msg.Name()
 
 	plog.Info("Member left", log.String("kind", state.kind), log.String("name", memberAddress))
@@ -291,7 +289,7 @@ func (state *partitionActor) transferOwnership(actorID string, address string, c
 		Pid:  pid,
 		Name: actorID,
 	})
-	// we can safely delete this entry as the consisntent hash no longer points to us
+	// we can safely delete this entry as the consistent hash no longer points to us
 	delete(state.partition, actorID)
 	delete(state.keyNameMap, pid.String())
 	context.Unwatch(pid)

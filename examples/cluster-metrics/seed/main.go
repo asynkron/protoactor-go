@@ -26,7 +26,6 @@ func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
 }
 
 func main() {
-
 	// this node knows about Hello kind
 	remote.Register("Hello", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.HelloActor{}

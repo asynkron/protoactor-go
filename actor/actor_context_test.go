@@ -48,8 +48,8 @@ func TestActorContext_Stop(t *testing.T) {
 	o.AssertExpectations(t)
 }
 
-func TestActorContext_SendMessage_WithSenderdMiddleware(t *testing.T) {
-	// Define a local context with no-op sender middlware
+func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
+	// Define a local context with no-op sender middleware
 	mw := func(next SenderFunc) SenderFunc {
 		return func(ctx SenderContext, target *PID, envelope *MessageEnvelope) {
 			next(ctx, target, envelope)
@@ -144,7 +144,6 @@ func TestActorContext_Respond(t *testing.T) {
 }
 
 func TestActorContext_Forward(t *testing.T) {
-
 	// Defined a respond actor
 	// It simply respond the string message
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
@@ -193,7 +192,7 @@ func BenchmarkActorContext_ProcessMessageWithMiddleware(b *testing.B) {
 }
 
 func benchmarkActorContext_SpawnWithMiddlewareN(n int, b *testing.B) {
-	middlwareFn := func(next SenderFunc) SenderFunc {
+	middlewareFn := func(next SenderFunc) SenderFunc {
 		return func(ctx SenderContext, pid *PID, env *MessageEnvelope) {
 			next(ctx, pid, env)
 		}
@@ -201,7 +200,7 @@ func benchmarkActorContext_SpawnWithMiddlewareN(n int, b *testing.B) {
 
 	props := PropsFromProducer(nullProducer)
 	for i := 0; i < n; i++ {
-		props = props.WithSenderMiddleware(middlwareFn)
+		props = props.WithSenderMiddleware(middlewareFn)
 	}
 
 	parent := &actorContext{self: NewLocalPID("foo"), props: props}
