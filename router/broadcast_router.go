@@ -25,11 +25,13 @@ func (state *broadcastRouterState) SetRoutees(routees *actor.PIDSet) {
 }
 
 func (state *broadcastRouterState) GetRoutees() *actor.PIDSet {
-	return state.routees.Clone()
+	rts := (*actor.PIDSet)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees))))
+	return rts.Clone()
 }
 
 func (state *broadcastRouterState) RouteMessage(message interface{}) {
-	state.routees.ForEach(func(i int, pid actor.PID) {
+	rts := (*actor.PIDSet)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees))))
+	rts.ForEach(func(i int, pid actor.PID) {
 		rootContext.Send(&pid, message)
 	})
 }

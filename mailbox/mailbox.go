@@ -46,7 +46,7 @@ type defaultMailbox struct {
 	sysMessages     int32
 	invoker         MessageInvoker
 	dispatcher      Dispatcher
-	suspended       bool
+	suspended       int32
 	mailboxStats    []Statistics
 }
 
@@ -88,7 +88,7 @@ process:
 	sys := atomic.LoadInt32(&m.sysMessages)
 	user := atomic.LoadInt32(&m.userMessages)
 	// check if there are still messages to process (sent after the message loop ended)
-	if sys > 0 || (!m.suspended && user > 0) {
+	if sys > 0 || (atomic.LoadInt32(&m.suspended) == 0 && user > 0) {
 		// try setting the mailbox back to running
 		if atomic.CompareAndSwapInt32(&m.schedulerStatus, idle, running) {
 			//	fmt.Printf("looping %v %v %v\n", sys, user, m.suspended)
@@ -125,9 +125,9 @@ func (m *defaultMailbox) run() {
 			atomic.AddInt32(&m.sysMessages, -1)
 			switch msg.(type) {
 			case *SuspendMailbox:
-				m.suspended = true
+				atomic.StoreInt32(&m.suspended, 1)
 			case *ResumeMailbox:
-				m.suspended = false
+				atomic.StoreInt32(&m.suspended, 0)
 			default:
 				m.invoker.InvokeSystemMessage(msg)
 			}
@@ -138,7 +138,7 @@ func (m *defaultMailbox) run() {
 		}
 
 		// didn't process a system message, so break until we are resumed
-		if m.suspended {
+		if atomic.LoadInt32(&m.suspended) == 1 {
 			return
 		}
 
