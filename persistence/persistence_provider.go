@@ -1,7 +1,7 @@
 package persistence
 
 import (
-	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 // Provider is the abstraction used for persistence

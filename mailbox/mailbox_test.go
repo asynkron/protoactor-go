@@ -28,6 +28,7 @@ func (i *invoker) InvokeSystemMessage(interface{}) {
 		log.Println("Unexpected data..")
 	}
 }
+
 func (i *invoker) InvokeUserMessage(interface{}) {
 	i.count++
 	if i.count == i.max {
@@ -37,6 +38,7 @@ func (i *invoker) InvokeUserMessage(interface{}) {
 		log.Println("Unexpected data..")
 	}
 }
+
 func (*invoker) EscalateFailure(reason interface{}, message interface{}) {}
 
 func TestUnboundedLockfreeMailboxUsermessageConsistency(t *testing.T) {

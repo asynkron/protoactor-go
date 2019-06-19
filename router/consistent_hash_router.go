@@ -67,7 +67,7 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 		if routee, ok := hmc.routeeMap[node]; ok {
 			rootContext.Send(routee, message)
 		} else {
-			log.Println("[ROUTING] Consisten router failed to resolve node", node)
+			log.Println("[ROUTING] Consistent router failed to resolve node", node)
 		}
 	default:
 		log.Println("[ROUTING] Message must implement router.Hasher", msg)

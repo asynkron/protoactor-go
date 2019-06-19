@@ -7,10 +7,8 @@ import (
 )
 
 func SenderMiddleware() actor.SenderMiddleware {
-
 	return func(next actor.SenderFunc) actor.SenderFunc {
 		return func(c actor.SenderContext, target *actor.PID, envelope *actor.MessageEnvelope) {
-
 			span := getActiveSpan(c.Self())
 
 			if span == nil {

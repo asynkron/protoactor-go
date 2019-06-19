@@ -244,7 +244,7 @@ func (ctx *actorContext) AwaitFuture(f *Future, cont func(res interface{}, err e
 	message := ctx.messageOrEnvelope
 	// invoke the callback when the future completes
 	f.continueWith(func(res interface{}, err error) {
-		// send the wrapped callaback as a continuation message to self
+		// send the wrapped callback as a continuation message to self
 		ctx.self.sendSystemMessage(&continuation{
 			f:       wrapper,
 			message: message,
@@ -354,7 +354,7 @@ func (ctx *actorContext) SpawnPrefix(props *Props, prefix string) *PID {
 
 func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	if props.guardianStrategy != nil {
-		panic(errors.New("Props used to spawn child cannot have GuardianStrategy"))
+		panic(errors.New("props used to spawn child cannot have GuardianStrategy"))
 	}
 
 	var pid *PID

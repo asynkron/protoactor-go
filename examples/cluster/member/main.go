@@ -13,10 +13,6 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-const (
-	timeout = 1 * time.Second
-)
-
 func main() {
 	// this node knows about Hello kind
 	remote.Register("Hello", actor.PropsFromProducer(func() actor.Actor {

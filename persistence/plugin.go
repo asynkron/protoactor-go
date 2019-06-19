@@ -2,7 +2,7 @@ package persistence
 
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
-	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 type persistent interface {
@@ -32,6 +32,7 @@ func (mixin *Mixin) Recovering() bool {
 func (mixin *Mixin) Name() string {
 	return mixin.name
 }
+
 func (mixin *Mixin) PersistReceive(message proto.Message) {
 	mixin.providerState.PersistEvent(mixin.Name(), mixin.eventIndex, message)
 	if mixin.eventIndex%mixin.providerState.GetSnapshotInterval() == 0 {
