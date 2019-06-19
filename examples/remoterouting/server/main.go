@@ -52,7 +52,6 @@ func newRemote(bind, name string) {
 }
 
 func main() {
-
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	runtime.GC()
 

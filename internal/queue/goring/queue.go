@@ -69,7 +69,6 @@ func (q *Queue) Empty() bool {
 
 // single consumer
 func (q *Queue) Pop() (interface{}, bool) {
-
 	if q.Empty() {
 		return nil, false
 	}
@@ -86,7 +85,6 @@ func (q *Queue) Pop() (interface{}, bool) {
 }
 
 func (q *Queue) PopMany(count int64) ([]interface{}, bool) {
-
 	if q.Empty() {
 		return nil, false
 	}

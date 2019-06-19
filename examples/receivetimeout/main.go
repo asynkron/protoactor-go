@@ -14,8 +14,7 @@ type NoInfluence string
 func (NoInfluence) NotInfluenceReceiveTimeout() {}
 
 func main() {
-
-	log.Println("Reveive timeout test")
+	log.Println("Receive timeout test")
 
 	c := 0
 

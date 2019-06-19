@@ -9,7 +9,6 @@ import (
 )
 
 func TestPropagator(t *testing.T) {
-
 	mutex := &sync.Mutex{}
 	spawningCounter := 0
 

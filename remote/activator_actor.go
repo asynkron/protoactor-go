@@ -112,7 +112,7 @@ func (*activator) Receive(context actor.Context) {
 				StatusCode: ResponseStatusCodeERROR.ToInt32(),
 			}
 			context.Respond(response)
-			panic(fmt.Errorf("No Props found for kind %s", msg.Kind))
+			panic(fmt.Errorf("no Props found for kind %s", msg.Kind))
 		}
 
 		name := msg.Name

@@ -20,7 +20,6 @@ func NewWeightedRoundRobin(memberStrategy cluster.MemberStrategy) *WeightedRound
 }
 
 func (r *WeightedRoundRobin) GetByRoundRobin() string {
-
 	members := r.m.GetAllMembers()
 	l := len(members)
 

@@ -14,7 +14,7 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	proto "github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -106,6 +106,7 @@ func main() {
 	}
 exit:
 }
+
 func spawnEcho() {
 	echoPID, _ = rootContext.SpawnNamed(actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
@@ -122,6 +123,7 @@ func spawnEcho() {
 
 	}), "echo")
 }
+
 func watch(line string) {
 	parts := strings.SplitN(line, " ", 2)
 
@@ -139,6 +141,7 @@ func watch(line string) {
 		})
 	}
 }
+
 func tell(line string) {
 	parts := strings.SplitN(line, " ", 4)
 

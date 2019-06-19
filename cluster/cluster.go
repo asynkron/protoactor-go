@@ -11,7 +11,7 @@ import (
 
 var cfg *ClusterConfig
 
-var rootContext *actor.RootContext = actor.EmptyRootContext
+var rootContext = actor.EmptyRootContext
 
 func Start(clusterName, address string, provider ClusterProvider) {
 	StartWithConfig(NewClusterConfig(clusterName, address, provider))

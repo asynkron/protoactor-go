@@ -50,7 +50,6 @@ func (strategy *oneForOne) HandleFailure(supervisor Supervisor, child *PID, rs *
 }
 
 func (strategy *oneForOne) shouldStop(rs *RestartStatistics) bool {
-
 	// supervisor says this child may not restart
 	if strategy.maxNrOfRetries == 0 {
 		return true

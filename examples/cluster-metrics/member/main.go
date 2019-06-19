@@ -14,10 +14,6 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-const (
-	timeout = 1 * time.Second
-)
-
 // Logger is message middleware which logs messages before continuing to the next middleware
 func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
 	fn := func(context actor.ReceiverContext, env *actor.MessageEnvelope) {
