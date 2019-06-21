@@ -7,7 +7,7 @@ type RemotingOption func(*remoteConfig)
 
 func defaultRemoteConfig() *remoteConfig {
 	return &remoteConfig{
-		advertisedAddress: 		  "",
+		advertisedAddress:        "",
 		dialOptions:              []grpc.DialOption{grpc.WithInsecure()},
 		endpointWriterBatchSize:  1000,
 		endpointManagerBatchSize: 1000,
@@ -65,7 +65,7 @@ func WithAdvertisedAddress(address string) RemotingOption {
 }
 
 type remoteConfig struct {
-	advertisedAddress		 string
+	advertisedAddress        string
 	serverOptions            []grpc.ServerOption
 	callOptions              []grpc.CallOption
 	dialOptions              []grpc.DialOption
