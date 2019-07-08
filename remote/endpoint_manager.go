@@ -4,6 +4,10 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/AsynkronIT/protoactor-go/log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/AsynkronIT/protoactor-go/mailbox"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -149,6 +153,20 @@ func (state *endpointSupervisor) Receive(ctx actor.Context) {
 }
 
 func (state *endpointSupervisor) HandleFailure(supervisor actor.Supervisor, child *actor.PID, rs *actor.RestartStatistics, reason interface{}, message interface{}) {
+	if err, ok := reason.(error); ok {
+		if grpsStatus, ok := status.FromError(err); ok {
+			if grpsStatus.Code() == codes.Unavailable {
+				// If we get an Unavailable status error from GRPC,
+				// we resumse the child for eventual recovery. This prevents
+				// a panic loop
+				plog.Error("GRPC status Unavailable. Resuming child",
+					log.String("childId", child.Id),
+					log.String("childAddress", child.Address))
+				supervisor.ResumeChildren(child)
+				return
+			}
+		}
+	}
 	supervisor.RestartChildren(child)
 }
 

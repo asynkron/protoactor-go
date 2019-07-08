@@ -134,6 +134,10 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		TargetNames: targetNamesArr,
 		Envelopes:   envelopes,
 	}
+
+	if state.stream == nil {
+		state.initialize()
+	}
 	err := state.stream.Send(batch)
 
 	if err != nil {
