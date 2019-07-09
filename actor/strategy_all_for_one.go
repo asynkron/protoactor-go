@@ -47,7 +47,7 @@ func (strategy *allForOneStrategy) HandleFailure(supervisor Supervisor, child *P
 		// send failure to parent
 		// supervisor mailbox
 		// do not log here, log in the parent handling the error
-		supervisor.EscalateFailure(reason, child)
+		supervisor.EscalateFailure(reason, message)
 	}
 }
 
