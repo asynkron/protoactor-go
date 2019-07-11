@@ -26,7 +26,13 @@ func NewFuture(d time.Duration) *Future {
 	ref.pid = pid
 	if d >= 0 {
 		tp := time.AfterFunc(d, func() {
+			ref.cond.L.Lock()
+			if ref.done {
+				ref.cond.L.Unlock()
+				return
+			}
 			ref.err = ErrTimeout
+			ref.cond.L.Unlock()
 			ref.Stop(pid)
 		})
 		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&ref.t)), unsafe.Pointer(tp))
