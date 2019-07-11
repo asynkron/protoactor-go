@@ -33,10 +33,10 @@ type ProtoMethod struct {
 	Index        int
 	Name         string
 	PascalName   string
-	InputStream  bool
 	Input        *ProtoMessage
-	OutputStream bool
 	Output       *ProtoMessage
+	InputStream  bool
+	OutputStream bool
 }
 
 // ProtoAst transforms a FileDescriptor to an AST that can be used for code generation
