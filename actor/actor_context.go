@@ -2,16 +2,15 @@ package actor
 
 import (
 	"errors"
+	"sync/atomic"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 )
 
-type contextState int32
-
 const (
-	stateNone contextState = iota
+	stateNone int32 = iota
 	stateAlive
 	stateRestarting
 	stateStopping
@@ -94,7 +93,7 @@ type actorContext struct {
 	receiveTimeout    time.Duration
 	producer          Producer
 	messageOrEnvelope interface{}
-	state             contextState
+	state             int32
 }
 
 func newActorContext(props *Props, parent *PID) *actorContext {
@@ -413,7 +412,7 @@ func (ctx *actorContext) PoisonFuture(pid *PID) *Future {
 //
 
 func (ctx *actorContext) InvokeUserMessage(md interface{}) {
-	if ctx.state == stateStopped {
+	if atomic.LoadInt32(&ctx.state) == stateStopped {
 		// already stopped
 		return
 	}
@@ -451,7 +450,7 @@ func (ctx *actorContext) processMessage(m interface{}) {
 }
 
 func (ctx *actorContext) incarnateActor() {
-	ctx.state = stateAlive
+	atomic.StoreInt32(&ctx.state, stateAlive)
 	ctx.actor = ctx.props.producer()
 }
 
@@ -485,7 +484,7 @@ func (ctx *actorContext) handleRootFailure(failure *Failure) {
 }
 
 func (ctx *actorContext) handleWatch(msg *Watch) {
-	if ctx.state >= stateStopping {
+	if atomic.LoadInt32(&ctx.state) >= stateStopping {
 		msg.Watcher.sendSystemMessage(&Terminated{
 			Who: ctx.self,
 		})
@@ -502,7 +501,7 @@ func (ctx *actorContext) handleUnwatch(msg *Unwatch) {
 }
 
 func (ctx *actorContext) handleRestart(msg *Restart) {
-	ctx.state = stateRestarting
+	atomic.StoreInt32(&ctx.state, stateRestarting)
 	ctx.InvokeUserMessage(restartingMessage)
 	ctx.stopAllChildren()
 	ctx.tryRestartOrTerminate()
@@ -510,12 +509,12 @@ func (ctx *actorContext) handleRestart(msg *Restart) {
 
 // I am stopping
 func (ctx *actorContext) handleStop(msg *Stop) {
-	if ctx.state >= stateStopping {
+	if atomic.LoadInt32(&ctx.state) >= stateStopping {
 		// already stopping or stopped
 		return
 	}
 
-	ctx.state = stateStopping
+	atomic.StoreInt32(&ctx.state, stateStopping)
 
 	ctx.InvokeUserMessage(stoppingMessage)
 	ctx.stopAllChildren()
@@ -557,7 +556,7 @@ func (ctx *actorContext) tryRestartOrTerminate() {
 
 	ctx.CancelReceiveTimeout()
 
-	switch ctx.state {
+	switch atomic.LoadInt32(&ctx.state) {
 	case stateRestarting:
 		ctx.restart()
 	case stateStopping:
@@ -591,7 +590,7 @@ func (ctx *actorContext) finalizeStop() {
 	if ctx.parent != nil {
 		ctx.parent.sendSystemMessage(otherStopped)
 	}
-	ctx.state = stateStopped
+	atomic.StoreInt32(&ctx.state, stateStopped)
 }
 
 //
