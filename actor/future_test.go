@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,6 +70,19 @@ func TestFuture_PipeTo_TimeoutSendsError(t *testing.T) {
 	p2.AssertExpectations(t)
 	p3.AssertExpectations(t)
 	assert.Empty(t, fp.pipes, "pipes were not cleared")
+}
+
+func TestNewFuture_TimeoutNoRace(t *testing.T) {
+	plog.SetLevel(log.OffLevel)
+	future := NewFuture(1 * time.Microsecond)
+	a := rootContext.Spawn(PropsFromFunc(func(context Context) {
+		switch context.Message().(type) {
+		case *Started:
+			context.Send(future.PID(), EchoResponse{})
+		}
+	}))
+	_ = rootContext.StopFuture(a).Wait()
+	_, _ = future.Result()
 }
 
 func assertFutureSuccess(future *Future, t *testing.T) interface{} {
