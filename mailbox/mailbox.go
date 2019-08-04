@@ -44,9 +44,9 @@ type defaultMailbox struct {
 	schedulerStatus int32
 	userMessages    int32
 	sysMessages     int32
+	suspended       int32
 	invoker         MessageInvoker
 	dispatcher      Dispatcher
-	suspended       int32
 	mailboxStats    []Statistics
 }
 
