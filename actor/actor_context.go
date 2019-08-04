@@ -395,7 +395,7 @@ func (ctx *actorContext) StopFuture(pid *PID) *Future {
 
 // Poison will tell actor to stop after processing current user messages in mailbox.
 func (ctx *actorContext) Poison(pid *PID) {
-	pid.sendUserMessage(&PoisonPill{})
+	pid.sendUserMessage(poisonPillMessage)
 }
 
 // PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.

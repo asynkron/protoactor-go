@@ -157,5 +157,5 @@ func (pid *PID) GracefulPoison() {
 //
 // Deprecated: Use Context.Poison instead
 func (pid *PID) Poison() {
-	pid.sendUserMessage(&PoisonPill{})
+	pid.sendUserMessage(poisonPillMessage)
 }
