@@ -23,7 +23,7 @@ type randomRouterState struct {
 }
 
 func (state *randomRouterState) SetRoutees(routees *actor.PIDSet) {
-	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees)), unsafe.Pointer(&routees))
+	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees)), unsafe.Pointer(routees))
 	values := routees.Values()
 	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.values)), unsafe.Pointer(&values))
 }
