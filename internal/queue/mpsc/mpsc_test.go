@@ -63,6 +63,7 @@ func TestQueue_PushPopOneProducer(t *testing.T) {
 func TestMpscQueueConsistency(t *testing.T) {
 	max := 1000000
 	c := runtime.NumCPU() / 2
+	cmax := max / c
 	var wg sync.WaitGroup
 	wg.Add(1)
 	q := New()
@@ -84,7 +85,7 @@ func TestMpscQueueConsistency(t *testing.T) {
 				t.FailNow()
 			}
 			seen[s] = s
-			if i == max {
+			if i == cmax*c {
 				wg.Done()
 				return
 			}
@@ -93,7 +94,6 @@ func TestMpscQueueConsistency(t *testing.T) {
 
 	for j := 0; j < c; j++ {
 		jj := j
-		cmax := max / c
 		go func() {
 			for i := 0; i < cmax; i++ {
 				if rand.Intn(10) == 0 {
