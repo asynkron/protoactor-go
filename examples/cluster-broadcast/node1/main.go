@@ -15,6 +15,9 @@ import (
 func main () {
 	startNode(8080)
 
+	fmt.Printf("Start other Nodes and press enter to continue")
+	console.ReadLine()
+
 	calcAdd("Eggs", 1)
 	calcAdd("Eggs", 10)
 
