@@ -7,6 +7,8 @@ type hello struct {
 	cluster.Grain
 }
 
+func (*hello) Terminate()  {}
+
 func (h *hello) SayHello(r *HelloRequest, ctx cluster.GrainContext) (*HelloResponse, error) {
 	return &HelloResponse{Message: "hello " + r.Name + " from " + h.ID()}, nil
 }
