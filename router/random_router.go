@@ -23,21 +23,22 @@ type randomRouterState struct {
 }
 
 func (state *randomRouterState) SetRoutees(routees *actor.PIDSet) {
-	state.routees = routees
+	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees)), unsafe.Pointer(routees))
 	values := routees.Values()
-	atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&state.values)), unsafe.Pointer(&values))
+	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.values)), unsafe.Pointer(&values))
 }
 
 func (state *randomRouterState) GetRoutees() *actor.PIDSet {
-	return state.routees
+	return (*actor.PIDSet)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees))))
 }
 
 func (state *randomRouterState) RouteMessage(message interface{}) {
-	if len(*state.values) <= 0{
+	values := (*[]actor.PID)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.values))))
+	if len(*values) <= 0 {
 		log.Println("[ROUTING]RandomRouter route message failed, empty routees")
 		return
 	}
-	pid := randomRoutee(*state.values)
+	pid := randomRoutee(*values)
 	rootContext.Send(&pid, message)
 }
 

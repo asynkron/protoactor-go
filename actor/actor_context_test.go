@@ -2,6 +2,7 @@ package actor
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -48,8 +49,11 @@ func TestActorContext_Stop(t *testing.T) {
 	o.AssertExpectations(t)
 }
 
-func TestActorContext_SendMessage_WithSenderdMiddleware(t *testing.T) {
-	// Define a local context with no-op sender middlware
+func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// Define a local context with no-op sender middleware
 	mw := func(next SenderFunc) SenderFunc {
 		return func(ctx SenderContext, target *PID, envelope *MessageEnvelope) {
 			next(ctx, target, envelope)
@@ -65,6 +69,7 @@ func TestActorContext_SendMessage_WithSenderdMiddleware(t *testing.T) {
 		switch ctx.Message().(type) {
 		case bool:
 			counter++
+			wg.Done()
 		}
 	}))
 
@@ -73,18 +78,21 @@ func TestActorContext_SendMessage_WithSenderdMiddleware(t *testing.T) {
 	// TODO: There should be a better way to wait.
 	timeout := 3 * time.Millisecond
 	ctx.Send(receiver, true)
-	time.Sleep(timeout)
+	wg.Wait()
 	assert.Equal(t, 1, counter)
 
 	// Send a message with Request
 	counter = 0 // Reset the counter
+	wg.Add(1)
 	ctx.Request(receiver, true)
-	time.Sleep(3 * time.Millisecond)
+	wg.Wait()
 	assert.Equal(t, 1, counter)
 
 	// Send a message with RequestFuture
 	counter = 0 // Reset the counter
+	wg.Add(1)
 	ctx.RequestFuture(receiver, true, timeout).Wait()
+	wg.Wait()
 	assert.Equal(t, 1, counter)
 }
 
@@ -98,6 +106,9 @@ func BenchmarkActorContext_ProcessMessageNoMiddleware(b *testing.B) {
 }
 
 func TestActorContext_Respond(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+
 	// Defined a responder actor
 	// It simply echoes a received string.
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
@@ -113,6 +124,7 @@ func TestActorContext_Respond(t *testing.T) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			if deadLetter.PID == nil {
 				gotResponseToNil = true
+				wg.Done()
 			}
 		}
 	})
@@ -129,14 +141,13 @@ func TestActorContext_Respond(t *testing.T) {
 	assert.Equal(t, "Got a string: hello", resStr)
 
 	// Ensure that the responder did not send anything to nil
-	time.Sleep(timeout)
 	assert.False(t, gotResponseToNil)
 
 	// Send a message using Tell
 	rootContext.Send(responder, "hello")
 
 	// Ensure that the responder actually send something to nil
-	time.Sleep(timeout)
+	wg.Wait()
 	assert.True(t, gotResponseToNil)
 
 	// Cleanup
@@ -144,7 +155,6 @@ func TestActorContext_Respond(t *testing.T) {
 }
 
 func TestActorContext_Forward(t *testing.T) {
-
 	// Defined a respond actor
 	// It simply respond the string message
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
@@ -193,7 +203,7 @@ func BenchmarkActorContext_ProcessMessageWithMiddleware(b *testing.B) {
 }
 
 func benchmarkActorContext_SpawnWithMiddlewareN(n int, b *testing.B) {
-	middlwareFn := func(next SenderFunc) SenderFunc {
+	middlewareFn := func(next SenderFunc) SenderFunc {
 		return func(ctx SenderContext, pid *PID, env *MessageEnvelope) {
 			next(ctx, pid, env)
 		}
@@ -201,7 +211,7 @@ func benchmarkActorContext_SpawnWithMiddlewareN(n int, b *testing.B) {
 
 	props := PropsFromProducer(nullProducer)
 	for i := 0; i < n; i++ {
-		props = props.WithSenderMiddleware(middlwareFn)
+		props = props.WithSenderMiddleware(middlewareFn)
 	}
 
 	parent := &actorContext{self: NewLocalPID("foo"), props: props}

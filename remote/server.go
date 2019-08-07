@@ -34,7 +34,11 @@ func Start(address string, options ...RemotingOption) {
 		option(config)
 	}
 
-	address = lis.Addr().String()
+	if config.advertisedAddress != "" {
+		address = config.advertisedAddress
+	} else {
+		address = lis.Addr().String()
+	}
 	actor.ProcessRegistry.RegisterAddressResolver(remoteHandler)
 	actor.ProcessRegistry.Address = address
 

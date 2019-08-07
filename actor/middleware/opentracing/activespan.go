@@ -2,9 +2,10 @@ package opentracing
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/opentracing/opentracing-go"
-	"sync"
 )
 
 var activeSpan = sync.Map{}

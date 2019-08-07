@@ -1,6 +1,6 @@
 package remote
 
-var DefaultSerializerID int32 = 0
+var DefaultSerializerID int32
 var serializers []Serializer
 
 func init() {

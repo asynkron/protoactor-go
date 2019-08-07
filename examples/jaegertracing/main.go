@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/AsynkronIT/goconsole"
+	"io"
+	"math/rand"
+	"time"
+
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/actor/middleware/opentracing"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jaegerlog "github.com/uber/jaeger-client-go/log"
 	"github.com/uber/jaeger-lib/metrics"
-	"io"
-	"math/rand"
-	"time"
 )
 
 func main() {

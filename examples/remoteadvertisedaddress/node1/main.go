@@ -2,8 +2,6 @@ package main
 
 import (
 	"log"
-	"time"
-
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/examples/remotebenchmark/messages"
@@ -11,28 +9,25 @@ import (
 )
 
 func main() {
-	remote.Start("127.0.0.1:8081")
+	remote.Start("127.0.0.1:8081", remote.WithAdvertisedAddress("localhost:8081"))
+	remotePid := actor.NewPID("127.0.0.1:8080", "remote")
 
 	rootContext := actor.EmptyRootContext
 	props := actor.
 		PropsFromFunc(func(context actor.Context) {
 			switch context.Message().(type) {
+			case *actor.Started:
+				message := &messages.Ping{}
+				context.Request(remotePid, message)
+
 			case *messages.Pong:
-				v := context.MessageHeader().Get("test_header")
-				log.Println("Receive pong message with header:" + v)
+				log.Println("Received pong from sender")
 			}
 		})
 
-	pid := rootContext.Spawn(props)
+	rootContext.Spawn(props)
 
-	remotePid := actor.NewPID("127.0.0.1:8080", "remote")
-	rootContext.RequestFuture(remotePid, &messages.StartRemote{
-		Sender: pid,
-	}, 5*time.Second).
-		Wait()
 
-	message := &messages.Ping{}
-	rootContext.Send(remotePid, message)
 
 	console.ReadLine()
 }

@@ -2,6 +2,7 @@ package actor
 
 import (
 	"errors"
+
 	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
@@ -141,7 +142,7 @@ func (props *Props) WithSupervisor(supervisor SupervisorStrategy) *Props {
 	return props
 }
 
-// Assign one or more middlewares to the props
+// Assign one or more middleware to the props
 func (props *Props) WithReceiverMiddleware(middleware ...ReceiverMiddleware) *Props {
 	props.receiverMiddleware = append(props.receiverMiddleware, middleware...)
 

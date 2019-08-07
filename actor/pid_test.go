@@ -10,7 +10,7 @@ import (
 type ShortLivingActor struct {
 }
 
-func (self *ShortLivingActor) Receive(ctx Context) {
+func (sl *ShortLivingActor) Receive(ctx Context) {
 
 }
 

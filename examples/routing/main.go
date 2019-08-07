@@ -17,7 +17,6 @@ func (m *myMessage) Hash() string {
 }
 
 func main() {
-
 	log.Println("Round robin routing:")
 
 	rootContext := actor.EmptyRootContext

@@ -66,7 +66,6 @@ func NewCreateChildThenStopActor() Actor {
 }
 
 func TestActorCanStopChildren(t *testing.T) {
-
 	actor := rootContext.Spawn(PropsFromProducer(NewCreateChildThenStopActor))
 	count := 10
 	for i := 0; i < count; i++ {

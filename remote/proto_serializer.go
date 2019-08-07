@@ -2,8 +2,9 @@ package remote
 
 import (
 	"fmt"
-	"github.com/gogo/protobuf/proto"
 	"reflect"
+
+	"github.com/gogo/protobuf/proto"
 )
 
 type protoSerializer struct{}
@@ -27,7 +28,7 @@ func (protoSerializer) Serialize(msg interface{}) ([]byte, error) {
 func (protoSerializer) Deserialize(typeName string, bytes []byte) (interface{}, error) {
 	protoType := proto.MessageType(typeName)
 	if protoType == nil {
-		return nil, fmt.Errorf("Unknown message type %v", typeName)
+		return nil, fmt.Errorf("unknown message type %v", typeName)
 	}
 	t := protoType.Elem()
 

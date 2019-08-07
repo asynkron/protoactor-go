@@ -1,4 +1,3 @@
-
 package shared
 
 import (
@@ -38,11 +37,10 @@ type Hello interface {
 	Terminate()
 		
 	SayHello(*HelloRequest, cluster.GrainContext) (*HelloResponse, error)
-		
+
 	Add(*AddRequest, cluster.GrainContext) (*AddResponse, error)
-		
+
 	VoidFunc(*AddRequest, cluster.GrainContext) (*Unit, error)
-		
 }
 
 // HelloGrain holds the base data for the HelloGrain
@@ -85,7 +83,8 @@ func (g *HelloGrain) SayHelloWithOpts(r *HelloRequest, opts *cluster.GrainCallOp
 				return nil, errors.New("unknown response")
 			}
 		}
-	
+	}
+
 	var res *HelloResponse
 	var err error
 	for i := 0; i < opts.RetryCount; i++ {
@@ -156,7 +155,8 @@ func (g *HelloGrain) AddWithOpts(r *AddRequest, opts *cluster.GrainCallOptions) 
 				return nil, errors.New("unknown response")
 			}
 		}
-	
+	}
+
 	var res *AddResponse
 	var err error
 	for i := 0; i < opts.RetryCount; i++ {
@@ -227,7 +227,8 @@ func (g *HelloGrain) VoidFuncWithOpts(r *AddRequest, opts *cluster.GrainCallOpti
 				return nil, errors.New("unknown response")
 			}
 		}
-	
+	}
+
 	var res *Unit
 	var err error
 	for i := 0; i < opts.RetryCount; i++ {
@@ -262,7 +263,6 @@ func (g *HelloGrain) VoidFuncChanWithOpts(r *AddRequest, opts *cluster.GrainCall
 	}()
 	return c, e
 }
-	
 
 // HelloActor represents the actor structure
 type HelloActor struct {
@@ -289,7 +289,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 
 	case *cluster.GrainRequest:
 		switch msg.MethodIndex {
-			
+
 		case 0:
 			req := &HelloRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
@@ -308,7 +308,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 			}
-			
+
 		case 1:
 			req := &AddRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
@@ -327,7 +327,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 			}
-			
+
 		case 2:
 			req := &AddRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
@@ -346,7 +346,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 			}
-		
+
 		}
 	default:
 		log.Printf("Unknown message %v", msg)

@@ -46,7 +46,8 @@ func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 
 func (state *consistentHashRouterState) GetRoutees() *actor.PIDSet {
 	var routees actor.PIDSet
-	for _, v := range state.hmc.routeeMap {
+	hmc := (*hashmapContainer)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.hmc))))
+	for _, v := range hmc.routeeMap {
 		routees.Add(v)
 	}
 	return &routees
@@ -57,7 +58,7 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 	switch msg := uwpMsg.(type) {
 	case Hasher:
 		key := msg.Hash()
-		hmc := state.hmc
+		hmc := (*hashmapContainer)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.hmc))))
 
 		node, ok := hmc.hashring.GetNode(key)
 		if !ok {
@@ -67,7 +68,7 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 		if routee, ok := hmc.routeeMap[node]; ok {
 			rootContext.Send(routee, message)
 		} else {
-			log.Println("[ROUTING] Consisten router failed to resolve node", node)
+			log.Println("[ROUTING] Consistent router failed to resolve node", node)
 		}
 	default:
 		log.Println("[ROUTING] Message must implement router.Hasher", msg)

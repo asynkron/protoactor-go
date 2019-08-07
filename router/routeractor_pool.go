@@ -64,5 +64,10 @@ func (a *poolRouterActor) Receive(context actor.Context) {
 		})
 
 		context.Respond(&Routees{routees})
+	case *actor.Terminated:
+		r := a.state.GetRoutees()
+		if r.Remove(m.Who) {
+			a.state.SetRoutees(r)
+		}
 	}
 }

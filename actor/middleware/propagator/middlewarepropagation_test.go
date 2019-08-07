@@ -1,14 +1,14 @@
 package propagator
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
+
+	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPropagator(t *testing.T) {
-
 	mutex := &sync.Mutex{}
 	spawningCounter := 0
 

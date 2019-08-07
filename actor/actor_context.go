@@ -2,16 +2,15 @@ package actor
 
 import (
 	"errors"
+	"sync/atomic"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 )
 
-type contextState int32
-
 const (
-	stateNone contextState = iota
+	stateNone int32 = iota
 	stateAlive
 	stateRestarting
 	stateStopping
@@ -94,7 +93,7 @@ type actorContext struct {
 	receiveTimeout    time.Duration
 	producer          Producer
 	messageOrEnvelope interface{}
-	state             contextState
+	state             int32
 }
 
 func newActorContext(props *Props, parent *PID) *actorContext {
@@ -244,7 +243,7 @@ func (ctx *actorContext) AwaitFuture(f *Future, cont func(res interface{}, err e
 	message := ctx.messageOrEnvelope
 	// invoke the callback when the future completes
 	f.continueWith(func(res interface{}, err error) {
-		// send the wrapped callaback as a continuation message to self
+		// send the wrapped callback as a continuation message to self
 		ctx.self.sendSystemMessage(&continuation{
 			f:       wrapper,
 			message: message,
@@ -286,13 +285,13 @@ func (ctx *actorContext) Request(pid *PID, message interface{}) {
 	ctx.sendUserMessage(pid, env)
 }
 
-func (rc *actorContext) RequestWithCustomSender(pid *PID, message interface{}, sender *PID) {
+func (ctx *actorContext) RequestWithCustomSender(pid *PID, message interface{}, sender *PID) {
 	env := &MessageEnvelope{
 		Header:  nil,
 		Message: message,
 		Sender:  sender,
 	}
-	rc.sendUserMessage(pid, env)
+	ctx.sendUserMessage(pid, env)
 }
 
 func (ctx *actorContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
@@ -354,7 +353,7 @@ func (ctx *actorContext) SpawnPrefix(props *Props, prefix string) *PID {
 
 func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	if props.guardianStrategy != nil {
-		panic(errors.New("Props used to spawn child cannot have GuardianStrategy"))
+		panic(errors.New("props used to spawn child cannot have GuardianStrategy"))
 	}
 
 	var pid *PID
@@ -395,7 +394,7 @@ func (ctx *actorContext) StopFuture(pid *PID) *Future {
 
 // Poison will tell actor to stop after processing current user messages in mailbox.
 func (ctx *actorContext) Poison(pid *PID) {
-	pid.sendUserMessage(&PoisonPill{})
+	pid.sendUserMessage(poisonPillMessage)
 }
 
 // PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
@@ -413,7 +412,7 @@ func (ctx *actorContext) PoisonFuture(pid *PID) *Future {
 //
 
 func (ctx *actorContext) InvokeUserMessage(md interface{}) {
-	if ctx.state == stateStopped {
+	if atomic.LoadInt32(&ctx.state) == stateStopped {
 		// already stopped
 		return
 	}
@@ -451,7 +450,7 @@ func (ctx *actorContext) processMessage(m interface{}) {
 }
 
 func (ctx *actorContext) incarnateActor() {
-	ctx.state = stateAlive
+	atomic.StoreInt32(&ctx.state, stateAlive)
 	ctx.actor = ctx.props.producer()
 }
 
@@ -485,7 +484,7 @@ func (ctx *actorContext) handleRootFailure(failure *Failure) {
 }
 
 func (ctx *actorContext) handleWatch(msg *Watch) {
-	if ctx.state >= stateStopping {
+	if atomic.LoadInt32(&ctx.state) >= stateStopping {
 		msg.Watcher.sendSystemMessage(&Terminated{
 			Who: ctx.self,
 		})
@@ -502,7 +501,7 @@ func (ctx *actorContext) handleUnwatch(msg *Unwatch) {
 }
 
 func (ctx *actorContext) handleRestart(msg *Restart) {
-	ctx.state = stateRestarting
+	atomic.StoreInt32(&ctx.state, stateRestarting)
 	ctx.InvokeUserMessage(restartingMessage)
 	ctx.stopAllChildren()
 	ctx.tryRestartOrTerminate()
@@ -510,12 +509,12 @@ func (ctx *actorContext) handleRestart(msg *Restart) {
 
 // I am stopping
 func (ctx *actorContext) handleStop(msg *Stop) {
-	if ctx.state >= stateStopping {
+	if atomic.LoadInt32(&ctx.state) >= stateStopping {
 		// already stopping or stopped
 		return
 	}
 
-	ctx.state = stateStopping
+	atomic.StoreInt32(&ctx.state, stateStopping)
 
 	ctx.InvokeUserMessage(stoppingMessage)
 	ctx.stopAllChildren()
@@ -557,7 +556,7 @@ func (ctx *actorContext) tryRestartOrTerminate() {
 
 	ctx.CancelReceiveTimeout()
 
-	switch ctx.state {
+	switch atomic.LoadInt32(&ctx.state) {
 	case stateRestarting:
 		ctx.restart()
 	case stateStopping:
@@ -591,7 +590,7 @@ func (ctx *actorContext) finalizeStop() {
 	if ctx.parent != nil {
 		ctx.parent.sendSystemMessage(otherStopped)
 	}
-	ctx.state = stateStopped
+	atomic.StoreInt32(&ctx.state, stateStopped)
 }
 
 //

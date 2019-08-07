@@ -28,6 +28,7 @@ func (i *invoker) InvokeSystemMessage(interface{}) {
 		log.Println("Unexpected data..")
 	}
 }
+
 func (i *invoker) InvokeUserMessage(interface{}) {
 	i.count++
 	if i.count == i.max {
@@ -37,6 +38,7 @@ func (i *invoker) InvokeUserMessage(interface{}) {
 		log.Println("Unexpected data..")
 	}
 }
+
 func (*invoker) EscalateFailure(reason interface{}, message interface{}) {}
 
 func TestUnboundedLockfreeMailboxUsermessageConsistency(t *testing.T) {
@@ -54,14 +56,14 @@ func TestUnboundedLockfreeMailboxUsermessageConsistency(t *testing.T) {
 
 	for j := 0; j < c; j++ {
 		cmax := max / c
-		go func() {
+		go func(j int) {
 			for i := 0; i < cmax; i++ {
 				if rand.Intn(10) == 0 {
 					time.Sleep(time.Duration(rand.Intn(1000)))
 				}
 				q.PostUserMessage(fmt.Sprintf("%v %v", j, i))
 			}
-		}()
+		}(j)
 	}
 	wg.Wait()
 	time.Sleep(1 * time.Second)
@@ -90,7 +92,7 @@ func TestUnboundedLockfreeMailboxSysMessageConsistency(t *testing.T) {
 
 	for j := 0; j < c; j++ {
 		cmax := max / c
-		go func() {
+		go func(j int) {
 			for i := 0; i < cmax; i++ {
 				if rand.Intn(10) == 0 {
 					time.Sleep(time.Duration(rand.Intn(100)))
@@ -100,7 +102,7 @@ func TestUnboundedLockfreeMailboxSysMessageConsistency(t *testing.T) {
 						value: fmt.Sprintf("%v %v", j, i),
 					})
 			}
-		}()
+		}(j)
 	}
 	wg.Wait()
 	time.Sleep(1 * time.Second)

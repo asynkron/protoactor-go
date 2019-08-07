@@ -3,7 +3,9 @@ package actor
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 	"time"
+	"unsafe"
 
 	"github.com/AsynkronIT/protoactor-go/log"
 )
@@ -23,10 +25,17 @@ func NewFuture(d time.Duration) *Future {
 
 	ref.pid = pid
 	if d >= 0 {
-		ref.t = time.AfterFunc(d, func() {
+		tp := time.AfterFunc(d, func() {
+			ref.cond.L.Lock()
+			if ref.done {
+				ref.cond.L.Unlock()
+				return
+			}
 			ref.err = ErrTimeout
+			ref.cond.L.Unlock()
 			ref.Stop(pid)
 		})
+		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&ref.t)), unsafe.Pointer(tp))
 	}
 
 	return &ref.Future
@@ -130,8 +139,9 @@ func (ref *futureProcess) Stop(pid *PID) {
 	}
 
 	ref.done = true
-	if ref.t != nil {
-		ref.t.Stop()
+	tp := (*time.Timer)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&ref.t))))
+	if tp != nil {
+		tp.Stop()
 	}
 	ProcessRegistry.Remove(pid)
 
