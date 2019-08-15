@@ -27,6 +27,7 @@ type endpointManagerValue struct {
 	config             *remoteConfig
 	endpointSupervisor *actor.PID
 	endpointSub        *eventstream.Subscription
+	stopped            bool
 }
 
 func startEndpointManager(config *remoteConfig) {
@@ -60,7 +61,8 @@ func stopEndpointManager() {
 	rootContext.StopFuture(endpointManager.endpointSupervisor).Wait()
 	endpointManager.endpointSub = nil
 	endpointManager.connections = nil
-	plog.Debug("Stopped EndpointManager")
+	endpointManager.stopped = true
+	plog.Info("Stopped EndpointManager")
 }
 
 func (em *endpointManagerValue) endpointEvent(evn interface{}) {

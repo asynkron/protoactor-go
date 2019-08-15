@@ -2,6 +2,7 @@ package remote
 
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/eventstream"
 )
 
 type process struct {
@@ -15,6 +16,11 @@ func newProcess(pid *actor.PID) actor.Process {
 }
 
 func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
+	if endpointManager.stopped {
+		ref.publishDeadLetter(pid, message)
+		return
+	}
+
 	header, msg, sender := actor.UnwrapEnvelope(message)
 	SendMessage(pid, header, msg, sender, -1)
 }
@@ -32,6 +38,10 @@ func SendMessage(pid *actor.PID, header actor.ReadonlyMessageHeader, message int
 }
 
 func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
+	if endpointManager.stopped {
+		ref.publishDeadLetter(pid, message)
+		return
+	}
 
 	// intercept any Watch messages and direct them to the endpoint manager
 	switch msg := message.(type) {
@@ -54,4 +64,12 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 
 func (ref *process) Stop(pid *actor.PID) {
 	ref.SendSystemMessage(pid, stopMessage)
+}
+
+func (ref *process) publishDeadLetter(receiver *actor.PID, message interface{}) {
+	eventstream.Publish(&actor.DeadLetterEvent{
+		PID:     receiver,
+		Message: message,
+		Sender:  ref.pid,
+	})
 }
