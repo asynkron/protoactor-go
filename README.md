@@ -175,8 +175,8 @@ func main() {
     if err != nil {
         panic(err)
     }
-    context.Send(Hello{Who: "Roger"})
-    context.Send(Hello{Who: "Roger"})
+    context.Send(pid, Hello{Who: "Roger"})
+    context.Send(pid, Hello{Who: "Roger"})
     console.ReadLine()
 }
 ```
