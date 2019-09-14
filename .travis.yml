@@ -1,3 +1,24 @@
 language: go
+sudo: false
+
+env:
+  - GO111MODULE=on
+
+git:
+  depth: 1
+
+go:
+  - 1.12.x
+  - 1.13.x
+  - tip
+
+before_script:
+  - go get github.com/mattn/goveralls
+
 script:
-  - env GO111MODULE=on go test ./... -short
+  - go test -v -race -short -coverprofile=coverage.out ./...
+  - $GOPATH/bin/goveralls -coverprofile=coverage.out -service=travis-ci
+
+matrix:
+  allow_failures:
+    - go: tip
