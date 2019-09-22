@@ -77,11 +77,7 @@ func Spawn(address, kind string, timeout time.Duration) (*ActorPidResponse, erro
 
 // SpawnNamed spawns a named remote actor of a given type at a given address
 func SpawnNamed(address, name, kind string, timeout time.Duration) (*ActorPidResponse, error) {
-	activator := ActivatorForAddress(address)
-	res, err := rootContext.RequestFuture(activator, &ActorPidRequest{
-		Name: name,
-		Kind: kind,
-	}, timeout).Result()
+	res, err := SpawnFuture(address, name, kind, timeout).Result()
 	if err != nil {
 		return nil, err
 	}
