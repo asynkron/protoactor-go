@@ -9,10 +9,10 @@ import (
 	"fmt"
 
 	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/examples/remotelatency/messages"
-	"github.com/AsynkronIT/protoactor-go/mailbox"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/otherview/protoactor-go/actor"
+	"github.com/otherview/protoactor-go/examples/remotelatency/messages"
+	"github.com/otherview/protoactor-go/mailbox"
+	"github.com/otherview/protoactor-go/remote"
 )
 
 type remoteActor struct {

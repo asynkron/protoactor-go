@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/otherview/protoactor-go/actor"
 )
 
 type roundRobinGroupRouter struct {

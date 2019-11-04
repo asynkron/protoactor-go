@@ -10,9 +10,9 @@ import (
 	"math"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/otherview/protoactor-go/actor"
+	"github.com/otherview/protoactor-go/cluster"
+	"github.com/otherview/protoactor-go/remote"
 	"github.com/gogo/protobuf/proto"
 )
 

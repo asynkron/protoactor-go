@@ -3,8 +3,8 @@ package cluster
 import (
 	"sync"
 
-	"github.com/AsynkronIT/protoactor-go/eventstream"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/otherview/protoactor-go/eventstream"
+	"github.com/otherview/protoactor-go/remote"
 )
 
 var memberList *memberListValue

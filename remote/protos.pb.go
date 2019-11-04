@@ -23,7 +23,7 @@ import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
 import _ "github.com/gogo/protobuf/gogoproto"
-import actor "github.com/AsynkronIT/protoactor-go/actor"
+import actor "github.com/otherview/protoactor-go/actor"
 
 import bytes "bytes"
 

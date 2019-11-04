@@ -16,18 +16,18 @@ Proto.Actor uses tags to categorise issues into groups or mark their phase in de
 
 Most notably many tags start with a `t:` prefix (as in `topic:`), which categorises issues in terms of which module they relate to. Examples are:
 
-- [t:actor](https://github.com/AsynkronIT/protoactor-go/labels/t%3Aactor)
-- [t:remote](https://github.com/AsynkronIT/protoactor-go/labels/t%3Aremote)
-- [t:cluster](https://github.com/AsynkronIT/protoactor-go/labels/t%3Acluster)
-- [t:router](https://github.com/AsynkronIT/protoactor-go/labels/t%3Arouter)
-- [See all labels](https://github.com/AsynkronIT/protoactor-go/labels)
+- [t:actor](https://github.com/otherview/protoactor-go/labels/t%3Aactor)
+- [t:remote](https://github.com/otherview/protoactor-go/labels/t%3Aremote)
+- [t:cluster](https://github.com/otherview/protoactor-go/labels/t%3Acluster)
+- [t:router](https://github.com/otherview/protoactor-go/labels/t%3Arouter)
+- [See all labels](https://github.com/otherview/protoactor-go/labels)
 
 
 In general *all issues are open for anyone working on them*, however if you're new to the project and looking for an issue
 that will be accepted and likely is a nice one to get started you should check out the following tags:
 
-- [community](https://github.com/AsynkronIT/protoactor-go/labels/community) - which identifies issues that the core team will likely not have time to work on, or the issue is a nice entry level ticket. If you're not sure how to solve a ticket but would like to work on it feel free to ask in the issue about clarification or tips.
-- [nice-to-have (low-priority)](https://github.com/AsynkronIT/protoactor-go/labels/nice-to-have) - are tasks which make sense, however are not very high priority (in face of other very high priority issues). If you see something interesting in this list, a contribution would be really wonderful!
+- [community](https://github.com/otherview/protoactor-go/labels/community) - which identifies issues that the core team will likely not have time to work on, or the issue is a nice entry level ticket. If you're not sure how to solve a ticket but would like to work on it feel free to ask in the issue about clarification or tips.
+- [nice-to-have (low-priority)](https://github.com/otherview/protoactor-go/labels/nice-to-have) - are tasks which make sense, however are not very high priority (in face of other very high priority issues). If you see something interesting in this list, a contribution would be really wonderful!
 
 Another group of tickets are those which start from a number. They're used to signal in what phase of development an issue is:
 
@@ -38,7 +38,7 @@ Another group of tickets are those which start from a number. They're used to si
 
 The last group of special tags indicate specific states a ticket is in:
 
-- [bug](https://github.com/AsynkronIT/protoactor-go/labels/bug) - bugs take priority in being fixed above features. The core team dedicates a number of days to working on bugs each sprint. Bugs which have reproducers are also great for community contributions as they're well isolated. Sometimes we're not as lucky to have reproducers though, then a bugfix should also include a test reproducing the original error along with the fix.
+- [bug](https://github.com/otherview/protoactor-go/labels/bug) - bugs take priority in being fixed above features. The core team dedicates a number of days to working on bugs each sprint. Bugs which have reproducers are also great for community contributions as they're well isolated. Sometimes we're not as lucky to have reproducers though, then a bugfix should also include a test reproducing the original error along with the fix.
 
 # Proto.Actor contributing guidelines
 
@@ -53,14 +53,14 @@ We encourage changes that make it easier to achieve our goals in an efficient wa
 The steps below describe how to get a patch into a main development branch (e.g. `dev`). 
 The steps are exactly the same for everyone involved in the project (be it core team, or first time contributor).
 
-1. Make sure an issue exists in the [issue tracker](https://github.com/AsynkronIT/protoactor-go/issues) for the work you want to contribute. 
-   - If there is no ticket for it, [create one](https://github.com/AsynkronIT/protoactor-go/issues/new) first.
-1. [Fork the project](https://github.com/AsynkronIT/protoactor-go#fork-destination-box) on GitHub. You'll need to create a feature-branch for your work on your fork, as this way you'll be able to submit a pull request against the mainline Proto.Actor.
+1. Make sure an issue exists in the [issue tracker](https://github.com/otherview/protoactor-go/issues) for the work you want to contribute. 
+   - If there is no ticket for it, [create one](https://github.com/otherview/protoactor-go/issues/new) first.
+1. [Fork the project](https://github.com/otherview/protoactor-go#fork-destination-box) on GitHub. You'll need to create a feature-branch for your work on your fork, as this way you'll be able to submit a pull request against the mainline Proto.Actor.
 1. Create a branch on your fork and work on the feature. For example: `git checkout -b wip-custom-serialization-protoactor`
    - Please make sure to follow the general quality guidelines (specified below) when developing your patch.
    - Please write additional tests covering your feature and adjust existing ones if needed before submitting your pull request. 
 1. Once your feature is complete, prepare the commit following our [Creating Commits And Writing Commit Messages](#creating-commits-and-writing-commit-messages). For example, a good commit message would be: `Adding compression support for Manifests #22222` (note the reference to the ticket it aimed to resolve).
-1. If it's a new feature, or a change of behaviour, document it on the [Proto.Actor-docs](https://github.com/AsynkronIT/gam-web/tree/master/src/docs), remember, an undocumented feature is not a feature.
+1. If it's a new feature, or a change of behaviour, document it on the [Proto.Actor-docs](https://github.com/otherview/gam-web/tree/master/src/docs), remember, an undocumented feature is not a feature.
 1. Now it's finally time to [submit the pull request](https://help.github.com/articles/using-pull-requests)!
 1. If you have not already done so, you will be asked by our CLA bot to [sign the Asynkron CLA](https://cla-assistant.io/AsynkronIT/protoactor-go) online. CLA stands for Contributor License Agreement and is a way of protecting intellectual property disputes from harming the project.
 1. Now both committers and interested people will review your code. This process is to ensure the code we merge is of the best possible quality, and that no silly mistakes slip though. You're expected to follow-up these comments by adding new commits to the same branch. The commit messages of those commits can be more lose, for example: `Removed debugging using printline`, as they all will be squashed into one commit before merging into the main branch.
@@ -170,4 +170,4 @@ Each project should be configured to use a continuous integration (CI) tool (i.e
 ## Related links
 
 * [Proto.Actor Contributor License Agreement](https://cla-assistant.io/AsynkronIT/protoactor-go)
-* [Proto.Actor Issue Tracker](https://github.com/AsynkronIT/protoactor-go/issues)
+* [Proto.Actor Issue Tracker](https://github.com/otherview/protoactor-go/issues)

@@ -12,8 +12,8 @@ import (
 
 	"encoding/json"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/otherview/protoactor-go/actor"
+	"github.com/otherview/protoactor-go/remote"
 	"github.com/gogo/protobuf/proto"
 )
 

@@ -1,7 +1,7 @@
 package propagator
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/otherview/protoactor-go/actor"
 )
 
 type MiddlewarePropagator struct {

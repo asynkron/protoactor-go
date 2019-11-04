@@ -51,6 +51,7 @@ bld/
 .fake/
 TestResults/
 PerfResults/
+.vscode/
 
 # Visual Studo 2015 cache/options directory
 .vs/

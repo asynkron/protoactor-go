@@ -2,7 +2,7 @@ package shared
 
 import (
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/otherview/protoactor-go/cluster"
 )
 
 type TrackGrain struct {

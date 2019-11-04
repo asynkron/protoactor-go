@@ -1,8 +1,8 @@
 package actor
 
 import (
-	"github.com/AsynkronIT/protoactor-go/eventstream"
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/otherview/protoactor-go/eventstream"
+	"github.com/otherview/protoactor-go/log"
 )
 
 // SupervisorEvent is sent on the EventStream when a supervisor have applied a directive to a failing child actor

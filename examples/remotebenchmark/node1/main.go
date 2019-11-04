@@ -5,9 +5,9 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/examples/remotebenchmark/messages"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/otherview/protoactor-go/actor"
+	"github.com/otherview/protoactor-go/examples/remotebenchmark/messages"
+	"github.com/otherview/protoactor-go/remote"
 
 	"log"
 	"sync"
@@ -15,7 +15,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/mailbox"
+	"github.com/otherview/protoactor-go/mailbox"
 )
 
 type localActor struct {

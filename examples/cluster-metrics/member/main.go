@@ -6,12 +6,12 @@ import (
 	"time"
 
 	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
-	"github.com/AsynkronIT/protoactor-go/examples/cluster/shared"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/otherview/protoactor-go/actor"
+	"github.com/otherview/protoactor-go/cluster"
+	"github.com/otherview/protoactor-go/cluster/consul"
+	"github.com/otherview/protoactor-go/eventstream"
+	"github.com/otherview/protoactor-go/examples/cluster/shared"
+	"github.com/otherview/protoactor-go/remote"
 )
 
 // Logger is message middleware which logs messages before continuing to the next middleware

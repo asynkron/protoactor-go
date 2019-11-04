@@ -1,6 +1,6 @@
 syntax = "proto3";
 package messages;
-import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
+import "github.com/otherview/protoactor-go/actor/protos.proto";
 
 message Ping {}
 message Pong {}

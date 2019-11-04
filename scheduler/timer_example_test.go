@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/scheduler"
+	"github.com/otherview/protoactor-go/actor"
+	"github.com/otherview/protoactor-go/scheduler"
 )
 
 // Use the timer scheduler to repeatedly send messages to an actor.

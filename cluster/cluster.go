@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/gonet"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/otherview/protoactor-go/actor"
+	"github.com/otherview/protoactor-go/log"
+	"github.com/otherview/protoactor-go/remote"
 )
 
 var cfg *ClusterConfig

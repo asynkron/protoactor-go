@@ -3,7 +3,7 @@ package weighted
 import (
 	"strconv"
 
-	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/otherview/protoactor-go/cluster"
 )
 
 type WeightedMemberStatusValue struct {

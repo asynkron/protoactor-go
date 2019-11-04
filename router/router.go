@@ -1,6 +1,6 @@
 package router
 
-import "github.com/AsynkronIT/protoactor-go/actor"
+import "github.com/otherview/protoactor-go/actor"
 
 // router root context
 var rootContext = actor.EmptyRootContext

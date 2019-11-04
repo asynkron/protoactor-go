@@ -9,8 +9,8 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/mailbox"
+	"github.com/otherview/protoactor-go/actor"
+	"github.com/otherview/protoactor-go/mailbox"
 )
 
 type request struct {

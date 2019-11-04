@@ -2,7 +2,7 @@ package messages
 
 import (
 	fmt "fmt"
-	_ "github.com/AsynkronIT/protoactor-go/actor"
+	_ "github.com/otherview/protoactor-go/actor"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"

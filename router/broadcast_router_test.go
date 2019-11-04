@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/otherview/protoactor-go/actor"
 )
 
 func TestBroadcastRouterThreadSafe(t *testing.T) {

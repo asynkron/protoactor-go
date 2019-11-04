@@ -1,6 +1,6 @@
 package actor
 
-import "github.com/AsynkronIT/protoactor-go/eventstream"
+import "github.com/otherview/protoactor-go/eventstream"
 
 type optionFn func()
 

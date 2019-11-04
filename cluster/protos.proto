@@ -2,7 +2,7 @@ syntax = "proto3";
 package cluster;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
+import "github.com/otherview/protoactor-go/actor/protos.proto";
 
 option (gogoproto.gostring_all) = false;
 

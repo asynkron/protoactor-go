@@ -3,7 +3,7 @@ package weighted
 import (
 	"sync"
 
-	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/otherview/protoactor-go/cluster"
 )
 
 type WeightedRoundRobin struct {

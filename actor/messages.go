@@ -1,6 +1,6 @@
 package actor
 
-import "github.com/AsynkronIT/protoactor-go/mailbox"
+import "github.com/otherview/protoactor-go/mailbox"
 
 // An AutoReceiveMessage is a special kind of user message that will be handled in some way automatically by the actor
 type AutoReceiveMessage interface {

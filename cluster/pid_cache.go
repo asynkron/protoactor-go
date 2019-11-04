@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
+	"github.com/otherview/protoactor-go/actor"
+	"github.com/otherview/protoactor-go/eventstream"
 	cmap "github.com/orcaman/concurrent-map"
 )
 
