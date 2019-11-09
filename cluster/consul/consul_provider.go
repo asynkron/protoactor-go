@@ -172,7 +172,7 @@ func (p *ConsulProvider) blockingStatusChange() {
 }
 
 func (p *ConsulProvider) notifyStatuses() {
-	statuses, meta, err := p.client.Health().Service(p.clusterName, "", false, &api.QueryOptions{
+	statuses, meta, err := p.client.Health().Service(p.clusterName, "", true, &api.QueryOptions{
 		WaitIndex: p.index,
 		WaitTime:  p.blockingWaitTime,
 	})

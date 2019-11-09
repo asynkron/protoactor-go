@@ -59,7 +59,7 @@ func (g *CalculatorGrain) Add(r *NumberRequest) (*CountResponse, error) {
 func (g *CalculatorGrain) AddWithOpts(r *NumberRequest, opts *cluster.GrainCallOptions) (*CountResponse, error) {
 	fun := func() (*CountResponse, error) {
 			pid, statusCode := cluster.Get(g.ID, "Calculator")
-			if statusCode != remote.ResponseStatusCodeOK {
+			if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
 				return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 			}
 			bytes, err := proto.Marshal(r)
@@ -130,7 +130,7 @@ func (g *CalculatorGrain) Subtract(r *NumberRequest) (*CountResponse, error) {
 func (g *CalculatorGrain) SubtractWithOpts(r *NumberRequest, opts *cluster.GrainCallOptions) (*CountResponse, error) {
 	fun := func() (*CountResponse, error) {
 			pid, statusCode := cluster.Get(g.ID, "Calculator")
-			if statusCode != remote.ResponseStatusCodeOK {
+			if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
 				return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 			}
 			bytes, err := proto.Marshal(r)
@@ -201,7 +201,7 @@ func (g *CalculatorGrain) GetCurrent(r *Noop) (*CountResponse, error) {
 func (g *CalculatorGrain) GetCurrentWithOpts(r *Noop, opts *cluster.GrainCallOptions) (*CountResponse, error) {
 	fun := func() (*CountResponse, error) {
 			pid, statusCode := cluster.Get(g.ID, "Calculator")
-			if statusCode != remote.ResponseStatusCodeOK {
+			if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
 				return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 			}
 			bytes, err := proto.Marshal(r)
@@ -282,7 +282,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 		}
 	case *actor.ReceiveTimeout:
 		a.inner.Terminate()
-		rootContext.PoisonFuture(ctx.Self()).Wait()
+		ctx.Self().Poison()
 
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
@@ -393,7 +393,7 @@ func (g *TrackerGrain) RegisterGrain(r *RegisterMessage) (*Noop, error) {
 func (g *TrackerGrain) RegisterGrainWithOpts(r *RegisterMessage, opts *cluster.GrainCallOptions) (*Noop, error) {
 	fun := func() (*Noop, error) {
 			pid, statusCode := cluster.Get(g.ID, "Tracker")
-			if statusCode != remote.ResponseStatusCodeOK {
+			if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
 				return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 			}
 			bytes, err := proto.Marshal(r)
@@ -464,7 +464,7 @@ func (g *TrackerGrain) DeregisterGrain(r *RegisterMessage) (*Noop, error) {
 func (g *TrackerGrain) DeregisterGrainWithOpts(r *RegisterMessage, opts *cluster.GrainCallOptions) (*Noop, error) {
 	fun := func() (*Noop, error) {
 			pid, statusCode := cluster.Get(g.ID, "Tracker")
-			if statusCode != remote.ResponseStatusCodeOK {
+			if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
 				return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 			}
 			bytes, err := proto.Marshal(r)
@@ -535,7 +535,7 @@ func (g *TrackerGrain) BroadcastGetCounts(r *Noop) (*TotalsResponse, error) {
 func (g *TrackerGrain) BroadcastGetCountsWithOpts(r *Noop, opts *cluster.GrainCallOptions) (*TotalsResponse, error) {
 	fun := func() (*TotalsResponse, error) {
 			pid, statusCode := cluster.Get(g.ID, "Tracker")
-			if statusCode != remote.ResponseStatusCodeOK {
+			if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
 				return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 			}
 			bytes, err := proto.Marshal(r)
@@ -616,7 +616,7 @@ func (a *TrackerActor) Receive(ctx actor.Context) {
 		}
 	case *actor.ReceiveTimeout:
 		a.inner.Terminate()
-		rootContext.PoisonFuture(ctx.Self()).Wait()
+		ctx.Self().Poison()
 
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
