@@ -31,10 +31,13 @@ type ConsulProvider struct {
 }
 
 func New() (*ConsulProvider, error) {
-	return NewWithConfig(&api.Config{})
+	return NewWithConfig(&api.Config{},
+		30 * time.Second,
+		10 * time.Second,
+	)
 }
 
-func NewWithConfig(consulConfig *api.Config) (*ConsulProvider, error) {
+func NewWithConfig(consulConfig *api.Config, deregisterCritical time.Duration, blockingWaitTime time.Duration) (*ConsulProvider, error) {
 	client, err := api.NewClient(consulConfig)
 	if err != nil {
 		return nil, err
@@ -43,8 +46,8 @@ func NewWithConfig(consulConfig *api.Config) (*ConsulProvider, error) {
 		client:             client,
 		ttl:                3 * time.Second,
 		refreshTTL:         1 * time.Second,
-		deregisterCritical: 60 * time.Second,
-		blockingWaitTime:   20 * time.Second,
+		deregisterCritical: deregisterCritical,
+		blockingWaitTime:   blockingWaitTime,
 	}
 	return p, nil
 }
