@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"github.com/otherview/protoactor-go/remote"
 	"log"
 	"time"
 
@@ -103,6 +104,12 @@ func (p *ConsulProvider) Shutdown() error {
 func (p *ConsulProvider) UpdateTTL() {
 	go func() {
 		for !p.shutdown {
+
+			newKinds := remote.GetKnownKinds()
+			if len(newKinds) != len(p.knownKinds) {
+				p.knownKinds = newKinds
+				p.registerService()
+			}
 
 			err := p.blockingUpdateTTL()
 			if err == nil {

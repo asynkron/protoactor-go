@@ -28,6 +28,11 @@ func Register(kind string, props *actor.Props) {
 	nameLookup[kind] = *props
 }
 
+// Deregister a known actor props by name
+func Deregister(kind string) {
+	delete(nameLookup, kind)
+}
+
 // GetKnownKinds returns a slice of known actor "kinds"
 func GetKnownKinds() []string {
 	keys := make([]string, 0, len(nameLookup))
