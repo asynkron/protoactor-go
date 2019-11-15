@@ -32,8 +32,8 @@ type ConsulProvider struct {
 
 func New() (*ConsulProvider, error) {
 	return NewWithConfig(&api.Config{},
-		30 * time.Second,
-		10 * time.Second,
+		60 * time.Second,
+		20 * time.Second,
 	)
 }
 
