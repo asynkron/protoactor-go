@@ -8,6 +8,7 @@ const (
 	ResponseStatusCodeTIMEOUT
 	ResponseStatusCodePROCESSNAMEALREADYEXIST
 	ResponseStatusCodeERROR
+	ResponseUnavailableKind
 )
 
 func (c ResponseStatusCode) ToInt32() int32 {

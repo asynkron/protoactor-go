@@ -111,13 +111,13 @@ func (*activator) Receive(context actor.Context) {
 	case *ActorPidRequest:
 		props, exist := nameLookup[msg.Kind]
 
-		// if props not exist, return error and panic
+		// if props not exist, return error
 		if !exist {
 			response := &ActorPidResponse{
-				StatusCode: ResponseStatusCodeERROR.ToInt32(),
+				StatusCode: ResponseUnavailableKind.ToInt32(),
 			}
 			context.Respond(response)
-			panic(fmt.Errorf("no Props found for kind %s", msg.Kind))
+			plog.Error("Started Activator", log.String("no kinds found for actor in this node", msg.Kind))
 		}
 
 		name := msg.Name
