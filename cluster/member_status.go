@@ -20,16 +20,16 @@ type MemberStatusValue interface {
 }
 
 type MemberStatusValueSerializer interface {
-	ToValueBytes(val MemberStatusValue) []byte
-	FromValueBytes(val []byte) MemberStatusValue
+	Serialize(val MemberStatusValue) string
+	Deserialize(val string) MemberStatusValue
 }
 
 type NilMemberStatusValueSerializer struct{}
 
-func (s *NilMemberStatusValueSerializer) ToValueBytes(val MemberStatusValue) []byte {
-	return nil
+func (s *NilMemberStatusValueSerializer) Serialize(val MemberStatusValue) string {
+	return ""
 }
 
-func (s *NilMemberStatusValueSerializer) FromValueBytes(val []byte) MemberStatusValue {
+func (s *NilMemberStatusValueSerializer) Deserialize(val string) MemberStatusValue {
 	return nil
 }

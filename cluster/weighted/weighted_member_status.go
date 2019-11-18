@@ -22,12 +22,12 @@ func (sv *WeightedMemberStatusValue) IsSame(val cluster.MemberStatusValue) bool 
 
 type WeightedMemberStatusValueSerializer struct{}
 
-func (s *WeightedMemberStatusValueSerializer) ToValueBytes(val cluster.MemberStatusValue) []byte {
+func (s *WeightedMemberStatusValueSerializer) Serialize(val cluster.MemberStatusValue) string {
 	dVal, _ := val.(*WeightedMemberStatusValue)
-	return []byte(strconv.Itoa(dVal.Weight))
+	return strconv.Itoa(dVal.Weight)
 }
 
-func (s *WeightedMemberStatusValueSerializer) FromValueBytes(val []byte) cluster.MemberStatusValue {
-	weight, _ := strconv.Atoi(string(val))
+func (s *WeightedMemberStatusValueSerializer) Deserialize(val string) cluster.MemberStatusValue {
+	weight, _ := strconv.Atoi(val)
 	return &WeightedMemberStatusValue{Weight: weight}
 }
