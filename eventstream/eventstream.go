@@ -65,6 +65,14 @@ func (es *EventStream) Publish(evt interface{}) {
 	es.RLock()
 	defer es.RUnlock()
 
+	es.PublishUnsafe(evt)
+}
+
+func PublishUnsafe(evt interface{}) {
+	es.PublishUnsafe(evt)
+}
+
+func (es *EventStream)  PublishUnsafe(evt interface{}) {
 	for _, s := range es.subscriptions {
 		if s.p == nil || s.p(evt) {
 			s.fn(evt)

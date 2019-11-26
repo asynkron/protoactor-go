@@ -106,6 +106,8 @@ func (ml *memberListValue) updateClusterTopology(m interface{}) {
 	}
 }
 
+// updateAndNotify updates the member strategy and notifies all listeners. This function may only be called with an
+// read lock on the event stream.
 func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus) {
 	if new == nil && old == nil {
 		// ignore, not possible
@@ -129,13 +131,13 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: old.Kinds,
 		}
 		left := &MemberLeftEvent{MemberMeta: meta}
-		eventstream.Publish(left)
+		eventstream.PublishUnsafe(left)
 		delete(ml.members, old.Address()) // remove this member as it has left
 
 		rt := &remote.EndpointTerminatedEvent{
 			Address: old.Address(),
 		}
-		eventstream.Publish(rt)
+		eventstream.PublishUnsafe(rt)
 
 		return
 	}
@@ -155,7 +157,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		joined := &MemberJoinedEvent{MemberMeta: meta}
-		eventstream.Publish(joined)
+		eventstream.PublishUnsafe(joined)
 
 		return
 	}
@@ -178,7 +180,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		joined := &MemberRejoinedEvent{MemberMeta: meta}
-		eventstream.Publish(joined)
+		eventstream.PublishUnsafe(joined)
 
 		return
 	}
@@ -190,7 +192,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		unavailable := &MemberUnavailableEvent{MemberMeta: meta}
-		eventstream.Publish(unavailable)
+		eventstream.PublishUnsafe(unavailable)
 
 		return
 	}
@@ -202,6 +204,6 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		available := &MemberAvailableEvent{MemberMeta: meta}
-		eventstream.Publish(available)
+		eventstream.PublishUnsafe(available)
 	}
 }
