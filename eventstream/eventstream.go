@@ -21,6 +21,10 @@ func Publish(event interface{}) {
 	es.Publish(event)
 }
 
+func PublishUnsafe(evt interface{}) {
+	es.PublishUnsafe(evt)
+}
+
 type EventStream struct {
 	sync.RWMutex
 	subscriptions []*Subscription
@@ -68,11 +72,7 @@ func (es *EventStream) Publish(evt interface{}) {
 	es.PublishUnsafe(evt)
 }
 
-func PublishUnsafe(evt interface{}) {
-	es.PublishUnsafe(evt)
-}
-
-func (es *EventStream)  PublishUnsafe(evt interface{}) {
+func (es *EventStream) PublishUnsafe(evt interface{}) {
 	for _, s := range es.subscriptions {
 		if s.p == nil || s.p(evt) {
 			s.fn(evt)
