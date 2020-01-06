@@ -2,13 +2,18 @@ package consul
 
 import (
 	"fmt"
-	"github.com/otherview/protoactor-go/remote"
-	"log"
 	"time"
 
-	"github.com/otherview/protoactor-go/cluster"
-	"github.com/otherview/protoactor-go/eventstream"
+	"github.com/otherview/protoactor-go/remote"
 	"github.com/hashicorp/consul/api"
+	"github.com/otherview/protoactor-go/cluster"
+	"github.com/otherview/protoactor-go/log"
+	"github.com/otherview/protoactor-go/eventstream"
+
+)
+
+var (
+	plog = log.New(log.DebugLevel, "[CLUSTER] [CONSUL]")
 )
 
 type ConsulProvider struct {
@@ -120,12 +125,12 @@ func (p *ConsulProvider) UpdateTTL() {
 				continue
 			}
 
-			log.Println("[CLUSTER] [CONSUL] Failure refreshing service TTL. Trying to reregister service if not in consul.")
+			plog.Info("Failure refreshing service TTL. Trying to reregister service if not in consul.")
 
 			services, err := p.client.Agent().Services()
 			for id := range services {
 				if id == p.id {
-					log.Println("[CLUSTER] [CONSUL] Service found in consul -> doing nothing")
+					plog.Info("Service found in consul -> doing nothing")
 					time.Sleep(p.refreshTTL)
 					continue
 				}
@@ -133,12 +138,12 @@ func (p *ConsulProvider) UpdateTTL() {
 
 			err = p.registerService()
 			if err != nil {
-				log.Println("[CLUSTER] [CONSUL] Error reregistering service ", err)
+				plog.Error(fmt.Sprintf("Error reregistering service: %s", err))
 				time.Sleep(p.refreshTTL)
 				continue
 			}
 
-			log.Println("[CLUSTER] [CONSUL] Reregistered service in consul")
+			plog.Info("Reregistered service in consul")
 			time.Sleep(p.refreshTTL)
 		}
 	}()
@@ -187,7 +192,7 @@ func (p *ConsulProvider) notifyStatuses() {
 		WaitTime:  p.blockingWaitTime,
 	})
 	if err != nil {
-		log.Printf("Error getting the services health from consul: %v", err)
+		plog.Error(fmt.Sprintf("Error getting the services health from consul: %v", err))
 		time.Sleep(p.refreshTTL)
 		return
 	}
