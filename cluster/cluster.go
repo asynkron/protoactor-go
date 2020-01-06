@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"golang.org/x/tools/go/ssa/interp/testdata/src/fmt"
 	"time"
 
 	"github.com/AsynkronIT/gonet"
@@ -77,10 +78,10 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	remotePartition := partition.partitionForKind(address, kind)
 	r, err := rootContext.RequestFuture(remotePartition, req, cfg.TimeoutTime).Result()
 	if err == actor.ErrTimeout {
-		plog.Error("PidCache Pid request timeout")
+		plog.Error(fmt.Sprintf("PidCache Pid request timeout for Remote Partition: %s, Address: %s", remotePartition.Id, remotePartition.Address))
 		return nil, remote.ResponseStatusCodeTIMEOUT
 	} else if err != nil {
-		plog.Error("PidCache Pid request error", log.Error(err))
+		plog.Error(fmt.Sprintf("PidCache Pid request error for Remote Partition: %s, Address: %s", remotePartition.Id, remotePartition.Address), log.Error(err))
 		return nil, remote.ResponseStatusCodeERROR
 	}
 
