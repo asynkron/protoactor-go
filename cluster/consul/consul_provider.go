@@ -187,7 +187,8 @@ func (p *ConsulProvider) notifyStatuses() {
 		WaitTime:  p.blockingWaitTime,
 	})
 	if err != nil {
-		log.Printf("Error %v", err)
+		log.Printf("Error getting the services health from consul: %v", err)
+		time.Sleep(p.refreshTTL)
 		return
 	}
 	p.index = meta.LastIndex
