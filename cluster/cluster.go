@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"golang.org/x/tools/go/ssa/interp/testdata/src/fmt"
 	"time"
+	"fmt"
 
 	"github.com/AsynkronIT/gonet"
 	"github.com/otherview/protoactor-go/actor"
