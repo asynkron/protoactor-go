@@ -125,7 +125,7 @@ func (p *ConsulProvider) UpdateTTL() {
 				continue
 			}
 
-			plog.Info("Failure refreshing service TTL. Trying to reregister service if not in consul.")
+			plog.Error("Failure refreshing service TTL. Trying to reregister service if not in consul.", log.Error(err))
 
 			services, err := p.client.Agent().Services()
 			for id := range services {
@@ -138,7 +138,7 @@ func (p *ConsulProvider) UpdateTTL() {
 
 			err = p.registerService()
 			if err != nil {
-				plog.Error(fmt.Sprintf("Error reregistering service: %s", err))
+				plog.Error("Error reregistering service with consul", log.Error(err))
 				time.Sleep(p.refreshTTL)
 				continue
 			}
@@ -192,7 +192,7 @@ func (p *ConsulProvider) notifyStatuses() {
 		WaitTime:  p.blockingWaitTime,
 	})
 	if err != nil {
-		plog.Error(fmt.Sprintf("Error getting the services health from consul: %v", err))
+		plog.Error("Error getting the services health from consul", log.Error(err))
 		time.Sleep(p.refreshTTL)
 		return
 	}
