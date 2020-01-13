@@ -21,7 +21,7 @@ func TestRegisterMember(t *testing.T) {
 
 	clusterName := "mycluster"
 	clusterAddress := "127.0.0.1"
-	clusterPort := 6333
+	clusterPort := 8181
 	kinds := []string{"a", "b"}
 
 	p := New()
@@ -50,7 +50,8 @@ func TestErrorRegister(t *testing.T) {
 
 	clusterName := "mycluster"
 	clusterAddress := "127.0.0.1"
-	clusterPort := 6333
+	clusterPort := 8181
+	autoManPort := 6330
 	kinds := []string{"a", "b"}
 
 	callMock := CallMocker{}
@@ -64,7 +65,7 @@ func TestErrorRegister(t *testing.T) {
 		return context.JSON(callMock.getMockData())
 	})
 
-	p := NewWithConfig(2*time.Second, e, true, "localhost:6333")
+	p := NewWithTesting(2*time.Second, 6330, e, "localhost:6330")
 	defer p.Shutdown()
 
 	err := p.RegisterMember(clusterName, clusterAddress, clusterPort, kinds, nil, &cluster.NilMemberStatusValueSerializer{})
@@ -85,7 +86,7 @@ func TestErrorRegister(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	node := NewNode(clusterName, clusterAddress, clusterPort, kinds)
+	node := NewNode(clusterName, clusterAddress, clusterPort, autoManPort, kinds)
 	callMock.setMockData(http.StatusOK, node)
 
 	time.Sleep(2 * time.Second)

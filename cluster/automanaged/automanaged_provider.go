@@ -38,7 +38,8 @@ type AutoManagedProvider struct {
 	id                    string
 	clusterName           string
 	address               string
-	port                  int
+	autoManagePort        int
+	memberPort            int
 	knownKinds            []string
 	knownNodes            map[string]*NodeModel
 	hosts                 []string
@@ -53,14 +54,13 @@ type AutoManagedProvider struct {
 func New() *AutoManagedProvider {
 	return NewWithConfig(
 		2*time.Second,
-		nil,
-		false,
-		"localhost:6333",
+		6330,
+		"localhost:6330",
 	)
 }
 
-// NewWithConfig creates a RedisProvider that connects to a given server
-func NewWithConfig(refreshTTL time.Duration, activeProvider *echo.Echo, activeProviderTesting bool, hosts ...string) *AutoManagedProvider {
+// NewWithConfig creates an Automanaged Provider that connects to a all the hosts
+func NewWithConfig(refreshTTL time.Duration, autoManPort int, hosts ...string) *AutoManagedProvider {
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
@@ -69,7 +69,6 @@ func NewWithConfig(refreshTTL time.Duration, activeProvider *echo.Echo, activePr
 		}).DialContext,
 		MaxIdleConns:          10,
 		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 		MaxConnsPerHost:       10,
 	}
@@ -81,13 +80,21 @@ func NewWithConfig(refreshTTL time.Duration, activeProvider *echo.Echo, activePr
 
 	p := &AutoManagedProvider{
 		hosts:                 hosts,
-		activeProvider:        activeProvider,
 		httpClient:            httpClient,
 		refreshTTL:            refreshTTL,
-		activeProviderTesting: activeProviderTesting,
+		autoManagePort:        autoManPort,
 		activeProviderRunning: false,
 		monitoringStatus:      false,
 	}
+
+	return p
+}
+
+// NewWithTesting creates a testable provider
+func NewWithTesting(refreshTTL time.Duration, autoManPort int, activeProvider *echo.Echo, hosts ...string) *AutoManagedProvider {
+	p := NewWithConfig(refreshTTL, autoManPort, hosts...)
+	p.activeProviderTesting = true
+	p.activeProvider = activeProvider
 
 	return p
 }
@@ -97,7 +104,7 @@ func (p *AutoManagedProvider) RegisterMember(clusterName string, address string,
 	p.id = fmt.Sprintf("%v@%v:%v", clusterName, address, port)
 	p.clusterName = clusterName
 	p.address = address
-	p.port = port
+	p.memberPort = port
 	p.knownKinds = knownKinds
 	p.statusValue = statusValue
 	p.statusValueSerializer = serializer
@@ -129,16 +136,42 @@ func (p *AutoManagedProvider) Shutdown() error {
 
 // UpdateTTL sets up an endpoint to respond to other members
 func (p *AutoManagedProvider) UpdateTTL() {
-	go func() {
-		for true {
-			if !p.isShutdown() && !p.isDeregistered() {
-				p.startActiveProvider()
-			} else {
-				p.stopActiveProvider()
-			}
+	activeProviderRunningMutex.Lock()
+	running := p.activeProviderRunning
+	activeProviderRunningMutex.Unlock()
 
-			time.Sleep(p.refreshTTL)
-		}
+	if (p.isShutdown() || p.isDeregistered()) && running {
+		p.activeProvider.Close()
+		return
+	}
+
+	if running {
+		return
+	}
+
+	// its not running and its not shutdown or deregistered
+	// its also not a test (this should be refactored)
+
+	if !p.activeProviderTesting {
+		p.activeProvider = echo.New()
+		p.activeProvider.HideBanner = true
+		p.activeProvider.GET("/_health", func(context echo.Context) error {
+			return context.JSON(http.StatusOK, p.getCurrentNode())
+		})
+	}
+
+	go func() {
+
+		activeProviderRunningMutex.Lock()
+		p.activeProviderRunning = true
+		activeProviderRunningMutex.Unlock()
+
+		appURI := fmt.Sprintf("0.0.0.0:%d", p.autoManagePort)
+		plog.Error("Automanaged server stopping..!", log.Error(p.activeProvider.Start(appURI)))
+
+		activeProviderRunningMutex.Lock()
+		p.activeProviderRunning = false
+		activeProviderRunningMutex.Unlock()
 	}()
 }
 
@@ -242,6 +275,7 @@ func (p *AutoManagedProvider) monitorStatuses() {
 	p.clusterMonitorError = nil
 	// publish the current cluster topology onto the event stream
 	eventstream.Publish(res)
+	time.Sleep(p.refreshTTL)
 
 }
 
@@ -314,7 +348,7 @@ func (p *AutoManagedProvider) startActiveProvider() {
 			})
 		}
 
-		appURI := fmt.Sprintf("0.0.0.0:%d", p.port)
+		appURI := fmt.Sprintf("0.0.0.0:%d", p.autoManagePort)
 
 		go func() {
 
@@ -337,5 +371,5 @@ func (p *AutoManagedProvider) stopActiveProvider() {
 }
 
 func (p *AutoManagedProvider) getCurrentNode() *NodeModel {
-	return NewNode(p.clusterName, p.address, p.port, p.knownKinds)
+	return NewNode(p.clusterName, p.address, p.memberPort, p.autoManagePort, p.knownKinds)
 }
