@@ -41,7 +41,7 @@ type AutoManagedProvider struct {
 	autoManagePort        int
 	memberPort            int
 	knownKinds            []string
-	knownNodes            map[string]*NodeModel
+	knownNodes            []*NodeModel
 	hosts                 []string
 	refreshTTL            time.Duration
 	statusValue           cluster.MemberStatusValue
@@ -256,8 +256,10 @@ func (p *AutoManagedProvider) monitorStatuses() {
 
 	// we should probably check if the cluster needs to be updated..
 	res := make(cluster.ClusterTopologyEvent, len(p.knownNodes))
-	i := 0
-	for _, node := range p.knownNodes {
+	for idx, node := range p.knownNodes {
+		if node == nil {
+			continue
+		}
 		key := fmt.Sprintf("%v/%v:%v", p.clusterName, node.Address, node.Port)
 		memberID := key
 		memberStatusVal := p.statusValueSerializer.FromValueBytes([]byte(key))
@@ -269,8 +271,7 @@ func (p *AutoManagedProvider) monitorStatuses() {
 			Alive:       true,
 			StatusValue: memberStatusVal,
 		}
-		res[i] = ms
-		i++
+		res[idx] = ms
 	}
 	p.clusterMonitorError = nil
 	// publish the current cluster topology onto the event stream
@@ -280,14 +281,14 @@ func (p *AutoManagedProvider) monitorStatuses() {
 }
 
 // checkNodes pings all the nodes and returns the new cluster topology
-func (p *AutoManagedProvider) checkNodes() (map[string]*NodeModel, error) {
+func (p *AutoManagedProvider) checkNodes() ([]*NodeModel, error) {
 
-	allNodes := map[string]*NodeModel{}
+	allNodes := make([]*NodeModel, len(p.hosts))
 	g, _ := errgroup.WithContext(context.Background())
 
-	for _, nodeHost := range p.hosts {
+	for indice, nodeHost := range p.hosts {
 
-		el := nodeHost // https://golang.org/doc/faq#closures_and_goroutines
+		idx, el := indice, nodeHost // https://golang.org/doc/faq#closures_and_goroutines
 
 		// Calling go funcs to execute the node check
 		g.Go(func() error {
@@ -316,14 +317,23 @@ func (p *AutoManagedProvider) checkNodes() (map[string]*NodeModel, error) {
 				return fmt.Errorf("could not deserialize response: %v - from node: %s", resp, el)
 			}
 
-			allNodes[node.ID] = node
+			allNodes[idx] = node
 			return nil
 		})
 	}
 
 	// waits until all functions have returned
 	err := g.Wait()
-	return allNodes, err
+	retNodes := []*NodeModel{}
+
+	// clear out the nil ones
+	for _, node := range allNodes {
+		if node != nil {
+			retNodes = append(retNodes, node)
+		}
+	}
+
+	return retNodes, err
 }
 
 func (p *AutoManagedProvider) deregisterService() {
