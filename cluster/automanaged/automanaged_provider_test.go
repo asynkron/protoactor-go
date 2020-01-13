@@ -64,7 +64,7 @@ func TestErrorRegister(t *testing.T) {
 		return context.JSON(callMock.getMockData())
 	})
 
-	p := NewWithConfig(2*time.Second, e, clusterPort, true, "localhost:6333")
+	p := NewWithConfig(2*time.Second, e, true, "localhost:6333")
 	defer p.Shutdown()
 
 	err := p.RegisterMember(clusterName, clusterAddress, clusterPort, kinds, nil, &cluster.NilMemberStatusValueSerializer{})

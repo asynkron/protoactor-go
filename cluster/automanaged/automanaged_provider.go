@@ -54,14 +54,13 @@ func New() *AutoManagedProvider {
 	return NewWithConfig(
 		2*time.Second,
 		nil,
-		6333,
 		false,
 		"localhost:6333",
 	)
 }
 
 // NewWithConfig creates a RedisProvider that connects to a given server
-func NewWithConfig(refreshTTL time.Duration, activeProvider *echo.Echo, port int, activeProviderTesting bool, hosts ...string) *AutoManagedProvider {
+func NewWithConfig(refreshTTL time.Duration, activeProvider *echo.Echo, activeProviderTesting bool, hosts ...string) *AutoManagedProvider {
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
@@ -131,31 +130,15 @@ func (p *AutoManagedProvider) Shutdown() error {
 // UpdateTTL sets up an endpoint to respond to other members
 func (p *AutoManagedProvider) UpdateTTL() {
 	go func() {
-
-		p.startActiveProvider()
-
-		for !p.isShutdown() && !p.isDeregistered() {
-
-			if !p.isActiveProviderRunning() {
-				appURI := fmt.Sprintf("0.0.0.0:%d", p.port)
-
-				activeProviderRunningMutex.Lock()
-				p.activeProviderRunning = true
-				activeProviderRunningMutex.Unlock()
-
-				go func() {
-					plog.Error("Automanaged server stopping..!", log.Error(p.activeProvider.Start(appURI)))
-
-					activeProviderRunningMutex.Lock()
-					p.activeProviderRunning = false
-					activeProviderRunningMutex.Unlock()
-				}()
+		for true {
+			if !p.isShutdown() && !p.isDeregistered() {
+				p.startActiveProvider()
+			} else {
+				p.stopActiveProvider()
 			}
 
 			time.Sleep(p.refreshTTL)
 		}
-
-		p.activeProvider.Close()
 	}()
 }
 
@@ -317,19 +300,39 @@ func (p *AutoManagedProvider) deregisterService() {
 }
 
 func (p *AutoManagedProvider) startActiveProvider() {
-	activeProviderMutex.Lock()
-	defer activeProviderMutex.Unlock()
+	activeProviderRunningMutex.Lock()
+	running := p.activeProviderRunning
+	activeProviderRunningMutex.Unlock()
 
-	if p.activeProvider == nil {
-		p.activeProvider = echo.New()
-		p.activeProvider.HideBanner = true
+	if !running {
 
 		if !p.activeProviderTesting {
+			p.activeProvider = echo.New()
+			p.activeProvider.HideBanner = true
 			p.activeProvider.GET("/_health", func(context echo.Context) error {
 				return context.JSON(http.StatusOK, p.getCurrentNode())
 			})
 		}
+
+		appURI := fmt.Sprintf("0.0.0.0:%d", p.port)
+
+		go func() {
+
+			activeProviderRunningMutex.Lock()
+			p.activeProviderRunning = true
+			activeProviderRunningMutex.Unlock()
+
+			plog.Error("Automanaged server stopping..!", log.Error(p.activeProvider.Start(appURI)))
+
+			activeProviderRunningMutex.Lock()
+			p.activeProviderRunning = false
+			activeProviderRunningMutex.Unlock()
+		}()
 	}
+}
+
+func (p *AutoManagedProvider) stopActiveProvider() {
+	p.activeProvider.Close()
 
 }
 
