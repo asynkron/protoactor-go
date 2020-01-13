@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	plog = log.New(log.DebugLevel, "[CLUSTER] [CONSUL]")
+	plog = log.New(log.DebugLevel, "[CLUSTER] [REDIS]")
 )
 
 type RedisProvider struct {
