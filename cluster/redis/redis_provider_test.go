@@ -87,7 +87,7 @@ func TestErrorRegister(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 	err = p.GetHealthStatus()
 	if err == nil {
 		log.Fatal(err)

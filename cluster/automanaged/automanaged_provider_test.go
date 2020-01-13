@@ -3,12 +3,17 @@ package automanaged
 import (
 	"log"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/labstack/echo"
 
 	"github.com/otherview/protoactor-go/cluster"
+)
+
+var (
+	mockData = new(sync.Mutex)
 )
 
 // TestRegisterMember tests a basic member registration and TTL update
@@ -48,14 +53,15 @@ func TestErrorRegister(t *testing.T) {
 	clusterPort := 6333
 	kinds := []string{"a", "b"}
 
-	node := NewNode(clusterName, clusterAddress, clusterPort, kinds)
+	callMock := CallMocker{}
 
 	e := echo.New()
 	e.HideBanner = true
 	defer e.Close()
 
+	callMock.setMockData(http.StatusBadRequest, nil)
 	e.GET("/_health", func(context echo.Context) error {
-		return context.JSON(http.StatusBadRequest, nil)
+		return context.JSON(callMock.getMockData())
 	})
 
 	p := NewWithConfig(2*time.Second, e, clusterPort, true, "localhost:6333")
@@ -79,9 +85,9 @@ func TestErrorRegister(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	e.GET("/_health", func(context echo.Context) error {
-		return context.JSON(http.StatusOK, node)
-	})
+	node := NewNode(clusterName, clusterAddress, clusterPort, kinds)
+	callMock.setMockData(http.StatusOK, node)
+
 	time.Sleep(2 * time.Second)
 	err = p.GetHealthStatus()
 	if err != nil {
@@ -95,4 +101,24 @@ func TestErrorRegister(t *testing.T) {
 		log.Fatal(err)
 	}
 
+}
+
+type CallMocker struct {
+	httpCode int
+	data     interface{}
+}
+
+func (c *CallMocker) getMockData() (code int, i interface{}) {
+	mockData.Lock()
+	defer mockData.Unlock()
+
+	return c.httpCode, c.data
+}
+
+func (c *CallMocker) setMockData(code int, i interface{}) {
+	mockData.Lock()
+	defer mockData.Unlock()
+
+	c.httpCode = code
+	c.data = i
 }

@@ -3,6 +3,7 @@ package redis
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -12,7 +13,10 @@ import (
 )
 
 var (
-	plog = log.New(log.DebugLevel, "[CLUSTER] [REDIS]")
+	plog                 = log.New(log.DebugLevel, "[CLUSTER] [REDIS]")
+	clusterTTLErrorMutex = new(sync.Mutex)
+	shutdownMutex        = new(sync.Mutex)
+	deregisteredMutex    = new(sync.Mutex)
 )
 
 type RedisProvider struct {
@@ -96,14 +100,19 @@ func (p *RedisProvider) RegisterMember(clusterName string, address string, port 
 
 // DeregisterMember set the shutdown to true preventing any more TTL updates
 func (p *RedisProvider) DeregisterMember() error {
+	deregisteredMutex.Lock()
+	defer deregisteredMutex.Unlock()
 	p.deregistered = true
+
 	return nil
 }
 
 // Shutdown set the shutdown to true preventing any more TTL updates
 func (p *RedisProvider) Shutdown() error {
+	shutdownMutex.Lock()
+	defer shutdownMutex.Unlock()
 	p.shutdown = true
-	p.redisClient.Close()
+
 	return nil
 }
 
@@ -111,22 +120,28 @@ func (p *RedisProvider) Shutdown() error {
 // this key has an expiry period, if the node stops updating it, it will disappear
 func (p *RedisProvider) UpdateTTL() {
 	go func() {
-		for !p.shutdown && !p.deregistered {
+		for !p.isShutdown() && !p.isDeregistered() {
 			// create current Node - the NodeID is the key in Redis
 			node := NewNode(p.clusterName, p.address, p.port, p.knownKinds)
 
 			marshaled, err := json.Marshal(node)
 			if err != nil {
-				p.clusterTTLError = err
 				plog.Error("Error marshelling node", log.Error(err),
 					log.String("RedisNodeMemberKey", node.ID),
 					log.Object("RedisNodeMemberKey", node))
+
+				clusterTTLErrorMutex.Lock()
+				p.clusterTTLError = err
+				clusterTTLErrorMutex.Unlock()
+
 				time.Sleep(p.refreshTTL)
 				continue
 			}
 			nodeString := string(marshaled)
 
+			clusterTTLErrorMutex.Lock()
 			p.clusterTTLError = p.updateMemberStatus(node, nodeString)
+			clusterTTLErrorMutex.Unlock()
 
 			time.Sleep(p.refreshTTL)
 		}
@@ -161,7 +176,7 @@ func (p *RedisProvider) UpdateMemberStatusValue(statusValue cluster.MemberStatus
 func (p *RedisProvider) MonitorMemberStatusChanges() {
 	if !p.monitoringStatus {
 		go func() {
-			for !p.shutdown && !p.deregistered {
+			for !p.isShutdown() && !p.isDeregistered() {
 				p.monitorStatuses()
 			}
 		}()
@@ -172,6 +187,8 @@ func (p *RedisProvider) MonitorMemberStatusChanges() {
 // GetHealthStatus returns an error if the cluster health status has problems
 func (p *RedisProvider) GetHealthStatus() error {
 	var err error
+	clusterTTLErrorMutex.Lock()
+	defer clusterTTLErrorMutex.Unlock()
 
 	if p.clusterTTLError != nil {
 		err = fmt.Errorf("TTL: %s", p.clusterTTLError.Error())
@@ -190,6 +207,18 @@ func (p *RedisProvider) GetHealthStatus() error {
 //
 // Private methods
 //
+
+func (p *RedisProvider) isShutdown() bool {
+	shutdownMutex.Lock()
+	defer shutdownMutex.Unlock()
+	return p.shutdown
+}
+
+func (p *RedisProvider) isDeregistered() bool {
+	deregisteredMutex.Lock()
+	defer deregisteredMutex.Unlock()
+	return p.deregistered
+}
 
 // monitorStatuses checks for node changes in the cluster
 func (p *RedisProvider) monitorStatuses() {
