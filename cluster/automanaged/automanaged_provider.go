@@ -296,25 +296,30 @@ func (p *AutoManagedProvider) checkNodes() ([]*NodeModel, error) {
 			url := fmt.Sprintf("http://%s/_health", el)
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
-				plog.Error("Couldnt fetch node health status", log.Error(err))
+				plog.Error("Couldn't request node health status", log.Error(err), log.String("autoManMemberUrl", url))
 				return err
 			}
 
 			resp, err := p.httpClient.Do(req)
 			if err != nil {
+				plog.Error("Bad connection to the node health status", log.Error(err), log.String("autoManMemberUrl", url))
 				return err
 			}
 
 			defer resp.Body.Close() // nolint: errcheck
 
 			if resp.StatusCode != http.StatusOK {
-				return fmt.Errorf("non 200 status returned: %d - from node: %s", resp.StatusCode, el)
+				err = fmt.Errorf("non 200 status returned: %d - from node: %s", resp.StatusCode, el)
+				plog.Error("Bad response from the node health status", log.Error(err), log.String("autoManMemberUrl", url))
+				return err
 			}
 
 			var node *NodeModel
 			err = json.NewDecoder(resp.Body).Decode(&node)
 			if err != nil {
-				return fmt.Errorf("could not deserialize response: %v - from node: %s", resp, el)
+				err = fmt.Errorf("could not deserialize response: %v - from node: %s", resp, el)
+				plog.Error("Bad data from the node health status", log.Error(err), log.String("autoManMemberUrl", url))
+				return err
 			}
 
 			allNodes[idx] = node

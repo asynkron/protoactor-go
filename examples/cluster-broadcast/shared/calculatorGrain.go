@@ -1,13 +1,17 @@
 package shared
 
-import "github.com/otherview/protoactor-go/cluster"
+import (
+	"fmt"
+
+	"github.com/otherview/protoactor-go/cluster"
+)
 
 type CalcGrain struct {
 	cluster.Grain
 	total int64
 }
 
-func (c *CalcGrain) Init(id string)  {
+func (c *CalcGrain) Init(id string) {
 	c.Grain.Init(id)
 	c.total = 0
 
@@ -16,7 +20,7 @@ func (c *CalcGrain) Init(id string)  {
 	trackerGrain.RegisterGrain(&RegisterMessage{GrainId: c.ID()})
 }
 
-func (c *CalcGrain) Terminate()  {
+func (c *CalcGrain) Terminate() {
 
 	// deregister with the tracker
 	trackerGrain := GetTrackerGrain("singleTrackerGrain")
@@ -25,11 +29,13 @@ func (c *CalcGrain) Terminate()  {
 
 func (c *CalcGrain) Add(n *NumberRequest, ctx cluster.GrainContext) (*CountResponse, error) {
 	c.total = c.total + n.Number
+	fmt.Printf("CalculatorGrain - Added %d\n", n.Number)
 	return &CountResponse{Number: c.total}, nil
 }
 
 func (c *CalcGrain) Subtract(n *NumberRequest, ctx cluster.GrainContext) (*CountResponse, error) {
 	c.total = c.total - n.Number
+	fmt.Printf("CalculatorGrain - Removed %d\n", n.Number)
 	return &CountResponse{Number: c.total}, nil
 }
 
