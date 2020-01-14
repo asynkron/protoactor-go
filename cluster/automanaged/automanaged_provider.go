@@ -252,9 +252,13 @@ func (p *AutoManagedProvider) monitorStatuses() {
 		return
 	}
 
-	p.knownNodes = autoManagedNodes
-
 	// we should probably check if the cluster needs to be updated..
+	if !nodesChanged(p.knownNodes, autoManagedNodes) {
+		time.Sleep(p.refreshTTL)
+		return
+	}
+
+	p.knownNodes = autoManagedNodes
 	res := make(cluster.ClusterTopologyEvent, len(p.knownNodes))
 	for idx, node := range p.knownNodes {
 		if node == nil {
@@ -278,6 +282,43 @@ func (p *AutoManagedProvider) monitorStatuses() {
 	eventstream.Publish(res)
 	time.Sleep(p.refreshTTL)
 
+}
+
+func nodesChanged(existingNodes []*NodeModel, newNodes []*NodeModel) bool {
+	if len(existingNodes) != len(newNodes) {
+		return true
+	}
+
+	for _, enode := range existingNodes {
+		found := false
+		for _, nnode := range newNodes {
+			if enode.ID == nnode.ID {
+				if len(enode.Kinds) != len(nnode.Kinds) {
+					fmt.Printf("Kinds have changed from: %v to %v", enode.Kinds, nnode.Kinds)
+					return true
+				}
+
+				foundKind := false
+				for _, ekind := range enode.Kinds {
+					for _, nkind := range nnode.Kinds {
+						if ekind == nkind {
+							foundKind = true
+							break
+						}
+					}
+					if !foundKind {
+						return true
+					}
+				}
+			}
+		}
+
+		if !found {
+			return true
+		}
+	}
+
+	return false
 }
 
 // checkNodes pings all the nodes and returns the new cluster topology

@@ -45,6 +45,69 @@ func TestRegisterMember(t *testing.T) {
 	}
 }
 
+// TestRegisterMember tests a basic member registration and TTL update
+func TestRegisterMultipleMember(t *testing.T) {
+
+	clusterName1 := "mycluster"
+	clusterAddress1 := "127.0.0.1"
+	clusterPort1 := 8181
+	autoManPort1 := 6330
+	kinds1 := []string{"a", "b"}
+
+	p := NewWithConfig(2*time.Second, autoManPort1, "127.0.0.1:6330", "127.0.0.1:6331")
+	defer p.Shutdown()
+	err := p.RegisterMember(clusterName1, clusterAddress1, clusterPort1, kinds1, nil, &cluster.NilMemberStatusValueSerializer{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	time.Sleep(2 * time.Second)
+	err = p.GetHealthStatus()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	p.MonitorMemberStatusChanges()
+	time.Sleep(2 * time.Second)
+	err = p.GetHealthStatus()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	clusterName2 := "mycluster"
+	clusterAddress2 := "127.0.0.1"
+	clusterPort2 := 8182
+	autoManPort2 := 6331
+	kinds2 := []string{"a", "b"}
+
+	p2 := NewWithConfig(2*time.Second, autoManPort2, "127.0.0.1:6330", "127.0.0.1:6331")
+	defer p2.Shutdown()
+	err = p2.RegisterMember(clusterName2, clusterAddress2, clusterPort2, kinds2, nil, &cluster.NilMemberStatusValueSerializer{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	time.Sleep(2 * time.Second)
+	err = p2.GetHealthStatus()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	p2.MonitorMemberStatusChanges()
+	time.Sleep(2 * time.Second)
+	err = p2.GetHealthStatus()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	p2.knownKinds = []string{"a", "b", "c"}
+	time.Sleep(5 * time.Second)
+	err = p2.GetHealthStatus()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 // TestErrorRegister tests an error registering a member
 func TestErrorRegister(t *testing.T) {
 
