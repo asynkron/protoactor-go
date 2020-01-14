@@ -35,7 +35,6 @@ type AutoManagedProvider struct {
 	activeProviderTesting bool
 	httpClient            *http.Client
 	monitoringStatus      bool
-	id                    string
 	clusterName           string
 	address               string
 	autoManagePort        int
@@ -101,7 +100,6 @@ func NewWithTesting(refreshTTL time.Duration, autoManPort int, activeProvider *e
 
 func (p *AutoManagedProvider) RegisterMember(clusterName string, address string, port int, knownKinds []string,
 	statusValue cluster.MemberStatusValue, serializer cluster.MemberStatusValueSerializer) error {
-	p.id = fmt.Sprintf("%v@%v:%v", clusterName, address, port)
 	p.clusterName = clusterName
 	p.address = address
 	p.memberPort = port
@@ -260,7 +258,7 @@ func (p *AutoManagedProvider) monitorStatuses() {
 		if node == nil {
 			continue
 		}
-		key := fmt.Sprintf("%v/%v:%v", p.clusterName, node.Address, node.Port)
+		key := node.ID
 		memberID := key
 		memberStatusVal := p.statusValueSerializer.FromValueBytes([]byte(key))
 		ms := &cluster.MemberStatus{

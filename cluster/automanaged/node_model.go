@@ -23,5 +23,5 @@ func NewNode(clusterName string, address string, port int, autoManPort int, kind
 }
 
 func createNodeID(clusterName string, address string, port int) string {
-	return fmt.Sprintf("%v/%v:%v", clusterName, address, port)
+	return fmt.Sprintf("%v@%v:%v", clusterName, address, port)
 }
