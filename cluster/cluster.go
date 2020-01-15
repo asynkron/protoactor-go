@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"time"
 	"fmt"
+	"time"
 
 	"github.com/AsynkronIT/gonet"
 	"github.com/otherview/protoactor-go/actor"
