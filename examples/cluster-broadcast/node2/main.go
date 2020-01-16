@@ -68,7 +68,7 @@ func startNode(port int64) {
 	})
 
 	clusterProvider := automanaged.NewWithConfig(2*time.Second, 6331, "localhost:6330", "localhost:6331")
-	cluster.Start("mycluster", fmt.Sprintf("127.0.0.1:%v", port), clusterProvider)
+	cluster.Start("mycluster", fmt.Sprintf("localhost:%v", port), clusterProvider)
 }
 
 func calcAdd(grainId string, addNumber int64) {
