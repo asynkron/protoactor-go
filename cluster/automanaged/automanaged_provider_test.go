@@ -20,7 +20,7 @@ var (
 func TestRegisterMember(t *testing.T) {
 
 	clusterName := "mycluster"
-	clusterAddress := "127.0.0.1"
+	clusterAddress := "localhost"
 	clusterPort := 8181
 	kinds := []string{"a", "b"}
 
@@ -102,6 +102,60 @@ func TestErrorRegister(t *testing.T) {
 		log.Fatal(err)
 	}
 
+}
+
+// TestDiffCluster tests when registering members from diff clusters
+func TestDiffCluster(t *testing.T) {
+
+	clusterName1 := "mycluster"
+	clusterAddress1 := "127.0.0.1"
+	clusterPort1 := 8181
+	kinds1 := []string{"a", "b"}
+
+	p := New()
+	defer p.Shutdown()
+	err := p.RegisterMember(clusterName1, clusterAddress1, clusterPort1, kinds1, nil, &cluster.NilMemberStatusValueSerializer{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	time.Sleep(2 * time.Second)
+	err = p.GetHealthStatus()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	p.MonitorMemberStatusChanges()
+	time.Sleep(3 * time.Second)
+	err = p.GetHealthStatus()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	clusterName2 := "mycluster2"
+	clusterAddress2 := "127.0.0.1"
+	clusterPort2 := 8282
+	kinds2 := []string{"a", "b"}
+
+	p2 := New()
+	defer p2.Shutdown()
+	err = p2.RegisterMember(clusterName2, clusterAddress2, clusterPort2, kinds2, nil, &cluster.NilMemberStatusValueSerializer{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	time.Sleep(2 * time.Second)
+	err = p2.GetHealthStatus()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	p2.MonitorMemberStatusChanges()
+	time.Sleep(3 * time.Second)
+	err = p2.GetHealthStatus()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 type CallMocker struct {

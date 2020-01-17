@@ -219,24 +219,6 @@ func (p *AutoManagedProvider) GetHealthStatus() error {
 // Private methods
 //
 
-func (p *AutoManagedProvider) isShutdown() bool {
-	shutdownMutex.Lock()
-	defer shutdownMutex.Unlock()
-	return p.shutdown
-}
-
-func (p *AutoManagedProvider) isDeregistered() bool {
-	deregisteredMutex.Lock()
-	defer deregisteredMutex.Unlock()
-	return p.deregistered
-}
-
-func (p *AutoManagedProvider) isActiveProviderRunning() bool {
-	activeProviderRunningMutex.Lock()
-	defer activeProviderRunningMutex.Unlock()
-	return p.activeProviderRunning
-}
-
 // monitorStatuses checks for node changes in the cluster
 func (p *AutoManagedProvider) monitorStatuses() {
 	clusterMonitorErrorMutex.Lock()
@@ -250,12 +232,11 @@ func (p *AutoManagedProvider) monitorStatuses() {
 		return
 	}
 
-	p.knownNodes = autoManagedNodes
-
 	// we should probably check if the cluster needs to be updated..
-	res := make(cluster.ClusterTopologyEvent, len(p.knownNodes))
-	for idx, node := range p.knownNodes {
-		if node == nil {
+	var res cluster.ClusterTopologyEvent
+	var newNodes []*NodeModel
+	for _, node := range autoManagedNodes {
+		if node == nil || node.ClusterName != p.clusterName {
 			continue
 		}
 		key := node.ID
@@ -269,8 +250,11 @@ func (p *AutoManagedProvider) monitorStatuses() {
 			Alive:       true,
 			StatusValue: memberStatusVal,
 		}
-		res[idx] = ms
+		res = append(res, ms)
+		newNodes = append(newNodes, node)
 	}
+
+	p.knownNodes = newNodes
 	p.clusterMonitorError = nil
 	// publish the current cluster topology onto the event stream
 	eventstream.Publish(res)
@@ -381,6 +365,24 @@ func (p *AutoManagedProvider) startActiveProvider() {
 func (p *AutoManagedProvider) stopActiveProvider() {
 	p.activeProvider.Close()
 
+}
+
+func (p *AutoManagedProvider) isShutdown() bool {
+	shutdownMutex.Lock()
+	defer shutdownMutex.Unlock()
+	return p.shutdown
+}
+
+func (p *AutoManagedProvider) isDeregistered() bool {
+	deregisteredMutex.Lock()
+	defer deregisteredMutex.Unlock()
+	return p.deregistered
+}
+
+func (p *AutoManagedProvider) isActiveProviderRunning() bool {
+	activeProviderRunningMutex.Lock()
+	defer activeProviderRunningMutex.Unlock()
+	return p.activeProviderRunning
 }
 
 func (p *AutoManagedProvider) getCurrentNode() *NodeModel {
