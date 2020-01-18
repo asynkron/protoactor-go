@@ -50,6 +50,8 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20190923154419-df201c70410d // indirect
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/joyent/triton-go v1.7.0 // indirect
+	github.com/labstack/echo v3.3.10+incompatible
+	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/linode/linodego v0.12.0 // indirect
 	github.com/mitchellh/hashstructure v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
@@ -70,6 +72,7 @@ require (
 	go.opencensus.io v0.22.2 // indirect
 	golang.org/x/crypto v0.0.0-20191117063200-497ca9f6d64f // indirect
 	golang.org/x/net v0.0.0-20191116160921-f9c825593386
+	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20191118013547-6254a7c3cac6 // indirect
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	google.golang.org/api v0.14.0 // indirect
