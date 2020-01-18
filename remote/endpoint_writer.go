@@ -27,15 +27,16 @@ type endpointWriter struct {
 	defaultSerializerId int32
 }
 
-func (state *endpointWriter) initialize() {
+func (state *endpointWriter) initialize() error {
 	err := state.initializeInternal()
 	if err != nil {
 		plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
 		// Wait 2 seconds to restart and retry
 		// Replace with Exponential Backoff
 		time.Sleep(2 * time.Second)
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 func (state *endpointWriter) initializeInternal() error {
@@ -157,7 +158,14 @@ func addToLookup(m map[string]int32, name string, a []string) (int32, []string) 
 func (state *endpointWriter) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
-		state.initialize()
+		err := state.initialize()
+		if err != nil {
+			plog.Error("Endpoint could not reach actor - killing actor",
+				log.Error(err),
+				log.String("actorId", ctx.Self().GetId()),
+				log.String("actorAddress", ctx.Self().GetAddress()))
+			ctx.Stop(ctx.Self())
+		}
 	case *actor.Stopped:
 		state.conn.Close()
 	case *actor.Restarting:
