@@ -31,9 +31,7 @@ func (state *endpointWriter) initialize() error {
 	err := state.initializeInternal()
 	if err != nil {
 		plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
-		// Wait 2 seconds to restart and retry
-		// Replace with Exponential Backoff
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 		return err
 	}
 	return nil
@@ -160,7 +158,7 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 	case *actor.Started:
 		err := state.initialize()
 		if err != nil {
-			plog.Error("Endpoint could not reach actor - killing actor",
+			plog.Error("Endpoint could not reach address - killing endpoint actor",
 				log.Error(err),
 				log.String("actorId", ctx.Self().GetId()),
 				log.String("actorAddress", ctx.Self().GetAddress()))
