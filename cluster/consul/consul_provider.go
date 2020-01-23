@@ -154,7 +154,8 @@ func (p *ConsulProvider) UpdateMemberStatusValue(statusValue cluster.MemberStatu
 	if p.statusValue == nil {
 		return nil
 	}
-	return nil
+	// Register service again to update the status value
+	return p.registerService()
 }
 
 func (p *ConsulProvider) blockingUpdateTTL() error {
@@ -169,9 +170,12 @@ func (p *ConsulProvider) registerService() error {
 		Tags:    p.knownKinds,
 		Address: p.address,
 		Port:    p.port,
+		Meta: map[string]string{
+			"StatusValue": p.statusValueSerializer.Serialize(p.statusValue),
+		},
 		Check: &api.AgentServiceCheck{
 			DeregisterCriticalServiceAfter: p.deregisterCritical.String(),
-			TTL: p.ttl.String(),
+			TTL:                            p.ttl.String(),
 		},
 	}
 	return p.client.Agent().ServiceRegister(s)
@@ -202,7 +206,7 @@ func (p *ConsulProvider) notifyStatuses() {
 	for i, v := range statuses {
 		key := fmt.Sprintf("%v/%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
 		memberID := key
-		memberStatusVal := p.statusValueSerializer.FromValueBytes([]byte(key))
+		memberStatusVal := p.statusValueSerializer.Deserialize(v.Node.Meta["StatusValue"])
 		ms := &cluster.MemberStatus{
 			MemberID:    memberID,
 			Host:        v.Service.Address,

@@ -241,7 +241,7 @@ func (p *AutoManagedProvider) monitorStatuses() {
 		}
 		key := node.ID
 		memberID := key
-		memberStatusVal := p.statusValueSerializer.FromValueBytes([]byte(key))
+		memberStatusVal := p.statusValueSerializer.Deserialize(key)
 		ms := &cluster.MemberStatus{
 			MemberID:    memberID,
 			Host:        node.Address,

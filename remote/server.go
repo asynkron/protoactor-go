@@ -2,7 +2,6 @@ package remote
 
 import (
 	"io/ioutil"
-	slog "log"
 	"net"
 	"os"
 	"time"
@@ -23,7 +22,7 @@ var rootContext = actor.EmptyRootContext
 
 // Start the remote server
 func Start(address string, options ...RemotingOption) {
-	grpclog.SetLogger(slog.New(ioutil.Discard, "", 0))
+	grpclog.SetLoggerV2(grpclog.NewLoggerV2(ioutil.Discard, ioutil.Discard, ioutil.Discard))
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		plog.Error("failed to listen", log.Error(err))
