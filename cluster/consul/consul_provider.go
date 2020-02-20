@@ -190,7 +190,7 @@ func (p *ConsulProvider) notifyStatuses() {
 	for i, v := range statuses {
 		key := fmt.Sprintf("%v/%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
 		memberID := key
-		memberStatusVal := p.statusValueSerializer.Deserialize(v.Node.Meta["StatusValue"])
+		memberStatusVal := p.statusValueSerializer.Deserialize(v.Service.Meta["StatusValue"])
 		ms := &cluster.MemberStatus{
 			MemberID:    memberID,
 			Host:        v.Service.Address,
