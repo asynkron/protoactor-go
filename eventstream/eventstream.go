@@ -47,10 +47,13 @@ func (es *EventStream) Unsubscribe(sub *Subscription) {
 }
 
 func (es *EventStream) Publish(evt interface{}) {
-	for iter := range es.subscriptions.Iter() {
-		s, ok := iter.Val.(*Subscription)
-		if ok && (s.p == nil || s.p(evt)) {
-			s.fn(evt)
+	for _, key := range es.subscriptions.Keys() {
+		i, ok := es.subscriptions.Get(key)
+		if ok {
+			s, ok := i.(*Subscription)
+			if ok && (s.p == nil || s.p(evt)) {
+				s.fn(evt)
+			}
 		}
 	}
 }

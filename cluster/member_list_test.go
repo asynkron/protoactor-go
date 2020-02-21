@@ -10,7 +10,7 @@ import (
 
 func TestPublishRaceCondition(t *testing.T) {
 	setupMemberList()
-	rounds := 1000
+	rounds := 400
 
 	var wg sync.WaitGroup
 	wg.Add(2 * rounds)
@@ -31,7 +31,7 @@ func TestPublishRaceCondition(t *testing.T) {
 		}
 	}()
 
-	if waitTimeout(&wg, 2*time.Second) {
+	if waitTimeout(&wg, 10*time.Second) {
 		t.Error("Should not run into a timeout")
 	}
 }
