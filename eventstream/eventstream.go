@@ -2,12 +2,17 @@ package eventstream
 
 import (
 	"sync"
+
+	"github.com/google/uuid"
+	cmap "github.com/orcaman/concurrent-map"
 )
 
 // Predicate is a function used to filter messages before being forwarded to a subscriber
 type Predicate func(evt interface{}) bool
 
-var es = &EventStream{}
+var es = &EventStream{
+	subscriptions: cmap.New(),
+}
 
 func Subscribe(fn func(evt interface{})) *Subscription {
 	return es.Subscribe(fn)
@@ -21,60 +26,30 @@ func Publish(event interface{}) {
 	es.Publish(event)
 }
 
-func PublishUnsafe(evt interface{}) {
-	es.PublishUnsafe(evt)
-}
-
 type EventStream struct {
 	sync.RWMutex
-	subscriptions []*Subscription
+	subscriptions cmap.ConcurrentMap
 }
 
 func (es *EventStream) Subscribe(fn func(evt interface{})) *Subscription {
-	es.Lock()
+	uuid := uuid.New().String()
 	sub := &Subscription{
 		es: es,
-		i:  len(es.subscriptions),
+		id: uuid,
 		fn: fn,
 	}
-	es.subscriptions = append(es.subscriptions, sub)
-	es.Unlock()
+	es.subscriptions.SetIfAbsent(uuid, sub)
 	return sub
 }
 
 func (es *EventStream) Unsubscribe(sub *Subscription) {
-	if sub.i == -1 {
-		return
-	}
-
-	es.Lock()
-	i := sub.i
-	l := len(es.subscriptions) - 1
-
-	es.subscriptions[i] = es.subscriptions[l]
-	es.subscriptions[i].i = i
-	es.subscriptions[l] = nil
-	es.subscriptions = es.subscriptions[:l]
-	sub.i = -1
-
-	// TODO(SGC): implement resizing
-	if len(es.subscriptions) == 0 {
-		es.subscriptions = nil
-	}
-
-	es.Unlock()
+	es.subscriptions.Remove(sub.id)
 }
 
 func (es *EventStream) Publish(evt interface{}) {
-	es.RLock()
-	defer es.RUnlock()
-
-	es.PublishUnsafe(evt)
-}
-
-func (es *EventStream) PublishUnsafe(evt interface{}) {
-	for _, s := range es.subscriptions {
-		if s.p == nil || s.p(evt) {
+	for iter := range es.subscriptions.Iter() {
+		s, ok := iter.Val.(*Subscription)
+		if ok && (s.p == nil || s.p(evt)) {
 			s.fn(evt)
 		}
 	}
@@ -85,7 +60,7 @@ func (es *EventStream) PublishUnsafe(evt interface{}) {
 // This value and can be passed to Unsubscribe when the observer is no longer interested in receiving messages
 type Subscription struct {
 	es *EventStream
-	i  int
+	id string
 	fn func(event interface{})
 	p  Predicate
 }

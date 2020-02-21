@@ -131,13 +131,13 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: old.Kinds,
 		}
 		left := &MemberLeftEvent{MemberMeta: meta}
-		eventstream.PublishUnsafe(left)
+		eventstream.Publish(left)
 		delete(ml.members, old.Address()) // remove this member as it has left
 
 		rt := &remote.EndpointTerminatedEvent{
 			Address: old.Address(),
 		}
-		eventstream.PublishUnsafe(rt)
+		eventstream.Publish(rt)
 
 		return
 	}
@@ -157,7 +157,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		joined := &MemberJoinedEvent{MemberMeta: meta}
-		eventstream.PublishUnsafe(joined)
+		eventstream.Publish(joined)
 
 		return
 	}
@@ -180,7 +180,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		joined := &MemberRejoinedEvent{MemberMeta: meta}
-		eventstream.PublishUnsafe(joined)
+		eventstream.Publish(joined)
 
 		return
 	}
@@ -192,7 +192,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		unavailable := &MemberUnavailableEvent{MemberMeta: meta}
-		eventstream.PublishUnsafe(unavailable)
+		eventstream.Publish(unavailable)
 
 		return
 	}
@@ -204,6 +204,6 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		available := &MemberAvailableEvent{MemberMeta: meta}
-		eventstream.PublishUnsafe(available)
+		eventstream.Publish(available)
 	}
 }
