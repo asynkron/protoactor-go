@@ -3,11 +3,18 @@ package consul
 import (
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/hashicorp/consul/api"
+)
+
+var (
+	ProviderShuttingDownError = fmt.Errorf("consul cluster provider is shutting down")
+	// for mocking purposes this function is assigned to a variable
+	blockingUpdateTTLFunc = blockingUpdateTTL
 )
 
 type ConsulProvider struct {
@@ -22,6 +29,7 @@ type ConsulProvider struct {
 	client                *api.Client
 	ttl                   time.Duration
 	refreshTTL            time.Duration
+	updateTTLWaitGroup    sync.WaitGroup
 	deregisterCritical    time.Duration
 	blockingWaitTime      time.Duration
 	statusValue           cluster.MemberStatusValue
@@ -67,7 +75,7 @@ func (p *ConsulProvider) RegisterMember(clusterName string, address string, port
 	// this will ensure that the local node sees its own information upon startup.
 
 	// force our own TTL to be OK
-	err = p.blockingUpdateTTL()
+	err = blockingUpdateTTLFunc(p)
 	if err != nil {
 		return err
 	}
@@ -90,7 +98,13 @@ func (p *ConsulProvider) DeregisterMember() error {
 }
 
 func (p *ConsulProvider) Shutdown() error {
+	if p.shutdown {
+		return nil
+	}
+
 	p.shutdown = true
+	p.updateTTLWaitGroup.Wait()
+
 	if !p.deregistered {
 		err := p.DeregisterMember()
 		if err != nil {
@@ -102,9 +116,13 @@ func (p *ConsulProvider) Shutdown() error {
 
 func (p *ConsulProvider) UpdateTTL() {
 	go func() {
+		p.updateTTLWaitGroup.Add(1)
+		defer p.updateTTLWaitGroup.Done()
+
+	OUTER:
 		for !p.shutdown {
 
-			err := p.blockingUpdateTTL()
+			err := blockingUpdateTTLFunc(p)
 			if err == nil {
 				time.Sleep(p.refreshTTL)
 				continue
@@ -117,7 +135,7 @@ func (p *ConsulProvider) UpdateTTL() {
 				if id == p.id {
 					log.Println("[CLUSTER] [CONSUL] Service found in consul -> doing nothing")
 					time.Sleep(p.refreshTTL)
-					continue
+					continue OUTER
 				}
 			}
 
@@ -139,11 +157,16 @@ func (p *ConsulProvider) UpdateMemberStatusValue(statusValue cluster.MemberStatu
 	if p.statusValue == nil {
 		return nil
 	}
+	if p.shutdown {
+		// don't re-register when already in the process of shutting down
+		return ProviderShuttingDownError
+	}
+
 	// Register service again to update the status value
 	return p.registerService()
 }
 
-func (p *ConsulProvider) blockingUpdateTTL() error {
+func blockingUpdateTTL(p *ConsulProvider) error {
 	p.clusterError = p.client.Agent().UpdateTTL("service:"+p.id, "", api.HealthPassing)
 	return p.clusterError
 }
