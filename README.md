@@ -380,6 +380,14 @@ Notice: always use "gogoslick_out" instead of "go_out" when generating proto cod
 
 For more examples, see the example folder in this repository.
 
+## Contributors 
+
+<a href="https://github.com/AsynkronIT/protoactor-go/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=AsynkronIT/protoactor-go" />
+</a>
+
+Made with [contributors-img](https://contributors-img.web.app).
+
 ### Support
 
 Many thanks to [JetBrains](https://www.jetbrains.com) for support!
