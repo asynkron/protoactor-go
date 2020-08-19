@@ -2,28 +2,37 @@ package main
 
 import (
 	"fmt"
-	"github.com/AsynkronIT/goconsole"
+	"time"
+
+	console "github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/protoactor-go/_examples/cluster-broadcast/shared"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
-	"github.com/AsynkronIT/protoactor-go/examples/cluster-broadcast/shared"
+	"github.com/AsynkronIT/protoactor-go/cluster/redis_cluster"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"log"
-	"time"
 )
 
-func main () {
+func main() {
 	startNode(8080)
 
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()
+
+	fmt.Print("\nAdding 1 Egg - Enter\n")
+	console.ReadLine()
 	calcAdd("Eggs", 1)
+
+	fmt.Print("\nAdding 10 Egg - Enter\n")
+	console.ReadLine()
 	calcAdd("Eggs", 10)
 
-	calcAdd("Bananas", 1000)
+	fmt.Print("\nAdding 100 Bananas - Enter\n")
+	console.ReadLine()
+	calcAdd("Bananas", 100)
 
+	fmt.Print("\nAdding 2 Meat - Enter\n")
+	console.ReadLine()
 	calcAdd("Meat", 3)
-	calcAdd("Meat", 9000)
 
 	getAll()
 
@@ -32,7 +41,7 @@ func main () {
 	cluster.Shutdown(true)
 }
 
-func startNode(port int64)  {
+func startNode(port int64) {
 	// how long before the grain poisons itself
 	timeout := 10 * time.Minute
 
@@ -58,16 +67,14 @@ func startNode(port int64)  {
 		return &shared.TrackGrain{}
 	})
 
-	cp, err := consul.New()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cluster.Start("mycluster", fmt.Sprintf("127.0.0.1:%v", port), cp)
+	clusterProvider := redis_cluster.New()
+
+	cluster.Start("mycluster", fmt.Sprintf("localhost:%v", port), clusterProvider)
 }
 
-func calcAdd(grainId string, addNumber int64)  {
+func calcAdd(grainId string, addNumber int64) {
 	calcGrain := shared.GetCalculatorGrain(grainId)
-	total1, err := calcGrain.Add(&shared.NumberRequest{ Number: addNumber})
+	total1, err := calcGrain.Add(&shared.NumberRequest{Number: addNumber})
 	if err != nil {
 		panic(err)
 	}
@@ -75,7 +82,7 @@ func calcAdd(grainId string, addNumber int64)  {
 	fmt.Printf("Grain: %v - Total: %v \n", calcGrain.ID, total1.Number)
 }
 
-func getAll()  {
+func getAll() {
 	trackerGrain := shared.GetTrackerGrain("singleTrackerGrain")
 	totals, err := trackerGrain.BroadcastGetCounts(&shared.Noop{})
 	if err != nil {
