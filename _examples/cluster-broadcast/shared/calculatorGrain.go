@@ -7,7 +7,7 @@ type CalcGrain struct {
 	total int64
 }
 
-func (c *CalcGrain) Init(id string)  {
+func (c *CalcGrain) Init(id string) {
 	c.Grain.Init(id)
 	c.total = 0
 
@@ -16,7 +16,7 @@ func (c *CalcGrain) Init(id string)  {
 	trackerGrain.RegisterGrain(&RegisterMessage{GrainId: c.ID()})
 }
 
-func (c *CalcGrain) Terminate()  {
+func (c *CalcGrain) Terminate() {
 
 	// deregister with the tracker
 	trackerGrain := GetTrackerGrain("singleTrackerGrain")
