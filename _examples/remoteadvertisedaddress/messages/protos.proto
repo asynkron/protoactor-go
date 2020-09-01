@@ -1,6 +1,0 @@
-syntax = "proto3";
-package messages;
-import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
-
-message Ping {}
-message Pong {}

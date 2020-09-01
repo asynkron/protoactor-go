@@ -5,8 +5,9 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"remotebenchmark/messages"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/examples/remotebenchmark/messages"
 	"github.com/AsynkronIT/protoactor-go/remote"
 
 	"log"

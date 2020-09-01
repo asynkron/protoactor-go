@@ -2,17 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/AsynkronIT/goconsole"
+	"log"
+	"time"
+
+	"cluster-broadcast/shared"
+
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/cluster/consul"
-	"github.com/AsynkronIT/protoactor-go/examples/cluster-broadcast/shared"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"log"
-	"time"
 )
 
-func main () {
+func main() {
 	startNode(8080)
 
 	fmt.Print("\nBoot other nodes and press Enter\n")
@@ -32,7 +34,7 @@ func main () {
 	cluster.Shutdown(true)
 }
 
-func startNode(port int64)  {
+func startNode(port int64) {
 	// how long before the grain poisons itself
 	timeout := 10 * time.Minute
 
@@ -65,9 +67,9 @@ func startNode(port int64)  {
 	cluster.Start("mycluster", fmt.Sprintf("127.0.0.1:%v", port), cp)
 }
 
-func calcAdd(grainId string, addNumber int64)  {
+func calcAdd(grainId string, addNumber int64) {
 	calcGrain := shared.GetCalculatorGrain(grainId)
-	total1, err := calcGrain.Add(&shared.NumberRequest{ Number: addNumber})
+	total1, err := calcGrain.Add(&shared.NumberRequest{Number: addNumber})
 	if err != nil {
 		panic(err)
 	}
@@ -75,7 +77,7 @@ func calcAdd(grainId string, addNumber int64)  {
 	fmt.Printf("Grain: %v - Total: %v \n", calcGrain.ID, total1.Number)
 }
 
-func getAll()  {
+func getAll() {
 	trackerGrain := shared.GetTrackerGrain("singleTrackerGrain")
 	totals, err := trackerGrain.BroadcastGetCounts(&shared.Noop{})
 	if err != nil {

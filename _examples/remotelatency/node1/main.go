@@ -3,9 +3,10 @@ package main
 import (
 	"time"
 
+	"remotelatency/messages"
+
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/examples/remotelatency/messages"
 	"github.com/AsynkronIT/protoactor-go/remote"
 
 	"runtime"

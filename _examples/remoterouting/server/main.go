@@ -6,9 +6,10 @@ import (
 
 	"log"
 
+	"remoterouting/messages"
+
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/examples/remoterouting/messages"
 	"github.com/AsynkronIT/protoactor-go/mailbox"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )

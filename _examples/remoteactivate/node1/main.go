@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"remoteactivate/messages"
+
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/examples/remoteactivate/messages"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
