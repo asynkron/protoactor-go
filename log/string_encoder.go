@@ -35,7 +35,7 @@ func (l *ioLogger) listenEvent() {
 }
 
 // Cheap integer to fixed-width decimal ASCII.  Give a negative width to avoid zero-padding.
-func itoa(buf bytes.Buffer, i int, wid int) {
+func itoa(buf *bytes.Buffer, i int, wid int) {
 	// Assemble decimal in reverse order.
 	var b [20]byte
 	bp := len(b) - 1
@@ -51,7 +51,7 @@ func itoa(buf bytes.Buffer, i int, wid int) {
 	buf.Write(b[bp:])
 }
 
-func (l *ioLogger) formatHeader(buf bytes.Buffer, prefix string, t time.Time) {
+func (l *ioLogger) formatHeader(buf *bytes.Buffer, prefix string, t time.Time) {
 	t = t.UTC()
 	// Y/M/D
 	year, month, day := t.Date()
@@ -83,7 +83,7 @@ func (l *ioLogger) formatHeader(buf bytes.Buffer, prefix string, t time.Time) {
 
 func (l *ioLogger) writeEvent(e Event) {
 	var buf = bytes.Buffer{}
-	l.formatHeader(buf, e.Prefix, e.Time)
+	l.formatHeader(&buf, e.Prefix, e.Time)
 	if len(e.Message) > 0 {
 		buf.WriteString(e.Message)
 		buf.WriteByte(' ')
