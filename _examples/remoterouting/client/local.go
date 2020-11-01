@@ -3,8 +3,9 @@ package main
 import (
 	"sync"
 
+	"remoterouting/messages"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/examples/remoterouting/messages"
 
 	"log"
 )

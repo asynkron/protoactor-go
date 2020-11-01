@@ -1,11 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"remotebenchmark/messages"
+
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/examples/remotebenchmark/messages"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"fmt"
 )
 
 func main() {
