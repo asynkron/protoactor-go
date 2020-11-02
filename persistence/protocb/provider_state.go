@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/couchbase/gocb"
-	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 type cbState struct {
@@ -30,7 +30,12 @@ func (state *cbState) GetEvents(actorName string, eventIndexStart int, callback 
 	if err != nil {
 		log.Fatalf("Error executing N1ql: %v", err)
 	}
-	defer rows.Close()
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			log.Fatalf("Error closing gocb reader: %v", err)
+		}
+	}()
 
 	var row envelope
 	i := eventIndexStart
@@ -58,7 +63,12 @@ func (state *cbState) GetSnapshot(actorName string) (snapshot interface{}, event
 	if err != nil {
 		log.Fatalf("Error executing N1ql: %v", err)
 	}
-	defer rows.Close()
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			log.Fatalf("Error closing gocb reader: %v", err)
+		}
+	}()
 
 	var row envelope
 	if rows.Next(&row) {

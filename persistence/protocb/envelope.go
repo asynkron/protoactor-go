@@ -5,14 +5,14 @@ import (
 	"log"
 	"reflect"
 
-	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 type envelope struct {
-	Type       string          `json:"type"`
-	Message    json.RawMessage `json:"event"`
-	EventIndex int             `json:"eventIndex"`
-	DocType    string          `json:"doctype"`
+	Type       string          `json:"type"`       //reflected message type so we can deserialize back
+	Message    json.RawMessage `json:"event"`      //this is still protobuf but the json form
+	EventIndex int             `json:"eventIndex"` //event index in the event stream
+	DocType    string          `json:"doctype"`    //type snapshot or event
 }
 
 func newEnvelope(message proto.Message, doctype string, eventIndex int) *envelope {
@@ -25,7 +25,7 @@ func newEnvelope(message proto.Message, doctype string, eventIndex int) *envelop
 		Type:       typeName,
 		Message:    bytes,
 		EventIndex: eventIndex,
-		DocType:    "snapshot",
+		DocType:    doctype,
 	}
 	return envelope
 }
@@ -34,6 +34,9 @@ func (envelope *envelope) message() proto.Message {
 	t := proto.MessageType(envelope.Type).Elem()
 	intPtr := reflect.New(t)
 	instance := intPtr.Interface().(proto.Message)
-	json.Unmarshal(envelope.Message, instance)
+	err := json.Unmarshal(envelope.Message, instance)
+	if err != nil {
+		log.Fatal(err)
+	}
 	return instance
 }
