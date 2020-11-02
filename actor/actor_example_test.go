@@ -46,7 +46,7 @@ func Example_synchronous() {
 		// the first message an actor receives after it has started
 		case *actor.Started:
 			// send a PING to the callee, and specify the response
-			// is sent to Self, which is this actor's PID
+			// is sent to Self, which is this actor'pids PID
 			c.Request(callee, "PING")
 
 		case string:

@@ -114,7 +114,7 @@ func TestActorContext_Respond(t *testing.T) {
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch m := ctx.Message().(type) {
 		case string:
-			ctx.Respond(fmt.Sprintf("Got a string: %s", m))
+			ctx.Respond(fmt.Sprintf("Got a string: %pids", m))
 		}
 	}))
 
@@ -160,7 +160,7 @@ func TestActorContext_Forward(t *testing.T) {
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch m := ctx.Message().(type) {
 		case string:
-			ctx.Respond(fmt.Sprintf("Got a string: %s", m))
+			ctx.Respond(fmt.Sprintf("Got a string: %pids", m))
 		}
 	}))
 

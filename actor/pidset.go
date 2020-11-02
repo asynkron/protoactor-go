@@ -3,8 +3,7 @@ package actor
 const pidSetSliceLen = 16
 
 type PIDSet struct {
-	s []string
-	m map[string]struct{}
+	pids []*PID
 }
 
 // NewPIDSet returns a new PIDSet with the given pids.
@@ -17,86 +16,45 @@ func NewPIDSet(pids ...*PID) *PIDSet {
 }
 
 func (p *PIDSet) indexOf(v *PID) int {
-	key := v.key()
-	for i, pid := range p.s {
-		if key == pid {
+
+	for i, pid := range p.pids {
+		if pid == v {
 			return i
 		}
 	}
 	return -1
 }
 
-func (p *PIDSet) migrate() {
-	p.m = make(map[string]struct{}, pidSetSliceLen)
-	for _, v := range p.s {
-		p.m[v] = struct{}{}
-	}
-	p.s = p.s[:0]
-}
-
 // Add adds the element v to the set
 func (p *PIDSet) Add(v *PID) {
-	if p.m == nil {
-		if p.indexOf(v) > -1 {
-			return
-		}
-
-		if len(p.s) < pidSetSliceLen {
-			if p.s == nil {
-				p.s = make([]string, 0, pidSetSliceLen)
-			}
-			p.s = append(p.s, v.key())
-			return
-		}
-		p.migrate()
-	}
-	p.m[v.key()] = struct{}{}
+	p.pids = append(p.pids, v)
 }
 
 // Remove removes v from the set and returns true if them element existed
 func (p *PIDSet) Remove(v *PID) bool {
-	if p.m == nil {
-		i := p.indexOf(v)
-		if i == -1 {
-			return false
-		}
-		l := len(p.s) - 1
-		p.s[i] = p.s[l]
-		p.s = p.s[:l]
-		return true
-	}
-	_, ok := p.m[v.key()]
-	if !ok {
+	i := p.indexOf(v)
+	if i == -1 {
 		return false
 	}
-	delete(p.m, v.key())
+
+	p.pids = append(p.pids[:i], p.pids[i+1:]...)
+
 	return true
 }
 
 // Contains reports whether v is an element of the set
 func (p *PIDSet) Contains(v *PID) bool {
-	if p.m == nil {
-		return p.indexOf(v) != -1
-	}
-	_, ok := p.m[v.key()]
-	return ok
+	return p.indexOf(v) != -1
 }
 
 // Len returns the number of elements in the set
 func (p *PIDSet) Len() int {
-	if p.m == nil {
-		return len(p.s)
-	}
-	return len(p.m)
+	return len(p.pids)
 }
 
 // Clear removes all the elements in the set
 func (p *PIDSet) Clear() {
-	if p.m == nil {
-		p.s = p.s[:0]
-	} else {
-		p.m = nil
-	}
+	p.pids = p.pids[:0]
 }
 
 // Empty reports whether the set is empty
@@ -105,57 +63,23 @@ func (p *PIDSet) Empty() bool {
 }
 
 // Values returns all the elements of the set as a slice
-func (p *PIDSet) Values() []PID {
-	if p.Len() == 0 {
-		return nil
-	}
-
-	r := make([]PID, p.Len())
-	if p.m == nil {
-		for i, v := range p.s {
-			pidFromKey(v, &r[i])
-		}
-	} else {
-		i := 0
-		for v := range p.m {
-			pidFromKey(v, &r[i])
-			i++
-		}
-	}
-	return r
+func (p *PIDSet) Values() []*PID {
+	return p.pids
 }
 
 // ForEach invokes f for every element of the set
-func (p *PIDSet) ForEach(f func(i int, pid PID)) {
-	var pid PID
-	if p.m == nil {
-		for i, v := range p.s {
-			pidFromKey(v, &pid)
-			f(i, pid)
-		}
-	} else {
-		i := 0
-		for v := range p.m {
-			pidFromKey(v, &pid)
-			f(i, pid)
-			i++
-		}
+func (p *PIDSet) ForEach(f func(i int, pid *PID)) {
+	for i, pid := range p.pids {
+
+		f(i, pid)
 	}
 }
 
 func (p *PIDSet) Clone() *PIDSet {
 	var s PIDSet
-	if p.s != nil {
-		s.s = make([]string, len(p.s))
-		for i, v := range p.s {
-			s.s[i] = v
-		}
-	}
-	if p.m != nil {
-		s.m = make(map[string]struct{}, len(p.m))
-		for v := range p.m {
-			s.m[v] = struct{}{}
-		}
+	s.pids = make([]*PID, len(p.pids))
+	for i, v := range p.pids {
+		s.pids[i] = v
 	}
 	return &s
 }

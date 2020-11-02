@@ -147,11 +147,7 @@ func (ctx *actorContext) Children() []*PID {
 		return make([]*PID, 0)
 	}
 
-	r := make([]*PID, ctx.extras.children.Len())
-	ctx.extras.children.ForEach(func(i int, p PID) {
-		r[i] = &p
-	})
-	return r
+	return ctx.extras.children.Values()
 }
 
 func (ctx *actorContext) Respond(response interface{}) {
@@ -360,9 +356,9 @@ func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	var pid *PID
 	var err error
 	if ctx.props.spawnMiddlewareChain != nil {
-		pid, err = ctx.props.spawnMiddlewareChain(ctx.self.Id+"/"+name, props, ctx)
+		pid, err = ctx.props.spawnMiddlewareChain(ctx.actorSystem, ctx.self.Id+"/"+name, props, ctx)
 	} else {
-		pid, err = props.spawn(ctx.self.Id+"/"+name, ctx)
+		pid, err = props.spawn(ctx.actorSystem, ctx.self.Id+"/"+name, ctx)
 	}
 
 	if err != nil {
@@ -545,8 +541,8 @@ func (ctx *actorContext) stopAllChildren() {
 	if ctx.extras == nil {
 		return
 	}
-	ctx.extras.children.ForEach(func(_ int, pid PID) {
-		ctx.Stop(&pid)
+	ctx.extras.children.ForEach(func(_ int, pid *PID) {
+		ctx.Stop(pid)
 	})
 }
 
@@ -583,7 +579,7 @@ func (ctx *actorContext) finalizeStop() {
 	otherStopped := &Terminated{Who: ctx.self}
 	// Notify watchers
 	if ctx.extras != nil {
-		ctx.extras.watchers.ForEach(func(i int, pid PID) {
+		ctx.extras.watchers.ForEach(func(i int, pid *PID) {
 			pid.sendSystemMessage(ctx.actorSystem, otherStopped)
 		})
 	}

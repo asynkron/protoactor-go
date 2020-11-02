@@ -24,7 +24,7 @@ func NewRootContext(actorsystem *ActorSystem, header map[string]string, middlewa
 	return &RootContext{
 		ActorSystem: actorsystem,
 		senderMiddleware: makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
-			target.sendUserMessage(envelope)
+			target.sendUserMessage(actorsystem, envelope)
 		}),
 		headers: messageHeader(header),
 	}
@@ -41,14 +41,14 @@ func (rc *RootContext) WithHeaders(headers map[string]string) *RootContext {
 
 func (rc *RootContext) WithSenderMiddleware(middleware ...SenderMiddleware) *RootContext {
 	rc.senderMiddleware = makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
-		target.sendUserMessage(envelope)
+		target.sendUserMessage(rc.ActorSystem, envelope)
 	})
 	return rc
 }
 
 func (rc *RootContext) WithSpawnMiddleware(middleware ...SpawnMiddleware) *RootContext {
-	rc.spawnMiddleware = makeSpawnMiddlewareChain(middleware, func(id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
-		return props.spawn(id, rc)
+	rc.spawnMiddleware = makeSpawnMiddlewareChain(middleware, func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
+		return props.spawn(actorSystem, id, rc)
 	})
 	return rc
 }
@@ -68,7 +68,7 @@ func (rc *RootContext) Parent() *PID {
 
 func (rc *RootContext) Self() *PID {
 	if rc.guardianStrategy != nil {
-		return guardians.getGuardianPid(rc.guardianStrategy)
+		return rc.ActorSystem.Guardians.getGuardianPid(rc.guardianStrategy)
 	}
 	return nil
 }
@@ -112,7 +112,7 @@ func (rc *RootContext) RequestWithCustomSender(pid *PID, message interface{}, se
 
 // RequestFuture sends a message to a given PID and returns a Future
 func (rc *RootContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
-	future := NewFuture(timeout)
+	future := NewFuture(rc.ActorSystem, timeout)
 	env := &MessageEnvelope{
 		Header:  nil,
 		Message: message,
@@ -128,7 +128,7 @@ func (rc *RootContext) sendUserMessage(pid *PID, message interface{}) {
 		rc.senderMiddleware(rc, pid, WrapEnvelope(message))
 	} else {
 		// tell based middleware
-		pid.sendUserMessage(message)
+		pid.sendUserMessage(rc.ActorSystem, message)
 	}
 }
 
@@ -165,9 +165,9 @@ func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
 		rootContext = rc.Copy().WithGuardian(props.guardianStrategy)
 	}
 	if rootContext.spawnMiddleware != nil {
-		return rc.spawnMiddleware(name, props, rootContext)
+		return rc.spawnMiddleware(rc.ActorSystem, name, props, rootContext)
 	}
-	return props.spawn(name, rootContext)
+	return props.spawn(rc.ActorSystem, name, rootContext)
 }
 
 //
@@ -176,14 +176,14 @@ func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
 
 // Stop will stop actor immediately regardless of existing user messages in mailbox.
 func (rc *RootContext) Stop(pid *PID) {
-	pid.ref().Stop(pid)
+	pid.ref(rc.ActorSystem).Stop(pid)
 }
 
 // StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
 func (rc *RootContext) StopFuture(pid *PID) *Future {
-	future := NewFuture(10 * time.Second)
+	future := NewFuture(rc.ActorSystem, 10*time.Second)
 
-	pid.sendSystemMessage(&Watch{Watcher: future.pid})
+	pid.sendSystemMessage(rc.ActorSystem, &Watch{Watcher: future.pid})
 	rc.Stop(pid)
 
 	return future
@@ -191,14 +191,14 @@ func (rc *RootContext) StopFuture(pid *PID) *Future {
 
 // Poison will tell actor to stop after processing current user messages in mailbox.
 func (rc *RootContext) Poison(pid *PID) {
-	pid.sendUserMessage(poisonPillMessage)
+	pid.sendUserMessage(rc.ActorSystem, poisonPillMessage)
 }
 
 // PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
 func (rc *RootContext) PoisonFuture(pid *PID) *Future {
-	future := NewFuture(10 * time.Second)
+	future := NewFuture(rc.ActorSystem, 10*time.Second)
 
-	pid.sendSystemMessage(&Watch{Watcher: future.pid})
+	pid.sendSystemMessage(rc.ActorSystem, &Watch{Watcher: future.pid})
 	rc.Poison(pid)
 
 	return future

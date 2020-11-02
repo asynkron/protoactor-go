@@ -170,7 +170,7 @@ func spawnMockProcess(name string) (*PID, *mockProcess) {
 	p := &mockProcess{}
 	pid, ok := ProcessRegistry.Add(p, name)
 	if !ok {
-		panic(fmt.Errorf("did not spawn named process '%s'", name))
+		panic(fmt.Errorf("did not spawn named process '%pids'", name))
 	}
 
 	return pid, p

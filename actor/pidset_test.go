@@ -20,7 +20,7 @@ func TestPIDSet_Clear(t *testing.T) {
 	assert.Equal(t, 3, s.Len())
 	s.Clear()
 	assert.True(t, s.Empty())
-	assert.Len(t, s.s, 0)
+	assert.Len(t, s.pids, 0)
 }
 
 func TestPIDSet_AddSmall(t *testing.T) {
