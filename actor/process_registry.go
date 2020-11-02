@@ -7,6 +7,7 @@ import (
 )
 
 type ProcessRegistryValue struct {
+	ActorSystem    *ActorSystem
 	SequenceID     uint64
 	Address        string
 	LocalPIDs      cmap.ConcurrentMap
@@ -17,12 +18,12 @@ var (
 	localAddress = "nonhost"
 )
 
-// ProcessRegistry is a registry of all active processes.
-//
-// NOTE: This should only be used for advanced scenarios
-var ProcessRegistry = &ProcessRegistryValue{
-	Address:   localAddress,
-	LocalPIDs: cmap.New(),
+func NewProcessRegistry(actorSystem *ActorSystem) *ProcessRegistryValue {
+	return &ProcessRegistryValue{
+		ActorSystem: actorSystem,
+		Address:     localAddress,
+		LocalPIDs:   cmap.New(),
+	}
 }
 
 // An AddressResolver is used to resolve remote actors

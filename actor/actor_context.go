@@ -86,6 +86,7 @@ func (ctxExt *actorContextExtras) unwatch(watcher *PID) {
 
 type actorContext struct {
 	actor             Actor
+	actorSystem       *ActorSystem
 	extras            *actorContextExtras
 	props             *Props
 	parent            *PID
@@ -172,13 +173,13 @@ func (ctx *actorContext) Stash() {
 }
 
 func (ctx *actorContext) Watch(who *PID) {
-	who.sendSystemMessage(&Watch{
+	who.sendSystemMessage(ctx.actorSystem, &Watch{
 		Watcher: ctx.self,
 	})
 }
 
 func (ctx *actorContext) Unwatch(who *PID) {
-	who.sendSystemMessage(&Unwatch{
+	who.sendSystemMessage(ctx.actorSystem, &Unwatch{
 		Watcher: ctx.self,
 	})
 }
@@ -244,7 +245,7 @@ func (ctx *actorContext) AwaitFuture(f *Future, cont func(res interface{}, err e
 	// invoke the callback when the future completes
 	f.continueWith(func(res interface{}, err error) {
 		// send the wrapped callback as a continuation message to self
-		ctx.self.sendSystemMessage(&continuation{
+		ctx.self.sendSystemMessage(ctx.actorSystem, &continuation{
 			f:       wrapper,
 			message: message,
 		})
@@ -271,7 +272,7 @@ func (ctx *actorContext) sendUserMessage(pid *PID, message interface{}) {
 	if ctx.props.senderMiddlewareChain != nil {
 		ctx.props.senderMiddlewareChain(ctx.ensureExtras().context, pid, WrapEnvelope(message))
 	} else {
-		pid.sendUserMessage(message)
+		pid.sendUserMessage(ctx.actorSystem, message)
 	}
 }
 
@@ -295,7 +296,7 @@ func (ctx *actorContext) RequestWithCustomSender(pid *PID, message interface{}, 
 }
 
 func (ctx *actorContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
-	future := NewFuture(timeout)
+	future := NewFuture(ctx.actorSystem, timeout)
 	env := &MessageEnvelope{
 		Header:  nil,
 		Message: message,
@@ -336,7 +337,7 @@ func (ctx *actorContext) defaultReceive() {
 //
 
 func (ctx *actorContext) Spawn(props *Props) *PID {
-	pid, err := ctx.SpawnNamed(props, ProcessRegistry.NextId())
+	pid, err := ctx.SpawnNamed(props, ctx.actorSystem.ProcessRegistry.NextId())
 	if err != nil {
 		panic(err)
 	}
@@ -344,7 +345,7 @@ func (ctx *actorContext) Spawn(props *Props) *PID {
 }
 
 func (ctx *actorContext) SpawnPrefix(props *Props, prefix string) *PID {
-	pid, err := ctx.SpawnNamed(props, prefix+ProcessRegistry.NextId())
+	pid, err := ctx.SpawnNamed(props, prefix+ctx.actorSystem.ProcessRegistry.NextId())
 	if err != nil {
 		panic(err)
 	}
@@ -379,14 +380,14 @@ func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 
 // Stop will stop actor immediately regardless of existing user messages in mailbox.
 func (ctx *actorContext) Stop(pid *PID) {
-	pid.ref().Stop(pid)
+	pid.ref(ctx.actorSystem).Stop(pid)
 }
 
 // StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
 func (ctx *actorContext) StopFuture(pid *PID) *Future {
-	future := NewFuture(10 * time.Second)
+	future := NewFuture(ctx.actorSystem, 10*time.Second)
 
-	pid.sendSystemMessage(&Watch{Watcher: future.pid})
+	pid.sendSystemMessage(ctx.actorSystem, &Watch{Watcher: future.pid})
 	ctx.Stop(pid)
 
 	return future
@@ -394,14 +395,14 @@ func (ctx *actorContext) StopFuture(pid *PID) *Future {
 
 // Poison will tell actor to stop after processing current user messages in mailbox.
 func (ctx *actorContext) Poison(pid *PID) {
-	pid.sendUserMessage(poisonPillMessage)
+	pid.sendUserMessage(ctx.actorSystem, poisonPillMessage)
 }
 
 // PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
 func (ctx *actorContext) PoisonFuture(pid *PID) *Future {
-	future := NewFuture(10 * time.Second)
+	future := NewFuture(ctx.actorSystem, 10*time.Second)
 
-	pid.sendSystemMessage(&Watch{Watcher: future.pid})
+	pid.sendSystemMessage(ctx.actorSystem, &Watch{Watcher: future.pid})
 	ctx.Poison(pid)
 
 	return future
@@ -485,7 +486,7 @@ func (ctx *actorContext) handleRootFailure(failure *Failure) {
 
 func (ctx *actorContext) handleWatch(msg *Watch) {
 	if atomic.LoadInt32(&ctx.state) >= stateStopping {
-		msg.Watcher.sendSystemMessage(&Terminated{
+		msg.Watcher.sendSystemMessage(ctx.actorSystem, &Terminated{
 			Who: ctx.self,
 		})
 	} else {
@@ -566,7 +567,7 @@ func (ctx *actorContext) tryRestartOrTerminate() {
 
 func (ctx *actorContext) restart() {
 	ctx.incarnateActor()
-	ctx.self.sendSystemMessage(resumeMailboxMessage)
+	ctx.self.sendSystemMessage(ctx.actorSystem, resumeMailboxMessage)
 	ctx.InvokeUserMessage(startedMessage)
 	if ctx.extras != nil && ctx.extras.stash != nil {
 		for !ctx.extras.stash.Empty() {
@@ -577,18 +578,18 @@ func (ctx *actorContext) restart() {
 }
 
 func (ctx *actorContext) finalizeStop() {
-	ProcessRegistry.Remove(ctx.self)
+	ctx.actorSystem.ProcessRegistry.Remove(ctx.self)
 	ctx.InvokeUserMessage(stoppedMessage)
 	otherStopped := &Terminated{Who: ctx.self}
 	// Notify watchers
 	if ctx.extras != nil {
 		ctx.extras.watchers.ForEach(func(i int, pid PID) {
-			pid.sendSystemMessage(otherStopped)
+			pid.sendSystemMessage(ctx.actorSystem, otherStopped)
 		})
 	}
 	// Notify parent
 	if ctx.parent != nil {
-		ctx.parent.sendSystemMessage(otherStopped)
+		ctx.parent.sendSystemMessage(ctx.actorSystem, otherStopped)
 	}
 	atomic.StoreInt32(&ctx.state, stateStopped)
 }
@@ -599,31 +600,31 @@ func (ctx *actorContext) finalizeStop() {
 
 func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {
 	failure := &Failure{Reason: reason, Who: ctx.self, RestartStats: ctx.ensureExtras().restartStats(), Message: message}
-	ctx.self.sendSystemMessage(suspendMailboxMessage)
+	ctx.self.sendSystemMessage(ctx.actorSystem, suspendMailboxMessage)
 	if ctx.parent == nil {
 		ctx.handleRootFailure(failure)
 	} else {
 		// TODO: Akka recursively suspends all children also on failure
 		// Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
-		ctx.parent.sendSystemMessage(failure)
+		ctx.parent.sendSystemMessage(ctx.actorSystem, failure)
 	}
 }
 
-func (*actorContext) RestartChildren(pids ...*PID) {
+func (ctx *actorContext) RestartChildren(pids ...*PID) {
 	for _, pid := range pids {
-		pid.sendSystemMessage(restartMessage)
+		pid.sendSystemMessage(ctx.actorSystem, restartMessage)
 	}
 }
 
-func (*actorContext) StopChildren(pids ...*PID) {
+func (ctx *actorContext) StopChildren(pids ...*PID) {
 	for _, pid := range pids {
-		pid.sendSystemMessage(stopMessage)
+		pid.sendSystemMessage(ctx.actorSystem, stopMessage)
 	}
 }
 
-func (*actorContext) ResumeChildren(pids ...*PID) {
+func (ctx *actorContext) ResumeChildren(pids ...*PID) {
 	for _, pid := range pids {
-		pid.sendSystemMessage(resumeMailboxMessage)
+		pid.sendSystemMessage(ctx.actorSystem, resumeMailboxMessage)
 	}
 }
 

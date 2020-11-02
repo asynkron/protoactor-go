@@ -3,6 +3,7 @@ package actor
 import "time"
 
 type RootContext struct {
+	ActorSystem      *ActorSystem
 	senderMiddleware SenderFunc
 	spawnMiddleware  SpawnFunc
 	headers          messageHeader
@@ -16,11 +17,12 @@ var EmptyRootContext = &RootContext{
 	guardianStrategy: nil,
 }
 
-func NewRootContext(header map[string]string, middleware ...SenderMiddleware) *RootContext {
+func NewRootContext(actorsystem *ActorSystem, header map[string]string, middleware ...SenderMiddleware) *RootContext {
 	if header == nil {
 		header = make(map[string]string)
 	}
 	return &RootContext{
+		ActorSystem: actorsystem,
 		senderMiddleware: makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
 			target.sendUserMessage(envelope)
 		}),
@@ -136,7 +138,7 @@ func (rc *RootContext) sendUserMessage(pid *PID, message interface{}) {
 
 // Spawn starts a new actor based on props and named with a unique id
 func (rc *RootContext) Spawn(props *Props) *PID {
-	pid, err := rc.SpawnNamed(props, ProcessRegistry.NextId())
+	pid, err := rc.SpawnNamed(props, rc.ActorSystem.ProcessRegistry.NextId())
 	if err != nil {
 		panic(err)
 	}
@@ -145,7 +147,7 @@ func (rc *RootContext) Spawn(props *Props) *PID {
 
 // SpawnPrefix starts a new actor based on props and named using a prefix followed by a unique id
 func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
-	pid, err := rc.SpawnNamed(props, prefix+ProcessRegistry.NextId())
+	pid, err := rc.SpawnNamed(props, prefix+rc.ActorSystem.ProcessRegistry.NextId())
 	if err != nil {
 		panic(err)
 	}

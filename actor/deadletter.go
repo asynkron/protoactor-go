@@ -12,8 +12,8 @@ var (
 	deadLetterSubscriber *eventstream.Subscription
 )
 
-func init() {
-	deadLetterSubscriber = eventstream.Subscribe(func(msg interface{}) {
+func deadletterSubscribe(actorSystem *ActorSystem) {
+	deadLetterSubscriber = actorSystem.EventStream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			plog.Debug("[DeadLetter]", log.Stringer("pid", deadLetter.PID), log.Message(deadLetter.Message), log.Stringer("sender", deadLetter.Sender))
 		}
@@ -26,7 +26,7 @@ func init() {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			if m, ok := deadLetter.Message.(*Watch); ok {
 				// we know that this is a local actor since we get it on our own event stream, thus the address is not terminated
-				m.Watcher.sendSystemMessage(&Terminated{AddressTerminated: false, Who: deadLetter.PID})
+				m.Watcher.sendSystemMessage(actorSystem, &Terminated{AddressTerminated: false, Who: deadLetter.PID})
 			}
 		}
 	})
