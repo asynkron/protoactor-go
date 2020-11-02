@@ -63,9 +63,16 @@ func (provider *InMemoryProvider) PersistSnapshot(actorName string, eventIndex i
 	entry.snapshot = snapshot
 }
 
-func (provider *InMemoryProvider) GetEvents(actorName string, eventIndexStart int, callback func(e interface{})) {
+func (provider *InMemoryProvider) DeleteSnapshots(actorName string, inclusiveToIndex int) {
+
+}
+
+func (provider *InMemoryProvider) GetEvents(actorName string, eventIndexStart int, eventIndexEnd int, callback func(e interface{})) {
 	entry, _ := provider.loadOrInit(actorName)
-	for _, e := range entry.events[eventIndexStart:] {
+	if eventIndexEnd == 0 {
+		eventIndexEnd = len(entry.events)
+	}
+	for _, e := range entry.events[eventIndexStart:eventIndexEnd] {
 		callback(e)
 	}
 }
@@ -73,4 +80,8 @@ func (provider *InMemoryProvider) GetEvents(actorName string, eventIndexStart in
 func (provider *InMemoryProvider) PersistEvent(actorName string, eventIndex int, event proto.Message) {
 	entry, _ := provider.loadOrInit(actorName)
 	entry.events = append(entry.events, event)
+}
+
+func (provider *InMemoryProvider) DeleteEvents(actorName string, inclusiveToIndex int) {
+
 }

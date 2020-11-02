@@ -62,7 +62,7 @@ func (mixin *Mixin) init(provider Provider, context actor.Context) {
 		mixin.eventIndex = eventIndex
 		receiver.Receive(&actor.MessageEnvelope{Message: snapshot})
 	}
-	mixin.providerState.GetEvents(mixin.Name(), mixin.eventIndex, func(e interface{}) {
+	mixin.providerState.GetEvents(mixin.Name(), mixin.eventIndex, 0 /* 0 means max */, func(e interface{}) {
 		receiver.Receive(&actor.MessageEnvelope{Message: e})
 		mixin.eventIndex++
 	})

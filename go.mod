@@ -7,10 +7,13 @@ require (
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
+	github.com/couchbase/gocb v1.6.7
 	github.com/emirpasic/gods v1.12.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.3.2
+	github.com/golang/snappy v0.0.2 // indirect
 	github.com/google/btree v1.0.0 // indirect
+	github.com/google/uuid v1.1.2 // indirect
 	github.com/hashicorp/consul/api v1.3.0
 	github.com/hashicorp/go-immutable-radix v1.1.0 // indirect
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
@@ -33,6 +36,9 @@ require (
 	google.golang.org/genproto v0.0.0-20191115221424-83cc0476cb11 // indirect
 	google.golang.org/grpc v1.25.1
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	gopkg.in/couchbase/gocbcore.v7 v7.1.18 // indirect
+	gopkg.in/couchbaselabs/gocbconnstr.v1 v1.0.4 // indirect
+	gopkg.in/couchbaselabs/jsonx.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.2.5 // indirect
 )
 
