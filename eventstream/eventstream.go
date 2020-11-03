@@ -1,33 +1,25 @@
 package eventstream
 
 import (
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"sync"
 )
 
 // Predicate is a function used to filter messages before being forwarded to a subscriber
 type Predicate func(evt interface{}) bool
 
-var es = &EventStream{}
+func NewEventStream(actorSystem *actor.ActorSystem) *EventStream {
+	es := &EventStream{
+		actorSystem: actorSystem,
+	}
 
-func Subscribe(fn func(evt interface{})) *Subscription {
-	return es.Subscribe(fn)
-}
-
-func Unsubscribe(sub *Subscription) {
-	es.Unsubscribe(sub)
-}
-
-func Publish(event interface{}) {
-	es.Publish(event)
-}
-
-func PublishUnsafe(evt interface{}) {
-	es.PublishUnsafe(evt)
+	return es
 }
 
 type EventStream struct {
 	sync.RWMutex
 	subscriptions []*Subscription
+	actorSystem   *actor.ActorSystem
 }
 
 func (es *EventStream) Subscribe(fn func(evt interface{})) *Subscription {

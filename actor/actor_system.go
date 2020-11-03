@@ -18,6 +18,7 @@ func NewActorSystem() *ActorSystem {
 	system.ProcessRegistry = NewProcessRegistry(system)
 	system.Root = NewRootContext(system, EmptyMessageHeader)
 	system.Guardians = NewGuardians(system)
+	system.EventStream = NewEventStream(system)
 	deadletterSubscribe(system)
 
 	return system
