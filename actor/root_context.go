@@ -10,21 +10,14 @@ type RootContext struct {
 	guardianStrategy SupervisorStrategy
 }
 
-var EmptyRootContext = &RootContext{
-	senderMiddleware: nil,
-	spawnMiddleware:  nil,
-	headers:          EmptyMessageHeader,
-	guardianStrategy: nil,
-}
-
-func NewRootContext(actorsystem *ActorSystem, header map[string]string, middleware ...SenderMiddleware) *RootContext {
+func NewRootContext(actorSystem *ActorSystem, header map[string]string, middleware ...SenderMiddleware) *RootContext {
 	if header == nil {
 		header = make(map[string]string)
 	}
 	return &RootContext{
-		actorSystem: actorsystem,
+		actorSystem: actorSystem,
 		senderMiddleware: makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
-			target.sendUserMessage(actorsystem, envelope)
+			target.sendUserMessage(actorSystem, envelope)
 		}),
 		headers: messageHeader(header),
 	}

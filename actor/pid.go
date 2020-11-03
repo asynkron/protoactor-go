@@ -61,24 +61,6 @@ func NewPID(address, id string) *PID {
 	}
 }
 
-// Deprecated: Use Context.Send instead
-func (pid *PID) Tell(message interface{}) {
-	ctx := EmptyRootContext
-	ctx.Send(pid, message)
-}
-
-// Deprecated: Use Context.Request or Context.RequestWithCustomSender instead
-func (pid *PID) Request(message interface{}, respondTo *PID) {
-	ctx := EmptyRootContext
-	ctx.RequestWithCustomSender(pid, message, respondTo)
-}
-
-// Deprecated: Use Context.RequestFuture instead
-func (pid *PID) RequestFuture(message interface{}, timeout time.Duration) *Future {
-	ctx := EmptyRootContext
-	return ctx.RequestFuture(pid, message, timeout)
-}
-
 // StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
 //
 // Deprecated: Use Context.StopFuture instead
@@ -86,7 +68,7 @@ func (pid *PID) StopFuture(actorSystem *ActorSystem) *Future {
 	future := NewFuture(actorSystem, 10*time.Second)
 
 	pid.sendSystemMessage(actorSystem, &Watch{Watcher: future.pid})
-	pid.Stop(actorSystem)
+	actorSystem.Root.Stop(pid)
 
 	return future
 }
