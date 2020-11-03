@@ -18,7 +18,7 @@ var (
 	defaultDispatcher      = mailbox.NewDefaultDispatcher(300)
 	defaultMailboxProducer = mailbox.Unbounded()
 	defaultSpawner         = func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (*PID, error) {
-		ctx := newActorContext(props, parentContext.Self())
+		ctx := newActorContext(actorSystem, props, parentContext.Self())
 		mb := props.produceMailbox()
 		dp := props.getDispatcher()
 		proc := NewActorProcess(mb)

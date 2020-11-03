@@ -21,7 +21,7 @@ func TestActorContext_SpawnNamed(t *testing.T) {
 		},
 	}
 
-	parent := &actorContext{self: NewPID("nohost", "foo"), props: props}
+	parent := &actorContext{self: NewPID("nohost", "foo"), props: props, actorSystem: system}
 	child, err := parent.SpawnNamed(props, "bar")
 	assert.NoError(t, err)
 	assert.Equal(t, parent.Children()[0], child)
@@ -39,7 +39,7 @@ func TestActorContext_Stop(t *testing.T) {
 	o.On("SendSystemMessage", other, &Terminated{Who: pid})
 
 	props := PropsFromProducer(nullProducer).WithSupervisor(DefaultSupervisorStrategy())
-	lc := newActorContext(props, nil)
+	lc := newActorContext(system, props, nil)
 	lc.self = pid
 	lc.InvokeSystemMessage(&Stop{})
 	lc.InvokeSystemMessage(&Watch{Watcher: other})
@@ -60,7 +60,7 @@ func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
 	}
 
 	props := PropsFromProducer(nullProducer).WithSupervisor(DefaultSupervisorStrategy()).WithSenderMiddleware(mw)
-	ctx := newActorContext(props, nil)
+	ctx := newActorContext(system, props, nil)
 
 	// Define a receiver to which the local context will send a message
 	var counter int
@@ -98,7 +98,7 @@ func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
 func BenchmarkActorContext_ProcessMessageNoMiddleware(b *testing.B) {
 	var m interface{} = 1
 
-	ctx := newActorContext(PropsFromFunc(nullReceive), nil)
+	ctx := newActorContext(system, PropsFromFunc(nullReceive), nil)
 	for i := 0; i < b.N; i++ {
 		ctx.processMessage(m)
 	}
@@ -194,7 +194,7 @@ func BenchmarkActorContext_ProcessMessageWithMiddleware(b *testing.B) {
 	}
 
 	props := PropsFromProducer(nullProducer).WithSupervisor(DefaultSupervisorStrategy()).WithReceiverMiddleware(fn)
-	ctx := newActorContext(props, nil)
+	ctx := newActorContext(system, props, nil)
 
 	for i := 0; i < b.N; i++ {
 		ctx.processMessage(m)

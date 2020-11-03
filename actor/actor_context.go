@@ -97,10 +97,11 @@ type actorContext struct {
 	state             int32
 }
 
-func newActorContext(props *Props, parent *PID) *actorContext {
+func newActorContext(actorSystem *ActorSystem, props *Props, parent *PID) *actorContext {
 	this := &actorContext{
-		parent: parent,
-		props:  props,
+		parent:      parent,
+		props:       props,
+		actorSystem: actorSystem,
 	}
 
 	this.incarnateActor()
