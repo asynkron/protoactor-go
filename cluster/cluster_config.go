@@ -10,7 +10,7 @@ type ClusterConfig struct {
 	Name                        string
 	Address                     string
 	ClusterProvider             ClusterProvider
-	RemotingOption              []remote.RemotingOption
+	RemoteConfig                remote.Config
 	TimeoutTime                 time.Duration
 	InitialMemberStatusValue    MemberStatusValue
 	MemberStatusValueSerializer MemberStatusValueSerializer
@@ -29,8 +29,8 @@ func NewClusterConfig(name string, address string, clusterProvider ClusterProvid
 	}
 }
 
-func (c *ClusterConfig) WithRemotingOption(remotingOption []remote.RemotingOption) *ClusterConfig {
-	c.RemotingOption = remotingOption
+func (c *ClusterConfig) WithRemoteConfig(config remote.Config) *ClusterConfig {
+	c.RemoteConfig = config
 	return c
 }
 

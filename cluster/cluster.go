@@ -9,24 +9,30 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-var cfg *ClusterConfig
-
-var rootContext = actor.EmptyRootContext
-
-func Start(clusterName, address string, provider ClusterProvider) {
-	StartWithConfig(NewClusterConfig(clusterName, address, provider))
+type Cluster struct {
+	actorSystem *actor.ActorSystem
+	config      *ClusterConfig
+	remote      *remote.Remote
 }
 
-func StartWithConfig(config *ClusterConfig) {
-	cfg = config
+func NewCluster(actorSystem *actor.ActorSystem, config *ClusterConfig) *Cluster {
+	return &Cluster{
+		actorSystem: actorSystem,
+		config:      config,
+	}
+}
+
+func (c *Cluster) Start() {
+	cfg := c.config
+	c.remote = remote.NewRemote(c.actorSystem, c.config.RemoteConfig)
 
 	// TODO: make it possible to become a cluster even if remoting is already started
-	remote.Start(cfg.Address, cfg.RemotingOption...)
+	c.remote.Start()
 
-	address := actor.ProcessRegistry.Address
+	address := c.actorSystem.ProcessRegistry.Address
 	h, p := gonet.GetAddress(address)
 	plog.Info("Starting Proto.Actor cluster", log.String("address", address))
-	kinds := remote.GetKnownKinds()
+	kinds := c.remote.GetKnownKinds()
 
 	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
 	setupPartition(kinds)
@@ -37,9 +43,9 @@ func StartWithConfig(config *ClusterConfig) {
 	cfg.ClusterProvider.MonitorMemberStatusChanges()
 }
 
-func Shutdown(graceful bool) {
+func (c *Cluster) Shutdown(graceful bool) {
 	if graceful {
-		cfg.ClusterProvider.Shutdown()
+		c.config.ClusterProvider.Shutdown()
 		// This is to wait ownership transferring complete.
 		time.Sleep(time.Millisecond * 2000)
 		stopMemberList()
@@ -47,14 +53,14 @@ func Shutdown(graceful bool) {
 		stopPartition()
 	}
 
-	remote.Shutdown(graceful)
+	c.remote.Shutdown(graceful)
 
-	address := actor.ProcessRegistry.Address
+	address := c.actorSystem.ProcessRegistry.Address
 	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))
 }
 
 // Get a PID to a virtual actor
-func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
+func (c *Cluster) Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	// Check Cache
 	if pid, ok := pidCache.getCache(name); ok {
 		return pid, remote.ResponseStatusCodeOK
@@ -75,7 +81,7 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 
 	// ask the DHT partition for this name to give us a PID
 	remotePartition := partition.partitionForKind(address, kind)
-	r, err := rootContext.RequestFuture(remotePartition, req, cfg.TimeoutTime).Result()
+	r, err := c.actorSystem.Root.RequestFuture(remotePartition, req, c.config.TimeoutTime).Result()
 	if err == actor.ErrTimeout {
 		plog.Error("PidCache Pid request timeout")
 		return nil, remote.ResponseStatusCodeTIMEOUT
