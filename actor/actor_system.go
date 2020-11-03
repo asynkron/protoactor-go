@@ -13,6 +13,10 @@ type ActorSystem struct {
 	DeadLetter      *deadLetterProcess
 }
 
+func (as *ActorSystem) NewLocalPID(id string) *PID {
+	return NewPID(as.ProcessRegistry.Address, id)
+}
+
 func NewActorSystem() *ActorSystem {
 	system := &ActorSystem{}
 

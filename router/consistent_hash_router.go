@@ -26,7 +26,12 @@ type hashmapContainer struct {
 	routeeMap map[string]*actor.PID
 }
 type consistentHashRouterState struct {
-	hmc *hashmapContainer
+	hmc    *hashmapContainer
+	sender actor.SenderContext
+}
+
+func (state *consistentHashRouterState) SetSender(sender actor.SenderContext) {
+	state.sender = sender
 }
 
 func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
@@ -34,10 +39,10 @@ func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 	hmc := hashmapContainer{}
 	hmc.routeeMap = make(map[string]*actor.PID)
 	nodes := make([]string, routees.Len())
-	routees.ForEach(func(i int, pid actor.PID) {
+	routees.ForEach(func(i int, pid *actor.PID) {
 		nodeName := pid.Address + "@" + pid.Id
 		nodes[i] = nodeName
-		hmc.routeeMap[nodeName] = &pid
+		hmc.routeeMap[nodeName] = pid
 	})
 	// initialize hashring for mapping message keys to node names
 	hmc.hashring = hashring.New(nodes)
@@ -66,7 +71,7 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 			return
 		}
 		if routee, ok := hmc.routeeMap[node]; ok {
-			rootContext.Send(routee, message)
+			state.sender.Send(routee, message)
 		} else {
 			log.Println("[ROUTING] Consistent router failed to resolve node", node)
 		}

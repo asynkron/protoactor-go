@@ -17,6 +17,11 @@ type broadcastPoolRouter struct {
 
 type broadcastRouterState struct {
 	routees *actor.PIDSet
+	sender  actor.SenderContext
+}
+
+func (state *broadcastRouterState) SetSender(sender actor.SenderContext) {
+	state.sender = sender
 }
 
 func (state *broadcastRouterState) SetRoutees(routees *actor.PIDSet) {
@@ -31,8 +36,8 @@ func (state *broadcastRouterState) GetRoutees() *actor.PIDSet {
 
 func (state *broadcastRouterState) RouteMessage(message interface{}) {
 	rts := (*actor.PIDSet)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees))))
-	rts.ForEach(func(i int, pid actor.PID) {
-		rootContext.Send(&pid, message)
+	rts.ForEach(func(i int, pid *actor.PID) {
+		state.sender.Send(pid, message)
 	})
 }
 

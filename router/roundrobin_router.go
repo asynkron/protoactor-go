@@ -20,6 +20,11 @@ type roundRobinState struct {
 	index   int32
 	routees *actor.PIDSet
 	values  *[]actor.PID
+	sender  actor.SenderContext
+}
+
+func (state *roundRobinState) SetSender(sender actor.SenderContext) {
+	state.sender = sender
 }
 
 func (state *roundRobinState) SetRoutees(routees *actor.PIDSet) {
@@ -39,7 +44,7 @@ func (state *roundRobinState) RouteMessage(message interface{}) {
 		return
 	}
 	pid := roundRobinRoutee(&state.index, *values)
-	rootContext.Send(&pid, message)
+	state.sender.Send(&pid, message)
 }
 
 func NewRoundRobinPool(size int) *actor.Props {

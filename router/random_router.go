@@ -20,6 +20,11 @@ type randomPoolRouter struct {
 type randomRouterState struct {
 	routees *actor.PIDSet
 	values  *[]actor.PID
+	sender  actor.SenderContext
+}
+
+func (state *randomRouterState) SetSender(sender actor.SenderContext) {
+	state.sender = sender
 }
 
 func (state *randomRouterState) SetRoutees(routees *actor.PIDSet) {
@@ -39,7 +44,7 @@ func (state *randomRouterState) RouteMessage(message interface{}) {
 		return
 	}
 	pid := randomRoutee(*values)
-	rootContext.Send(&pid, message)
+	state.sender.Send(&pid, message)
 }
 
 func NewRandomPool(size int) *actor.Props {
