@@ -89,9 +89,9 @@ type work struct {
 var context *actor.RootContext
 
 func main() {
-	context = actor.EmptyRootContext
+	system := actor.NewActorSystem()
 	producerProps := actor.PropsFromProducer(func() actor.Actor { return &producer{} })
-	context.Spawn(producerProps)
+	system.Root.Spawn(producerProps)
 
 	console.ReadLine()
 }

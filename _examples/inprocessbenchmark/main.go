@@ -102,8 +102,10 @@ func main() {
 		}()
 	}
 
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	runtime.GC()
+	//runtime.GOMAXPROCS(runtime.NumCPU())
+	//runtime.GC()
+
+	system := actor.NewActorSystem()
 
 	var wg sync.WaitGroup
 
@@ -119,7 +121,7 @@ func main() {
 			PropsFromProducer(newPingActor(&wg, messageCount, batchSize)).
 			WithMailbox(mailbox.Bounded(batchSize + 10)).
 			WithDispatcher(d)
-		rootContext := actor.EmptyRootContext
+		rootContext := system.Root
 
 		echoProps := actor.
 			PropsFromFunc(
