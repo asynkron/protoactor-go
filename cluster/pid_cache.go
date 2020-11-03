@@ -6,36 +6,37 @@ import (
 	cmap "github.com/orcaman/concurrent-map"
 )
 
-var pidCache *pidCacheValue
-
 type pidCacheValue struct {
 	cache        cmap.ConcurrentMap
 	reverseCache cmap.ConcurrentMap
 
 	watcher         *actor.PID
 	memberStatusSub *eventstream.Subscription
+	actorSystem     *actor.ActorSystem
 }
 
-func setupPidCache() {
-	pidCache = &pidCacheValue{
+func setupPidCache(actorSystem *actor.ActorSystem) *pidCacheValue {
+	pidCache := &pidCacheValue{
 		cache:        cmap.New(),
 		reverseCache: cmap.New(),
+		actorSystem:  actorSystem,
 	}
 
-	props := actor.PropsFromProducer(newPidCacheWatcher()).WithGuardian(actor.RestartingSupervisorStrategy())
-	pidCache.watcher, _ = rootContext.SpawnNamed(props, "PidCacheWatcher")
+	props := actor.PropsFromProducer(newPidCacheWatcher(pidCache)).WithGuardian(actor.RestartingSupervisorStrategy())
+	pidCache.watcher, _ = actorSystem.Root.SpawnNamed(props, "PidCacheWatcher")
 
-	pidCache.memberStatusSub = eventstream.Subscribe(pidCache.onMemberStatusEvent).
+	pidCache.memberStatusSub = actorSystem.EventStream.Subscribe(pidCache.onMemberStatusEvent).
 		WithPredicate(func(m interface{}) bool {
 			_, ok := m.(MemberStatusEvent)
 			return ok
 		})
+
+	return pidCache
 }
 
-func stopPidCache() {
-	rootContext.StopFuture(pidCache.watcher).Wait()
-	eventstream.Unsubscribe(pidCache.memberStatusSub)
-	pidCache = nil
+func (c *pidCacheValue) stopPidCache() {
+	_ = c.actorSystem.Root.StopFuture(c.watcher).Wait()
+	c.actorSystem.EventStream.Unsubscribe(c.memberStatusSub)
 }
 
 func (c *pidCacheValue) onMemberStatusEvent(evn interface{}) {
@@ -62,7 +63,7 @@ func (c *pidCacheValue) addCache(name string, pid *actor.PID) bool {
 		key := pid.String()
 		c.reverseCache.Set(key, name)
 		// watch the pid so we know if the node or pid dies
-		rootContext.Send(c.watcher, &watchPidRequest{pid})
+		c.actorSystem.Root.Send(c.watcher, &watchPidRequest{pid})
 		return true
 	}
 	return false
@@ -99,11 +100,15 @@ type watchPidRequest struct {
 	pid *actor.PID
 }
 
-type pidCacheWatcherActor struct{}
+type pidCacheWatcherActor struct {
+	pidCache *pidCacheValue
+}
 
-func newPidCacheWatcher() actor.Producer {
+func newPidCacheWatcher(pidCache *pidCacheValue) actor.Producer {
 	return func() actor.Actor {
-		return &pidCacheWatcherActor{}
+		return &pidCacheWatcherActor{
+			pidCache: pidCache,
+		}
 	}
 }
 
@@ -112,6 +117,6 @@ func (a *pidCacheWatcherActor) Receive(ctx actor.Context) {
 	case *watchPidRequest:
 		ctx.Watch(msg.pid)
 	case *actor.Terminated:
-		pidCache.removeCacheByPid(msg.Who)
+		a.pidCache.removeCacheByPid(msg.Who)
 	}
 }

@@ -7,8 +7,6 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-var memberList *memberListValue
-
 // memberListValue is responsible to keep track of the current cluster topology
 // it does so by listening to changes from the ClusterProvider.
 // the default ClusterProvider is consul.ConsulProvider which uses the Consul HTTP API to scan for changes
@@ -16,28 +14,30 @@ type memberListValue struct {
 	mutex                *sync.RWMutex
 	members              map[string]*MemberStatus
 	memberStrategyByKind map[string]MemberStrategy
-
-	membershipSub *eventstream.Subscription
+	membershipSub        *eventstream.Subscription
+	cluster              *Cluster
 }
 
-func setupMemberList() {
-	memberList = &memberListValue{
+func setupMemberList(cluster *Cluster) *memberListValue {
+	memberList := &memberListValue{
 		mutex:                &sync.RWMutex{},
 		members:              make(map[string]*MemberStatus),
 		memberStrategyByKind: make(map[string]MemberStrategy),
+		cluster:              cluster,
 	}
 
-	memberList.membershipSub = eventstream.
+	memberList.membershipSub = cluster.actorSystem.EventStream.
 		Subscribe(memberList.updateClusterTopology).
 		WithPredicate(func(m interface{}) bool {
 			_, ok := m.(ClusterTopologyEvent)
 			return ok
 		})
+
+	return memberList
 }
 
-func stopMemberList() {
-	eventstream.Unsubscribe(memberList.membershipSub)
-	memberList = nil
+func (ml *memberListValue) stopMemberList() {
+	ml.cluster.actorSystem.EventStream.Unsubscribe(ml.membershipSub)
 }
 
 func (ml *memberListValue) getMembers(kind string) []string {
@@ -131,13 +131,13 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: old.Kinds,
 		}
 		left := &MemberLeftEvent{MemberMeta: meta}
-		eventstream.PublishUnsafe(left)
+		ml.cluster.actorSystem.EventStream.PublishUnsafe(left)
 		delete(ml.members, old.Address()) // remove this member as it has left
 
 		rt := &remote.EndpointTerminatedEvent{
 			Address: old.Address(),
 		}
-		eventstream.PublishUnsafe(rt)
+		ml.cluster.actorSystem.EventStream.PublishUnsafe(rt)
 
 		return
 	}
@@ -145,7 +145,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 		// update MemberStrategy
 		for _, k := range new.Kinds {
 			if _, ok := ml.memberStrategyByKind[k]; !ok {
-				ml.memberStrategyByKind[k] = cfg.MemberStrategyBuilder(k)
+				ml.memberStrategyByKind[k] = ml.cluster.config.MemberStrategyBuilder(k)
 			}
 			ml.memberStrategyByKind[k].AddMember(new)
 		}
@@ -157,7 +157,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		joined := &MemberJoinedEvent{MemberMeta: meta}
-		eventstream.PublishUnsafe(joined)
+		ml.cluster.actorSystem.EventStream.PublishUnsafe(joined)
 
 		return
 	}
@@ -166,7 +166,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 	if new.Alive != old.Alive || new.MemberID != old.MemberID || new.StatusValue != nil && !new.StatusValue.IsSame(old.StatusValue) {
 		for _, k := range new.Kinds {
 			if _, ok := ml.memberStrategyByKind[k]; !ok {
-				ml.memberStrategyByKind[k] = cfg.MemberStrategyBuilder(k)
+				ml.memberStrategyByKind[k] = ml.cluster.config.MemberStrategyBuilder(k)
 			}
 			ml.memberStrategyByKind[k].UpdateMember(new)
 		}
@@ -180,7 +180,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		joined := &MemberRejoinedEvent{MemberMeta: meta}
-		eventstream.PublishUnsafe(joined)
+		ml.cluster.actorSystem.EventStream.PublishUnsafe(joined)
 
 		return
 	}
@@ -192,7 +192,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		unavailable := &MemberUnavailableEvent{MemberMeta: meta}
-		eventstream.PublishUnsafe(unavailable)
+		ml.cluster.actorSystem.EventStream.PublishUnsafe(unavailable)
 
 		return
 	}
@@ -204,6 +204,6 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		available := &MemberAvailableEvent{MemberMeta: meta}
-		eventstream.PublishUnsafe(available)
+		ml.cluster.actorSystem.EventStream.PublishUnsafe(available)
 	}
 }

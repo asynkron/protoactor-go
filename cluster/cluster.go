@@ -10,9 +10,12 @@ import (
 )
 
 type Cluster struct {
-	actorSystem *actor.ActorSystem
-	config      *ClusterConfig
-	remote      *remote.Remote
+	actorSystem    *actor.ActorSystem
+	config         *ClusterConfig
+	remote         *remote.Remote
+	pidCache       *pidCacheValue
+	memberList     *memberListValue
+	partitionValue *partitionValue
 }
 
 func NewCluster(actorSystem *actor.ActorSystem, config *ClusterConfig) *Cluster {
@@ -35,22 +38,22 @@ func (c *Cluster) Start() {
 	kinds := c.remote.GetKnownKinds()
 
 	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
-	setupPartition(kinds)
-	setupPidCache()
-	setupMemberList()
+	c.partitionValue = setupPartition(c, kinds)
+	c.pidCache = setupPidCache(c.actorSystem)
+	c.memberList = setupMemberList(c)
 
-	cfg.ClusterProvider.RegisterMember(cfg.Name, h, p, kinds, cfg.InitialMemberStatusValue, cfg.MemberStatusValueSerializer)
+	_ = cfg.ClusterProvider.RegisterMember(cfg.Name, h, p, kinds, cfg.InitialMemberStatusValue, cfg.MemberStatusValueSerializer)
 	cfg.ClusterProvider.MonitorMemberStatusChanges()
 }
 
 func (c *Cluster) Shutdown(graceful bool) {
 	if graceful {
-		c.config.ClusterProvider.Shutdown()
+		_ = c.config.ClusterProvider.Shutdown()
 		// This is to wait ownership transferring complete.
 		time.Sleep(time.Millisecond * 2000)
-		stopMemberList()
-		stopPidCache()
-		stopPartition()
+		c.memberList.stopMemberList()
+		c.pidCache.stopPidCache()
+		c.partitionValue.stopPartition()
 	}
 
 	c.remote.Shutdown(graceful)
@@ -62,12 +65,12 @@ func (c *Cluster) Shutdown(graceful bool) {
 // Get a PID to a virtual actor
 func (c *Cluster) Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	// Check Cache
-	if pid, ok := pidCache.getCache(name); ok {
+	if pid, ok := c.pidCache.getCache(name); ok {
 		return pid, remote.ResponseStatusCodeOK
 	}
 
 	// Get Pid
-	address := memberList.getPartitionMember(name, kind)
+	address := c.memberList.getPartitionMember(name, kind)
 	if address == "" {
 		// No available member found
 		return nil, remote.ResponseStatusCodeUNAVAILABLE
@@ -80,7 +83,7 @@ func (c *Cluster) Get(name string, kind string) (*actor.PID, remote.ResponseStat
 	}
 
 	// ask the DHT partition for this name to give us a PID
-	remotePartition := partition.partitionForKind(address, kind)
+	remotePartition := c.partitionValue.partitionForKind(address, kind)
 	r, err := c.actorSystem.Root.RequestFuture(remotePartition, req, c.config.TimeoutTime).Result()
 	if err == actor.ErrTimeout {
 		plog.Error("PidCache Pid request timeout")
@@ -99,36 +102,11 @@ func (c *Cluster) Get(name string, kind string) (*actor.PID, remote.ResponseStat
 	switch statusCode {
 	case remote.ResponseStatusCodeOK:
 		// save cache
-		pidCache.addCache(name, response.Pid)
+		c.pidCache.addCache(name, response.Pid)
 		// tell the original requester that we have a response
 		return response.Pid, statusCode
 	default:
 		// forward to requester
 		return response.Pid, statusCode
 	}
-}
-
-// GetMemberPIDs returns PIDs of members for the specified kind
-func GetMemberPIDs(kind string) actor.PIDSet {
-	pids := actor.PIDSet{}
-	if memberList == nil {
-		return pids
-	}
-
-	memberList.mutex.RLock()
-	defer memberList.mutex.RUnlock()
-
-	for _, value := range memberList.members {
-		for _, memberKind := range value.Kinds {
-			if kind == memberKind {
-				pids.Add(actor.NewPID(value.Address(), kind))
-			}
-		}
-	}
-	return pids
-}
-
-// RemoveCache at PidCache
-func RemoveCache(name string) {
-	pidCache.removeCacheByName(name)
 }
