@@ -51,7 +51,7 @@ func (r *Remote) Start() {
 	r.startEndpointManager()
 
 	r.s = grpc.NewServer(r.config.serverOptions...)
-	r.edpReader = &endpointReader{}
+	r.edpReader = newEndpointReader(r)
 	RegisterRemotingServer(r.s, r.edpReader)
 	plog.Info("Starting Proto.Actor server", log.String("address", address))
 	go r.s.Serve(lis)

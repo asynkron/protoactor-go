@@ -15,6 +15,12 @@ type endpointReader struct {
 	remote    *Remote
 }
 
+func newEndpointReader(r *Remote) *endpointReader {
+	return &endpointReader{
+		remote: r,
+	}
+}
+
 func (s *endpointReader) Connect(ctx context.Context, req *ConnectRequest) (*ConnectResponse, error) {
 	if s.suspended {
 		return nil, status.Error(codes.Canceled, "Suspended")
