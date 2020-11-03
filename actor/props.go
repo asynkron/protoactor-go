@@ -203,18 +203,3 @@ func PropsFromProducer(producer Producer) *Props {
 func PropsFromFunc(f ActorFunc) *Props {
 	return PropsFromProducer(func() Actor { return f })
 }
-
-// Deprecated: Use actor.PropsFromProducer instead.
-func FromProducer(actorProducer Producer) *Props {
-	return PropsFromProducer(actorProducer)
-}
-
-// Deprecated: Use actor.PropsFromFunc instead.
-func FromFunc(f ActorFunc) *Props {
-	return PropsFromFunc(f)
-}
-
-// Deprecated: FromSpawnFunc is deprecated.
-func FromSpawnFunc(spawn SpawnFunc) *Props {
-	return (&Props{}).WithSpawnFunc(spawn)
-}
