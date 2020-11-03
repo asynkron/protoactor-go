@@ -1,12 +1,9 @@
 package router
 
 import (
-	"log"
-	"sync/atomic"
-	"unsafe"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/serialx/hashring"
+	"log"
 )
 
 type Hasher interface {
@@ -46,12 +43,12 @@ func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 	})
 	// initialize hashring for mapping message keys to node names
 	hmc.hashring = hashring.New(nodes)
-	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.hmc)), unsafe.Pointer(&hmc))
+	state.hmc = &hmc
 }
 
 func (state *consistentHashRouterState) GetRoutees() *actor.PIDSet {
 	var routees actor.PIDSet
-	hmc := (*hashmapContainer)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.hmc))))
+	hmc := state.hmc
 	for _, v := range hmc.routeeMap {
 		routees.Add(v)
 	}
@@ -63,7 +60,7 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 	switch msg := uwpMsg.(type) {
 	case Hasher:
 		key := msg.Hash()
-		hmc := (*hashmapContainer)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.hmc))))
+		hmc := state.hmc
 
 		node, ok := hmc.hashring.GetNode(key)
 		if !ok {
