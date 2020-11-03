@@ -21,6 +21,7 @@ func NewActorSystem() *ActorSystem {
 	system.Guardians = NewGuardians(system)
 	system.EventStream = eventstream.NewEventStream()
 	system.DeadLetter = NewDeadLetter(system)
+	SubscribeSupervision(system)
 
 	return system
 }

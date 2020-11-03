@@ -55,7 +55,7 @@ func (g *guardianProcess) SendUserMessage(pid *PID, message interface{}) {
 
 func (g *guardianProcess) SendSystemMessage(pid *PID, message interface{}) {
 	if msg, ok := message.(*Failure); ok {
-		g.strategy.HandleFailure(g, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
+		g.strategy.HandleFailure(g.guardians.actorSystem, g, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
 	}
 }
 

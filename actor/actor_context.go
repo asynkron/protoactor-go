@@ -481,7 +481,7 @@ func (ctx *actorContext) InvokeSystemMessage(message interface{}) {
 }
 
 func (ctx *actorContext) handleRootFailure(failure *Failure) {
-	defaultSupervisionStrategy.HandleFailure(ctx, failure.Who, failure.RestartStats, failure.Reason, failure.Message)
+	defaultSupervisionStrategy.HandleFailure(ctx.actorSystem, ctx, failure.Who, failure.RestartStats, failure.Reason, failure.Message)
 }
 
 func (ctx *actorContext) handleWatch(msg *Watch) {
@@ -535,10 +535,10 @@ func (ctx *actorContext) handleTerminated(msg *Terminated) {
 // offload the supervision completely to the supervisor strategy
 func (ctx *actorContext) handleFailure(msg *Failure) {
 	if strategy, ok := ctx.actor.(SupervisorStrategy); ok {
-		strategy.HandleFailure(ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
+		strategy.HandleFailure(ctx.actorSystem, ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
 		return
 	}
-	ctx.props.getSupervisor().HandleFailure(ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
+	ctx.props.getSupervisor().HandleFailure(ctx.actorSystem, ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
 }
 
 func (ctx *actorContext) stopAllChildren() {
