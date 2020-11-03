@@ -158,8 +158,8 @@ func (props *Props) WithSenderMiddleware(middleware ...SenderMiddleware) *Props 
 	props.senderMiddleware = append(props.senderMiddleware, middleware...)
 
 	// Construct the sender middleware chain with the final sender at the end
-	props.senderMiddlewareChain = makeSenderMiddlewareChain(props.senderMiddleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
-		target.sendUserMessage(envelope)
+	props.senderMiddlewareChain = makeSenderMiddlewareChain(props.senderMiddleware, func(sender SenderContext, target *PID, envelope *MessageEnvelope) {
+		target.sendUserMessage(sender.ActorSystem(), envelope)
 	})
 
 	return props

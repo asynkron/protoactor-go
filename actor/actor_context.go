@@ -122,6 +122,10 @@ func (ctx *actorContext) ensureExtras() *actorContextExtras {
 // Interface: Context
 //
 
+func (ctx *actorContext) ActorSystem() *ActorSystem {
+	return ctx.actorSystem
+}
+
 func (ctx *actorContext) Parent() *PID {
 	return ctx.parent
 }
