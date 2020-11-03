@@ -17,7 +17,7 @@ func TestActorContext_SpawnNamed(t *testing.T) {
 	props := &Props{
 		spawner: func(actorSystem *ActorSystem, id string, _ *Props, _ SpawnerContext) (*PID, error) {
 			assert.Equal(t, "foo/bar", id)
-			return NewPID(actorSystem.ProcessRegistry.Address, id), nil
+			return NewPID(actorSystem.Address(), id), nil
 		},
 	}
 

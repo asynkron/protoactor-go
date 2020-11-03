@@ -32,7 +32,7 @@ func (c *Cluster) Start() {
 	// TODO: make it possible to become a cluster even if remoting is already started
 	c.remote.Start()
 
-	address := c.ActorSystem.ProcessRegistry.Address
+	address := c.ActorSystem.Address()
 	h, p := gonet.GetAddress(address)
 	plog.Info("Starting Proto.Actor cluster", log.String("address", address))
 	kinds := c.remote.GetKnownKinds()
@@ -58,7 +58,7 @@ func (c *Cluster) Shutdown(graceful bool) {
 
 	c.remote.Shutdown(graceful)
 
-	address := c.ActorSystem.ProcessRegistry.Address
+	address := c.ActorSystem.Address()
 	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))
 }
 

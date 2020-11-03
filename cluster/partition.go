@@ -243,7 +243,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 	plog.Info("Member left", log.String("kind", state.kind), log.String("name", memberAddress))
 
 	// If the left member is self, transfer remaining pids to others
-	if state.partitionValue.cluster.ActorSystem.ProcessRegistry.Address == memberAddress {
+	if state.partitionValue.cluster.ActorSystem.Address() == memberAddress {
 		for actorID := range state.partition {
 			address := state.partitionValue.cluster.MemberList.getPartitionMember(actorID, state.kind)
 			if address != "" {
@@ -273,13 +273,13 @@ func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.
 	plog.Info("Member joined", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID := range state.partition {
 		address := state.partitionValue.cluster.MemberList.getPartitionMember(actorID, state.kind)
-		if address != "" && address != state.partitionValue.cluster.ActorSystem.ProcessRegistry.Address {
+		if address != "" && address != state.partitionValue.cluster.ActorSystem.Address() {
 			state.transferOwnership(actorID, address, context)
 		}
 	}
 	for actorID, spawning := range state.spawnings {
 		address := state.partitionValue.cluster.MemberList.getPartitionMember(actorID, state.kind)
-		if address != "" && address != state.partitionValue.cluster.ActorSystem.ProcessRegistry.Address {
+		if address != "" && address != state.partitionValue.cluster.ActorSystem.Address() {
 			context.Send(spawning.PID(), remote.ActorPidRespUnavailable)
 		}
 	}
@@ -301,7 +301,7 @@ func (state *partitionActor) transferOwnership(actorID string, address string, c
 func (state *partitionActor) takeOwnership(msg *TakeOwnership, context actor.Context) {
 	// Check again if I'm the owner
 	address := state.partitionValue.cluster.MemberList.getPartitionMember(msg.Name, state.kind)
-	if address != "" && address != state.partitionValue.cluster.ActorSystem.ProcessRegistry.Address {
+	if address != "" && address != state.partitionValue.cluster.ActorSystem.Address() {
 		// if not, forward to the correct owner
 		owner := state.partitionValue.partitionForKind(address, state.kind)
 		context.Send(owner, msg)

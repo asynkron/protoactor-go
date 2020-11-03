@@ -17,6 +17,10 @@ func (as *ActorSystem) NewLocalPID(id string) *PID {
 	return NewPID(as.ProcessRegistry.Address, id)
 }
 
+func (as *ActorSystem) Address() string {
+	return as.ProcessRegistry.Address
+}
+
 func NewActorSystem() *ActorSystem {
 	system := &ActorSystem{}
 

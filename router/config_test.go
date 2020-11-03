@@ -12,12 +12,12 @@ func TestSpawn(t *testing.T) {
 	pid, err := spawn(system, "foo", pr, actor.PropsFromFunc(func(context actor.Context) {}), system.Root)
 	assert.NoError(t, err)
 
-	_, exists := system.ProcessRegistry.Get(actor.NewPID(system.ProcessRegistry.Address, "foo/router"))
+	_, exists := system.ProcessRegistry.Get(system.NewLocalPID("foo/router"))
 	assert.True(t, exists)
 
 	err = system.Root.StopFuture(pid).Wait()
 	assert.NoError(t, err)
 
-	_, exists = system.ProcessRegistry.Get(actor.NewPID(system.ProcessRegistry.Address, "foo/router"))
+	_, exists = system.ProcessRegistry.Get(system.NewLocalPID("foo/router"))
 	assert.False(t, exists)
 }

@@ -19,7 +19,7 @@ func TestConfig_WithAdvertisedHost(t *testing.T) {
 	config := BindTo("localhost", 0).WithAdvertisedHost("Banana")
 	remote := NewRemote(system, config)
 	remote.Start()
-	assert.Equal(t, "Banana", system.ProcessRegistry.Address)
+	assert.Equal(t, "Banana", system.Address())
 	remote.Shutdown(true)
 }
 
