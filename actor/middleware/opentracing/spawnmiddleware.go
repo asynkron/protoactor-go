@@ -8,9 +8,9 @@ import (
 
 func SpawnMiddleware() actor.SpawnMiddleware {
 	return func(next actor.SpawnFunc) actor.SpawnFunc {
-		return func(id string, props *actor.Props, parentContext actor.SpawnerContext) (pid *actor.PID, e error) {
+		return func(actorSystem *actor.ActorSystem, id string, props *actor.Props, parentContext actor.SpawnerContext) (pid *actor.PID, e error) {
 			self := parentContext.Self()
-			pid, err := next(id, props, parentContext)
+			pid, err := next(actorSystem, id, props, parentContext)
 			if err != nil {
 				logger.Debug("SPAWN got error trying to spawn", log.Stringer("PID", self), log.TypeOf("ActorType", parentContext.Actor()), log.Error(err))
 				return pid, err
