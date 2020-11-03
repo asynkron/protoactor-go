@@ -157,7 +157,7 @@ func (ctx *actorContext) Children() []*PID {
 func (ctx *actorContext) Respond(response interface{}) {
 	// If the message is addressed to nil forward it to the dead letter channel
 	if ctx.Sender() == nil {
-		deadLetter.SendUserMessage(nil, response)
+		ctx.actorSystem.DeadLetter.SendUserMessage(nil, response)
 		return
 	}
 

@@ -10,6 +10,7 @@ type ActorSystem struct {
 	Root            *RootContext
 	EventStream     *eventstream.EventStream
 	Guardians       *guardiansValue
+	DeadLetter      *deadLetterProcess
 }
 
 func NewActorSystem() *ActorSystem {
@@ -18,8 +19,8 @@ func NewActorSystem() *ActorSystem {
 	system.ProcessRegistry = NewProcessRegistry(system)
 	system.Root = NewRootContext(system, EmptyMessageHeader)
 	system.Guardians = NewGuardians(system)
-	system.EventStream = NewEventStream(system)
-	deadletterSubscribe(system)
+	system.EventStream = eventstream.NewEventStream()
+	system.DeadLetter = NewDeadLetter(system)
 
 	return system
 }

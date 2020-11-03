@@ -1,19 +1,21 @@
 package actor
 
 import (
-	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/log"
 )
 
-type deadLetterProcess struct{}
+type deadLetterProcess struct {
+	actorSystem *ActorSystem
+}
 
-var (
-	deadLetter           Process = &deadLetterProcess{}
-	deadLetterSubscriber *eventstream.Subscription
-)
+func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 
-func deadletterSubscribe(actorSystem *ActorSystem) {
-	deadLetterSubscriber = actorSystem.EventStream.Subscribe(func(msg interface{}) {
+	dp := &deadLetterProcess{
+		actorSystem: actorSystem,
+	}
+
+	actorSystem.ProcessRegistry.Add(dp, "deadletter")
+	_ = actorSystem.EventStream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			plog.Debug("[DeadLetter]", log.Stringer("pid", deadLetter.PID), log.Message(deadLetter.Message), log.Stringer("sender", deadLetter.Sender))
 		}
@@ -22,7 +24,7 @@ func deadletterSubscribe(actorSystem *ActorSystem) {
 	// this subscriber may not be deactivated.
 	// it ensures that Watch commands that reach a stopped actor gets a Terminated message back.
 	// This can happen if one actor tries to Watch a PID, while another thread sends a Stop message.
-	eventstream.Subscribe(func(msg interface{}) {
+	actorSystem.EventStream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			if m, ok := deadLetter.Message.(*Watch); ok {
 				// we know that this is a local actor since we get it on our own event stream, thus the address is not terminated
@@ -30,6 +32,8 @@ func deadletterSubscribe(actorSystem *ActorSystem) {
 			}
 		}
 	})
+
+	return dp
 }
 
 // A DeadLetterEvent is published via event.Publish when a message is sent to a nonexistent PID
@@ -39,17 +43,17 @@ type DeadLetterEvent struct {
 	Sender  *PID        // the process that sent the Message
 }
 
-func (*deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
+func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
 	_, msg, sender := UnwrapEnvelope(message)
-	eventstream.Publish(&DeadLetterEvent{
+	dp.actorSystem.EventStream.Publish(&DeadLetterEvent{
 		PID:     pid,
 		Message: msg,
 		Sender:  sender,
 	})
 }
 
-func (*deadLetterProcess) SendSystemMessage(pid *PID, message interface{}) {
-	eventstream.Publish(&DeadLetterEvent{
+func (dp *deadLetterProcess) SendSystemMessage(pid *PID, message interface{}) {
+	dp.actorSystem.EventStream.Publish(&DeadLetterEvent{
 		PID:     pid,
 		Message: message,
 	})

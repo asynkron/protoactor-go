@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -120,7 +119,7 @@ func TestActorContext_Respond(t *testing.T) {
 
 	// Be prepared to catch a response that the responder will send to nil
 	var gotResponseToNil bool
-	deadLetterSubscriber = eventstream.Subscribe(func(msg interface{}) {
+	deadLetterSubscriber := system.EventStream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			if deadLetter.PID == nil {
 				gotResponseToNil = true
@@ -151,7 +150,7 @@ func TestActorContext_Respond(t *testing.T) {
 	assert.True(t, gotResponseToNil)
 
 	// Cleanup
-	eventstream.Unsubscribe(deadLetterSubscriber)
+	system.EventStream.Unsubscribe(deadLetterSubscriber)
 }
 
 func TestActorContext_Forward(t *testing.T) {
