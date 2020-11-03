@@ -9,7 +9,7 @@ import (
 )
 
 // Spawn creates instances of actors, similar to 'new' or 'make' but for actors.
-func ExampleSpawnNamed() {
+func ExampleRootContext_SpawnNamed() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
