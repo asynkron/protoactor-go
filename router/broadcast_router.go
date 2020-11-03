@@ -1,9 +1,6 @@
 package router
 
 import (
-	"sync/atomic"
-	"unsafe"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
@@ -25,18 +22,15 @@ func (state *broadcastRouterState) SetSender(sender actor.SenderContext) {
 }
 
 func (state *broadcastRouterState) SetRoutees(routees *actor.PIDSet) {
-	rts := *routees
-	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees)), unsafe.Pointer(&rts))
+	state.routees = routees
 }
 
 func (state *broadcastRouterState) GetRoutees() *actor.PIDSet {
-	rts := (*actor.PIDSet)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees))))
-	return rts.Clone()
+	return state.routees
 }
 
 func (state *broadcastRouterState) RouteMessage(message interface{}) {
-	rts := (*actor.PIDSet)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees))))
-	rts.ForEach(func(i int, pid *actor.PID) {
+	state.routees.ForEach(func(i int, pid *actor.PID) {
 		state.sender.Send(pid, message)
 	})
 }
