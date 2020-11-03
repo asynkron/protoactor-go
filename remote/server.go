@@ -45,7 +45,7 @@ func (r *Remote) Start() {
 	r.actorSystem.ProcessRegistry.Address = address
 
 	r.spawnActivatorActor()
-	r.startEndpointManager(r.config)
+	r.startEndpointManager()
 
 	r.s = grpc.NewServer(r.config.serverOptions...)
 	r.edpReader = &endpointReader{}
@@ -61,7 +61,7 @@ func (r *Remote) Shutdown(graceful bool) {
 		r.stopActivatorActor()
 
 		// For some reason GRPC doesn't want to stop
-		// Setup timeout as walkaround but need to figure out in the future.
+		// Setup timeout as workaround but need to figure out in the future.
 		// TODO: grpc not stopping
 		c := make(chan bool, 1)
 		go func() {

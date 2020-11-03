@@ -24,15 +24,17 @@ type endpoint struct {
 
 type endpointManagerValue struct {
 	connections        *sync.Map
-	config             *remoteConfig
+	remote             *Remote
 	endpointSupervisor *actor.PID
 	endpointSub        *eventstream.Subscription
 }
 
-func (r *Remote) startEndpointManager(config *remoteConfig) {
+func (r *Remote) startEndpointManager() {
 	plog.Debug("Started EndpointManager")
 
-	props := actor.PropsFromProducer(newEndpointSupervisor).
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return newEndpointSupervisor(r)
+	}).
 		WithGuardian(actor.RestartingSupervisorStrategy()).
 		WithSupervisor(actor.RestartingSupervisorStrategy()).
 		WithDispatcher(mailbox.NewSynchronizedDispatcher(300))
@@ -40,7 +42,7 @@ func (r *Remote) startEndpointManager(config *remoteConfig) {
 
 	endpointManager = &endpointManagerValue{
 		connections:        &sync.Map{},
-		config:             config,
+		remote:             r,
 		endpointSupervisor: endpointSupervisor,
 	}
 
@@ -69,32 +71,32 @@ func (em *endpointManagerValue) endpointEvent(evn interface{}) {
 		em.removeEndpoint(msg)
 	case *EndpointConnectedEvent:
 		endpoint := em.ensureConnected(msg.Address)
-		rootContext.Send(endpoint.watcher, msg)
+		em.remote.actorSystem.Root.Send(endpoint.watcher, msg)
 	}
 }
 
 func (em *endpointManagerValue) remoteTerminate(msg *remoteTerminate) {
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
-	rootContext.Send(endpoint.watcher, msg)
+	em.remote.actorSystem.Root.Send(endpoint.watcher, msg)
 }
 
 func (em *endpointManagerValue) remoteWatch(msg *remoteWatch) {
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
-	rootContext.Send(endpoint.watcher, msg)
+	em.remote.actorSystem.Root.Send(endpoint.watcher, msg)
 }
 
 func (em *endpointManagerValue) remoteUnwatch(msg *remoteUnwatch) {
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
-	rootContext.Send(endpoint.watcher, msg)
+	em.remote.actorSystem.Root.Send(endpoint.watcher, msg)
 }
 
 func (em *endpointManagerValue) remoteDeliver(msg *remoteDeliver) {
 	address := msg.target.Address
 	endpoint := em.ensureConnected(address)
-	rootContext.Send(endpoint.writer, msg)
+	em.remote.actorSystem.Root.Send(endpoint.writer, msg)
 }
 
 func (em *endpointManagerValue) ensureConnected(address string) *endpoint {
@@ -104,7 +106,7 @@ func (em *endpointManagerValue) ensureConnected(address string) *endpoint {
 		var once sync.Once
 		el.valueFunc = func() *endpoint {
 			once.Do(func() {
-				rst, _ := rootContext.RequestFuture(em.endpointSupervisor, address, -1).Result()
+				rst, _ := em.remote.actorSystem.Root.RequestFuture(em.endpointSupervisor, address, -1).Result()
 				ep := rst.(*endpoint)
 				el.valueFunc = func() *endpoint {
 					return ep
@@ -126,43 +128,47 @@ func (em *endpointManagerValue) removeEndpoint(msg *EndpointTerminatedEvent) {
 		if atomic.CompareAndSwapUint32(&le.unloaded, 0, 1) {
 			em.connections.Delete(msg.Address)
 			ep := le.valueFunc()
-			rootContext.Send(ep.watcher, msg)
-			rootContext.Send(ep.writer, msg)
+			em.remote.actorSystem.Root.Send(ep.watcher, msg)
+			em.remote.actorSystem.Root.Send(ep.writer, msg)
 		}
 	}
 }
 
-type endpointSupervisor struct{}
+type endpointSupervisor struct {
+	remote *Remote
+}
 
-func newEndpointSupervisor() actor.Actor {
-	return &endpointSupervisor{}
+func newEndpointSupervisor(remote *Remote) actor.Actor {
+	return &endpointSupervisor{
+		remote: remote,
+	}
 }
 
 func (state *endpointSupervisor) Receive(ctx actor.Context) {
 	if address, ok := ctx.Message().(string); ok {
 		e := &endpoint{
-			writer:  state.spawnEndpointWriter(address, ctx),
-			watcher: state.spawnEndpointWatcher(address, ctx),
+			writer:  state.spawnEndpointWriter(state.remote, address, ctx),
+			watcher: state.spawnEndpointWatcher(state.remote, address, ctx),
 		}
 		ctx.Respond(e)
 	}
 }
 
-func (state *endpointSupervisor) HandleFailure(supervisor actor.Supervisor, child *actor.PID, rs *actor.RestartStatistics, reason interface{}, message interface{}) {
+func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, supervisor actor.Supervisor, child *actor.PID, rs *actor.RestartStatistics, reason interface{}, message interface{}) {
 	supervisor.RestartChildren(child)
 }
 
-func (state *endpointSupervisor) spawnEndpointWriter(address string, ctx actor.Context) *actor.PID {
+func (state *endpointSupervisor) spawnEndpointWriter(remote *Remote, address string, ctx actor.Context) *actor.PID {
 	props := actor.
-		PropsFromProducer(endpointWriterProducer(address, endpointManager.config)).
-		WithMailbox(endpointWriterMailboxProducer(endpointManager.config.endpointWriterBatchSize, endpointManager.config.endpointWriterQueueSize))
+		PropsFromProducer(endpointWriterProducer(remote, address, remote.config)).
+		WithMailbox(endpointWriterMailboxProducer(remote.config.endpointWriterBatchSize, remote.config.endpointWriterQueueSize))
 	pid := ctx.Spawn(props)
 	return pid
 }
 
-func (state *endpointSupervisor) spawnEndpointWatcher(address string, ctx actor.Context) *actor.PID {
+func (state *endpointSupervisor) spawnEndpointWatcher(remote *Remote, address string, ctx actor.Context) *actor.PID {
 	props := actor.
-		PropsFromProducer(newEndpointWatcher(address))
+		PropsFromProducer(newEndpointWatcher(remote, address))
 	pid := ctx.Spawn(props)
 	return pid
 }

@@ -1,17 +1,17 @@
 package messages
 
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import actor "github.com/AsynkronIT/protoactor-go/actor"
+import "github.com/gogo/protobuf/proto"
+import "fmt"
+import "math"
+import "github.com/AsynkronIT/protoactor-go/actor"
 
-import strings "strings"
+import "strings"
 import github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
-import sort "sort"
-import strconv "strconv"
-import reflect "reflect"
+import "sort"
+import "strconv"
+import "reflect"
 
-import io "io"
+import "io"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -390,7 +390,7 @@ func sovProtos(x uint64) (n int) {
 	return n
 }
 func sozProtos(x uint64) (n int) {
-	return sovProtos(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+	return sovProtos(uint64((x << 1) ^ uint64(int64(x)>>63)))
 }
 func (this *Start) String() string {
 	if this == nil {
@@ -732,7 +732,7 @@ func skipProtos(dAtA []byte) (n int, err error) {
 		case 3:
 			for {
 				var innerWire uint64
-				var start int = iNdEx
+				var start = iNdEx
 				for shift := uint(0); ; shift += 7 {
 					if shift >= 64 {
 						return 0, ErrIntOverflowProtos

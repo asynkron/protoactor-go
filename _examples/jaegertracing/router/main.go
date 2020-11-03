@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	console "github.com/AsynkronIT/goconsole"
+	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/actor/middleware/opentracing"
 	"github.com/AsynkronIT/protoactor-go/router"
@@ -17,16 +17,19 @@ import (
 )
 
 func main() {
+	actorSystem := actor.NewActorSystem()
 	jaegerCloser := initJaeger()
 	defer jaegerCloser.Close()
 
-	rootContext := actor.NewRootContext(nil).WithSpawnMiddleware(opentracing.TracingMiddleware())
+	rootContext := actor.
+		NewRootContext(actorSystem, nil).
+		WithSpawnMiddleware(opentracing.TracingMiddleware())
 
 	pid := rootContext.SpawnPrefix(createProps(router.NewRoundRobinPool, 3), "root")
 	for i := 0; i < 3; i++ {
-		rootContext.RequestFuture(pid, &request{i}, 10*time.Second).Wait()
+		_ = rootContext.RequestFuture(pid, &request{i}, 10*time.Second).Wait()
 	}
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }
 
 func initJaeger() io.Closer {
