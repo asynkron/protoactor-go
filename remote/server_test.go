@@ -3,46 +3,8 @@ package remote
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 	"testing"
 )
-
-type ServerTestSuite struct {
-	suite.Suite
-	originalProcessRegistry *actor.ProcessRegistryValue
-}
-
-//func (suite *ServerTestSuite) SetupTest() {
-//	// Initialize package scoped variables
-//
-//	// from server.go
-//	s = nil
-//	edpReader = nil
-//
-//	// from activator_actor.go
-//	activatorPid = nil
-//
-//	// from endpoint_manager.go
-//	endpointManager = nil
-//}
-//
-//func (suite *ServerTestSuite) TearDownTest() {
-//	if s != nil {
-//		s.Stop() // Stop currently running gRPC server
-//	}
-//
-//	// Reset package scoped variables so those tests run after this test suite won't be affected.
-//
-//	// from server.go
-//	s = nil
-//	edpReader = nil
-//
-//	// from activator_actor.go
-//	activatorPid = nil
-//
-//	// from endpoint_manager.go
-//	endpointManager = nil
-//}
 
 func TestStart(t *testing.T) {
 	system := actor.NewActorSystem()
@@ -59,6 +21,18 @@ func TestConfig_WithAdvertisedHost(t *testing.T) {
 	remote.Start()
 	assert.Equal(t, "Banana", system.ProcessRegistry.Address)
 	remote.Shutdown(true)
+}
+
+func TestRemote_Register(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := BindTo("localhost", 0).WithAdvertisedHost("Banana")
+	remote := NewRemote(system, config)
+	remote.Register("someKind", actor.PropsFromProducer(nil))
+	remote.Register("someOther", actor.PropsFromProducer(nil))
+	kinds := remote.GetKnownKinds()
+	assert.Equal(t, 2, len(kinds))
+	assert.Equal(t, "someKind", kinds[0])
+	assert.Equal(t, "someOther", kinds[1])
 }
 
 //
