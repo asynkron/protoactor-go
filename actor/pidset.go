@@ -16,9 +16,8 @@ func NewPIDSet(pids ...*PID) *PIDSet {
 }
 
 func (p *PIDSet) indexOf(v *PID) int {
-
 	for i, pid := range p.pids {
-		if pid == v {
+		if v.Equal(pid) {
 			return i
 		}
 	}
@@ -27,6 +26,9 @@ func (p *PIDSet) indexOf(v *PID) int {
 
 // Add adds the element v to the set
 func (p *PIDSet) Add(v *PID) {
+	if p.indexOf(v) != -1 {
+		return
+	}
 	p.pids = append(p.pids, v)
 }
 
