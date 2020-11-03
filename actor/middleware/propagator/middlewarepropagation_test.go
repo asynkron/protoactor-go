@@ -36,9 +36,10 @@ func TestPropagator(t *testing.T) {
 		})
 	}
 
-	root := actor.NewRootContext(system, nil).WithSpawnMiddleware(propagator.SpawnMiddleware).Spawn(start(5))
+	rootContext := actor.NewRootContext(system, nil).WithSpawnMiddleware(propagator.SpawnMiddleware)
+	root := rootContext.Spawn(start(5))
 
-	root.StopFuture(system).Wait()
+	_ = rootContext.StopFuture(root).Wait()
 
 	assert.Equal(t, spawningCounter, 5)
 }

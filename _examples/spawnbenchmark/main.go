@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"runtime"
 	"runtime/pprof"
 	"time"
 
@@ -20,7 +19,7 @@ type request struct {
 }
 
 var (
-	props = actor.PropsFromProducer(newState).WithMailbox(mailbox.UnboundedLockfree())
+	props = actor.PropsFromProducer(newState).WithMailbox(mailbox.Unbounded())
 )
 
 type state struct {
@@ -73,10 +72,11 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	runtime.GC()
+	//	runtime.GOMAXPROCS(runtime.NumCPU())
+	//	runtime.GC()
+	system := actor.NewActorSystem()
 
-	rootContext := actor.EmptyRootContext
+	rootContext := system.Root
 
 	start := time.Now()
 	pid := rootContext.Spawn(props)

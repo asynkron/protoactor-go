@@ -2,7 +2,6 @@ package actor
 
 import (
 	"sync/atomic"
-	"time"
 	"unsafe"
 )
 
@@ -59,56 +58,4 @@ func NewPID(address, id string) *PID {
 		Address: address,
 		Id:      id,
 	}
-}
-
-// StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
-//
-// Deprecated: Use Context.StopFuture instead
-func (pid *PID) StopFuture(actorSystem *ActorSystem) *Future {
-	future := NewFuture(actorSystem, 10*time.Second)
-
-	pid.sendSystemMessage(actorSystem, &Watch{Watcher: future.pid})
-	actorSystem.Root.Stop(pid)
-
-	return future
-}
-
-// GracefulStop will stop actor immediately regardless of existing user messages in mailbox.
-//
-// Deprecated: Use Context.StopFuture(pid).Wait() instead
-func (pid *PID) GracefulStop(actorSystem *ActorSystem) {
-	pid.StopFuture(actorSystem).Wait()
-}
-
-// Stop will stop actor immediately regardless of existing user messages in mailbox.
-//
-// Deprecated: Use Context.Stop instead
-func (pid *PID) Stop(actorSystem *ActorSystem) {
-	pid.ref(actorSystem).Stop(pid)
-}
-
-// PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
-//
-// Deprecated: Use Context.PoisonFuture instead
-func (pid *PID) PoisonFuture(actorSystem *ActorSystem) *Future {
-	future := NewFuture(actorSystem, 10*time.Second)
-
-	pid.sendSystemMessage(actorSystem, &Watch{Watcher: future.pid})
-	pid.Poison(actorSystem)
-
-	return future
-}
-
-// GracefulPoison will tell and wait actor to stop after processing current user messages in mailbox.
-//
-// Deprecated: Use Context.PoisonFuture(pid).Wait() instead
-func (pid *PID) GracefulPoison(actorSystem *ActorSystem) {
-	pid.PoisonFuture(actorSystem).Wait()
-}
-
-// Poison will tell actor to stop after processing current user messages in mailbox.
-//
-// Deprecated: Use Context.Poison instead
-func (pid *PID) Poison(actorSystem *ActorSystem) {
-	pid.sendUserMessage(actorSystem, poisonPillMessage)
 }
