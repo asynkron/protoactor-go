@@ -25,6 +25,7 @@ func TestJsonSerializer_round_trip(t *testing.T) {
 }
 
 func TestJsonSerializer_Serialize_PID_raw(t *testing.T) {
+	system := actor.NewActorSystem()
 	m, _ := system.Root.SpawnNamed(actor.PropsFromFunc(func(ctx actor.Context) {}), "actorpid")
 	ser := jsonpb.Marshaler{}
 	res, _ := ser.MarshalToString(m)
@@ -32,6 +33,7 @@ func TestJsonSerializer_Serialize_PID_raw(t *testing.T) {
 }
 
 func TestJsonSerializer_Serialize_PID(t *testing.T) {
+	system := actor.NewActorSystem()
 	m := system.NewLocalPID("foo")
 	b, typeName, _ := Serialize(m, 1)
 	res, err := Deserialize(b, typeName, 1)

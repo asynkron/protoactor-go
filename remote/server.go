@@ -16,13 +16,13 @@ type Remote struct {
 	actorSystem *actor.ActorSystem
 	s           *grpc.Server
 	edpReader   *endpointReader
-	config      *remoteConfig
+	config      *Config
 }
 
-func NewRemote(actorSystem *actor.ActorSystem, config *remoteConfig) *Remote {
+func NewRemote(actorSystem *actor.ActorSystem, config Config) *Remote {
 	return &Remote{
 		actorSystem: actorSystem,
-		config:      config,
+		config:      &config,
 	}
 }
 
@@ -36,8 +36,8 @@ func (r *Remote) Start() {
 	}
 
 	var address string
-	if r.config.advertisedAddress != "" {
-		address = r.config.advertisedAddress
+	if r.config.advertisedHost != "" {
+		address = r.config.advertisedHost
 	} else {
 		address = lis.Addr().String()
 	}
