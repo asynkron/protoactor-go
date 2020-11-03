@@ -9,36 +9,32 @@ import (
 	"github.com/AsynkronIT/protoactor-go/log"
 )
 
-//TODO fix
-var (
-	nameLookup   = make(map[string]actor.Props)
-	activatorPid *actor.PID
-)
-
 func (r *Remote) spawnActivatorActor() {
-	props := actor.PropsFromProducer(newActivatorActor()).WithGuardian(actor.RestartingSupervisorStrategy())
-	activatorPid, _ = r.actorSystem.Root.SpawnNamed(props, "activator")
+	p := newActivatorActor(r)
+	props := actor.PropsFromProducer(p).WithGuardian(actor.RestartingSupervisorStrategy())
+	r.activatorPid, _ = r.actorSystem.Root.SpawnNamed(props, "activator")
 }
 
 func (r *Remote) stopActivatorActor() {
-	_ = r.actorSystem.Root.StopFuture(activatorPid).Wait()
+	_ = r.actorSystem.Root.StopFuture(r.activatorPid).Wait()
 }
 
 // Register a known actor props by name
-func Register(kind string, props *actor.Props) {
-	nameLookup[kind] = *props
+func (r *Remote) Register(kind string, props *actor.Props) {
+	r.nameLookup[kind] = *props
 }
 
 // GetKnownKinds returns a slice of known actor "kinds"
-func GetKnownKinds() []string {
-	keys := make([]string, 0, len(nameLookup))
-	for k := range nameLookup {
+func (r *Remote) GetKnownKinds() []string {
+	keys := make([]string, 0, len(r.nameLookup))
+	for k := range r.nameLookup {
 		keys = append(keys, k)
 	}
 	return keys
 }
 
 type activator struct {
+	remote *Remote
 }
 
 // ErrActivatorUnavailable : this error will not panic the Activator.
@@ -90,18 +86,20 @@ func (r *Remote) SpawnNamed(address, name, kind string, timeout time.Duration) (
 	}
 }
 
-func newActivatorActor() actor.Producer {
+func newActivatorActor(remote *Remote) actor.Producer {
 	return func() actor.Actor {
-		return &activator{}
+		return &activator{
+			remote: remote,
+		}
 	}
 }
 
-func (*activator) Receive(context actor.Context) {
+func (a *activator) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
 		plog.Debug("Started Activator")
 	case *ActorPidRequest:
-		props, exist := nameLookup[msg.Kind]
+		props, exist := a.remote.nameLookup[msg.Kind]
 
 		// if props not exist, return error and panic
 		if !exist {

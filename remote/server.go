@@ -13,16 +13,19 @@ import (
 )
 
 type Remote struct {
-	actorSystem *actor.ActorSystem
-	s           *grpc.Server
-	edpReader   *endpointReader
-	config      *Config
+	actorSystem  *actor.ActorSystem
+	s            *grpc.Server
+	edpReader    *endpointReader
+	config       *Config
+	nameLookup   map[string]actor.Props
+	activatorPid *actor.PID
 }
 
 func NewRemote(actorSystem *actor.ActorSystem, config Config) *Remote {
 	return &Remote{
 		actorSystem: actorSystem,
 		config:      &config,
+		nameLookup:  make(map[string]actor.Props),
 	}
 }
 
