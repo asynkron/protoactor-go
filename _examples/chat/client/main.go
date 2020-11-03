@@ -11,12 +11,15 @@ import (
 )
 
 func main() {
-	remote.Start("127.0.0.1:0")
+	system := actor.NewActorSystem()
+	config := remote.BindTo("127.0.0.1", 0)
+	remoter := remote.NewRemote(system, config)
+	remoter.Start()
 
 	server := actor.NewPID("127.0.0.1:8080", "chatserver")
 
 	// define root context
-	rootContext := actor.EmptyRootContext
+	rootContext := system.Root
 
 	// spawn our chat client inline
 	props := actor.PropsFromFunc(func(context actor.Context) {

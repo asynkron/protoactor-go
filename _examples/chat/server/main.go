@@ -12,17 +12,20 @@ import (
 )
 
 // define root context
-var rootContext = actor.EmptyRootContext
 
-func notifyAll(clients *hashset.Set, message interface{}) {
+func notifyAll(context actor.Context, clients *hashset.Set, message interface{}) {
 	for _, tmp := range clients.Values() {
 		client := tmp.(*actor.PID)
-		rootContext.Send(client, message)
+		context.Send(client, message)
 	}
 }
 
 func main() {
-	remote.Start("127.0.0.1:8080")
+	system := actor.NewActorSystem()
+	config := remote.BindTo("127.0.0.1", 8080)
+	remoter := remote.NewRemote(system, config)
+	remoter.Start()
+
 	clients := hashset.New()
 
 	props := actor.PropsFromFunc(func(context actor.Context) {
@@ -32,18 +35,18 @@ func main() {
 			clients.Add(msg.Sender)
 			context.Send(msg.Sender, &messages.Connected{Message: "Welcome!"})
 		case *messages.SayRequest:
-			notifyAll(clients, &messages.SayResponse{
+			notifyAll(context, clients, &messages.SayResponse{
 				UserName: msg.UserName,
 				Message:  msg.Message,
 			})
 		case *messages.NickRequest:
-			notifyAll(clients, &messages.NickResponse{
+			notifyAll(context, clients, &messages.NickResponse{
 				OldUserName: msg.OldUserName,
 				NewUserName: msg.NewUserName,
 			})
 		}
 	})
 
-	rootContext.SpawnNamed(props, "chatserver")
-	console.ReadLine()
+	_, _ = system.Root.SpawnNamed(props, "chatserver")
+	_, _ = console.ReadLine()
 }
