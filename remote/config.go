@@ -1,6 +1,9 @@
 package remote
 
-import "google.golang.org/grpc"
+import (
+	"fmt"
+	"google.golang.org/grpc"
+)
 
 // RemotingOption configures how the remote infrastructure is started
 type RemotingOption func(*remoteConfig)
@@ -64,7 +67,24 @@ func WithAdvertisedAddress(address string) RemotingOption {
 	}
 }
 
+func BindTo(host string, port int) *remoteConfig {
+	c := defaultRemoteConfig()
+	c.host = host
+	c.port = port
+	return c
+}
+
+func BindToLocalhost(port int) *remoteConfig {
+	return BindTo("127.0.0.1", port)
+}
+
+func (rc *remoteConfig) Address() string {
+	return fmt.Sprintf("%v:%v", rc.host, rc.port)
+}
+
 type remoteConfig struct {
+	host                     string
+	port                     int
 	advertisedAddress        string
 	serverOptions            []grpc.ServerOption
 	callOptions              []grpc.CallOption

@@ -16,29 +16,28 @@ type Remote struct {
 	actorSystem *actor.ActorSystem
 	s           *grpc.Server
 	edpReader   *endpointReader
+	config      *remoteConfig
 }
 
-func NewRemote(actorSystem *actor.ActorSystem) *Remote {
+func NewRemote(actorSystem *actor.ActorSystem, config *remoteConfig) *Remote {
 	return &Remote{
 		actorSystem: actorSystem,
+		config:      config,
 	}
 }
 
 // Start the remote server
-func (r *Remote) Start(address string, options ...RemotingOption) {
+func (r *Remote) Start() {
 	grpclog.SetLoggerV2(grpclog.NewLoggerV2(ioutil.Discard, ioutil.Discard, ioutil.Discard))
-	lis, err := net.Listen("tcp", address)
+	lis, err := net.Listen("tcp", r.config.Address())
 	if err != nil {
 		plog.Error("failed to listen", log.Error(err))
 		os.Exit(1)
 	}
-	config := defaultRemoteConfig()
-	for _, option := range options {
-		option(config)
-	}
 
-	if config.advertisedAddress != "" {
-		address = config.advertisedAddress
+	var address string
+	if r.config.advertisedAddress != "" {
+		address = r.config.advertisedAddress
 	} else {
 		address = lis.Addr().String()
 	}
@@ -46,9 +45,9 @@ func (r *Remote) Start(address string, options ...RemotingOption) {
 	r.actorSystem.ProcessRegistry.Address = address
 
 	r.spawnActivatorActor()
-	r.startEndpointManager(config)
+	r.startEndpointManager(r.config)
 
-	r.s = grpc.NewServer(config.serverOptions...)
+	r.s = grpc.NewServer(r.config.serverOptions...)
 	r.edpReader = &endpointReader{}
 	RegisterRemotingServer(r.s, r.edpReader)
 	plog.Info("Starting Proto.Actor server", log.String("address", address))
