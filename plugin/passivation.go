@@ -9,7 +9,7 @@ import (
 )
 
 type PassivationAware interface {
-	Init(*actor.PID, time.Duration)
+	Init(*actor.ActorSystem, *actor.PID, time.Duration)
 	Reset(time.Duration)
 	Cancel()
 }
@@ -53,7 +53,7 @@ type PassivationPlugin struct {
 
 func (pp *PassivationPlugin) OnStart(ctx actor.ReceiverContext) {
 	if a, ok := ctx.Actor().(PassivationAware); ok {
-		a.Init(ctx.Self(), pp.Duration)
+		a.Init(ctx.ActorSystem(), ctx.Self(), pp.Duration)
 	}
 }
 

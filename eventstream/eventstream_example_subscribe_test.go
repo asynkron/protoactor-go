@@ -7,8 +7,9 @@ import (
 )
 
 // Subscribe subscribes to events
-func ExampleSubscribe() {
-	sub := eventstream.Subscribe(func(event interface{}) {
+func ExampleEventStream_Subscribe() {
+	es := eventstream.NewEventStream()
+	sub := es.Subscribe(func(event interface{}) {
 		fmt.Println(event)
 	})
 
@@ -18,10 +19,10 @@ func ExampleSubscribe() {
 		return ok
 	})
 
-	eventstream.Publish("Hello World")
-	eventstream.Publish(1)
+	es.Publish("Hello World")
+	es.Publish(1)
 
-	eventstream.Unsubscribe(sub)
+	es.Unsubscribe(sub)
 
 	// Output: Hello World
 }

@@ -9,6 +9,8 @@ import (
 	"github.com/AsynkronIT/protoactor-go/scheduler"
 )
 
+var system = actor.NewActorSystem()
+
 // Use the timer scheduler to repeatedly send messages to an actor.
 func ExampleTimerScheduler_sendRepeatedly() {
 	var wg sync.WaitGroup
@@ -24,9 +26,9 @@ func ExampleTimerScheduler_sendRepeatedly() {
 		}
 	})
 
-	pid := actor.EmptyRootContext.Spawn(props)
+	pid := system.Root.Spawn(props)
 
-	s := scheduler.NewTimerScheduler()
+	s := scheduler.NewTimerScheduler(system.Root)
 	cancel := s.SendRepeatedly(1*time.Millisecond, 1*time.Millisecond, pid, "Hello")
 	wg.Wait()
 	cancel()
