@@ -25,7 +25,7 @@ func TestConfig_WithAdvertisedHost(t *testing.T) {
 
 func TestRemote_Register(t *testing.T) {
 	system := actor.NewActorSystem()
-	config := BindTo("localhost", 0).WithAdvertisedHost("Banana")
+	config := BindTo("localhost", 0)
 	remote := NewRemote(system, config)
 	remote.Register("someKind", actor.PropsFromProducer(nil))
 	remote.Register("someOther", actor.PropsFromProducer(nil))
