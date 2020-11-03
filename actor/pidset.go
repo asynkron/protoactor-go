@@ -77,6 +77,10 @@ func (p *PIDSet) ForEach(f func(i int, pid *PID)) {
 	}
 }
 
+func (p *PIDSet) Get(index int) *PID {
+	return p.pids[index]
+}
+
 func (p *PIDSet) Clone() *PIDSet {
 	var s PIDSet
 	s.pids = make([]*PID, len(p.pids))
