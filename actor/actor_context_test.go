@@ -16,13 +16,13 @@ func TestActorContext_SpawnNamed(t *testing.T) {
 	defer removeMockProcess(pid)
 
 	props := &Props{
-		spawner: func(id string, _ *Props, _ SpawnerContext) (*PID, error) {
+		spawner: func(actorSystem *ActorSystem, id string, _ *Props, _ SpawnerContext) (*PID, error) {
 			assert.Equal(t, "foo/bar", id)
-			return NewLocalPID(id), nil
+			return NewPID(actorSystem.ProcessRegistry.Address, id), nil
 		},
 	}
 
-	parent := &actorContext{self: NewLocalPID("foo"), props: props}
+	parent := &actorContext{self: NewPID("nohost", "foo"), props: props}
 	child, err := parent.SpawnNamed(props, "bar")
 	assert.NoError(t, err)
 	assert.Equal(t, parent.Children()[0], child)
@@ -114,7 +114,7 @@ func TestActorContext_Respond(t *testing.T) {
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch m := ctx.Message().(type) {
 		case string:
-			ctx.Respond(fmt.Sprintf("Got a string: %pids", m))
+			ctx.Respond(fmt.Sprintf("Got a string: %vids", m))
 		}
 	}))
 
@@ -160,7 +160,7 @@ func TestActorContext_Forward(t *testing.T) {
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch m := ctx.Message().(type) {
 		case string:
-			ctx.Respond(fmt.Sprintf("Got a string: %pids", m))
+			ctx.Respond(fmt.Sprintf("Got a string: %vids", m))
 		}
 	}))
 
@@ -214,7 +214,7 @@ func benchmarkActorContext_SpawnWithMiddlewareN(n int, b *testing.B) {
 		props = props.WithSenderMiddleware(middlewareFn)
 	}
 
-	parent := &actorContext{self: NewLocalPID("foo"), props: props}
+	parent := &actorContext{self: NewPID("nohost", "foo"), props: props}
 	for i := 0; i < b.N; i++ {
 		parent.Spawn(props)
 	}

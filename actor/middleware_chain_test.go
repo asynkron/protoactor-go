@@ -33,7 +33,7 @@ func TestMakeReceiverMiddleware_CallsInCorrectOrder(t *testing.T) {
 		Message: 0,
 	}
 
-	chain := makeReceiverMiddlewareChain(r, func(_ ReceiverContext, env *MessageEnvelope) {})
+	chain := makeReceiverMiddlewareChain(r, func(receiver ReceiverContext, env *MessageEnvelope) {})
 	chain(mc, env)
 
 	assert.Equal(t, 1, c[0])

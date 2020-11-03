@@ -31,8 +31,8 @@ func TestDeadLetterWatchRespondsWithTerminate(t *testing.T) {
 	pid := rootContext.Spawn(PropsFromProducer(NewBlackHoleActor))
 	// stop id
 	rootContext.StopFuture(pid).Wait()
-	f := NewFuture(testTimeout)
+	f := NewFuture(system, testTimeout)
 	// send a watch message, from our future
-	pid.sendSystemMessage(&Watch{Watcher: f.PID()})
+	pid.sendSystemMessage(system, &Watch{Watcher: f.PID()})
 	assertFutureSuccess(f, t)
 }

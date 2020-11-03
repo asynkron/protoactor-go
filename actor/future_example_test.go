@@ -8,6 +8,8 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
+var system = actor.NewActorSystem()
+
 func ExampleFuture_PipeTo() {
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -22,7 +24,7 @@ func ExampleFuture_PipeTo() {
 		}
 	}))
 
-	f := actor.NewFuture(50 * time.Millisecond)
+	f := actor.NewFuture(system, 50*time.Millisecond)
 	f.PipeTo(pid)
 	// resolve the future and pipe to waiting actor
 	actor.EmptyRootContext.Send(f.PID(), "hello world")

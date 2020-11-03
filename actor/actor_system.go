@@ -12,7 +12,7 @@ type ActorSystem struct {
 	Guardians       *guardiansValue
 }
 
-func New() *ActorSystem {
+func NewActorSystem() *ActorSystem {
 	system := &ActorSystem{}
 
 	system.ProcessRegistry = NewProcessRegistry(system)
