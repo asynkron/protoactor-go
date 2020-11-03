@@ -18,7 +18,7 @@ func (state *helloActor) Receive(context actor.Context) {
 	case *actor.Stopping:
 		fmt.Println("Stopping, actor is about shut down")
 	case *actor.Stopped:
-		fmt.Println("Stopped, actor and it's children are stopped")
+		fmt.Println("Stopped, actor and its children are stopped")
 	case *actor.Restarting:
 		fmt.Println("Restarting, actor is about restart")
 	case *hello:
@@ -27,17 +27,17 @@ func (state *helloActor) Receive(context actor.Context) {
 }
 
 func main() {
-	rootContext := actor.EmptyRootContext
+	system := actor.NewActorSystem()
 	props := actor.PropsFromProducer(func() actor.Actor { return &helloActor{} })
-	pid := rootContext.Spawn(props)
-	rootContext.Send(pid, &hello{Who: "Roger"})
+	pid := system.Root.Spawn(props)
+	system.Root.Send(pid, &hello{Who: "Roger"})
 
 	// why wait?
 	// Stop is a system message and is not processed through the user message mailbox
 	// thus, it will be handled _before_ any user message
 	// we only do this to show the correct order of events in the console
 	time.Sleep(1 * time.Second)
-	rootContext.Stop(pid)
+	system.Root.Stop(pid)
 
 	console.ReadLine()
 }

@@ -19,7 +19,10 @@ func main() {
 	jaegerCloser := initJaeger()
 	defer jaegerCloser.Close()
 
-	rootContext := actor.NewRootContext(nil).WithSpawnMiddleware(opentracing.TracingMiddleware())
+	system := actor.NewActorSystem()
+	rootContext := actor.
+		NewRootContext(system, nil).
+		WithSpawnMiddleware(opentracing.TracingMiddleware())
 
 	pid := rootContext.SpawnPrefix(createProps(5), "root")
 	for i := 0; i < 3; i++ {
