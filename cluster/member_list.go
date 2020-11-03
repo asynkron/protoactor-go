@@ -26,7 +26,7 @@ func setupMemberList(cluster *Cluster) *memberListValue {
 		cluster:              cluster,
 	}
 
-	memberList.membershipSub = cluster.actorSystem.EventStream.
+	memberList.membershipSub = cluster.ActorSystem.EventStream.
 		Subscribe(memberList.updateClusterTopology).
 		WithPredicate(func(m interface{}) bool {
 			_, ok := m.(ClusterTopologyEvent)
@@ -37,7 +37,7 @@ func setupMemberList(cluster *Cluster) *memberListValue {
 }
 
 func (ml *memberListValue) stopMemberList() {
-	ml.cluster.actorSystem.EventStream.Unsubscribe(ml.membershipSub)
+	ml.cluster.ActorSystem.EventStream.Unsubscribe(ml.membershipSub)
 }
 
 func (ml *memberListValue) getMembers(kind string) []string {
@@ -131,13 +131,13 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: old.Kinds,
 		}
 		left := &MemberLeftEvent{MemberMeta: meta}
-		ml.cluster.actorSystem.EventStream.PublishUnsafe(left)
+		ml.cluster.ActorSystem.EventStream.PublishUnsafe(left)
 		delete(ml.members, old.Address()) // remove this member as it has left
 
 		rt := &remote.EndpointTerminatedEvent{
 			Address: old.Address(),
 		}
-		ml.cluster.actorSystem.EventStream.PublishUnsafe(rt)
+		ml.cluster.ActorSystem.EventStream.PublishUnsafe(rt)
 
 		return
 	}
@@ -145,7 +145,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 		// update MemberStrategy
 		for _, k := range new.Kinds {
 			if _, ok := ml.memberStrategyByKind[k]; !ok {
-				ml.memberStrategyByKind[k] = ml.cluster.config.MemberStrategyBuilder(k)
+				ml.memberStrategyByKind[k] = ml.cluster.Config.MemberStrategyBuilder(k)
 			}
 			ml.memberStrategyByKind[k].AddMember(new)
 		}
@@ -157,7 +157,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		joined := &MemberJoinedEvent{MemberMeta: meta}
-		ml.cluster.actorSystem.EventStream.PublishUnsafe(joined)
+		ml.cluster.ActorSystem.EventStream.PublishUnsafe(joined)
 
 		return
 	}
@@ -166,7 +166,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 	if new.Alive != old.Alive || new.MemberID != old.MemberID || new.StatusValue != nil && !new.StatusValue.IsSame(old.StatusValue) {
 		for _, k := range new.Kinds {
 			if _, ok := ml.memberStrategyByKind[k]; !ok {
-				ml.memberStrategyByKind[k] = ml.cluster.config.MemberStrategyBuilder(k)
+				ml.memberStrategyByKind[k] = ml.cluster.Config.MemberStrategyBuilder(k)
 			}
 			ml.memberStrategyByKind[k].UpdateMember(new)
 		}
@@ -180,7 +180,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		joined := &MemberRejoinedEvent{MemberMeta: meta}
-		ml.cluster.actorSystem.EventStream.PublishUnsafe(joined)
+		ml.cluster.ActorSystem.EventStream.PublishUnsafe(joined)
 
 		return
 	}
@@ -192,7 +192,7 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		unavailable := &MemberUnavailableEvent{MemberMeta: meta}
-		ml.cluster.actorSystem.EventStream.PublishUnsafe(unavailable)
+		ml.cluster.ActorSystem.EventStream.PublishUnsafe(unavailable)
 
 		return
 	}
@@ -204,6 +204,6 @@ func (ml *memberListValue) updateAndNotify(new *MemberStatus, old *MemberStatus)
 			Kinds: new.Kinds,
 		}
 		available := &MemberAvailableEvent{MemberMeta: meta}
-		ml.cluster.actorSystem.EventStream.PublishUnsafe(available)
+		ml.cluster.ActorSystem.EventStream.PublishUnsafe(available)
 	}
 }

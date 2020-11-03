@@ -32,7 +32,7 @@ func DefaultGrainCallOptions(cluster *Cluster) *GrainCallOptions {
 func NewGrainCallOptions(cluster *Cluster) *GrainCallOptions {
 	return &GrainCallOptions{
 		RetryCount: 10,
-		Timeout:    cluster.config.TimeoutTime,
+		Timeout:    cluster.Config.TimeoutTime,
 		RetryAction: func(i int) {
 			i++
 			time.Sleep(time.Duration(i * i * 50))

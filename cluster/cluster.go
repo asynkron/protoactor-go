@@ -10,55 +10,55 @@ import (
 )
 
 type Cluster struct {
-	actorSystem    *actor.ActorSystem
-	config         *ClusterConfig
+	ActorSystem    *actor.ActorSystem
+	Config         *ClusterConfig
 	remote         *remote.Remote
 	pidCache       *pidCacheValue
-	memberList     *memberListValue
+	MemberList     *memberListValue
 	partitionValue *partitionValue
 }
 
 func NewCluster(actorSystem *actor.ActorSystem, config *ClusterConfig) *Cluster {
 	return &Cluster{
-		actorSystem: actorSystem,
-		config:      config,
+		ActorSystem: actorSystem,
+		Config:      config,
 	}
 }
 
 func (c *Cluster) Start() {
-	cfg := c.config
-	c.remote = remote.NewRemote(c.actorSystem, c.config.RemoteConfig)
+	cfg := c.Config
+	c.remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
 
 	// TODO: make it possible to become a cluster even if remoting is already started
 	c.remote.Start()
 
-	address := c.actorSystem.ProcessRegistry.Address
+	address := c.ActorSystem.ProcessRegistry.Address
 	h, p := gonet.GetAddress(address)
 	plog.Info("Starting Proto.Actor cluster", log.String("address", address))
 	kinds := c.remote.GetKnownKinds()
 
 	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
 	c.partitionValue = setupPartition(c, kinds)
-	c.pidCache = setupPidCache(c.actorSystem)
-	c.memberList = setupMemberList(c)
+	c.pidCache = setupPidCache(c.ActorSystem)
+	c.MemberList = setupMemberList(c)
 
-	_ = cfg.ClusterProvider.RegisterMember(cfg.Name, h, p, kinds, cfg.InitialMemberStatusValue, cfg.MemberStatusValueSerializer)
+	_ = cfg.ClusterProvider.RegisterMember(c, cfg.Name, h, p, kinds, cfg.InitialMemberStatusValue, cfg.MemberStatusValueSerializer)
 	cfg.ClusterProvider.MonitorMemberStatusChanges()
 }
 
 func (c *Cluster) Shutdown(graceful bool) {
 	if graceful {
-		_ = c.config.ClusterProvider.Shutdown()
+		_ = c.Config.ClusterProvider.Shutdown()
 		// This is to wait ownership transferring complete.
 		time.Sleep(time.Millisecond * 2000)
-		c.memberList.stopMemberList()
+		c.MemberList.stopMemberList()
 		c.pidCache.stopPidCache()
 		c.partitionValue.stopPartition()
 	}
 
 	c.remote.Shutdown(graceful)
 
-	address := c.actorSystem.ProcessRegistry.Address
+	address := c.ActorSystem.ProcessRegistry.Address
 	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))
 }
 
@@ -70,7 +70,7 @@ func (c *Cluster) Get(name string, kind string) (*actor.PID, remote.ResponseStat
 	}
 
 	// Get Pid
-	address := c.memberList.getPartitionMember(name, kind)
+	address := c.MemberList.getPartitionMember(name, kind)
 	if address == "" {
 		// No available member found
 		return nil, remote.ResponseStatusCodeUNAVAILABLE
@@ -84,7 +84,7 @@ func (c *Cluster) Get(name string, kind string) (*actor.PID, remote.ResponseStat
 
 	// ask the DHT partition for this name to give us a PID
 	remotePartition := c.partitionValue.partitionForKind(address, kind)
-	r, err := c.actorSystem.Root.RequestFuture(remotePartition, req, c.config.TimeoutTime).Result()
+	r, err := c.ActorSystem.Root.RequestFuture(remotePartition, req, c.Config.TimeoutTime).Result()
 	if err == actor.ErrTimeout {
 		plog.Error("PidCache Pid request timeout")
 		return nil, remote.ResponseStatusCodeTIMEOUT

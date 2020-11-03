@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -18,6 +17,7 @@ var (
 )
 
 type ConsulProvider struct {
+	cluster               *cluster.Cluster
 	deregistered          bool
 	shutdown              bool
 	id                    string
@@ -56,8 +56,9 @@ func NewWithConfig(consulConfig *api.Config) (*ConsulProvider, error) {
 	return p, nil
 }
 
-func (p *ConsulProvider) RegisterMember(clusterName string, address string, port int, knownKinds []string,
+func (p *ConsulProvider) RegisterMember(cluster *cluster.Cluster, clusterName string, address string, port int, knownKinds []string,
 	statusValue cluster.MemberStatusValue, serializer cluster.MemberStatusValueSerializer) error {
+	p.cluster = cluster
 	p.id = fmt.Sprintf("%v@%v:%v", clusterName, address, port)
 	p.clusterName = clusterName
 	p.address = address
@@ -234,7 +235,7 @@ func (p *ConsulProvider) notifyStatuses() {
 	// passing events one by one, we can't know if someone left or just haven't changed status for a long time
 
 	// publish the current cluster topology onto the event stream
-	eventstream.Publish(res)
+	p.cluster.ActorSystem.EventStream.Publish(res)
 }
 
 func (p *ConsulProvider) MonitorMemberStatusChanges() {
