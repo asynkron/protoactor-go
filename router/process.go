@@ -79,7 +79,7 @@ func (ref *process) Stop(pid *actor.PID) {
 		return
 	}
 
-	ref.actorSystem.Root.StopFuture(ref.router).Wait()
+	_ = ref.actorSystem.Root.StopFuture(ref.router).Wait()
 	ref.actorSystem.ProcessRegistry.Remove(pid)
 	ref.SendSystemMessage(pid, &actor.Stop{})
 }

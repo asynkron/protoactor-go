@@ -9,6 +9,8 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
+var system = actor.NewActorSystem()
+
 func TestBroadcastRouterThreadSafe(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)

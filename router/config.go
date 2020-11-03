@@ -13,8 +13,6 @@ const (
 	PoolRouterType
 )
 
-var system = actor.NewActorSystem()
-
 type RouterConfig interface {
 	RouterType() RouterType
 	OnStarted(context actor.Context, props *actor.Props, state RouterState)
@@ -33,6 +31,7 @@ func (config *GroupRouter) OnStarted(context actor.Context, props *actor.Props, 
 	config.Routees.ForEach(func(i int, pid *actor.PID) {
 		context.Watch(pid)
 	})
+	state.SetSender(context)
 	state.SetRoutees(config.Routees)
 }
 
@@ -45,6 +44,7 @@ func (config *PoolRouter) OnStarted(context actor.Context, props *actor.Props, s
 	for i := 0; i < config.PoolSize; i++ {
 		routees.Add(context.Spawn(props))
 	}
+	state.SetSender(context)
 	state.SetRoutees(&routees)
 }
 
@@ -54,13 +54,15 @@ func (config *PoolRouter) RouterType() RouterType {
 
 func spawner(config RouterConfig) actor.SpawnFunc {
 	return func(actorSystem *actor.ActorSystem, id string, props *actor.Props, parentContext actor.SpawnerContext) (*actor.PID, error) {
-		return spawn(id, config, props, parentContext)
+		return spawn(actorSystem, id, config, props, parentContext)
 	}
 }
 
-func spawn(id string, config RouterConfig, props *actor.Props, parentContext actor.SpawnerContext) (*actor.PID, error) {
-	ref := &process{}
-	proxy, absent := system.ProcessRegistry.Add(ref, id)
+func spawn(actorSystem *actor.ActorSystem, id string, config RouterConfig, props *actor.Props, parentContext actor.SpawnerContext) (*actor.PID, error) {
+	ref := &process{
+		actorSystem: actorSystem,
+	}
+	proxy, absent := actorSystem.ProcessRegistry.Add(ref, id)
 	if !absent {
 		return proxy, actor.ErrNameExists
 	}
@@ -72,7 +74,7 @@ func spawn(id string, config RouterConfig, props *actor.Props, parentContext act
 	if config.RouterType() == GroupRouterType {
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
-		ref.router, _ = actor.DefaultSpawner(system, id+"/router", actor.PropsFromProducer(func() actor.Actor {
+		ref.router, _ = actor.DefaultSpawner(actorSystem, id+"/router", actor.PropsFromProducer(func() actor.Actor {
 			return &groupRouterActor{
 				props:  &pc,
 				config: config,
@@ -84,7 +86,7 @@ func spawn(id string, config RouterConfig, props *actor.Props, parentContext act
 	} else {
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
-		ref.router, _ = actor.DefaultSpawner(system, id+"/router", actor.PropsFromProducer(func() actor.Actor {
+		ref.router, _ = actor.DefaultSpawner(actorSystem, id+"/router", actor.PropsFromProducer(func() actor.Actor {
 			return &poolRouterActor{
 				props:  &pc,
 				config: config,

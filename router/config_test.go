@@ -9,7 +9,7 @@ import (
 
 func TestSpawn(t *testing.T) {
 	pr := &broadcastPoolRouter{PoolRouter{PoolSize: 1}}
-	pid, err := spawn("foo", pr, actor.PropsFromFunc(func(context actor.Context) {}), system.Root)
+	pid, err := spawn(system, "foo", pr, actor.PropsFromFunc(func(context actor.Context) {}), system.Root)
 	assert.NoError(t, err)
 
 	_, exists := system.ProcessRegistry.Get(actor.NewPID(system.ProcessRegistry.Address, "foo/router"))
