@@ -28,13 +28,13 @@ func (state *PassivationHolder) Reset(duration time.Duration) {
 	}
 }
 
-func (state *PassivationHolder) Init(pid *actor.PID, duration time.Duration) {
+func (state *PassivationHolder) Init(context actor.Context, pid *actor.PID, duration time.Duration) {
 	state.timer = time.NewTimer(duration)
 	state.done = 0
 	go func() {
 		select {
 		case <-state.timer.C:
-			actor.EmptyRootContext.Stop(pid)
+			context.Stop(pid)
 			atomic.StoreInt32(&state.done, 1)
 			break
 		}

@@ -9,18 +9,19 @@ import (
 	"github.com/AsynkronIT/protoactor-go/log"
 )
 
+//TODO fix
 var (
 	nameLookup   = make(map[string]actor.Props)
 	activatorPid *actor.PID
 )
 
-func spawnActivatorActor() {
+func (r *Remote) spawnActivatorActor() {
 	props := actor.PropsFromProducer(newActivatorActor()).WithGuardian(actor.RestartingSupervisorStrategy())
-	activatorPid, _ = rootContext.SpawnNamed(props, "activator")
+	activatorPid, _ = r.actorSystem.Root.SpawnNamed(props, "activator")
 }
 
-func stopActivatorActor() {
-	rootContext.StopFuture(activatorPid).Wait()
+func (r *Remote) stopActivatorActor() {
+	_ = r.actorSystem.Root.StopFuture(activatorPid).Wait()
 }
 
 // Register a known actor props by name
@@ -55,15 +56,15 @@ func (e *ActivatorError) Error() string {
 }
 
 // ActivatorForAddress returns a PID for the activator at the given address
-func ActivatorForAddress(address string) *actor.PID {
+func (r *Remote) ActivatorForAddress(address string) *actor.PID {
 	pid := actor.NewPID(address, "activator")
 	return pid
 }
 
 // SpawnFuture spawns a remote actor and returns a Future that completes once the actor is started
-func SpawnFuture(address, name, kind string, timeout time.Duration) *actor.Future {
-	activator := ActivatorForAddress(address)
-	f := rootContext.RequestFuture(activator, &ActorPidRequest{
+func (r *Remote) SpawnFuture(address, name, kind string, timeout time.Duration) *actor.Future {
+	activator := r.ActivatorForAddress(address)
+	f := r.actorSystem.Root.RequestFuture(activator, &ActorPidRequest{
 		Name: name,
 		Kind: kind,
 	}, timeout)
@@ -71,13 +72,13 @@ func SpawnFuture(address, name, kind string, timeout time.Duration) *actor.Futur
 }
 
 // Spawn spawns a remote actor of a given type at a given address
-func Spawn(address, kind string, timeout time.Duration) (*ActorPidResponse, error) {
-	return SpawnNamed(address, "", kind, timeout)
+func (r *Remote) Spawn(address, kind string, timeout time.Duration) (*ActorPidResponse, error) {
+	return r.SpawnNamed(address, "", kind, timeout)
 }
 
 // SpawnNamed spawns a named remote actor of a given type at a given address
-func SpawnNamed(address, name, kind string, timeout time.Duration) (*ActorPidResponse, error) {
-	res, err := SpawnFuture(address, name, kind, timeout).Result()
+func (r *Remote) SpawnNamed(address, name, kind string, timeout time.Duration) (*ActorPidResponse, error) {
+	res, err := r.SpawnFuture(address, name, kind, timeout).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -115,10 +116,10 @@ func (*activator) Receive(context actor.Context) {
 
 		// unnamed actor, assign auto ID
 		if name == "" {
-			name = actor.ProcessRegistry.NextId()
+			name = context.ActorSystem().ProcessRegistry.NextId()
 		}
 
-		pid, err := rootContext.SpawnNamed(&props, "Remote$"+name)
+		pid, err := context.SpawnNamed(&props, "Remote$"+name)
 
 		if err == nil {
 			response := &ActorPidResponse{Pid: pid}

@@ -24,7 +24,7 @@ func (suite *ActivatorTestSuite) SetupTest() {
 	nameLookup = make(map[string]actor.Props)
 
 	// from actor/process_registry.go
-	actor.ProcessRegistry.RemoteHandlers = []actor.AddressResolver{}
+	system.ProcessRegistry.RemoteHandlers = []actor.AddressResolver{}
 }
 
 func (suite *ActivatorTestSuite) TearDownTest() {
@@ -34,7 +34,7 @@ func (suite *ActivatorTestSuite) TearDownTest() {
 	nameLookup = make(map[string]actor.Props)
 
 	// from actor/process_registry.go
-	actor.ProcessRegistry.RemoteHandlers = []actor.AddressResolver{}
+	system.ProcessRegistry.RemoteHandlers = []actor.AddressResolver{}
 }
 
 func TestMockedRootContextSuite(t *testing.T) {
@@ -50,7 +50,7 @@ func (suite *ActivatorTestSuite) TestSpawnFuture() {
 	defer removeMockProcess(activator)
 
 	var resolverCalled = false
-	actor.ProcessRegistry.RemoteHandlers = []actor.AddressResolver{
+	system.ProcessRegistry.RemoteHandlers = []actor.AddressResolver{
 		func(pid *actor.PID) (i actor.Process, b bool) {
 			resolverCalled = true
 			suite.Equal("activator", pid.Id)
@@ -80,7 +80,7 @@ func (suite *ActivatorTestSuite) TestSpawnFuture() {
 			}
 
 			// Send the payload back to the sender Future
-			rootContext.Send(envelope.Sender, &ActorPidResponse{
+			system.Root.Send(envelope.Sender, &ActorPidResponse{
 				Pid: &actor.PID{
 					Address: pid.Address,
 				},
@@ -111,7 +111,7 @@ func (suite *ActivatorTestSuite) TestSpawn() {
 	defer removeMockProcess(activator)
 
 	var resolverCalled = false
-	actor.ProcessRegistry.RemoteHandlers = []actor.AddressResolver{
+	system.ProcessRegistry.RemoteHandlers = []actor.AddressResolver{
 		func(pid *actor.PID) (i actor.Process, b bool) {
 			resolverCalled = true
 			suite.Equal("activator", pid.Id)
@@ -141,7 +141,7 @@ func (suite *ActivatorTestSuite) TestSpawn() {
 			}
 
 			// Send the payload back to the sender Future
-			rootContext.Send(envelope.Sender, &ActorPidResponse{
+			system.Root.Send(envelope.Sender, &ActorPidResponse{
 				Pid: &actor.PID{
 					Address: pid.Address,
 				},
@@ -210,7 +210,7 @@ func (suite *ActivatorTestSuite) TestSpawnNamed() {
 			defer removeMockProcess(activator)
 
 			var resolverCalled = false
-			actor.ProcessRegistry.RemoteHandlers = []actor.AddressResolver{
+			system.ProcessRegistry.RemoteHandlers = []actor.AddressResolver{
 				func(pid *actor.PID) (i actor.Process, b bool) {
 					resolverCalled = true
 					suite.Equal("activator", pid.Id)
@@ -240,7 +240,7 @@ func (suite *ActivatorTestSuite) TestSpawnNamed() {
 
 					if tt.Response != nil {
 						// Send the payload back to the sender Future
-						rootContext.Send(envelope.Sender, tt.Response)
+						system.Root.Send(envelope.Sender, tt.Response)
 					}
 				}).
 				Once()
@@ -376,7 +376,7 @@ func (suite *ActivatorTestSuite) Test_activatorReceive_Spawn() {
 			if tt.HasKind {
 				nameLookup[kind] = *actor.
 					PropsFromFunc(func(c actor.Context) {}).
-					WithSpawnFunc(func(id string, props *actor.Props, parentContext actor.SpawnerContext) (*actor.PID, error) {
+					WithSpawnFunc(func(actorSystem *actor.ActorSystem, id string, props *actor.Props, parentContext actor.SpawnerContext) (*actor.PID, error) {
 						if tt.PidFunc == nil {
 							return nil, tt.Err
 						}
@@ -410,7 +410,7 @@ func (suite *ActivatorTestSuite) Test_activatorReceive_Spawn() {
 					}
 					if tt.PidFunc != nil {
 						suite.NotNil(response.Pid)
-						suite.Equal(actor.ProcessRegistry.Address, response.Pid.GetAddress())
+						suite.Equal(system.ProcessRegistry.Address, response.Pid.GetAddress())
 						suite.Contains(response.Pid.GetId(), name)
 						suite.Equal(fmt.Sprintf("Remote$%s", name), response.Pid.Id)
 					}

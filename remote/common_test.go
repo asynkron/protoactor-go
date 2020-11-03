@@ -8,9 +8,16 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+var system = actor.NewActorSystem()
+
 // mockContext
 type mockContext struct {
 	mock.Mock
+}
+
+func (m *mockContext) ActorSystem() *actor.ActorSystem {
+	args := m.Called()
+	return args.Get(0).(*actor.ActorSystem)
 }
 
 //
@@ -116,7 +123,7 @@ func (m *mockContext) Send(pid *actor.PID, message interface{}) {
 
 func (m *mockContext) Request(pid *actor.PID, message interface{}) {
 	args := m.Called()
-	p, _ := actor.ProcessRegistry.Get(pid)
+	p, _ := system.ProcessRegistry.Get(pid)
 	env := &actor.MessageEnvelope{
 		Header:  nil,
 		Message: message,
@@ -127,7 +134,7 @@ func (m *mockContext) Request(pid *actor.PID, message interface{}) {
 
 func (m *mockContext) RequestWithCustomSender(pid *actor.PID, message interface{}, sender *actor.PID) {
 	m.Called()
-	p, _ := actor.ProcessRegistry.Get(pid)
+	p, _ := system.ProcessRegistry.Get(pid)
 	env := &actor.MessageEnvelope{
 		Header:  nil,
 		Message: message,
@@ -175,7 +182,7 @@ type mockProcess struct {
 
 func spawnMockProcess(name string) (*actor.PID, *mockProcess) {
 	p := &mockProcess{}
-	pid, ok := actor.ProcessRegistry.Add(p, name)
+	pid, ok := system.ProcessRegistry.Add(p, name)
 	if !ok {
 		panic(fmt.Errorf("did not spawn named process '%s'", name))
 	}
@@ -184,7 +191,7 @@ func spawnMockProcess(name string) (*actor.PID, *mockProcess) {
 }
 
 func removeMockProcess(pid *actor.PID) {
-	actor.ProcessRegistry.Remove(pid)
+	system.ProcessRegistry.Remove(pid)
 }
 
 func (m *mockProcess) SendUserMessage(pid *actor.PID, message interface{}) {

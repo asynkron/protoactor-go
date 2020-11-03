@@ -29,14 +29,14 @@ type endpointManagerValue struct {
 	endpointSub        *eventstream.Subscription
 }
 
-func startEndpointManager(config *remoteConfig) {
+func (r *Remote) startEndpointManager(config *remoteConfig) {
 	plog.Debug("Started EndpointManager")
 
 	props := actor.PropsFromProducer(newEndpointSupervisor).
 		WithGuardian(actor.RestartingSupervisorStrategy()).
 		WithSupervisor(actor.RestartingSupervisorStrategy()).
 		WithDispatcher(mailbox.NewSynchronizedDispatcher(300))
-	endpointSupervisor, _ := rootContext.SpawnNamed(props, "EndpointSupervisor")
+	endpointSupervisor, _ := r.actorSystem.Root.SpawnNamed(props, "EndpointSupervisor")
 
 	endpointManager = &endpointManagerValue{
 		connections:        &sync.Map{},
@@ -44,7 +44,7 @@ func startEndpointManager(config *remoteConfig) {
 		endpointSupervisor: endpointSupervisor,
 	}
 
-	endpointManager.endpointSub = eventstream.
+	endpointManager.endpointSub = r.actorSystem.EventStream.
 		Subscribe(endpointManager.endpointEvent).
 		WithPredicate(func(m interface{}) bool {
 			switch m.(type) {
@@ -55,9 +55,9 @@ func startEndpointManager(config *remoteConfig) {
 		})
 }
 
-func stopEndpointManager() {
-	eventstream.Unsubscribe(endpointManager.endpointSub)
-	rootContext.StopFuture(endpointManager.endpointSupervisor).Wait()
+func (r *Remote) stopEndpointManager() {
+	r.actorSystem.EventStream.Unsubscribe(endpointManager.endpointSub)
+	_ = r.actorSystem.Root.StopFuture(endpointManager.endpointSupervisor).Wait()
 	endpointManager.endpointSub = nil
 	endpointManager.connections = nil
 	plog.Debug("Stopped EndpointManager")

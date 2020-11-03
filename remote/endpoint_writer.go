@@ -4,17 +4,17 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
-func endpointWriterProducer(address string, config *remoteConfig) actor.Producer {
+func endpointWriterProducer(remote *Remote, address string, config *remoteConfig) actor.Producer {
 	return func() actor.Actor {
 		return &endpointWriter{
 			address: address,
 			config:  config,
+			remote:  remote,
 		}
 	}
 }
@@ -25,6 +25,7 @@ type endpointWriter struct {
 	conn                *grpc.ClientConn
 	stream              Remoting_ReceiveClient
 	defaultSerializerId int32
+	remote              *Remote
 }
 
 func (state *endpointWriter) initialize() {
@@ -67,13 +68,13 @@ func (state *endpointWriter) initializeInternal() error {
 			terminated := &EndpointTerminatedEvent{
 				Address: state.address,
 			}
-			eventstream.Publish(terminated)
+			state.remote.actorSystem.EventStream.Publish(terminated)
 		}
 	}()
 
 	plog.Info("EndpointWriter connected", log.String("address", state.address))
 	connected := &EndpointConnectedEvent{Address: state.address}
-	eventstream.Publish(connected)
+	state.remote.actorSystem.EventStream.Publish(connected)
 	state.stream = stream
 	return nil
 }
@@ -159,9 +160,9 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 	case *actor.Started:
 		state.initialize()
 	case *actor.Stopped:
-		state.conn.Close()
+		_ = state.conn.Close()
 	case *actor.Restarting:
-		state.conn.Close()
+		_ = state.conn.Close()
 	case *EndpointTerminatedEvent:
 		ctx.Stop(ctx.Self())
 	case []interface{}:
