@@ -39,8 +39,8 @@ func (r *Remote) Start() {
 	}
 
 	var address string
-	if r.config.advertisedHost != "" {
-		address = r.config.advertisedHost
+	if r.config.AdvertisedHost != "" {
+		address = r.config.AdvertisedHost
 	} else {
 		address = lis.Addr().String()
 	}
@@ -50,7 +50,7 @@ func (r *Remote) Start() {
 	r.spawnActivatorActor()
 	r.startEndpointManager()
 
-	r.s = grpc.NewServer(r.config.serverOptions...)
+	r.s = grpc.NewServer(r.config.ServerOptions...)
 	r.edpReader = newEndpointReader(r)
 	RegisterRemotingServer(r.s, r.edpReader)
 	plog.Info("Starting Proto.Actor server", log.String("address", address))

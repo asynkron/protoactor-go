@@ -161,7 +161,7 @@ func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, s
 func (state *endpointSupervisor) spawnEndpointWriter(remote *Remote, address string, ctx actor.Context) *actor.PID {
 	props := actor.
 		PropsFromProducer(endpointWriterProducer(remote, address, remote.config)).
-		WithMailbox(endpointWriterMailboxProducer(remote.config.endpointWriterBatchSize, remote.config.endpointWriterQueueSize))
+		WithMailbox(endpointWriterMailboxProducer(remote.config.EndpointWriterBatchSize, remote.config.EndpointWriterQueueSize))
 	pid := ctx.Spawn(props)
 	return pid
 }

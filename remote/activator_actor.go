@@ -24,7 +24,7 @@ func (r *Remote) Register(kind string, props *actor.Props) {
 	r.nameLookup[kind] = *props
 }
 
-// GetKnownKinds returns a slice of known actor "kinds"
+// GetKnownKinds returns a slice of known actor "Kinds"
 func (r *Remote) GetKnownKinds() []string {
 	keys := make([]string, 0, len(r.nameLookup))
 	for k := range r.nameLookup {

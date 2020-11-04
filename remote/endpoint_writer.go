@@ -42,7 +42,7 @@ func (state *endpointWriter) initialize() {
 func (state *endpointWriter) initializeInternal() error {
 	plog.Info("Started EndpointWriter", log.String("address", state.address))
 	plog.Info("EndpointWriter connecting", log.String("address", state.address))
-	conn, err := grpc.Dial(state.address, state.config.dialOptions...)
+	conn, err := grpc.Dial(state.address, state.config.DialOptions...)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (state *endpointWriter) initializeInternal() error {
 	state.defaultSerializerId = resp.DefaultSerializerId
 
 	//	log.Printf("Getting stream from address %v", state.address)
-	stream, err := c.Receive(context.Background(), state.config.callOptions...)
+	stream, err := c.Receive(context.Background(), state.config.CallOptions...)
 	if err != nil {
 		return err
 	}

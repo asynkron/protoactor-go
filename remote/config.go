@@ -2,80 +2,99 @@ package remote
 
 import (
 	"fmt"
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"google.golang.org/grpc"
 )
 
 func defaultRemoteConfig() Config {
 	return Config{
-		advertisedHost:           "",
-		dialOptions:              []grpc.DialOption{grpc.WithInsecure()},
-		endpointWriterBatchSize:  1000,
-		endpointManagerBatchSize: 1000,
-		endpointWriterQueueSize:  1000000,
-		endpointManagerQueueSize: 1000000,
+		AdvertisedHost:           "",
+		DialOptions:              []grpc.DialOption{grpc.WithInsecure()},
+		EndpointWriterBatchSize:  1000,
+		EndpointManagerBatchSize: 1000,
+		EndpointWriterQueueSize:  1000000,
+		EndpointManagerQueueSize: 1000000,
+		Kinds:                    make(map[string]*actor.Props),
 	}
 }
 
 func (rc Config) WithEndpointWriterBatchSize(batchSize int) Config {
-	rc.endpointWriterBatchSize = batchSize
+	rc.EndpointWriterBatchSize = batchSize
 	return rc
 }
 
 func (rc Config) WithEndpointWriterQueueSize(queueSize int) Config {
-	rc.endpointWriterQueueSize = queueSize
+	rc.EndpointWriterQueueSize = queueSize
 	return rc
 }
 
 func (rc Config) WithEndpointManagerBatchSize(batchSize int) Config {
-	rc.endpointManagerBatchSize = batchSize
+	rc.EndpointManagerBatchSize = batchSize
 	return rc
 }
 
 func (rc Config) WithEndpointManagerQueueSize(queueSize int) Config {
-	rc.endpointManagerQueueSize = queueSize
+	rc.EndpointManagerQueueSize = queueSize
 	return rc
 }
 
 func (rc Config) WithDialOptions(options ...grpc.DialOption) Config {
-	rc.dialOptions = options
+	rc.DialOptions = options
 	return rc
 }
 
 func (rc Config) WithServerOptions(options ...grpc.ServerOption) Config {
-	rc.serverOptions = options
+	rc.ServerOptions = options
 	return rc
 }
 
 func (rc Config) WithCallOptions(options ...grpc.CallOption) Config {
-	rc.callOptions = options
+	rc.CallOptions = options
 	return rc
 }
 
 func (rc Config) WithAdvertisedHost(address string) Config {
-	rc.advertisedHost = address
+	rc.AdvertisedHost = address
 	return rc
 }
 
 func (rc Config) Address() string {
-	return fmt.Sprintf("%v:%v", rc.host, rc.port)
+	return fmt.Sprintf("%v:%v", rc.Host, rc.Port)
 }
 
-func Configure(host string, port int) Config {
+func Configure(host string, port int, kinds ...*Kind) Config {
 	c := defaultRemoteConfig()
-	c.host = host
-	c.port = port
+	c.Host = host
+	c.Port = port
+
+	for _, kind := range kinds {
+		c.Kinds[kind.Kind] = kind.Props
+	}
 	return c
 }
 
 type Config struct {
-	host                     string
-	port                     int
-	advertisedHost           string
-	serverOptions            []grpc.ServerOption
-	callOptions              []grpc.CallOption
-	dialOptions              []grpc.DialOption
-	endpointWriterBatchSize  int
-	endpointWriterQueueSize  int
-	endpointManagerBatchSize int
-	endpointManagerQueueSize int
+	Host                     string
+	Port                     int
+	AdvertisedHost           string
+	ServerOptions            []grpc.ServerOption
+	CallOptions              []grpc.CallOption
+	DialOptions              []grpc.DialOption
+	EndpointWriterBatchSize  int
+	EndpointWriterQueueSize  int
+	EndpointManagerBatchSize int
+	EndpointManagerQueueSize int
+	Kinds                    map[string]*actor.Props
+}
+
+type Kind struct {
+	Kind  string
+	Props *actor.Props
+}
+
+func NewKind(kind string, props *actor.Props) *Kind {
+	return &Kind{
+		Kind:  kind,
+		Props: props,
+	}
 }

@@ -37,22 +37,22 @@ func TestRemote_Register(t *testing.T) {
 
 //
 //func (suite *ServerTestSuite) TestStart_AdvertisedAddress() {
-//	// Find available port
-//	lis, err := net.Listen("tcp", "127.0.0.1:0") // use :0 to choose available port
+//	// Find available Port
+//	lis, err := net.Listen("tcp", "127.0.0.1:0") // use :0 to choose available Port
 //	if err != nil {
 //		panic(err)
 //	}
 //	//address := lis.Addr()
 //	_ = lis.Close()
 //
-//	advertisedHost := "192.0.2.1:1234"
+//	AdvertisedHost := "192.0.2.1:1234"
 //	remote.Start()
 //
 //	suite.NotEmpty(system.ProcessRegistry.RemoteHandlers, "AddressResolver should be registered on server start")
-//	suite.Equal(advertisedHost, system.ProcessRegistry.Address, "WithAdvertisedHost should have higher priority")
+//	suite.Equal(AdvertisedHost, system.ProcessRegistry.Address, "WithAdvertisedHost should have higher priority")
 //	suite.NotNil(activatorPid, "Activator actor should be initialized on server start")
 //	suite.NotNil(endpointManager, "EndpointManager should be initialized on server start")
-//	suite.Equal(advertisedHost, remote.config.advertisedHost, "Passed configuration option should be used")
+//	suite.Equal(AdvertisedHost, remote.config.AdvertisedHost, "Passed configuration option should be used")
 //	suite.NotNil(remote.edpReader, "EndpointReader should be initialized on server start")
 //	suite.NotNil(remote.s, "gRPC server should be started on server start")
 //}
@@ -107,7 +107,7 @@ func TestRemote_Register(t *testing.T) {
 //		Once()
 //	activatorProcess.On("Stop", activatorPid).Once()
 //
-//	lis, err := net.Listen("tcp", "127.0.0.1:0") // use :0 to choose available port
+//	lis, err := net.Listen("tcp", "127.0.0.1:0") // use :0 to choose available Port
 //	if err != nil {
 //		panic(err)
 //	}
@@ -153,7 +153,7 @@ func TestRemote_Register(t *testing.T) {
 //		endpointSub:        system.EventStream.Subscribe(func(evt interface{}) {}),
 //	}
 //
-//	lis, err := net.Listen("tcp", "127.0.0.1:0") // use :0 to choose available port
+//	lis, err := net.Listen("tcp", "127.0.0.1:0") // use :0 to choose available Port
 //	if err != nil {
 //		panic(err)
 //	}
