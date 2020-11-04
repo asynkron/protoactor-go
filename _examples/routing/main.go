@@ -18,8 +18,8 @@ func (m *myMessage) Hash() string {
 
 func main() {
 	log.Println("Round robin routing:")
-
-	rootContext := actor.EmptyRootContext
+	system := actor.NewActorSystem()
+	rootContext := system.Root
 	act := func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *myMessage:
