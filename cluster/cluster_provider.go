@@ -1,6 +1,6 @@
 package cluster
 
-type ClusterTopologyEvent []*MemberStatus
+type TopologyEvent []*MemberStatus
 
 type ClusterProvider interface {
 	RegisterMember(cluster *Cluster, clusterName string, address string, port int, knownKinds []string,

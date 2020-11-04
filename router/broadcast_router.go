@@ -43,10 +43,10 @@ func NewBroadcastGroup(routees ...*actor.PID) *actor.Props {
 	return (&actor.Props{}).WithSpawnFunc(spawner(&broadcastGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
-func (config *broadcastPoolRouter) CreateRouterState() RouterState {
+func (config *broadcastPoolRouter) CreateRouterState() State {
 	return &broadcastRouterState{}
 }
 
-func (config *broadcastGroupRouter) CreateRouterState() RouterState {
+func (config *broadcastGroupRouter) CreateRouterState() State {
 	return &broadcastRouterState{}
 }

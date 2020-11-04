@@ -44,11 +44,11 @@ func NewRoundRobinGroup(routees ...*actor.PID) *actor.Props {
 	return (&actor.Props{}).WithSpawnFunc(spawner(&roundRobinGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
-func (config *roundRobinPoolRouter) CreateRouterState() RouterState {
+func (config *roundRobinPoolRouter) CreateRouterState() State {
 	return &roundRobinState{}
 }
 
-func (config *roundRobinGroupRouter) CreateRouterState() RouterState {
+func (config *roundRobinGroupRouter) CreateRouterState() State {
 	return &roundRobinState{}
 }
 

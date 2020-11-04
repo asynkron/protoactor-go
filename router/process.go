@@ -12,7 +12,7 @@ import (
 type process struct {
 	parent      *actor.PID
 	router      *actor.PID
-	state       RouterState
+	state       State
 	mu          sync.Mutex
 	watchers    actor.PIDSet
 	stopping    int32

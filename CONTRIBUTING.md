@@ -8,7 +8,7 @@ In case of questions about the contribution process or for discussion of specifi
 
 Depending on which version (or sometimes module) you want to work on, you should target a specific branch as explained below:
 
-* `dev` – active development branch of Proto.Actor beta
+* `dev` – active development branch of Proto.Actor beta.
 
 ## Tags
 
@@ -27,7 +27,7 @@ In general *all issues are open for anyone working on them*, however if you're n
 that will be accepted and likely is a nice one to get started you should check out the following tags:
 
 - [community](https://github.com/AsynkronIT/protoactor-go/labels/community) - which identifies issues that the core team will likely not have time to work on, or the issue is a nice entry level ticket. If you're not sure how to solve a ticket but would like to work on it feel free to ask in the issue about clarification or tips.
-- [nice-to-have (low-priority)](https://github.com/AsynkronIT/protoactor-go/labels/nice-to-have) - are tasks which make sense, however are not very high priority (in face of other very high priority issues). If you see something interesting in this list, a contribution would be really wonderful!
+- [nice-to-have (low-priority)](https://github.com/AsynkronIT/protoactor-go/labels/nice-to-have) - are tasks which make sense, however are not very high priority (in case of other very high priority issues). If you see something interesting in this list, a contribution would be really wonderful!
 
 Another group of tickets are those which start from a number. They're used to signal in what phase of development an issue is:
 

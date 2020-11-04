@@ -11,14 +11,14 @@ import (
 
 type Cluster struct {
 	ActorSystem    *actor.ActorSystem
-	Config         *ClusterConfig
+	Config         *Config
 	remote         *remote.Remote
 	pidCache       *pidCacheValue
 	MemberList     *memberListValue
 	partitionValue *partitionValue
 }
 
-func NewCluster(actorSystem *actor.ActorSystem, config *ClusterConfig) *Cluster {
+func NewCluster(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	return &Cluster{
 		ActorSystem: actorSystem,
 		Config:      config,

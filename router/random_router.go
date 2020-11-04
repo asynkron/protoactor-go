@@ -43,11 +43,11 @@ func NewRandomGroup(routees ...*actor.PID) *actor.Props {
 	return (&actor.Props{}).WithSpawnFunc(spawner(&randomGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
-func (config *randomPoolRouter) CreateRouterState() RouterState {
+func (config *randomPoolRouter) CreateRouterState() State {
 	return &randomRouterState{}
 }
 
-func (config *randomGroupRouter) CreateRouterState() RouterState {
+func (config *randomGroupRouter) CreateRouterState() State {
 	return &randomRouterState{}
 }
 

@@ -15,8 +15,8 @@ const (
 
 type RouterConfig interface {
 	RouterType() RouterType
-	OnStarted(context actor.Context, props *actor.Props, state RouterState)
-	CreateRouterState() RouterState
+	OnStarted(context actor.Context, props *actor.Props, state State)
+	CreateRouterState() State
 }
 
 type GroupRouter struct {
@@ -27,7 +27,7 @@ type PoolRouter struct {
 	PoolSize int
 }
 
-func (config *GroupRouter) OnStarted(context actor.Context, props *actor.Props, state RouterState) {
+func (config *GroupRouter) OnStarted(context actor.Context, props *actor.Props, state State) {
 	config.Routees.ForEach(func(i int, pid *actor.PID) {
 		context.Watch(pid)
 	})
@@ -39,7 +39,7 @@ func (config *GroupRouter) RouterType() RouterType {
 	return GroupRouterType
 }
 
-func (config *PoolRouter) OnStarted(context actor.Context, props *actor.Props, state RouterState) {
+func (config *PoolRouter) OnStarted(context actor.Context, props *actor.Props, state State) {
 	var routees actor.PIDSet
 	for i := 0; i < config.PoolSize; i++ {
 		routees.Add(context.Spawn(props))

@@ -49,7 +49,7 @@ func main() {
 			log.Printf("Member Unavailable " + msg.Name())
 		case *cluster.MemberAvailableEvent:
 			log.Printf("Member Available " + msg.Name())
-		case cluster.ClusterTopologyEvent:
+		case cluster.TopologyEvent:
 			log.Printf("Cluster Topology Poll")
 		}
 	})

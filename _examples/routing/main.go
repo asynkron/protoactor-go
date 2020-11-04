@@ -49,5 +49,5 @@ func main() {
 	for i := 0; i < 10; i++ {
 		rootContext.Send(pid, &myMessage{i})
 	}
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }

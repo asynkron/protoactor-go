@@ -89,10 +89,10 @@ func NewConsistentHashGroup(routees ...*actor.PID) *actor.Props {
 	return (&actor.Props{}).WithSpawnFunc(spawner(&consistentHashGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
-func (config *consistentHashPoolRouter) CreateRouterState() RouterState {
+func (config *consistentHashPoolRouter) CreateRouterState() State {
 	return &consistentHashRouterState{}
 }
 
-func (config *consistentHashGroupRouter) CreateRouterState() RouterState {
+func (config *consistentHashGroupRouter) CreateRouterState() State {
 	return &consistentHashRouterState{}
 }

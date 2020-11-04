@@ -6,7 +6,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-type ClusterConfig struct {
+type Config struct {
 	Name                        string
 	Address                     string
 	ClusterProvider             ClusterProvider
@@ -17,8 +17,8 @@ type ClusterConfig struct {
 	MemberStrategyBuilder       func(kind string) MemberStrategy
 }
 
-func NewClusterConfig(name string, address string, clusterProvider ClusterProvider) *ClusterConfig {
-	return &ClusterConfig{
+func NewClusterConfig(name string, address string, clusterProvider ClusterProvider) *Config {
+	return &Config{
 		Name:                        name,
 		Address:                     address,
 		ClusterProvider:             clusterProvider,
@@ -29,27 +29,27 @@ func NewClusterConfig(name string, address string, clusterProvider ClusterProvid
 	}
 }
 
-func (c *ClusterConfig) WithRemoteConfig(config remote.Config) *ClusterConfig {
+func (c *Config) WithRemoteConfig(config remote.Config) *Config {
 	c.RemoteConfig = config
 	return c
 }
 
-func (c *ClusterConfig) WithTimeout(t time.Duration) *ClusterConfig {
+func (c *Config) WithTimeout(t time.Duration) *Config {
 	c.TimeoutTime = t
 	return c
 }
 
-func (c *ClusterConfig) WithInitialMemberStatusValue(val MemberStatusValue) *ClusterConfig {
+func (c *Config) WithInitialMemberStatusValue(val MemberStatusValue) *Config {
 	c.InitialMemberStatusValue = val
 	return c
 }
 
-func (c *ClusterConfig) WithMemberStatusValueSerializer(serializer MemberStatusValueSerializer) *ClusterConfig {
+func (c *Config) WithMemberStatusValueSerializer(serializer MemberStatusValueSerializer) *Config {
 	c.MemberStatusValueSerializer = serializer
 	return c
 }
 
-func (c *ClusterConfig) WithMemberStrategyBuilder(builder func(kind string) MemberStrategy) *ClusterConfig {
+func (c *Config) WithMemberStrategyBuilder(builder func(kind string) MemberStrategy) *Config {
 	c.MemberStrategyBuilder = builder
 	return c
 }

@@ -10,7 +10,7 @@ import (
 type poolRouterActor struct {
 	props  *actor.Props
 	config RouterConfig
-	state  RouterState
+	state  State
 	wg     *sync.WaitGroup
 }
 

@@ -29,7 +29,7 @@ func setupMemberList(cluster *Cluster) *memberListValue {
 	memberList.membershipSub = cluster.ActorSystem.EventStream.
 		Subscribe(memberList.updateClusterTopology).
 		WithPredicate(func(m interface{}) bool {
-			_, ok := m.(ClusterTopologyEvent)
+			_, ok := m.(TopologyEvent)
 			return ok
 		})
 
@@ -82,7 +82,7 @@ func (ml *memberListValue) updateClusterTopology(m interface{}) {
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
 
-	msg, _ := m.(ClusterTopologyEvent)
+	msg, _ := m.(TopologyEvent)
 
 	// build a lookup for the new statuses
 	tmp := make(map[string]*MemberStatus)

@@ -16,7 +16,7 @@ var (
 	blockingUpdateTTLFunc = blockingUpdateTTL
 )
 
-type ConsulProvider struct {
+type Provider struct {
 	cluster               *cluster.Cluster
 	deregistered          bool
 	shutdown              bool
@@ -37,16 +37,16 @@ type ConsulProvider struct {
 	clusterError          error
 }
 
-func New() (*ConsulProvider, error) {
+func New() (*Provider, error) {
 	return NewWithConfig(&api.Config{})
 }
 
-func NewWithConfig(consulConfig *api.Config) (*ConsulProvider, error) {
+func NewWithConfig(consulConfig *api.Config) (*Provider, error) {
 	client, err := api.NewClient(consulConfig)
 	if err != nil {
 		return nil, err
 	}
-	p := &ConsulProvider{
+	p := &Provider{
 		client:             client,
 		ttl:                3 * time.Second,
 		refreshTTL:         1 * time.Second,
@@ -56,7 +56,7 @@ func NewWithConfig(consulConfig *api.Config) (*ConsulProvider, error) {
 	return p, nil
 }
 
-func (p *ConsulProvider) RegisterMember(cluster *cluster.Cluster, clusterName string, address string, port int, knownKinds []string,
+func (p *Provider) RegisterMember(cluster *cluster.Cluster, clusterName string, address string, port int, knownKinds []string,
 	statusValue cluster.MemberStatusValue, serializer cluster.MemberStatusValueSerializer) error {
 	p.cluster = cluster
 	p.id = fmt.Sprintf("%v@%v:%v", clusterName, address, port)
@@ -88,7 +88,7 @@ func (p *ConsulProvider) RegisterMember(cluster *cluster.Cluster, clusterName st
 	return nil
 }
 
-func (p *ConsulProvider) DeregisterMember() error {
+func (p *Provider) DeregisterMember() error {
 	err := p.deregisterService()
 	if err != nil {
 		fmt.Println(err)
@@ -98,7 +98,7 @@ func (p *ConsulProvider) DeregisterMember() error {
 	return nil
 }
 
-func (p *ConsulProvider) Shutdown() error {
+func (p *Provider) Shutdown() error {
 	if p.shutdown {
 		return nil
 	}
@@ -115,7 +115,7 @@ func (p *ConsulProvider) Shutdown() error {
 	return nil
 }
 
-func (p *ConsulProvider) UpdateTTL() {
+func (p *Provider) UpdateTTL() {
 	go func() {
 		p.updateTTLWaitGroup.Add(1)
 		defer p.updateTTLWaitGroup.Done()
@@ -153,7 +153,7 @@ func (p *ConsulProvider) UpdateTTL() {
 	}()
 }
 
-func (p *ConsulProvider) UpdateMemberStatusValue(statusValue cluster.MemberStatusValue) error {
+func (p *Provider) UpdateMemberStatusValue(statusValue cluster.MemberStatusValue) error {
 	p.statusValue = statusValue
 	if p.statusValue == nil {
 		return nil
@@ -167,12 +167,12 @@ func (p *ConsulProvider) UpdateMemberStatusValue(statusValue cluster.MemberStatu
 	return p.registerService()
 }
 
-func blockingUpdateTTL(p *ConsulProvider) error {
+func blockingUpdateTTL(p *Provider) error {
 	p.clusterError = p.client.Agent().UpdateTTL("service:"+p.id, "", api.HealthPassing)
 	return p.clusterError
 }
 
-func (p *ConsulProvider) registerService() error {
+func (p *Provider) registerService() error {
 	s := &api.AgentServiceRegistration{
 		ID:      p.id,
 		Name:    p.clusterName,
@@ -190,16 +190,16 @@ func (p *ConsulProvider) registerService() error {
 	return p.client.Agent().ServiceRegister(s)
 }
 
-func (p *ConsulProvider) deregisterService() error {
+func (p *Provider) deregisterService() error {
 	return p.client.Agent().ServiceDeregister(p.id)
 }
 
 // call this directly after registering the service
-func (p *ConsulProvider) blockingStatusChange() {
+func (p *Provider) blockingStatusChange() {
 	p.notifyStatuses()
 }
 
-func (p *ConsulProvider) notifyStatuses() {
+func (p *Provider) notifyStatuses() {
 	statuses, meta, err := p.client.Health().Service(p.clusterName, "", false, &api.QueryOptions{
 		WaitIndex: p.index,
 		WaitTime:  p.blockingWaitTime,
@@ -210,7 +210,7 @@ func (p *ConsulProvider) notifyStatuses() {
 	}
 	p.index = meta.LastIndex
 
-	res := make(cluster.ClusterTopologyEvent, len(statuses))
+	res := make(cluster.TopologyEvent, len(statuses))
 	for i, v := range statuses {
 		key := fmt.Sprintf("%v/%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
 		memberID := key
@@ -238,7 +238,7 @@ func (p *ConsulProvider) notifyStatuses() {
 	p.cluster.ActorSystem.EventStream.Publish(res)
 }
 
-func (p *ConsulProvider) MonitorMemberStatusChanges() {
+func (p *Provider) MonitorMemberStatusChanges() {
 	go func() {
 		for !p.shutdown {
 			p.notifyStatuses()
@@ -247,6 +247,6 @@ func (p *ConsulProvider) MonitorMemberStatusChanges() {
 }
 
 // GetHealthStatus returns an error if the cluster health status has problems
-func (p *ConsulProvider) GetHealthStatus() error {
+func (p *Provider) GetHealthStatus() error {
 	return p.clusterError
 }

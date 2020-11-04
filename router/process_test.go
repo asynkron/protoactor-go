@@ -54,7 +54,7 @@ func newGroupRouterConfig(routees ...*actor.PID) *testGroupRouter {
 	return r
 }
 
-func (m *testGroupRouter) CreateRouterState() RouterState {
+func (m *testGroupRouter) CreateRouterState() State {
 	args := m.Called()
 	return args.Get(0).(*testRouterState)
 }
