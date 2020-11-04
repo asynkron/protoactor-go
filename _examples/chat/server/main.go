@@ -22,7 +22,7 @@ func notifyAll(context actor.Context, clients *hashset.Set, message interface{})
 
 func main() {
 	system := actor.NewActorSystem()
-	config := remote.BindTo("127.0.0.1", 8080)
+	config := remote.Configure("127.0.0.1", 8080)
 	remoter := remote.NewRemote(system, config)
 	remoter.Start()
 

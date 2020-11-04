@@ -60,7 +60,7 @@ func (rc Config) Address() string {
 	return fmt.Sprintf("%v:%v", rc.host, rc.port)
 }
 
-func BindTo(host string, port int) Config {
+func Configure(host string, port int) Config {
 	c := defaultRemoteConfig()
 	c.host = host
 	c.port = port

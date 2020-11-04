@@ -12,7 +12,7 @@ import (
 
 func main() {
 	system := actor.NewActorSystem()
-	config := remote.BindTo("127.0.0.1", 0)
+	config := remote.Configure("127.0.0.1", 0)
 	remoter := remote.NewRemote(system, config)
 	remoter.Start()
 

@@ -18,7 +18,7 @@ type Cluster struct {
 	partitionValue *partitionValue
 }
 
-func NewCluster(actorSystem *actor.ActorSystem, config *Config) *Cluster {
+func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	return &Cluster{
 		ActorSystem: actorSystem,
 		Config:      config,

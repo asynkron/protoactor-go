@@ -8,7 +8,7 @@ import (
 
 func TestStart(t *testing.T) {
 	system := actor.NewActorSystem()
-	config := BindTo("localhost", 0)
+	config := Configure("localhost", 0)
 	remote := NewRemote(system, config)
 	remote.Start()
 	remote.Shutdown(true)
@@ -16,7 +16,7 @@ func TestStart(t *testing.T) {
 
 func TestConfig_WithAdvertisedHost(t *testing.T) {
 	system := actor.NewActorSystem()
-	config := BindTo("localhost", 0).WithAdvertisedHost("Banana")
+	config := Configure("localhost", 0).WithAdvertisedHost("Banana")
 	remote := NewRemote(system, config)
 	remote.Start()
 	assert.Equal(t, "Banana", system.Address())
@@ -25,7 +25,7 @@ func TestConfig_WithAdvertisedHost(t *testing.T) {
 
 func TestRemote_Register(t *testing.T) {
 	system := actor.NewActorSystem()
-	config := BindTo("localhost", 0)
+	config := Configure("localhost", 0)
 	remote := NewRemote(system, config)
 	remote.Register("someKind", actor.PropsFromProducer(nil))
 	remote.Register("someOther", actor.PropsFromProducer(nil))
