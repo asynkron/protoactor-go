@@ -60,5 +60,5 @@ func main() {
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, &hello{Who: "Roger"})
 
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }

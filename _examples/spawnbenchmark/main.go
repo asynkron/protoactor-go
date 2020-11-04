@@ -69,7 +69,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		pprof.StartCPUProfile(f)
+		_ = pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
 	//	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -95,8 +95,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		pprof.WriteHeapProfile(f)
-		f.Close()
+		_ = pprof.WriteHeapProfile(f)
+		_ = f.Close()
 		return
 	}
 }

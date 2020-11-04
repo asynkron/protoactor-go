@@ -49,7 +49,7 @@ func main() {
 	}
 
 	log.Println("hit [return] to send no-influence messages")
-	console.ReadLine()
+	_, _ = console.ReadLine()
 
 	for i := 0; i < 6; i++ {
 		rootContext.Send(pid, NoInfluence("hello"))
@@ -57,11 +57,11 @@ func main() {
 	}
 
 	log.Println("hit [return] to send a message to cancel the timeout")
-	console.ReadLine()
+	_, _ = console.ReadLine()
 	rootContext.Send(pid, "cancel")
 
 	log.Println("hit [return] to finish")
-	console.ReadLine()
+	_, _ = console.ReadLine()
 
 	rootContext.Stop(pid)
 }

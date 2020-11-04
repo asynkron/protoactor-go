@@ -18,9 +18,10 @@ func receive(context actor.Context) {
 }
 
 func main() {
-	rootContext := actor.EmptyRootContext
+	system := actor.NewActorSystem()
+	rootContext := system.Root
 	props := actor.PropsFromFunc(receive).WithReceiverMiddleware(middleware.Logger)
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, &hello{Who: "Roger"})
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }

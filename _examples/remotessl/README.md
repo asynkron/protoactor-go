@@ -1,6 +1,6 @@
 # Remote SSL Example
 
-In this example we'll use SSL/TLS to authenticate and encrypt exchanges between remote clients and servers using Protoactor-Go.
+In this example we'll use SSL/TLS to authenticate and encrypt exchanges between remote clients and servers using Proto.Actor-Go.
 
 # Requirements
 
@@ -9,7 +9,7 @@ In this example we'll use SSL/TLS to authenticate and encrypt exchanges between 
 
 # Setup
 
-The `remote` package in Protoactor-Go utilizes [gRPC][0] under the hood to enable remote connections between nodes, and when creating a server with `remote.Start()` it is possible to pass in several [ServerOption][1] arguments which can be used to pass [TransportCredentials][2] to the [gRPC Server][3].
+The `remote` package in Proto.Actor-Go utilizes [gRPC][0] under the hood to enable remote connections between nodes, and when creating a server with `remote.Start()` it is possible to pass in several [ServerOption][1] arguments which can be used to pass [TransportCredentials][2] to the [gRPC Server][3].
 
 For this example we'll create an SSL certificate using [OpenSSL][4]. You can either use the local [Makefile](https://www.gnu.org/software/make/manual/html_node/Introduction.html) provided:
 

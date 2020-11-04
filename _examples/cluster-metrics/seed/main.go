@@ -50,5 +50,5 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("Message from grain: %v", res.Message)
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }
