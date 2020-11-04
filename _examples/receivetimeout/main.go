@@ -16,9 +16,10 @@ func (NoInfluence) NotInfluenceReceiveTimeout() {}
 func main() {
 	log.Println("Receive timeout test")
 
+	system := actor.NewActorSystem()
 	c := 0
 
-	rootContext := actor.EmptyRootContext
+	rootContext := system.Root
 	props := actor.PropsFromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *actor.Started:
@@ -32,7 +33,7 @@ func main() {
 			log.Printf("received '%s'", msg)
 			if msg == "cancel" {
 				fmt.Println("Cancelling")
-				context.SetReceiveTimeout(0)
+				context.CancelReceiveTimeout()
 			}
 
 		case NoInfluence:
