@@ -1,8 +1,8 @@
-# GAM Cluster - Virtual Actors (Alpha)
+# Proto.Actor Cluster - Virtual Actors (Alpha)
 
 ## Massively distributed actors for GO
 
-GAM supports the classic actor model also found in Erlang and Akka.<br>
+Proto.Actor supports the classic actor model also found in Erlang and Akka.<br>
 Our cluster support however uses a different approach, **Virtual Actor Model**.
 
 This is a model where each actor appears to *always exist*.
@@ -12,7 +12,7 @@ You get a reference to the actor by asking for it's ID.
 e.g.
 ```go
 hello := shared.GetHelloGrain("abc")
-res := hello.SayHello(&shared.HelloRequest{Name: "GAM"})
+res := hello.SayHello(&shared.HelloRequest{Name: "Proto.Actor"})
 ```
 This will ask the cluster where the 'abc' actor is located.
 If it does not yet exist, it will be created for you.
@@ -69,7 +69,7 @@ protoc -I=. -I=%GOPATH%\src --gorleans_out=. protos.proto
 ## Implementing
 
 Once the messages and contracts have been generated, you can start implementing your own business logic.
-This is essentially a type which is powered by a GAM actor behind the scenes.
+This is essentially a type which is powered by a Proto.Actor actor behind the scenes.
 
 ```go
 package shared
@@ -86,7 +86,7 @@ func (*hello) Add(r *AddRequest) *AddResponse {
 	return &AddResponse{Result: r.A + r.B}
 }
 
-// Register what implementation GAM should use when 
+// Register what implementation Proto.Actor should use when 
 // creating actors for a certain grain type.
 func init() {
 	// apply DI and setup logic
@@ -111,21 +111,21 @@ func main() {
 
     // get a reference to the virtual actor called "abc" of type Hello
 	hello := shared.GetHelloGrain("abc")
-	res := hello.SayHello(&shared.HelloRequest{Name: "GAM"})
+	res := hello.SayHello(&shared.HelloRequest{Name: "Proto.Actor"})
 	log.Printf("Message from grain %v", res.Message)
 }
 ```
 
 ## FAQ
 
-### Can I use GAM Cluster in production?
+### Can I use Proto.Actor Cluster in production?
 
-The GAM Cluster support is in alpha version, thus not production ready.
+The Proto.Actor Cluster support is in alpha version, thus not production ready.
 
 ### What about performance?
 
-GAM Remoting is able to pass 1 million+ messages per second on a standard dev machine.
-This is the same infrastructure used in GAM cluster.
-GAM Cluster however uses an RPC API, meaning it is Request/Response in nature.
+Proto.Actor Remoting is able to pass 1 million+ messages per second on a standard dev machine.
+This is the same infrastructure used in Proto.Actor cluster.
+Proto.Actor Cluster however uses an RPC API, meaning it is Request/Response in nature.
 If you wait for a response for each call, the throughput will ofcourse be a lot less.
 Async Fire and forget for performance, Request/Response for simplicity.
