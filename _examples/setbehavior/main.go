@@ -40,7 +40,8 @@ func NewSetBehaviorActor() actor.Actor {
 }
 
 func main() {
-	rootContext := actor.EmptyRootContext
+	system := actor.NewActorSystem()
+	rootContext := system.Root
 	props := actor.PropsFromProducer(NewSetBehaviorActor)
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, Hello{Who: "Roger"})

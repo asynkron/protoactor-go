@@ -46,12 +46,13 @@ func newChildActor() actor.Actor {
 }
 
 func main() {
+	system := actor.NewActorSystem()
 	decider := func(reason interface{}) actor.Directive {
 		fmt.Println("handling failure for child")
 		return actor.StopDirective
 	}
 	supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
-	rootContext := actor.EmptyRootContext
+	rootContext := system.Root
 	props := actor.
 		PropsFromProducer(newParentActor).
 		WithSupervisor(supervisor)
