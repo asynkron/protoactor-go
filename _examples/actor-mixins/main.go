@@ -54,5 +54,5 @@ func main() {
 
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, "bar")
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }

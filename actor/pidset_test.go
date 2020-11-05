@@ -24,7 +24,7 @@ func TestPIDSet_Clear(t *testing.T) {
 }
 
 func TestPIDSet_AddSmall(t *testing.T) {
-	var s PIDSet
+	s := NewPIDSet()
 	p1 := NewPID("nohost", "p1")
 	s.Add(p1)
 	assert.False(t, s.Empty())
@@ -45,8 +45,7 @@ func TestPIDSet_Values(t *testing.T) {
 }
 
 func TestPIDSet_AddMap(t *testing.T) {
-	var s PIDSet
-
+	s := NewPIDSet()
 	p1 := NewPID("nohost", "p1")
 	s.Add(p1)
 	assert.False(t, s.Empty())

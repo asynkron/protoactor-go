@@ -1,18 +1,29 @@
 package actor
 
-const pidSetSliceLen = 16
+import "fmt"
 
 type PIDSet struct {
-	pids []*PID
+	pids   []*PID
+	lookup map[string]*PID
+}
+
+func (p *PIDSet) key(pid *PID) string {
+	return fmt.Sprintf("%v:%v", pid.Address, pid.Id)
 }
 
 // NewPIDSet returns a new PIDSet with the given pids.
 func NewPIDSet(pids ...*PID) *PIDSet {
-	var s PIDSet
+	p := &PIDSet{}
 	for _, pid := range pids {
-		s.Add(pid)
+		p.Add(pid)
 	}
-	return &s
+	return p
+}
+
+func (p *PIDSet) ensureInit() {
+	if p.lookup == nil {
+		p.lookup = make(map[string]*PID)
+	}
 }
 
 func (p *PIDSet) indexOf(v *PID) int {
@@ -24,29 +35,33 @@ func (p *PIDSet) indexOf(v *PID) int {
 	return -1
 }
 
+func (p *PIDSet) Contains(v *PID) bool {
+	return p.lookup[p.key(v)] != nil
+}
+
 // Add adds the element v to the set
 func (p *PIDSet) Add(v *PID) {
-	if p.indexOf(v) != -1 {
+	p.ensureInit()
+	if p.Contains(v) {
 		return
 	}
+	p.lookup[p.key(v)] = v
 	p.pids = append(p.pids, v)
 }
 
 // Remove removes v from the set and returns true if them element existed
 func (p *PIDSet) Remove(v *PID) bool {
+	p.ensureInit()
 	i := p.indexOf(v)
 	if i == -1 {
 		return false
 	}
 
+	delete(p.lookup, p.key(v))
+
 	p.pids = append(p.pids[:i], p.pids[i+1:]...)
 
 	return true
-}
-
-// Contains reports whether v is an element of the set
-func (p *PIDSet) Contains(v *PID) bool {
-	return p.indexOf(v) != -1
 }
 
 // Len returns the number of elements in the set
@@ -57,6 +72,7 @@ func (p *PIDSet) Len() int {
 // Clear removes all the elements in the set
 func (p *PIDSet) Clear() {
 	p.pids = p.pids[:0]
+	p.lookup = make(map[string]*PID)
 }
 
 // Empty reports whether the set is empty
@@ -72,7 +88,6 @@ func (p *PIDSet) Values() []*PID {
 // ForEach invokes f for every element of the set
 func (p *PIDSet) ForEach(f func(i int, pid *PID)) {
 	for i, pid := range p.pids {
-
 		f(i, pid)
 	}
 }
@@ -82,10 +97,5 @@ func (p *PIDSet) Get(index int) *PID {
 }
 
 func (p *PIDSet) Clone() *PIDSet {
-	var s PIDSet
-	s.pids = make([]*PID, len(p.pids))
-	for i, v := range p.pids {
-		s.pids[i] = v
-	}
-	return &s
+	return NewPIDSet(p.pids...)
 }

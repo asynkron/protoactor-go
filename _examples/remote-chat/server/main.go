@@ -8,14 +8,12 @@ import (
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/emirpasic/gods/sets/hashset"
 )
 
 // define root context
 
-func notifyAll(context actor.Context, clients *hashset.Set, message interface{}) {
-	for _, tmp := range clients.Values() {
-		client := tmp.(*actor.PID)
+func notifyAll(context actor.Context, clients *actor.PIDSet, message interface{}) {
+	for _, client := range clients.Values() {
 		context.Send(client, message)
 	}
 }
@@ -26,7 +24,7 @@ func main() {
 	remoter := remote.NewRemote(system, config)
 	remoter.Start()
 
-	clients := hashset.New()
+	clients := actor.NewPIDSet()
 
 	props := actor.PropsFromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {

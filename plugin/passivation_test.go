@@ -24,8 +24,8 @@ func TestPassivation(t *testing.T) {
 		t.SkipNow()
 	}
 
-	UnitOfTime := time.Duration(200 * time.Millisecond)
-	PassivationDuration := time.Duration(3 * UnitOfTime)
+	UnitOfTime := 200 * time.Millisecond
+	PassivationDuration := 3 * UnitOfTime
 	rootContext := system.Root
 	props := actor.
 		PropsFromProducer(func() actor.Actor { return &SmartActor{} }).
