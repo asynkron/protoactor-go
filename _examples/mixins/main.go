@@ -37,13 +37,14 @@ type NamerPlugin struct{}
 
 func (p *NamerPlugin) OnStart(ctx actor.ReceiverContext) {
 	if p, ok := ctx.Actor().(NameAware); ok {
-		p.SetName("GAM")
+		p.SetName("Proto.Actor")
 	}
 }
 func (p *NamerPlugin) OnOtherMessage(ctx actor.ReceiverContext, env *actor.MessageEnvelope) {}
 
 func main() {
-	rootContext := actor.EmptyRootContext
+	system := actor.NewActorSystem()
+	rootContext := system.Root
 	props := actor.
 		PropsFromProducer(func() actor.Actor { return &myActor{} }).
 		WithReceiverMiddleware(

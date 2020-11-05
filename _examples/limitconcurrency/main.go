@@ -25,5 +25,5 @@ func main() {
 	for i := 0; i < 1000; i++ {
 		system.Root.Send(pid, &workItem{i})
 	}
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }

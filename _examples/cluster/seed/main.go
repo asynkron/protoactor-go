@@ -11,17 +11,35 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-func main() {
-	// this node knows about Hello kind
-	remote.Register("Hello", actor.PropsFromProducer(func() actor.Actor {
-		return &shared.HelloActor{}
-	}))
-
-	cp, err := consul.New()
-	if err != nil {
-		log.Fatal(err)
+func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
+	fn := func(context actor.ReceiverContext, env *actor.MessageEnvelope) {
+		switch env.Message.(type) {
+		case *actor.Started:
+			log.Printf("actor started " + context.Self().String())
+		case *actor.Stopped:
+			log.Printf("actor stopped " + context.Self().String())
+		}
+		next(context, env)
 	}
-	cluster.Start("mycluster", "127.0.0.1:8080", cp)
+
+	return fn
+}
+
+func newHelloActor() actor.Actor {
+	return &shared.HelloActor{}
+}
+
+func main() {
+	system := actor.NewActorSystem()
+	remoteConfig := remote.Configure("127.0.0.1", 8080)
+
+	helloKind := cluster.NewKind("Hello",
+		actor.PropsFromProducer(newHelloActor).WithReceiverMiddleware(Logger))
+
+	provider, _ := consul.New()
+	clusterConfig := cluster.Configure("my-cluster", provider, remoteConfig, helloKind)
+	c := cluster.New(system, clusterConfig)
+	c.Start()
 
 	hello := shared.GetHelloGrain("MyGrain")
 
@@ -30,7 +48,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("Message from grain: %v", res.Message)
-	console.ReadLine()
+	_, _ = console.ReadLine()
 
-	cluster.Shutdown(true)
+	c.Shutdown(true)
 }

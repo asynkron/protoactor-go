@@ -39,5 +39,5 @@ func main() {
 	time.Sleep(1 * time.Second)
 	system.Root.Stop(pid)
 
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }

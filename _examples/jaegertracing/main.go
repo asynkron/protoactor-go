@@ -28,7 +28,7 @@ func main() {
 	for i := 0; i < 3; i++ {
 		rootContext.RequestFuture(pid, &request{i}, 10*time.Second).Wait()
 	}
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }
 
 func initJaeger() io.Closer {

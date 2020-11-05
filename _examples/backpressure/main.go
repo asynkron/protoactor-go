@@ -93,5 +93,5 @@ func main() {
 	producerProps := actor.PropsFromProducer(func() actor.Actor { return &producer{} })
 	system.Root.Spawn(producerProps)
 
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }
