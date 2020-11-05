@@ -1,25 +1,20 @@
 package main
 
 import (
-	"fmt"
-	"runtime"
-
 	"distributedchannels/messages"
+	"fmt"
 
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-// define root context
-var rootContext = actor.EmptyRootContext
-
-func newMyMessageSenderChannel() chan<- *messages.MyMessage {
+func newMyMessageSenderChannel(context actor.SenderContext) chan<- *messages.MyMessage {
 	channel := make(chan *messages.MyMessage)
-	remote := actor.NewPID("127.0.0.1:8080", "MyMessage")
+	remoteChannel := actor.NewPID("127.0.0.1:8080", "MyMessage")
 	go func() {
 		for msg := range channel {
-			rootContext.Send(remote, msg)
+			context.Send(remoteChannel, msg)
 		}
 	}()
 
@@ -27,9 +22,12 @@ func newMyMessageSenderChannel() chan<- *messages.MyMessage {
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	remote.Start("127.0.0.1:0")
-	channel := newMyMessageSenderChannel()
+	system := actor.NewActorSystem()
+	remoteConfig := remote.Configure("127.0.0.1", 0)
+	remoting := remote.NewRemote(system, remoteConfig)
+	remoting.Start()
+
+	channel := newMyMessageSenderChannel(system.Root)
 
 	for i := 0; i < 10; i++ {
 		message := &messages.MyMessage{

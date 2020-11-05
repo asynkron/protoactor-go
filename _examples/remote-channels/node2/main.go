@@ -1,10 +1,8 @@
 package main
 
 import (
-	"log"
-	"runtime"
-
 	"distributedchannels/messages"
+	"log"
 
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -12,8 +10,11 @@ import (
 )
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	remote.Start("127.0.0.1:8080")
+	system := actor.NewActorSystem()
+	remoteConfig := remote.Configure("127.0.0.1", 8080)
+	remoting := remote.NewRemote(system, remoteConfig)
+	remoting.Start()
+
 	// create the channel
 	channel := make(chan *messages.MyMessage)
 
@@ -24,11 +25,8 @@ func main() {
 		}
 	})
 
-	// define root context
-	rootContext := actor.EmptyRootContext
-
 	// spawn
-	rootContext.SpawnNamed(props, "MyMessage")
+	_, _ = system.Root.SpawnNamed(props, "MyMessage")
 
 	// consume the channel just like you use to
 	go func() {
@@ -37,5 +35,5 @@ func main() {
 		}
 	}()
 
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }
