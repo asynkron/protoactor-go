@@ -94,7 +94,7 @@ func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	var r ActorFunc = func(c Context) {
+	var r ReceiveFunc = func(c Context) {
 		switch msg := c.Message().(type) {
 		case *Started:
 			c.Watch(child)
@@ -122,7 +122,7 @@ func TestFutureDoesTimeout(t *testing.T) {
 }
 
 func TestFutureDoesNotTimeout(t *testing.T) {
-	var r ActorFunc = func(c Context) {
+	var r ReceiveFunc = func(c Context) {
 		if _, ok := c.Message().(string); !ok {
 			return
 		}

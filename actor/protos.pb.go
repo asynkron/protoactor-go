@@ -1169,7 +1169,7 @@ func skipProtos(dAtA []byte) (n int, err error) {
 		case 3:
 			for {
 				var innerWire uint64
-				var start int = iNdEx
+				var start = iNdEx
 				for shift := uint(0); ; shift += 7 {
 					if shift >= 64 {
 						return 0, ErrIntOverflowProtos

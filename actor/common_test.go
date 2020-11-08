@@ -8,7 +8,7 @@ import (
 )
 
 var nullProducer Producer = func() Actor { return nullReceive }
-var nullReceive ActorFunc = func(Context) {}
+var nullReceive ReceiveFunc = func(Context) {}
 var nilPID *PID
 var system = NewActorSystem()
 var rootContext = system.Root

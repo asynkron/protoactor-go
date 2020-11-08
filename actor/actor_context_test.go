@@ -201,7 +201,7 @@ func BenchmarkActorContext_ProcessMessageWithMiddleware(b *testing.B) {
 	}
 }
 
-func benchmarkActorContext_SpawnWithMiddlewareN(n int, b *testing.B) {
+func benchmarkactorcontextSpawnwithmiddlewaren(n int, b *testing.B) {
 	middlewareFn := func(next SenderFunc) SenderFunc {
 		return func(ctx SenderContext, pid *PID, env *MessageEnvelope) {
 			next(ctx, pid, env)
@@ -220,19 +220,19 @@ func benchmarkActorContext_SpawnWithMiddlewareN(n int, b *testing.B) {
 }
 
 func BenchmarkActorContext_SpawnWithMiddleware0(b *testing.B) {
-	benchmarkActorContext_SpawnWithMiddlewareN(0, b)
+	benchmarkactorcontextSpawnwithmiddlewaren(0, b)
 }
 
 func BenchmarkActorContext_SpawnWithMiddleware1(b *testing.B) {
-	benchmarkActorContext_SpawnWithMiddlewareN(1, b)
+	benchmarkactorcontextSpawnwithmiddlewaren(1, b)
 }
 
 func BenchmarkActorContext_SpawnWithMiddleware2(b *testing.B) {
-	benchmarkActorContext_SpawnWithMiddlewareN(2, b)
+	benchmarkactorcontextSpawnwithmiddlewaren(2, b)
 }
 
 func BenchmarkActorContext_SpawnWithMiddleware5(b *testing.B) {
-	benchmarkActorContext_SpawnWithMiddlewareN(5, b)
+	benchmarkactorcontextSpawnwithmiddlewaren(5, b)
 }
 
 func TestActorContinueFutureInActor(t *testing.T) {

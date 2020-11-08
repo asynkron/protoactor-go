@@ -47,7 +47,7 @@ func TestLookupById(t *testing.T) {
 			assert.Fail(t, "timed out")
 			return
 		}
-		assert.IsType(t, int(0), value)
+		assert.IsType(t, 0, value)
 		assert.Equal(t, 1, value.(int))
 	}
 	{

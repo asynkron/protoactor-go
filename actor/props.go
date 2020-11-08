@@ -172,7 +172,7 @@ func (props *Props) WithSpawnFunc(spawn SpawnFunc) *Props {
 }
 
 // WithFunc assigns a receive func to the props
-func (props *Props) WithFunc(f ActorFunc) *Props {
+func (props *Props) WithFunc(f ReceiveFunc) *Props {
 	props.producer = func() Actor { return f }
 	return props
 }
@@ -200,6 +200,6 @@ func PropsFromProducer(producer Producer) *Props {
 }
 
 // PropsFromFunc creates a props with the given receive func assigned as the actor producer
-func PropsFromFunc(f ActorFunc) *Props {
+func PropsFromFunc(f ReceiveFunc) *Props {
 	return PropsFromProducer(func() Actor { return f })
 }

@@ -35,15 +35,15 @@ func TestBehavior_Clear(t *testing.T) {
 
 func TestBehavior_Peek(t *testing.T) {
 	called := 0
-	fn1 := ActorFunc(func(Context) { called = 1 })
-	fn2 := ActorFunc(func(Context) { called = 2 })
+	fn1 := ReceiveFunc(func(Context) { called = 1 })
+	fn2 := ReceiveFunc(func(Context) { called = 2 })
 
 	cases := []struct {
-		items    []ActorFunc
+		items    []ReceiveFunc
 		expected int
 	}{
-		{[]ActorFunc{fn1, fn2}, 2},
-		{[]ActorFunc{fn2, fn1}, 1},
+		{[]ReceiveFunc{fn1, fn2}, 2},
+		{[]ReceiveFunc{fn2, fn1}, 1},
 	}
 
 	for _, tc := range cases {
@@ -61,15 +61,15 @@ func TestBehavior_Peek(t *testing.T) {
 
 func TestBehaviorStack_Pop_ExpectedOrder(t *testing.T) {
 	called := 0
-	fn1 := ActorFunc(func(Context) { called = 1 })
-	fn2 := ActorFunc(func(Context) { called = 2 })
+	fn1 := ReceiveFunc(func(Context) { called = 1 })
+	fn2 := ReceiveFunc(func(Context) { called = 2 })
 
 	cases := []struct {
-		items    []ActorFunc
+		items    []ReceiveFunc
 		expected []int
 	}{
-		{[]ActorFunc{fn1, fn2}, []int{2, 1}},
-		{[]ActorFunc{fn2, fn1}, []int{1, 2}},
+		{[]ReceiveFunc{fn1, fn2}, []int{2, 1}},
+		{[]ReceiveFunc{fn2, fn1}, []int{1, 2}},
 	}
 
 	for i, tc := range cases {

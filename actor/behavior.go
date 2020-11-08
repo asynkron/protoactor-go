@@ -2,18 +2,18 @@ package actor
 
 import "github.com/AsynkronIT/protoactor-go/log"
 
-type Behavior []ActorFunc
+type Behavior []ReceiveFunc
 
 func NewBehavior() Behavior {
 	return make(Behavior, 0)
 }
 
-func (b *Behavior) Become(receive ActorFunc) {
+func (b *Behavior) Become(receive ReceiveFunc) {
 	b.clear()
 	b.push(receive)
 }
 
-func (b *Behavior) BecomeStacked(receive ActorFunc) {
+func (b *Behavior) BecomeStacked(receive ReceiveFunc) {
 	b.push(receive)
 }
 
@@ -41,7 +41,7 @@ func (b *Behavior) clear() {
 	*b = (*b)[:0]
 }
 
-func (b *Behavior) peek() (v ActorFunc, ok bool) {
+func (b *Behavior) peek() (v ReceiveFunc, ok bool) {
 	l := b.len()
 	if l > 0 {
 		ok = true
@@ -50,11 +50,11 @@ func (b *Behavior) peek() (v ActorFunc, ok bool) {
 	return
 }
 
-func (b *Behavior) push(v ActorFunc) {
+func (b *Behavior) push(v ReceiveFunc) {
 	*b = append(*b, v)
 }
 
-func (b *Behavior) pop() (v ActorFunc, ok bool) {
+func (b *Behavior) pop() (v ReceiveFunc, ok bool) {
 	l := b.len()
 	if l > 0 {
 		l--

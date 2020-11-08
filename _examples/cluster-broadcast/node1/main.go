@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	cluster := startNode(8080)
+	c := startNode(8080)
 
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()
@@ -30,7 +30,7 @@ func main() {
 
 	console.ReadLine()
 
-	cluster.Shutdown(true)
+	c.Shutdown(true)
 }
 
 func startNode(port int64) *cluster.Cluster {
@@ -39,21 +39,21 @@ func startNode(port int64) *cluster.Cluster {
 
 	system := actor.NewActorSystem()
 	config := remote.Configure("localhost", 0)
-	remote := remote.NewRemote(system, config)
+	r := remote.NewRemote(system, config)
 
 	provider, _ := consul.New()
 	clusterConfig := cluster.Configure("my-cluster", provider, config)
-	cluster := cluster.New(system, clusterConfig)
+	c := cluster.New(system, clusterConfig)
 
 	// this node knows about Hello kind
-	remote.Register("Calculator", actor.PropsFromProducer(func() actor.Actor {
+	r.Register("Calculator", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.CalculatorActor{
 			Timeout: &timeout,
 		}
 	}))
 
 	// this node knows about Hello kind
-	remote.Register("Tracker", actor.PropsFromProducer(func() actor.Actor {
+	r.Register("Tracker", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.TrackerActor{
 			Timeout: &timeout,
 		}
@@ -67,8 +67,8 @@ func startNode(port int64) *cluster.Cluster {
 		return &shared.TrackGrain{}
 	})
 
-	cluster.Start()
-	return cluster
+	c.Start()
+	return c
 }
 
 func calcAdd(grainId string, addNumber int64) {
