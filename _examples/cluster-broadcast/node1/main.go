@@ -1,16 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"time"
-
 	"cluster-broadcast/shared"
-
-	console "github.com/AsynkronIT/goconsole"
+	"fmt"
+	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
+	"github.com/AsynkronIT/protoactor-go/cluster/automanaged"
 	"github.com/AsynkronIT/protoactor-go/remote"
+	"time"
 )
 
 func main() {
@@ -18,11 +16,21 @@ func main() {
 
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()
+
+	fmt.Print("\nAdding 1 Egg - Enter\n")
+	console.ReadLine()
 	calcAdd("Eggs", 1)
+
+	fmt.Print("\nAdding 10 Egg - Enter\n")
+	console.ReadLine()
 	calcAdd("Eggs", 10)
 
-	calcAdd("Bananas", 1000)
+	fmt.Print("\nAdding 100 Bananas - Enter\n")
+	console.ReadLine()
+	calcAdd("Bananas", 100)
 
+	fmt.Print("\nAdding 2 Meat - Enter\n")
+	console.ReadLine()
 	calcAdd("Meat", 3)
 	calcAdd("Meat", 9000)
 
@@ -39,21 +47,21 @@ func startNode(port int64) *cluster.Cluster {
 
 	system := actor.NewActorSystem()
 	config := remote.Configure("localhost", 0)
-	r := remote.NewRemote(system, config)
+	remote := remote.NewRemote(system, config)
 
-	provider, _ := consul.New()
+	provider := automanaged.NewWithConfig(2*time.Second, 6331, "localhost:6330", "localhost:6331")
 	clusterConfig := cluster.Configure("my-cluster", provider, config)
-	c := cluster.New(system, clusterConfig)
+	cluster := cluster.New(system, clusterConfig)
 
 	// this node knows about Hello kind
-	r.Register("Calculator", actor.PropsFromProducer(func() actor.Actor {
+	remote.Register("Calculator", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.CalculatorActor{
 			Timeout: &timeout,
 		}
 	}))
 
 	// this node knows about Hello kind
-	r.Register("Tracker", actor.PropsFromProducer(func() actor.Actor {
+	remote.Register("Tracker", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.TrackerActor{
 			Timeout: &timeout,
 		}
@@ -67,8 +75,9 @@ func startNode(port int64) *cluster.Cluster {
 		return &shared.TrackGrain{}
 	})
 
-	c.Start()
-	return c
+	cluster.Start()
+
+	return cluster
 }
 
 func calcAdd(grainId string, addNumber int64) {
