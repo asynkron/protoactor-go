@@ -1,15 +1,17 @@
 package cluster
 
 import (
+	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/remote"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/AsynkronIT/protoactor-go/eventstream"
 )
 
 func TestPublishRaceCondition(t *testing.T) {
-	setupMemberList()
+	actorSystem := actor.NewActorSystem()
+	c := New(actorSystem, Configure("mycluster", nil, remote.Configure("127.0.0.1", 0)))
+	setupMemberList(c)
 	rounds := 1000
 
 	var wg sync.WaitGroup
@@ -17,16 +19,16 @@ func TestPublishRaceCondition(t *testing.T) {
 
 	go func() {
 		for i := 0; i < rounds; i++ {
-			eventstream.Publish(TopologyEvent([]*MemberStatus{{}, {}}))
-			eventstream.Publish(TopologyEvent([]*MemberStatus{{}}))
+			actorSystem.EventStream.Publish(TopologyEvent([]*MemberStatus{{}, {}}))
+			actorSystem.EventStream.Publish(TopologyEvent([]*MemberStatus{{}}))
 			wg.Done()
 		}
 	}()
 
 	go func() {
 		for i := 0; i < rounds; i++ {
-			s := eventstream.Subscribe(func(evt interface{}) {})
-			eventstream.Unsubscribe(s)
+			s := actorSystem.EventStream.Subscribe(func(evt interface{}) {})
+			actorSystem.EventStream.Unsubscribe(s)
 			wg.Done()
 		}
 	}()

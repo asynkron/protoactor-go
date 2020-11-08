@@ -39,7 +39,6 @@ func filterInput(r rune) (rune, bool) {
 }
 
 var echoPID *actor.PID
-var rootContext = actor.EmptyRootContext
 
 func main() {
 	logo := `
@@ -49,13 +48,18 @@ func main() {
     |_| |_| \___/\__\___(_)___|____|___|`
 	fmt.Println(logo)
 
+	actorSystem := actor.NewActorSystem()
+
+	rc := remote.Configure("127.0.0.1", 0)
+	remoting := remote.NewRemote(actorSystem, rc)
+
 	remote.DefaultSerializerID = 1
-	remote.Start("127.0.0.1:0")
-	spawnEcho()
+	remoting.Start()
+	spawnEcho(actorSystem)
 
 	vars := make(map[string]string)
-	vars["%address%"] = actor.ProcessRegistry.Address
-	vars["%echo%"] = fmt.Sprintf(`{"Address":"%v", "Id":"echo"}`, actor.ProcessRegistry.Address)
+	vars["%address%"] = actorSystem.Address()
+	vars["%echo%"] = fmt.Sprintf(`{"Address":"%v", "Id":"echo"}`, actorSystem.Address())
 
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:          "\033[31m»\033[0m ",
@@ -95,7 +99,7 @@ func main() {
 		case strings.HasPrefix(line, "tell "):
 			tell(line)
 		case strings.HasPrefix(line, "watch "):
-			watch(line)
+			watch(actorSystem, line)
 		case line == "exit":
 			goto exit
 		case line == "":
@@ -106,8 +110,8 @@ func main() {
 exit:
 }
 
-func spawnEcho() {
-	echoPID, _ = rootContext.SpawnNamed(actor.PropsFromFunc(func(ctx actor.Context) {
+func spawnEcho(actorSystem *actor.ActorSystem) {
+	echoPID, _ = actorSystem.Root.SpawnNamed(actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
 		case *actor.Started:
 			fmt.Println("ECHO: Started")
@@ -123,7 +127,7 @@ func spawnEcho() {
 	}), "echo")
 }
 
-func watch(line string) {
+func watch(actorSystem *actor.ActorSystem, line string) {
 	parts := strings.SplitN(line, " ", 2)
 
 	if len(parts) != 2 {
@@ -135,7 +139,7 @@ func watch(line string) {
 		address := x[0]
 		id := x[1]
 		pid := actor.NewPID(address, id)
-		rootContext.Send(echoPID, &watchRequest{
+		actorSystem.Root.Send(echoPID, &watchRequest{
 			target: pid,
 		})
 	}
