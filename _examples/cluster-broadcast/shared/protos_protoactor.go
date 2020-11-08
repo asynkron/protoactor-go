@@ -3,13 +3,13 @@ package shared
 import (
 	"errors"
 	"fmt"
+	"github.com/AsynkronIT/protoactor-go/cluster/consul"
 	"log"
 	"math"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/gogo/protobuf/proto"
 )
@@ -58,13 +58,13 @@ type CalculatorGrain struct {
 
 // Add requests the execution on to the cluster using default options
 func (g *CalculatorGrain) Add(r *NumberRequest) (*CountResponse, error) {
-	return g.AddWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.AddWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // AddWithOpts requests the execution on to the cluster
 func (g *CalculatorGrain) AddWithOpts(r *NumberRequest, opts *cluster.GrainCallOptions) (*CountResponse, error) {
 	fun := func() (*CountResponse, error) {
-		pid, statusCode := c.Get(g.ID, "Calculator")
+		pid, statusCode := cluster.Get(g.ID, "Calculator")
 		if statusCode != remote.ResponseStatusCodeOK {
 			return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 		}
@@ -107,7 +107,7 @@ func (g *CalculatorGrain) AddWithOpts(r *NumberRequest, opts *cluster.GrainCallO
 
 // AddChan allows to use a channel to execute the method using default options
 func (g *CalculatorGrain) AddChan(r *NumberRequest) (<-chan *CountResponse, <-chan error) {
-	return g.AddChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.AddChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // AddChanWithOpts allows to use a channel to execute the method
@@ -129,13 +129,13 @@ func (g *CalculatorGrain) AddChanWithOpts(r *NumberRequest, opts *cluster.GrainC
 
 // Subtract requests the execution on to the cluster using default options
 func (g *CalculatorGrain) Subtract(r *NumberRequest) (*CountResponse, error) {
-	return g.SubtractWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.SubtractWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // SubtractWithOpts requests the execution on to the cluster
 func (g *CalculatorGrain) SubtractWithOpts(r *NumberRequest, opts *cluster.GrainCallOptions) (*CountResponse, error) {
 	fun := func() (*CountResponse, error) {
-		pid, statusCode := c.Get(g.ID, "Calculator")
+		pid, statusCode := cluster.Get(g.ID, "Calculator")
 		if statusCode != remote.ResponseStatusCodeOK {
 			return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 		}
@@ -178,7 +178,7 @@ func (g *CalculatorGrain) SubtractWithOpts(r *NumberRequest, opts *cluster.Grain
 
 // SubtractChan allows to use a channel to execute the method using default options
 func (g *CalculatorGrain) SubtractChan(r *NumberRequest) (<-chan *CountResponse, <-chan error) {
-	return g.SubtractChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.SubtractChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // SubtractChanWithOpts allows to use a channel to execute the method
@@ -200,13 +200,13 @@ func (g *CalculatorGrain) SubtractChanWithOpts(r *NumberRequest, opts *cluster.G
 
 // GetCurrent requests the execution on to the cluster using default options
 func (g *CalculatorGrain) GetCurrent(r *Noop) (*CountResponse, error) {
-	return g.GetCurrentWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.GetCurrentWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // GetCurrentWithOpts requests the execution on to the cluster
 func (g *CalculatorGrain) GetCurrentWithOpts(r *Noop, opts *cluster.GrainCallOptions) (*CountResponse, error) {
 	fun := func() (*CountResponse, error) {
-		pid, statusCode := c.Get(g.ID, "Calculator")
+		pid, statusCode := cluster.Get(g.ID, "Calculator")
 		if statusCode != remote.ResponseStatusCodeOK {
 			return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 		}
@@ -249,7 +249,7 @@ func (g *CalculatorGrain) GetCurrentWithOpts(r *Noop, opts *cluster.GrainCallOpt
 
 // GetCurrentChan allows to use a channel to execute the method using default options
 func (g *CalculatorGrain) GetCurrentChan(r *Noop) (<-chan *CountResponse, <-chan error) {
-	return g.GetCurrentChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.GetCurrentChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // GetCurrentChanWithOpts allows to use a channel to execute the method
@@ -389,13 +389,13 @@ type TrackerGrain struct {
 
 // RegisterGrain requests the execution on to the cluster using default options
 func (g *TrackerGrain) RegisterGrain(r *RegisterMessage) (*Noop, error) {
-	return g.RegisterGrainWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.RegisterGrainWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // RegisterGrainWithOpts requests the execution on to the cluster
 func (g *TrackerGrain) RegisterGrainWithOpts(r *RegisterMessage, opts *cluster.GrainCallOptions) (*Noop, error) {
 	fun := func() (*Noop, error) {
-		pid, statusCode := c.Get(g.ID, "Tracker")
+		pid, statusCode := cluster.Get(g.ID, "Tracker")
 		if statusCode != remote.ResponseStatusCodeOK {
 			return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 		}
@@ -438,7 +438,7 @@ func (g *TrackerGrain) RegisterGrainWithOpts(r *RegisterMessage, opts *cluster.G
 
 // RegisterGrainChan allows to use a channel to execute the method using default options
 func (g *TrackerGrain) RegisterGrainChan(r *RegisterMessage) (<-chan *Noop, <-chan error) {
-	return g.RegisterGrainChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.RegisterGrainChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // RegisterGrainChanWithOpts allows to use a channel to execute the method
@@ -460,13 +460,13 @@ func (g *TrackerGrain) RegisterGrainChanWithOpts(r *RegisterMessage, opts *clust
 
 // DeregisterGrain requests the execution on to the cluster using default options
 func (g *TrackerGrain) DeregisterGrain(r *RegisterMessage) (*Noop, error) {
-	return g.DeregisterGrainWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.DeregisterGrainWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // DeregisterGrainWithOpts requests the execution on to the cluster
 func (g *TrackerGrain) DeregisterGrainWithOpts(r *RegisterMessage, opts *cluster.GrainCallOptions) (*Noop, error) {
 	fun := func() (*Noop, error) {
-		pid, statusCode := c.Get(g.ID, "Tracker")
+		pid, statusCode := cluster.Get(g.ID, "Tracker")
 		if statusCode != remote.ResponseStatusCodeOK {
 			return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 		}
@@ -509,7 +509,7 @@ func (g *TrackerGrain) DeregisterGrainWithOpts(r *RegisterMessage, opts *cluster
 
 // DeregisterGrainChan allows to use a channel to execute the method using default options
 func (g *TrackerGrain) DeregisterGrainChan(r *RegisterMessage) (<-chan *Noop, <-chan error) {
-	return g.DeregisterGrainChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.DeregisterGrainChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // DeregisterGrainChanWithOpts allows to use a channel to execute the method
@@ -531,13 +531,13 @@ func (g *TrackerGrain) DeregisterGrainChanWithOpts(r *RegisterMessage, opts *clu
 
 // BroadcastGetCounts requests the execution on to the cluster using default options
 func (g *TrackerGrain) BroadcastGetCounts(r *Noop) (*TotalsResponse, error) {
-	return g.BroadcastGetCountsWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.BroadcastGetCountsWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // BroadcastGetCountsWithOpts requests the execution on to the cluster
 func (g *TrackerGrain) BroadcastGetCountsWithOpts(r *Noop, opts *cluster.GrainCallOptions) (*TotalsResponse, error) {
 	fun := func() (*TotalsResponse, error) {
-		pid, statusCode := c.Get(g.ID, "Tracker")
+		pid, statusCode := cluster.Get(g.ID, "Tracker")
 		if statusCode != remote.ResponseStatusCodeOK {
 			return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 		}
@@ -580,7 +580,7 @@ func (g *TrackerGrain) BroadcastGetCountsWithOpts(r *Noop, opts *cluster.GrainCa
 
 // BroadcastGetCountsChan allows to use a channel to execute the method using default options
 func (g *TrackerGrain) BroadcastGetCountsChan(r *Noop) (<-chan *TotalsResponse, <-chan error) {
-	return g.BroadcastGetCountsChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.BroadcastGetCountsChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // BroadcastGetCountsChanWithOpts allows to use a channel to execute the method

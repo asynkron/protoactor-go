@@ -18,11 +18,20 @@ func main() {
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()
 
+	fmt.Print("\nAdding 1 Egg - Enter\n")
+	console.ReadLine()
 	calcAdd("Eggs", 1)
+
+	fmt.Print("\nAdding 10 Egg - Enter\n")
+	console.ReadLine()
 	calcAdd("Eggs", 10)
 
-	calcAdd("Bananas", 1000)
+	fmt.Print("\nAdding 100 Bananas - Enter\n")
+	console.ReadLine()
+	calcAdd("Bananas", 100)
 
+	fmt.Print("\nAdding 2 Meat - Enter\n")
+	console.ReadLine()
 	calcAdd("Meat", 3)
 	calcAdd("Meat", 9000)
 
