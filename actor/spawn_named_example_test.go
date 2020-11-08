@@ -9,12 +9,12 @@ import (
 )
 
 // Spawn creates instances of actors, similar to 'new' or 'make' but for actors.
-func ExampleSpawnNamed() {
+func ExampleRootContext_SpawnNamed() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
 	// create root context
-	context := actor.EmptyRootContext
+	context := system.Root
 
 	// define the actor props
 	// props define the creation process of an actor

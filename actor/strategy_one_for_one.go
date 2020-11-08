@@ -20,26 +20,26 @@ type oneForOne struct {
 	decider        DeciderFunc
 }
 
-func (strategy *oneForOne) HandleFailure(supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
+func (strategy *oneForOne) HandleFailure(actorSystem *ActorSystem, supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
 	directive := strategy.decider(reason)
 
 	switch directive {
 	case ResumeDirective:
 		// resume the failing child
-		logFailure(child, reason, directive)
+		logFailure(actorSystem, child, reason, directive)
 		supervisor.ResumeChildren(child)
 	case RestartDirective:
 		// try restart the failing child
 		if strategy.shouldStop(rs) {
-			logFailure(child, reason, StopDirective)
+			logFailure(actorSystem, child, reason, StopDirective)
 			supervisor.StopChildren(child)
 		} else {
-			logFailure(child, reason, RestartDirective)
+			logFailure(actorSystem, child, reason, RestartDirective)
 			supervisor.RestartChildren(child)
 		}
 	case StopDirective:
 		// stop the failing child, no need to involve the crs
-		logFailure(child, reason, directive)
+		logFailure(actorSystem, child, reason, directive)
 		supervisor.StopChildren(child)
 	case EscalateDirective:
 		// send failure to parent

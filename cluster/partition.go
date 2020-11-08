@@ -7,41 +7,42 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-var partition *partitionValue
-
 type partitionValue struct {
 	kindPIDMap        map[string]*actor.PID
 	partitionKindsSub *eventstream.Subscription
+	cluster           *Cluster
 }
 
-func setupPartition(kinds []string) {
-	partition = &partitionValue{
+func setupPartition(cluster *Cluster, kinds []string) *partitionValue {
+	partition := &partitionValue{
 		kindPIDMap: make(map[string]*actor.PID),
+		cluster:    cluster,
 	}
 
 	for _, kind := range kinds {
-		kindPID := spawnPartitionActor(kind)
+		kindPID := partition.spawnPartitionActor(kind)
 		partition.kindPIDMap[kind] = kindPID
 	}
 
-	partition.partitionKindsSub = eventstream.Subscribe(func(m interface{}) {
+	partition.partitionKindsSub = cluster.ActorSystem.EventStream.Subscribe(func(m interface{}) {
 		if mse, ok := m.(MemberStatusEvent); ok {
 			for _, k := range mse.GetKinds() {
 				kindPID := partition.kindPIDMap[k]
 				if kindPID != nil {
-					rootContext.Send(kindPID, m)
+					cluster.ActorSystem.Root.Send(kindPID, m)
 				}
 			}
 		}
 	})
+
+	return partition
 }
 
-func stopPartition() {
-	for _, kindPID := range partition.kindPIDMap {
-		rootContext.StopFuture(kindPID).Wait()
+func (p *partitionValue) stopPartition() {
+	for _, kindPID := range p.kindPIDMap {
+		p.cluster.ActorSystem.Root.StopFuture(kindPID).Wait()
 	}
-	eventstream.Unsubscribe(partition.partitionKindsSub)
-	partition = nil
+	p.cluster.ActorSystem.EventStream.Unsubscribe(p.partitionKindsSub)
 }
 
 func (p *partitionValue) partitionForKind(address, kind string) *actor.PID {
@@ -55,25 +56,27 @@ type spawningProcess struct {
 }
 
 type partitionActor struct {
-	partition  map[string]*actor.PID       // actor/grain name to PID
-	keyNameMap map[string]string           // actor/grain key to name
-	spawnings  map[string]*spawningProcess // spawning actor/grain futures
-	kind       string
+	partition      map[string]*actor.PID // actor/grain name to PID
+	partitionValue *partitionValue
+	keyNameMap     map[string]string           // actor/grain key to name
+	spawnings      map[string]*spawningProcess // spawning actor/grain futures
+	kind           string
 }
 
-func spawnPartitionActor(kind string) *actor.PID {
-	props := actor.PropsFromProducer(newPartitionActor(kind)).WithGuardian(actor.RestartingSupervisorStrategy())
-	partitionPid, _ := rootContext.SpawnNamed(props, "partition-"+kind)
+func (p *partitionValue) spawnPartitionActor(kind string) *actor.PID {
+	props := actor.PropsFromProducer(newPartitionActor(p, kind)).WithGuardian(actor.RestartingSupervisorStrategy())
+	partitionPid, _ := p.cluster.ActorSystem.Root.SpawnNamed(props, "partition-"+kind)
 	return partitionPid
 }
 
-func newPartitionActor(kind string) actor.Producer {
+func newPartitionActor(p *partitionValue, kind string) actor.Producer {
 	return func() actor.Actor {
 		return &partitionActor{
-			partition:  make(map[string]*actor.PID),
-			keyNameMap: make(map[string]string),
-			spawnings:  make(map[string]*spawningProcess),
-			kind:       kind,
+			partition:      make(map[string]*actor.PID),
+			keyNameMap:     make(map[string]string),
+			spawnings:      make(map[string]*spawningProcess),
+			kind:           kind,
+			partitionValue: p,
 		}
 	}
 }
@@ -129,7 +132,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 	}
 
 	// Get activator
-	activator := memberList.getActivatorMember(msg.Kind)
+	activator := state.partitionValue.cluster.MemberList.getActivatorMember(msg.Kind)
 	if activator == "" {
 		// No activator currently available, return unavailable
 		context.Respond(remote.ActorPidRespUnavailable)
@@ -137,7 +140,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 	}
 
 	// Create SpawningProcess and cache it in spawnings dictionary.
-	spawning = &spawningProcess{actor.NewFuture(-1), activator}
+	spawning = &spawningProcess{actor.NewFuture(context.ActorSystem(), -1), activator}
 	state.spawnings[msg.Name] = spawning
 
 	// Await SpawningProcess
@@ -175,7 +178,7 @@ func (state *partitionActor) spawn(msg *remote.ActorPidRequest, context actor.Co
 
 func (state *partitionActor) spawning(msg *remote.ActorPidRequest, activator string, retryLeft int, fPid *actor.PID, context actor.Context) {
 	if activator == "" {
-		activator = memberList.getActivatorMember(msg.Kind)
+		activator = state.partitionValue.cluster.MemberList.getActivatorMember(msg.Kind)
 		if activator == "" {
 			// No activator currently available, return unavailable
 			context.Send(fPid, remote.ActorPidRespUnavailable)
@@ -183,7 +186,7 @@ func (state *partitionActor) spawning(msg *remote.ActorPidRequest, activator str
 		}
 	}
 
-	pidResp, err := remote.SpawnNamed(activator, msg.Name, msg.Kind, cfg.TimeoutTime)
+	pidResp, err := state.partitionValue.cluster.remote.SpawnNamed(activator, msg.Name, msg.Kind, state.partitionValue.cluster.Config.TimeoutTime)
 	if err != nil {
 		plog.Error("Partition failed to spawn actor", log.String("name", msg.Name), log.String("kind", msg.Kind), log.String("address", activator), log.Error(err))
 		if err == actor.ErrTimeout {
@@ -240,9 +243,9 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 	plog.Info("Member left", log.String("kind", state.kind), log.String("name", memberAddress))
 
 	// If the left member is self, transfer remaining pids to others
-	if actor.ProcessRegistry.Address == memberAddress {
+	if state.partitionValue.cluster.ActorSystem.Address() == memberAddress {
 		for actorID := range state.partition {
-			address := memberList.getPartitionMember(actorID, state.kind)
+			address := state.partitionValue.cluster.MemberList.getPartitionMember(actorID, state.kind)
 			if address != "" {
 				state.transferOwnership(actorID, address, context)
 			}
@@ -269,14 +272,14 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.Context) {
 	plog.Info("Member joined", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID := range state.partition {
-		address := memberList.getPartitionMember(actorID, state.kind)
-		if address != "" && address != actor.ProcessRegistry.Address {
+		address := state.partitionValue.cluster.MemberList.getPartitionMember(actorID, state.kind)
+		if address != "" && address != state.partitionValue.cluster.ActorSystem.Address() {
 			state.transferOwnership(actorID, address, context)
 		}
 	}
 	for actorID, spawning := range state.spawnings {
-		address := memberList.getPartitionMember(actorID, state.kind)
-		if address != "" && address != actor.ProcessRegistry.Address {
+		address := state.partitionValue.cluster.MemberList.getPartitionMember(actorID, state.kind)
+		if address != "" && address != state.partitionValue.cluster.ActorSystem.Address() {
 			context.Send(spawning.PID(), remote.ActorPidRespUnavailable)
 		}
 	}
@@ -284,7 +287,7 @@ func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.
 
 func (state *partitionActor) transferOwnership(actorID string, address string, context actor.Context) {
 	pid := state.partition[actorID]
-	owner := partition.partitionForKind(address, state.kind)
+	owner := state.partitionValue.partitionForKind(address, state.kind)
 	context.Send(owner, &TakeOwnership{
 		Pid:  pid,
 		Name: actorID,
@@ -297,10 +300,10 @@ func (state *partitionActor) transferOwnership(actorID string, address string, c
 
 func (state *partitionActor) takeOwnership(msg *TakeOwnership, context actor.Context) {
 	// Check again if I'm the owner
-	address := memberList.getPartitionMember(msg.Name, state.kind)
-	if address != "" && address != actor.ProcessRegistry.Address {
+	address := state.partitionValue.cluster.MemberList.getPartitionMember(msg.Name, state.kind)
+	if address != "" && address != state.partitionValue.cluster.ActorSystem.Address() {
 		// if not, forward to the correct owner
-		owner := partition.partitionForKind(address, state.kind)
+		owner := state.partitionValue.partitionForKind(address, state.kind)
 		context.Send(owner, msg)
 		return
 	}

@@ -9,7 +9,7 @@ import (
 type groupRouterActor struct {
 	props  *actor.Props
 	config RouterConfig
-	state  RouterState
+	state  State
 	wg     *sync.WaitGroup
 }
 
@@ -41,15 +41,15 @@ func (a *groupRouterActor) Receive(context actor.Context) {
 	case *BroadcastMessage:
 		msg := m.Message
 		sender := context.Sender()
-		a.state.GetRoutees().ForEach(func(i int, pid actor.PID) {
-			context.RequestWithCustomSender(&pid, msg, sender)
+		a.state.GetRoutees().ForEach(func(i int, pid *actor.PID) {
+			context.RequestWithCustomSender(pid, msg, sender)
 		})
 
 	case *GetRoutees:
 		r := a.state.GetRoutees()
 		routees := make([]*actor.PID, r.Len())
-		r.ForEach(func(i int, pid actor.PID) {
-			routees[i] = &pid
+		r.ForEach(func(i int, pid *actor.PID) {
+			routees[i] = pid
 		})
 
 		context.Respond(&Routees{routees})

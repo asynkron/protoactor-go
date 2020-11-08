@@ -18,7 +18,7 @@ func TestFuture_PipeTo_Message(t *testing.T) {
 		removeMockProcess(a3)
 	}()
 
-	f := NewFuture(1 * time.Second)
+	f := NewFuture(system, 1*time.Second)
 
 	p1.On("SendUserMessage", a1, "hello")
 	p2.On("SendUserMessage", a2, "hello")
@@ -28,7 +28,7 @@ func TestFuture_PipeTo_Message(t *testing.T) {
 	f.PipeTo(a2)
 	f.PipeTo(a3)
 
-	ref, _ := ProcessRegistry.Get(f.pid)
+	ref, _ := system.ProcessRegistry.Get(f.pid)
 	assert.IsType(t, &futureProcess{}, ref)
 	fp, _ := ref.(*futureProcess)
 
@@ -53,8 +53,8 @@ func TestFuture_PipeTo_TimeoutSendsError(t *testing.T) {
 	p2.On("SendUserMessage", a2, ErrTimeout)
 	p3.On("SendUserMessage", a3, ErrTimeout)
 
-	f := NewFuture(10 * time.Millisecond)
-	ref, _ := ProcessRegistry.Get(f.pid)
+	f := NewFuture(system, 10*time.Millisecond)
+	ref, _ := system.ProcessRegistry.Get(f.pid)
 
 	f.PipeTo(a1)
 	f.PipeTo(a2)
@@ -74,7 +74,7 @@ func TestFuture_PipeTo_TimeoutSendsError(t *testing.T) {
 
 func TestNewFuture_TimeoutNoRace(t *testing.T) {
 	plog.SetLevel(log.OffLevel)
-	future := NewFuture(1 * time.Microsecond)
+	future := NewFuture(system, 1*time.Microsecond)
 	a := rootContext.Spawn(PropsFromFunc(func(context Context) {
 		switch context.Message().(type) {
 		case *Started:

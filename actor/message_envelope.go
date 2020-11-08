@@ -2,29 +2,29 @@ package actor
 
 type messageHeader map[string]string
 
-func (m messageHeader) Get(key string) string {
-	return m[key]
+func (header messageHeader) Get(key string) string {
+	return header[key]
 }
 
-func (m messageHeader) Set(key string, value string) {
-	m[key] = value
+func (header messageHeader) Set(key string, value string) {
+	header[key] = value
 }
 
-func (m messageHeader) Keys() []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
+func (header messageHeader) Keys() []string {
+	keys := make([]string, 0, len(header))
+	for k := range header {
 		keys = append(keys, k)
 	}
 	return keys
 }
 
-func (m messageHeader) Length() int {
-	return len(m)
+func (header messageHeader) Length() int {
+	return len(header)
 }
 
-func (m messageHeader) ToMap() map[string]string {
+func (header messageHeader) ToMap() map[string]string {
 	mp := make(map[string]string)
-	for k, v := range m {
+	for k, v := range header {
 		mp[k] = v
 	}
 	return mp
@@ -43,18 +43,18 @@ type MessageEnvelope struct {
 	Sender  *PID
 }
 
-func (me *MessageEnvelope) GetHeader(key string) string {
-	if me.Header == nil {
+func (envelope *MessageEnvelope) GetHeader(key string) string {
+	if envelope.Header == nil {
 		return ""
 	}
-	return me.Header.Get(key)
+	return envelope.Header.Get(key)
 }
 
-func (me *MessageEnvelope) SetHeader(key string, value string) {
-	if me.Header == nil {
-		me.Header = make(map[string]string)
+func (envelope *MessageEnvelope) SetHeader(key string, value string) {
+	if envelope.Header == nil {
+		envelope.Header = make(map[string]string)
 	}
-	me.Header.Set(key, value)
+	envelope.Header.Set(key, value)
 }
 
 var (

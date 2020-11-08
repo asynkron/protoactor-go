@@ -7,7 +7,7 @@ import (
 )
 
 // Props types
-type SpawnFunc func(id string, props *Props, parentContext SpawnerContext) (*PID, error)
+type SpawnFunc func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (*PID, error)
 type ReceiverMiddleware func(next ReceiverFunc) ReceiverFunc
 type SenderMiddleware func(next SenderFunc) SenderFunc
 type ContextDecorator func(next ContextDecoratorFunc) ContextDecoratorFunc
@@ -17,12 +17,12 @@ type SpawnMiddleware func(next SpawnFunc) SpawnFunc
 var (
 	defaultDispatcher      = mailbox.NewDefaultDispatcher(300)
 	defaultMailboxProducer = mailbox.Unbounded()
-	defaultSpawner         = func(id string, props *Props, parentContext SpawnerContext) (*PID, error) {
-		ctx := newActorContext(props, parentContext.Self())
+	defaultSpawner         = func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (*PID, error) {
+		ctx := newActorContext(actorSystem, props, parentContext.Self())
 		mb := props.produceMailbox()
 		dp := props.getDispatcher()
 		proc := NewActorProcess(mb)
-		pid, absent := ProcessRegistry.Add(proc, id)
+		pid, absent := actorSystem.ProcessRegistry.Add(proc, id)
 		if !absent {
 			return pid, ErrNameExists
 		}
@@ -97,8 +97,8 @@ func (props *Props) produceMailbox() mailbox.Mailbox {
 	return props.mailboxProducer()
 }
 
-func (props *Props) spawn(name string, parentContext SpawnerContext) (*PID, error) {
-	return props.getSpawner()(name, props, parentContext)
+func (props *Props) spawn(actorSystem *ActorSystem, name string, parentContext SpawnerContext) (*PID, error) {
+	return props.getSpawner()(actorSystem, name, props, parentContext)
 }
 
 // WithProducer assigns a actor producer to the props
@@ -158,8 +158,8 @@ func (props *Props) WithSenderMiddleware(middleware ...SenderMiddleware) *Props 
 	props.senderMiddleware = append(props.senderMiddleware, middleware...)
 
 	// Construct the sender middleware chain with the final sender at the end
-	props.senderMiddlewareChain = makeSenderMiddlewareChain(props.senderMiddleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
-		target.sendUserMessage(envelope)
+	props.senderMiddlewareChain = makeSenderMiddlewareChain(props.senderMiddleware, func(sender SenderContext, target *PID, envelope *MessageEnvelope) {
+		target.sendUserMessage(sender.ActorSystem(), envelope)
 	})
 
 	return props
@@ -181,11 +181,11 @@ func (props *Props) WithSpawnMiddleware(middleware ...SpawnMiddleware) *Props {
 	props.spawnMiddleware = append(props.spawnMiddleware, middleware...)
 
 	// Construct the spawner middleware chain with the final spawner at the end
-	props.spawnMiddlewareChain = makeSpawnMiddlewareChain(props.spawnMiddleware, func(id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
+	props.spawnMiddlewareChain = makeSpawnMiddlewareChain(props.spawnMiddleware, func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
 		if props.spawner == nil {
-			return defaultSpawner(id, props, parentContext)
+			return defaultSpawner(actorSystem, id, props, parentContext)
 		}
-		return props.spawner(id, props, parentContext)
+		return props.spawner(actorSystem, id, props, parentContext)
 	})
 
 	return props
@@ -202,37 +202,4 @@ func PropsFromProducer(producer Producer) *Props {
 // PropsFromFunc creates a props with the given receive func assigned as the actor producer
 func PropsFromFunc(f ActorFunc) *Props {
 	return PropsFromProducer(func() Actor { return f })
-}
-
-// Deprecated: Use actor.PropsFromProducer instead.
-func FromProducer(actorProducer Producer) *Props {
-	return PropsFromProducer(actorProducer)
-}
-
-// Deprecated: Use actor.PropsFromFunc instead.
-func FromFunc(f ActorFunc) *Props {
-	return PropsFromFunc(f)
-}
-
-// Deprecated: FromSpawnFunc is deprecated.
-func FromSpawnFunc(spawn SpawnFunc) *Props {
-	return (&Props{}).WithSpawnFunc(spawn)
-}
-
-// Deprecated: Use ReceiverMiddleware instead
-type InboundMiddleware func(f ActorFunc) ActorFunc
-
-// Deprecated: Use WithReceiverMiddleware instead
-func (props *Props) WithMiddleware(middleware ...InboundMiddleware) *Props {
-	plog.Error("props.WithMiddleware(middleware ...InboundMiddleware) has been deprecated. Please use WithReceiverMiddleware instead. This middleware will not be applied")
-	return props
-}
-
-// Deprecated: Use SenderMiddleware instead
-type OutboundMiddleware func(next SenderFunc) SenderFunc
-
-// Deprecated: Use WithSenderMiddleware instead
-func (props *Props) WithOutboundMiddleware(middleware ...OutboundMiddleware) *Props {
-	plog.Error("props.WithOutboundMiddleware(middleware ...OutboundMiddleware) has been deprecated. Please use WithSenderMiddleware instead. This middleware will not be applied")
-	return props
 }

@@ -66,8 +66,8 @@ func WithContext(ctx actor.SenderContext) timerOptionFunc {
 
 // NewTimerScheduler creates a new scheduler using the EmptyRootContext.
 // Additional options may be specified to override the default behavior.
-func NewTimerScheduler(opts ...timerOptionFunc) *TimerScheduler {
-	s := &TimerScheduler{ctx: actor.EmptyRootContext}
+func NewTimerScheduler(sender actor.SenderContext, opts ...timerOptionFunc) *TimerScheduler {
+	s := &TimerScheduler{ctx: sender}
 	for _, opt := range opts {
 		opt(s)
 	}

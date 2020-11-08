@@ -3,7 +3,6 @@ package main
 import (
 	"cluster-broadcast/shared"
 	"fmt"
-	"log"
 	"time"
 
 	console "github.com/AsynkronIT/goconsole"
@@ -14,7 +13,7 @@ import (
 )
 
 func main() {
-	startNode(8081)
+	cluster := startNode(8081)
 
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()
@@ -34,9 +33,17 @@ func main() {
 	cluster.Shutdown(true)
 }
 
-func startNode(port int64) {
+func startNode(port int64) *cluster.Cluster {
 	// how long before the grain poisons itself
 	timeout := 10 * time.Minute
+
+	system := actor.NewActorSystem()
+	config := remote.Configure("localhost", 0)
+	remote := remote.NewRemote(system, config)
+
+	provider, _ := consul.New()
+	clusterConfig := cluster.Configure("my-cluster", provider, config)
+	cluster := cluster.New(system, clusterConfig)
 
 	// this node knows about Hello kind
 	remote.Register("Calculator", actor.PropsFromProducer(func() actor.Actor {
@@ -60,11 +67,8 @@ func startNode(port int64) {
 		return &shared.TrackGrain{}
 	})
 
-	cp, err := consul.New()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cluster.Start("mycluster", fmt.Sprintf("127.0.0.1:%v", port), cp)
+	cluster.Start()
+	return cluster
 }
 
 func calcAdd(grainId string, addNumber int64) {

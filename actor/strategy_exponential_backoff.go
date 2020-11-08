@@ -21,7 +21,7 @@ type exponentialBackoffStrategy struct {
 	initialBackoff time.Duration
 }
 
-func (strategy *exponentialBackoffStrategy) HandleFailure(supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
+func (strategy *exponentialBackoffStrategy) HandleFailure(actorSystem *ActorSystem, supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
 	strategy.setFailureCount(rs)
 
 	backoff := rs.FailureCount() * int(strategy.initialBackoff.Nanoseconds())

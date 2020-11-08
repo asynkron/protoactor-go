@@ -10,7 +10,8 @@ import (
 var nullProducer Producer = func() Actor { return nullReceive }
 var nullReceive ActorFunc = func(Context) {}
 var nilPID *PID
-var rootContext = EmptyRootContext
+var system = NewActorSystem()
+var rootContext = system.Root
 
 func matchPID(with *PID) interface{} {
 	return mock.MatchedBy(func(v *PID) bool {
@@ -26,6 +27,11 @@ type mockContext struct {
 //
 // Interface: Context
 //
+
+func (m *mockContext) ActorSystem() *ActorSystem {
+	args := m.Called()
+	return args.Get(0).(*ActorSystem)
+}
 
 func (m *mockContext) Parent() *PID {
 	args := m.Called()
@@ -109,7 +115,7 @@ func (m *mockContext) Send(pid *PID, message interface{}) {
 
 func (m *mockContext) Request(pid *PID, message interface{}) {
 	args := m.Called()
-	p, _ := ProcessRegistry.Get(pid)
+	p, _ := system.ProcessRegistry.Get(pid)
 	env := &MessageEnvelope{
 		Header:  nil,
 		Message: message,
@@ -120,7 +126,7 @@ func (m *mockContext) Request(pid *PID, message interface{}) {
 
 func (m *mockContext) RequestWithCustomSender(pid *PID, message interface{}, sender *PID) {
 	m.Called()
-	p, _ := ProcessRegistry.Get(pid)
+	p, _ := system.ProcessRegistry.Get(pid)
 	env := &MessageEnvelope{
 		Header:  nil,
 		Message: message,
@@ -168,16 +174,16 @@ type mockProcess struct {
 
 func spawnMockProcess(name string) (*PID, *mockProcess) {
 	p := &mockProcess{}
-	pid, ok := ProcessRegistry.Add(p, name)
+	pid, ok := system.ProcessRegistry.Add(p, name)
 	if !ok {
-		panic(fmt.Errorf("did not spawn named process '%s'", name))
+		panic(fmt.Errorf("did not spawn named process '%vids'", name))
 	}
 
 	return pid, p
 }
 
 func removeMockProcess(pid *PID) {
-	ProcessRegistry.Remove(pid)
+	system.ProcessRegistry.Remove(pid)
 }
 
 func (m *mockProcess) SendUserMessage(pid *PID, message interface{}) {

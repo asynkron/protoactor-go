@@ -22,17 +22,17 @@ type GrainCallOptions struct {
 
 var defaultGrainCallOptions *GrainCallOptions
 
-func DefaultGrainCallOptions() *GrainCallOptions {
+func DefaultGrainCallOptions(cluster *Cluster) *GrainCallOptions {
 	if defaultGrainCallOptions == nil {
-		defaultGrainCallOptions = NewGrainCallOptions()
+		defaultGrainCallOptions = NewGrainCallOptions(cluster)
 	}
 	return defaultGrainCallOptions
 }
 
-func NewGrainCallOptions() *GrainCallOptions {
+func NewGrainCallOptions(cluster *Cluster) *GrainCallOptions {
 	return &GrainCallOptions{
 		RetryCount: 10,
-		Timeout:    cfg.TimeoutTime,
+		Timeout:    cluster.Config.TimeoutTime,
 		RetryAction: func(i int) {
 			i++
 			time.Sleep(time.Duration(i * i * 50))

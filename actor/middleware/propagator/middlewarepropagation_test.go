@@ -11,15 +11,16 @@ import (
 func TestPropagator(t *testing.T) {
 	mutex := &sync.Mutex{}
 	spawningCounter := 0
+	system := actor.NewActorSystem()
 
 	propagator := New().
 		WithItselfForwarded().
 		WithSpawnMiddleware(func(next actor.SpawnFunc) actor.SpawnFunc {
-			return func(id string, props *actor.Props, parentContext actor.SpawnerContext) (pid *actor.PID, e error) {
+			return func(actorSystem *actor.ActorSystem, id string, props *actor.Props, parentContext actor.SpawnerContext) (pid *actor.PID, e error) {
 				mutex.Lock()
 				spawningCounter++
 				mutex.Unlock()
-				return next(id, props, parentContext)
+				return next(actorSystem, id, props, parentContext)
 			}
 		})
 
@@ -35,9 +36,10 @@ func TestPropagator(t *testing.T) {
 		})
 	}
 
-	root := actor.NewRootContext(nil).WithSpawnMiddleware(propagator.SpawnMiddleware).Spawn(start(5))
+	rootContext := actor.NewRootContext(system, nil).WithSpawnMiddleware(propagator.SpawnMiddleware)
+	root := rootContext.Spawn(start(5))
 
-	root.StopFuture().Wait()
+	_ = rootContext.StopFuture(root).Wait()
 
 	assert.Equal(t, spawningCounter, 5)
 }

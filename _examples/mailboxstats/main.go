@@ -24,11 +24,12 @@ func (m *mailboxLogger) MailboxEmpty() {
 }
 
 func main() {
-	rootContext := actor.EmptyRootContext
+	system := actor.NewActorSystem()
+	rootContext := system.Root
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 
 	}).WithMailbox(mailbox.Unbounded(&mailboxLogger{}))
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, "Hello")
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }

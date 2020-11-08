@@ -17,8 +17,8 @@ func TestPublishRaceCondition(t *testing.T) {
 
 	go func() {
 		for i := 0; i < rounds; i++ {
-			eventstream.Publish(ClusterTopologyEvent([]*MemberStatus{{}, {}}))
-			eventstream.Publish(ClusterTopologyEvent([]*MemberStatus{{}}))
+			eventstream.Publish(TopologyEvent([]*MemberStatus{{}, {}}))
+			eventstream.Publish(TopologyEvent([]*MemberStatus{{}}))
 			wg.Done()
 		}
 	}()

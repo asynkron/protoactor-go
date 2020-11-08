@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,13 +15,13 @@ func TestActorContext_SpawnNamed(t *testing.T) {
 	defer removeMockProcess(pid)
 
 	props := &Props{
-		spawner: func(id string, _ *Props, _ SpawnerContext) (*PID, error) {
+		spawner: func(actorSystem *ActorSystem, id string, _ *Props, _ SpawnerContext) (*PID, error) {
 			assert.Equal(t, "foo/bar", id)
-			return NewLocalPID(id), nil
+			return NewPID(actorSystem.Address(), id), nil
 		},
 	}
 
-	parent := &actorContext{self: NewLocalPID("foo"), props: props}
+	parent := &actorContext{self: NewPID("nohost", "foo"), props: props, actorSystem: system}
 	child, err := parent.SpawnNamed(props, "bar")
 	assert.NoError(t, err)
 	assert.Equal(t, parent.Children()[0], child)
@@ -40,7 +39,7 @@ func TestActorContext_Stop(t *testing.T) {
 	o.On("SendSystemMessage", other, &Terminated{Who: pid})
 
 	props := PropsFromProducer(nullProducer).WithSupervisor(DefaultSupervisorStrategy())
-	lc := newActorContext(props, nil)
+	lc := newActorContext(system, props, nil)
 	lc.self = pid
 	lc.InvokeSystemMessage(&Stop{})
 	lc.InvokeSystemMessage(&Watch{Watcher: other})
@@ -61,7 +60,7 @@ func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
 	}
 
 	props := PropsFromProducer(nullProducer).WithSupervisor(DefaultSupervisorStrategy()).WithSenderMiddleware(mw)
-	ctx := newActorContext(props, nil)
+	ctx := newActorContext(system, props, nil)
 
 	// Define a receiver to which the local context will send a message
 	var counter int
@@ -99,7 +98,7 @@ func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
 func BenchmarkActorContext_ProcessMessageNoMiddleware(b *testing.B) {
 	var m interface{} = 1
 
-	ctx := newActorContext(PropsFromFunc(nullReceive), nil)
+	ctx := newActorContext(system, PropsFromFunc(nullReceive), nil)
 	for i := 0; i < b.N; i++ {
 		ctx.processMessage(m)
 	}
@@ -114,13 +113,13 @@ func TestActorContext_Respond(t *testing.T) {
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch m := ctx.Message().(type) {
 		case string:
-			ctx.Respond(fmt.Sprintf("Got a string: %s", m))
+			ctx.Respond(fmt.Sprintf("Got a string: %v", m))
 		}
 	}))
 
 	// Be prepared to catch a response that the responder will send to nil
 	var gotResponseToNil bool
-	deadLetterSubscriber = eventstream.Subscribe(func(msg interface{}) {
+	deadLetterSubscriber := system.EventStream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			if deadLetter.PID == nil {
 				gotResponseToNil = true
@@ -151,7 +150,7 @@ func TestActorContext_Respond(t *testing.T) {
 	assert.True(t, gotResponseToNil)
 
 	// Cleanup
-	eventstream.Unsubscribe(deadLetterSubscriber)
+	system.EventStream.Unsubscribe(deadLetterSubscriber)
 }
 
 func TestActorContext_Forward(t *testing.T) {
@@ -160,7 +159,7 @@ func TestActorContext_Forward(t *testing.T) {
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch m := ctx.Message().(type) {
 		case string:
-			ctx.Respond(fmt.Sprintf("Got a string: %s", m))
+			ctx.Respond(fmt.Sprintf("Got a string: %v", m))
 		}
 	}))
 
@@ -195,7 +194,7 @@ func BenchmarkActorContext_ProcessMessageWithMiddleware(b *testing.B) {
 	}
 
 	props := PropsFromProducer(nullProducer).WithSupervisor(DefaultSupervisorStrategy()).WithReceiverMiddleware(fn)
-	ctx := newActorContext(props, nil)
+	ctx := newActorContext(system, props, nil)
 
 	for i := 0; i < b.N; i++ {
 		ctx.processMessage(m)
@@ -214,7 +213,7 @@ func benchmarkActorContext_SpawnWithMiddlewareN(n int, b *testing.B) {
 		props = props.WithSenderMiddleware(middlewareFn)
 	}
 
-	parent := &actorContext{self: NewLocalPID("foo"), props: props}
+	parent := &actorContext{self: NewPID("nohost", "foo"), props: props}
 	for i := 0; i < b.N; i++ {
 		parent.Spawn(props)
 	}

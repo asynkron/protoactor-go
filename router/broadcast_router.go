@@ -1,9 +1,6 @@
 package router
 
 import (
-	"sync/atomic"
-	"unsafe"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
@@ -17,22 +14,24 @@ type broadcastPoolRouter struct {
 
 type broadcastRouterState struct {
 	routees *actor.PIDSet
+	sender  actor.SenderContext
+}
+
+func (state *broadcastRouterState) SetSender(sender actor.SenderContext) {
+	state.sender = sender
 }
 
 func (state *broadcastRouterState) SetRoutees(routees *actor.PIDSet) {
-	rts := *routees
-	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees)), unsafe.Pointer(&rts))
+	state.routees = routees
 }
 
 func (state *broadcastRouterState) GetRoutees() *actor.PIDSet {
-	rts := (*actor.PIDSet)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees))))
-	return rts.Clone()
+	return state.routees
 }
 
 func (state *broadcastRouterState) RouteMessage(message interface{}) {
-	rts := (*actor.PIDSet)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.routees))))
-	rts.ForEach(func(i int, pid actor.PID) {
-		rootContext.Send(&pid, message)
+	state.routees.ForEach(func(i int, pid *actor.PID) {
+		state.sender.Send(pid, message)
 	})
 }
 
@@ -44,10 +43,10 @@ func NewBroadcastGroup(routees ...*actor.PID) *actor.Props {
 	return (&actor.Props{}).WithSpawnFunc(spawner(&broadcastGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
-func (config *broadcastPoolRouter) CreateRouterState() RouterState {
+func (config *broadcastPoolRouter) CreateRouterState() State {
 	return &broadcastRouterState{}
 }
 
-func (config *broadcastGroupRouter) CreateRouterState() RouterState {
+func (config *broadcastGroupRouter) CreateRouterState() State {
 	return &broadcastRouterState{}
 }

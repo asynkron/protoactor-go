@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var system = actor.NewActorSystem()
+
 type SmartActor struct {
 	PassivationHolder
 }
@@ -22,9 +24,9 @@ func TestPassivation(t *testing.T) {
 		t.SkipNow()
 	}
 
-	UnitOfTime := time.Duration(200 * time.Millisecond)
-	PassivationDuration := time.Duration(3 * UnitOfTime)
-	rootContext := actor.EmptyRootContext
+	UnitOfTime := 200 * time.Millisecond
+	PassivationDuration := 3 * UnitOfTime
+	rootContext := system.Root
 	props := actor.
 		PropsFromProducer(func() actor.Actor { return &SmartActor{} }).
 		WithReceiverMiddleware(Use(&PassivationPlugin{Duration: PassivationDuration}))
@@ -33,20 +35,20 @@ func TestPassivation(t *testing.T) {
 	time.Sleep(UnitOfTime)
 	time.Sleep(UnitOfTime)
 	{
-		_, found := actor.ProcessRegistry.LocalPIDs.Get(pid.Id)
+		_, found := system.ProcessRegistry.LocalPIDs.Get(pid.Id)
 		assert.True(t, found)
 	}
 	rootContext.Send(pid, "keepalive")
 	time.Sleep(UnitOfTime)
 	time.Sleep(UnitOfTime)
 	{
-		_, found := actor.ProcessRegistry.LocalPIDs.Get(pid.Id)
+		_, found := system.ProcessRegistry.LocalPIDs.Get(pid.Id)
 		assert.True(t, found)
 	}
 	time.Sleep(UnitOfTime)
 	time.Sleep(UnitOfTime)
 	{
-		_, found := actor.ProcessRegistry.LocalPIDs.Get(pid.Id)
+		_, found := system.ProcessRegistry.LocalPIDs.Get(pid.Id)
 		assert.False(t, found)
 	}
 }

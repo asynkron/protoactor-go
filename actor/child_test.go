@@ -72,8 +72,8 @@ func TestActorCanStopChildren(t *testing.T) {
 		rootContext.Send(actor, CreateChildMessage{})
 	}
 
-	future := NewFuture(testTimeout)
-	future2 := NewFuture(testTimeout)
+	future := NewFuture(system, testTimeout)
+	future2 := NewFuture(system, testTimeout)
 	rootContext.Send(actor, GetChildCountMessage2{ReplyDirectly: future.PID(), ReplyAfterStop: future2.PID()})
 
 	// wait for the actor to reply to the first responsePID
@@ -90,7 +90,7 @@ func TestActorCanStopChildren(t *testing.T) {
 
 func TestActorReceivesTerminatedFromWatched(t *testing.T) {
 	child := rootContext.Spawn(PropsFromFunc(nullReceive))
-	future := NewFuture(testTimeout)
+	future := NewFuture(system, testTimeout)
 	var wg sync.WaitGroup
 	wg.Add(1)
 

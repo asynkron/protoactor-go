@@ -14,30 +14,30 @@ func TestPIDSet_Empty(t *testing.T) {
 
 func TestPIDSet_Clear(t *testing.T) {
 	var s PIDSet
-	s.Add(NewLocalPID("p1"))
-	s.Add(NewLocalPID("p2"))
-	s.Add(NewLocalPID("p3"))
+	s.Add(NewPID("nohost", "p1"))
+	s.Add(NewPID("nohost", "p2"))
+	s.Add(NewPID("nohost", "p3"))
 	assert.Equal(t, 3, s.Len())
 	s.Clear()
 	assert.True(t, s.Empty())
-	assert.Len(t, s.s, 0)
+	assert.Len(t, s.pids, 0)
 }
 
 func TestPIDSet_AddSmall(t *testing.T) {
-	var s PIDSet
-	p1 := NewLocalPID("p1")
+	s := NewPIDSet()
+	p1 := NewPID("nohost", "p1")
 	s.Add(p1)
 	assert.False(t, s.Empty())
-	p1 = NewLocalPID("p1")
+	p1 = NewPID("nohost", "p1")
 	s.Add(p1)
 	assert.Equal(t, 1, s.Len())
 }
 
 func TestPIDSet_Values(t *testing.T) {
 	var s PIDSet
-	s.Add(NewLocalPID("p1"))
-	s.Add(NewLocalPID("p2"))
-	s.Add(NewLocalPID("p3"))
+	s.Add(NewPID("nohost", "p1"))
+	s.Add(NewPID("nohost", "p2"))
+	s.Add(NewPID("nohost", "p3"))
 	assert.False(t, s.Empty())
 
 	r := s.Values()
@@ -45,12 +45,11 @@ func TestPIDSet_Values(t *testing.T) {
 }
 
 func TestPIDSet_AddMap(t *testing.T) {
-	var s PIDSet
-	s.m = make(map[string]struct{})
-	p1 := NewLocalPID("p1")
+	s := NewPIDSet()
+	p1 := NewPID("nohost", "p1")
 	s.Add(p1)
 	assert.False(t, s.Empty())
-	p1 = NewLocalPID("p1")
+	p1 = NewPID("nohost", "p1")
 	s.Add(p1)
 	assert.Equal(t, 1, s.Len())
 }
@@ -59,7 +58,7 @@ var pids []*PID
 
 func init() {
 	for i := 0; i < 1000; i++ {
-		pids = append(pids, NewLocalPID("p"+strconv.Itoa(i)))
+		pids = append(pids, NewPID("nohost", "p"+strconv.Itoa(i)))
 	}
 }
 

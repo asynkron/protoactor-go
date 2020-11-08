@@ -7,22 +7,10 @@ import (
 // Predicate is a function used to filter messages before being forwarded to a subscriber
 type Predicate func(evt interface{}) bool
 
-var es = &EventStream{}
+func NewEventStream() *EventStream {
+	es := &EventStream{}
 
-func Subscribe(fn func(evt interface{})) *Subscription {
-	return es.Subscribe(fn)
-}
-
-func Unsubscribe(sub *Subscription) {
-	es.Unsubscribe(sub)
-}
-
-func Publish(event interface{}) {
-	es.Publish(event)
-}
-
-func PublishUnsafe(evt interface{}) {
-	es.PublishUnsafe(evt)
+	return es
 }
 
 type EventStream struct {

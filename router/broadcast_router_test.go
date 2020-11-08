@@ -9,18 +9,20 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
+var system = actor.NewActorSystem()
+
 func TestBroadcastRouterThreadSafe(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
 	props := actor.PropsFromFunc(func(c actor.Context) {})
 
-	grp := rootContext.Spawn(NewBroadcastGroup())
+	grp := system.Root.Spawn(NewBroadcastGroup())
 	go func() {
 		count := 100
 		for i := 0; i < count; i++ {
-			pid, _ := rootContext.SpawnNamed(props, strconv.Itoa(i))
-			rootContext.Send(grp, &AddRoutee{pid})
+			pid, _ := system.Root.SpawnNamed(props, strconv.Itoa(i))
+			system.Root.Send(grp, &AddRoutee{pid})
 			time.Sleep(10 * time.Millisecond)
 		}
 		wg.Done()
@@ -28,7 +30,7 @@ func TestBroadcastRouterThreadSafe(t *testing.T) {
 	go func() {
 		count := 100
 		for c := 0; c < count; c++ {
-			rootContext.Send(grp, struct{}{})
+			system.Root.Send(grp, struct{}{})
 			time.Sleep(10 * time.Millisecond)
 		}
 		wg.Done()

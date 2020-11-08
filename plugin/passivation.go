@@ -9,7 +9,7 @@ import (
 )
 
 type PassivationAware interface {
-	Init(*actor.PID, time.Duration)
+	Init(*actor.ActorSystem, *actor.PID, time.Duration)
 	Reset(time.Duration)
 	Cancel()
 }
@@ -28,13 +28,13 @@ func (state *PassivationHolder) Reset(duration time.Duration) {
 	}
 }
 
-func (state *PassivationHolder) Init(pid *actor.PID, duration time.Duration) {
+func (state *PassivationHolder) Init(actorSystem *actor.ActorSystem, pid *actor.PID, duration time.Duration) {
 	state.timer = time.NewTimer(duration)
 	state.done = 0
 	go func() {
 		select {
 		case <-state.timer.C:
-			actor.EmptyRootContext.Stop(pid)
+			actorSystem.Root.Stop(pid)
 			atomic.StoreInt32(&state.done, 1)
 			break
 		}
@@ -53,7 +53,7 @@ type PassivationPlugin struct {
 
 func (pp *PassivationPlugin) OnStart(ctx actor.ReceiverContext) {
 	if a, ok := ctx.Actor().(PassivationAware); ok {
-		a.Init(ctx.Self(), pp.Duration)
+		a.Init(ctx.ActorSystem(), ctx.Self(), pp.Duration)
 	}
 }
 

@@ -11,6 +11,8 @@ import (
 	"github.com/AsynkronIT/protoactor-go/router"
 )
 
+var system = actor.NewActorSystem()
+
 type myMessage struct {
 	i   int32
 	pid *actor.PID
@@ -82,19 +84,17 @@ func TestConcurrency(t *testing.T) {
 		t.SkipNow()
 	}
 
-	rootContext := actor.EmptyRootContext
-
 	wait.Add(100 * 1000)
-	rpid := rootContext.Spawn(router.NewConsistentHashPool(100).WithProducer(func() actor.Actor { return &routerActor{} }))
+	rpid := system.Root.Spawn(router.NewConsistentHashPool(100).WithProducer(func() actor.Actor { return &routerActor{} }))
 
 	props := actor.PropsFromProducer(func() actor.Actor { return &tellerActor{} })
 	for i := 0; i < 1000; i++ {
-		pid := rootContext.Spawn(props)
-		rootContext.Send(pid, &myMessage{int32(i), rpid})
+		pid := system.Root.Spawn(props)
+		system.Root.Send(pid, &myMessage{int32(i), rpid})
 	}
 
 	props = actor.PropsFromProducer(func() actor.Actor { return &managerActor{} })
-	pid := rootContext.Spawn(props)
-	rootContext.Send(pid, &getRoutees{rpid})
+	pid := system.Root.Spawn(props)
+	system.Root.Send(pid, &getRoutees{rpid})
 	wait.Wait()
 }

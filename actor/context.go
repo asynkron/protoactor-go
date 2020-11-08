@@ -39,6 +39,8 @@ type infoPart interface {
 
 	// Actor returns the actor associated with this context
 	Actor() Actor
+
+	ActorSystem() *ActorSystem
 }
 
 type basePart interface {

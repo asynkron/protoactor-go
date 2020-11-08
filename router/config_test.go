@@ -9,15 +9,15 @@ import (
 
 func TestSpawn(t *testing.T) {
 	pr := &broadcastPoolRouter{PoolRouter{PoolSize: 1}}
-	pid, err := spawn("foo", pr, actor.PropsFromFunc(func(context actor.Context) {}), actor.EmptyRootContext)
+	pid, err := spawn(system, "foo", pr, actor.PropsFromFunc(func(context actor.Context) {}), system.Root)
 	assert.NoError(t, err)
 
-	_, exists := actor.ProcessRegistry.Get(actor.NewLocalPID("foo/router"))
+	_, exists := system.ProcessRegistry.Get(system.NewLocalPID("foo/router"))
 	assert.True(t, exists)
 
-	err = rootContext.StopFuture(pid).Wait()
+	err = system.Root.StopFuture(pid).Wait()
 	assert.NoError(t, err)
 
-	_, exists = actor.ProcessRegistry.Get(actor.NewLocalPID("foo/router"))
+	_, exists = system.ProcessRegistry.Get(system.NewLocalPID("foo/router"))
 	assert.False(t, exists)
 }

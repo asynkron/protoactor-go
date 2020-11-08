@@ -1,12 +1,9 @@
 package router
 
 import (
-	"log"
-	"sync/atomic"
-	"unsafe"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/serialx/hashring"
+	"log"
 )
 
 type Hasher interface {
@@ -26,7 +23,12 @@ type hashmapContainer struct {
 	routeeMap map[string]*actor.PID
 }
 type consistentHashRouterState struct {
-	hmc *hashmapContainer
+	hmc    *hashmapContainer
+	sender actor.SenderContext
+}
+
+func (state *consistentHashRouterState) SetSender(sender actor.SenderContext) {
+	state.sender = sender
 }
 
 func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
@@ -34,19 +36,19 @@ func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 	hmc := hashmapContainer{}
 	hmc.routeeMap = make(map[string]*actor.PID)
 	nodes := make([]string, routees.Len())
-	routees.ForEach(func(i int, pid actor.PID) {
+	routees.ForEach(func(i int, pid *actor.PID) {
 		nodeName := pid.Address + "@" + pid.Id
 		nodes[i] = nodeName
-		hmc.routeeMap[nodeName] = &pid
+		hmc.routeeMap[nodeName] = pid
 	})
 	// initialize hashring for mapping message keys to node names
 	hmc.hashring = hashring.New(nodes)
-	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&state.hmc)), unsafe.Pointer(&hmc))
+	state.hmc = &hmc
 }
 
 func (state *consistentHashRouterState) GetRoutees() *actor.PIDSet {
 	var routees actor.PIDSet
-	hmc := (*hashmapContainer)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.hmc))))
+	hmc := state.hmc
 	for _, v := range hmc.routeeMap {
 		routees.Add(v)
 	}
@@ -58,7 +60,7 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 	switch msg := uwpMsg.(type) {
 	case Hasher:
 		key := msg.Hash()
-		hmc := (*hashmapContainer)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&state.hmc))))
+		hmc := state.hmc
 
 		node, ok := hmc.hashring.GetNode(key)
 		if !ok {
@@ -66,7 +68,7 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 			return
 		}
 		if routee, ok := hmc.routeeMap[node]; ok {
-			rootContext.Send(routee, message)
+			state.sender.Send(routee, message)
 		} else {
 			log.Println("[ROUTING] Consistent router failed to resolve node", node)
 		}
@@ -87,10 +89,10 @@ func NewConsistentHashGroup(routees ...*actor.PID) *actor.Props {
 	return (&actor.Props{}).WithSpawnFunc(spawner(&consistentHashGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
 }
 
-func (config *consistentHashPoolRouter) CreateRouterState() RouterState {
+func (config *consistentHashPoolRouter) CreateRouterState() State {
 	return &consistentHashRouterState{}
 }
 
-func (config *consistentHashGroupRouter) CreateRouterState() RouterState {
+func (config *consistentHashGroupRouter) CreateRouterState() State {
 	return &consistentHashRouterState{}
 }

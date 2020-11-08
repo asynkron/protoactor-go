@@ -7,6 +7,7 @@ import (
 )
 
 type ProcessRegistryValue struct {
+	ActorSystem    *ActorSystem
 	SequenceID     uint64
 	Address        string
 	LocalPIDs      cmap.ConcurrentMap
@@ -17,12 +18,12 @@ var (
 	localAddress = "nonhost"
 )
 
-// ProcessRegistry is a registry of all active processes.
-//
-// NOTE: This should only be used for advanced scenarios
-var ProcessRegistry = &ProcessRegistryValue{
-	Address:   localAddress,
-	LocalPIDs: cmap.New(),
+func NewProcessRegistry(actorSystem *ActorSystem) *ProcessRegistryValue {
+	return &ProcessRegistryValue{
+		ActorSystem: actorSystem,
+		Address:     localAddress,
+		LocalPIDs:   cmap.New(),
+	}
 }
 
 // An AddressResolver is used to resolve remote actors
@@ -75,7 +76,7 @@ func (pr *ProcessRegistryValue) Remove(pid *PID) {
 
 func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {
 	if pid == nil {
-		return deadLetter, false
+		return pr.ActorSystem.DeadLetter, false
 	}
 	if pid.Address != localAddress && pid.Address != pr.Address {
 		for _, handler := range pr.RemoteHandlers {
@@ -84,11 +85,11 @@ func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {
 				return ref, true
 			}
 		}
-		return deadLetter, false
+		return pr.ActorSystem.DeadLetter, false
 	}
 	ref, ok := pr.LocalPIDs.Get(pid.Id)
 	if !ok {
-		return deadLetter, false
+		return pr.ActorSystem.DeadLetter, false
 	}
 	return ref.(Process), true
 }
@@ -96,7 +97,7 @@ func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {
 func (pr *ProcessRegistryValue) GetLocal(id string) (Process, bool) {
 	ref, ok := pr.LocalPIDs.Get(id)
 	if !ok {
-		return deadLetter, false
+		return pr.ActorSystem.DeadLetter, false
 	}
 	return ref.(Process), true
 }

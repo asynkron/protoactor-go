@@ -12,6 +12,13 @@ import (
 
 type endpointReader struct {
 	suspended bool
+	remote    *Remote
+}
+
+func newEndpointReader(r *Remote) *endpointReader {
+	return &endpointReader{
+		remote: r,
+	}
 }
 
 func (s *endpointReader) Connect(ctx context.Context, req *ConnectRequest) (*ConnectResponse, error) {
@@ -42,7 +49,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		}
 
 		for i := 0; i < len(batch.TargetNames); i++ {
-			targets[i] = actor.NewLocalPID(batch.TargetNames[i])
+			targets[i] = s.remote.actorSystem.NewLocalPID(batch.TargetNames[i])
 		}
 
 		for _, envelope := range batch.Envelopes {
@@ -64,7 +71,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 				}
 				endpointManager.remoteTerminate(rt)
 			case actor.SystemMessage:
-				ref, _ := actor.ProcessRegistry.GetLocal(pid.Id)
+				ref, _ := s.remote.actorSystem.ProcessRegistry.GetLocal(pid.Id)
 				ref.SendSystemMessage(pid, msg)
 			default:
 				var header map[string]string
@@ -76,7 +83,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 					Message: message,
 					Sender:  sender,
 				}
-				rootContext.Send(pid, localEnvelope)
+				s.remote.actorSystem.Root.Send(pid, localEnvelope)
 			}
 		}
 	}

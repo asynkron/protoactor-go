@@ -9,59 +9,68 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-var cfg *ClusterConfig
-
-var rootContext = actor.EmptyRootContext
-
-func Start(clusterName, address string, provider ClusterProvider) {
-	StartWithConfig(NewClusterConfig(clusterName, address, provider))
+type Cluster struct {
+	ActorSystem    *actor.ActorSystem
+	Config         *Config
+	remote         *remote.Remote
+	pidCache       *pidCacheValue
+	MemberList     *memberListValue
+	partitionValue *partitionValue
 }
 
-func StartWithConfig(config *ClusterConfig) {
-	cfg = config
+func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
+	return &Cluster{
+		ActorSystem: actorSystem,
+		Config:      config,
+	}
+}
+
+func (c *Cluster) Start() {
+	cfg := c.Config
+	c.remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
 
 	// TODO: make it possible to become a cluster even if remoting is already started
-	remote.Start(cfg.Address, cfg.RemotingOption...)
+	c.remote.Start()
 
-	address := actor.ProcessRegistry.Address
+	address := c.ActorSystem.Address()
 	h, p := gonet.GetAddress(address)
 	plog.Info("Starting Proto.Actor cluster", log.String("address", address))
-	kinds := remote.GetKnownKinds()
+	kinds := c.remote.GetKnownKinds()
 
 	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
-	setupPartition(kinds)
-	setupPidCache()
-	setupMemberList()
+	c.partitionValue = setupPartition(c, kinds)
+	c.pidCache = setupPidCache(c.ActorSystem)
+	c.MemberList = setupMemberList(c)
 
-	cfg.ClusterProvider.RegisterMember(cfg.Name, h, p, kinds, cfg.InitialMemberStatusValue, cfg.MemberStatusValueSerializer)
+	_ = cfg.ClusterProvider.RegisterMember(c, cfg.Name, h, p, kinds, cfg.InitialMemberStatusValue, cfg.MemberStatusValueSerializer)
 	cfg.ClusterProvider.MonitorMemberStatusChanges()
 }
 
-func Shutdown(graceful bool) {
+func (c *Cluster) Shutdown(graceful bool) {
 	if graceful {
-		cfg.ClusterProvider.Shutdown()
+		_ = c.Config.ClusterProvider.Shutdown()
 		// This is to wait ownership transferring complete.
 		time.Sleep(time.Millisecond * 2000)
-		stopMemberList()
-		stopPidCache()
-		stopPartition()
+		c.MemberList.stopMemberList()
+		c.pidCache.stopPidCache()
+		c.partitionValue.stopPartition()
 	}
 
-	remote.Shutdown(graceful)
+	c.remote.Shutdown(graceful)
 
-	address := actor.ProcessRegistry.Address
+	address := c.ActorSystem.Address()
 	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))
 }
 
 // Get a PID to a virtual actor
-func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
+func (c *Cluster) Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	// Check Cache
-	if pid, ok := pidCache.getCache(name); ok {
+	if pid, ok := c.pidCache.getCache(name); ok {
 		return pid, remote.ResponseStatusCodeOK
 	}
 
 	// Get Pid
-	address := memberList.getPartitionMember(name, kind)
+	address := c.MemberList.getPartitionMember(name, kind)
 	if address == "" {
 		// No available member found
 		return nil, remote.ResponseStatusCodeUNAVAILABLE
@@ -74,8 +83,8 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	}
 
 	// ask the DHT partition for this name to give us a PID
-	remotePartition := partition.partitionForKind(address, kind)
-	r, err := rootContext.RequestFuture(remotePartition, req, cfg.TimeoutTime).Result()
+	remotePartition := c.partitionValue.partitionForKind(address, kind)
+	r, err := c.ActorSystem.Root.RequestFuture(remotePartition, req, c.Config.TimeoutTime).Result()
 	if err == actor.ErrTimeout {
 		plog.Error("PidCache Pid request timeout")
 		return nil, remote.ResponseStatusCodeTIMEOUT
@@ -93,36 +102,11 @@ func Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	switch statusCode {
 	case remote.ResponseStatusCodeOK:
 		// save cache
-		pidCache.addCache(name, response.Pid)
+		c.pidCache.addCache(name, response.Pid)
 		// tell the original requester that we have a response
 		return response.Pid, statusCode
 	default:
 		// forward to requester
 		return response.Pid, statusCode
 	}
-}
-
-// GetMemberPIDs returns PIDs of members for the specified kind
-func GetMemberPIDs(kind string) actor.PIDSet {
-	pids := actor.PIDSet{}
-	if memberList == nil {
-		return pids
-	}
-
-	memberList.mutex.RLock()
-	defer memberList.mutex.RUnlock()
-
-	for _, value := range memberList.members {
-		for _, memberKind := range value.Kinds {
-			if kind == memberKind {
-				pids.Add(actor.NewPID(value.Address(), kind))
-			}
-		}
-	}
-	return pids
-}
-
-// RemoveCache at PidCache
-func RemoveCache(name string) {
-	pidCache.removeCacheByName(name)
 }

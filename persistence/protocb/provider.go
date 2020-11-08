@@ -23,7 +23,7 @@ func (provider *Provider) GetState() persistence.ProviderState {
 	}
 }
 
-func New(bucketName string, baseU string, options ...CouchbaseOption) *Provider {
+func New(actorSystem *actor.ActorSystem, bucketName string, baseU string, options ...CouchbaseOption) *Provider {
 	c, err := gocb.Connect(baseU)
 	if err != nil {
 		log.Fatalf("Error connecting:  %v", err)
@@ -47,7 +47,7 @@ func New(bucketName string, baseU string, options ...CouchbaseOption) *Provider 
 	}
 
 	if config.async {
-		pid := actor.Spawn(actor.FromFunc(newWriter(time.Second / 10000)))
+		pid := actorSystem.Root.Spawn(actor.PropsFromFunc(newWriter(time.Second / 10000)))
 		provider.writer = pid
 	}
 

@@ -7,10 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var system = actor.NewActorSystem()
+
 func TestReceiveFromStream(t *testing.T) {
-	s := NewUntypedStream()
+	s := NewUntypedStream(system)
 	go func() {
-		rootContext := actor.EmptyRootContext
+		rootContext := system.Root
 		rootContext.Send(s.PID(), "hello")
 		rootContext.Send(s.PID(), "you")
 	}()

@@ -207,7 +207,7 @@ func TestUpdateTTLDoesNotReregisterAfterShutdown(t *testing.T) {
 	shutdownShouldHaveResolved := false
 
 	// this simulates `blockingUpdateTTL` in `UpdateTTL` to be slower than `Shutdown`
-	blockingUpdateTTLFunc = func(p *ConsulProvider) error {
+	blockingUpdateTTLFunc = func(p *Provider) error {
 		// default behaviour until `RegisterMember` was called
 		if !registeredInConsul || p.port != port {
 			return originalBlockingUpdateTTLFunc(p)
@@ -270,7 +270,7 @@ func TestUpdateTTLDoesNotReregisterAfterShutdown(t *testing.T) {
 	}
 }
 
-func findService(t *testing.T, p *ConsulProvider, service string, port int) (found bool, status string) {
+func findService(t *testing.T, p *Provider, service string, port int) (found bool, status string) {
 	entries, _, err := p.client.Health().Service(service, "", false, nil)
 	if err != nil {
 		t.Error(err)

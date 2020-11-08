@@ -3,8 +3,9 @@ package stream
 import "github.com/AsynkronIT/protoactor-go/actor"
 
 type UntypedStream struct {
-	c   chan interface{}
-	pid *actor.PID
+	c           chan interface{}
+	pid         *actor.PID
+	actorSystem *actor.ActorSystem
 }
 
 func (s *UntypedStream) C() <-chan interface{} {
@@ -16,11 +17,11 @@ func (s *UntypedStream) PID() *actor.PID {
 }
 
 func (s *UntypedStream) Close() {
-	actor.EmptyRootContext.Stop(s.pid)
+	s.actorSystem.Root.Stop(s.pid)
 	close(s.c)
 }
 
-func NewUntypedStream() *UntypedStream {
+func NewUntypedStream(actorSystem *actor.ActorSystem) *UntypedStream {
 	c := make(chan interface{})
 
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
@@ -31,10 +32,11 @@ func NewUntypedStream() *UntypedStream {
 			c <- msg
 		}
 	})
-	pid := actor.EmptyRootContext.Spawn(props)
+	pid := actorSystem.Root.Spawn(props)
 
 	return &UntypedStream{
-		c:   c,
-		pid: pid,
+		c:           c,
+		pid:         pid,
+		actorSystem: actorSystem,
 	}
 }

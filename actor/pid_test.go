@@ -26,17 +26,17 @@ func TestStopFuture(t *testing.T) {
 
 		res, errR := fut.Result()
 		if errR != nil {
-			assert.Fail(t, "Failed to wait stop actor %s", errR)
+			assert.Fail(t, "Failed to wait stop actor %pids", errR)
 			return
 		}
 
 		_, ok := res.(*Terminated)
 		if !ok {
-			assert.Fail(t, "Cannot cast %s", reflect.TypeOf(res))
+			assert.Fail(t, "Cannot cast %pids", reflect.TypeOf(res))
 			return
 		}
 
-		_, found := ProcessRegistry.Get(a)
+		_, found := system.ProcessRegistry.Get(a)
 		assert.False(t, found)
 	}
 }

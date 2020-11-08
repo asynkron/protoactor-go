@@ -26,18 +26,23 @@ func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
 	return fn
 }
 
+func newHelloActor() actor.Actor {
+	return &shared.HelloActor{}
+}
+
 func main() {
+	system := actor.NewActorSystem()
+	remoteConfig := remote.Configure("127.0.0.1", 8080)
+
+	helloKind := cluster.NewKind("Hello",
+		actor.PropsFromProducer(newHelloActor).WithReceiverMiddleware(Logger))
+
+	provider, _ := consul.New()
+	clusterConfig := cluster.Configure("my-cluster", provider, remoteConfig, helloKind)
+	c := cluster.New(system, clusterConfig)
+	c.Start()
+
 	// this node knows about Hello kind
-	remote.Register("Hello", actor.PropsFromProducer(func() actor.Actor {
-		return &shared.HelloActor{}
-	}).WithReceiverMiddleware(Logger))
-
-	cp, err := consul.New()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cluster.Start("mycluster", "127.0.0.1:8080", cp)
-
 	hello := shared.GetHelloGrain("MyGrain")
 
 	res, err := hello.SayHello(&shared.HelloRequest{Name: "Roger"})
@@ -45,5 +50,5 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("Message from grain: %v", res.Message)
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }
