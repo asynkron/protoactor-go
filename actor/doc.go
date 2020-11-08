@@ -52,10 +52,10 @@ shared state inside calls to this function.
 
 Communicating With Actors
 
-A PID is the primary interface for sending messages to actors. The PID.Tell method is used to send an asynchronous
+A PID is the primary interface for sending messages to actors. Context.Send is used to send an asynchronous
 message to the actor associated with the PID:
 
-	pid.Tell("Hello World")
+	context.Aend(pid, "Hello World")
 
 Depending on the requirements, communication between actors can take place synchronously or asynchronously. Regardless
 of the circumstances, actors always communicate via a PID.
