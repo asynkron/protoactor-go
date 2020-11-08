@@ -115,7 +115,7 @@ func (state *cbState) persistEnvelope(key string, envelope *envelope) {
 		state.wg.Done()
 	}
 	if state.async {
-		state.writer.Tell(&write{fun: persist})
+		//	state.writer.Tell(&write{fun: persist})
 	} else {
 		persist()
 	}
