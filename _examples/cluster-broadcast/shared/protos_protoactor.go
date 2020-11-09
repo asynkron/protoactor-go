@@ -3,10 +3,11 @@ package shared
 import (
 	"errors"
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
 	"log"
 	"math"
 	"time"
+
+	"github.com/AsynkronIT/protoactor-go/cluster/consul"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
