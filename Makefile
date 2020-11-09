@@ -37,7 +37,7 @@ protoclean:
 PACKAGES := $(shell go list ./... | grep -v "/examples/")
 
 test:
-	go test $(PACKAGES)
+	go test $(PACKAGES) -timeout=30s
 
 test-short:
 	go test -short $(PACKAGES)
