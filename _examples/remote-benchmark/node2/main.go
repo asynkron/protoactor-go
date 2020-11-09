@@ -16,9 +16,12 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU() * 1)
 	runtime.GC()
 
-	remote.Start("127.0.0.1:8080")
+	system := actor.NewActorSystem()
+	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 8080))
+	r.Start()
+
 	var sender *actor.PID
-	rootContext := actor.EmptyRootContext
+	rootContext := system.Root
 	props := actor.
 		PropsFromFunc(
 			func(context actor.Context) {
