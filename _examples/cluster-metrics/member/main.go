@@ -44,7 +44,7 @@ func main() {
 		return &shared.HelloActor{}
 	}).WithReceiverMiddleware(Logger))
 
-	//
+	// Subscribe
 	system.EventStream.Subscribe(func(event interface{}) {
 		switch msg := event.(type) {
 		case *cluster.MemberJoinedEvent:
