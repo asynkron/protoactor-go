@@ -1,15 +1,35 @@
 package consul
 
 import (
+	"fmt"
 	"log"
+	"net"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
+	"github.com/AsynkronIT/protoactor-go/remote"
 )
+
+func newCluster(name string, addr string, cp cluster.ClusterProvider) *cluster.Cluster {
+	system := actor.System
+	host, _port, err := net.SplitHostPort(addr)
+	if err != nil {
+		panic(err)
+	}
+	port, _ := strconv.Atoi(_port)
+	remoteConfig := remote.Configure(host, port)
+	config := cluster.Configure(name, cp, remoteConfig)
+	return cluster.New(system, config)
+}
+
+func clusterArgs(c *cluster.Cluster) (string, string, int) {
+	remoteCfg := c.Config.RemoteConfig
+	return c.Config.Name, remoteCfg.Host, remoteCfg.Port
+}
 
 func TestRegisterMember(t *testing.T) {
 	if testing.Short() {
@@ -18,7 +38,9 @@ func TestRegisterMember(t *testing.T) {
 
 	p, _ := New()
 	defer p.Shutdown()
-	err := p.RegisterMember("mycluster", "127.0.0.1", 8000, []string{"a", "b"}, &TestMemberStatusValue{value: 0}, &TestMemberStatusValueSerializer{})
+	c := newCluster("mycluster", "127.0.0.1:8000", p)
+	name, host, port := clusterArgs(c)
+	err := p.RegisterMember(c, name, host, port, []string{"a", "b"}, &TestMemberStatusValue{value: 0}, &TestMemberStatusValueSerializer{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -31,15 +53,29 @@ func TestRefreshMemberTTL(t *testing.T) {
 
 	p, _ := New()
 	defer p.Shutdown()
-	err := p.RegisterMember("mycluster", "127.0.0.1", 8000, []string{"a", "b"}, &TestMemberStatusValue{value: 0}, &TestMemberStatusValueSerializer{})
+
+	c := newCluster("mycluster", "127.0.0.1:8000", p)
+	name, host, port := clusterArgs(c)
+	err := p.RegisterMember(c, name, host, port, []string{"a", "b"}, &TestMemberStatusValue{value: 0}, &TestMemberStatusValueSerializer{})
 	if err != nil {
 		log.Fatal(err)
 	}
 	p.MonitorMemberStatusChanges()
+
+	eventstream := c.ActorSystem.EventStream
+	ch := make(chan interface{})
 	eventstream.Subscribe(func(m interface{}) {
 		log.Printf("Event %+v", m)
+		ch <- m
 	})
-	time.Sleep(20 * time.Second)
+
+	select {
+	case m := <-ch:
+		_ = m // member joined
+	case <-time.After(20 * time.Second):
+		t.Logf("no member join yet")
+		t.FailNow()
+	}
 }
 
 func TestRegisterMultipleMembers(t *testing.T) {
@@ -49,7 +85,7 @@ func TestRegisterMultipleMembers(t *testing.T) {
 
 	members := []struct {
 		cluster string
-		address string
+		host    string
 		port    int
 	}{
 		{"mycluster2", "127.0.0.1", 8001},
@@ -59,9 +95,11 @@ func TestRegisterMultipleMembers(t *testing.T) {
 
 	p, _ := New()
 	defer p.Shutdown()
-
 	for _, member := range members {
-		err := p.RegisterMember(member.cluster, member.address, member.port, []string{"a", "b"}, nil, &cluster.NilMemberStatusValueSerializer{})
+		addr := fmt.Sprintf("%s:%d", member.host, member.port)
+		c := newCluster(member.cluster, addr, p)
+		name, host, port := clusterArgs(c)
+		err := p.RegisterMember(c, name, host, port, []string{"a", "b"}, nil, &cluster.NilMemberStatusValueSerializer{})
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -93,7 +131,9 @@ func TestUpdateMemberStatusValue(t *testing.T) {
 	p, _ := New()
 	defer p.Shutdown()
 
-	err := p.RegisterMember("mycluster3", "127.0.0.1", 8001, []string{"a", "b"}, &TestMemberStatusValue{value: 0}, &TestMemberStatusValueSerializer{})
+	c := newCluster("mycluster3", "127.0.0.1:8000", p)
+	name, host, port := clusterArgs(c)
+	err := p.RegisterMember(c, name, host, port, []string{"a", "b"}, &TestMemberStatusValue{value: 0}, &TestMemberStatusValueSerializer{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -151,10 +191,9 @@ func TestUpdateMemberStatusValueDoesNotReregisterAfterShutdown(t *testing.T) {
 
 	p, _ := New()
 
-	clusterName := "mycluster4"
-	port := 8001
-
-	err := p.RegisterMember(clusterName, "127.0.0.1", port, []string{"a", "b"}, &TestMemberStatusValue{value: 0}, &TestMemberStatusValueSerializer{})
+	c := newCluster("mycluster4", "127.0.0.1:8001", p)
+	clusterName, host, port := clusterArgs(c)
+	err := p.RegisterMember(c, clusterName, host, port, []string{"a", "b"}, &TestMemberStatusValue{value: 0}, &TestMemberStatusValueSerializer{})
 	if err != nil {
 		t.Error(err)
 	}
@@ -190,8 +229,9 @@ func TestUpdateTTLDoesNotReregisterAfterShutdown(t *testing.T) {
 		return
 	}
 
-	clusterName := "mycluster5"
-	port := 8001
+	p, _ := New()
+	c := newCluster("mycluster5", "127.0.0.1:8001", p)
+	clusterName, host, port := clusterArgs(c)
 
 	originalBlockingUpdateTTLFunc := blockingUpdateTTLFunc
 	defer func() {
@@ -228,9 +268,7 @@ func TestUpdateTTLDoesNotReregisterAfterShutdown(t *testing.T) {
 		return originalBlockingUpdateTTLFunc(p)
 	}
 
-	p, _ := New()
-
-	err := p.RegisterMember(clusterName, "127.0.0.1", port, []string{"a", "b"}, &TestMemberStatusValue{value: 0}, &TestMemberStatusValueSerializer{})
+	err := p.RegisterMember(c, clusterName, host, port, []string{"a", "b"}, &TestMemberStatusValue{value: 0}, &TestMemberStatusValueSerializer{})
 	if err != nil {
 		t.Error(err)
 	}
