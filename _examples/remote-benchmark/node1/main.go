@@ -80,9 +80,11 @@ func main() {
 
 	messageCount := 1000000
 	// remote.DefaultSerializerID = 1
-	remote.Start("127.0.0.1:8081")
+	system := actor.NewActorSystem()
+	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 8081))
+	r.Start()
 
-	rootContext := actor.EmptyRootContext
+	rootContext := system.Root
 	props := actor.
 		PropsFromProducer(newLocalActor(&wg, messageCount)).
 		WithMailbox(mailbox.Bounded(1000000))
@@ -90,11 +92,8 @@ func main() {
 	pid := rootContext.Spawn(props)
 
 	remotePid := actor.NewPID("127.0.0.1:8080", "remote")
-	rootContext.RequestFuture(remotePid, &messages.StartRemote{
-		Sender: pid,
-	}, 5*time.Second).
-		Wait()
-
+	msg := messages.StartRemote{Sender: pid}
+	rootContext.RequestFuture(remotePid, &msg, 5*time.Second).Wait()
 	wg.Add(1)
 
 	start := time.Now()
@@ -111,11 +110,4 @@ func main() {
 
 	x := int(float32(messageCount*2) / (float32(elapsed) / float32(time.Second)))
 	log.Printf("Msg per sec %v", x)
-
-	// f, err := os.Create("memprofile")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// pprof.WriteHeapProfile(f)
-	// f.Close()
 }
