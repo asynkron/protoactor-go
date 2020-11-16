@@ -3,7 +3,6 @@ package cluster
 import (
 	"time"
 
-	"github.com/AsynkronIT/gonet"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
@@ -33,7 +32,6 @@ func (c *Cluster) Start() {
 	c.remote.Start()
 
 	address := c.ActorSystem.Address()
-	h, p := gonet.GetAddress(address)
 	plog.Info("Starting Proto.Actor cluster", log.String("address", address))
 	kinds := c.remote.GetKnownKinds()
 
@@ -42,13 +40,15 @@ func (c *Cluster) Start() {
 	c.pidCache = setupPidCache(c.ActorSystem)
 	c.MemberList = setupMemberList(c)
 
-	_ = cfg.ClusterProvider.RegisterMember(c, cfg.Name, h, p, kinds, cfg.InitialMemberStatusValue, cfg.MemberStatusValueSerializer)
-	cfg.ClusterProvider.MonitorMemberStatusChanges()
+	if err := cfg.ClusterProvider.StartMember(c); err != nil {
+		panic(err)
+	}
+	// cfg.ClusterProvider.MonitorMemberStatusChanges()
 }
 
 func (c *Cluster) Shutdown(graceful bool) {
 	if graceful {
-		_ = c.Config.ClusterProvider.Shutdown()
+		_ = c.Config.ClusterProvider.Shutdown(graceful)
 		// This is to wait ownership transferring complete.
 		time.Sleep(time.Millisecond * 2000)
 		c.MemberList.stopMemberList()
@@ -109,4 +109,12 @@ func (c *Cluster) Get(name string, kind string) (*actor.PID, remote.ResponseStat
 		// forward to requester
 		return response.Pid, statusCode
 	}
+}
+
+// GetClusterKinds Get kinds of virtual actor
+func (c *Cluster) GetClusterKinds() []string {
+	if c.remote == nil {
+		return nil
+	}
+	return c.remote.GetKnownKinds()
 }

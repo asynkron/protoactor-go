@@ -2,11 +2,13 @@ package cluster
 
 type TopologyEvent []*MemberStatus
 
+type ClusterState struct {
+	BannedMembers []string `json:"bannedMembers"`
+}
+
 type ClusterProvider interface {
-	RegisterMember(cluster *Cluster, clusterName string, address string, port int, knownKinds []string,
-		statusValue MemberStatusValue, serializer MemberStatusValueSerializer) error
-	MonitorMemberStatusChanges()
-	UpdateMemberStatusValue(statusValue MemberStatusValue) error
-	DeregisterMember() error
-	Shutdown() error
+	StartMember(cluster *Cluster) error
+	StartClient(cluster *Cluster) error
+	Shutdown(graceful bool) error
+	UpdateClusterState(state ClusterState) error
 }
