@@ -1,12 +1,15 @@
 package consul
 
 import (
+	"encoding/json"
 	"fmt"
-	"log"
+	"net"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -14,6 +17,7 @@ var (
 	ProviderShuttingDownError = fmt.Errorf("consul cluster provider is shutting down")
 	// for mocking purposes this function is assigned to a variable
 	blockingUpdateTTLFunc = blockingUpdateTTL
+	plog                  = log.New(log.DebugLevel, "[CLUSTER] [CONSUL]")
 )
 
 type Provider struct {
@@ -56,18 +60,32 @@ func NewWithConfig(consulConfig *api.Config) (*Provider, error) {
 	return p, nil
 }
 
-func (p *Provider) RegisterMember(cluster *cluster.Cluster, clusterName string, address string, port int, knownKinds []string,
-	statusValue cluster.MemberStatusValue, serializer cluster.MemberStatusValueSerializer) error {
-	p.cluster = cluster
-	p.id = fmt.Sprintf("%v@%v:%v", clusterName, address, port)
+func (p *Provider) init(c *cluster.Cluster) error {
+	knownKinds := c.GetClusterKinds()
+	clusterName := c.Config.Name
+
+	addr := c.ActorSystem.Address()
+	host, port, err := splitHostPort(addr)
+	if err != nil {
+		return err
+	}
+
+	p.cluster = c
+	p.id = fmt.Sprintf("%v@%v:%v", clusterName, host, port)
 	p.clusterName = clusterName
-	p.address = address
+	p.address = host
 	p.port = port
 	p.knownKinds = knownKinds
-	p.statusValue = statusValue
-	p.statusValueSerializer = serializer
+	return nil
+}
 
-	err := p.registerService()
+func (p *Provider) StartMember(c *cluster.Cluster) error {
+	err := p.init(c)
+	if err != nil {
+		return err
+	}
+
+	err = p.registerService()
 	if err != nil {
 		return err
 	}
@@ -83,8 +101,14 @@ func (p *Provider) RegisterMember(cluster *cluster.Cluster, clusterName string, 
 
 	// force our own existence to be part of the first status update
 	p.blockingStatusChange()
-
 	p.UpdateTTL()
+	p.monitorMemberStatusChanges()
+	return nil
+}
+
+func (p *Provider) StartClient(c *cluster.Cluster) error {
+	p.init(c)
+	p.monitorMemberStatusChanges()
 	return nil
 }
 
@@ -98,12 +122,14 @@ func (p *Provider) DeregisterMember() error {
 	return nil
 }
 
-func (p *Provider) Shutdown() error {
+func (p *Provider) Shutdown(graceful bool) error {
 	if p.shutdown {
 		return nil
 	}
-
 	p.shutdown = true
+	if !graceful {
+		return nil
+	}
 	p.updateTTLWaitGroup.Wait()
 
 	if !p.deregistered {
@@ -129,12 +155,12 @@ func (p *Provider) UpdateTTL() {
 				continue
 			}
 
-			log.Println("[CLUSTER] [CONSUL] Failure refreshing service TTL. Trying to reregister service if not in consul.")
+			plog.Info("Failure refreshing service TTL. Trying to reregister service if not in consul.")
 
 			services, err := p.client.Agent().Services()
 			for id := range services {
 				if id == p.id {
-					log.Println("[CLUSTER] [CONSUL] Service found in consul -> doing nothing")
+					plog.Info("Service found in consul -> doing nothing")
 					time.Sleep(p.refreshTTL)
 					continue OUTER
 				}
@@ -142,29 +168,40 @@ func (p *Provider) UpdateTTL() {
 
 			err = p.registerService()
 			if err != nil {
-				log.Println("[CLUSTER] [CONSUL] Error reregistering service ", err)
+				plog.Error("Error reregistering service ", log.Error(err))
 				time.Sleep(p.refreshTTL)
 				continue
 			}
 
-			log.Println("[CLUSTER] [CONSUL] Reregistered service in consul")
+			plog.Info("Reregistered service in consul")
 			time.Sleep(p.refreshTTL)
 		}
 	}()
 }
 
-func (p *Provider) UpdateMemberStatusValue(statusValue cluster.MemberStatusValue) error {
-	p.statusValue = statusValue
-	if p.statusValue == nil {
-		return nil
-	}
+func (p *Provider) UpdateClusterState(state cluster.ClusterState) error {
 	if p.shutdown {
 		// don't re-register when already in the process of shutting down
 		return ProviderShuttingDownError
 	}
-
-	// Register service again to update the status value
-	return p.registerService()
+	value, err := json.Marshal(state.BannedMembers)
+	if err != nil {
+		plog.Error("Failed to UpdateClusterState. json.Marshal", log.Error(err))
+		return err
+	}
+	kv := &api.KVPair{
+		Key:   fmt.Sprintf("%s/banned", p.clusterName),
+		Value: value,
+	}
+	if _, err := p.client.KV().Put(kv, nil); err != nil {
+		plog.Error("Failed to UpdateClusterState.", log.Error(err))
+		return err
+	}
+	if err := p.registerService(); err != nil {
+		plog.Error("Failed to registerService.", log.Error(err))
+		return err
+	}
+	return nil
 }
 
 func blockingUpdateTTL(p *Provider) error {
@@ -180,7 +217,7 @@ func (p *Provider) registerService() error {
 		Address: p.address,
 		Port:    p.port,
 		Meta: map[string]string{
-			"StatusValue": p.statusValueSerializer.Serialize(p.statusValue),
+			"id": p.id,
 		},
 		Check: &api.AgentServiceCheck{
 			DeregisterCriticalServiceAfter: p.deregisterCritical.String(),
@@ -199,13 +236,17 @@ func (p *Provider) blockingStatusChange() {
 	p.notifyStatuses()
 }
 
+func (p *Provider) StartMonitorMemberStatusChangesLoop() {
+
+}
+
 func (p *Provider) notifyStatuses() {
 	statuses, meta, err := p.client.Health().Service(p.clusterName, "", false, &api.QueryOptions{
 		WaitIndex: p.index,
 		WaitTime:  p.blockingWaitTime,
 	})
 	if err != nil {
-		log.Printf("Error %v", err)
+		plog.Error("notifyStatues", log.Error(err))
 		return
 	}
 	p.index = meta.LastIndex
@@ -214,14 +255,13 @@ func (p *Provider) notifyStatuses() {
 	for i, v := range statuses {
 		key := fmt.Sprintf("%v/%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
 		memberID := key
-		memberStatusVal := p.statusValueSerializer.Deserialize(v.Service.Meta["StatusValue"])
 		ms := &cluster.MemberStatus{
 			MemberID:    memberID,
 			Host:        v.Service.Address,
 			Port:        v.Service.Port,
 			Kinds:       v.Service.Tags,
 			Alive:       len(v.Checks) > 0 && v.Checks.AggregatedStatus() == api.HealthPassing,
-			StatusValue: memberStatusVal,
+			StatusValue: nil,
 		}
 		res[i] = ms
 
@@ -238,7 +278,7 @@ func (p *Provider) notifyStatuses() {
 	p.cluster.ActorSystem.EventStream.Publish(res)
 }
 
-func (p *Provider) MonitorMemberStatusChanges() {
+func (p *Provider) monitorMemberStatusChanges() {
 	go func() {
 		for !p.shutdown {
 			p.notifyStatuses()
@@ -249,4 +289,18 @@ func (p *Provider) MonitorMemberStatusChanges() {
 // GetHealthStatus returns an error if the cluster health status has problems
 func (p *Provider) GetHealthStatus() error {
 	return p.clusterError
+}
+
+func splitHostPort(addr string) (host string, port int, err error) {
+	if h, p, e := net.SplitHostPort(addr); e != nil {
+		if addr != "nonhost" {
+			err = e
+		}
+		host = "nonhost"
+		port = -1
+	} else {
+		host = h
+		port, err = strconv.Atoi(p)
+	}
+	return
 }
