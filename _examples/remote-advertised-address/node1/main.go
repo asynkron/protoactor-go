@@ -2,18 +2,26 @@ package main
 
 import (
 	"log"
-	"remotebenchmark/messages"
+	"remote-benchmark/messages"
 
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
+var (
+	system      = actor.NewActorSystem()
+	rootContext = system.Root
+)
+
 func main() {
-	remote.Start("127.0.0.1:8081", remote.WithAdvertisedAddress("localhost:8081"))
+	cfg := remote.Configure("0.0.0.0", 8081)
+	cfg = cfg.WithAdvertisedHost("localhost:8081")
+	r := remote.NewRemote(system, cfg)
+	r.Start()
+
 	remotePid := actor.NewPID("127.0.0.1:8080", "remote")
 
-	rootContext := actor.EmptyRootContext
 	props := actor.
 		PropsFromFunc(func(context actor.Context) {
 			switch context.Message().(type) {

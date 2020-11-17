@@ -80,12 +80,20 @@ func newRemoteActor() actor.Producer {
 	}
 }
 
+var (
+	system      = actor.NewActorSystem()
+	rootContext = system.Root
+)
+
 func main() {
+	cfg := remote.Configure("127.0.0.1", 8080)
+	cfg = cfg.WithEndpointManagerBatchSize(10000)
+	r := remote.NewRemote(system, cfg)
+	r.Start()
+
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	runtime.GC()
 
-	remote.Start("127.0.0.1:8080", remote.WithEndpointWriterBatchSize(10000))
-	rootContext := actor.EmptyRootContext
 	props := actor.
 		PropsFromProducer(newRemoteActor()).
 		WithMailbox(mailbox.Bounded(1000))

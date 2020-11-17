@@ -16,16 +16,21 @@ import (
 	"github.com/AsynkronIT/protoactor-go/router"
 )
 
+var (
+	system      = actor.NewActorSystem()
+	rootContext = system.Root
+)
+
 func main() {
+	cfg := remote.Configure("127.0.0.1", 8100)
+	r := remote.NewRemote(system, cfg)
+	r.Start()
+
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	runtime.GC()
 
-	remote.Start("127.0.0.1:8100")
-
 	p1 := actor.NewPID("127.0.0.1:8101", "remote")
 	p2 := actor.NewPID("127.0.0.1:8102", "remote")
-
-	rootContext := actor.EmptyRootContext
 
 	remotePID := rootContext.Spawn(router.NewConsistentHashGroup(p1, p2))
 
