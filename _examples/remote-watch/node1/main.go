@@ -9,16 +9,23 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-func main() {
-	timeout := 5 * time.Second
-	remote.Start("127.0.0.1:8081")
+var (
+	system  = actor.NewActorSystem()
+	context = system.Root
+)
 
-	context := actor.EmptyRootContext
+func main() {
+	cfg := remote.Configure("127.0.0.1", 8081)
+	r := remote.NewRemote(system, cfg)
+	r.Start()
+
+	timeout := 5 * time.Second
+
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
 		case *actor.Started:
 			log.Println("Local actor started")
-			pidResp, err := remote.SpawnNamed("127.0.0.1:8080", "myRemote", "remote", timeout)
+			pidResp, err := r.SpawnNamed("127.0.0.1:8080", "myRemote", "remote", timeout)
 			if err != nil {
 				log.Print("Local failed to spawn remote actor")
 				return

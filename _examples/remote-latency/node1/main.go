@@ -14,17 +14,23 @@ import (
 
 // import "runtime/pprof"
 
+var (
+	system      = actor.NewActorSystem()
+	rootContext = system.Root
+)
+
 func makeTimestamp() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 func main() {
+	cfg := remote.Configure("127.0.0.1", 8081)
+	cfg = cfg.WithEndpointManagerBatchSize(10000)
+	r := remote.NewRemote(system, cfg)
+	r.Start()
+
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	messageCount := 1000000
-
-	remote.Start("127.0.0.1:8081", remote.WithEndpointWriterBatchSize(10000))
-
-	rootContext := actor.EmptyRootContext
 
 	remote := actor.NewPID("127.0.0.1:8080", "remote")
 	rootContext.RequestFuture(remote, &messages.Start{}, 5*time.Second).

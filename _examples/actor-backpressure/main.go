@@ -37,11 +37,12 @@ func (m *requestWorkBehavior) MailboxEmpty() {
 func (m *requestWorkBehavior) requestMore() {
 	log.Println("Requesting more tokens")
 	m.tokens = 50
-	context.Send(m.producer, &requestMoreWork{items: 50})
+	system.Root.Send(m.producer, &requestMoreWork{items: 50})
 }
 
 type producer struct {
 	requestedWork int
+	producedWork  int
 	worker        *actor.PID
 }
 
@@ -49,10 +50,13 @@ func (p *producer) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		// spawn our worker
-		workerProps := actor.PropsFromProducer(func() actor.Actor { return &worker{} }).WithMailbox(mailbox.Unbounded(&requestWorkBehavior{
+		workerProps := actor.PropsFromProducer(func() actor.Actor {
+			return &worker{}
+		})
+		mb := mailbox.Unbounded(&requestWorkBehavior{
 			producer: ctx.Self(),
-		}))
-		p.worker = ctx.Spawn(workerProps)
+		})
+		p.worker = ctx.Spawn(workerProps.WithMailbox(mb))
 	case *requestMoreWork:
 		p.requestedWork += msg.items
 		log.Println("Producer got a new work request")
@@ -60,7 +64,8 @@ func (p *producer) Receive(ctx actor.Context) {
 	case *produce:
 		// produce more work
 		log.Println("Producer is producing work")
-		ctx.Send(p.worker, &work{})
+		p.producedWork++
+		ctx.Send(p.worker, &work{p.producedWork})
 
 		// decrease our workload and tell ourselves to produce more work
 		if p.requestedWork > 0 {
@@ -71,25 +76,23 @@ func (p *producer) Receive(ctx actor.Context) {
 }
 
 type produce struct{}
-
-type worker struct {
-}
+type worker struct{}
 
 func (w *worker) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *work:
-		log.Printf("Worker is working %v", msg)
+		log.Printf("Worker is working %+v", msg)
 		time.Sleep(100 * time.Millisecond)
 	}
 }
 
 type work struct {
+	id int
 }
 
-var context *actor.RootContext
+var system = actor.NewActorSystem()
 
 func main() {
-	system := actor.NewActorSystem()
 	producerProps := actor.PropsFromProducer(func() actor.Actor { return &producer{} })
 	system.Root.Spawn(producerProps)
 
