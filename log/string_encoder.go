@@ -52,7 +52,6 @@ func itoa(buf *bytes.Buffer, i int, wid int) {
 }
 
 func (l *ioLogger) formatHeader(buf *bytes.Buffer, prefix string, t time.Time) {
-	t = t.UTC()
 	// Y/M/D
 	year, month, day := t.Date()
 	itoa(buf, year, 4)
