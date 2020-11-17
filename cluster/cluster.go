@@ -43,7 +43,26 @@ func (c *Cluster) Start() {
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
 		panic(err)
 	}
-	// cfg.ClusterProvider.MonitorMemberStatusChanges()
+}
+
+func (c *Cluster) StartClient() {
+	cfg := c.Config
+	c.remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
+
+	c.remote.Start()
+
+	address := c.ActorSystem.Address()
+	plog.Info("Starting Proto.Actor cluster-client", log.String("address", address))
+	kinds := c.remote.GetKnownKinds()
+
+	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
+	c.partitionValue = setupPartition(c, kinds)
+	c.pidCache = setupPidCache(c.ActorSystem)
+	c.MemberList = setupMemberList(c)
+
+	if err := cfg.ClusterProvider.StartClient(c); err != nil {
+		panic(err)
+	}
 }
 
 func (c *Cluster) Shutdown(graceful bool) {
