@@ -2,6 +2,7 @@ package actor
 
 import (
 	"github.com/AsynkronIT/protoactor-go/eventstream"
+	"github.com/AsynkronIT/protoactor-go/extensions"
 )
 
 //goland:noinspection GoNameStartsWithPackageName
@@ -11,6 +12,7 @@ type ActorSystem struct {
 	EventStream     *eventstream.EventStream
 	Guardians       *guardiansValue
 	DeadLetter      *deadLetterProcess
+	Extensions      *extensions.Extensions
 }
 
 func (as *ActorSystem) NewLocalPID(id string) *PID {
@@ -29,6 +31,7 @@ func NewActorSystem() *ActorSystem {
 	system.Guardians = NewGuardians(system)
 	system.EventStream = eventstream.NewEventStream()
 	system.DeadLetter = NewDeadLetter(system)
+	system.Extensions = extensions.NewExtensions()
 	SubscribeSupervision(system)
 
 	return system

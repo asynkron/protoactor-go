@@ -1,12 +1,15 @@
 package cluster
 
 import (
+	"github.com/AsynkronIT/protoactor-go/extensions"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
+
+var extensionId = extensions.NextExtensionId()
 
 type Cluster struct {
 	ActorSystem    *actor.ActorSystem
@@ -18,10 +21,23 @@ type Cluster struct {
 }
 
 func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
-	return &Cluster{
+	c := &Cluster{
 		ActorSystem: actorSystem,
 		Config:      config,
 	}
+
+	actorSystem.Extensions.Register(c)
+
+	return c
+}
+
+func (c *Cluster) Id() extensions.ExtensionId {
+	return extensionId
+}
+
+func GetCluster(actorSystem *actor.ActorSystem) *Cluster {
+	c := actorSystem.Extensions.Get(extensionId)
+	return c.(*Cluster)
 }
 
 func (c *Cluster) Start() {

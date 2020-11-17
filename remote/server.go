@@ -2,6 +2,7 @@ package remote
 
 import (
 	"fmt"
+	"github.com/AsynkronIT/protoactor-go/extensions"
 	"io/ioutil"
 	"net"
 	"time"
@@ -11,6 +12,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )
+
+var extensionId = extensions.NextExtensionId()
 
 type Remote struct {
 	actorSystem  *actor.ActorSystem
@@ -22,11 +25,25 @@ type Remote struct {
 }
 
 func NewRemote(actorSystem *actor.ActorSystem, config Config) *Remote {
-	return &Remote{
+	r := &Remote{
 		actorSystem: actorSystem,
 		config:      &config,
 		nameLookup:  make(map[string]actor.Props),
 	}
+
+	actorSystem.Extensions.Register(r)
+
+	return r
+}
+
+func GetRemote(actorSystem *actor.ActorSystem) *Remote {
+	r := actorSystem.Extensions.Get(extensionId)
+
+	return r.(*Remote)
+}
+
+func (r *Remote) Id() extensions.ExtensionId {
+	return extensionId
 }
 
 // Start the remote server
