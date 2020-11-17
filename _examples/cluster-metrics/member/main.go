@@ -5,13 +5,12 @@ import (
 	"log"
 	"time"
 
-	"cluster/shared"
+	"cluster-metrics/shared"
 
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
+	"github.com/AsynkronIT/protoactor-go/cluster/automanaged"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
@@ -31,13 +30,22 @@ func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
 }
 
 func main() {
+
+	system := actor.NewActorSystem()
+	config := remote.Configure("localhost", 0)
+	remote := remote.NewRemote(system, config)
+
+	provider := automanaged.NewWithConfig(2*time.Second, 6331, "localhost:6330", "localhost:6331")
+	clusterConfig := cluster.Configure("my-cluster", provider, config)
+	c := cluster.New(system, clusterConfig)
+
 	// this node knows about Hello kind
 	remote.Register("Hello", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.HelloActor{}
 	}).WithReceiverMiddleware(Logger))
 
-	//
-	eventstream.Subscribe(func(event interface{}) {
+	// Subscribe
+	system.EventStream.Subscribe(func(event interface{}) {
 		switch msg := event.(type) {
 		case *cluster.MemberJoinedEvent:
 			log.Printf("Member Joined " + msg.Name())
@@ -54,21 +62,19 @@ func main() {
 		}
 	})
 
-	cp, err := consul.New()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cluster.Start("mycluster", "127.0.0.1:8081", cp)
+	c.Start()
 
-	sync()
+	shared.SetCluster(c)
+
+	sync(c)
 	async()
 
 	console.ReadLine()
 }
 
-func sync() {
+func sync(c *cluster.Cluster) {
 	hello := shared.GetHelloGrain("abc")
-	options := cluster.NewGrainCallOptions().WithTimeout(5 * time.Second).WithRetry(5)
+	options := cluster.NewGrainCallOptions(c).WithTimeout(5 * time.Second).WithRetry(5)
 	res, err := hello.SayHelloWithOpts(&shared.HelloRequest{Name: "GAM"}, options)
 	if err != nil {
 		log.Fatal(err)
