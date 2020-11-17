@@ -1,9 +1,9 @@
 package remote
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
-	"os"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -34,8 +34,7 @@ func (r *Remote) Start() {
 	grpclog.SetLoggerV2(grpclog.NewLoggerV2(ioutil.Discard, ioutil.Discard, ioutil.Discard))
 	lis, err := net.Listen("tcp", r.config.Address())
 	if err != nil {
-		plog.Error("failed to listen", log.Error(err))
-		os.Exit(1)
+		panic(fmt.Errorf("failed to listen: %v", err))
 	}
 
 	var address string
