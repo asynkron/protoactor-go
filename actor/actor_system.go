@@ -1,6 +1,9 @@
 package actor
 
 import (
+	"net"
+	"strconv"
+
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/extensions"
 )
@@ -21,6 +24,21 @@ func (as *ActorSystem) NewLocalPID(id string) *PID {
 
 func (as *ActorSystem) Address() string {
 	return as.ProcessRegistry.Address
+}
+
+func (as *ActorSystem) GetHostPort() (host string, port int, err error) {
+	addr := as.ProcessRegistry.Address
+	if h, p, e := net.SplitHostPort(addr); e != nil {
+		if addr != localAddress {
+			err = e
+		}
+		host = localAddress
+		port = -1
+	} else {
+		host = h
+		port, err = strconv.Atoi(p)
+	}
+	return
 }
 
 func NewActorSystem() *ActorSystem {
