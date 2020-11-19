@@ -105,6 +105,7 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 
 func (p *Provider) StartClient(c *cluster.Cluster) error {
 	p.init(c)
+	p.blockingStatusChange()
 	p.monitorMemberStatusChanges()
 	return nil
 }
@@ -231,10 +232,6 @@ func (p *Provider) deregisterService() error {
 // call this directly after registering the service
 func (p *Provider) blockingStatusChange() {
 	p.notifyStatuses()
-}
-
-func (p *Provider) StartMonitorMemberStatusChangesLoop() {
-
 }
 
 func (p *Provider) notifyStatuses() {
