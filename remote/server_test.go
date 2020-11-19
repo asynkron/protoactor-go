@@ -1,9 +1,11 @@
 package remote
 
 import (
+	"sort"
+	"testing"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestStart(t *testing.T) {
@@ -31,6 +33,7 @@ func TestRemote_Register(t *testing.T) {
 	remote.Register("someOther", actor.PropsFromProducer(nil))
 	kinds := remote.GetKnownKinds()
 	assert.Equal(t, 2, len(kinds))
+	sort.Strings(kinds)
 	assert.Equal(t, "someKind", kinds[0])
 	assert.Equal(t, "someOther", kinds[1])
 }
