@@ -212,8 +212,8 @@ func benchmarkactorcontextSpawnwithmiddlewaren(n int, b *testing.B) {
 	for i := 0; i < n; i++ {
 		props = props.WithSenderMiddleware(middlewareFn)
 	}
-
-	parent := &actorContext{self: NewPID("nohost", "foo"), props: props}
+	system := NewActorSystem()
+	parent := &actorContext{self: NewPID("nohost", "foo"), props: props, actorSystem: system}
 	for i := 0; i < b.N; i++ {
 		parent.Spawn(props)
 	}

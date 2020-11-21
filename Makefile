@@ -6,7 +6,7 @@ all: build
 build: protogen
 	go build ./...
 
-# {{{ Protobuf
+# {{{ protobuf
 
 # Protobuf definitions
 PROTO_FILES := $(shell find . \( -path "./languages" -o -path "./specification" \) -prune -o -type f -name '*.proto' -print)
@@ -24,8 +24,7 @@ protogen: $(PROTO_GEN_FILES)
 
 # }}} Protobuf end
 
-
-# {{{ Cleanup
+# {{{ cleanup
 clean: protoclean
 
 protoclean:
@@ -43,3 +42,11 @@ test-short:
 	go test -short $(PACKAGES)
 
 # }}} test
+
+# {{{ benchmark
+
+packages_benchmark := $(shell go list ./... | grep -v "/log")
+
+benchmark:
+	go test -benchmem -run=^$ $(packages_benchmark) -bench ^Benchmark$(t).*$
+# }}}

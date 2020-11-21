@@ -138,7 +138,7 @@ func (e ioEncoder) EncodeString(key string, val string) {
 }
 
 func (e ioEncoder) EncodeObject(key string, val interface{}) {
-	fmt.Fprintf(e, "%s=%q", key, val)
+	fmt.Fprintf(e, "%s=%v", key, val)
 }
 
 func (e ioEncoder) EncodeType(key string, val reflect.Type) {
