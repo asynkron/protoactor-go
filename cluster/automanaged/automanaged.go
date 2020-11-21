@@ -95,23 +95,40 @@ func NewWithTesting(refreshTTL time.Duration, autoManPort int, activeProvider *e
 	p := NewWithConfig(refreshTTL, autoManPort, hosts...)
 	p.activeProviderTesting = true
 	p.activeProvider = activeProvider
-
 	return p
 }
 
-func (p *AutoManagedProvider) RegisterMember(cluster *cluster.Cluster, clusterName string, address string, port int, knownKinds []string,
-	statusValue cluster.MemberStatusValue, serializer cluster.MemberStatusValueSerializer) error {
-	p.clusterName = clusterName
-	p.address = address
+func (p *AutoManagedProvider) init(cluster *cluster.Cluster) error {
+	host, port, err := cluster.ActorSystem.GetHostPort()
+	if err != nil {
+		return err
+	}
+
+	p.clusterName = cluster.Config.Name
+	p.address = host
 	p.memberPort = port
-	p.knownKinds = knownKinds
-	p.statusValue = statusValue
-	p.statusValueSerializer = serializer
+	p.knownKinds = cluster.GetClusterKinds()
 	p.deregistered = false
 	p.shutdown = false
 	p.cluster = cluster
+	return nil
+}
 
+func (p *AutoManagedProvider) StartMember(cluster *cluster.Cluster) error {
+	if err := p.init(cluster); err != nil {
+		return err
+	}
 	p.UpdateTTL()
+	p.monitorMemberStatusChanges()
+	return nil
+}
+
+func (p *AutoManagedProvider) StartClient(cluster *cluster.Cluster) error {
+	if err := p.init(cluster); err != nil {
+		return err
+	}
+	// p.UpdateTTL()
+	p.monitorMemberStatusChanges()
 	return nil
 }
 
@@ -125,7 +142,7 @@ func (p *AutoManagedProvider) DeregisterMember() error {
 }
 
 // Shutdown set the shutdown to true preventing any more TTL updates
-func (p *AutoManagedProvider) Shutdown() error {
+func (p *AutoManagedProvider) Shutdown(graceful bool) error {
 	shutdownMutex.Lock()
 	defer shutdownMutex.Unlock()
 
@@ -175,16 +192,13 @@ func (p *AutoManagedProvider) UpdateTTL() {
 	}()
 }
 
-func (p *AutoManagedProvider) UpdateMemberStatusValue(statusValue cluster.MemberStatusValue) error {
-	p.statusValue = statusValue
-	if p.statusValue == nil {
-		return nil
-	}
+func (p *AutoManagedProvider) UpdateClusterState(state cluster.ClusterState) error {
+	plog.Error("not implemented yet")
 	return nil
 }
 
 // MonitorMemberStatusChanges creates a go routine that continuously checks other members
-func (p *AutoManagedProvider) MonitorMemberStatusChanges() {
+func (p *AutoManagedProvider) monitorMemberStatusChanges() {
 	if !p.monitoringStatus {
 		go func() {
 			for !p.isShutdown() && !p.isDeregistered() {

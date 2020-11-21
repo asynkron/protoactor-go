@@ -43,6 +43,9 @@ func GetCluster(actorSystem *actor.ActorSystem) *Cluster {
 func (c *Cluster) Start() {
 	cfg := c.Config
 	c.remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
+	for kind, props := range c.Config.Kinds {
+		c.remote.Register(kind, props)
+	}
 
 	// TODO: make it possible to become a cluster even if remoting is already started
 	c.remote.Start()

@@ -1,9 +1,10 @@
 package main
 
 import (
+	"flag"
 	"log"
 
-	"cluster/shared"
+	"cluster-metrics/shared"
 
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -31,8 +32,10 @@ func newHelloActor() actor.Actor {
 }
 
 func main() {
+	port := flag.Int("port", 0, "")
+	flag.Parse()
 	system := actor.NewActorSystem()
-	remoteConfig := remote.Configure("127.0.0.1", 8080)
+	remoteConfig := remote.Configure("127.0.0.1", *port)
 
 	helloKind := cluster.NewKind("Hello",
 		actor.PropsFromProducer(newHelloActor).WithReceiverMiddleware(Logger))
@@ -41,6 +44,7 @@ func main() {
 	clusterConfig := cluster.Configure("my-cluster", provider, remoteConfig, helloKind)
 	c := cluster.New(system, clusterConfig)
 	c.Start()
+	shared.SetCluster(c)
 
 	// this node knows about Hello kind
 	hello := shared.GetHelloGrain("MyGrain")
@@ -51,4 +55,5 @@ func main() {
 	}
 	log.Printf("Message from grain: %v", res.Message)
 	_, _ = console.ReadLine()
+	c.Shutdown(true)
 }

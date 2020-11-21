@@ -1,8 +1,11 @@
 start:
 	tmux new-session -d -s eg
 	tmux split-window -t "eg:0"   -v
-	tmux send-keys -t "eg:0.0" "go run seed/main.go" Enter
-	tmux send-keys -t "eg:0.1" "go run member/main.go" Enter
+	tmux split-window -t "eg:0.0"   -h
+	tmux select-pane -t "eg:0.2"
+	tmux send-keys -t "eg:0.0" "go run server/main.go -port 8080" Enter
+	tmux send-keys -t "eg:0.1" "go run server/main.go -port 8081" Enter
+	tmux send-keys -t "eg:0.2" "go run client/main.go" Enter
 	tmux attach -t eg
 	tmux kill-session -t eg
 

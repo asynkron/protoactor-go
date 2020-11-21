@@ -3,8 +3,6 @@ package consul
 import (
 	"encoding/json"
 	"fmt"
-	"net"
-	"strconv"
 	"sync"
 	"time"
 
@@ -64,8 +62,7 @@ func (p *Provider) init(c *cluster.Cluster) error {
 	knownKinds := c.GetClusterKinds()
 	clusterName := c.Config.Name
 
-	addr := c.ActorSystem.Address()
-	host, port, err := splitHostPort(addr)
+	host, port, err := c.ActorSystem.GetHostPort()
 	if err != nil {
 		return err
 	}
@@ -108,6 +105,7 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 
 func (p *Provider) StartClient(c *cluster.Cluster) error {
 	p.init(c)
+	p.blockingStatusChange()
 	p.monitorMemberStatusChanges()
 	return nil
 }
@@ -236,10 +234,6 @@ func (p *Provider) blockingStatusChange() {
 	p.notifyStatuses()
 }
 
-func (p *Provider) StartMonitorMemberStatusChangesLoop() {
-
-}
-
 func (p *Provider) notifyStatuses() {
 	statuses, meta, err := p.client.Health().Service(p.clusterName, "", false, &api.QueryOptions{
 		WaitIndex: p.index,
@@ -289,18 +283,4 @@ func (p *Provider) monitorMemberStatusChanges() {
 // GetHealthStatus returns an error if the cluster health status has problems
 func (p *Provider) GetHealthStatus() error {
 	return p.clusterError
-}
-
-func splitHostPort(addr string) (host string, port int, err error) {
-	if h, p, e := net.SplitHostPort(addr); e != nil {
-		if addr != "nonhost" {
-			err = e
-		}
-		host = "nonhost"
-		port = -1
-	} else {
-		host = h
-		port, err = strconv.Atoi(p)
-	}
-	return
 }

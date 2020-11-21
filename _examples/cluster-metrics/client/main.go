@@ -10,7 +10,7 @@ import (
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/automanaged"
+	"github.com/AsynkronIT/protoactor-go/cluster/consul"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
@@ -33,16 +33,11 @@ func main() {
 
 	system := actor.NewActorSystem()
 	config := remote.Configure("localhost", 0)
-	remote := remote.NewRemote(system, config)
 
-	provider := automanaged.NewWithConfig(2*time.Second, 6331, "localhost:6330", "localhost:6331")
+	provider, _ := consul.New()
 	clusterConfig := cluster.Configure("my-cluster", provider, config)
 	c := cluster.New(system, clusterConfig)
-
-	// this node knows about Hello kind
-	remote.Register("Hello", actor.PropsFromProducer(func() actor.Actor {
-		return &shared.HelloActor{}
-	}).WithReceiverMiddleware(Logger))
+	shared.SetCluster(c)
 
 	// Subscribe
 	system.EventStream.Subscribe(func(event interface{}) {
@@ -63,7 +58,6 @@ func main() {
 	})
 
 	c.Start()
-
 	shared.SetCluster(c)
 
 	sync(c)
