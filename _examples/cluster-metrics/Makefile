@@ -12,3 +12,8 @@ start:
 
 stop:
 	tmux kill-session -t eg
+
+
+proto:
+	protoc -I=.  --gogoslick_out=. shared/*.proto
+	protoc -I=.  --gograinv2_out=. shared/*.proto
