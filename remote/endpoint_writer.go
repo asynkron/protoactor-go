@@ -40,16 +40,17 @@ func (state *endpointWriter) initialize() {
 }
 
 func (state *endpointWriter) initializeInternal() error {
-	plog.Info("Started EndpointWriter", log.String("address", state.address))
-	plog.Info("EndpointWriter connecting", log.String("address", state.address))
+	plog.Info("Started EndpointWriter. connecting", log.String("address", state.address))
 	conn, err := grpc.Dial(state.address, state.config.DialOptions...)
 	if err != nil {
+		plog.Info("EndpointWriter connect failed", log.String("address", state.address), log.Error(err))
 		return err
 	}
 	state.conn = conn
 	c := NewRemotingClient(conn)
 	resp, err := c.Connect(context.Background(), &ConnectRequest{})
 	if err != nil {
+		plog.Info("EndpointWriter connect failed", log.String("address", state.address), log.Error(err))
 		return err
 	}
 	state.defaultSerializerId = resp.DefaultSerializerId
@@ -57,6 +58,7 @@ func (state *endpointWriter) initializeInternal() error {
 	//	log.Printf("Getting stream from address %v", state.address)
 	stream, err := c.Receive(context.Background(), state.config.CallOptions...)
 	if err != nil {
+		plog.Info("EndpointWriter connect failed", log.String("address", state.address), log.Error(err))
 		return err
 	}
 	go func() {

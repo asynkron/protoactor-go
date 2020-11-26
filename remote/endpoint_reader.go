@@ -69,7 +69,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 					Watchee: msg.Who,
 					Watcher: pid,
 				}
-				endpointManager.remoteTerminate(rt)
+				s.remote.edpManager.remoteTerminate(rt)
 			case actor.SystemMessage:
 				ref, _ := s.remote.actorSystem.ProcessRegistry.GetLocal(pid.Id)
 				ref.SendSystemMessage(pid, msg)
@@ -91,4 +91,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 
 func (s *endpointReader) suspend(toSuspend bool) {
 	s.suspended = toSuspend
+	if toSuspend {
+		plog.Debug("Suspended EndpointReader")
+	}
 }

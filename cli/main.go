@@ -28,6 +28,7 @@ var completer = readline.NewPrefixCompleter(
 	readline.PcItem("watch"),
 	readline.PcItem("exit"),
 )
+var remoting *remote.Remote
 
 func filterInput(r rune) (rune, bool) {
 	switch r {
@@ -51,7 +52,7 @@ func main() {
 	actorSystem := actor.NewActorSystem()
 
 	rc := remote.Configure("127.0.0.1", 0)
-	remoting := remote.NewRemote(actorSystem, rc)
+	remoting = remote.NewRemote(actorSystem, rc)
 
 	remote.DefaultSerializerID = 1
 	remoting.Start()
@@ -167,7 +168,7 @@ func tell(line string) {
 				TypeName: typeNameStr,
 			}
 			pid := actor.NewPID(address, id)
-			remote.SendMessage(pid, nil, m, nil, 1)
+			remoting.SendMessage(pid, nil, m, nil, 1)
 		} else {
 			fmt.Printf("Invalid JSON payload: %v\n", err)
 		}

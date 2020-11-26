@@ -9,16 +9,6 @@ import (
 	"github.com/AsynkronIT/protoactor-go/log"
 )
 
-func (r *Remote) spawnActivatorActor() {
-	p := newActivatorActor(r)
-	props := actor.PropsFromProducer(p).WithGuardian(actor.RestartingSupervisorStrategy())
-	r.activatorPid, _ = r.actorSystem.Root.SpawnNamed(props, "activator")
-}
-
-func (r *Remote) stopActivatorActor() {
-	_ = r.actorSystem.Root.StopFuture(r.activatorPid).Wait()
-}
-
 // Register a known actor props by name
 func (r *Remote) Register(kind string, props *actor.Props) {
 	r.nameLookup[kind] = *props
@@ -98,6 +88,8 @@ func (a *activator) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
 		plog.Debug("Started Activator")
+	case *Ping:
+		context.Respond(&Pong{})
 	case *ActorPidRequest:
 		props, exist := a.remote.nameLookup[msg.Kind]
 

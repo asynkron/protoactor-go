@@ -124,10 +124,10 @@ func (c *Cluster) Get(name string, kind string) (*actor.PID, remote.ResponseStat
 	remotePartition := c.partitionValue.partitionForKind(address, kind)
 	r, err := c.ActorSystem.Root.RequestFuture(remotePartition, req, c.Config.TimeoutTime).Result()
 	if err == actor.ErrTimeout {
-		plog.Error("PidCache Pid request timeout")
+		plog.Error("PidCache Pid request timeout", log.String("remote", remotePartition.String()))
 		return nil, remote.ResponseStatusCodeTIMEOUT
 	} else if err != nil {
-		plog.Error("PidCache Pid request error", log.Error(err))
+		plog.Error("PidCache Pid request error", log.Error(err), log.String("remote", remotePartition.String()))
 		return nil, remote.ResponseStatusCodeERROR
 	}
 
