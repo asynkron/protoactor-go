@@ -7,20 +7,28 @@ package {{.PackageName}}
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
+	logmod "github.com/AsynkronIT/protoactor-go/log"
 	"github.com/gogo/protobuf/proto"
 )
 
-var _ = proto.Marshal
-var _ = fmt.Errorf
-var _ = math.Inf
+var (
+	plog = logmod.New(logmod.InfoLevel, "[GRAIN]")
+	_    = proto.Marshal
+	_    = fmt.Errorf
+	_    = math.Inf
+)
 
-{{ range $service := .Services}}
+// SetLogLevel sets the log level.
+func SetLogLevel(level logmod.Level) {
+	plog.SetLevel(level)
+}
+
+{{ range $service := .Services -}}
 var x{{ $service.Name }}Factory func() {{ $service.Name }}
 
 // {{ $service.Name }}Factory produces a {{ $service.Name }}
@@ -107,25 +115,31 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 
 	case *cluster.GrainRequest:
 		switch msg.MethodIndex {
-		{{ range $method := $service.Methods}}	
+		{{ range $method := $service.Methods -}}
 		case {{ $method.Index }}:
 			req := &{{ $method.Input.Name }}{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				log.Fatalf("[GRAIN] proto.Unmarshal failed %v", err)
-			}
-			r0, err := a.inner.{{ $method.Name }}(req, ctx)
-			if err == nil {
-				bytes, errMarshal := proto.Marshal(r0)
-				if errMarshal != nil {
-					log.Fatalf("[GRAIN] proto.Marshal failed %v", errMarshal)
-				}
-				resp := &cluster.GrainResponse{MessageData: bytes}
-				ctx.Respond(resp)
-			} else {
+				plog.Error("{{ $method.Name }}({{ $method.Input.Name }}) proto.Unmarshal failed.", logmod.Error(err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
+				return
 			}
+			r0, err := a.inner.{{ $method.Name }}(req, ctx)
+			if err != nil {
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				ctx.Respond(resp)
+				return
+			}
+			bytes, err := proto.Marshal(r0)
+			if err != nil {
+				plog.Error("{{ $method.Name }}({{ $method.Input.Name }}) proto.Marshal failed", logmod.Error(err))
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				ctx.Respond(resp)
+				return
+			}
+			resp := &cluster.GrainResponse{MessageData: bytes}
+			ctx.Respond(resp)
 		{{ end }}
 		}
 	default:
