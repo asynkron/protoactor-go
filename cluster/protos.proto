@@ -23,3 +23,25 @@ message GrainResponse {
 message GrainErrorResponse {
     string err = 1;
 }
+
+message ClusterIdentity{
+    string identity = 1;
+    string kind = 2;
+}
+
+message Activation {
+    actor.PID pid = 1;
+    ClusterIdentity cluster_identity = 2;
+    uint64 eventId = 3;
+}
+
+message ActivationTerminated {
+    actor.PID pid = 1;
+    ClusterIdentity cluster_identity = 2;
+    uint64 eventId = 3;
+}
+
+message ActivationRequest {
+    ClusterIdentity cluster_identity = 1;
+    string request_id = 2;
+}
