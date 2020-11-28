@@ -58,7 +58,8 @@ func (state *endpointWatcher) connected(ctx actor.Context) {
 	case *EndpointConnectedEvent:
 		// Already connected, pass
 	case *EndpointTerminatedEvent:
-		plog.Info("EndpointWatcher handling terminated", log.String("address", state.address))
+		plog.Info("EndpointWatcher handling terminated",
+			log.String("address", state.address), log.Int("watched", len(state.watched)))
 
 		for id, pidSet := range state.watched {
 			// try to find the watcher ID in the local actor registry
@@ -97,7 +98,7 @@ func (state *endpointWatcher) connected(ctx actor.Context) {
 		}
 
 		// pass it off to the remote PID
-		SendMessage(msg.Watchee, nil, w, nil, -1)
+		state.remote.SendMessage(msg.Watchee, nil, w, nil, -1)
 
 	case *remoteUnwatch:
 		// delete the watch entries
@@ -114,7 +115,7 @@ func (state *endpointWatcher) connected(ctx actor.Context) {
 		}
 
 		// pass it off to the remote PID
-		SendMessage(msg.Watchee, nil, uw, nil, -1)
+		state.remote.SendMessage(msg.Watchee, nil, uw, nil, -1)
 	case actor.SystemMessage, actor.AutoReceiveMessage:
 		// ignore
 	default:
