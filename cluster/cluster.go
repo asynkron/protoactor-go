@@ -1,8 +1,9 @@
 package cluster
 
 import (
-	"github.com/AsynkronIT/protoactor-go/extensions"
 	"time"
+
+	"github.com/AsynkronIT/protoactor-go/extensions"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -155,4 +156,45 @@ func (c *Cluster) GetClusterKinds() []string {
 		return nil
 	}
 	return c.remote.GetKnownKinds()
+}
+
+// RequestFuture just call context.RequestFuture with retries.
+func (c *Cluster) Call(name string, kind string, msg interface{}, callopts ...*GrainCallOptions) (interface{}, error) {
+	var _callopts *GrainCallOptions = nil
+	if len(callopts) > 0 {
+		_callopts = callopts[0]
+	} else {
+		_callopts = DefaultGrainCallOptions(c)
+	}
+
+	_context := c.ActorSystem.Root
+	var lastError error
+	for i := 0; i < _callopts.RetryCount; i++ {
+		pid, statusCode := c.Get(name, kind)
+		if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
+			lastError = statusCode.AsError()
+			if statusCode == remote.ResponseStatusCodeTIMEOUT {
+				_callopts.RetryAction(i)
+				continue
+			}
+			return nil, statusCode.AsError()
+		}
+
+		timeout := _callopts.Timeout
+		_resp, err := _context.RequestFuture(pid, msg, timeout).Result()
+		if err != nil {
+			plog.Error("cluster.RequestFuture failed", log.Error(err))
+			lastError = err
+			switch err {
+			case actor.ErrTimeout, remote.ErrTimeout:
+				_callopts.RetryAction(i)
+			case remote.ErrDeadLetter: // TODO: not implemented yet
+				_callopts.RetryAction(i)
+			default:
+				return nil, err
+			}
+		}
+		return _resp, nil
+	}
+	return nil, lastError
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"time"
 
 	"cluster-metrics/shared"
 
@@ -28,7 +29,9 @@ func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
 }
 
 func newHelloActor() actor.Actor {
-	return &shared.HelloActor{}
+	return &shared.HelloActor{
+		Timeout: 20 * time.Second,
+	}
 }
 
 func main() {
@@ -36,22 +39,20 @@ func main() {
 	flag.Parse()
 	system := actor.NewActorSystem()
 	remoteConfig := remote.Configure("127.0.0.1", *port)
-
-	helloKind := cluster.NewKind("Hello",
-		actor.PropsFromProducer(newHelloActor).WithReceiverMiddleware(Logger))
+	props := actor.PropsFromProducer(newHelloActor).WithReceiverMiddleware(Logger)
+	helloKind := cluster.NewKind("Hello", props)
 
 	provider, _ := consul.New()
 	clusterConfig := cluster.Configure("my-cluster", provider, remoteConfig, helloKind)
 	c := cluster.New(system, clusterConfig)
 	c.Start()
-	shared.SetCluster(c)
 
 	// this node knows about Hello kind
-	hello := shared.GetHelloGrain("MyGrain")
-
-	res, err := hello.SayHello(&shared.HelloRequest{Name: "Roger"})
+	hello := shared.GetHelloGrainClient(c, "MyGrain")
+	msg := &shared.HelloRequest{Name: "Roger"}
+	res, err := hello.SayHello(msg)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to call SayHello, err:%v", err)
 	}
 	log.Printf("Message from grain: %v", res.Message)
 	_, _ = console.ReadLine()
