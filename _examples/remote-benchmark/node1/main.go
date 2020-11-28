@@ -7,6 +7,7 @@ import (
 
 	"remotebenchmark/messages"
 
+	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
 
@@ -76,8 +77,6 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU() * 1)
 	runtime.GC()
 
-	var wg sync.WaitGroup
-
 	messageCount := 1000000
 	// remote.DefaultSerializerID = 1
 	system := actor.NewActorSystem()
@@ -85,29 +84,47 @@ func main() {
 	r.Start()
 
 	rootContext := system.Root
-	props := actor.
-		PropsFromProducer(newLocalActor(&wg, messageCount)).
-		WithMailbox(mailbox.Bounded(1000000))
 
-	pid := rootContext.Spawn(props)
+	run := true
+	go func() {
+		for run == true {
+			var wg sync.WaitGroup
+			props := actor.
+				PropsFromProducer(newLocalActor(&wg, messageCount)).
+				WithMailbox(mailbox.Bounded(1000000))
 
-	remotePid := actor.NewPID("127.0.0.1:8080", "remote")
-	msg := messages.StartRemote{Sender: pid}
-	rootContext.RequestFuture(remotePid, &msg, 5*time.Second).Wait()
-	wg.Add(1)
+			pid := rootContext.Spawn(props)
 
-	start := time.Now()
-	log.Println("Starting to send")
+			pidResponse, err := r.Spawn("127.0.0.1:12000", "echo", time.Second*2000)
+			if err != nil || pidResponse.StatusCode != 0 {
+				rootContext.Stop(pid)
+				return
+			}
+			remotePid := pidResponse.Pid
+			msg := messages.StartRemote{Sender: pid}
+			rootContext.RequestFuture(remotePid, &msg, 5*time.Second).Wait()
+			wg.Add(1)
 
-	message := &messages.Ping{}
-	for i := 0; i < messageCount; i++ {
-		rootContext.Send(remotePid, message)
-	}
+			start := time.Now()
+			log.Println("Starting to send")
 
-	wg.Wait()
-	elapsed := time.Since(start)
-	log.Printf("Elapsed %s", elapsed)
+			message := &messages.Ping{}
+			for i := 0; i < messageCount; i++ {
+				rootContext.Send(remotePid, message)
+			}
 
-	x := int(float32(messageCount*2) / (float32(elapsed) / float32(time.Second)))
-	log.Printf("Msg per sec %v", x)
+			wg.Wait()
+			elapsed := time.Since(start)
+			log.Printf("Elapsed %s", elapsed)
+
+			x := int(float32(messageCount*2) / (float32(elapsed) / float32(time.Second)))
+			log.Printf("Msg per sec %v", x)
+			rootContext.Stop(remotePid)
+			rootContext.Stop(pid)
+		}
+	}()
+	console.ReadLine()
+	run = false
+	console.ReadLine()
+	r.Shutdown(true)
 }

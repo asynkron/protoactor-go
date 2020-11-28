@@ -27,17 +27,21 @@ func (ep *endpoint) Address() string {
 }
 
 type endpointManager struct {
-	connections        *sync.Map
-	remote             *Remote
-	endpointSub        *eventstream.Subscription
-	endpointSupervisor *actor.PID
-	activator          *actor.PID
+	connections               *sync.Map
+	remote                    *Remote
+	endpointSub               *eventstream.Subscription
+	endpointSupervisor        *actor.PID
+	activator                 *actor.PID
+	stopped                   bool
+	endpointReaderConnections *sync.Map
 }
 
 func newEndpointManager(r *Remote) *endpointManager {
 	return &endpointManager{
-		connections: &sync.Map{},
-		remote:      r,
+		connections:               &sync.Map{},
+		remote:                    r,
+		stopped:                   false,
+		endpointReaderConnections: &sync.Map{},
 	}
 }
 
@@ -71,6 +75,7 @@ func (em *endpointManager) waiting(timeout time.Duration) error {
 }
 
 func (em *endpointManager) stop() {
+	em.stopped = true
 	r := em.remote
 	r.actorSystem.EventStream.Unsubscribe(em.endpointSub)
 	if err := em.stopActivator(); err != nil {
@@ -81,6 +86,14 @@ func (em *endpointManager) stop() {
 	}
 	em.endpointSub = nil
 	em.connections = nil
+	if em.endpointReaderConnections != nil {
+		em.endpointReaderConnections.Range(func(key interface{}, value interface{}) bool {
+			channel := value.(chan bool)
+			channel <- true
+			em.endpointReaderConnections.Delete(key)
+			return true
+		})
+	}
 	plog.Info("Stopped EndpointManager")
 }
 
@@ -129,24 +142,42 @@ func (em *endpointManager) endpointEvent(evn interface{}) {
 }
 
 func (em *endpointManager) remoteTerminate(msg *remoteTerminate) {
+	if em.stopped {
+		return
+	}
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
 	em.remote.actorSystem.Root.Send(endpoint.watcher, msg)
 }
 
 func (em *endpointManager) remoteWatch(msg *remoteWatch) {
+	if em.stopped {
+		return
+	}
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
 	em.remote.actorSystem.Root.Send(endpoint.watcher, msg)
 }
 
 func (em *endpointManager) remoteUnwatch(msg *remoteUnwatch) {
+	if em.stopped {
+		return
+	}
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
 	em.remote.actorSystem.Root.Send(endpoint.watcher, msg)
 }
 
 func (em *endpointManager) remoteDeliver(msg *remoteDeliver) {
+	if em.stopped {
+		// send to deadletter
+		em.remote.actorSystem.EventStream.Publish(&actor.DeadLetterEvent{
+			PID:     msg.target,
+			Message: msg.message,
+			Sender:  msg.sender,
+		})
+		return
+	}
 	address := msg.target.Address
 	endpoint := em.ensureConnected(address)
 	em.remote.actorSystem.Root.Send(endpoint.writer, msg)
