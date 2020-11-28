@@ -36,8 +36,8 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		close(disconnectChan)
 	}()
 	go func() {
-		// endpointManager send true
-		// endpointReader send false
+		// endpointManager sends true
+		// endpointReader sends false
 		if <-disconnectChan {
 			plog.Debug("EndpointReader is telling to remote that it's leaving")
 			err := stream.SendMsg(&Unit{})
