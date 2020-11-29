@@ -181,22 +181,12 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 			if err != nil {
 				plog.Error("EndpointWriter error when closing the stream", log.Error(err))
 			}
-		} else {
-			err := state.conn.Close()
-			if err != nil {
-				plog.Error("EndpointWriter error when closing the channel", log.Error(err))
-			}
 		}
 	case *actor.Restarting:
 		if state.stream != nil {
 			err := state.stream.CloseSend()
 			if err != nil {
 				plog.Error("EndpointWriter error when closing the stream", log.Error(err))
-			}
-		} else {
-			err := state.conn.Close()
-			if err != nil {
-				plog.Error("EndpointWriter error when closing the channel", log.Error(err))
 			}
 		}
 	case *EndpointTerminatedEvent:
