@@ -1,7 +1,7 @@
 package remote
 
 import (
-	"time"
+	io "io"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -30,17 +30,39 @@ func (s *endpointReader) Connect(ctx context.Context, req *ConnectRequest) (*Con
 }
 
 func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
+	disconnectChan := make(chan bool, 1)
+	s.remote.edpManager.endpointReaderConnections.Store(stream, disconnectChan)
+	defer func() {
+		close(disconnectChan)
+	}()
+	go func() {
+		// endpointManager sends true
+		// endpointReader sends false
+		if <-disconnectChan {
+			plog.Debug("EndpointReader is telling to remote that it's leaving")
+			err := stream.SendMsg(&Unit{})
+			if err != nil {
+				plog.Error("EndpointReader failed to send disconnection message", log.Error(err))
+			}
+		} else {
+			s.remote.edpManager.endpointReaderConnections.Delete(stream)
+			plog.Debug("EndpointReader removed active endpoint from endpointManager")
+		}
+	}()
+
 	targets := make([]*actor.PID, 100)
 	for {
-		if s.suspended {
-			time.Sleep(time.Millisecond * 500)
-			continue
-		}
-
 		batch, err := stream.Recv()
-		if err != nil {
-			plog.Debug("EndpointReader failed to read", log.Error(err))
+		if err == io.EOF {
+			plog.Debug("EndpointReader stream closed")
+			disconnectChan <- false
+			return nil
+		} else if err != nil {
+			plog.Info("EndpointReader failed to read", log.Error(err))
 			return err
+		} else if s.suspended {
+			// We read all messages ignoring them to gracefully end the request
+			continue
 		}
 
 		// only grow pid lookup if needed
