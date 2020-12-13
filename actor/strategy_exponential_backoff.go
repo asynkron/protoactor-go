@@ -28,6 +28,7 @@ func (strategy *exponentialBackoffStrategy) HandleFailure(actorSystem *ActorSyst
 	noise := rand.Intn(500)
 	dur := time.Duration(backoff + noise)
 	time.AfterFunc(dur, func() {
+		logFailure(actorSystem, child, reason, RestartDirective)
 		supervisor.RestartChildren(child)
 	})
 }
