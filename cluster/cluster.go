@@ -1,8 +1,9 @@
 package cluster
 
 import (
-	"github.com/AsynkronIT/protoactor-go/extensions"
 	"time"
+
+	"github.com/AsynkronIT/protoactor-go/extensions"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -15,7 +16,7 @@ type Cluster struct {
 	ActorSystem    *actor.ActorSystem
 	Config         *Config
 	remote         *remote.Remote
-	pidCache       *pidCacheValue
+	PidCache       *pidCacheValue
 	MemberList     *memberListValue
 	partitionValue *partitionValue
 }
@@ -56,7 +57,7 @@ func (c *Cluster) Start() {
 
 	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
 	c.partitionValue = setupPartition(c, kinds)
-	c.pidCache = setupPidCache(c.ActorSystem)
+	c.PidCache = setupPidCache(c.ActorSystem)
 	c.MemberList = setupMemberList(c)
 
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
@@ -76,7 +77,7 @@ func (c *Cluster) StartClient() {
 
 	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
 	c.partitionValue = setupPartition(c, kinds)
-	c.pidCache = setupPidCache(c.ActorSystem)
+	c.PidCache = setupPidCache(c.ActorSystem)
 	c.MemberList = setupMemberList(c)
 
 	if err := cfg.ClusterProvider.StartClient(c); err != nil {
@@ -90,7 +91,7 @@ func (c *Cluster) Shutdown(graceful bool) {
 		// This is to wait ownership transferring complete.
 		time.Sleep(time.Millisecond * 2000)
 		c.MemberList.stopMemberList()
-		c.pidCache.stopPidCache()
+		c.PidCache.stopPidCache()
 		c.partitionValue.stopPartition()
 	}
 
@@ -103,7 +104,7 @@ func (c *Cluster) Shutdown(graceful bool) {
 // Get a PID to a virtual actor
 func (c *Cluster) Get(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	// Check Cache
-	if pid, ok := c.pidCache.getCache(name); ok {
+	if pid, ok := c.PidCache.getCache(name); ok {
 		return pid, remote.ResponseStatusCodeOK
 	}
 
@@ -140,7 +141,7 @@ func (c *Cluster) Get(name string, kind string) (*actor.PID, remote.ResponseStat
 	switch statusCode {
 	case remote.ResponseStatusCodeOK:
 		// save cache
-		c.pidCache.addCache(name, response.Pid)
+		c.PidCache.addCache(name, response.Pid)
 		// tell the original requester that we have a response
 		return response.Pid, statusCode
 	default:
@@ -155,4 +156,9 @@ func (c *Cluster) GetClusterKinds() []string {
 		return nil
 	}
 	return c.remote.GetKnownKinds()
+}
+
+// ToShortString Get kind & identity
+func (ci *ClusterIdentity) ToShortString() string {
+	return ci.Kind + "/" + ci.Identity
 }

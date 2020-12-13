@@ -50,7 +50,7 @@ func (c *pidCacheValue) onMemberStatusEvent(evn interface{}) {
 	}
 }
 
-func (c *pidCacheValue) getCache(name string) (*actor.PID, bool) {
+func (c *pidCacheValue) GetCache(name string) (*actor.PID, bool) {
 	v, ok := c.cache.Get(name)
 	if !ok {
 		return nil, false

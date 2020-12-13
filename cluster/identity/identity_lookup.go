@@ -74,3 +74,15 @@ func newGetPid(clusterIdentity *cluster.ClusterIdentity) *GetPid {
 	}
 	return this
 }
+
+// PidResult contains
+type PidResult struct {
+	Pid *actor.PID
+}
+
+func newPidResult(p *actor.PID) *PidResult {
+	this := &PidResult{
+		Pid: p,
+	}
+	return this
+}
