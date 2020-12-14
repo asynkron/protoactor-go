@@ -16,4 +16,5 @@ type Encoder interface {
 	EncodeString(key string, val string)
 	EncodeObject(key string, val interface{})
 	EncodeType(key string, val reflect.Type)
+	EncodeCaller(key string, val CallerInfo)
 }
