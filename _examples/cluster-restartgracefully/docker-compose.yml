@@ -1,0 +1,14 @@
+# @see https://docs.docker.com/compose/compose-file/
+version: '3.4'
+services:
+  redis:
+    image: redis:5.0.7-alpine
+    ports:
+      - 127.0.0.1:6380:6379
+
+  consul:
+    image: consul:1.8.4
+    ports:
+      - 8500:8500
+      - 8600:8600/udp
+    command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
