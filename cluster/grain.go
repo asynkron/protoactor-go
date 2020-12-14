@@ -54,3 +54,8 @@ func (config *GrainCallOptions) WithRetryAction(act func(i int)) *GrainCallOptio
 	config.RetryAction = act
 	return config
 }
+
+type ClusterInit struct {
+	ID   string
+	Kind string
+}

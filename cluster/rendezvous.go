@@ -36,23 +36,21 @@ func (r *Rendezvous) GetByRdv(key string) string {
 	keyBytes := []byte(key)
 
 	var maxScore uint32
-	var maxMember *MemberStatus
+	var maxMember *Member
 	var score uint32
 
 	for i, node := range members {
-		if node.Alive {
-			score = r.hash(r.memberHashes[i], keyBytes)
-			if score > maxScore {
-				maxScore = score
-				maxMember = node
-			}
+		score = r.hash(r.memberHashes[i], keyBytes)
+		if score > maxScore {
+			maxScore = score
+			maxMember = node
 		}
 	}
 
-	if maxMember != nil {
-		return maxMember.Address()
+	if maxMember == nil {
+		return ""
 	}
-	return ""
+	return maxMember.Address()
 }
 
 func (r *Rendezvous) UpdateRdv() {

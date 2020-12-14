@@ -19,31 +19,29 @@ var (
 )
 
 type Provider struct {
-	cluster               *cluster.Cluster
-	deregistered          bool
-	shutdown              bool
-	id                    string
-	clusterName           string
-	address               string
-	port                  int
-	knownKinds            []string
-	index                 uint64 // consul blocking index
-	client                *api.Client
-	ttl                   time.Duration
-	refreshTTL            time.Duration
-	updateTTLWaitGroup    sync.WaitGroup
-	deregisterCritical    time.Duration
-	blockingWaitTime      time.Duration
-	statusValue           cluster.MemberStatusValue
-	statusValueSerializer cluster.MemberStatusValueSerializer
-	clusterError          error
+	cluster            *cluster.Cluster
+	deregistered       bool
+	shutdown           bool
+	id                 string
+	clusterName        string
+	address            string
+	port               int
+	knownKinds         []string
+	index              uint64 // consul blocking index
+	client             *api.Client
+	ttl                time.Duration
+	refreshTTL         time.Duration
+	updateTTLWaitGroup sync.WaitGroup
+	deregisterCritical time.Duration
+	blockingWaitTime   time.Duration
+	clusterError       error
 }
 
-func New() (*Provider, error) {
-	return NewWithConfig(&api.Config{})
+func New(opts ...Option) (*Provider, error) {
+	return NewWithConfig(&api.Config{}, opts...)
 }
 
-func NewWithConfig(consulConfig *api.Config) (*Provider, error) {
+func NewWithConfig(consulConfig *api.Config, opts ...Option) (*Provider, error) {
 	client, err := api.NewClient(consulConfig)
 	if err != nil {
 		return nil, err
@@ -54,6 +52,9 @@ func NewWithConfig(consulConfig *api.Config) (*Provider, error) {
 		refreshTTL:         1 * time.Second,
 		deregisterCritical: 60 * time.Second,
 		blockingWaitTime:   20 * time.Second,
+	}
+	for _, opt := range opts {
+		opt(p)
 	}
 	return p, nil
 }
@@ -245,23 +246,20 @@ func (p *Provider) notifyStatuses() {
 	}
 	p.index = meta.LastIndex
 
-	res := make(cluster.TopologyEvent, len(statuses))
-	for i, v := range statuses {
-		key := fmt.Sprintf("%v/%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
-		memberID := key
-		ms := &cluster.MemberStatus{
-			MemberID:    memberID,
-			Host:        v.Service.Address,
-			Port:        v.Service.Port,
-			Kinds:       v.Service.Tags,
-			Alive:       len(v.Checks) > 0 && v.Checks.AggregatedStatus() == api.HealthPassing,
-			StatusValue: nil,
-		}
-		res[i] = ms
-
-		// Update Tags for this member
-		if memberID == p.id {
-			p.knownKinds = v.Service.Tags
+	members := []*cluster.Member{}
+	for _, v := range statuses {
+		if len(v.Checks) > 0 && v.Checks.AggregatedStatus() == api.HealthPassing {
+			memberId := v.Service.Meta["id"]
+			if memberId == "" {
+				memberId = fmt.Sprintf("%v@%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
+				plog.Info("meta['id'] was empty, fixeds", log.String("id", memberId))
+			}
+			members = append(members, &cluster.Member{
+				Id:    memberId,
+				Host:  v.Service.Address,
+				Port:  int32(v.Service.Port),
+				Kinds: v.Service.Tags,
+			})
 		}
 	}
 	// the reason why we want this in a batch and not as individual messages is that
@@ -269,7 +267,9 @@ func (p *Provider) notifyStatuses() {
 	// passing events one by one, we can't know if someone left or just haven't changed status for a long time
 
 	// publish the current cluster topology onto the event stream
-	p.cluster.ActorSystem.EventStream.Publish(res)
+	p.cluster.MemberList.UpdateClusterTopology(members, meta.LastIndex)
+	// res := cluster.TopologyEvent(members)
+	// p.cluster.ActorSystem.EventStream.Publish(res)
 }
 
 func (p *Provider) monitorMemberStatusChanges() {

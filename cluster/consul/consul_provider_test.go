@@ -26,8 +26,10 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 
 	system := actor.NewActorSystem()
 	c := cluster.New(system, config)
+
 	// use for test without start remote
 	c.ActorSystem.ProcessRegistry.Address = addr
+	c.MemberList = cluster.NewMemberList(c)
 	return c
 }
 
@@ -44,7 +46,7 @@ func TestStartMember(t *testing.T) {
 	eventstream := c.ActorSystem.EventStream
 	ch := make(chan interface{}, 16)
 	eventstream.Subscribe(func(m interface{}) {
-		if _, ok := m.(cluster.TopologyEvent); ok {
+		if _, ok := m.(*cluster.ClusterTopologyEventV2); ok {
 			ch <- m
 		}
 	})
@@ -57,17 +59,23 @@ func TestStartMember(t *testing.T) {
 		assert.FailNow("no member joined yet")
 
 	case m := <-ch:
+		msg := m.(*cluster.ClusterTopologyEventV2)
 		// member joined
-		expected := cluster.TopologyEvent{
-			&cluster.MemberStatus{
-				MemberID: "mycluster/127.0.0.1:8000",
-				Host:     "127.0.0.1",
-				Port:     8000,
-				Kinds:    []string{},
-				Alive:    true,
+		members := []*cluster.Member{
+			{
+				Id:    "mycluster@127.0.0.1:8000",
+				Host:  "127.0.0.1",
+				Port:  8000,
+				Kinds: []string{},
 			},
 		}
-		assert.Equal(expected, m)
+
+		expected := &cluster.ClusterTopology{
+			Members: members,
+			Joined:  members,
+			EventId: msg.ClusterTopology.EventId,
+		}
+		assert.Equal(expected, msg.ClusterTopology)
 	}
 }
 

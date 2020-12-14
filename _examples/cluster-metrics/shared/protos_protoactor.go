@@ -4,19 +4,27 @@ package shared
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/AsynkronIT/protoactor-go/remote"
+	logmod "github.com/AsynkronIT/protoactor-go/log"
 	"github.com/gogo/protobuf/proto"
 )
 
-var _ = proto.Marshal
-var _ = fmt.Errorf
-var _ = math.Inf
+var (
+	plog = logmod.New(logmod.InfoLevel, "[GRAIN]")
+	_    = proto.Marshal
+	_    = fmt.Errorf
+	_    = math.Inf
+)
 
+// SetLogLevel sets the log level.
+func SetLogLevel(level logmod.Level) {
+	plog.SetLevel(level)
+}
 
 var xHelloFactory func() Hello
 
@@ -73,6 +81,9 @@ func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallO
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
+		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
+			return nil, remote.ErrDeadLetter
+		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -99,6 +110,9 @@ func (g *HelloGrainClient) Add(r *AddRequest, opts ...*cluster.GrainCallOptions)
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
+		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
+			return nil, remote.ErrDeadLetter
+		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -125,6 +139,9 @@ func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...*cluster.GrainCallOpt
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
+		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
+			return nil, remote.ErrDeadLetter
+		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -134,7 +151,7 @@ func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...*cluster.GrainCallOpt
 
 // HelloActor represents the actor structure
 type HelloActor struct {
-	inner Hello
+	inner   Hello
 	Timeout time.Duration
 }
 
@@ -142,12 +159,13 @@ type HelloActor struct {
 func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
+	case *cluster.ClusterInit:
 		a.inner = xHelloFactory()
-		id := ctx.Self().Id[17:] // skip "activator/Remote$"
-		a.inner.Init(id)
+		a.inner.Init(msg.ID)
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
+
 	case *actor.ReceiveTimeout:
 		a.inner.Terminate()
 		ctx.Poison(ctx.Self())
@@ -157,63 +175,78 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 
 	case *cluster.GrainRequest:
 		switch msg.MethodIndex {
-			
 		case 0:
 			req := &HelloRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				log.Fatalf("[GRAIN] proto.Unmarshal failed %v", err)
-			}
-			r0, err := a.inner.SayHello(req, ctx)
-			if err == nil {
-				bytes, errMarshal := proto.Marshal(r0)
-				if errMarshal != nil {
-					log.Fatalf("[GRAIN] proto.Marshal failed %v", errMarshal)
-				}
-				resp := &cluster.GrainResponse{MessageData: bytes}
-				ctx.Respond(resp)
-			} else {
+				plog.Error("SayHello(HelloRequest) proto.Unmarshal failed.", logmod.Error(err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
+				return
 			}
-			
+			r0, err := a.inner.SayHello(req, ctx)
+			if err != nil {
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				ctx.Respond(resp)
+				return
+			}
+			bytes, err := proto.Marshal(r0)
+			if err != nil {
+				plog.Error("SayHello(HelloRequest) proto.Marshal failed", logmod.Error(err))
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				ctx.Respond(resp)
+				return
+			}
+			resp := &cluster.GrainResponse{MessageData: bytes}
+			ctx.Respond(resp)
 		case 1:
 			req := &AddRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				log.Fatalf("[GRAIN] proto.Unmarshal failed %v", err)
-			}
-			r0, err := a.inner.Add(req, ctx)
-			if err == nil {
-				bytes, errMarshal := proto.Marshal(r0)
-				if errMarshal != nil {
-					log.Fatalf("[GRAIN] proto.Marshal failed %v", errMarshal)
-				}
-				resp := &cluster.GrainResponse{MessageData: bytes}
-				ctx.Respond(resp)
-			} else {
+				plog.Error("Add(AddRequest) proto.Unmarshal failed.", logmod.Error(err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
+				return
 			}
-			
+			r0, err := a.inner.Add(req, ctx)
+			if err != nil {
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				ctx.Respond(resp)
+				return
+			}
+			bytes, err := proto.Marshal(r0)
+			if err != nil {
+				plog.Error("Add(AddRequest) proto.Marshal failed", logmod.Error(err))
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				ctx.Respond(resp)
+				return
+			}
+			resp := &cluster.GrainResponse{MessageData: bytes}
+			ctx.Respond(resp)
 		case 2:
 			req := &AddRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				log.Fatalf("[GRAIN] proto.Unmarshal failed %v", err)
-			}
-			r0, err := a.inner.VoidFunc(req, ctx)
-			if err == nil {
-				bytes, errMarshal := proto.Marshal(r0)
-				if errMarshal != nil {
-					log.Fatalf("[GRAIN] proto.Marshal failed %v", errMarshal)
-				}
-				resp := &cluster.GrainResponse{MessageData: bytes}
-				ctx.Respond(resp)
-			} else {
+				plog.Error("VoidFunc(AddRequest) proto.Unmarshal failed.", logmod.Error(err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
+				return
 			}
+			r0, err := a.inner.VoidFunc(req, ctx)
+			if err != nil {
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				ctx.Respond(resp)
+				return
+			}
+			bytes, err := proto.Marshal(r0)
+			if err != nil {
+				plog.Error("VoidFunc(AddRequest) proto.Marshal failed", logmod.Error(err))
+				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				ctx.Respond(resp)
+				return
+			}
+			resp := &cluster.GrainResponse{MessageData: bytes}
+			ctx.Respond(resp)
 		
 		}
 	default:

@@ -11,6 +11,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/cluster/consul"
+	logmod "github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
@@ -41,6 +42,7 @@ func main() {
 	remoteConfig := remote.Configure("127.0.0.1", *port)
 	props := actor.PropsFromProducer(newHelloActor).WithReceiverMiddleware(Logger)
 	helloKind := cluster.NewKind("Hello", props)
+	cluster.SetLogLevel(logmod.InfoLevel)
 
 	provider, _ := consul.New()
 	clusterConfig := cluster.Configure("my-cluster", provider, remoteConfig, helloKind)
