@@ -13,6 +13,9 @@ import (
 // ErrTimeout is the error used when a future times out before receiving a result.
 var ErrTimeout = errors.New("future: timeout")
 
+// ErrDeadLetter is meaning you request to a unreachable PID.
+var ErrDeadLetter = errors.New("future: dead letter")
+
 // NewFuture creates and returns a new actor.Future with a timeout of duration d
 func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
 	ref := &futureProcess{Future{actorSystem: actorSystem, cond: sync.NewCond(&sync.Mutex{})}}
@@ -123,7 +126,12 @@ type futureProcess struct {
 
 func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}) {
 	_, msg, _ := UnwrapEnvelope(message)
-	ref.result = msg
+	if _, ok := msg.(*DeadLetterResponse); ok {
+		ref.result = nil
+		ref.err = ErrDeadLetter
+	} else {
+		ref.result = msg
+	}
 	ref.Stop(pid)
 }
 
