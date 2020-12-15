@@ -23,6 +23,7 @@ var (
 )
 
 func main() {
+	cluster.SetLogLevel(log.ErrorLevel)
 	var loops = flag.Int("loops", 10000, "request times.")
 	var interval = flag.Duration("interval", 0, "request interval miliseconds per client.")
 	var clients = flag.Int("clients", 1, "clients count.")
@@ -73,7 +74,7 @@ func startNode(port int, provider string) {
 
 func runClientsAll(clients int, loops int, interval time.Duration) {
 	var wg sync.WaitGroup
-	now := time.Now()
+	var now = time.Now()
 	for i := 0; i < clients; i++ {
 		wg.Add(1)
 		grainId := fmt.Sprintf("client-%d", i)
@@ -83,10 +84,12 @@ func runClientsAll(clients int, loops int, interval time.Duration) {
 		}()
 	}
 	wg.Wait()
+	cost := time.Since(now)
 	plog.Info("end all.",
 		log.Int("clients", clients),
-		log.Int("loops", clients*loops),
-		log.Duration("take", time.Since(now)))
+		log.Int("total", clients*loops),
+		log.Int("req/s", clients*loops/int(cost/time.Second)),
+		log.Duration("take", cost))
 }
 
 func runClient(grainId string, loops int, interval time.Duration) {

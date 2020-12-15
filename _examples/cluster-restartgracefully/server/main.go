@@ -24,6 +24,7 @@ var (
 )
 
 func main() {
+	cluster.SetLogLevel(log.ErrorLevel)
 	var provider = flag.String("provider", "consul", "clients count.")
 	var actorTTL = flag.Duration("ttl", 10*time.Second, "time to live of actor.")
 	var port = flag.Int("port", 0, "listen port.")
