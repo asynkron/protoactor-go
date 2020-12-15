@@ -46,6 +46,7 @@ type AutoManagedProvider struct {
 	clusterTTLError       error
 	clusterMonitorError   error
 	cluster               *cluster.Cluster
+	lastEventId           uint64
 }
 
 // New creates a AutoManagedProvider that connects locally
@@ -247,30 +248,27 @@ func (p *AutoManagedProvider) monitorStatuses() {
 	}
 
 	// we should probably check if the cluster needs to be updated..
-	var res cluster.TopologyEvent
+	var members []*cluster.Member
 	var newNodes []*NodeModel
 	for _, node := range autoManagedNodes {
 		if node == nil || node.ClusterName != p.clusterName {
 			continue
 		}
-		key := node.ID
-		memberID := key
-		ms := &cluster.MemberStatus{
-			MemberID: memberID,
-			Member: cluster.Member{
-				Host:  node.Address,
-				Port:  int32(node.Port),
-				Kinds: node.Kinds,
-			},
+		ms := &cluster.Member{
+			Id:    node.ID,
+			Host:  node.Address,
+			Port:  int32(node.Port),
+			Kinds: node.Kinds,
 		}
-		res = append(res, ms)
+		members = append(members, ms)
 		newNodes = append(newNodes, node)
 	}
 
 	p.knownNodes = newNodes
 	p.clusterMonitorError = nil
 	// publish the current cluster topology onto the event stream
-	p.cluster.ActorSystem.EventStream.Publish(res)
+	p.lastEventId++
+	p.cluster.MemberList.UpdateClusterTopology(members, p.lastEventId)
 	time.Sleep(p.refreshTTL)
 
 }
