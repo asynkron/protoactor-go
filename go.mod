@@ -5,10 +5,16 @@ require (
 	github.com/AsynkronIT/gonet v0.0.0-20161127091928-0553637be225
 	github.com/Workiva/go-datastructures v1.0.50
 	github.com/armon/go-metrics v0.3.0 // indirect
+	github.com/cespare/xxhash v1.1.0
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
+	github.com/coreos/etcd v3.3.25+incompatible
+	github.com/coreos/go-semver v0.3.0 // indirect
+	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
+	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/couchbase/gocb v1.6.7
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
 	github.com/emirpasic/gods v1.12.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.3.2
@@ -35,6 +41,7 @@ require (
 	github.com/uber/jaeger-client-go v2.25.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/zap v1.16.0 // indirect
 	golang.org/x/crypto v0.0.0-20191117063200-497ca9f6d64f // indirect
 	golang.org/x/net v0.0.0-20191116160921-f9c825593386
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e

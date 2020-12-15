@@ -26,6 +26,7 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 	c := cluster.New(system, config)
 	// use for test without start remote
 	c.ActorSystem.ProcessRegistry.Address = addr
+	c.MemberList = cluster.NewMemberList(c)
 	return c
 }
 
@@ -59,7 +60,7 @@ func TestStartMember(t *testing.T) {
 		msg := m.(*cluster.ClusterTopologyEventV2)
 		members := []*cluster.Member{
 			{
-				Id:    "mycluster@127.0.0.1:8000",
+				Id:    "test_etcd_provider@127.0.0.1:8000",
 				Host:  "127.0.0.1",
 				Port:  8000,
 				Kinds: []string{},
