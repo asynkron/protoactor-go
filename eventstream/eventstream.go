@@ -32,12 +32,17 @@ func (es *EventStream) Subscribe(fn func(evt interface{})) *Subscription {
 }
 
 func (es *EventStream) Unsubscribe(sub *Subscription) {
-	if sub.i == -1 {
+	if sub == nil || sub.i == -1 {
 		return
 	}
 
 	es.Lock()
 	defer es.Unlock()
+	// re-check, there was a twice unsubscribe somewhere.
+	if sub == nil || sub.i == -1 {
+		return
+	}
+
 	i := sub.i
 	l := len(es.subscriptions) - 1
 

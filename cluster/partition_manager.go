@@ -37,22 +37,12 @@ func (pm *PartitionManager) Start() {
 			_, ok := m.(*ClusterTopologyEventV2)
 			return ok
 		})
-
-	pm.deadletterSub = system.EventStream.
-		Subscribe(func(ev interface{}) {
-			pm.onDeadLetterEvent(ev.(*actor.DeadLetterEvent))
-		}).
-		WithPredicate(func(m interface{}) bool {
-			_, ok := m.(*actor.DeadLetterEvent)
-			return ok
-		})
 }
 
 // Stop ...
 func (pm *PartitionManager) Stop() {
 	system := pm.cluster.ActorSystem
 	system.EventStream.Unsubscribe(pm.topologySub)
-	system.EventStream.Unsubscribe(pm.deadletterSub)
 	pm.kinds.Range(func(k, v interface{}) bool {
 		kind := k.(string)
 		pk := v.(*PartitionKind)
@@ -60,6 +50,7 @@ func (pm *PartitionManager) Stop() {
 		pk.stop()
 		return true
 	})
+	plog.Info("Stopped PartitionManager")
 }
 
 // PidOfIdentityActor ...
