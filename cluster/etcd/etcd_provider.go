@@ -290,6 +290,7 @@ func (p *Provider) handleWatchResponse(resp clientv3.WatchResponse) map[string]*
 				log.String("type", ev.Type.String()))
 		}
 	}
+	p.revision = uint64(resp.Header.GetRevision())
 	return changes
 }
 
@@ -357,8 +358,10 @@ func (p *Provider) fetchNodes() ([]*Node, error) {
 		}
 		nodes = append(nodes, &n)
 	}
-	p.revision = uint64(resp.Header.Revision)
-	plog.Debug("fetched members", log.Uint64("revision", p.revision))
+	p.revision = uint64(resp.Header.GetRevision())
+	// plog.Debug("fetch nodes",
+	// 	log.Uint64("raft term", resp.Header.GetRaftTerm()),
+	// 	log.Int64("revision", resp.Header.GetRevision()))
 	return nodes, nil
 }
 
