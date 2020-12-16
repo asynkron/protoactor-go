@@ -93,7 +93,7 @@ func (p *partitionPlacementActor) handleTerminated(msg *actor.Terminated, ctx ac
 	}
 
 	if req == nil {
-		plog.Warn("handleTerminated", p.logPartition, log.String("status", "slowly lookup"), log.PID("who", msg.Who), log.String("grain", actorKey))
+		plog.Warn("handleTerminated", p.logPartition, log.String("status", "lookup slowly"), log.PID("who", msg.Who), log.String("grain", actorKey))
 		for _, meta := range p._actors {
 			if meta.PID.Equal(msg.Who) {
 				req = &ActivationTerminated{
@@ -101,6 +101,7 @@ func (p *partitionPlacementActor) handleTerminated(msg *actor.Terminated, ctx ac
 					ClusterIdentity: meta.ID,
 					EventId:         meta.EventID,
 				}
+				actorKey = meta.ID.AsKey()
 				break
 			}
 		}

@@ -69,7 +69,7 @@ func (pm *PartitionManager) PidOfIdentityActor(kind, addr string) *actor.PID {
 // }
 
 func (pm *PartitionManager) onClusterTopology(tplg *ClusterTopologyEventV2) {
-	plog.Info("onClusterTopology", log.Uint64("eventId", tplg.EventId))
+	plog.Debug("onClusterTopology", log.Uint64("eventId", tplg.EventId))
 	system := pm.cluster.ActorSystem
 	kindGroups := pm.groupClusterTopologyByKind(tplg.ClusterTopology)
 	for kind, msg := range kindGroups {

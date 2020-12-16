@@ -93,7 +93,7 @@ func (p *partitionIdentityActor) onTimeout(msg *actor.ReceiveTimeout, ctx actor.
 func (p *partitionIdentityActor) handleActivationRequest(msg *ActivationRequest, ctx actor.Context) {
 	grainId := msg.ClusterIdentity
 	key := grainId.AsKey()
-	_log := plog.With(p.logPartition, log.String("grainId", key))
+	_log := plog.With(p.logPartition, log.String("grain", key))
 	if p.chash == nil {
 		_log.Debug("handleActivationRequest", log.String("status", "nil DHT"))
 		ctx.Respond(&ActivationResponse{Pid: nil})
@@ -110,7 +110,7 @@ func (p *partitionIdentityActor) handleActivationRequest(msg *ActivationRequest,
 
 	// self
 	if _pid, ok := p.lookup.Get(key); ok {
-		_log.Debug("handleActivationRequest", log.String("status", "cache hited"), log.String("grain", key))
+		_log.Debug("handleActivationRequest", log.String("status", "cache hited"))
 		meta := _pid.(GrainMeta)
 		ctx.Respond(&ActivationResponse{Pid: meta.PID})
 		return
@@ -128,15 +128,15 @@ func (p *partitionIdentityActor) handleActivationTerminated(msg *ActivationTermi
 	if ownerAddr != p.self.Address {
 		ownerPid := p.partitionKind.PidOfIdentityActor(ownerAddr)
 		ctx.Forward(ownerPid)
-		plog.Debug("Terminated", p.logPartition, log.PID("owner", ownerPid), log.String("grain", key))
+		plog.Debug("Terminated", p.logPartition, log.String("owner", ownerAddr), log.String("grain", key))
 		return
 	}
 	plog.Debug("Terminated", p.logPartition, log.String("owner", "self"), log.String("grain", key))
 }
 
 func (p *partitionIdentityActor) handleClusterTopology(msg *ClusterTopology, ctx actor.Context) {
-	plog.Debug("handleClusterTopology", p.logPartition, log.Uint64("eventId", msg.EventId), log.Int("members", len(msg.Members)))
 	if p.lastEventId >= msg.EventId {
+		plog.Warn("Skipped ClusterTopology", log.String("kind", p.partitionKind.Kind), log.Uint64("eventId", msg.EventId), log.Int("members", len(msg.Members)))
 		return
 	}
 	now := time.Now()
@@ -156,7 +156,7 @@ func (p *partitionIdentityActor) handleClusterTopology(msg *ClusterTopology, ctx
 			defer wg.Done()
 			_resp, err := ctx.RequestFuture(placementPid, &req, p.handoverTimeout).Result()
 			if err != nil {
-				plog.Error("Invalid IdentityHandoverResponse", log.PID("placement", placementPid), log.Error(err))
+				plog.Error("Invalid IdentityHandoverResponse", p.logPartition, log.PID("placement", placementPid), log.Error(err))
 				return
 			}
 			switch resp := _resp.(type) {
@@ -168,7 +168,11 @@ func (p *partitionIdentityActor) handleClusterTopology(msg *ClusterTopology, ctx
 		}()
 	}
 	wg.Wait()
-	plog.Info("handleClusterTopology end", p.logPartition, log.Duration("cost", time.Since(now)))
+	plog.Info("Updated ClusterTopology",
+		log.String("kind", p.partitionKind.Kind),
+		log.Uint64("eventId", msg.EventId),
+		log.Int("members", len(msg.Members)),
+		log.Duration("cost", time.Since(now)))
 	return
 }
 
