@@ -69,9 +69,10 @@ func (pm *PartitionManager) PidOfIdentityActor(kind, addr string) *actor.PID {
 // }
 
 func (pm *PartitionManager) onClusterTopology(tplg *ClusterTopologyEventV2) {
-	plog.Info("onClusterTopology")
+	plog.Info("onClusterTopology", log.Uint64("eventId", tplg.EventId))
 	system := pm.cluster.ActorSystem
-	for kind, msg := range pm.groupClusterTopologyByKind(tplg.ClusterTopology) {
+	kindGroups := pm.groupClusterTopologyByKind(tplg.ClusterTopology)
+	for kind, msg := range kindGroups {
 		if v, ok := pm.kinds.Load(kind); ok {
 			pk := v.(*PartitionKind)
 			system.Root.Send(pk.identity.PID(), msg)
@@ -89,6 +90,17 @@ func (pm *PartitionManager) onClusterTopology(tplg *ClusterTopologyEventV2) {
 			system.Root.Send(pk.activator.PID(), msg)
 		}
 	}
+
+	pm.kinds.Range(func(k, v interface{}) bool {
+		kind := k.(string)
+		if _, ok := kindGroups[kind]; !ok {
+			plog.Debug("onClusterTopology", log.String("kind", kind), log.String("status", "left"))
+			pk := v.(*PartitionKind)
+			pm.kinds.Delete(kind)
+			pk.stop()
+		}
+		return true
+	})
 }
 
 func (pm *PartitionManager) groupClusterTopologyByKind(tplg *ClusterTopology) map[string]*ClusterTopology {

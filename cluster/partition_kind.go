@@ -80,6 +80,7 @@ func (pm *PartitionKind) stop() {
 	if _, err := system.Root.PoisonFuture(pm.activator.PID()).Result(); err != nil {
 		plog.Error("Stop actor failed", log.String("actor", ActorNamePlacement))
 	}
+	plog.Info("Stopped partition", log.String("kind", pm.Kind))
 }
 
 // waiting actor ready OK.
