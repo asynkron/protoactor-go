@@ -259,6 +259,8 @@ func (c *Cluster) Call(name string, kind string, msg interface{}, callopts ...*G
 			switch err {
 			case actor.ErrTimeout, remote.ErrTimeout:
 				_callopts.RetryAction(i)
+				id := ClusterIdentity{Kind: kind, Identity: name}
+				c.pidCache.removeCacheByName(id.AsKey())
 				continue
 			case actor.ErrDeadLetter, remote.ErrDeadLetter:
 				_callopts.RetryAction(i)

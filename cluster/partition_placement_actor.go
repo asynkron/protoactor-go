@@ -79,23 +79,43 @@ func (p *partitionPlacementActor) onTimeout(msg *actor.ReceiveTimeout, ctx actor
 func (p *partitionPlacementActor) handleTerminated(msg *actor.Terminated, ctx actor.Context) {
 	plog.Debug("handleTerminated", p.logPartition)
 	var req *ActivationTerminated
-	for _, meta := range p._actors {
-		if meta.PID.Equal(msg.Who) {
+
+	var actorKey string
+	if baseIdLength := len(p.self.Id); baseIdLength+1 < len(msg.Who.Id) {
+		actorKey = msg.Who.Id[baseIdLength+1:]
+		if meta, ok := p._actors[actorKey]; ok {
 			req = &ActivationTerminated{
 				Pid:             meta.PID,
 				ClusterIdentity: meta.ID,
 				EventId:         meta.EventID,
 			}
-			break
 		}
 	}
+
 	if req == nil {
+		plog.Warn("handleTerminated", p.logPartition, log.String("status", "slowly lookup"), log.PID("who", msg.Who), log.String("grain", actorKey))
+		for _, meta := range p._actors {
+			if meta.PID.Equal(msg.Who) {
+				req = &ActivationTerminated{
+					Pid:             meta.PID,
+					ClusterIdentity: meta.ID,
+					EventId:         meta.EventID,
+				}
+				break
+			}
+		}
+	}
+
+	if req == nil {
+		plog.Warn("handleTerminated", p.logPartition, log.String("status", "not found"), log.PID("who", msg.Who), log.String("grain", actorKey))
 		return
 	}
+	delete(p._actors, actorKey)
+
 	ownerAddr := p.chash.Get(req.ClusterIdentity.Identity)
 	ownerPid := p.partionKind.PidOfIdentityActor(ownerAddr)
 	ctx.Send(ownerPid, req)
-	delete(p._actors, req.ClusterIdentity.AsKey())
+	plog.Debug("handleTerminated", p.logPartition, log.String("status", "OK"), log.String("grain", actorKey))
 }
 
 func (p *partitionPlacementActor) handleIdentityHandoverRequest(msg *IdentityHandoverRequest, ctx actor.Context) {
@@ -152,7 +172,7 @@ func (p *partitionPlacementActor) handleActivationRequest(msg *ActivationRequest
 				ID:   msg.ClusterIdentity.Identity,
 				Kind: msg.ClusterIdentity.Kind,
 			})
-			_log.Info("spawn and send ClusterInit message.")
+			_log.Debug("handleActivationRequest", log.String("status", "send ClusterInit message."))
 		}
 		return pid, err
 	})

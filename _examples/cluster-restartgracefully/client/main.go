@@ -23,7 +23,7 @@ var (
 )
 
 func main() {
-	cluster.SetLogLevel(log.ErrorLevel)
+	cluster.SetLogLevel(log.InfoLevel)
 	var loops = flag.Int("loops", 10000, "request times.")
 	var interval = flag.Duration("interval", 0, "request interval miliseconds per client.")
 	var clients = flag.Int("clients", 1, "clients count.")
@@ -85,10 +85,15 @@ func runClientsAll(clients int, loops int, interval time.Duration) {
 	}
 	wg.Wait()
 	cost := time.Since(now)
+	total := clients * loops
+	costSecs := int(cost / time.Second)
+	if costSecs <= 0 {
+		costSecs = 1
+	}
 	plog.Info("end all.",
 		log.Int("clients", clients),
-		log.Int("total", clients*loops),
-		log.Int("req/s", clients*loops/int(cost/time.Second)),
+		log.Int("total", total),
+		log.Int("req/s", total/costSecs),
 		log.Duration("take", cost))
 }
 

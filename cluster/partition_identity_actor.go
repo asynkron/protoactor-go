@@ -110,8 +110,8 @@ func (p *partitionIdentityActor) handleActivationRequest(msg *ActivationRequest,
 
 	// self
 	if _pid, ok := p.lookup.Get(key); ok {
+		_log.Debug("handleActivationRequest", log.String("status", "cache hited"), log.String("grain", key))
 		meta := _pid.(GrainMeta)
-		_log.Debug("handleActivationRequest", log.String("status", "cache hited"))
 		ctx.Respond(&ActivationResponse{Pid: meta.PID})
 		return
 	}
@@ -120,17 +120,18 @@ func (p *partitionIdentityActor) handleActivationRequest(msg *ActivationRequest,
 }
 
 func (p *partitionIdentityActor) handleActivationTerminated(msg *ActivationTerminated, ctx actor.Context) {
+	// clean cache
 	key := msg.ClusterIdentity.AsKey()
+	p.lookup.Remove(key)
+
 	ownerAddr := p.chash.Get(msg.ClusterIdentity.Identity)
 	if ownerAddr != p.self.Address {
 		ownerPid := p.partitionKind.PidOfIdentityActor(ownerAddr)
 		ctx.Forward(ownerPid)
-		plog.Info("Terminated", p.logPartition, log.PID("owner", ownerPid))
-		p.lookup.Remove(key) // ...
+		plog.Debug("Terminated", p.logPartition, log.PID("owner", ownerPid), log.String("grain", key))
 		return
 	}
-	p.lookup.Remove(key)
-	plog.Info("Terminated", p.logPartition, log.String("owner", "self"))
+	plog.Debug("Terminated", p.logPartition, log.String("owner", "self"), log.String("grain", key))
 }
 
 func (p *partitionIdentityActor) handleClusterTopology(msg *ClusterTopology, ctx actor.Context) {
