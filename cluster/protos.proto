@@ -11,6 +11,50 @@ message TakeOwnership {
     string name = 2;
 }
 
+// Copy from:
+// https://github.com/AsynkronIT/protoactor-dotnet/blob/dev/src/Proto.Cluster/Protos.proto
+
+//request response call from Identity actor sent to each member
+//asking what activations they hold that belong to the requester
+message IdentityHandoverRequest {
+    uint64 event_id = 1;
+    string address = 2;
+    repeated Member members = 3;
+}
+
+//response message to the above
+message IdentityHandoverResponse {
+    repeated Activation actors = 1;
+}
+
+message ClusterIdentity{
+    string identity = 1;
+    string kind = 2;
+}
+
+message Activation {
+    actor.PID pid = 1;
+    ClusterIdentity cluster_identity = 2;
+    uint64 eventId = 3;
+}
+
+message ActivationTerminated {
+    actor.PID pid = 1;
+    ClusterIdentity cluster_identity = 2;
+    uint64 eventId = 3;
+}
+
+message ActivationRequest {
+    ClusterIdentity cluster_identity = 1;
+    string request_id = 2;
+}
+
+message ActivationResponse {
+    actor.PID pid = 1;
+    uint32 status_code = 2;
+}
+
+
 message GrainRequest {
     int32 method_index = 1;
     bytes message_data = 2;
@@ -22,4 +66,27 @@ message GrainResponse {
 
 message GrainErrorResponse {
     string err = 1;
+    int32 code = 2;
+}
+
+message Member {
+    string host = 1;
+    int32 port = 2;
+    string id = 3;
+    repeated string kinds = 4;
+}
+
+message ClusterTopology {
+    uint64 event_id = 1;
+    repeated Member members = 2;
+    repeated Member joined = 3;
+    repeated Member left = 4;
+    repeated Member banned = 5;
+}
+
+message HeartbeatRequest {
+}
+
+message HeartbeatResponse {
+    uint32 actor_count = 1;
 }

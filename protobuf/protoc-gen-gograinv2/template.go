@@ -12,6 +12,7 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/AsynkronIT/protoactor-go/remote"
 	logmod "github.com/AsynkronIT/protoactor-go/log"
 	"github.com/gogo/protobuf/proto"
 )
@@ -83,6 +84,9 @@ func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input.
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
+		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
+			return nil, remote.ErrDeadLetter
+		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -100,12 +104,13 @@ type {{ $service.Name }}Actor struct {
 func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
+	case *cluster.ClusterInit:
 		a.inner = x{{ $service.Name }}Factory()
-		id := ctx.Self().Id[17:] // skip "activator/Remote$"
-		a.inner.Init(id)
+		a.inner.Init(msg.ID)
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
+
 	case *actor.ReceiveTimeout:
 		a.inner.Terminate()
 		ctx.Poison(ctx.Self())

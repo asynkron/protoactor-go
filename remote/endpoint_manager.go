@@ -59,7 +59,6 @@ func (em *endpointManager) start() {
 	em.startActivator()
 	em.startSupervisor()
 
-	plog.Info("Starting EndpointManager")
 	if err := em.waiting(3 * time.Second); err != nil {
 		panic(err)
 	}

@@ -16,6 +16,11 @@ message PID {
 // user messages
 message PoisonPill {}
 
+// instead of timeout when you request a unreachable PID.
+message DeadLetterResponse {
+    PID Target = 1;
+}
+
 // system messages
 message Watch {
     PID watcher = 1;

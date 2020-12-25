@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -51,7 +53,7 @@ func itoa(buf *bytes.Buffer, i int, wid int) {
 	buf.Write(b[bp:])
 }
 
-func (l *ioLogger) formatHeader(buf *bytes.Buffer, prefix string, t time.Time) {
+func (l *ioLogger) formatHeader(buf *bytes.Buffer, prefix string, t time.Time, loglv Level) {
 	// Y/M/D
 	year, month, day := t.Date()
 	itoa(buf, year, 4)
@@ -73,16 +75,27 @@ func (l *ioLogger) formatHeader(buf *bytes.Buffer, prefix string, t time.Time) {
 	// *buf = append(*buf, '.')
 	// itoa(buf, t.Nanosecond()/1e3, 6)
 
+	// log level
 	buf.WriteByte(' ')
+	buf.WriteString(loglv.String())
+	buf.WriteByte(' ')
+
+	// prefix
 	if len(prefix) > 0 {
 		buf.WriteString(prefix)
-		buf.WriteByte(' ')
 	}
+	buf.WriteByte('\t')
 }
 
 func (l *ioLogger) writeEvent(e Event) {
 	var buf = bytes.Buffer{}
-	l.formatHeader(&buf, e.Prefix, e.Time)
+	l.formatHeader(&buf, e.Prefix, e.Time, e.Level)
+	if e.Caller.line > 0 {
+		buf.WriteString(e.Caller.ShortFileName())
+		buf.WriteByte(':')
+		buf.WriteString(strconv.Itoa(e.Caller.line))
+		buf.WriteByte('\t')
+	}
 	if len(e.Message) > 0 {
 		buf.WriteString(e.Message)
 		buf.WriteByte(' ')
@@ -99,6 +112,7 @@ func (l *ioLogger) writeEvent(e Event) {
 	}
 	buf.WriteByte('\n')
 	l.out.Write(buf.Bytes())
+	buf.Reset()
 }
 
 type ioEncoder struct {
@@ -143,4 +157,15 @@ func (e ioEncoder) EncodeObject(key string, val interface{}) {
 
 func (e ioEncoder) EncodeType(key string, val reflect.Type) {
 	fmt.Fprintf(e, "%s=%v", key, val)
+}
+
+func (e ioEncoder) EncodeCaller(key string, val CallerInfo) {
+	fname := val.fname
+	idx := strings.LastIndexByte(fname, '/')
+	if idx >= len(fname) {
+		fname = fname
+	} else {
+		fname = fname[idx+1:]
+	}
+	fmt.Fprintf(e, "%s=%s:%d", key, fname, val.line)
 }

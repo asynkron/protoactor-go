@@ -1,33 +1,33 @@
 package cluster
 
 type MemberStrategy interface {
-	GetAllMembers() []*MemberStatus
-	AddMember(member *MemberStatus)
-	UpdateMember(member *MemberStatus)
-	RemoveMember(member *MemberStatus)
+	GetAllMembers() []*Member
+	// AddMember(member *Member)
+	// UpdateMember(member *Member)
+	// RemoveMember(member *Member)
 	GetPartition(key string) string
 	GetActivator() string
 }
 
 type simpleMemberStrategy struct {
-	members []*MemberStatus
+	members []*Member
 	rr      *SimpleRoundRobin
 	rdv     *Rendezvous
 }
 
 func newDefaultMemberStrategy(kind string) MemberStrategy {
-	ms := &simpleMemberStrategy{members: make([]*MemberStatus, 0)}
+	ms := &simpleMemberStrategy{members: make([]*Member, 0)}
 	ms.rr = NewSimpleRoundRobin(MemberStrategy(ms))
 	ms.rdv = NewRendezvous(MemberStrategy(ms))
 	return ms
 }
 
-func (m *simpleMemberStrategy) AddMember(member *MemberStatus) {
+func (m *simpleMemberStrategy) AddMember(member *Member) {
 	m.members = append(m.members, member)
 	m.rdv.UpdateRdv()
 }
 
-func (m *simpleMemberStrategy) UpdateMember(member *MemberStatus) {
+func (m *simpleMemberStrategy) UpdateMember(member *Member) {
 	for i, mb := range m.members {
 		if mb.Address() == member.Address() {
 			m.members[i] = member
@@ -36,7 +36,7 @@ func (m *simpleMemberStrategy) UpdateMember(member *MemberStatus) {
 	}
 }
 
-func (m *simpleMemberStrategy) RemoveMember(member *MemberStatus) {
+func (m *simpleMemberStrategy) RemoveMember(member *Member) {
 	for i, mb := range m.members {
 		if mb.Address() == member.Address() {
 			m.members = append(m.members[:i], m.members[i+1:]...)
@@ -46,7 +46,7 @@ func (m *simpleMemberStrategy) RemoveMember(member *MemberStatus) {
 	}
 }
 
-func (m *simpleMemberStrategy) GetAllMembers() []*MemberStatus {
+func (m *simpleMemberStrategy) GetAllMembers() []*Member {
 	return m.members
 }
 

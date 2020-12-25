@@ -87,7 +87,7 @@ func newActivatorActor(remote *Remote) actor.Producer {
 func (a *activator) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		plog.Debug("Started Activator")
+		plog.Info("Started Activator")
 	case *Ping:
 		context.Respond(&Pong{})
 	case *ActorPidRequest:
