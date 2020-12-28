@@ -4,7 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/AsynkronIT/protoactor-go/badge.svg?branch=dev)](https://coveralls.io/github/AsynkronIT/protoactor-go?branch=dev)
 [![Sourcegraph](https://sourcegraph.com/github.com/AsynkronIT/protoactor-go/-/badge.svg)](https://sourcegraph.com/github.com/AsynkronIT/protoactor-go?badge)
 
-### [Join or Slack channel](https://asynkron.slack.com/)
+### [Join our Slack channel](https://asynkron.slack.com/)
 
 # Cross platform actors
 
