@@ -3,7 +3,7 @@ module github.com/AsynkronIT/protoactor-go
 require (
 	github.com/AsynkronIT/goconsole v0.0.0-20160504192649-bfa12eebf716 // indirect
 	github.com/AsynkronIT/gonet v0.0.0-20161127091928-0553637be225
-	github.com/Workiva/go-datastructures v1.0.50
+	github.com/Workiva/go-datastructures v1.0.52
 	github.com/armon/go-metrics v0.3.0 // indirect
 	github.com/cespare/xxhash v1.1.0
 	github.com/chzyer/logex v1.1.10 // indirect
