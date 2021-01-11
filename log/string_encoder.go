@@ -23,10 +23,18 @@ var (
 
 func init() {
 	l := &ioLogger{c: make(chan Event, 100), out: os.Stderr}
-	sub = Subscribe(func(evt Event) {
+	resetEventSubscriber(func(evt Event) {
 		l.c <- evt
 	})
 	go l.listenEvent()
+}
+
+func resetEventSubscriber(f func(evt Event)) {
+	if sub != nil {
+		Unsubscribe(sub)
+		sub = nil
+	}
+	sub = Subscribe(f)
 }
 
 func (l *ioLogger) listenEvent() {
@@ -87,14 +95,25 @@ func (l *ioLogger) formatHeader(buf *bytes.Buffer, prefix string, t time.Time, l
 	buf.WriteByte('\t')
 }
 
+func (l *ioLogger) formatCaller(buf *bytes.Buffer, caller *CallerInfo) {
+	fname := caller.ShortFileName()
+	buf.WriteString(fname)
+	buf.WriteByte(':')
+	buf.WriteString(strconv.Itoa(caller.line))
+	if v := (32 - len(fname)); v > 16 {
+		buf.Write([]byte{'\t', '\t', '\t'})
+	} else if v > 8 {
+		buf.Write([]byte{'\t', '\t'})
+	} else {
+		buf.WriteByte('\t')
+	}
+}
+
 func (l *ioLogger) writeEvent(e Event) {
 	var buf = bytes.Buffer{}
 	l.formatHeader(&buf, e.Prefix, e.Time, e.Level)
 	if e.Caller.line > 0 {
-		buf.WriteString(e.Caller.ShortFileName())
-		buf.WriteByte(':')
-		buf.WriteString(strconv.Itoa(e.Caller.line))
-		buf.WriteByte('\t')
+		l.formatCaller(&buf, &e.Caller)
 	}
 	if len(e.Message) > 0 {
 		buf.WriteString(e.Message)
@@ -163,7 +182,7 @@ func (e ioEncoder) EncodeCaller(key string, val CallerInfo) {
 	fname := val.fname
 	idx := strings.LastIndexByte(fname, '/')
 	if idx >= len(fname) {
-		fname = fname
+		// fname = fname
 	} else {
 		fname = fname[idx+1:]
 	}

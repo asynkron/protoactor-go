@@ -63,7 +63,7 @@ func (p *partitionPlacementActor) Receive(ctx actor.Context) {
 }
 
 func (p *partitionPlacementActor) onStart(ctx actor.Context) {
-	plog.Info("Started PartitionPlacement", p.logPartition)
+	plog.Debug("Started PartitionPlacement", p.logPartition)
 	p.self = ctx.Self()
 }
 

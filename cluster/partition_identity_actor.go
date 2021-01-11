@@ -76,7 +76,7 @@ func (p *partitionIdentityActor) Receive(ctx actor.Context) {
 }
 
 func (p *partitionIdentityActor) onStart(ctx actor.Context) {
-	plog.Info("Started PartitionIdentity", p.logPartition)
+	plog.Debug("Started PartitionIdentity", p.logPartition)
 	p.lastEventTimestamp = time.Now()
 	p.self = ctx.Self()
 }
@@ -169,9 +169,9 @@ func (p *partitionIdentityActor) handleClusterTopology(msg *ClusterTopology, ctx
 	}
 	wg.Wait()
 	plog.Info("Updated ClusterTopology",
-		log.String("kind", p.partitionKind.Kind),
 		log.Uint64("eventId", msg.EventId),
 		log.Int("members", len(msg.Members)),
+		log.String("kind", p.partitionKind.Kind),
 		log.Duration("cost", time.Since(now)))
 	return
 }

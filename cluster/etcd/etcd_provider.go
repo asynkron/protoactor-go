@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	plog = log.New(log.InfoLevel, "[CLUSTER/ETCD]")
+	plog = log.New(log.DefaultLevel, "[CLU/ETCD]")
 )
 
 type Provider struct {
