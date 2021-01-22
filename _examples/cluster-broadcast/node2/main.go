@@ -8,7 +8,7 @@ import (
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
+	"github.com/AsynkronIT/protoactor-go/cluster/automanaged"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
@@ -47,26 +47,25 @@ func startNode(port int64) *cluster.Cluster {
 	timeout := 10 * time.Minute
 
 	system := actor.NewActorSystem()
-	config := remote.Configure("localhost", 0)
-	remote := remote.NewRemote(system, config)
+	shared.SetSystem(system)
 
-	provider, _ := consul.New()
-	clusterConfig := cluster.Configure("my-cluster", provider, config)
-	cluster := cluster.New(system, clusterConfig)
-
-	// this node knows about Hello kind
-	remote.Register("Calculator", actor.PropsFromProducer(func() actor.Actor {
+	calcKind := cluster.NewKind("Calculator", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.CalculatorActor{
 			Timeout: &timeout,
 		}
 	}))
-
-	// this node knows about Hello kind
-	remote.Register("Tracker", actor.PropsFromProducer(func() actor.Actor {
+	trackerKind := cluster.NewKind("Tracker", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.TrackerActor{
 			Timeout: &timeout,
 		}
 	}))
+
+	provider := automanaged.NewWithConfig(2*time.Second, 6330, "localhost:6330", "localhost:6331")
+	config := remote.Configure("localhost", 0)
+
+	clusterConfig := cluster.Configure("my-cluster", provider, config, calcKind, trackerKind)
+	cluster := cluster.New(system, clusterConfig)
+	shared.SetCluster(cluster)
 
 	shared.CalculatorFactory(func() shared.Calculator {
 		return &shared.CalcGrain{}
