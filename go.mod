@@ -1,5 +1,12 @@
 module github.com/AsynkronIT/protoactor-go
 
+replace (
+	// etcd/clientv3
+	// @see https://github.com/etcd-io/etcd/issues/12124
+	go.etcd.io/bbolt => github.com/coreos/bbolt v1.3.5
+	google.golang.org/grpc => google.golang.org/grpc v1.26.0
+)
+
 require (
 	github.com/AsynkronIT/goconsole v0.0.0-20160504192649-bfa12eebf716 // indirect
 	github.com/AsynkronIT/gonet v0.0.0-20161127091928-0553637be225
