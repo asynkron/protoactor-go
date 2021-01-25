@@ -39,7 +39,10 @@ test:
 	go test $(PACKAGES) -timeout=30s
 
 test-short:
-	go test -short $(PACKAGES)
+	go test $(PACKAGES) -timeout=30s -short
+
+test-race:
+	go test $(PACKAGES) -timeout=30s -race
 
 # }}} test
 
