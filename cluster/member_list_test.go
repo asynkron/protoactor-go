@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
 )
@@ -157,7 +158,8 @@ func TestMemberList_getPartitionMember(t *testing.T) {
 	}
 }
 
-func BenchmarkMemberList_getPartitionMemberV1(b *testing.B) {
+func BenchmarkMemberList_getPartitionMemberV2(b *testing.B) {
+	SetLogLevel(log.ErrorLevel)
 	actorSystem := actor.NewActorSystem()
 	c := New(actorSystem, Configure("mycluster", nil, remote.Configure("127.0.0.1", 0)))
 	obj := setupMemberList(c)

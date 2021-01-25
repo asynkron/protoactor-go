@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"runtime"
 	"testing"
+
+	"github.com/AsynkronIT/protoactor-go/log"
 )
 
 func Benchmark_RendezvousV2_Get(b *testing.B) {
+	SetLogLevel(log.ErrorLevel)
 	for _, v := range []int{1, 2, 3, 5, 10, 100, 1000, 2000} {
 		members := _newTopologyEventForTest(v)
 		obj := NewRendezvousV2(members)
