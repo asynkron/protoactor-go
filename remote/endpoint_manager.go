@@ -13,8 +13,37 @@ import (
 )
 
 type endpointLazy struct {
-	valueFunc func() *endpoint
-	unloaded  uint32
+	// valueFunc func() *endpoint
+	unloaded uint32
+	once     sync.Once
+	endpoint atomic.Value
+	manager  *endpointManager
+	address  string
+}
+
+func NewEndpointLazy(em *endpointManager, address string) *endpointLazy {
+	return &endpointLazy{
+		manager: em,
+		address: address,
+	}
+}
+
+func (el *endpointLazy) connect() {
+	em := el.manager
+	system := em.remote.actorSystem
+	rst, _ := system.Root.RequestFuture(em.endpointSupervisor, el.address, -1).Result()
+	ep := rst.(*endpoint)
+	el.Set(ep)
+}
+
+func (el *endpointLazy) Set(ep *endpoint) {
+	el.endpoint.Store(ep)
+}
+
+func (el *endpointLazy) Get() *endpoint {
+	el.once.Do(el.connect)
+	ep := el.endpoint.Load()
+	return ep.(*endpoint)
 }
 
 type endpoint struct {
@@ -185,24 +214,34 @@ func (em *endpointManager) remoteDeliver(msg *remoteDeliver) {
 func (em *endpointManager) ensureConnected(address string) *endpoint {
 	e, ok := em.connections.Load(address)
 	if !ok {
-		el := &endpointLazy{}
-		var once sync.Once
-		el.valueFunc = func() *endpoint {
-			once.Do(func() {
-				rst, _ := em.remote.actorSystem.Root.RequestFuture(em.endpointSupervisor, address, -1).Result()
-				ep := rst.(*endpoint)
-				el.valueFunc = func() *endpoint {
-					return ep
-				}
-			})
-			return el.valueFunc()
-		}
+		el := NewEndpointLazy(em, address)
 		e, _ = em.connections.LoadOrStore(address, el)
 	}
-
 	el := e.(*endpointLazy)
-	return el.valueFunc()
+	return el.Get()
 }
+
+// func (em *endpointManager) ensureConnected(address string) *endpoint {
+// 	e, ok := em.connections.Load(address)
+// 	if !ok {
+// 		el := &endpointLazy{}
+// 		var once sync.Once
+// 		el.valueFunc = func() *endpoint {
+// 			once.Do(func() {
+// 				rst, _ := em.remote.actorSystem.Root.RequestFuture(em.endpointSupervisor, address, -1).Result()
+// 				ep := rst.(*endpoint)
+// 				el.valueFunc = func() *endpoint {
+// 					return ep
+// 				}
+// 			})
+// 			return el.valueFunc()
+// 		}
+// 		e, _ = em.connections.LoadOrStore(address, el)
+// 	}
+
+// 	el := e.(*endpointLazy)
+// 	return el.valueFunc()
+// }
 
 func (em *endpointManager) removeEndpoint(msg *EndpointTerminatedEvent) {
 	v, ok := em.connections.Load(msg.Address)
@@ -210,7 +249,7 @@ func (em *endpointManager) removeEndpoint(msg *EndpointTerminatedEvent) {
 		le := v.(*endpointLazy)
 		if atomic.CompareAndSwapUint32(&le.unloaded, 0, 1) {
 			em.connections.Delete(msg.Address)
-			ep := le.valueFunc()
+			ep := le.Get()
 			em.remote.actorSystem.Root.Send(ep.watcher, msg)
 			em.remote.actorSystem.Root.Send(ep.writer, msg)
 		}
