@@ -87,7 +87,7 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member, eventId uint64) {
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
 	if ml.lastEventId >= eventId {
-		// plog.Debug("Skipped ClusterTopology", log.Int("members", len(members)), log.Uint64("eventId", eventId))
+		plog.Debug("Skipped ClusterTopology", log.Uint64("eventId", eventId), log.Int("members", len(members)))
 		return
 	}
 	ml.lastEventId = eventId

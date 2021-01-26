@@ -64,7 +64,6 @@ func (p *partitionPlacementActor) Receive(ctx actor.Context) {
 
 func (p *partitionPlacementActor) onStart(ctx actor.Context) {
 	plog.Debug("Started PartitionPlacement", p.logPartition)
-	p.self = ctx.Self()
 }
 
 func (p *partitionPlacementActor) onStopped(ctx actor.Context) {
