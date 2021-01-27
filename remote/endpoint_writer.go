@@ -1,11 +1,13 @@
 package remote
 
 import (
+	io "io"
+	"time"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"io"
 )
 
 func endpointWriterProducer(remote *Remote, address string, config *Config) actor.Producer {
@@ -27,13 +29,15 @@ type endpointWriter struct {
 	remote              *Remote
 }
 
-func (state *endpointWriter) initialize() error {
+func (state *endpointWriter) initialize() {
 	err := state.initializeInternal()
 	if err != nil {
 		plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
-		return err
+		// Wait 2 seconds to restart and retry
+		// Replace with Exponential Backoff
+		time.Sleep(2 * time.Second)
+		panic(err)
 	}
-	return nil
 }
 
 func (state *endpointWriter) initializeInternal() error {
@@ -170,14 +174,7 @@ func addToLookup(m map[string]int32, name string, a []string) (int32, []string) 
 func (state *endpointWriter) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
-		err := state.initialize()
-		if err != nil {
-			plog.Error("Endpoint could not reach endpoint address - killing endpoint actor",
-				log.Error(err),
-				log.String("actorId", ctx.Self().GetId()),
-				log.String("actorAddress", ctx.Self().GetAddress()))
-			ctx.Stop(ctx.Self())
-		}
+		state.initialize()
 	case *actor.Stopped:
 		if state.stream != nil {
 			err := state.stream.CloseSend()
