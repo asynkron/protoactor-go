@@ -40,7 +40,7 @@ require (
 	github.com/orcaman/concurrent-map v0.0.0-20190107190726-7ed82d9cb717
 	github.com/serialx/hashring v0.0.0-20180504054112-49a4782e9908
 	github.com/stretchr/objx v0.3.0 // indirect
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/uber/jaeger-client-go v2.25.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	go.uber.org/atomic v1.7.0 // indirect
