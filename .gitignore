@@ -230,4 +230,5 @@ FakesAssemblies/
 
 # go.sum of examples
 _examples/**/go.sum
+.vscode/
 
