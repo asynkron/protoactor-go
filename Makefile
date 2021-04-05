@@ -36,13 +36,13 @@ protoclean:
 PACKAGES := $(shell go list ./... | grep -v "/examples/")
 
 test:
-	go test $(PACKAGES) -timeout=30s
+	@go test $(PACKAGES) -timeout=30s
 
 test-short:
-	go test $(PACKAGES) -timeout=30s -short
+	@go test $(PACKAGES) -timeout=30s -short
 
 test-race:
-	go test $(PACKAGES) -timeout=30s -race
+	@go test $(PACKAGES) -timeout=30s -race
 
 # }}} test
 
