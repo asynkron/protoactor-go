@@ -4,7 +4,7 @@ module github.com/AsynkronIT/protoactor-go
 replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
 
 require (
-	github.com/Workiva/go-datastructures v1.0.52
+	github.com/Workiva/go-datastructures v1.0.53
 	github.com/armon/go-metrics v0.3.0 // indirect
 	github.com/cespare/xxhash v1.1.0
 	github.com/chzyer/logex v1.1.10 // indirect
@@ -52,7 +52,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/zap v1.16.0 // indirect
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	google.golang.org/grpc v1.36.0
 	gopkg.in/couchbase/gocbcore.v7 v7.1.18 // indirect
