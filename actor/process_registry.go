@@ -7,8 +7,8 @@ import (
 )
 
 type ProcessRegistryValue struct {
-	ActorSystem    *ActorSystem
 	SequenceID     uint64
+	ActorSystem    *ActorSystem
 	Address        string
 	LocalPIDs      cmap.ConcurrentMap
 	RemoteHandlers []AddressResolver
