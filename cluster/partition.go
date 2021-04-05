@@ -84,7 +84,7 @@ func newPartitionActor(p *partitionValue, kind string) actor.Producer {
 func (state *partitionActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		plog.Info("Started", log.String("kind", state.kind), log.String("id", context.Self().Id))
+		plog.Debug("Started", log.String("kind", state.kind), log.String("id", context.Self().Id))
 	case *remote.ActorPidRequest:
 		state.spawn(msg, context)
 	case *actor.Terminated:
@@ -270,7 +270,7 @@ func (state *partitionActor) memberLeft(msg *MemberLeftEvent, context actor.Cont
 }
 
 func (state *partitionActor) memberJoined(msg *MemberJoinedEvent, context actor.Context) {
-	plog.Info("Member joined", log.String("kind", state.kind), log.String("name", msg.Name()))
+	plog.Debug("Member joined", log.String("kind", state.kind), log.String("name", msg.Name()))
 	for actorID := range state.partition {
 		address := state.partitionValue.cluster.MemberList.getPartitionMember(actorID, state.kind)
 		if address != "" && address != state.partitionValue.cluster.ActorSystem.Address() {

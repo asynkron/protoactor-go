@@ -67,7 +67,9 @@ func (pm *PartitionKind) start(_chash chash.ConsistentHash) error {
 			return err
 		}
 	}
-	plog.Info("Started partition", log.String("kind", pm.Kind))
+
+	address := pm.identity.PID().GetAddress()
+	plog.Info("Started Partition", log.String("kind", pm.Kind), log.String("address", address))
 	return nil
 }
 

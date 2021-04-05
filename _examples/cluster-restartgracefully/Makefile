@@ -3,9 +3,11 @@ ttl:=10s
 loops:=10000
 clients:=10
 interval:=0ms
+env=prod
 
 start:
 	tmux new-session -d -s eg
+	tmux setenv -t eg PROTO_ACTOR_ENV $(env)
 	tmux split-window -t "eg:0"   -v
 	tmux split-window -t "eg:0.0" -h -p 66
 	tmux split-window -t "eg:0.1" -h -p 50
@@ -21,6 +23,10 @@ start:
 
 start-with-etcd:
 	make start cp=etcd
+
+
+debug:
+	PROTO_ACTOR_ENV=dev make start cp=etcd
 
 
 mock-clients-10w:

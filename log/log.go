@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// Level of log.
 type Level int32
 
 const (
@@ -17,6 +18,7 @@ const (
 	WarnLevel
 	ErrorLevel
 	OffLevel
+	DefaultLevel
 )
 
 var (
@@ -34,8 +36,18 @@ type Logger struct {
 	enableCaller bool
 }
 
+// New a Logger
 func New(level Level, prefix string, context ...Field) *Logger {
-	return &Logger{level: level, prefix: prefix, context: context}
+	opts := Current
+	if level == DefaultLevel {
+		level = opts.logLevel
+	}
+	return &Logger{
+		level:        level,
+		prefix:       prefix,
+		context:      context,
+		enableCaller: opts.enableCaller,
+	}
 }
 
 func (l *Logger) WithCaller() *Logger {
@@ -83,7 +95,7 @@ func (l *Logger) newEvent(msg string, level Level, fields ...Field) Event {
 		Fields:  fields,
 	}
 	if l.enableCaller {
-		ev.Caller = newCallerInfo(2)
+		ev.Caller = newCallerInfo(3)
 	}
 	return ev
 }
