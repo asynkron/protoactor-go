@@ -15,11 +15,13 @@ var (
 )
 
 func main() {
-	cfg := remote.Configure("0.0.0.0", 8081)
-	cfg = cfg.WithAdvertisedHost("localhost:8081")
+	// configure the remote with an advertised host address
+	cfg := cfg.WithAdvertisedHost("localhost:8081")
 	r := remote.NewRemote(system, cfg)
 	r.Start()
 
+	// use the advertised address of the remote actor in combination
+	// with the remote services name
 	remotePid := actor.NewPID("127.0.0.1:8080", "remote")
 
 	props := actor.

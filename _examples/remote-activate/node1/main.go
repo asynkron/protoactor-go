@@ -15,6 +15,7 @@ import (
 func main() {
 	timeout := 5 * time.Second
 
+	// configure the system as a remote one
 	system := actor.NewActorSystem()
 	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 8081))
 	r.Start()
@@ -33,6 +34,7 @@ func main() {
 			}
 		})
 
+	// spawn the actor as a named actor
 	pidResp, _ := rootContext.SpawnNamed(props, "hello")
 
 	res, _ := rootContext.RequestFuture(pidResp, &messages.HelloRequest{}, timeout).Result()

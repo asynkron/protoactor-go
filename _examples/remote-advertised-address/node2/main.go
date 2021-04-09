@@ -15,8 +15,9 @@ var (
 )
 
 func main() {
-	cfg := remote.Configure("0.0.0.0", 8080)
-	cfg = cfg.WithAdvertisedHost("localhost:8080")
+	// configure the remote with an advertised host address so that
+	// other services could send messages
+	cfg := cfg.WithAdvertisedHost("localhost:8080")
 	r := remote.NewRemote(system, cfg)
 	r.Start()
 
