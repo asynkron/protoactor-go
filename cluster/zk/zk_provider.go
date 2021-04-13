@@ -17,7 +17,8 @@ import (
 )
 
 var (
-	plog = log.New(log.InfoLevel, "[CLUSTER/ZK]")
+	_    cluster.ClusterProvider = new(Provider)
+	plog                         = log.New(log.InfoLevel, "[CLU/ZK]")
 )
 
 type RoleType int
@@ -43,7 +44,7 @@ type Provider struct {
 	self                *Node
 	members             map[string]*Node // all, contains self.
 	clusterError        error
-	conn                *zk.Conn
+	conn                zkConn
 	revision            uint64
 	fullpath            string
 	roleChangedListener RoleChangedListener
@@ -58,7 +59,7 @@ func New(endpoints []string, opts ...Option) (*Provider, error) {
 	for _, fn := range opts {
 		fn(zkCfg)
 	}
-	conn, _, err := zk.Connect(endpoints, zkCfg.SessionTimeout)
+	conn, err := connectZk(endpoints, zkCfg.SessionTimeout)
 	if err != nil {
 		plog.Error("connect zk fail", log.Error(err))
 		return nil, err
@@ -82,7 +83,7 @@ func New(endpoints []string, opts ...Option) (*Provider, error) {
 		revision:            0,
 		fullpath:            "",
 		roleChangedListener: zkCfg.RoleChanged,
-		roleChangedChan:     make(chan RoleType, 3),
+		roleChangedChan:     make(chan RoleType, 1),
 		role:                Follower,
 	}
 	return p, nil

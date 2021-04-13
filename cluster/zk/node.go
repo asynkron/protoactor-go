@@ -107,11 +107,3 @@ func (n *Node) Serialize() ([]byte, error) {
 func (n *Node) Deserialize(data []byte) error {
 	return json.Unmarshal(data, n)
 }
-
-func (n *Node) IsAlive() bool {
-	return n.Alive
-}
-
-func (n *Node) SetAlive(alive bool) {
-	n.Alive = alive
-}
