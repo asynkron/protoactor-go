@@ -15,6 +15,10 @@ const (
 	Closed
 )
 
+// NewThrottle
+// This has no guarantees that the throttle opens exactly after the period, since it is reset asynchronously
+// Throughput has been prioritized over exact re-opening
+// throttledCallBack, This will be called with the number of events what was throttled after the period
 func NewThrottle(maxEventsInPeriod int32, period time.Duration, throttledCallBack func(int32)) ShouldThrottle {
 
 	var currentEvents = int32(0)
