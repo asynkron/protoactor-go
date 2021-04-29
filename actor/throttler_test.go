@@ -12,6 +12,7 @@ func TestThrottler(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 
+	//create a throttler that triggers after 10 invocations within 1 second
 	throttler := NewThrottle(10, 1*time.Second, func(i int32) {
 		wg.Done()
 	})
