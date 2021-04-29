@@ -17,6 +17,12 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 	actorSystem.ProcessRegistry.Add(dp, "deadletter")
 	_ = actorSystem.EventStream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
+
+			//bail out if sender is set and deadletter request logging is false
+			if !actorSystem.Config.DeadLetterRequestLogging && deadLetter.Sender != nil {
+				return
+			}
+
 			plog.Debug("[DeadLetter]", log.Stringer("pid", deadLetter.PID), log.TypeOf("msg", deadLetter.Message), log.Stringer("sender", deadLetter.Sender))
 			// send back a response instead of timeout.
 			if deadLetter.Sender != nil {
