@@ -35,7 +35,7 @@ message Terminated {
 }
 
 enum TerminatedReason {
-    ActorStopped = 0;
+    UnknownReason = 0;
     AddressTerminated = 1;
     NotFound = 2;
 }
