@@ -16,6 +16,7 @@ type ActorSystem struct {
 	Guardians       *guardiansValue
 	DeadLetter      *deadLetterProcess
 	Extensions      *extensions.Extensions
+	Config          *Config
 }
 
 func (as *ActorSystem) NewLocalPID(id string) *PID {
@@ -43,7 +44,7 @@ func (as *ActorSystem) GetHostPort() (host string, port int, err error) {
 
 func NewActorSystem() *ActorSystem {
 	system := &ActorSystem{}
-
+	system.Config = &Config{}
 	system.ProcessRegistry = NewProcessRegistry(system)
 	system.Root = NewRootContext(system, EmptyMessageHeader)
 	system.Guardians = NewGuardians(system)
@@ -52,5 +53,11 @@ func NewActorSystem() *ActorSystem {
 	system.Extensions = extensions.NewExtensions()
 	SubscribeSupervision(system)
 
+	return system
+}
+
+func NewActorSystemWithConfig(config Config) *ActorSystem {
+	system := NewActorSystem()
+	system.Config = &config
 	return system
 }
