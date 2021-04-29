@@ -21,6 +21,7 @@ var (
 )
 
 type Provider struct {
+	leaseID       clientv3.LeaseID
 	cluster       *cluster.Cluster
 	baseKey       string
 	clusterName   string
@@ -30,7 +31,6 @@ type Provider struct {
 	members       map[string]*Node // all, contains self.
 	clusterError  error
 	client        *clientv3.Client
-	leaseID       clientv3.LeaseID
 	cancelWatch   func()
 	cancelWatchCh chan bool
 	keepAliveTTL  time.Duration
