@@ -1,7 +1,6 @@
 syntax = "proto3";
 package actor;
 
-// import "google/protobuf/any.proto";
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 option (gogoproto.gostring_all) = false;
@@ -13,15 +12,15 @@ message PID {
     string id = 2;
 }
 
-// user messages
-message PoisonPill {}
-
-// instead of timeout when you request a unreachable PID.
-message DeadLetterResponse {
-    PID Target = 1;
+//user messages
+message PoisonPill {
 }
 
-// system messages
+message DeadLetterResponse {
+    PID target = 1;
+}
+
+//system messages
 message Watch {
     PID watcher = 1;
 }
@@ -32,7 +31,14 @@ message Unwatch {
 
 message Terminated {
     PID who = 1;
-    bool address_terminated = 2;
+    TerminatedReason why = 2;
 }
 
-message Stop {}
+enum TerminatedReason {
+    UnknownReason = 0;
+    AddressTerminated = 1;
+    NotFound = 2;
+}
+
+message Stop {
+}

@@ -9,7 +9,9 @@ import (
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
+	math_bits "math/bits"
 	reflect "reflect"
+	strconv "strconv"
 	strings "strings"
 )
 
@@ -22,7 +24,31 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
+
+type TerminatedReason int32
+
+const (
+	UnknownReason     TerminatedReason = 0
+	AddressTerminated TerminatedReason = 1
+	NotFound          TerminatedReason = 2
+)
+
+var TerminatedReason_name = map[int32]string{
+	0: "UnknownReason",
+	1: "AddressTerminated",
+	2: "NotFound",
+}
+
+var TerminatedReason_value = map[string]int32{
+	"UnknownReason":     0,
+	"AddressTerminated": 1,
+	"NotFound":          2,
+}
+
+func (TerminatedReason) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_5da3cbeb884d181c, []int{0}
+}
 
 func (m *PID) Reset()      { *m = PID{} }
 func (*PID) ProtoMessage() {}
@@ -37,7 +63,7 @@ func (m *PID) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_PID.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +96,7 @@ func (m *PID) GetId() string {
 	return ""
 }
 
-// user messages
+//user messages
 type PoisonPill struct {
 }
 
@@ -87,7 +113,7 @@ func (m *PoisonPill) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_PoisonPill.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -106,9 +132,8 @@ func (m *PoisonPill) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_PoisonPill proto.InternalMessageInfo
 
-// instead of timeout when you request a unreachable PID.
 type DeadLetterResponse struct {
-	Target *PID `protobuf:"bytes,1,opt,name=Target,proto3" json:"Target,omitempty"`
+	Target *PID `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
 }
 
 func (m *DeadLetterResponse) Reset()      { *m = DeadLetterResponse{} }
@@ -124,7 +149,7 @@ func (m *DeadLetterResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return xxx_messageInfo_DeadLetterResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -150,7 +175,7 @@ func (m *DeadLetterResponse) GetTarget() *PID {
 	return nil
 }
 
-// system messages
+//system messages
 type Watch struct {
 	Watcher *PID `protobuf:"bytes,1,opt,name=watcher,proto3" json:"watcher,omitempty"`
 }
@@ -168,7 +193,7 @@ func (m *Watch) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Watch.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -211,7 +236,7 @@ func (m *Unwatch) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Unwatch.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -238,8 +263,8 @@ func (m *Unwatch) GetWatcher() *PID {
 }
 
 type Terminated struct {
-	Who               *PID `protobuf:"bytes,1,opt,name=who,proto3" json:"who,omitempty"`
-	AddressTerminated bool `protobuf:"varint,2,opt,name=address_terminated,json=addressTerminated,proto3" json:"address_terminated,omitempty"`
+	Who *PID             `protobuf:"bytes,1,opt,name=who,proto3" json:"who,omitempty"`
+	Why TerminatedReason `protobuf:"varint,2,opt,name=why,proto3,enum=actor.TerminatedReason" json:"why,omitempty"`
 }
 
 func (m *Terminated) Reset()      { *m = Terminated{} }
@@ -255,7 +280,7 @@ func (m *Terminated) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Terminated.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -281,11 +306,11 @@ func (m *Terminated) GetWho() *PID {
 	return nil
 }
 
-func (m *Terminated) GetAddressTerminated() bool {
+func (m *Terminated) GetWhy() TerminatedReason {
 	if m != nil {
-		return m.AddressTerminated
+		return m.Why
 	}
-	return false
+	return UnknownReason
 }
 
 type Stop struct {
@@ -304,7 +329,7 @@ func (m *Stop) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Stop.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -324,6 +349,7 @@ func (m *Stop) XXX_DiscardUnknown() {
 var xxx_messageInfo_Stop proto.InternalMessageInfo
 
 func init() {
+	proto.RegisterEnum("actor.TerminatedReason", TerminatedReason_name, TerminatedReason_value)
 	proto.RegisterType((*PID)(nil), "actor.PID")
 	proto.RegisterType((*PoisonPill)(nil), "actor.PoisonPill")
 	proto.RegisterType((*DeadLetterResponse)(nil), "actor.DeadLetterResponse")
@@ -336,30 +362,40 @@ func init() {
 func init() { proto.RegisterFile("protos.proto", fileDescriptor_5da3cbeb884d181c) }
 
 var fileDescriptor_5da3cbeb884d181c = []byte{
-	// 324 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x91, 0xbf, 0x4e, 0x42, 0x31,
-	0x14, 0xc6, 0x5b, 0x90, 0x3f, 0x1e, 0x89, 0x89, 0x9d, 0x88, 0x31, 0x47, 0xd2, 0x38, 0xb8, 0x70,
-	0x49, 0xd4, 0x41, 0x1d, 0x0d, 0x0b, 0x89, 0xc3, 0xcd, 0x15, 0x63, 0x9c, 0xcc, 0x85, 0x5b, 0x2f,
-	0x4d, 0xe0, 0x96, 0xb4, 0x25, 0xac, 0x3c, 0x82, 0xaf, 0xe0, 0xe6, 0xa3, 0x38, 0x32, 0x32, 0x38,
-	0x48, 0x59, 0x1c, 0x79, 0x04, 0x43, 0x05, 0x5d, 0x58, 0x9c, 0x7a, 0xbe, 0xf3, 0x3b, 0xdf, 0x49,
-	0xbf, 0x1c, 0xa8, 0x0c, 0xb5, 0xb2, 0xca, 0x04, 0xfe, 0x61, 0x85, 0xb8, 0x6b, 0x95, 0x3e, 0xac,
-	0xa7, 0xd2, 0xf6, 0x46, 0x9d, 0xa0, 0xab, 0x06, 0x8d, 0x54, 0xa5, 0xaa, 0xe1, 0x69, 0x67, 0xf4,
-	0xec, 0x95, 0x17, 0xbe, 0xfa, 0x71, 0xf1, 0x2b, 0xc8, 0x87, 0xad, 0x26, 0xab, 0x42, 0x29, 0x4e,
-	0x12, 0x2d, 0x8c, 0xa9, 0xd2, 0x1a, 0x3d, 0xdd, 0x8d, 0x36, 0x92, 0xed, 0x43, 0x4e, 0x26, 0xd5,
-	0x9c, 0x6f, 0xe6, 0x64, 0x72, 0x5d, 0x5e, 0xbe, 0x1e, 0x93, 0xc9, 0x47, 0x8d, 0xf0, 0x0a, 0x40,
-	0xa8, 0xa4, 0x51, 0x59, 0x28, 0xfb, 0x7d, 0x7e, 0x09, 0xac, 0x29, 0xe2, 0xe4, 0x56, 0x58, 0x2b,
-	0x74, 0x24, 0xcc, 0x50, 0x65, 0x46, 0x30, 0x0e, 0xc5, 0x76, 0xac, 0x53, 0x61, 0xfd, 0xda, 0xbd,
-	0x33, 0x08, 0xfc, 0x2f, 0x83, 0xb0, 0xd5, 0x8c, 0xd6, 0x84, 0xd7, 0xa1, 0xf0, 0x10, 0xdb, 0x6e,
-	0x8f, 0x9d, 0x40, 0x69, 0xbc, 0x2a, 0x84, 0xde, 0x32, 0xbd, 0x41, 0xbc, 0x01, 0xa5, 0xfb, 0x6c,
-	0xfc, 0x0f, 0xc3, 0x23, 0x40, 0x5b, 0xe8, 0x81, 0xcc, 0x62, 0x2b, 0x12, 0x76, 0x04, 0xf9, 0x71,
-	0x4f, 0x6d, 0x99, 0x5f, 0xb5, 0x59, 0x1d, 0xd8, 0x3a, 0xf8, 0x93, 0xfd, 0xf5, 0xf8, 0xf4, 0xe5,
-	0xe8, 0x60, 0x4d, 0xfe, 0x96, 0xf1, 0x22, 0xec, 0xdc, 0x59, 0x35, 0xbc, 0xb9, 0x98, 0xce, 0x91,
-	0xcc, 0xe6, 0x48, 0x96, 0x73, 0x24, 0x13, 0x87, 0xf4, 0xcd, 0x21, 0x7d, 0x77, 0x48, 0xa7, 0x0e,
-	0xe9, 0xa7, 0x43, 0xfa, 0xe5, 0x90, 0x2c, 0x1d, 0xd2, 0x97, 0x05, 0x92, 0xe9, 0x02, 0xc9, 0x6c,
-	0x81, 0xa4, 0x53, 0xf4, 0x27, 0x38, 0xff, 0x0e, 0x00, 0x00, 0xff, 0xff, 0x84, 0x46, 0x02, 0x41,
-	0xc8, 0x01, 0x00, 0x00,
+	// 370 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x91, 0x4f, 0x4b, 0x3a, 0x41,
+	0x1c, 0xc6, 0x67, 0xd6, 0x9f, 0x7f, 0x7e, 0xdf, 0x4c, 0xd6, 0x81, 0x48, 0x22, 0x26, 0x59, 0x3a,
+	0x54, 0xe0, 0x0a, 0xd6, 0xa1, 0xba, 0x15, 0x12, 0x18, 0x11, 0xcb, 0x96, 0x74, 0x5e, 0xdd, 0x69,
+	0x5d, 0xd2, 0x19, 0xd9, 0x1d, 0x59, 0xbc, 0xf9, 0x12, 0x7a, 0x0b, 0xdd, 0x7a, 0x29, 0x1d, 0x3d,
+	0x7a, 0xe8, 0x90, 0xeb, 0xa5, 0xa3, 0x2f, 0x21, 0x76, 0x54, 0x84, 0xf0, 0xd2, 0x69, 0xbe, 0xcf,
+	0xf3, 0x7c, 0x9e, 0x61, 0xfe, 0x40, 0xbe, 0x1f, 0x08, 0x29, 0x42, 0x53, 0x2d, 0x24, 0xed, 0xb4,
+	0xa5, 0x08, 0xf6, 0x2a, 0x9e, 0x2f, 0x3b, 0x83, 0x96, 0xd9, 0x16, 0xbd, 0xaa, 0x27, 0x3c, 0x51,
+	0x55, 0x69, 0x6b, 0xf0, 0xac, 0x94, 0x12, 0x6a, 0x5a, 0xb4, 0x8c, 0x0b, 0x48, 0x59, 0x8d, 0x3a,
+	0x29, 0x41, 0xd6, 0x71, 0xdd, 0x80, 0x85, 0x61, 0x09, 0x97, 0xf1, 0xd1, 0x7f, 0x7b, 0x25, 0x49,
+	0x01, 0x34, 0xdf, 0x2d, 0x69, 0xca, 0xd4, 0x7c, 0xf7, 0x32, 0x37, 0x7f, 0x3b, 0x40, 0xa3, 0xcf,
+	0x32, 0x32, 0xf2, 0x00, 0x96, 0xf0, 0x43, 0xc1, 0x2d, 0xbf, 0xdb, 0x35, 0xce, 0x81, 0xd4, 0x99,
+	0xe3, 0xde, 0x31, 0x29, 0x59, 0x60, 0xb3, 0xb0, 0x2f, 0x78, 0xc8, 0x88, 0x01, 0x19, 0xe9, 0x04,
+	0x1e, 0x93, 0x6a, 0xdb, 0xad, 0x1a, 0x98, 0xea, 0x94, 0xa6, 0xd5, 0xa8, 0xdb, 0xcb, 0xc4, 0xa8,
+	0x40, 0xfa, 0xc9, 0x91, 0xed, 0x0e, 0x39, 0x84, 0x6c, 0x94, 0x0c, 0x2c, 0xd8, 0x40, 0xaf, 0x22,
+	0xa3, 0x0a, 0xd9, 0x26, 0x8f, 0xfe, 0x50, 0x68, 0x02, 0x3c, 0xb2, 0xa0, 0xe7, 0x73, 0x47, 0x32,
+	0x97, 0xec, 0x43, 0x2a, 0xea, 0x88, 0x0d, 0x7c, 0x62, 0x93, 0xe3, 0x24, 0x1d, 0xaa, 0xeb, 0x16,
+	0x6a, 0xbb, 0xcb, 0x74, 0xdd, 0xb6, 0x99, 0x13, 0x0a, 0x9e, 0xa0, 0x43, 0x23, 0x03, 0xff, 0x1e,
+	0xa4, 0xe8, 0x9f, 0xdc, 0x82, 0xfe, 0x1b, 0x20, 0x45, 0xd8, 0x6e, 0xf2, 0x17, 0x2e, 0x22, 0xbe,
+	0x30, 0x74, 0x44, 0x76, 0xa0, 0x78, 0xb5, 0x78, 0xd2, 0x35, 0xad, 0x63, 0x92, 0x87, 0xdc, 0xbd,
+	0x90, 0x37, 0x62, 0xc0, 0x5d, 0x5d, 0xbb, 0x3e, 0x1b, 0x4f, 0x29, 0x9a, 0x4c, 0x29, 0x9a, 0x4f,
+	0x29, 0x1a, 0xc5, 0x14, 0xbf, 0xc7, 0x14, 0x7f, 0xc4, 0x14, 0x8f, 0x63, 0x8a, 0xbf, 0x62, 0x8a,
+	0xbf, 0x63, 0x8a, 0xe6, 0x31, 0xc5, 0xaf, 0x33, 0x8a, 0xc6, 0x33, 0x8a, 0x26, 0x33, 0x8a, 0x5a,
+	0x19, 0xf5, 0x95, 0xa7, 0x3f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xd5, 0xcc, 0x22, 0x14, 0x10, 0x02,
+	0x00, 0x00,
 }
 
+func (x TerminatedReason) String() string {
+	s, ok := TerminatedReason_name[int32(x)]
+	if ok {
+		return s
+	}
+	return strconv.Itoa(int(x))
+}
 func (this *PID) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
@@ -502,7 +538,7 @@ func (this *Terminated) Equal(that interface{}) bool {
 	if !this.Who.Equal(that1.Who) {
 		return false
 	}
-	if this.AddressTerminated != that1.AddressTerminated {
+	if this.Why != that1.Why {
 		return false
 	}
 	return true
@@ -531,7 +567,7 @@ func (this *Stop) Equal(that interface{}) bool {
 func (m *PID) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -539,29 +575,36 @@ func (m *PID) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *PID) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PID) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Address) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(len(m.Address)))
-		i += copy(dAtA[i:], m.Address)
-	}
 	if len(m.Id) > 0 {
-		dAtA[i] = 0x12
-		i++
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
 		i = encodeVarintProtos(dAtA, i, uint64(len(m.Id)))
-		i += copy(dAtA[i:], m.Id)
+		i--
+		dAtA[i] = 0x12
 	}
-	return i, nil
+	if len(m.Address) > 0 {
+		i -= len(m.Address)
+		copy(dAtA[i:], m.Address)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.Address)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *PoisonPill) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -569,17 +612,22 @@ func (m *PoisonPill) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *PoisonPill) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PoisonPill) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *DeadLetterResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -587,27 +635,34 @@ func (m *DeadLetterResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *DeadLetterResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DeadLetterResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
 	if m.Target != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.Target.Size()))
-		n1, err := m.Target.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.Target.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintProtos(dAtA, i, uint64(size))
 		}
-		i += n1
+		i--
+		dAtA[i] = 0xa
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *Watch) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -615,27 +670,34 @@ func (m *Watch) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Watch) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Watch) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
 	if m.Watcher != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.Watcher.Size()))
-		n2, err := m.Watcher.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.Watcher.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintProtos(dAtA, i, uint64(size))
 		}
-		i += n2
+		i--
+		dAtA[i] = 0xa
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *Unwatch) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -643,27 +705,34 @@ func (m *Unwatch) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Unwatch) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Unwatch) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
 	if m.Watcher != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.Watcher.Size()))
-		n3, err := m.Watcher.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.Watcher.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintProtos(dAtA, i, uint64(size))
 		}
-		i += n3
+		i--
+		dAtA[i] = 0xa
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *Terminated) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -671,37 +740,39 @@ func (m *Terminated) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Terminated) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Terminated) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Who != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.Who.Size()))
-		n4, err := m.Who.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n4
-	}
-	if m.AddressTerminated {
+	if m.Why != 0 {
+		i = encodeVarintProtos(dAtA, i, uint64(m.Why))
+		i--
 		dAtA[i] = 0x10
-		i++
-		if m.AddressTerminated {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
 	}
-	return i, nil
+	if m.Who != nil {
+		{
+			size, err := m.Who.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintProtos(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Stop) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -709,21 +780,28 @@ func (m *Stop) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Stop) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Stop) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintProtos(dAtA []byte, offset int, v uint64) int {
+	offset -= sovProtos(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *PID) Size() (n int) {
 	if m == nil {
@@ -800,8 +878,8 @@ func (m *Terminated) Size() (n int) {
 		l = m.Who.Size()
 		n += 1 + l + sovProtos(uint64(l))
 	}
-	if m.AddressTerminated {
-		n += 2
+	if m.Why != 0 {
+		n += 1 + sovProtos(uint64(m.Why))
 	}
 	return n
 }
@@ -816,14 +894,7 @@ func (m *Stop) Size() (n int) {
 }
 
 func sovProtos(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozProtos(x uint64) (n int) {
 	return sovProtos(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -873,7 +944,7 @@ func (this *Terminated) String() string {
 	}
 	s := strings.Join([]string{`&Terminated{`,
 		`Who:` + strings.Replace(fmt.Sprintf("%v", this.Who), "PID", "PID", 1) + `,`,
-		`AddressTerminated:` + fmt.Sprintf("%v", this.AddressTerminated) + `,`,
+		`Why:` + fmt.Sprintf("%v", this.Why) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -994,10 +1065,7 @@ func (m *PID) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -1047,10 +1115,7 @@ func (m *PoisonPill) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -1136,10 +1201,7 @@ func (m *DeadLetterResponse) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -1225,10 +1287,7 @@ func (m *Watch) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -1314,10 +1373,7 @@ func (m *Unwatch) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -1399,9 +1455,9 @@ func (m *Terminated) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AddressTerminated", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Why", wireType)
 			}
-			var v int
+			m.Why = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtos
@@ -1411,22 +1467,18 @@ func (m *Terminated) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= int(b&0x7F) << shift
+				m.Why |= TerminatedReason(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			m.AddressTerminated = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipProtos(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -1476,10 +1528,7 @@ func (m *Stop) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -1497,6 +1546,7 @@ func (m *Stop) Unmarshal(dAtA []byte) error {
 func skipProtos(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -1528,10 +1578,8 @@ func skipProtos(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -1552,55 +1600,30 @@ func skipProtos(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthProtos
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthProtos
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowProtos
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipProtos(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthProtos
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupProtos
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthProtos
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthProtos = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowProtos   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthProtos        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowProtos          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupProtos = fmt.Errorf("proto: unexpected end of group")
 )
