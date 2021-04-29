@@ -2,6 +2,7 @@ package zk
 
 import (
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -57,8 +58,14 @@ func mapString(list []string, fn func(string) string) []string {
 func safeRun(fn func()) {
 	defer func() {
 		if r := recover(); r != nil {
-			plog.Warn("OnRoleChanged.", log.Error(fmt.Errorf("%v", r)))
+			plog.Warn("OnRoleChanged.", log.Error(fmt.Errorf("%v\n%s", r, string(getRunTimeStack()))))
 		}
 	}()
 	fn()
+}
+
+func getRunTimeStack() []byte {
+	const size = 64 << 10
+	buf := make([]byte, size)
+	return buf[:runtime.Stack(buf, false)]
 }

@@ -18,8 +18,15 @@ type zkConn interface {
 	Close()
 }
 
-func connectZk(servers []string, sessionTimeout time.Duration) (zkConn, error) {
-	conn, _, err := zk.Connect(servers, sessionTimeout)
+func connectZk(servers []string, sessionTimeout time.Duration, opts ...zkConnOpt) (zkConn, error) {
+	opt := newZkOptions(opts...)
+	var conn *zk.Conn
+	var err error
+	if opt.ecb != nil {
+		conn, _, err = zk.Connect(servers, sessionTimeout, zk.WithEventCallback(opt.ecb))
+	} else {
+		conn, _, err = zk.Connect(servers, sessionTimeout)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -63,4 +70,24 @@ func (impl *zkConnImpl) CreateProtectedEphemeralSequential(path string, data []b
 
 func (impl *zkConnImpl) Close() {
 	impl.conn.Close()
+}
+
+type zkoption struct {
+	ecb zk.EventCallback
+}
+
+func newZkOptions(opts ...zkConnOpt) *zkoption {
+	opt := &zkoption{}
+	for _, fn := range opts {
+		fn(opt)
+	}
+	return opt
+}
+
+type zkConnOpt func(*zkoption)
+
+func WithEventCallback(cb zk.EventCallback) zkConnOpt {
+	return func(o *zkoption) {
+		o.ecb = cb
+	}
 }

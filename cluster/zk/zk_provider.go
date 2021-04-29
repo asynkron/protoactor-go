@@ -59,7 +59,21 @@ func New(endpoints []string, opts ...Option) (*Provider, error) {
 	for _, fn := range opts {
 		fn(zkCfg)
 	}
-	conn, err := connectZk(endpoints, zkCfg.SessionTimeout)
+	p := &Provider{
+		cluster:             &cluster.Cluster{},
+		baseKey:             zkCfg.BaseKey,
+		clusterName:         "",
+		deregistered:        false,
+		shutdown:            false,
+		self:                &Node{},
+		members:             map[string]*Node{},
+		revision:            0,
+		fullpath:            "",
+		roleChangedListener: zkCfg.RoleChanged,
+		roleChangedChan:     make(chan RoleType, 1),
+		role:                Follower,
+	}
+	conn, err := connectZk(endpoints, zkCfg.SessionTimeout, WithEventCallback(p.onEvent))
 	if err != nil {
 		plog.Error("connect zk fail", log.Error(err))
 		return nil, err
@@ -70,22 +84,8 @@ func New(endpoints []string, opts ...Option) (*Provider, error) {
 			return nil, err
 		}
 	}
-	p := &Provider{
-		cluster:             &cluster.Cluster{},
-		baseKey:             zkCfg.BaseKey,
-		clusterName:         "",
-		deregistered:        false,
-		shutdown:            false,
-		self:                &Node{},
-		members:             map[string]*Node{},
-		clusterError:        err,
-		conn:                conn,
-		revision:            0,
-		fullpath:            "",
-		roleChangedListener: zkCfg.RoleChanged,
-		roleChangedChan:     make(chan RoleType, 1),
-		role:                Follower,
-	}
+	p.conn = conn
+
 	return p, nil
 }
 
@@ -357,6 +357,22 @@ func (p *Provider) updateLeadership(ns []*Node) {
 		p.roleChangedChan <- role
 	}
 	p.role = role
+}
+
+func (p *Provider) onEvent(evt zk.Event) {
+	plog.Debug("Zookeeper event.", log.String("type", evt.Type.String()), log.String("state", evt.State.String()), log.String("path", evt.Path))
+	if evt.Type != zk.EventSession {
+		return
+	}
+	switch evt.State {
+	case zk.StateConnecting, zk.StateDisconnected, zk.StateExpired:
+		if p.role == Leader {
+			plog.Info("Role changed.", log.String("from", Leader.String()), log.String("to", Follower.String()))
+			p.role = Follower
+			p.roleChangedChan <- Follower
+		}
+	case zk.StateConnected, zk.StateHasSession:
+	}
 }
 
 func (p *Provider) isLeaderOf(ns []*Node) bool {

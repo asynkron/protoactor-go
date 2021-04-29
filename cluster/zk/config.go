@@ -40,6 +40,12 @@ func WithRoleChangedListener(l RoleChangedListener) Option {
 	}
 }
 
+func WithRoleChangedFunc(f OnRoleChangedFunc) Option {
+	return func(o *config) {
+		o.RoleChanged = f
+	}
+}
+
 func withEndpoints(e []string) Option {
 	return func(o *config) {
 		o.Endpoints = e
@@ -57,6 +63,12 @@ func (za authConfig) isEmpty() bool {
 
 type RoleChangedListener interface {
 	OnRoleChanged(RoleType)
+}
+
+type OnRoleChangedFunc func(RoleType)
+
+func (fn OnRoleChangedFunc) OnRoleChanged(rt RoleType) {
+	fn(rt)
 }
 
 type config struct {
