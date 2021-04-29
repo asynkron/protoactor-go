@@ -10,7 +10,7 @@ type Config struct {
 	DiagnosticsSerializer       func(Actor) string //extract diagnostics from actor and return as string
 }
 
-func EmptyConfig() Config {
+func defaultActorSystemConfig() Config {
 	return Config{
 		DeadLetterThrottleInterval:  time.Duration(0),
 		DeadLetterThrottleCount:     0,
@@ -20,6 +20,10 @@ func EmptyConfig() Config {
 			return ""
 		},
 	}
+}
+
+func NewConfig() Config {
+	return defaultActorSystemConfig()
 }
 
 func (asc Config) WithDeadLetterThrottleInterval(duration time.Duration) Config {

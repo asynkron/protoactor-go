@@ -43,8 +43,12 @@ func (as *ActorSystem) GetHostPort() (host string, port int, err error) {
 }
 
 func NewActorSystem() *ActorSystem {
+	return NewActorSystemWithConfig(defaultActorSystemConfig())
+}
+
+func NewActorSystemWithConfig(config Config) *ActorSystem {
 	system := &ActorSystem{}
-	system.Config = &Config{}
+	system.Config = &config
 	system.ProcessRegistry = NewProcessRegistry(system)
 	system.Root = NewRootContext(system, EmptyMessageHeader)
 	system.Guardians = NewGuardians(system)
@@ -53,11 +57,5 @@ func NewActorSystem() *ActorSystem {
 	system.Extensions = extensions.NewExtensions()
 	SubscribeSupervision(system)
 
-	return system
-}
-
-func NewActorSystemWithConfig(config Config) *ActorSystem {
-	system := NewActorSystem()
-	system.Config = &config
 	return system
 }
