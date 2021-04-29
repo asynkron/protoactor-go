@@ -96,7 +96,7 @@ type senderPart interface {
 	// Request sends a message to the given PID
 	Request(pid *PID, message interface{})
 
-	// Request sends a message to the given PID and also provides a Sender PID
+	// RequestWithCustomSender sends a message to the given PID and also provides a Sender PID
 	RequestWithCustomSender(pid *PID, message interface{}, sender *PID)
 
 	// RequestFuture sends a message to a given PID and returns a Future

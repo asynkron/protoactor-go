@@ -4,7 +4,7 @@ import "time"
 
 type Config struct {
 	DeadLetterThrottleInterval  time.Duration      //throttle deadletter logging after this interval
-	DeadLetterThrottleCount     int                //throttle deadletter logging after this count
+	DeadLetterThrottleCount     int32              //throttle deadletter logging after this count
 	DeadLetterRequestLogging    bool               //do not log deadletters with sender
 	DeveloperSupervisionLogging bool               //console log and promote supervision logs to Warning level
 	DiagnosticsSerializer       func(Actor) string //extract diagnostics from actor and return as string
@@ -31,7 +31,7 @@ func (asc Config) WithDeadLetterThrottleInterval(duration time.Duration) Config 
 	return asc
 }
 
-func (asc Config) WithDeadLetterThrottleCount(count int) Config {
+func (asc Config) WithDeadLetterThrottleCount(count int32) Config {
 	asc.DeadLetterThrottleCount = count
 	return asc
 }
