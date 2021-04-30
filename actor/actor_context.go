@@ -602,6 +602,7 @@ func (ctx *actorContext) finalizeStop() {
 
 func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {
 
+	//debug setting, allows to output supervision failures in console/error level
 	if ctx.actorSystem.Config.DeveloperSupervisionLogging {
 		fmt.Println("[Supervision] Actor:", ctx.self, " failed with message:", message, " exception:", reason)
 		plog.Error("[Supervision]", log.Stringer("actor", ctx.self), log.Object("message", message), log.Object("exception", reason))
