@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func defaultRemoteConfig() Config {
+func defaultConfig() Config {
 	return Config{
 		AdvertisedHost:           "",
 		DialOptions:              []grpc.DialOption{grpc.WithInsecure()},
@@ -18,58 +18,90 @@ func defaultRemoteConfig() Config {
 	}
 }
 
-func (rc Config) WithEndpointWriterBatchSize(batchSize int) Config {
-	rc.EndpointWriterBatchSize = batchSize
-	return rc
+type ConfigOption func(config Config) Config
+
+func newConfig(options ...ConfigOption) Config {
+	config := defaultConfig()
+	for _, option := range options {
+		config = option(config)
+	}
+	return config
 }
 
-func (rc Config) WithEndpointWriterQueueSize(queueSize int) Config {
-	rc.EndpointWriterQueueSize = queueSize
-	return rc
+func WithEndpointWriterBatchSize(batchSize int) ConfigOption {
+	return func(config Config) Config {
+		config.EndpointWriterBatchSize = batchSize
+		return config
+	}
 }
 
-func (rc Config) WithEndpointManagerBatchSize(batchSize int) Config {
-	rc.EndpointManagerBatchSize = batchSize
-	return rc
+func WithEndpointWriterQueueSize(queueSize int) ConfigOption {
+	return func(config Config) Config {
+		config.EndpointWriterQueueSize = queueSize
+		return config
+	}
 }
 
-func (rc Config) WithEndpointManagerQueueSize(queueSize int) Config {
-	rc.EndpointManagerQueueSize = queueSize
-	return rc
+func WithEndpointManagerBatchSize(batchSize int) ConfigOption {
+	return func(config Config) Config {
+		config.EndpointManagerBatchSize = batchSize
+		return config
+	}
 }
 
-func (rc Config) WithDialOptions(options ...grpc.DialOption) Config {
-	rc.DialOptions = options
-	return rc
+func WithEndpointManagerQueueSize(queueSize int) ConfigOption {
+	return func(config Config) Config {
+		config.EndpointManagerQueueSize = queueSize
+		return config
+	}
 }
 
-func (rc Config) WithServerOptions(options ...grpc.ServerOption) Config {
-	rc.ServerOptions = options
-	return rc
+func WithDialOptions(options ...grpc.DialOption) ConfigOption {
+	return func(config Config) Config {
+		config.DialOptions = options
+		return config
+	}
 }
 
-func (rc Config) WithCallOptions(options ...grpc.CallOption) Config {
-	rc.CallOptions = options
-	return rc
+func WithServerOptions(options ...grpc.ServerOption) ConfigOption {
+	return func(config Config) Config {
+		config.ServerOptions = options
+		return config
+	}
 }
 
-func (rc Config) WithAdvertisedHost(address string) Config {
-	rc.AdvertisedHost = address
-	return rc
+func WithCallOptions(options ...grpc.CallOption) ConfigOption {
+	return func(config Config) Config {
+		config.CallOptions = options
+		return config
+	}
+}
+
+func WithAdvertisedHost(address string) ConfigOption {
+	return func(config Config) Config {
+		config.AdvertisedHost = address
+		return config
+	}
+}
+
+func WithKinds(kinds ...*Kind) ConfigOption {
+	return func(config Config) Config {
+		for _, k := range kinds {
+			config.Kinds[k.Kind] = k.Props
+		}
+		return config
+	}
 }
 
 func (rc Config) Address() string {
 	return fmt.Sprintf("%v:%v", rc.Host, rc.Port)
 }
 
-func Configure(host string, port int, kinds ...*Kind) Config {
-	c := defaultRemoteConfig()
+func NewConfig(host string, port int, options ...ConfigOption) Config {
+	c := newConfig(options...)
 	c.Host = host
 	c.Port = port
 
-	for _, kind := range kinds {
-		c.Kinds[kind.Kind] = kind.Props
-	}
 	return c
 }
 

@@ -43,7 +43,7 @@ func (as *ActorSystem) GetHostPort() (host string, port int, err error) {
 }
 
 func NewActorSystem() *ActorSystem {
-	return NewActorSystemWithConfig(defaultActorSystemConfig())
+	return NewActorSystemWithConfig(defaultConfig())
 }
 
 func NewActorSystemWithConfig(config Config) *ActorSystem {

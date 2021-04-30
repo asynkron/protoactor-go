@@ -22,7 +22,7 @@ type Remote struct {
 	edpReader    *endpointReader
 	edpManager   *endpointManager
 	config       *Config
-	nameLookup   map[string]actor.Props
+	kinds        map[string]*actor.Props
 	activatorPid *actor.PID
 }
 
@@ -30,7 +30,10 @@ func NewRemote(actorSystem *actor.ActorSystem, config Config) *Remote {
 	r := &Remote{
 		actorSystem: actorSystem,
 		config:      &config,
-		nameLookup:  make(map[string]actor.Props),
+		kinds:       make(map[string]*actor.Props),
+	}
+	for k, v := range config.Kinds {
+		r.kinds[k] = v
 	}
 
 	actorSystem.Extensions.Register(r)
@@ -62,7 +65,7 @@ func (r *Remote) Start() {
 	} else {
 		address = lis.Addr().String()
 	}
-	// r.actorSystem.ProcessRegistry.RegisterAddressResolver(remoteHandler)
+
 	r.actorSystem.ProcessRegistry.RegisterAddressResolver(r.remoteHandler)
 	r.actorSystem.ProcessRegistry.Address = address
 

@@ -10,7 +10,7 @@ import (
 
 func TestStart(t *testing.T) {
 	system := actor.NewActorSystem()
-	config := Configure("localhost", 0)
+	config := NewConfig("localhost", 0)
 	remote := NewRemote(system, config)
 	remote.Start()
 	remote.Shutdown(true)
@@ -18,7 +18,7 @@ func TestStart(t *testing.T) {
 
 func TestConfig_WithAdvertisedHost(t *testing.T) {
 	system := actor.NewActorSystem()
-	config := Configure("localhost", 0).WithAdvertisedHost("Banana")
+	config := NewConfig("localhost", 0, WithAdvertisedHost("Banana"))
 	remote := NewRemote(system, config)
 	remote.Start()
 	assert.Equal(t, "Banana", system.Address())
@@ -27,10 +27,25 @@ func TestConfig_WithAdvertisedHost(t *testing.T) {
 
 func TestRemote_Register(t *testing.T) {
 	system := actor.NewActorSystem()
-	config := Configure("localhost", 0)
+	config := NewConfig("localhost", 0)
 	remote := NewRemote(system, config)
 	remote.Register("someKind", actor.PropsFromProducer(nil))
 	remote.Register("someOther", actor.PropsFromProducer(nil))
+	kinds := remote.GetKnownKinds()
+	assert.Equal(t, 2, len(kinds))
+	sort.Strings(kinds)
+	assert.Equal(t, "someKind", kinds[0])
+	assert.Equal(t, "someOther", kinds[1])
+}
+
+func TestRemote_RegisterViaOptions(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := NewConfig("localhost", 0,
+		WithKinds(
+			NewKind("someKind", actor.PropsFromProducer(nil)),
+			NewKind("someOther", actor.PropsFromProducer(nil))))
+
+	remote := NewRemote(system, config)
 	kinds := remote.GetKnownKinds()
 	assert.Equal(t, 2, len(kinds))
 	sort.Strings(kinds)

@@ -10,7 +10,7 @@ type Config struct {
 	DiagnosticsSerializer       func(Actor) string //extract diagnostics from actor and return as string
 }
 
-func defaultActorSystemConfig() Config {
+func defaultConfig() Config {
 	return Config{
 		DeadLetterThrottleInterval:  time.Duration(0),
 		DeadLetterThrottleCount:     0,
@@ -22,31 +22,47 @@ func defaultActorSystemConfig() Config {
 	}
 }
 
-func NewConfig() Config {
-	return defaultActorSystemConfig()
+type ConfigOption func(config Config) Config
+
+func NewConfig(options ...ConfigOption) Config {
+	config := defaultConfig()
+	for _, option := range options {
+		config = option(config)
+	}
+	return config
 }
 
-func (asc Config) WithDeadLetterThrottleInterval(duration time.Duration) Config {
-	asc.DeadLetterThrottleInterval = duration
-	return asc
+func WithDeadLetterThrottleInterval(duration time.Duration) ConfigOption {
+	return func(config Config) Config {
+		config.DeadLetterThrottleInterval = duration
+		return config
+	}
 }
 
-func (asc Config) WithDeadLetterThrottleCount(count int32) Config {
-	asc.DeadLetterThrottleCount = count
-	return asc
+func WithDeadLetterThrottleCount(count int32) ConfigOption {
+	return func(config Config) Config {
+		config.DeadLetterThrottleCount = count
+		return config
+	}
 }
 
-func (asc Config) WithDeadLetterRequestLogging(enabled bool) Config {
-	asc.DeadLetterRequestLogging = enabled
-	return asc
+func WithDeadLetterRequestLogging(enabled bool) ConfigOption {
+	return func(config Config) Config {
+		config.DeadLetterRequestLogging = enabled
+		return config
+	}
 }
 
-func (asc Config) WithDeveloperSupervisionLogging(enabled bool) Config {
-	asc.DeveloperSupervisionLogging = enabled
-	return asc
+func WithDeveloperSupervisionLogging(enabled bool) ConfigOption {
+	return func(config Config) Config {
+		config.DeveloperSupervisionLogging = enabled
+		return config
+	}
 }
 
-func (asc Config) WithDiagnosticsSerializer(serializer func(Actor) string) Config {
-	asc.DiagnosticsSerializer = serializer
-	return asc
+func WithDiagnosticsSerializer(serializer func(Actor) string) ConfigOption {
+	return func(config Config) Config {
+		config.DiagnosticsSerializer = serializer
+		return config
+	}
 }

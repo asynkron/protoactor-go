@@ -11,13 +11,13 @@ import (
 
 // Register a known actor props by name
 func (r *Remote) Register(kind string, props *actor.Props) {
-	r.nameLookup[kind] = *props
+	r.kinds[kind] = props
 }
 
 // GetKnownKinds returns a slice of known actor "Kinds"
 func (r *Remote) GetKnownKinds() []string {
-	keys := make([]string, 0, len(r.nameLookup))
-	for k := range r.nameLookup {
+	keys := make([]string, 0, len(r.kinds))
+	for k := range r.kinds {
 		keys = append(keys, k)
 	}
 	return keys
@@ -91,7 +91,7 @@ func (a *activator) Receive(context actor.Context) {
 	case *Ping:
 		context.Respond(&Pong{})
 	case *ActorPidRequest:
-		props, exist := a.remote.nameLookup[msg.Kind]
+		props, exist := a.remote.kinds[msg.Kind]
 
 		// if props not exist, return error and panic
 		if !exist {
@@ -109,7 +109,7 @@ func (a *activator) Receive(context actor.Context) {
 			name = context.ActorSystem().ProcessRegistry.NextId()
 		}
 
-		pid, err := context.SpawnNamed(&props, "Remote$"+name)
+		pid, err := context.SpawnNamed(props, "Remote$"+name)
 
 		if err == nil {
 			response := &ActorPidResponse{Pid: pid}
