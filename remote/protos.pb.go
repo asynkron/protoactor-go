@@ -12,8 +12,11 @@ import (
 	proto "github.com/gogo/protobuf/proto"
 	github_com_gogo_protobuf_sortkeys "github.com/gogo/protobuf/sortkeys"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	io "io"
 	math "math"
+	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
 )
@@ -27,7 +30,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type MessageBatch struct {
 	TypeNames   []string           `protobuf:"bytes,1,rep,name=type_names,json=typeNames,proto3" json:"type_names,omitempty"`
@@ -48,7 +51,7 @@ func (m *MessageBatch) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_MessageBatch.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +113,7 @@ func (m *MessageEnvelope) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_MessageEnvelope.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +191,7 @@ func (m *MessageHeader) XXX_Marshal(b []byte, deterministic bool) ([]byte, error
 		return xxx_messageInfo_MessageHeader.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +235,7 @@ func (m *ActorPidRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_ActorPidRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -283,7 +286,7 @@ func (m *ActorPidResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return xxx_messageInfo_ActorPidResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -332,7 +335,7 @@ func (m *Unit) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Unit.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -367,7 +370,7 @@ func (m *ConnectRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return xxx_messageInfo_ConnectRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -403,7 +406,7 @@ func (m *ConnectResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_ConnectResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -429,6 +432,178 @@ func (m *ConnectResponse) GetDefaultSerializerId() int32 {
 	return 0
 }
 
+type ListProcessesRequest struct {
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (m *ListProcessesRequest) Reset()      { *m = ListProcessesRequest{} }
+func (*ListProcessesRequest) ProtoMessage() {}
+func (*ListProcessesRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5da3cbeb884d181c, []int{8}
+}
+func (m *ListProcessesRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ListProcessesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ListProcessesRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ListProcessesRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListProcessesRequest.Merge(m, src)
+}
+func (m *ListProcessesRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *ListProcessesRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListProcessesRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListProcessesRequest proto.InternalMessageInfo
+
+func (m *ListProcessesRequest) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+type ListProcessesResponse struct {
+	Pids []*actor.PID `protobuf:"bytes,1,rep,name=pids,proto3" json:"pids,omitempty"`
+}
+
+func (m *ListProcessesResponse) Reset()      { *m = ListProcessesResponse{} }
+func (*ListProcessesResponse) ProtoMessage() {}
+func (*ListProcessesResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5da3cbeb884d181c, []int{9}
+}
+func (m *ListProcessesResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ListProcessesResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ListProcessesResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ListProcessesResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListProcessesResponse.Merge(m, src)
+}
+func (m *ListProcessesResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *ListProcessesResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListProcessesResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListProcessesResponse proto.InternalMessageInfo
+
+func (m *ListProcessesResponse) GetPids() []*actor.PID {
+	if m != nil {
+		return m.Pids
+	}
+	return nil
+}
+
+type GetProcessDiagnosticsRequest struct {
+	Pid *actor.PID `protobuf:"bytes,1,opt,name=pid,proto3" json:"pid,omitempty"`
+}
+
+func (m *GetProcessDiagnosticsRequest) Reset()      { *m = GetProcessDiagnosticsRequest{} }
+func (*GetProcessDiagnosticsRequest) ProtoMessage() {}
+func (*GetProcessDiagnosticsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5da3cbeb884d181c, []int{10}
+}
+func (m *GetProcessDiagnosticsRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *GetProcessDiagnosticsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_GetProcessDiagnosticsRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *GetProcessDiagnosticsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetProcessDiagnosticsRequest.Merge(m, src)
+}
+func (m *GetProcessDiagnosticsRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *GetProcessDiagnosticsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetProcessDiagnosticsRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetProcessDiagnosticsRequest proto.InternalMessageInfo
+
+func (m *GetProcessDiagnosticsRequest) GetPid() *actor.PID {
+	if m != nil {
+		return m.Pid
+	}
+	return nil
+}
+
+type GetProcessDiagnosticsResponse struct {
+	DiagnosticsString string `protobuf:"bytes,1,opt,name=diagnostics_string,json=diagnosticsString,proto3" json:"diagnostics_string,omitempty"`
+}
+
+func (m *GetProcessDiagnosticsResponse) Reset()      { *m = GetProcessDiagnosticsResponse{} }
+func (*GetProcessDiagnosticsResponse) ProtoMessage() {}
+func (*GetProcessDiagnosticsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5da3cbeb884d181c, []int{11}
+}
+func (m *GetProcessDiagnosticsResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *GetProcessDiagnosticsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_GetProcessDiagnosticsResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *GetProcessDiagnosticsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetProcessDiagnosticsResponse.Merge(m, src)
+}
+func (m *GetProcessDiagnosticsResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *GetProcessDiagnosticsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetProcessDiagnosticsResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetProcessDiagnosticsResponse proto.InternalMessageInfo
+
+func (m *GetProcessDiagnosticsResponse) GetDiagnosticsString() string {
+	if m != nil {
+		return m.DiagnosticsString
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterType((*MessageBatch)(nil), "remote.MessageBatch")
 	proto.RegisterType((*MessageEnvelope)(nil), "remote.MessageEnvelope")
@@ -439,52 +614,63 @@ func init() {
 	proto.RegisterType((*Unit)(nil), "remote.Unit")
 	proto.RegisterType((*ConnectRequest)(nil), "remote.ConnectRequest")
 	proto.RegisterType((*ConnectResponse)(nil), "remote.ConnectResponse")
+	proto.RegisterType((*ListProcessesRequest)(nil), "remote.ListProcessesRequest")
+	proto.RegisterType((*ListProcessesResponse)(nil), "remote.ListProcessesResponse")
+	proto.RegisterType((*GetProcessDiagnosticsRequest)(nil), "remote.GetProcessDiagnosticsRequest")
+	proto.RegisterType((*GetProcessDiagnosticsResponse)(nil), "remote.GetProcessDiagnosticsResponse")
 }
 
 func init() { proto.RegisterFile("protos.proto", fileDescriptor_5da3cbeb884d181c) }
 
 var fileDescriptor_5da3cbeb884d181c = []byte{
-	// 625 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x53, 0x3d, 0x6f, 0x13, 0x4d,
-	0x10, 0xbe, 0x8d, 0x63, 0xe7, 0xf5, 0xd8, 0x89, 0xa3, 0x7d, 0xf3, 0x61, 0x59, 0x70, 0x98, 0x43,
-	0x48, 0x6e, 0x72, 0x46, 0x0e, 0x20, 0x40, 0xa1, 0xc8, 0x17, 0xc2, 0x05, 0x28, 0x1c, 0x50, 0x5b,
-	0x1b, 0xdf, 0xe4, 0x7c, 0x8a, 0x7d, 0x6b, 0x6e, 0xd7, 0x91, 0x8c, 0x84, 0x44, 0x47, 0x4b, 0xc5,
-	0x6f, 0xe0, 0xa7, 0x50, 0xa6, 0x4c, 0x49, 0x2e, 0x0d, 0x05, 0x45, 0x7e, 0x02, 0xda, 0x8f, 0x24,
-	0xb6, 0xa1, 0xba, 0x99, 0x67, 0x9e, 0xf9, 0x7a, 0xe6, 0x16, 0xca, 0xc3, 0x94, 0x4b, 0x2e, 0x7c,
-	0xfd, 0xa1, 0x85, 0x14, 0x07, 0x5c, 0x62, 0x6d, 0x23, 0x8a, 0x65, 0x6f, 0x74, 0xe8, 0x77, 0xf9,
-	0xa0, 0x19, 0xf1, 0x88, 0x37, 0x75, 0xf8, 0x70, 0x74, 0xa4, 0x3d, 0xed, 0x68, 0xcb, 0xa4, 0xd5,
-	0x1e, 0x4f, 0xd0, 0xb7, 0xc5, 0x38, 0x39, 0x4e, 0x79, 0xd2, 0x7e, 0x67, 0x92, 0x58, 0x57, 0xf2,
-	0x74, 0x23, 0xe2, 0x4d, 0x6d, 0x34, 0x27, 0xdb, 0x79, 0x5f, 0x08, 0x94, 0x5f, 0xa1, 0x10, 0x2c,
-	0xc2, 0x1d, 0x26, 0xbb, 0x3d, 0x7a, 0x1b, 0x40, 0x8e, 0x87, 0xd8, 0x49, 0xd8, 0x00, 0x45, 0x95,
-	0xd4, 0x73, 0x8d, 0x62, 0x50, 0x54, 0xc8, 0x6b, 0x05, 0xd0, 0xbb, 0x50, 0x96, 0x2c, 0x8d, 0x50,
-	0x5a, 0xc2, 0x9c, 0x26, 0x94, 0x0c, 0x66, 0x28, 0x8f, 0xa0, 0x88, 0xc9, 0x09, 0xf6, 0xf9, 0x10,
-	0x45, 0x35, 0x57, 0xcf, 0x35, 0x4a, 0xad, 0x75, 0xdf, 0x6c, 0xe5, 0xdb, 0x56, 0xfb, 0x36, 0x1e,
-	0xdc, 0x30, 0xbd, 0xdf, 0x04, 0x2a, 0x33, 0x61, 0xba, 0x0e, 0x0b, 0x7a, 0x98, 0x38, 0xac, 0x92,
-	0x3a, 0x69, 0xe4, 0x83, 0x82, 0x72, 0xdb, 0xa1, 0x1a, 0x63, 0x60, 0xb8, 0x9d, 0x90, 0x49, 0x56,
-	0x9d, 0xab, 0x93, 0x46, 0x39, 0x28, 0x59, 0x6c, 0x8f, 0x49, 0x46, 0xd7, 0xa0, 0x60, 0xa6, 0xaa,
-	0xe6, 0x6c, 0xaa, 0xf6, 0xa8, 0x07, 0x05, 0x81, 0x49, 0x88, 0x69, 0x75, 0xbe, 0x4e, 0x1a, 0xa5,
-	0x16, 0xf8, 0x5a, 0x16, 0xff, 0xa0, 0xbd, 0x17, 0xd8, 0x08, 0xbd, 0x07, 0x8b, 0x02, 0xd3, 0x98,
-	0xf5, 0xe3, 0x8f, 0x98, 0xaa, 0xee, 0x79, 0x5d, 0xa2, 0x7c, 0x03, 0xb6, 0x43, 0xba, 0x05, 0x4b,
-	0x57, 0x33, 0xf4, 0x90, 0xa9, 0x82, 0x05, 0x5d, 0x70, 0x75, 0x66, 0xd9, 0x97, 0x3a, 0x18, 0x2c,
-	0x0e, 0x26, 0x5d, 0xef, 0x1b, 0x81, 0xc5, 0x29, 0x02, 0x7d, 0x01, 0x25, 0x53, 0xc7, 0xac, 0x44,
-	0xb4, 0x72, 0xf7, 0xff, 0x59, 0xcc, 0x37, 0x1f, 0xb5, 0xe7, 0x7e, 0x22, 0xd3, 0x71, 0x00, 0xbd,
-	0x6b, 0xa0, 0xf6, 0x1c, 0x2a, 0x33, 0x61, 0xba, 0x0c, 0xb9, 0x63, 0x1c, 0x6b, 0x0d, 0x8b, 0x81,
-	0x32, 0xe9, 0x0a, 0xe4, 0x4f, 0x58, 0x7f, 0x84, 0x5a, 0xb9, 0x62, 0x60, 0x9c, 0x67, 0x73, 0x4f,
-	0x88, 0xf7, 0x14, 0x2a, 0xdb, 0x4a, 0x90, 0x83, 0x38, 0x0c, 0xf0, 0xc3, 0x08, 0x85, 0xa4, 0x14,
-	0xe6, 0xd5, 0xb5, 0x6d, 0xbe, 0xb6, 0x15, 0x76, 0x1c, 0x27, 0xa1, 0xcd, 0xd7, 0xb6, 0xf7, 0x06,
-	0x96, 0x6f, 0x52, 0xc5, 0x90, 0x27, 0x02, 0xe9, 0x2d, 0xc8, 0x0d, 0xed, 0xf9, 0xa6, 0xb5, 0x56,
-	0x30, 0xbd, 0x03, 0x25, 0x21, 0x99, 0x1c, 0x89, 0x4e, 0x97, 0x87, 0x66, 0x98, 0x7c, 0x00, 0x06,
-	0xda, 0xe5, 0x21, 0x7a, 0x05, 0x98, 0x7f, 0x9f, 0xc4, 0xd2, 0x5b, 0x86, 0xa5, 0x5d, 0x9e, 0x24,
-	0xd8, 0x95, 0x76, 0x28, 0x6f, 0x1f, 0x2a, 0xd7, 0x88, 0xed, 0xd5, 0x82, 0xd5, 0x10, 0x8f, 0xd8,
-	0xa8, 0x2f, 0x3b, 0xd3, 0xe7, 0x33, 0x3f, 0xcf, 0xff, 0x36, 0xf8, 0x76, 0xe2, 0x8a, 0xad, 0x4f,
-	0xf0, 0x5f, 0xa0, 0x14, 0x8e, 0x93, 0x88, 0x6e, 0xc1, 0x82, 0x2d, 0x49, 0xd7, 0xae, 0x74, 0x9f,
-	0xee, 0x5a, 0x5b, 0xff, 0x0b, 0x37, 0xbd, 0x3d, 0x87, 0x6e, 0xc2, 0x42, 0x80, 0x5d, 0x8c, 0x4f,
-	0x90, 0xae, 0xcc, 0x5c, 0x4d, 0x3f, 0xad, 0x5a, 0xf9, 0x0a, 0xd5, 0x1b, 0x39, 0x0d, 0xf2, 0x80,
-	0xec, 0x3c, 0x3c, 0x3d, 0x77, 0x9d, 0xb3, 0x73, 0xd7, 0xb9, 0x3c, 0x77, 0x9d, 0xcf, 0x99, 0x4b,
-	0xbe, 0x67, 0x2e, 0xf9, 0x91, 0xb9, 0xe4, 0x34, 0x73, 0xc9, 0xcf, 0xcc, 0x25, 0xbf, 0x32, 0xd7,
-	0xb9, 0xcc, 0x5c, 0xf2, 0xf5, 0xc2, 0x75, 0x4e, 0x2f, 0x5c, 0xe7, 0xec, 0xc2, 0x75, 0x0e, 0x0b,
-	0xfa, 0xf1, 0x6e, 0xfe, 0x09, 0x00, 0x00, 0xff, 0xff, 0xa0, 0x63, 0xc7, 0x3d, 0x3b, 0x04, 0x00,
-	0x00,
+	// 747 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x54, 0xcb, 0x4e, 0x1b, 0x49,
+	0x14, 0xed, 0xf2, 0x8b, 0xf1, 0xb5, 0x8d, 0x99, 0x1a, 0x0c, 0x96, 0x05, 0x3d, 0x9e, 0x9e, 0x41,
+	0xb2, 0x46, 0xc2, 0x8e, 0x4c, 0xde, 0x22, 0x0b, 0x5e, 0x49, 0x2c, 0x25, 0x88, 0x34, 0xc9, 0xda,
+	0x2a, 0xba, 0x8b, 0x76, 0x0b, 0xbb, 0xcb, 0xe9, 0x2a, 0x23, 0x39, 0xab, 0xec, 0xb2, 0xcd, 0x2a,
+	0xdf, 0x90, 0x1f, 0xc8, 0x3f, 0x64, 0xc9, 0x92, 0x65, 0x30, 0x9b, 0x2c, 0xb2, 0xe0, 0x13, 0xa2,
+	0xae, 0x2a, 0x3f, 0x03, 0x64, 0xd5, 0x75, 0xcf, 0x39, 0xb7, 0xee, 0xbd, 0xe7, 0x96, 0x1a, 0xb2,
+	0xdd, 0x90, 0x09, 0xc6, 0xab, 0xf2, 0x83, 0x53, 0x21, 0xed, 0x30, 0x41, 0x4b, 0xeb, 0x9e, 0x2f,
+	0x5a, 0xbd, 0xa3, 0xaa, 0xc3, 0x3a, 0x35, 0x8f, 0x79, 0xac, 0x26, 0xe9, 0xa3, 0xde, 0xb1, 0x8c,
+	0x64, 0x20, 0x4f, 0x2a, 0xad, 0x74, 0x7f, 0x42, 0xbe, 0xc5, 0xfb, 0xc1, 0x49, 0xc8, 0x82, 0xc6,
+	0x6b, 0x95, 0x44, 0x1c, 0xc1, 0xc2, 0x75, 0x8f, 0xd5, 0xe4, 0xa1, 0x36, 0x59, 0xce, 0xfa, 0x80,
+	0x20, 0xfb, 0x92, 0x72, 0x4e, 0x3c, 0xba, 0x4d, 0x84, 0xd3, 0xc2, 0xab, 0x00, 0xa2, 0xdf, 0xa5,
+	0xcd, 0x80, 0x74, 0x28, 0x2f, 0xa2, 0x72, 0xbc, 0x92, 0xb6, 0xd3, 0x11, 0xb2, 0x1f, 0x01, 0xf8,
+	0x1f, 0xc8, 0x0a, 0x12, 0x7a, 0x54, 0x68, 0x41, 0x4c, 0x0a, 0x32, 0x0a, 0x53, 0x92, 0x7b, 0x90,
+	0xa6, 0xc1, 0x29, 0x6d, 0xb3, 0x2e, 0xe5, 0xc5, 0x78, 0x39, 0x5e, 0xc9, 0xd4, 0x97, 0xab, 0x6a,
+	0xaa, 0xaa, 0x2e, 0xb5, 0xa7, 0x79, 0x7b, 0xac, 0xb4, 0x7e, 0x20, 0xc8, 0xcf, 0xd0, 0x78, 0x19,
+	0xe6, 0x64, 0x33, 0xbe, 0x5b, 0x44, 0x65, 0x54, 0x49, 0xda, 0xa9, 0x28, 0x6c, 0xb8, 0x51, 0x1b,
+	0x1d, 0xa5, 0x6d, 0xba, 0x44, 0x90, 0x62, 0xac, 0x8c, 0x2a, 0x59, 0x3b, 0xa3, 0xb1, 0x5d, 0x22,
+	0x08, 0x5e, 0x82, 0x94, 0xea, 0xaa, 0x18, 0xd7, 0xa9, 0x32, 0xc2, 0x16, 0xa4, 0x38, 0x0d, 0x5c,
+	0x1a, 0x16, 0x13, 0x65, 0x54, 0xc9, 0xd4, 0xa1, 0x2a, 0x6d, 0xa9, 0x1e, 0x34, 0x76, 0x6d, 0xcd,
+	0xe0, 0x7f, 0x21, 0xc7, 0x69, 0xe8, 0x93, 0xb6, 0xff, 0x8e, 0x86, 0x51, 0xf5, 0xa4, 0xbc, 0x22,
+	0x3b, 0x06, 0x1b, 0x2e, 0xde, 0x84, 0xf9, 0x61, 0x0f, 0x2d, 0x4a, 0xa2, 0x0b, 0x53, 0xf2, 0xc2,
+	0xc2, 0xcc, 0xb0, 0xcf, 0x25, 0x69, 0xe7, 0x3a, 0x93, 0xa1, 0xf5, 0x09, 0x41, 0x6e, 0x4a, 0x80,
+	0x9f, 0x42, 0x46, 0xdd, 0xa3, 0x46, 0x42, 0xd2, 0xb9, 0xb5, 0x6b, 0x2f, 0xab, 0xaa, 0x4f, 0x34,
+	0xe7, 0x5e, 0x20, 0xc2, 0xbe, 0x0d, 0xad, 0x11, 0x50, 0x7a, 0x02, 0xf9, 0x19, 0x1a, 0x2f, 0x40,
+	0xfc, 0x84, 0xf6, 0xa5, 0x87, 0x69, 0x3b, 0x3a, 0xe2, 0x45, 0x48, 0x9e, 0x92, 0x76, 0x8f, 0x4a,
+	0xe7, 0xd2, 0xb6, 0x0a, 0x1e, 0xc7, 0x1e, 0x22, 0xeb, 0x11, 0xe4, 0xb7, 0x22, 0x43, 0x0e, 0x7c,
+	0xd7, 0xa6, 0x6f, 0x7b, 0x94, 0x0b, 0x8c, 0x21, 0x11, 0x6d, 0x5b, 0xe7, 0xcb, 0x73, 0x84, 0x9d,
+	0xf8, 0x81, 0xab, 0xf3, 0xe5, 0xd9, 0x7a, 0x05, 0x0b, 0xe3, 0x54, 0xde, 0x65, 0x01, 0xa7, 0x78,
+	0x05, 0xe2, 0x5d, 0xbd, 0xbe, 0x69, 0xaf, 0x23, 0x18, 0xff, 0x0d, 0x19, 0x2e, 0x88, 0xe8, 0xf1,
+	0xa6, 0xc3, 0x5c, 0xd5, 0x4c, 0xd2, 0x06, 0x05, 0xed, 0x30, 0x97, 0x5a, 0x29, 0x48, 0xbc, 0x09,
+	0x7c, 0x61, 0x2d, 0xc0, 0xfc, 0x0e, 0x0b, 0x02, 0xea, 0x08, 0xdd, 0x94, 0xb5, 0x07, 0xf9, 0x11,
+	0xa2, 0x6b, 0xd5, 0xa1, 0xe0, 0xd2, 0x63, 0xd2, 0x6b, 0x8b, 0xe6, 0xf4, 0xfa, 0xd4, 0xe3, 0xf9,
+	0x4b, 0x93, 0x87, 0x13, 0x5b, 0xb4, 0xfe, 0x87, 0xc5, 0x17, 0x3e, 0x17, 0x07, 0x21, 0x73, 0x28,
+	0xe7, 0x94, 0xdf, 0x32, 0xb3, 0xf5, 0x00, 0x0a, 0x33, 0x5a, 0x5d, 0xd8, 0x84, 0x44, 0xd7, 0x77,
+	0xb9, 0xde, 0xd9, 0xe4, 0x94, 0x12, 0xb7, 0x36, 0x61, 0xe5, 0x19, 0x1d, 0xe6, 0xed, 0xfa, 0xc4,
+	0x0b, 0x18, 0x17, 0xbe, 0x33, 0x2a, 0x76, 0xab, 0x49, 0xd6, 0x3e, 0xac, 0xde, 0x90, 0xad, 0xcb,
+	0xaf, 0x03, 0x76, 0xc7, 0x70, 0x93, 0x8b, 0xd0, 0x0f, 0x3c, 0xdd, 0xf9, 0x9f, 0x13, 0xcc, 0xa1,
+	0x24, 0xea, 0x5f, 0x62, 0xf0, 0x87, 0x1d, 0xbd, 0x2a, 0x3f, 0xf0, 0xf0, 0x26, 0xcc, 0x69, 0x1b,
+	0xf1, 0xd2, 0xf0, 0xad, 0x4d, 0x3b, 0x5d, 0x5a, 0xfe, 0x05, 0x57, 0x75, 0x2d, 0x03, 0x6f, 0xc0,
+	0x9c, 0x4d, 0x1d, 0xea, 0x9f, 0x52, 0xbc, 0x38, 0xf3, 0x52, 0xe5, 0xef, 0xa4, 0x94, 0x1d, 0xa2,
+	0x72, 0x8b, 0x46, 0x05, 0xdd, 0x41, 0x78, 0x1f, 0x72, 0x53, 0x36, 0xe2, 0x95, 0xa1, 0xe8, 0xba,
+	0x4d, 0x94, 0x56, 0x6f, 0x60, 0x47, 0x4d, 0x1c, 0x43, 0xe1, 0x5a, 0x7f, 0xf0, 0x7f, 0xc3, 0xcc,
+	0xdb, 0xcc, 0x2f, 0xad, 0xfd, 0x46, 0x35, 0xac, 0xb3, 0x7d, 0xf7, 0xec, 0xc2, 0x34, 0xce, 0x2f,
+	0x4c, 0xe3, 0xea, 0xc2, 0x34, 0xde, 0x0f, 0x4c, 0xf4, 0x79, 0x60, 0xa2, 0xaf, 0x03, 0x13, 0x9d,
+	0x0d, 0x4c, 0xf4, 0x6d, 0x60, 0xa2, 0xef, 0x03, 0xd3, 0xb8, 0x1a, 0x98, 0xe8, 0xe3, 0xa5, 0x69,
+	0x9c, 0x5d, 0x9a, 0xc6, 0xf9, 0xa5, 0x69, 0x1c, 0xa5, 0xe4, 0x8f, 0x76, 0xe3, 0x67, 0x00, 0x00,
+	0x00, 0xff, 0xff, 0x28, 0x56, 0xb9, 0xf4, 0xe7, 0x05, 0x00, 0x00,
 }
 
 func (this *MessageBatch) Equal(that interface{}) bool {
@@ -720,6 +906,107 @@ func (this *ConnectResponse) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *ListProcessesRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ListProcessesRequest)
+	if !ok {
+		that2, ok := that.(ListProcessesRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Name != that1.Name {
+		return false
+	}
+	return true
+}
+func (this *ListProcessesResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ListProcessesResponse)
+	if !ok {
+		that2, ok := that.(ListProcessesResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Pids) != len(that1.Pids) {
+		return false
+	}
+	for i := range this.Pids {
+		if !this.Pids[i].Equal(that1.Pids[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *GetProcessDiagnosticsRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*GetProcessDiagnosticsRequest)
+	if !ok {
+		that2, ok := that.(GetProcessDiagnosticsRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Pid.Equal(that1.Pid) {
+		return false
+	}
+	return true
+}
+func (this *GetProcessDiagnosticsResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*GetProcessDiagnosticsResponse)
+	if !ok {
+		that2, ok := that.(GetProcessDiagnosticsResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.DiagnosticsString != that1.DiagnosticsString {
+		return false
+	}
+	return true
+}
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
@@ -735,6 +1022,8 @@ const _ = grpc.SupportPackageIsVersion4
 type RemotingClient interface {
 	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error)
 	Receive(ctx context.Context, opts ...grpc.CallOption) (Remoting_ReceiveClient, error)
+	ListProcesses(ctx context.Context, in *ListProcessesRequest, opts ...grpc.CallOption) (*ListProcessesResponse, error)
+	GetProcessDiagnostics(ctx context.Context, in *GetProcessDiagnosticsRequest, opts ...grpc.CallOption) (*GetProcessDiagnosticsResponse, error)
 }
 
 type remotingClient struct {
@@ -785,10 +1074,47 @@ func (x *remotingReceiveClient) Recv() (*Unit, error) {
 	return m, nil
 }
 
+func (c *remotingClient) ListProcesses(ctx context.Context, in *ListProcessesRequest, opts ...grpc.CallOption) (*ListProcessesResponse, error) {
+	out := new(ListProcessesResponse)
+	err := c.cc.Invoke(ctx, "/remote.Remoting/ListProcesses", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *remotingClient) GetProcessDiagnostics(ctx context.Context, in *GetProcessDiagnosticsRequest, opts ...grpc.CallOption) (*GetProcessDiagnosticsResponse, error) {
+	out := new(GetProcessDiagnosticsResponse)
+	err := c.cc.Invoke(ctx, "/remote.Remoting/GetProcessDiagnostics", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RemotingServer is the server API for Remoting service.
 type RemotingServer interface {
 	Connect(context.Context, *ConnectRequest) (*ConnectResponse, error)
 	Receive(Remoting_ReceiveServer) error
+	ListProcesses(context.Context, *ListProcessesRequest) (*ListProcessesResponse, error)
+	GetProcessDiagnostics(context.Context, *GetProcessDiagnosticsRequest) (*GetProcessDiagnosticsResponse, error)
+}
+
+// UnimplementedRemotingServer can be embedded to have forward compatible implementations.
+type UnimplementedRemotingServer struct {
+}
+
+func (*UnimplementedRemotingServer) Connect(ctx context.Context, req *ConnectRequest) (*ConnectResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Connect not implemented")
+}
+func (*UnimplementedRemotingServer) Receive(srv Remoting_ReceiveServer) error {
+	return status.Errorf(codes.Unimplemented, "method Receive not implemented")
+}
+func (*UnimplementedRemotingServer) ListProcesses(ctx context.Context, req *ListProcessesRequest) (*ListProcessesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListProcesses not implemented")
+}
+func (*UnimplementedRemotingServer) GetProcessDiagnostics(ctx context.Context, req *GetProcessDiagnosticsRequest) (*GetProcessDiagnosticsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetProcessDiagnostics not implemented")
 }
 
 func RegisterRemotingServer(s *grpc.Server, srv RemotingServer) {
@@ -839,6 +1165,42 @@ func (x *remotingReceiveServer) Recv() (*MessageBatch, error) {
 	return m, nil
 }
 
+func _Remoting_ListProcesses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListProcessesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RemotingServer).ListProcesses(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/remote.Remoting/ListProcesses",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RemotingServer).ListProcesses(ctx, req.(*ListProcessesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Remoting_GetProcessDiagnostics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProcessDiagnosticsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RemotingServer).GetProcessDiagnostics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/remote.Remoting/GetProcessDiagnostics",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RemotingServer).GetProcessDiagnostics(ctx, req.(*GetProcessDiagnosticsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Remoting_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "remote.Remoting",
 	HandlerType: (*RemotingServer)(nil),
@@ -846,6 +1208,14 @@ var _Remoting_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Connect",
 			Handler:    _Remoting_Connect_Handler,
+		},
+		{
+			MethodName: "ListProcesses",
+			Handler:    _Remoting_ListProcesses_Handler,
+		},
+		{
+			MethodName: "GetProcessDiagnostics",
+			Handler:    _Remoting_GetProcessDiagnostics_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -862,7 +1232,7 @@ var _Remoting_serviceDesc = grpc.ServiceDesc{
 func (m *MessageBatch) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -870,59 +1240,54 @@ func (m *MessageBatch) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *MessageBatch) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MessageBatch) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.TypeNames) > 0 {
-		for _, s := range m.TypeNames {
-			dAtA[i] = 0xa
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
+	if len(m.Envelopes) > 0 {
+		for iNdEx := len(m.Envelopes) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Envelopes[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintProtos(dAtA, i, uint64(size))
 			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
+			i--
+			dAtA[i] = 0x1a
 		}
 	}
 	if len(m.TargetNames) > 0 {
-		for _, s := range m.TargetNames {
+		for iNdEx := len(m.TargetNames) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.TargetNames[iNdEx])
+			copy(dAtA[i:], m.TargetNames[iNdEx])
+			i = encodeVarintProtos(dAtA, i, uint64(len(m.TargetNames[iNdEx])))
+			i--
 			dAtA[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			dAtA[i] = uint8(l)
-			i++
-			i += copy(dAtA[i:], s)
 		}
 	}
-	if len(m.Envelopes) > 0 {
-		for _, msg := range m.Envelopes {
-			dAtA[i] = 0x1a
-			i++
-			i = encodeVarintProtos(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
+	if len(m.TypeNames) > 0 {
+		for iNdEx := len(m.TypeNames) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.TypeNames[iNdEx])
+			copy(dAtA[i:], m.TypeNames[iNdEx])
+			i = encodeVarintProtos(dAtA, i, uint64(len(m.TypeNames[iNdEx])))
+			i--
+			dAtA[i] = 0xa
 		}
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *MessageEnvelope) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -930,58 +1295,68 @@ func (m *MessageEnvelope) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *MessageEnvelope) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MessageEnvelope) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.TypeId != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.TypeId))
-	}
-	if len(m.MessageData) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(len(m.MessageData)))
-		i += copy(dAtA[i:], m.MessageData)
-	}
-	if m.Target != 0 {
-		dAtA[i] = 0x18
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.Target))
-	}
-	if m.Sender != nil {
-		dAtA[i] = 0x22
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.Sender.Size()))
-		n1, err := m.Sender.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+	if m.MessageHeader != nil {
+		{
+			size, err := m.MessageHeader.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintProtos(dAtA, i, uint64(size))
 		}
-		i += n1
+		i--
+		dAtA[i] = 0x32
 	}
 	if m.SerializerId != 0 {
-		dAtA[i] = 0x28
-		i++
 		i = encodeVarintProtos(dAtA, i, uint64(m.SerializerId))
+		i--
+		dAtA[i] = 0x28
 	}
-	if m.MessageHeader != nil {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.MessageHeader.Size()))
-		n2, err := m.MessageHeader.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+	if m.Sender != nil {
+		{
+			size, err := m.Sender.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintProtos(dAtA, i, uint64(size))
 		}
-		i += n2
+		i--
+		dAtA[i] = 0x22
 	}
-	return i, nil
+	if m.Target != 0 {
+		i = encodeVarintProtos(dAtA, i, uint64(m.Target))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.MessageData) > 0 {
+		i -= len(m.MessageData)
+		copy(dAtA[i:], m.MessageData)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.MessageData)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.TypeId != 0 {
+		i = encodeVarintProtos(dAtA, i, uint64(m.TypeId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *MessageHeader) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -989,34 +1364,41 @@ func (m *MessageHeader) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *MessageHeader) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MessageHeader) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
 	if len(m.HeaderData) > 0 {
-		for k, _ := range m.HeaderData {
-			dAtA[i] = 0xa
-			i++
+		for k := range m.HeaderData {
 			v := m.HeaderData[k]
-			mapSize := 1 + len(k) + sovProtos(uint64(len(k))) + 1 + len(v) + sovProtos(uint64(len(v)))
-			i = encodeVarintProtos(dAtA, i, uint64(mapSize))
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintProtos(dAtA, i, uint64(len(k)))
-			i += copy(dAtA[i:], k)
-			dAtA[i] = 0x12
-			i++
+			baseI := i
+			i -= len(v)
+			copy(dAtA[i:], v)
 			i = encodeVarintProtos(dAtA, i, uint64(len(v)))
-			i += copy(dAtA[i:], v)
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarintProtos(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarintProtos(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0xa
 		}
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *ActorPidRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1024,29 +1406,36 @@ func (m *ActorPidRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ActorPidRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ActorPidRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Name) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(len(m.Name)))
-		i += copy(dAtA[i:], m.Name)
-	}
 	if len(m.Kind) > 0 {
-		dAtA[i] = 0x12
-		i++
+		i -= len(m.Kind)
+		copy(dAtA[i:], m.Kind)
 		i = encodeVarintProtos(dAtA, i, uint64(len(m.Kind)))
-		i += copy(dAtA[i:], m.Kind)
+		i--
+		dAtA[i] = 0x12
 	}
-	return i, nil
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ActorPidResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1054,32 +1443,39 @@ func (m *ActorPidResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ActorPidResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ActorPidResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Pid != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintProtos(dAtA, i, uint64(m.Pid.Size()))
-		n3, err := m.Pid.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n3
-	}
 	if m.StatusCode != 0 {
-		dAtA[i] = 0x10
-		i++
 		i = encodeVarintProtos(dAtA, i, uint64(m.StatusCode))
+		i--
+		dAtA[i] = 0x10
 	}
-	return i, nil
+	if m.Pid != nil {
+		{
+			size, err := m.Pid.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintProtos(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Unit) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1087,17 +1483,22 @@ func (m *Unit) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Unit) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Unit) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *ConnectRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1105,17 +1506,22 @@ func (m *ConnectRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ConnectRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ConnectRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *ConnectResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1123,26 +1529,165 @@ func (m *ConnectResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ConnectResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ConnectResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
 	if m.DefaultSerializerId != 0 {
-		dAtA[i] = 0x8
-		i++
 		i = encodeVarintProtos(dAtA, i, uint64(m.DefaultSerializerId))
+		i--
+		dAtA[i] = 0x8
 	}
-	return i, nil
+	return len(dAtA) - i, nil
+}
+
+func (m *ListProcessesRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListProcessesRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ListProcessesRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListProcessesResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListProcessesResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ListProcessesResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Pids) > 0 {
+		for iNdEx := len(m.Pids) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Pids[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintProtos(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetProcessDiagnosticsRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetProcessDiagnosticsRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetProcessDiagnosticsRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Pid != nil {
+		{
+			size, err := m.Pid.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintProtos(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetProcessDiagnosticsResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetProcessDiagnosticsResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetProcessDiagnosticsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.DiagnosticsString) > 0 {
+		i -= len(m.DiagnosticsString)
+		copy(dAtA[i:], m.DiagnosticsString)
+		i = encodeVarintProtos(dAtA, i, uint64(len(m.DiagnosticsString)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintProtos(dAtA []byte, offset int, v uint64) int {
+	offset -= sovProtos(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *MessageBatch) Size() (n int) {
 	if m == nil {
@@ -1281,15 +1826,62 @@ func (m *ConnectResponse) Size() (n int) {
 	return n
 }
 
-func sovProtos(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
+func (m *ListProcessesRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + sovProtos(uint64(l))
+	}
+	return n
+}
+
+func (m *ListProcessesResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Pids) > 0 {
+		for _, e := range m.Pids {
+			l = e.Size()
+			n += 1 + l + sovProtos(uint64(l))
 		}
 	}
 	return n
+}
+
+func (m *GetProcessDiagnosticsRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Pid != nil {
+		l = m.Pid.Size()
+		n += 1 + l + sovProtos(uint64(l))
+	}
+	return n
+}
+
+func (m *GetProcessDiagnosticsResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.DiagnosticsString)
+	if l > 0 {
+		n += 1 + l + sovProtos(uint64(l))
+	}
+	return n
+}
+
+func sovProtos(x uint64) (n int) {
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozProtos(x uint64) (n int) {
 	return sovProtos(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -1298,10 +1890,15 @@ func (this *MessageBatch) String() string {
 	if this == nil {
 		return "nil"
 	}
+	repeatedStringForEnvelopes := "[]*MessageEnvelope{"
+	for _, f := range this.Envelopes {
+		repeatedStringForEnvelopes += strings.Replace(f.String(), "MessageEnvelope", "MessageEnvelope", 1) + ","
+	}
+	repeatedStringForEnvelopes += "}"
 	s := strings.Join([]string{`&MessageBatch{`,
 		`TypeNames:` + fmt.Sprintf("%v", this.TypeNames) + `,`,
 		`TargetNames:` + fmt.Sprintf("%v", this.TargetNames) + `,`,
-		`Envelopes:` + strings.Replace(fmt.Sprintf("%v", this.Envelopes), "MessageEnvelope", "MessageEnvelope", 1) + `,`,
+		`Envelopes:` + repeatedStringForEnvelopes + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1316,7 +1913,7 @@ func (this *MessageEnvelope) String() string {
 		`Target:` + fmt.Sprintf("%v", this.Target) + `,`,
 		`Sender:` + strings.Replace(fmt.Sprintf("%v", this.Sender), "PID", "actor.PID", 1) + `,`,
 		`SerializerId:` + fmt.Sprintf("%v", this.SerializerId) + `,`,
-		`MessageHeader:` + strings.Replace(fmt.Sprintf("%v", this.MessageHeader), "MessageHeader", "MessageHeader", 1) + `,`,
+		`MessageHeader:` + strings.Replace(this.MessageHeader.String(), "MessageHeader", "MessageHeader", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1387,6 +1984,51 @@ func (this *ConnectResponse) String() string {
 	}
 	s := strings.Join([]string{`&ConnectResponse{`,
 		`DefaultSerializerId:` + fmt.Sprintf("%v", this.DefaultSerializerId) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ListProcessesRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ListProcessesRequest{`,
+		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ListProcessesResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	repeatedStringForPids := "[]*PID{"
+	for _, f := range this.Pids {
+		repeatedStringForPids += strings.Replace(fmt.Sprintf("%v", f), "PID", "actor.PID", 1) + ","
+	}
+	repeatedStringForPids += "}"
+	s := strings.Join([]string{`&ListProcessesResponse{`,
+		`Pids:` + repeatedStringForPids + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *GetProcessDiagnosticsRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&GetProcessDiagnosticsRequest{`,
+		`Pid:` + strings.Replace(fmt.Sprintf("%v", this.Pid), "PID", "actor.PID", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *GetProcessDiagnosticsResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&GetProcessDiagnosticsResponse{`,
+		`DiagnosticsString:` + fmt.Sprintf("%v", this.DiagnosticsString) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1532,10 +2174,7 @@ func (m *MessageBatch) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -1748,10 +2387,7 @@ func (m *MessageEnvelope) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -1911,7 +2547,7 @@ func (m *MessageHeader) Unmarshal(dAtA []byte) error {
 					if err != nil {
 						return err
 					}
-					if skippy < 0 {
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
 						return ErrInvalidLengthProtos
 					}
 					if (iNdEx + skippy) > postIndex {
@@ -1928,10 +2564,7 @@ func (m *MessageHeader) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -2045,10 +2678,7 @@ func (m *ActorPidRequest) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -2153,10 +2783,7 @@ func (m *ActorPidResponse) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -2206,10 +2833,7 @@ func (m *Unit) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -2259,10 +2883,7 @@ func (m *ConnectRequest) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthProtos
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -2331,10 +2952,341 @@ func (m *ConnectResponse) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
-			if (iNdEx + skippy) < 0 {
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ListProcessesRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListProcessesRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListProcessesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ListProcessesResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListProcessesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListProcessesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pids", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Pids = append(m.Pids, &actor.PID{})
+			if err := m.Pids[len(m.Pids)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GetProcessDiagnosticsRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetProcessDiagnosticsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetProcessDiagnosticsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pid", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Pid == nil {
+				m.Pid = &actor.PID{}
+			}
+			if err := m.Pid.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GetProcessDiagnosticsResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtos
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetProcessDiagnosticsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetProcessDiagnosticsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DiagnosticsString", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtos
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthProtos
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtos
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DiagnosticsString = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipProtos(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthProtos
 			}
 			if (iNdEx + skippy) > l {
@@ -2352,6 +3304,7 @@ func (m *ConnectResponse) Unmarshal(dAtA []byte) error {
 func skipProtos(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -2383,10 +3336,8 @@ func skipProtos(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -2407,55 +3358,30 @@ func skipProtos(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthProtos
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthProtos
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowProtos
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipProtos(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthProtos
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupProtos
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthProtos
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthProtos = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowProtos   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthProtos        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowProtos          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupProtos = fmt.Errorf("proto: unexpected end of group")
 )

@@ -46,4 +46,22 @@ message ConnectResponse {
 service Remoting {
   rpc Connect(ConnectRequest) returns (ConnectResponse) {}
   rpc Receive (stream MessageBatch) returns (stream Unit) {}
+  rpc ListProcesses(ListProcessesRequest) returns (ListProcessesResponse) {}
+  rpc GetProcessDiagnostics(GetProcessDiagnosticsRequest) returns (GetProcessDiagnosticsResponse) {}
+}
+
+message ListProcessesRequest {
+  string name = 1;
+}
+
+message ListProcessesResponse {
+  repeated actor.PID pids = 1;
+}
+
+message GetProcessDiagnosticsRequest {
+  actor.PID pid = 1;
+}
+
+message GetProcessDiagnosticsResponse {
+  string diagnostics_string = 1;
 }
