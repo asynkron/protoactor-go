@@ -2,6 +2,7 @@ package actor
 
 import (
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -600,6 +601,12 @@ func (ctx *actorContext) finalizeStop() {
 //
 
 func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {
+
+	if ctx.actorSystem.Config.DeveloperSupervisionLogging {
+		fmt.Println("[Supervision] Actor:", ctx.self, " failed with message:", message, " exception:", reason)
+		plog.Error("[Supervision]", log.Stringer("actor", ctx.self), log.Object("message", message), log.Object("exception", reason))
+	}
+
 	failure := &Failure{Reason: reason, Who: ctx.self, RestartStats: ctx.ensureExtras().restartStats(), Message: message}
 	ctx.self.sendSystemMessage(ctx.actorSystem, suspendMailboxMessage)
 	if ctx.parent == nil {
