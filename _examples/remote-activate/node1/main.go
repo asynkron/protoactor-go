@@ -16,7 +16,8 @@ func main() {
 	timeout := 5 * time.Second
 
 	system := actor.NewActorSystem()
-	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 8081))
+	remoteConfig := remote.Configure("127.0.0.1", 8081)
+	r := remote.NewRemote(system, remoteConfig)
 	r.Start()
 
 	rootContext := system.Root

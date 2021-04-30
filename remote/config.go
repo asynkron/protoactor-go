@@ -93,11 +93,18 @@ func WithKinds(kinds ...*Kind) ConfigOption {
 	}
 }
 
+func WithKind(kind string, props *actor.Props) ConfigOption {
+	return func(config Config) Config {
+		config.Kinds[kind] = props
+		return config
+	}
+}
+
 func (rc Config) Address() string {
 	return fmt.Sprintf("%v:%v", rc.Host, rc.Port)
 }
 
-func NewConfig(host string, port int, options ...ConfigOption) Config {
+func Configure(host string, port int, options ...ConfigOption) Config {
 	c := newConfig(options...)
 	c.Host = host
 	c.Port = port
