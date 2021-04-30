@@ -24,7 +24,7 @@ func defaultConfig() Config {
 
 type ConfigOption func(config Config) Config
 
-func NewConfig(options ...ConfigOption) Config {
+func Configure(options ...ConfigOption) Config {
 	config := defaultConfig()
 	for _, option := range options {
 		config = option(config)
