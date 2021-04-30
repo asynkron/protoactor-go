@@ -612,8 +612,6 @@ func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}
 	if ctx.parent == nil {
 		ctx.handleRootFailure(failure)
 	} else {
-		// TODO: Akka recursively suspends all children also on failure
-		// Not sure if I think this is the right way to go, why do children need to wait for their parents failed state to recover?
 		ctx.parent.sendSystemMessage(ctx.actorSystem, failure)
 	}
 }
