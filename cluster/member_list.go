@@ -42,10 +42,6 @@ func setupMemberList(cluster *Cluster) *MemberList {
 	return memberList
 }
 
-func (ml *MemberList) stopMemberList() {
-	// ml.cluster.ActorSystem.EventStream.Unsubscribe(ml.membershipSub)
-}
-
 func (ml *MemberList) GetPartitionMember(name, kind string) string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()

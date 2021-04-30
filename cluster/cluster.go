@@ -28,9 +28,26 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	}
 
 	actorSystem.Extensions.Register(c)
+	//TODO subscribe to eventstream and clear pid cache
+	//SubscribeToTopologyEvents()
 
 	return c
 }
+
+/*
+private void SubscribeToTopologyEvents() =>
+	System.EventStream.Subscribe<ClusterTopology>(e => {
+			System.Metrics.Get<ClusterMetrics>().ClusterTopologyEventGauge.Set(e.Members.Count,
+				new[] {System.Id, System.Address, e.GetMembershipHashCode().ToString()}
+			);
+
+			foreach (var member in e.Left)
+			{
+				PidCache.RemoveByMember(member);
+			}
+		}
+	);
+*/
 
 func (c *Cluster) Id() extensions.ExtensionId {
 	return extensionId
@@ -66,7 +83,11 @@ func (c *Cluster) Start() {
 }
 
 func (c *Cluster) GetClusterKinds() []string {
-	return nil
+	keys := make([]string, 0, len(c.kinds))
+	for k := range c.kinds {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 func (c *Cluster) StartClient() {
@@ -88,11 +109,9 @@ func (c *Cluster) StartClient() {
 }
 
 func (c *Cluster) Shutdown(graceful bool) {
+
 	if graceful {
 		_ = c.Config.ClusterProvider.Shutdown(graceful)
-		time.Sleep(time.Millisecond * 2000)
-		c.MemberList.stopMemberList()
-		c.PidCache.stopPidCache()
 		c.IdentityLookup.Shutdown()
 	}
 
