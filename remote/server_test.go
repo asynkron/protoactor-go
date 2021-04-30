@@ -53,6 +53,25 @@ func TestRemote_RegisterViaOptions(t *testing.T) {
 	assert.Equal(t, "someOther", kinds[1])
 }
 
+func TestRemote_RegisterViaStruct(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Config{
+		Host: "localhost",
+		Port: 0,
+		Kinds: map[string]*actor.Props{
+			"someKind":  actor.PropsFromProducer(nil),
+			"someOther": actor.PropsFromProducer(nil),
+		},
+	}
+
+	remote := NewRemote(system, config)
+	kinds := remote.GetKnownKinds()
+	assert.Equal(t, 2, len(kinds))
+	sort.Strings(kinds)
+	assert.Equal(t, "someKind", kinds[0])
+	assert.Equal(t, "someOther", kinds[1])
+}
+
 //
 //func (suite *ServerTestSuite) TestStart_AdvertisedAddress() {
 //	// Find available Port
