@@ -15,6 +15,14 @@ type endpointReader struct {
 	remote    *Remote
 }
 
+func (s *endpointReader) ListProcesses(ctx context.Context, request *ListProcessesRequest) (*ListProcessesResponse, error) {
+	panic("implement me")
+}
+
+func (s *endpointReader) GetProcessDiagnostics(ctx context.Context, request *GetProcessDiagnosticsRequest) (*GetProcessDiagnosticsResponse, error) {
+	panic("implement me")
+}
+
 func newEndpointReader(r *Remote) *endpointReader {
 	return &endpointReader{
 		remote: r,
