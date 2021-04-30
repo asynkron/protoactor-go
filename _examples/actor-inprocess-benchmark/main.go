@@ -31,6 +31,13 @@ type pingActor struct {
 	batchSize    int
 }
 
+func pongActor(context actor.Context) {
+	switch msg := context.Message().(type) {
+	case *Msg:
+		context.Send(msg.Sender, &Msg{Sender: context.Self()})
+	}
+}
+
 func (state *pingActor) sendBatch(context actor.Context, sender *actor.PID) bool {
 	if state.messageCount == 0 {
 		return false
@@ -124,13 +131,7 @@ func main() {
 		rootContext := system.Root
 
 		echoProps := actor.
-			PropsFromFunc(
-				func(context actor.Context) {
-					switch msg := context.Message().(type) {
-					case *Msg:
-						context.Send(msg.Sender, msg)
-					}
-				}).
+			PropsFromFunc(pongActor).
 			WithMailbox(mailbox.Bounded(batchSize + 10)).
 			WithDispatcher(d)
 

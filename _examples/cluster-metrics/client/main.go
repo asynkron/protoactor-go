@@ -25,20 +25,57 @@ func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
 		}
 		next(context, env)
 	}
-
 	return fn
 }
 
 func main() {
-
 	system := actor.NewActorSystem()
 	config := remote.Configure("localhost", 0)
 
 	provider, _ := consul.New()
 	clusterConfig := cluster.Configure("my-cluster", provider, config)
 	c := cluster.New(system, clusterConfig)
-	shared.SetCluster(c)
+	setupLogger(c)
+	c.Start()
 
+	callopts := cluster.NewGrainCallOptions(c).WithTimeout(5 * time.Second).WithRetry(5)
+	doRequests(c, callopts)
+	doRequestsAsync(c, callopts)
+	console.ReadLine()
+}
+
+func doRequests(c *cluster.Cluster, callopts *cluster.GrainCallOptions) {
+	msg := &shared.HelloRequest{Name: "GAM"}
+	helloGrain := shared.GetHelloGrainClient(c, "abc")
+	// with default callopts
+	resp, err := helloGrain.SayHello(msg)
+	if err != nil {
+		log.Fatalf("SayHello failed. err:%v", err)
+	}
+
+	// with custom callopts
+	resp, err = helloGrain.SayHello(msg, callopts)
+	if err != nil {
+		log.Fatalf("SayHello failed. err:%v", err)
+	}
+	log.Printf("Message from SayHello: %v", resp.Message)
+	for i := 0; i < 10000; i++ {
+		grainId := fmt.Sprintf("hello%v", i)
+		x := shared.GetHelloGrainClient(c, grainId)
+		x.SayHello(&shared.HelloRequest{Name: grainId})
+	}
+	log.Println("Done")
+}
+
+func doRequestsAsync(c *cluster.Cluster, callopts *cluster.GrainCallOptions) {
+	// sorry, golang has not magic, just use goroutine.
+	go func() {
+		doRequests(c, callopts)
+	}()
+}
+
+func setupLogger(c *cluster.Cluster) {
+	system := c.ActorSystem
 	// Subscribe
 	system.EventStream.Subscribe(func(event interface{}) {
 		switch msg := event.(type) {
@@ -56,44 +93,4 @@ func main() {
 			log.Printf("Cluster Topology Poll")
 		}
 	})
-
-	c.Start()
-	shared.SetCluster(c)
-
-	sync(c)
-	async()
-
-	console.ReadLine()
-}
-
-func sync(c *cluster.Cluster) {
-	hello := shared.GetHelloGrain("abc")
-	options := cluster.NewGrainCallOptions(c).WithTimeout(5 * time.Second).WithRetry(5)
-	res, err := hello.SayHelloWithOpts(&shared.HelloRequest{Name: "GAM"}, options)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("Message from SayHello: %v", res.Message)
-	for i := 0; i < 10000; i++ {
-		x := shared.GetHelloGrain(fmt.Sprintf("hello%v", i))
-		x.SayHello(&shared.HelloRequest{Name: "GAM"})
-	}
-	log.Println("Done")
-}
-
-func async() {
-	hello := shared.GetHelloGrain("abc")
-	c, e := hello.AddChan(&shared.AddRequest{A: 123, B: 456})
-
-	for {
-		select {
-		case <-time.After(100 * time.Millisecond):
-			log.Println("Tick..") // this might not happen if res returns fast enough
-		case err := <-e:
-			log.Fatal(err)
-		case res := <-c:
-			log.Printf("Result is %v", res.Result)
-			return
-		}
-	}
 }

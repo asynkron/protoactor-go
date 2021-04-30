@@ -5,30 +5,20 @@ import (
 )
 
 type process struct {
-	pid *actor.PID
+	pid    *actor.PID
+	remote *Remote
 }
 
-func newProcess(pid *actor.PID) actor.Process {
+func newProcess(pid *actor.PID, r *Remote) actor.Process {
 	return &process{
-		pid: pid,
+		pid:    pid,
+		remote: r,
 	}
 }
 
 func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
 	header, msg, sender := actor.UnwrapEnvelope(message)
-	SendMessage(pid, header, msg, sender, -1)
-}
-
-func SendMessage(pid *actor.PID, header actor.ReadonlyMessageHeader, message interface{}, sender *actor.PID, serializerID int32) {
-	rd := &remoteDeliver{
-		header:       header,
-		message:      message,
-		sender:       sender,
-		target:       pid,
-		serializerID: serializerID,
-	}
-
-	endpointManager.remoteDeliver(rd)
+	ref.remote.SendMessage(pid, header, msg, sender, -1)
 }
 
 func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
@@ -40,15 +30,17 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
 			Watcher: msg.Watcher,
 			Watchee: pid,
 		}
-		endpointManager.remoteWatch(rw)
+		// endpointManager.remoteWatch(rw)
+		ref.remote.edpManager.remoteWatch(rw)
 	case *actor.Unwatch:
 		ruw := &remoteUnwatch{
 			Watcher: msg.Watcher,
 			Watchee: pid,
 		}
-		endpointManager.remoteUnwatch(ruw)
+		// endpointManager.remoteUnwatch(ruw)
+		ref.remote.edpManager.remoteUnwatch(ruw)
 	default:
-		SendMessage(pid, nil, message, nil, -1)
+		ref.remote.SendMessage(pid, nil, message, nil, -1)
 	}
 }
 

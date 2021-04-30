@@ -8,24 +8,51 @@ import (
 	"time"
 )
 
+// Level of log.
 type Level int32
 
 const (
 	MinLevel = Level(iota)
 	DebugLevel
 	InfoLevel
+	WarnLevel
 	ErrorLevel
 	OffLevel
+	DefaultLevel
 )
 
-type Logger struct {
-	level   Level
-	prefix  string
-	context []Field
+var (
+	levelNames = [OffLevel + 1]string{"-    ", "DEBUG", "INFO ", "WARN", "ERROR", "-    "}
+)
+
+func (l Level) String() string {
+	return levelNames[int(l)]
 }
 
+type Logger struct {
+	level        Level
+	prefix       string
+	context      []Field
+	enableCaller bool
+}
+
+// New a Logger
 func New(level Level, prefix string, context ...Field) *Logger {
-	return &Logger{level: level, prefix: prefix, context: context}
+	opts := Current
+	if level == DefaultLevel {
+		level = opts.logLevel
+	}
+	return &Logger{
+		level:        level,
+		prefix:       prefix,
+		context:      context,
+		enableCaller: opts.enableCaller,
+	}
+}
+
+func (l *Logger) WithCaller() *Logger {
+	l.enableCaller = true
+	return l
 }
 
 func (l *Logger) With(fields ...Field) *Logger {
@@ -58,20 +85,41 @@ func (l *Logger) SetLevel(level Level) {
 	atomic.StoreInt32((*int32)(&l.level), int32(level))
 }
 
+func (l *Logger) newEvent(msg string, level Level, fields ...Field) Event {
+	ev := Event{
+		Time:    time.Now(),
+		Level:   level,
+		Prefix:  l.prefix,
+		Message: msg,
+		Context: l.context,
+		Fields:  fields,
+	}
+	if l.enableCaller {
+		ev.Caller = newCallerInfo(3)
+	}
+	return ev
+}
+
 func (l *Logger) Debug(msg string, fields ...Field) {
-	if l.Level() < InfoLevel {
-		es.Publish(Event{Time: time.Now(), Level: DebugLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
+	if l.Level() <= DebugLevel {
+		es.Publish(l.newEvent(msg, DebugLevel, fields...))
 	}
 }
 
 func (l *Logger) Info(msg string, fields ...Field) {
-	if l.Level() < ErrorLevel {
-		es.Publish(Event{Time: time.Now(), Level: InfoLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
+	if l.Level() <= InfoLevel {
+		es.Publish(l.newEvent(msg, InfoLevel, fields...))
+	}
+}
+
+func (l *Logger) Warn(msg string, fields ...Field) {
+	if l.Level() <= WarnLevel {
+		es.Publish(l.newEvent(msg, WarnLevel, fields...))
 	}
 }
 
 func (l *Logger) Error(msg string, fields ...Field) {
-	if l.Level() < OffLevel {
-		es.Publish(Event{Time: time.Now(), Level: ErrorLevel, Prefix: l.prefix, Message: msg, Context: l.context, Fields: fields})
+	if l.Level() <= ErrorLevel {
+		es.Publish(l.newEvent(msg, ErrorLevel, fields...))
 	}
 }

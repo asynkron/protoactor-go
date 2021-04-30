@@ -3,14 +3,14 @@ package remote
 import (
 	"sync"
 	"sync/atomic"
+	"time"
 
+	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/mailbox"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 )
-
-var endpointManager *endpointManagerValue
 
 type endpointLazy struct {
 	valueFunc func() *endpoint
@@ -22,32 +22,33 @@ type endpoint struct {
 	watcher *actor.PID
 }
 
-type endpointManagerValue struct {
-	connections        *sync.Map
-	remote             *Remote
-	endpointSupervisor *actor.PID
-	endpointSub        *eventstream.Subscription
+func (ep *endpoint) Address() string {
+	return ep.watcher.GetAddress()
 }
 
-func (r *Remote) startEndpointManager() {
-	plog.Debug("Started EndpointManager")
+type endpointManager struct {
+	connections               *sync.Map
+	remote                    *Remote
+	endpointSub               *eventstream.Subscription
+	endpointSupervisor        *actor.PID
+	activator                 *actor.PID
+	stopped                   bool
+	endpointReaderConnections *sync.Map
+}
 
-	props := actor.PropsFromProducer(func() actor.Actor {
-		return newEndpointSupervisor(r)
-	}).
-		WithGuardian(actor.RestartingSupervisorStrategy()).
-		WithSupervisor(actor.RestartingSupervisorStrategy()).
-		WithDispatcher(mailbox.NewSynchronizedDispatcher(300))
-	endpointSupervisor, _ := r.actorSystem.Root.SpawnNamed(props, "EndpointSupervisor")
-
-	endpointManager = &endpointManagerValue{
-		connections:        &sync.Map{},
-		remote:             r,
-		endpointSupervisor: endpointSupervisor,
+func newEndpointManager(r *Remote) *endpointManager {
+	return &endpointManager{
+		connections:               &sync.Map{},
+		remote:                    r,
+		stopped:                   false,
+		endpointReaderConnections: &sync.Map{},
 	}
+}
 
-	endpointManager.endpointSub = r.actorSystem.EventStream.
-		Subscribe(endpointManager.endpointEvent).
+func (em *endpointManager) start() {
+	eventStream := em.remote.actorSystem.EventStream
+	em.endpointSub = eventStream.
+		Subscribe(em.endpointEvent).
 		WithPredicate(func(m interface{}) bool {
 			switch m.(type) {
 			case *EndpointTerminatedEvent, *EndpointConnectedEvent:
@@ -55,17 +56,81 @@ func (r *Remote) startEndpointManager() {
 			}
 			return false
 		})
+	em.startActivator()
+	em.startSupervisor()
+
+	if err := em.waiting(3 * time.Second); err != nil {
+		panic(err)
+	}
+	plog.Info("Started EndpointManager")
 }
 
-func (r *Remote) stopEndpointManager() {
-	r.actorSystem.EventStream.Unsubscribe(endpointManager.endpointSub)
-	_ = r.actorSystem.Root.StopFuture(endpointManager.endpointSupervisor).Wait()
-	endpointManager.endpointSub = nil
-	endpointManager.connections = nil
-	plog.Debug("Stopped EndpointManager")
+func (em *endpointManager) waiting(timeout time.Duration) error {
+	ctx := em.remote.actorSystem.Root
+	if _, err := ctx.RequestFuture(em.activator, &Ping{}, timeout).Result(); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (em *endpointManagerValue) endpointEvent(evn interface{}) {
+func (em *endpointManager) stop() {
+	em.stopped = true
+	r := em.remote
+	r.actorSystem.EventStream.Unsubscribe(em.endpointSub)
+	if err := em.stopActivator(); err != nil {
+		plog.Error("stop endpoint activator failed", log.Error(err))
+	}
+	if err := em.stopSupervisor(); err != nil {
+		plog.Error("stop endpoint supervisor failed", log.Error(err))
+	}
+	em.endpointSub = nil
+	em.connections = nil
+	if em.endpointReaderConnections != nil {
+		em.endpointReaderConnections.Range(func(key interface{}, value interface{}) bool {
+			channel := value.(chan bool)
+			channel <- true
+			em.endpointReaderConnections.Delete(key)
+			return true
+		})
+	}
+	plog.Info("Stopped EndpointManager")
+}
+
+func (em *endpointManager) startActivator() {
+	p := newActivatorActor(em.remote)
+	props := actor.PropsFromProducer(p).WithGuardian(actor.RestartingSupervisorStrategy())
+	pid, err := em.remote.actorSystem.Root.SpawnNamed(props, "activator")
+	if err != nil {
+		panic(err)
+	}
+	em.activator = pid
+}
+
+func (em *endpointManager) stopActivator() error {
+	return em.remote.actorSystem.Root.StopFuture(em.activator).Wait()
+}
+
+func (em *endpointManager) startSupervisor() {
+	r := em.remote
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return newEndpointSupervisor(r)
+	}).
+		WithGuardian(actor.RestartingSupervisorStrategy()).
+		WithSupervisor(actor.RestartingSupervisorStrategy()).
+		WithDispatcher(mailbox.NewSynchronizedDispatcher(300))
+	pid, err := r.actorSystem.Root.SpawnNamed(props, "EndpointSupervisor")
+	if err != nil {
+		panic(err)
+	}
+	em.endpointSupervisor = pid
+}
+
+func (em *endpointManager) stopSupervisor() error {
+	r := em.remote
+	return r.actorSystem.Root.StopFuture(em.endpointSupervisor).Wait()
+}
+
+func (em *endpointManager) endpointEvent(evn interface{}) {
 	switch msg := evn.(type) {
 	case *EndpointTerminatedEvent:
 		em.removeEndpoint(msg)
@@ -75,31 +140,49 @@ func (em *endpointManagerValue) endpointEvent(evn interface{}) {
 	}
 }
 
-func (em *endpointManagerValue) remoteTerminate(msg *remoteTerminate) {
+func (em *endpointManager) remoteTerminate(msg *remoteTerminate) {
+	if em.stopped {
+		return
+	}
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
 	em.remote.actorSystem.Root.Send(endpoint.watcher, msg)
 }
 
-func (em *endpointManagerValue) remoteWatch(msg *remoteWatch) {
+func (em *endpointManager) remoteWatch(msg *remoteWatch) {
+	if em.stopped {
+		return
+	}
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
 	em.remote.actorSystem.Root.Send(endpoint.watcher, msg)
 }
 
-func (em *endpointManagerValue) remoteUnwatch(msg *remoteUnwatch) {
+func (em *endpointManager) remoteUnwatch(msg *remoteUnwatch) {
+	if em.stopped {
+		return
+	}
 	address := msg.Watchee.Address
 	endpoint := em.ensureConnected(address)
 	em.remote.actorSystem.Root.Send(endpoint.watcher, msg)
 }
 
-func (em *endpointManagerValue) remoteDeliver(msg *remoteDeliver) {
+func (em *endpointManager) remoteDeliver(msg *remoteDeliver) {
+	if em.stopped {
+		// send to deadletter
+		em.remote.actorSystem.EventStream.Publish(&actor.DeadLetterEvent{
+			PID:     msg.target,
+			Message: msg.message,
+			Sender:  msg.sender,
+		})
+		return
+	}
 	address := msg.target.Address
 	endpoint := em.ensureConnected(address)
 	em.remote.actorSystem.Root.Send(endpoint.writer, msg)
 }
 
-func (em *endpointManagerValue) ensureConnected(address string) *endpoint {
+func (em *endpointManager) ensureConnected(address string) *endpoint {
 	e, ok := em.connections.Load(address)
 	if !ok {
 		el := &endpointLazy{}
@@ -121,7 +204,7 @@ func (em *endpointManagerValue) ensureConnected(address string) *endpoint {
 	return el.valueFunc()
 }
 
-func (em *endpointManagerValue) removeEndpoint(msg *EndpointTerminatedEvent) {
+func (em *endpointManager) removeEndpoint(msg *EndpointTerminatedEvent) {
 	v, ok := em.connections.Load(msg.Address)
 	if ok {
 		le := v.(*endpointLazy)

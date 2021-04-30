@@ -90,3 +90,15 @@ func assertFutureSuccess(future *Future, t *testing.T) interface{} {
 	assert.NoError(t, err, "timed out")
 	return res
 }
+
+func TestFuture_Result_DeadLetterResponse(t *testing.T) {
+	assert := assert.New(t)
+
+	plog.SetLevel(log.OffLevel)
+
+	future := NewFuture(system, 1*time.Second)
+	rootContext.Send(future.PID(), &DeadLetterResponse{})
+	resp, err := future.Result()
+	assert.Equal(ErrDeadLetter, err)
+	assert.Nil(resp)
+}

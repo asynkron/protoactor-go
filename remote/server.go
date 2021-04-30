@@ -2,10 +2,11 @@ package remote
 
 import (
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/extensions"
 	"io/ioutil"
 	"net"
 	"time"
+
+	"github.com/AsynkronIT/protoactor-go/extensions"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -19,6 +20,7 @@ type Remote struct {
 	actorSystem  *actor.ActorSystem
 	s            *grpc.Server
 	edpReader    *endpointReader
+	edpManager   *endpointManager
 	config       *Config
 	nameLookup   map[string]actor.Props
 	activatorPid *actor.PID
@@ -60,11 +62,12 @@ func (r *Remote) Start() {
 	} else {
 		address = lis.Addr().String()
 	}
-	r.actorSystem.ProcessRegistry.RegisterAddressResolver(remoteHandler)
+	// r.actorSystem.ProcessRegistry.RegisterAddressResolver(remoteHandler)
+	r.actorSystem.ProcessRegistry.RegisterAddressResolver(r.remoteHandler)
 	r.actorSystem.ProcessRegistry.Address = address
 
-	r.spawnActivatorActor()
-	r.startEndpointManager()
+	r.edpManager = newEndpointManager(r)
+	r.edpManager.start()
 
 	r.s = grpc.NewServer(r.config.ServerOptions...)
 	r.edpReader = newEndpointReader(r)
@@ -75,9 +78,9 @@ func (r *Remote) Start() {
 
 func (r *Remote) Shutdown(graceful bool) {
 	if graceful {
+		// TODO: need more graceful
 		r.edpReader.suspend(true)
-		r.stopEndpointManager()
-		r.stopActivatorActor()
+		r.edpManager.stop()
 
 		// For some reason GRPC doesn't want to stop
 		// Setup timeout as workaround but need to figure out in the future.
@@ -99,4 +102,15 @@ func (r *Remote) Shutdown(graceful bool) {
 		r.s.Stop()
 		plog.Info("Killed Proto.Actor server")
 	}
+}
+
+func (r *Remote) SendMessage(pid *actor.PID, header actor.ReadonlyMessageHeader, message interface{}, sender *actor.PID, serializerID int32) {
+	rd := &remoteDeliver{
+		header:       header,
+		message:      message,
+		sender:       sender,
+		target:       pid,
+		serializerID: serializerID,
+	}
+	r.edpManager.remoteDeliver(rd)
 }

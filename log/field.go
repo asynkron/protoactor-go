@@ -26,6 +26,7 @@ const (
 	objectType
 	typeOfType
 	skipType
+	callerType
 )
 
 type Field struct {
@@ -74,6 +75,14 @@ func Uint64(key string, val uint64) Field {
 // String constructs a Field with the given key and value.
 func String(key string, val string) Field {
 	return Field{key: key, fieldType: stringType, str: val}
+}
+
+// PID constructs a Field with the given key and value.
+func PID(key string, val fmt.Stringer) Field {
+	if val == nil {
+		return Field{key: key, fieldType: objectType, obj: val}
+	}
+	return Field{key: key, fieldType: stringerType, obj: val}
 }
 
 // Stringer constructs a Field with the given key and the output of the value's
@@ -153,6 +162,28 @@ func Message(val interface{}) Field {
 	return Field{key: "message", fieldType: objectType, obj: val}
 }
 
+// CallerInfo is constructs with runtime.Caller
+
+// Caller constructs a field with function name and number of line
+func CallerSkip(skip int) Field {
+	_, file, no, ok := runtime.Caller(skip)
+	if !ok {
+		return Field{key: "caller", fieldType: stringType, obj: "nil"}
+	}
+	return Field{
+		key:       "caller",
+		fieldType: callerType,
+		obj: CallerInfo{
+			fname: file,
+			line:  no,
+		},
+	}
+}
+
+func Caller() Field {
+	return CallerSkip(2)
+}
+
 // Encode encodes a field to a type safe val via the encoder.
 func (f Field) Encode(enc Encoder) {
 	switch f.fieldType {
@@ -180,6 +211,8 @@ func (f Field) Encode(enc Encoder) {
 		enc.EncodeObject(f.key, f.obj)
 	case typeOfType:
 		enc.EncodeType(f.key, reflect.TypeOf(f.obj))
+	case callerType:
+		enc.EncodeCaller(f.key, f.obj.(CallerInfo))
 	case skipType:
 		break
 	default:
