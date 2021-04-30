@@ -141,7 +141,7 @@ namespace Proto.Cluster
 
         private async Task RemoveFromSource(ClusterIdentity clusterIdentity, PidSource source, PID pid)
         {
-            if (source == PidSource.Lookup) await _identityLookup.RemovePidAsync(clusterIdentity, pid, CancellationToken.None);
+            if (source == PidSource.IdentityLookup) await _identityLookup.RemovePidAsync(clusterIdentity, pid, CancellationToken.None);
 
             _pidCache.RemoveByVal(clusterIdentity, pid);
         }
@@ -160,13 +160,13 @@ namespace Proto.Cluster
                         );
 
                     if (pid is not null) _pidCache.TryAdd(clusterIdentity, pid);
-                    return (pid, PidSource.Lookup);
+                    return (pid, PidSource.IdentityLookup);
                 }
                 else
                 {
                     var pid = await _identityLookup.GetAsync(clusterIdentity, ct);
                     if (pid is not null) _pidCache.TryAdd(clusterIdentity, pid);
-                    return (pid, PidSource.Lookup);
+                    return (pid, PidSource.IdentityLookup);
                 }
             }
             catch (Exception e)
@@ -175,7 +175,7 @@ namespace Proto.Cluster
 
                 if (_requestLogThrottle().IsOpen())
                     Logger.LogWarning(e, "Failed to get PID from IIdentityLookup for {ClusterIdentity}", clusterIdentity);
-                return (null, PidSource.Lookup);
+                return (null, PidSource.IdentityLookup);
             }
         }
 
@@ -264,7 +264,7 @@ namespace Proto.Cluster
         private enum PidSource
         {
             Cache,
-            Lookup
+            IdentityLookup
         }
     }
 }

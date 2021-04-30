@@ -80,7 +80,7 @@ func TestCluster_Call(t *testing.T) {
 	c.partitionValue = partition_identity.setupPartition(c, []string{"kind"})
 	c.pidCache = setupPidCache(c.ActorSystem)
 	c.MemberList = setupMemberList(c)
-	c.Config.TimeoutTime = 1 * time.Second
+	c.Config.RequestTimeoutTime = 1 * time.Second
 	c.partitionManager = partition_identity.newPartitionManager(c)
 	c.partitionManager.Start()
 
@@ -104,7 +104,7 @@ func TestCluster_Call(t *testing.T) {
 	// FIXME: testcase
 	// t.Run("timeout", func(t *testing.T) {
 	// 	msg := struct{}{}
-	// 	callopts := NewGrainCallOptions(c).WithRetry(2).WithTimeout(1 * time.Second)
+	// 	callopts := NewGrainCallOptions(c).WithRetry(2).WithRequestTimeout(1 * time.Second)
 	// 	resp, err := c.Call("name", "kind", &msg, callopts)
 	// 	assert.Equalf(Remote.ErrUnknownError, err, "%v", err)
 	// 	assert.Nil(resp)

@@ -187,7 +187,7 @@ func (state *partitionActor) spawning(msg *remote.ActorPidRequest, activator str
 		}
 	}
 
-	pidResp, err := state.partitionValue.cluster.Remote.SpawnNamed(activator, msg.Name, msg.Kind, state.partitionValue.cluster.Config.TimeoutTime)
+	pidResp, err := state.partitionValue.cluster.Remote.SpawnNamed(activator, msg.Name, msg.Kind, state.partitionValue.cluster.Config.RequestTimeoutTime)
 	if err != nil {
 		plog.Error("Partition failed to spawn actor", log.String("name", msg.Name), log.String("kind", msg.Kind), log.String("address", activator), log.Error(err))
 		if err == actor.ErrTimeout {

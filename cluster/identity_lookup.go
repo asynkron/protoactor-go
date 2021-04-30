@@ -4,8 +4,8 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
-// Lookup contains
-type Lookup interface {
+// IdentityLookup contains
+type IdentityLookup interface {
 	Get(clusterIdentity *ClusterIdentity) *actor.PID
 
 	RemovePid(pid *actor.PID)

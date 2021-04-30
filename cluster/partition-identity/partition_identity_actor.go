@@ -251,7 +251,7 @@ func (p *partitionIdentityActor) spawning(spawningPID *actor.PID, msg *clusterin
 		plog.Debug("Empty address of owner", log.PID("spawningPID", spawningPID), log.String("address", ownerAddr))
 		return
 	}
-	timeout := p.cluster.Config.TimeoutTime
+	timeout := p.cluster.Config.RequestTimeoutTime
 	pid := p.partitionKind.PidOfPlacementActor(ownerAddr)
 	plog.Debug("spawning", log.PID("pid", pid), log.PID("spawningPID", spawningPID))
 	context.RequestFuture(pid, msg, timeout).PipeTo(spawningPID)

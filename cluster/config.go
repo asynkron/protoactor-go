@@ -12,17 +12,19 @@ type Config struct {
 	Name                  string
 	Address               string
 	ClusterProvider       ClusterProvider
+	Identitylookup        IdentityLookup
 	RemoteConfig          remote.Config
-	TimeoutTime           time.Duration
+	RequestTimeoutTime    time.Duration
 	MemberStrategyBuilder func(kind string) MemberStrategy
 	Kinds                 map[string]*actor.Props
 }
 
-func Configure(clusterName string, clusterProvider ClusterProvider, remoteConfig remote.Config, kinds ...*Kind) *Config {
+func Configure(clusterName string, clusterProvider ClusterProvider, identityLookup IdentityLookup, remoteConfig remote.Config, kinds ...*Kind) *Config {
 	config := &Config{
 		Name:                  clusterName,
 		ClusterProvider:       clusterProvider,
-		TimeoutTime:           time.Second * 5,
+		Identitylookup:        identityLookup,
+		RequestTimeoutTime:    time.Second * 5,
 		MemberStrategyBuilder: newDefaultMemberStrategy,
 		RemoteConfig:          remoteConfig,
 		Kinds:                 make(map[string]*actor.Props),
@@ -35,8 +37,8 @@ func Configure(clusterName string, clusterProvider ClusterProvider, remoteConfig
 	return config
 }
 
-func (c *Config) WithTimeout(t time.Duration) *Config {
-	c.TimeoutTime = t
+func (c *Config) WithRequestTimeout(t time.Duration) *Config {
+	c.RequestTimeoutTime = t
 	return c
 }
 

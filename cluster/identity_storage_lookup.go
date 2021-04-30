@@ -40,7 +40,7 @@ func RemotePlacementActor(address string) *actor.PID {
 }
 
 //
-// Interface: Lookup
+// Interface: IdentityLookup
 //
 
 // Get

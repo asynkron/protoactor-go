@@ -16,7 +16,7 @@ type Cluster struct {
 	Remote         *remote.Remote
 	PidCache       *pidCacheValue
 	MemberList     *MemberList
-	IdentityLookup Lookup
+	IdentityLookup IdentityLookup
 	kinds          map[string]*actor.Props
 	context        ClusterContext
 }
