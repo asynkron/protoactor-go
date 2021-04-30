@@ -1,14 +1,13 @@
-package identity
+package cluster
 
 import (
 	"log"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
 )
 
 type IdentityStorageWorker struct {
-	cluster *cluster.Cluster
+	cluster *Cluster
 	lookup  *IdentityStorageLookup
 	storage StorageLookup
 }

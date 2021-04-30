@@ -1,10 +1,9 @@
-package identity
+package cluster
 
 import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
 )
 
 const (
@@ -15,7 +14,7 @@ const (
 // IdentityStorageLookup contains
 type IdentityStorageLookup struct {
 	Storage        StorageLookup
-	cluster        *cluster.Cluster
+	cluster        *Cluster
 	isClient       bool
 	placementActor *actor.PID
 	system         *actor.ActorSystem
@@ -45,7 +44,7 @@ func RemotePlacementActor(address string) *actor.PID {
 //
 
 // Get
-func (id *IdentityStorageLookup) Get(clusterIdentity *cluster.ClusterIdentity) *actor.PID {
+func (id *IdentityStorageLookup) Get(clusterIdentity *ClusterIdentity) *actor.PID {
 	msg := newGetPid(clusterIdentity)
 	timeout := 5 * time.Second
 
@@ -55,7 +54,7 @@ func (id *IdentityStorageLookup) Get(clusterIdentity *cluster.ClusterIdentity) *
 	return response.PID()
 }
 
-func (id *IdentityStorageLookup) Setup(cluster *cluster.Cluster, kinds []string, isClient bool) {
+func (id *IdentityStorageLookup) Setup(cluster *Cluster, kinds []string, isClient bool) {
 	id.cluster = cluster
 	id.system = cluster.ActorSystem
 	id.memberID = string(cluster.Id())

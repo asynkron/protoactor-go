@@ -12,7 +12,7 @@ import (
 
 type ClusterTopologyEventV2 struct {
 	*ClusterTopology
-	chashByKind map[string]chash.ConsistentHash
+	ChashByKind map[string]chash.ConsistentHash
 }
 
 // MemberList is responsible to keep track of the current cluster topology
@@ -46,7 +46,7 @@ func (ml *MemberList) stopMemberList() {
 	// ml.cluster.ActorSystem.EventStream.Unsubscribe(ml.membershipSub)
 }
 
-func (ml *MemberList) getPartitionMember(name, kind string) string {
+func (ml *MemberList) GetPartitionMember(name, kind string) string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()
 
@@ -66,7 +66,7 @@ func (ml *MemberList) getPartitionMemberV2(clusterIdentity *ClusterIdentity) str
 	return ""
 }
 
-func (ml *MemberList) getActivatorMember(kind string) string {
+func (ml *MemberList) GetActivatorMember(kind string) string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()
 
@@ -96,7 +96,7 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member, eventId uint64) {
 	ml.onMembersUpdated(tplg)
 	ml.cluster.ActorSystem.EventStream.PublishUnsafe(&ClusterTopologyEventV2{
 		ClusterTopology: tplg,
-		chashByKind:     ml.chashByKind,
+		ChashByKind:     ml.chashByKind,
 	})
 	plog.Info("Updated ClusterTopology",
 		log.Uint64("eventId", ml.lastEventId),
@@ -139,7 +139,7 @@ func (ml *MemberList) _updateClusterTopoLogy(members []*Member, eventId uint64) 
 }
 
 func (ml *MemberList) onMembersUpdated(tplg *ClusterTopology) {
-	groups := groupMembersByKind(tplg.Members)
+	groups := GroupMembersByKind(tplg.Members)
 	strategies := map[string]MemberStrategy{}
 	chashes := map[string]chash.ConsistentHash{}
 	for kind, members := range groups {
@@ -199,7 +199,7 @@ func sortMembers(members []*Member) {
 	})
 }
 
-func groupMembersByKind(members []*Member) map[string][]*Member {
+func GroupMembersByKind(members []*Member) map[string][]*Member {
 	groups := map[string][]*Member{}
 	for _, member := range members {
 		for _, kind := range member.Kinds {

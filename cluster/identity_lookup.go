@@ -1,28 +1,27 @@
-package identity
+package cluster
 
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
 )
 
 // Lookup contains
 type Lookup interface {
-	Get(clusterIdentity *cluster.ClusterIdentity) *actor.PID
+	Get(clusterIdentity *ClusterIdentity) *actor.PID
 
 	RemovePid(pid *actor.PID)
 
-	Setup(cluster *cluster.Cluster, kinds []string, isClient bool)
+	Setup(cluster *Cluster, kinds []string, isClient bool)
 
 	Shutdown()
 }
 
 // StorageLookup contains
 type StorageLookup interface {
-	TryGetExistingActivation(clusterIdentity *cluster.ClusterIdentity) *StoredActivation
+	TryGetExistingActivation(clusterIdentity *ClusterIdentity) *StoredActivation
 
-	TryAcquireLock(clusterIdentity *cluster.ClusterIdentity) *SpawnLock
+	TryAcquireLock(clusterIdentity *ClusterIdentity) *SpawnLock
 
-	WaitForActivation(clusterIdentity *cluster.ClusterIdentity) *StoredActivation
+	WaitForActivation(clusterIdentity *ClusterIdentity) *StoredActivation
 
 	RemoveLock(spawnLock SpawnLock)
 
@@ -36,10 +35,10 @@ type StorageLookup interface {
 // SpawnLock contains
 type SpawnLock struct {
 	LockID          string
-	ClusterIdentity *cluster.ClusterIdentity
+	ClusterIdentity *ClusterIdentity
 }
 
-func newSpawnLock(lockID string, clusterIdentity *cluster.ClusterIdentity) *SpawnLock {
+func newSpawnLock(lockID string, clusterIdentity *ClusterIdentity) *SpawnLock {
 	this := &SpawnLock{
 		LockID:          lockID,
 		ClusterIdentity: clusterIdentity,
@@ -65,10 +64,10 @@ func newStoredActivation(pid string, memberID string) *StoredActivation {
 
 // GetPid contains
 type GetPid struct {
-	ClusterIdentity *cluster.ClusterIdentity
+	ClusterIdentity *ClusterIdentity
 }
 
-func newGetPid(clusterIdentity *cluster.ClusterIdentity) *GetPid {
+func newGetPid(clusterIdentity *ClusterIdentity) *GetPid {
 	this := &GetPid{
 		ClusterIdentity: clusterIdentity,
 	}

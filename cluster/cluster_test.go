@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"github.com/AsynkronIT/protoactor-go/cluster/partition-identity"
 	"testing"
 	"time"
 
@@ -76,11 +77,11 @@ func TestCluster_Call(t *testing.T) {
 	system := actor.NewActorSystem()
 
 	c := New(system, Configure("mycluster", nil, remote.Configure("nonhost", 0)))
-	c.partitionValue = setupPartition(c, []string{"kind"})
+	c.partitionValue = partition_identity.setupPartition(c, []string{"kind"})
 	c.pidCache = setupPidCache(c.ActorSystem)
 	c.MemberList = setupMemberList(c)
 	c.Config.TimeoutTime = 1 * time.Second
-	c.partitionManager = newPartitionManager(c)
+	c.partitionManager = partition_identity.newPartitionManager(c)
 	c.partitionManager.Start()
 
 	members := []*Member{
@@ -92,7 +93,7 @@ func TestCluster_Call(t *testing.T) {
 		},
 	}
 	c.MemberList.UpdateClusterTopology(members, 1)
-	// address := memberList.getPartitionMember("name", "kind")
+	// address := memberList.GetPartitionMember("name", "kind")
 	t.Run("invalid kind", func(t *testing.T) {
 		msg := struct{}{}
 		resp, err := c.Call("name", "nonkind", &msg)
@@ -105,7 +106,7 @@ func TestCluster_Call(t *testing.T) {
 	// 	msg := struct{}{}
 	// 	callopts := NewGrainCallOptions(c).WithRetry(2).WithTimeout(1 * time.Second)
 	// 	resp, err := c.Call("name", "kind", &msg, callopts)
-	// 	assert.Equalf(remote.ErrUnknownError, err, "%v", err)
+	// 	assert.Equalf(Remote.ErrUnknownError, err, "%v", err)
 	// 	assert.Nil(resp)
 	// })
 

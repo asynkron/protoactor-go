@@ -1,6 +1,7 @@
-package cluster
+package partition_identity
 
 import (
+	clustering "github.com/AsynkronIT/protoactor-go/cluster"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -10,7 +11,7 @@ import (
 )
 
 type partitionPlacementActor struct {
-	cluster      *Cluster
+	cluster      *clustering.Cluster
 	_actors      map[string]GrainMeta
 	chash        chash.ConsistentHash
 	spawns       map[string]spawnTask
@@ -20,7 +21,7 @@ type partitionPlacementActor struct {
 	logPartition log.Field
 }
 
-func newPartitionPlacementActor(c *Cluster, pk *PartitionKind, _chash chash.ConsistentHash) *partitionPlacementActor {
+func newPartitionPlacementActor(c *clustering.Cluster, pk *PartitionKind, _chash chash.ConsistentHash) *partitionPlacementActor {
 	return &partitionPlacementActor{
 		cluster:      c,
 		partionKind:  pk,
@@ -49,11 +50,11 @@ func (p *partitionPlacementActor) Receive(ctx actor.Context) {
 
 	case *actor.Terminated:
 		p.handleTerminated(msg, ctx)
-	case *ClusterTopology:
+	case *clustering.ClusterTopology:
 		p.handlerClusterTopology(msg, ctx)
-	case *IdentityHandoverRequest:
+	case *clustering.IdentityHandoverRequest:
 		p.handleIdentityHandoverRequest(msg, ctx)
-	case *ActivationRequest:
+	case *clustering.ActivationRequest:
 		p.handleActivationRequest(msg, ctx)
 	// case *ActivationTerminated:
 	// 	p.handleActivationTerminated(msg, ctx)
@@ -78,16 +79,15 @@ func (p *partitionPlacementActor) onTimeout(msg *actor.ReceiveTimeout, ctx actor
 
 func (p *partitionPlacementActor) handleTerminated(msg *actor.Terminated, ctx actor.Context) {
 	plog.Debug("handleTerminated", p.logPartition)
-	var req *ActivationTerminated
+	var req *clustering.ActivationTerminated
 
 	var actorKey string
 	if baseIdLength := len(p.self.Id); baseIdLength+1 < len(msg.Who.Id) {
 		actorKey = msg.Who.Id[baseIdLength+1:]
 		if meta, ok := p._actors[actorKey]; ok {
-			req = &ActivationTerminated{
+			req = &clustering.ActivationTerminated{
 				Pid:             meta.PID,
 				ClusterIdentity: meta.ID,
-				EventId:         meta.EventID,
 			}
 		}
 	}
@@ -96,10 +96,9 @@ func (p *partitionPlacementActor) handleTerminated(msg *actor.Terminated, ctx ac
 		plog.Warn("handleTerminated", p.logPartition, log.String("status", "lookup slowly"), log.PID("who", msg.Who), log.String("grain", actorKey))
 		for _, meta := range p._actors {
 			if meta.PID.Equal(msg.Who) {
-				req = &ActivationTerminated{
+				req = &clustering.ActivationTerminated{
 					Pid:             meta.PID,
 					ClusterIdentity: meta.ID,
-					EventId:         meta.EventID,
 				}
 				actorKey = meta.ID.AsKey()
 				break
@@ -119,20 +118,19 @@ func (p *partitionPlacementActor) handleTerminated(msg *actor.Terminated, ctx ac
 	plog.Debug("handleTerminated", p.logPartition, log.String("status", "OK"), log.String("grain", actorKey))
 }
 
-func (p *partitionPlacementActor) handleIdentityHandoverRequest(msg *IdentityHandoverRequest, ctx actor.Context) {
+func (p *partitionPlacementActor) handleIdentityHandoverRequest(msg *clustering.IdentityHandoverRequest, ctx actor.Context) {
 	now := time.Now()
-	p.chash = NewRendezvousV2(msg.Members)
-	resp := IdentityHandoverResponse{}
+	p.chash = clustering.NewRendezvousV2(msg.Members)
+	resp := clustering.IdentityHandoverResponse{}
 	for actorKey, meta := range p._actors {
 		fromAddr := msg.Address
 		ownerAddr := p.chash.Get(actorKey)
 		if fromAddr != ownerAddr {
 			continue
 		}
-		resp.Actors = append(resp.Actors, &Activation{
+		resp.Actors = append(resp.Actors, &clustering.Activation{
 			Pid:             meta.PID,
 			ClusterIdentity: meta.ID,
-			EventId:         meta.EventID,
 		})
 	}
 	ctx.Respond(&resp)
@@ -140,36 +138,38 @@ func (p *partitionPlacementActor) handleIdentityHandoverRequest(msg *IdentityHan
 
 }
 
-func (p *partitionPlacementActor) handlerClusterTopology(msg *ClusterTopology, ctx actor.Context) {
+func (p *partitionPlacementActor) handlerClusterTopology(msg *clustering.ClusterTopology, ctx actor.Context) {
 	if p.lastEventId >= msg.EventId {
 		plog.Debug("skip ClusterTopology", log.Uint64("eventId", msg.EventId), log.Int("members", len(msg.Members)))
 		return
 	}
 	p.lastEventId = msg.EventId
-	p.chash = NewRendezvousV2(msg.Members)
+	p.chash = clustering.NewRendezvousV2(msg.Members)
 	return
 }
 
-func (p *partitionPlacementActor) handleActivationRequest(msg *ActivationRequest, ctx actor.Context) {
+func (p *partitionPlacementActor) handleActivationRequest(msg *clustering.ActivationRequest, ctx actor.Context) {
 	key := msg.ClusterIdentity.AsKey()
 	_log := plog.With(p.logPartition, log.String("grainId", key))
 	_log.Debug("handleActivationRequest")
 	if meta, isExist := p._actors[key]; isExist {
-		ctx.Respond(&ActivationResponse{Pid: meta.PID})
+		ctx.Respond(&clustering.ActivationResponse{Pid: meta.PID})
 		_log.Debug("handleActivationRequest", log.String("status", "cache hited"))
 		return
 	}
 	_log.Debug("handleActivationRequest", log.String("status", "cache missing"))
 	props := p.cluster.GetClusterKind(msg.ClusterIdentity.Kind)
 	if props == nil {
-		ctx.Respond(&ActivationResponse{Pid: nil, StatusCode: uint32(remote.ResponseStatusCodeERROR)})
+		ctx.Respond(&clustering.ActivationResponse{
+			Pid: nil,
+		})
 		_log.Debug("handleActivationRequest", log.String("status", "no props"))
 		return
 	}
 	props.WithSpawnFunc(func(system *actor.ActorSystem, id string, props *actor.Props, parentContext actor.SpawnerContext) (*actor.PID, error) {
 		pid, err := actor.DefaultSpawner(system, id, props, parentContext)
 		if pid != nil {
-			ctx.Send(pid, &ClusterInit{
+			ctx.Send(pid, &clustering.ClusterInit{
 				ID:   msg.ClusterIdentity.Identity,
 				Kind: msg.ClusterIdentity.Kind,
 			})
@@ -181,7 +181,7 @@ func (p *partitionPlacementActor) handleActivationRequest(msg *ActivationRequest
 	if err != nil && err != actor.ErrNameExists {
 		_log.Error("handleActivationRequest", log.String("status", "spawn failed"), log.Error(err), log.Stack())
 	}
-	ctx.Respond(&ActivationResponse{Pid: pid})
+	ctx.Respond(&clustering.ActivationResponse{Pid: pid})
 	if pid != nil {
 		p._actors[key] = GrainMeta{ID: msg.ClusterIdentity, PID: pid}
 	}

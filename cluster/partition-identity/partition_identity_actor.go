@@ -1,6 +1,7 @@
-package cluster
+package partition_identity
 
 import (
+	clustering "github.com/AsynkronIT/protoactor-go/cluster"
 	"sync"
 	"time"
 
@@ -12,15 +13,15 @@ import (
 )
 
 type GrainMeta struct {
-	ID      *ClusterIdentity
+	ID      *clustering.ClusterIdentity
 	PID     *actor.PID
 	EventID uint64
 }
 
-type spawnTask func() *ActivationResponse
+type spawnTask func() *clustering.ActivationResponse
 
 type partitionIdentityActor struct {
-	cluster               *Cluster
+	cluster               *clustering.Cluster
 	partitionKind         *PartitionKind
 	lookup                cmap.ConcurrentMap
 	chash                 chash.ConsistentHash
@@ -34,7 +35,7 @@ type partitionIdentityActor struct {
 	logPartition          log.Field
 }
 
-func newPartitionIdentityActor(c *Cluster, pk *PartitionKind, rdv chash.ConsistentHash) *partitionIdentityActor {
+func newPartitionIdentityActor(c *clustering.Cluster, pk *PartitionKind, rdv chash.ConsistentHash) *partitionIdentityActor {
 	return &partitionIdentityActor{
 		cluster:               c,
 		partitionKind:         pk,
@@ -64,11 +65,11 @@ func (p *partitionIdentityActor) Receive(ctx actor.Context) {
 	case *remote.Ping:
 		ctx.Respond(&remote.Pong{})
 
-	case *ActivationRequest:
+	case *clustering.ActivationRequest:
 		p.handleActivationRequest(msg, ctx)
-	case *ActivationTerminated:
+	case *clustering.ActivationTerminated:
 		p.handleActivationTerminated(msg, ctx)
-	case *ClusterTopology:
+	case *clustering.ClusterTopology:
 		p.handleClusterTopology(msg, ctx)
 	default:
 		plog.Error("Invalid message", p.logPartition, log.TypeOf("type", msg), log.PID("sender", ctx.Sender()))
@@ -90,13 +91,13 @@ func (p *partitionIdentityActor) onTimeout(msg *actor.ReceiveTimeout, ctx actor.
 	plog.Info(" ...", p.logPartition)
 }
 
-func (p *partitionIdentityActor) handleActivationRequest(msg *ActivationRequest, ctx actor.Context) {
+func (p *partitionIdentityActor) handleActivationRequest(msg *clustering.ActivationRequest, ctx actor.Context) {
 	grainId := msg.ClusterIdentity
 	key := grainId.AsKey()
 	_log := plog.With(p.logPartition, log.String("grain", key))
 	if p.chash == nil {
 		_log.Debug("handleActivationRequest", log.String("status", "nil DHT"))
-		ctx.Respond(&ActivationResponse{Pid: nil})
+		ctx.Respond(&clustering.ActivationResponse{Pid: nil})
 		return
 	}
 	// other member
@@ -112,14 +113,14 @@ func (p *partitionIdentityActor) handleActivationRequest(msg *ActivationRequest,
 	if _pid, ok := p.lookup.Get(key); ok {
 		_log.Debug("handleActivationRequest", log.String("status", "cache hited"))
 		meta := _pid.(GrainMeta)
-		ctx.Respond(&ActivationResponse{Pid: meta.PID})
+		ctx.Respond(&clustering.ActivationResponse{Pid: meta.PID})
 		return
 	}
 	_log.Debug("handleActivationRequest", log.String("status", "cache missing, spawning"))
 	p.spawn(msg, ctx)
 }
 
-func (p *partitionIdentityActor) handleActivationTerminated(msg *ActivationTerminated, ctx actor.Context) {
+func (p *partitionIdentityActor) handleActivationTerminated(msg *clustering.ActivationTerminated, ctx actor.Context) {
 	// clean cache
 	key := msg.ClusterIdentity.AsKey()
 	p.lookup.Remove(key)
@@ -134,16 +135,16 @@ func (p *partitionIdentityActor) handleActivationTerminated(msg *ActivationTermi
 	plog.Debug("Terminated", p.logPartition, log.String("owner", "self"), log.String("grain", key))
 }
 
-func (p *partitionIdentityActor) handleClusterTopology(msg *ClusterTopology, ctx actor.Context) {
+func (p *partitionIdentityActor) handleClusterTopology(msg *clustering.ClusterTopology, ctx actor.Context) {
 	if p.lastEventId >= msg.EventId {
 		plog.Warn("Skipped ClusterTopology", log.String("kind", p.partitionKind.Kind), log.Uint64("eventId", msg.EventId), log.Int("members", len(msg.Members)))
 		return
 	}
 	now := time.Now()
 	p.lastEventId = msg.EventId
-	p.chash = NewRendezvousV2(msg.Members)
+	p.chash = clustering.NewRendezvousV2(msg.Members)
 	p.lookup = cmap.New()
-	var req = IdentityHandoverRequest{
+	var req = clustering.IdentityHandoverRequest{
 		EventId: msg.EventId,
 		Members: msg.Members,
 		Address: p.self.Address,
@@ -160,7 +161,7 @@ func (p *partitionIdentityActor) handleClusterTopology(msg *ClusterTopology, ctx
 				return
 			}
 			switch resp := _resp.(type) {
-			case *IdentityHandoverResponse:
+			case *clustering.IdentityHandoverResponse:
 				p.takeOwnership(resp)
 			default:
 				plog.Error("Invalid IdentityHandoverResponse", p.logPartition, log.TypeOf("type", msg), log.PID("from", placementPid))
@@ -176,7 +177,7 @@ func (p *partitionIdentityActor) handleClusterTopology(msg *ClusterTopology, ctx
 	return
 }
 
-func (p *partitionIdentityActor) takeOwnership(resp *IdentityHandoverResponse) {
+func (p *partitionIdentityActor) takeOwnership(resp *clustering.IdentityHandoverResponse) {
 	for _, tmp := range resp.Actors {
 		key := tmp.ClusterIdentity.AsKey()
 		if old, isExist := p.lookup.Get(key); isExist {
@@ -186,16 +187,15 @@ func (p *partitionIdentityActor) takeOwnership(resp *IdentityHandoverResponse) {
 			}
 		}
 		p.lookup.Set(key, GrainMeta{
-			ID:      tmp.ClusterIdentity,
-			PID:     tmp.Pid,
-			EventID: tmp.EventId,
+			ID:  tmp.ClusterIdentity,
+			PID: tmp.Pid,
 		})
 	}
 }
 
-func (p *partitionIdentityActor) spawn(msg *ActivationRequest, context actor.Context) {
+func (p *partitionIdentityActor) spawn(msg *clustering.ActivationRequest, context actor.Context) {
 	if p.cluster.MemberList.Length() <= 0 {
-		context.Respond(&ActivationResponse{Pid: nil})
+		context.Respond(&clustering.ActivationResponse{Pid: nil})
 		plog.Error("spawn failed: Empty memberlist")
 		return
 	}
@@ -214,10 +214,10 @@ func (p *partitionIdentityActor) spawn(msg *ActivationRequest, context actor.Con
 		// This is necessary to avoid race condition during partition map transferring.
 		if _meta, ok := p.lookup.Get(key); ok {
 			if meta, ok := _meta.(GrainMeta); ok {
-				context.Respond(&ActivationResponse{Pid: meta.PID})
+				context.Respond(&clustering.ActivationResponse{Pid: meta.PID})
 			} else {
 				plog.Error("Invalid GrainMeta", log.TypeOf("type", meta))
-				context.Respond(&ActivationResponse{Pid: nil})
+				context.Respond(&clustering.ActivationResponse{Pid: nil})
 				p.lookup.Remove(key)
 			}
 			return
@@ -242,12 +242,12 @@ func (p *partitionIdentityActor) spawn(msg *ActivationRequest, context actor.Con
 	go p.spawning(spawning.PID(), msg, context, 3)
 }
 
-func (p *partitionIdentityActor) spawning(spawningPID *actor.PID, msg *ActivationRequest, context actor.Context, retryCount int) {
+func (p *partitionIdentityActor) spawning(spawningPID *actor.PID, msg *clustering.ActivationRequest, context actor.Context, retryCount int) {
 	// for i := 0; i < retryCount; i++ {
-	// ownerAddr := p.cluster.MemberList.getPartitionMemberV2(msg.ClusterIdentity)
+	// ownerAddr := p.clustering.MemberList.getPartitionMemberV2(msg.ClusterIdentity)
 	ownerAddr := p.chash.Get(msg.ClusterIdentity.Identity)
 	if ownerAddr == "" {
-		context.Send(spawningPID, &ActivationResponse{Pid: nil})
+		context.Send(spawningPID, &clustering.ActivationResponse{Pid: nil})
 		plog.Debug("Empty address of owner", log.PID("spawningPID", spawningPID), log.String("address", ownerAddr))
 		return
 	}
@@ -258,19 +258,19 @@ func (p *partitionIdentityActor) spawning(spawningPID *actor.PID, msg *Activatio
 	// }
 }
 
-func (p *partitionIdentityActor) spawningCallback(req *ActivationRequest, ctx actor.Context, key string, resp interface{}, err error) {
+func (p *partitionIdentityActor) spawningCallback(req *clustering.ActivationRequest, ctx actor.Context, key string, resp interface{}, err error) {
 	plog.Debug("spawning callback", log.String("key", key), log.Object("resp", resp), log.Error(err))
 	if resp == nil {
-		ctx.Respond(&ActivationResponse{Pid: nil})
+		ctx.Respond(&clustering.ActivationResponse{Pid: nil})
 		return
 	}
 	var respPID *actor.PID
 	switch _resp := resp.(type) {
-	case *ActivationResponse:
+	case *clustering.ActivationResponse:
 		ctx.Respond(_resp)
 		respPID = _resp.Pid
 	default:
-		ctx.Respond(&ActivationResponse{Pid: nil})
+		ctx.Respond(&clustering.ActivationResponse{Pid: nil})
 	}
 	if respPID != nil {
 		p.lookup.Set(key, GrainMeta{PID: respPID, ID: req.ClusterIdentity})

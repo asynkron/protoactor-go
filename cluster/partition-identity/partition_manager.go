@@ -1,6 +1,7 @@
-package cluster
+package partition_identity
 
 import (
+	clustering "github.com/AsynkronIT/protoactor-go/cluster"
 	"sync"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -14,13 +15,13 @@ const (
 )
 
 type PartitionManager struct {
-	cluster       *Cluster
+	cluster       *clustering.Cluster
 	kinds         sync.Map
 	topologySub   *eventstream.Subscription
 	deadletterSub *eventstream.Subscription
 }
 
-func newPartitionManager(c *Cluster, kinds ...Kind) *PartitionManager {
+func newPartitionManager(c *clustering.Cluster, kinds ...clustering.Kind) *PartitionManager {
 	return &PartitionManager{
 		cluster: c,
 	}
@@ -31,10 +32,10 @@ func (pm *PartitionManager) Start() {
 	system := pm.cluster.ActorSystem
 	pm.topologySub = system.EventStream.
 		Subscribe(func(ev interface{}) {
-			pm.onClusterTopology(ev.(*ClusterTopologyEventV2))
+			pm.onClusterTopology(ev.(*clustering.ClusterTopologyEventV2))
 		}).
 		WithPredicate(func(m interface{}) bool {
-			_, ok := m.(*ClusterTopologyEventV2)
+			_, ok := m.(*clustering.ClusterTopologyEventV2)
 			return ok
 		})
 }
@@ -68,7 +69,7 @@ func (pm *PartitionManager) PidOfIdentityActor(kind, addr string) *actor.PID {
 // 	return &actor.PID{Address: addr, Id: ActorNamePlacement}
 // }
 
-func (pm *PartitionManager) onClusterTopology(tplg *ClusterTopologyEventV2) {
+func (pm *PartitionManager) onClusterTopology(tplg *clustering.ClusterTopologyEventV2) {
 	plog.Debug("onClusterTopology", log.Uint64("eventId", tplg.EventId))
 	system := pm.cluster.ActorSystem
 	kindGroups := pm.groupClusterTopologyByKind(tplg.ClusterTopology)
@@ -81,7 +82,7 @@ func (pm *PartitionManager) onClusterTopology(tplg *ClusterTopologyEventV2) {
 			pk := newPartitionKind(pm.cluster, kind)
 			v, _ = pm.kinds.LoadOrStore(kind, pk)
 			pk = v.(*PartitionKind)
-			chash, _ := tplg.chashByKind[kind]
+			chash, _ := tplg.ChashByKind[kind]
 			// start partion of kind
 			if err := pk.start(chash); err != nil {
 				plog.Error("Start PartitionKind failed", log.String("kind", kind))
@@ -103,10 +104,10 @@ func (pm *PartitionManager) onClusterTopology(tplg *ClusterTopologyEventV2) {
 	})
 }
 
-func (pm *PartitionManager) groupClusterTopologyByKind(tplg *ClusterTopology) map[string]*ClusterTopology {
-	groups := map[string]*ClusterTopology{}
-	for kind, members := range groupMembersByKind(tplg.Members) {
-		groups[kind] = &ClusterTopology{Members: members, EventId: tplg.EventId}
+func (pm *PartitionManager) groupClusterTopologyByKind(tplg *clustering.ClusterTopology) map[string]*clustering.ClusterTopology {
+	groups := map[string]*clustering.ClusterTopology{}
+	for kind, members := range clustering.GroupMembersByKind(tplg.Members) {
+		groups[kind] = &clustering.ClusterTopology{Members: members, EventId: tplg.EventId}
 	}
 	return groups
 }
