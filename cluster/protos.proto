@@ -6,13 +6,6 @@ import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
 
 option (gogoproto.gostring_all) = false;
 
-message TakeOwnership {
-    actor.PID pid = 1;
-    string name = 2;
-}
-
-// Copy from:
-// https://github.com/AsynkronIT/protoactor-dotnet/blob/dev/src/Proto.Cluster/Protos.proto
 
 //request response call from Identity actor sent to each member
 //asking what activations they hold that belong to the requester
@@ -35,13 +28,11 @@ message ClusterIdentity{
 message Activation {
     actor.PID pid = 1;
     ClusterIdentity cluster_identity = 2;
-    uint64 eventId = 3;
 }
 
 message ActivationTerminated {
     actor.PID pid = 1;
     ClusterIdentity cluster_identity = 2;
-    uint64 eventId = 3;
 }
 
 message ActivationRequest {
@@ -49,24 +40,28 @@ message ActivationRequest {
     string request_id = 2;
 }
 
-message ActivationResponse {
-    actor.PID pid = 1;
-    uint32 status_code = 2;
+message ProxyActivationRequest {
+  ClusterIdentity cluster_identity = 1;
+  actor.PID replaced_activation = 2;
 }
 
+message ActivationResponse {
+    actor.PID pid = 1;
+}
 
 message GrainRequest {
     int32 method_index = 1;
     bytes message_data = 2;
+    string message_type_name = 3;
 }
 
 message GrainResponse {
-    bytes message_data = 1;
+  bytes message_data = 1;
+  string message_type_name = 2;
 }
 
 message GrainErrorResponse {
     string err = 1;
-    int32 code = 2;
 }
 
 message Member {
@@ -88,5 +83,86 @@ message HeartbeatRequest {
 }
 
 message HeartbeatResponse {
-    uint32 actor_count = 1;
+  uint32 actor_count = 1;
+  string member_id = 2;
+  uint32 membership_hash_code = 3;
+}
+
+message ClusterTopologyNotification {
+  string member_id = 1;
+  uint32 membership_hash_code = 2;
+  string leader_id = 3;
+}
+
+message GracefulShutdown {
+  string member_id = 3;
+}
+
+
+
+message SubscriberIdentity {
+  oneof Identity {
+    actor.PID pid = 1;
+    ClusterIdentity cluster_identity = 2;
+  }
+}
+
+message Subscribers {
+  repeated SubscriberIdentity subscribers = 1;
+}
+
+message SubscribeRequest {
+  SubscriberIdentity subscriber = 1;
+}
+
+message SubscribeResponse {
+
+}
+
+message UnsubscribeRequest {
+  SubscriberIdentity subscriber = 1;
+}
+
+message UnsubscribeResponse {
+
+}
+
+message PublishRequest {
+  bytes data = 1;
+}
+
+message PublishResponse {}
+
+//this goes out to the delivery actors
+message DeliveryBatch {
+  Subscribers subscribers = 1;
+  ProducerBatch batch = 2;
+}
+
+//messages going into the topic actors
+message ProducerBatch {
+  repeated string type_names = 1;
+  repeated ProducerEnvelope envelopes = 2;
+}
+
+message ProducerEnvelope {
+  int32 type_id = 1;
+  bytes message_data = 2;
+  int32 serializer_id = 3;
+}
+
+//messages going out of the topic actors
+message TopicBatchRequest {
+  repeated string type_names = 1;
+  repeated TopicEnvelope envelopes = 2;
+}
+
+message TopicBatchResponse {
+  
+}
+
+message TopicEnvelope {
+  int32 type_id = 1;
+  bytes message_data = 2;
+  int32 serializer_id = 3;
 }

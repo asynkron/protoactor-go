@@ -16,7 +16,7 @@ type Cluster struct {
 	ActorSystem      *actor.ActorSystem
 	Config           *Config
 	remote           *remote.Remote
-	pidCache         *pidCacheValue
+	PidCache         *pidCacheValue
 	MemberList       *MemberList
 	partitionValue   *partitionValue
 	partitionManager *PartitionManager
@@ -58,7 +58,7 @@ func (c *Cluster) Start() {
 
 	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
 	c.partitionValue = setupPartition(c, kinds)
-	c.pidCache = setupPidCache(c.ActorSystem)
+	c.PidCache = setupPidCache(c.ActorSystem)
 	c.MemberList = setupMemberList(c)
 	c.partitionManager = newPartitionManager(c)
 	c.partitionManager.Start()
@@ -81,7 +81,7 @@ func (c *Cluster) StartClient() {
 
 	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
 	c.partitionValue = setupPartition(c, kinds)
-	c.pidCache = setupPidCache(c.ActorSystem)
+	c.PidCache = setupPidCache(c.ActorSystem)
 	c.MemberList = setupMemberList(c)
 	c.partitionManager = newPartitionManager(c)
 	c.partitionManager.Start()
@@ -97,7 +97,7 @@ func (c *Cluster) Shutdown(graceful bool) {
 		// This is to wait ownership transferring complete.
 		time.Sleep(time.Millisecond * 2000)
 		c.MemberList.stopMemberList()
-		c.pidCache.stopPidCache()
+		c.PidCache.stopPidCache()
 		c.partitionValue.stopPartition()
 		c.partitionManager.Stop()
 	}
@@ -111,8 +111,7 @@ func (c *Cluster) Shutdown(graceful bool) {
 // Get a PID to a virtual actor
 func (c *Cluster) GetV1(name string, kind string) (*actor.PID, remote.ResponseStatusCode) {
 	// Check Cache
-	clusterActorId := kind + "/" + name
-	if pid, ok := c.pidCache.getCache(clusterActorId); ok {
+	if pid, ok := c.PidCache.getCache(name); ok {
 		return pid, remote.ResponseStatusCodeOK
 	}
 
@@ -150,7 +149,7 @@ func (c *Cluster) GetV1(name string, kind string) (*actor.PID, remote.ResponseSt
 	switch statusCode {
 	case remote.ResponseStatusCodeOK:
 		// save cache
-		c.pidCache.addCache(clusterActorId, response.Pid)
+		c.PidCache.addCache(name, response.Pid)
 		// tell the original requester that we have a response
 		return response.Pid, statusCode
 	default:
@@ -226,6 +225,11 @@ func (c *Cluster) GetClusterKinds() []string {
 	return c.remote.GetKnownKinds()
 }
 
+// ToShortString Get kind & identity
+func (ci *ClusterIdentity) ToShortString() string {
+	return ci.Kind + "/" + ci.Identity
+}
+  
 // Call is a wrap of context.RequestFuture with retries.
 func (c *Cluster) Call(name string, kind string, msg interface{}, callopts ...*GrainCallOptions) (interface{}, error) {
 	var _callopts *GrainCallOptions = nil
