@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -176,31 +175,6 @@ func (p *Provider) UpdateTTL() {
 			time.Sleep(p.refreshTTL)
 		}
 	}()
-}
-
-func (p *Provider) UpdateClusterState(state cluster.ClusterState) error {
-	if p.shutdown {
-		// don't re-register when already in the process of shutting down
-		return ProviderShuttingDownError
-	}
-	value, err := json.Marshal(state.BannedMembers)
-	if err != nil {
-		plog.Error("Failed to UpdateClusterState. json.Marshal", log.Error(err))
-		return err
-	}
-	kv := &api.KVPair{
-		Key:   fmt.Sprintf("%s/banned", p.clusterName),
-		Value: value,
-	}
-	if _, err := p.client.KV().Put(kv, nil); err != nil {
-		plog.Error("Failed to UpdateClusterState.", log.Error(err))
-		return err
-	}
-	if err := p.registerService(); err != nil {
-		plog.Error("Failed to registerService.", log.Error(err))
-		return err
-	}
-	return nil
 }
 
 func blockingUpdateTTL(p *Provider) error {

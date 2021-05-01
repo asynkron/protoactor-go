@@ -12,7 +12,7 @@ func (m *Member) Address() string {
 	return m.Host + ":" + strconv.FormatInt(int64(m.Port), 10)
 }
 
-func GetMembershipHashCode(members []Member) uint32 {
+func GetMembershipHashCode(members []*Member) uint64 {
 
 	//C# version
 	//var x = members.Select(m => m.Id).OrderBy(i => i).ToArray();
@@ -32,6 +32,6 @@ func GetMembershipHashCode(members []Member) uint32 {
 
 	//TODO: this HAS to be compatible with the same hash in .NET
 	//add plenty of tests
-	hash := murmur32.Sum32([]byte(s))
+	hash := murmur32.Sum64([]byte(s))
 	return hash
 }

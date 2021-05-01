@@ -21,7 +21,7 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 	}
 	port, _ := strconv.Atoi(_port)
 	remoteConfig := remote.Configure(host, port)
-	config := cluster.Configure(name, cp, remoteConfig)
+	config := cluster.Configure(name, cp, nil, remoteConfig)
 	// return cluster.NewForTest(system, config)
 
 	system := actor.NewActorSystem()

@@ -10,11 +10,6 @@ import (
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
-type ClusterTopologyEventV2 struct {
-	*ClusterTopology
-	ChashByKind map[string]chash.ConsistentHash
-}
-
 // MemberList is responsible to keep track of the current cluster topology
 // it does so by listening to changes from the ClusterProvider.
 // the default ClusterProvider is consul.ConsulProvider which uses the Consul HTTP API to scan for changes
@@ -23,8 +18,8 @@ type MemberList struct {
 	mutex                sync.RWMutex
 	members              map[string]*Member
 	memberStrategyByKind map[string]MemberStrategy
-	banned               map[string]struct{}
-	lastEventId          uint64
+	banned               map[string]*Member
+	topologyHash         uint64
 	chashByKind          map[string]chash.ConsistentHash
 }
 
@@ -37,20 +32,9 @@ func setupMemberList(cluster *Cluster) *MemberList {
 		cluster:              cluster,
 		members:              make(map[string]*Member),
 		memberStrategyByKind: make(map[string]MemberStrategy),
-		banned:               map[string]struct{}{},
+		banned:               make(map[string]*Member),
 	}
 	return memberList
-}
-
-func (ml *MemberList) GetPartitionMember(name, kind string) string {
-	ml.mutex.RLock()
-	defer ml.mutex.RUnlock()
-
-	var res string
-	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
-		res = memberStrategy.GetPartition(name)
-	}
-	return res
 }
 
 func (ml *MemberList) getPartitionMemberV2(clusterIdentity *ClusterIdentity) string {
@@ -79,59 +63,92 @@ func (ml *MemberList) Length() int {
 	return len(ml.members)
 }
 
-func (ml *MemberList) UpdateClusterTopology(members []*Member, eventId uint64) {
+func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
-	if ml.lastEventId >= eventId {
-		// plog.Debug("Skipped ClusterTopology", log.Int("members", len(members)), log.Uint64("eventId", eventId))
+
+	//1. filter out banned and dead members
+	activeMembers := make([]*Member, 0)
+	activeMemberIds := make(map[string]bool)
+	for _, m := range members {
+		if _, isBaned := ml.banned[m.Id]; isBaned {
+			continue
+		}
+		activeMembers = append(activeMembers, m)
+		activeMemberIds[m.Id] = true
+	}
+
+	//2. Compute hash
+	newTopologyHash := GetMembershipHashCode(activeMembers)
+
+	//3. if nothing has changed, bail out...
+	if newTopologyHash == ml.topologyHash {
 		return
 	}
-	ml.lastEventId = eventId
-	tplg := ml._updateClusterTopoLogy(members, eventId)
 
-	ml.onMembersUpdated(tplg)
-	ml.cluster.ActorSystem.EventStream.PublishUnsafe(&ClusterTopologyEventV2{
-		ClusterTopology: tplg,
-		ChashByKind:     ml.chashByKind,
-	})
+	//4. create the new topology
+	newTopology := &ClusterTopology{
+		TopologyHash: newTopologyHash,
+		Members:      activeMembers,
+	}
+
+	//5. find members that existed before but not anymore
+	leftMembers := make([]*Member, 0)
+	leftMemberIds := make(map[string]bool)
+	for _, m := range ml.members {
+		if _, isActive := activeMemberIds[m.Id]; isActive {
+			continue
+		}
+		leftMembers = append(leftMembers, m)
+		leftMemberIds[m.Id] = true
+		ml.banned[m.Id] = m
+
+		//tell the world that this endpoint should is no longer relevant
+		endpointTerminated := &remote.EndpointTerminatedEvent{
+			Address: m.Address(),
+		}
+
+		ml.cluster.ActorSystem.EventStream.Publish(endpointTerminated)
+	}
+
+	newTopology.Left = leftMembers
+
+	//6. get all banned members
+	bannedMembers := make([]*Member, 0)
+	for _, m := range ml.banned {
+		bannedMembers = append(bannedMembers, m)
+	}
+
+	newTopology.Banned = bannedMembers
+
+	//7. find members that joined
+	joinedMembers := make([]*Member, 0)
+	joinedMemberIds := make(map[string]bool)
+	for _, m := range activeMembers {
+		if _, isExisting := ml.members[m.Id]; isExisting {
+			continue
+		}
+		joinedMembers = append(joinedMembers, m)
+		joinedMemberIds[m.Id] = true
+	}
+
+	newTopology.Joined = joinedMembers
+
+	//newTopology now contains:
+	//TopologyHash
+	//Members
+	//Left Members
+	//Joined Members
+	//Banned Members
+
+	ml.cluster.ActorSystem.EventStream.Publish(newTopology)
+
 	plog.Info("Updated ClusterTopology",
-		log.Uint64("eventId", ml.lastEventId),
+		log.Uint64("topologyHash", ml.topologyHash),
 		log.Int("members", len(members)),
-		log.Int("joined", len(tplg.Joined)),
-		log.Int("left", len(tplg.Left)),
-		log.Int("alives", len(tplg.Members)))
-}
-
-func (ml *MemberList) _updateClusterTopoLogy(members []*Member, eventId uint64) *ClusterTopology {
-	tplg := ClusterTopology{EventId: eventId}
-
-	alives := map[string]*Member{}
-	for _, member := range members {
-		if _, isBaned := ml.banned[member.Id]; isBaned {
-			continue
-		}
-		addr := member.Address()
-		alives[addr] = member
-		if old, isOld := ml.members[addr]; isOld {
-			if len(old.Kinds) != len(member.Kinds) {
-				plog.Error("member.Kinds is different to the old one",
-					log.String("old", old.String()), log.String("new", member.String()))
-			}
-			continue
-		}
-		tplg.Joined = append(tplg.Joined, member)
-		ml.onMemberJoined(member)
-	}
-
-	for _, member := range ml.members {
-		addr := member.Address()
-		if _, isExist := alives[addr]; !isExist {
-			ml.onMemberLeft(member)
-			tplg.Left = append(tplg.Left, member)
-		}
-	}
-	tplg.Members = ml.buildSortedMembers(alives)
-	return &tplg
+		log.Int("joined", len(newTopology.Joined)),
+		log.Int("left", len(newTopology.Left)),
+	)
 }
 
 func (ml *MemberList) onMembersUpdated(tplg *ClusterTopology) {
