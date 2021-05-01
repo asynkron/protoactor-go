@@ -38,7 +38,7 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 private void SubscribeToTopologyEvents() =>
 	System.EventStream.Subscribe<ClusterTopology>(e => {
 			System.Metrics.Get<ClusterMetrics>().ClusterTopologyEventGauge.Set(e.Members.Count,
-				new[] {System.Id, System.Address, e.GetMembershipHashCode().ToString()}
+				new[] {System.Id, System.Address, e.TopologyHash().ToString()}
 			);
 
 			foreach (var member in e.Left)

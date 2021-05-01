@@ -70,7 +70,7 @@ func TestMemberList_UpdateClusterToplogy(t *testing.T) {
 	c := _newClusterForTest("test-UpdateClusterToplogy")
 	obj := setupMemberList(c)
 	dumpMembers := func(list []*Member) {
-		t.Logf("members=%d", len(list))
+		t.Logf("membersByMemberId=%d", len(list))
 		for _, m := range list {
 			t.Logf("\t%s", m.Address())
 		}
@@ -174,7 +174,7 @@ func BenchmarkMemberList_getPartitionMemberV2(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				address := obj.getPartitionMemberV2(id)
 				if address == "" {
-					b.Fatalf("empty address members=%d", v)
+					b.Fatalf("empty address membersByMemberId=%d", v)
 				}
 			}
 		})

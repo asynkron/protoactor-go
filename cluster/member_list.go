@@ -16,9 +16,9 @@ import (
 type MemberList struct {
 	cluster              *Cluster
 	mutex                sync.RWMutex
-	members              map[string]*Member
+	membersByMemberId    map[string]*Member
 	memberStrategyByKind map[string]MemberStrategy
-	banned               map[string]bool
+	bannedMemberIds      map[string]bool
 	topologyHash         uint64
 	chashByKind          map[string]chash.ConsistentHash
 }
@@ -30,9 +30,9 @@ func NewMemberList(cluster *Cluster) *MemberList {
 func setupMemberList(cluster *Cluster) *MemberList {
 	memberList := &MemberList{
 		cluster:              cluster,
-		members:              make(map[string]*Member),
+		membersByMemberId:    make(map[string]*Member),
 		memberStrategyByKind: make(map[string]MemberStrategy),
-		banned:               make(map[string]bool),
+		bannedMemberIds:      make(map[string]bool),
 	}
 	return memberList
 }
@@ -60,140 +60,109 @@ func (ml *MemberList) GetActivatorMember(kind string) string {
 func (ml *MemberList) Length() int {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()
-	return len(ml.members)
+	return len(ml.membersByMemberId)
 }
 
 func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
 
-	//1. filter out banned and dead members
-	activeMembers := make([]*Member, 0)
-	activeMemberIds := make(map[string]bool)
-	for _, m := range members {
-		if _, isBaned := ml.banned[m.Id]; isBaned {
-			continue
-		}
-		activeMembers = append(activeMembers, m)
-		activeMemberIds[m.Id] = true
-	}
+	//get active members
+	//(this bit means that we will never allow a member that failed a health check to join back in)
+	activeMembers := MembersExcept(members, ml.bannedMemberIds)
 
-	//2. Compute hash
-	newTopologyHash := GetMembershipHashCode(activeMembers)
+	//get the new topology hash
+	newTopologyHash := TopologyHash(activeMembers)
 
-	//3. if nothing has changed, bail out...
+	//nothing changed? exit
 	if newTopologyHash == ml.topologyHash {
 		return
 	}
 
+	//remember the new topology hash
 	ml.topologyHash = newTopologyHash
 
-	//4. create the new topology
+	//membersByMemberId that left
+	left := ml.GetLeftMembers(activeMembers)
+
+	//membersByMemberId that joined
+	joined := ml.GetJoinedMembers(activeMembers)
+
+	//union membersByMemberId that left into bannedMemberIds set
+	AddMembersToSet(ml.bannedMemberIds, left)
+
+	//replace the member lookup with new data
+	ml.membersByMemberId = MembersToMap(activeMembers)
+
+	//for any member that left, send a endpoint terminate event
+	for _, m := range left {
+		ml.TerminateMember(m)
+	}
+
 	newTopology := &ClusterTopology{
 		TopologyHash: newTopologyHash,
 		Members:      activeMembers,
+		Left:         left,
+		Joined:       joined,
 	}
-
-	//5. find members that existed before but not anymore
-	leftMembers := make([]*Member, 0)
-	leftMemberIds := make(map[string]bool)
-	for _, m := range ml.members {
-		if _, isActive := activeMemberIds[m.Id]; isActive {
-			continue
-		}
-		leftMembers = append(leftMembers, m)
-		leftMemberIds[m.Id] = true
-		ml.banned[m.Id] = true
-
-		//tell the world that this endpoint should is no longer relevant
-		endpointTerminated := &remote.EndpointTerminatedEvent{
-			Address: m.Address(),
-		}
-
-		ml.cluster.ActorSystem.EventStream.Publish(endpointTerminated)
-	}
-
-	newTopology.Left = leftMembers
-
-	//6. get all banned members
-	bannedMembers := make([]string, 0)
-	for id, _ := range ml.banned {
-		bannedMembers = append(bannedMembers, id)
-	}
-
-	newTopology.Banned = bannedMembers
-
-	//7. find members that joined
-	joinedMembers := make([]*Member, 0)
-	joinedMemberIds := make(map[string]bool)
-	for _, m := range activeMembers {
-		if _, isExisting := ml.members[m.Id]; isExisting {
-			continue
-		}
-		joinedMembers = append(joinedMembers, m)
-		joinedMemberIds[m.Id] = true
-	}
-
-	newTopology.Joined = joinedMembers
-
-	//newTopology now contains:
-	//TopologyHash
-	//Members
-	//Left Members
-	//Joined Members
-	//Banned Members
 
 	ml.cluster.ActorSystem.EventStream.Publish(newTopology)
 
 	plog.Info("Updated ClusterTopology",
 		log.Uint64("topologyHash", ml.topologyHash),
-		log.Int("members", len(members)),
+		log.Int("membersByMemberId", len(members)),
 		log.Int("joined", len(newTopology.Joined)),
 		log.Int("left", len(newTopology.Left)),
 	)
 }
 
-func (ml *MemberList) onMembersUpdated(tplg *ClusterTopology) {
-	groups := GroupMembersByKind(tplg.Members)
-	strategies := map[string]MemberStrategy{}
-	chashes := map[string]chash.ConsistentHash{}
-	for kind, members := range groups {
-		strategies[kind] = newDefaultMemberStrategyV2(kind, members)
-		chashes[kind] = NewRendezvousV2(members)
+func (ml *MemberList) GetJoinedMembers(activeMembers []*Member) []*Member {
+	joinedMembers := make([]*Member, 0)
+	joinedMemberIds := make(map[string]bool)
+	for _, m := range activeMembers {
+		if _, isExisting := ml.membersByMemberId[m.Id]; isExisting {
+			continue
+		}
+		joinedMembers = append(joinedMembers, m)
+		joinedMemberIds[m.Id] = true
 	}
-	ml.memberStrategyByKind = strategies
-	ml.chashByKind = chashes
+	return joinedMembers
 }
 
-func (ml *MemberList) onMemberLeft(member *Member) {
-	// notify left
-	meta := MemberMeta{
-		Host:  member.Host,
-		Port:  int(member.Port),
-		Kinds: member.Kinds,
+func (ml *MemberList) GetLeftMembers(activeMembers []*Member) []*Member {
+	activeMemberIds := MembersToSet(activeMembers)
+	leftMembers := make([]*Member, 0)
+	leftMemberIds := make(map[string]bool)
+	for _, m := range ml.membersByMemberId {
+		if _, isActive := activeMemberIds[m.Id]; isActive {
+			continue
+		}
+		leftMembers = append(leftMembers, m)
+		leftMemberIds[m.Id] = true
 	}
-	left := &MemberLeftEvent{MemberMeta: meta}
-	ml.cluster.ActorSystem.EventStream.PublishUnsafe(left)
-
-	addr := member.Address()
-	delete(ml.members, addr)
-	rt := &remote.EndpointTerminatedEvent{Address: addr}
-	ml.cluster.ActorSystem.EventStream.PublishUnsafe(rt)
-	return
+	return leftMembers
 }
 
-func (ml *MemberList) onMemberJoined(member *Member) {
-	addr := member.Address()
-	ml.members[addr] = member
-	// notify joined
-	meta := MemberMeta{
-		Host:  member.Host,
-		Port:  int(member.Port),
-		Kinds: member.Kinds,
+func (ml *MemberList) TerminateMember(m *Member) {
+	//tell the world that this endpoint should is no longer relevant
+	endpointTerminated := &remote.EndpointTerminatedEvent{
+		Address: m.Address(),
 	}
-	joined := &MemberJoinedEvent{MemberMeta: meta}
-	ml.cluster.ActorSystem.EventStream.PublishUnsafe(joined)
+
+	ml.cluster.ActorSystem.EventStream.Publish(endpointTerminated)
 }
+
+//func (ml *MemberList) onMembersUpdated(tplg *ClusterTopology) {
+//	groups := GroupMembersByKind(tplg.Members)
+//	strategies := map[string]MemberStrategy{}
+//	chashes := map[string]chash.ConsistentHash{}
+//	for kind, membersByMemberId := range groups {
+//		strategies[kind] = newDefaultMemberStrategyV2(kind, membersByMemberId)
+//		chashes[kind] = NewRendezvousV2(membersByMemberId)
+//	}
+//	ml.memberStrategyByKind = strategies
+//	ml.chashByKind = chashes
+//}
 
 func (ml *MemberList) buildSortedMembers(m map[string]*Member) []*Member {
 	list := make([]*Member, len(m))

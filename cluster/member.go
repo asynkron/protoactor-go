@@ -12,10 +12,10 @@ func (m *Member) Address() string {
 	return m.Host + ":" + strconv.FormatInt(int64(m.Port), 10)
 }
 
-func GetMembershipHashCode(members []*Member) uint64 {
+func TopologyHash(members []*Member) uint64 {
 
 	//C# version
-	//var x = members.Select(m => m.Id).OrderBy(i => i).ToArray();
+	//var x = membersByMemberId.Select(m => m.Id).OrderBy(i => i).ToArray();
 	//var key = string.Join("", x);
 	//var hash = MurmurHash2.Hash(key);
 	//return hash;
@@ -34,4 +34,45 @@ func GetMembershipHashCode(members []*Member) uint64 {
 	//add plenty of tests
 	hash := murmur32.Sum64([]byte(s))
 	return hash
+}
+
+func MembersToSet(members []*Member) map[string]bool {
+	set := make(map[string]bool)
+	for _, m := range members {
+		set[m.Id] = true
+	}
+	return set
+}
+
+func MembersToMap(members []*Member) map[string]*Member {
+	mapp := make(map[string]*Member)
+	for _, m := range members {
+		mapp[m.Id] = m
+	}
+	return mapp
+}
+
+func MembersExcept(members []*Member, except map[string]bool) []*Member {
+	filtered := make([]*Member, 0)
+	for _, m := range members {
+		if _, found := except[m.Id]; found {
+			continue
+		}
+		filtered = append(filtered, m)
+	}
+	return filtered
+}
+
+func AddMembersToSet(set map[string]bool, members []*Member) {
+	for _, m := range members {
+		set[m.Id] = true
+	}
+}
+
+func MemberIds(members []*Member) []string {
+	ids := make([]string, 0)
+	for _, m := range members {
+		ids = append(ids, m.Id)
+	}
+	return ids
 }
