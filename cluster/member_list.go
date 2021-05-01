@@ -18,7 +18,7 @@ type MemberList struct {
 	mutex                sync.RWMutex
 	members              map[string]*Member
 	memberStrategyByKind map[string]MemberStrategy
-	banned               map[string]*Member
+	banned               map[string]bool
 	topologyHash         uint64
 	chashByKind          map[string]chash.ConsistentHash
 }
@@ -32,7 +32,7 @@ func setupMemberList(cluster *Cluster) *MemberList {
 		cluster:              cluster,
 		members:              make(map[string]*Member),
 		memberStrategyByKind: make(map[string]MemberStrategy),
-		banned:               make(map[string]*Member),
+		banned:               make(map[string]bool),
 	}
 	return memberList
 }
@@ -103,7 +103,7 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 		}
 		leftMembers = append(leftMembers, m)
 		leftMemberIds[m.Id] = true
-		ml.banned[m.Id] = m
+		ml.banned[m.Id] = true
 
 		//tell the world that this endpoint should is no longer relevant
 		endpointTerminated := &remote.EndpointTerminatedEvent{
@@ -117,8 +117,8 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 
 	//6. get all banned members
 	bannedMembers := make([]string, 0)
-	for _, m := range ml.banned {
-		bannedMembers = append(bannedMembers, m.Id)
+	for id, _ := range ml.banned {
+		bannedMembers = append(bannedMembers, id)
 	}
 
 	newTopology.Banned = bannedMembers
