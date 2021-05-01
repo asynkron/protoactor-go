@@ -3,6 +3,7 @@ package consul
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"sync"
 	"time"
 
@@ -19,22 +20,24 @@ var (
 )
 
 type Provider struct {
-	cluster            *cluster.Cluster
-	deregistered       bool
-	shutdown           bool
-	id                 string
-	clusterName        string
-	address            string
-	port               int
-	knownKinds         []string
-	index              uint64 // consul blocking index
-	client             *api.Client
-	ttl                time.Duration
-	refreshTTL         time.Duration
-	updateTTLWaitGroup sync.WaitGroup
-	deregisterCritical time.Duration
-	blockingWaitTime   time.Duration
-	clusterError       error
+	cluster             *cluster.Cluster
+	deregistered        bool
+	shutdown            bool
+	id                  string
+	clusterName         string
+	address             string
+	port                int
+	knownKinds          []string
+	index               uint64 // consul blocking index
+	client              *api.Client
+	ttl                 time.Duration
+	refreshTTL          time.Duration
+	updateTTLWaitGroup  sync.WaitGroup
+	deregisterCritical  time.Duration
+	blockingWaitTime    time.Duration
+	clusterError        error
+	consulServerAddress string
+	pid                 *actor.PID
 }
 
 func New(opts ...Option) (*Provider, error) {
@@ -47,11 +50,12 @@ func NewWithConfig(consulConfig *api.Config, opts ...Option) (*Provider, error) 
 		return nil, err
 	}
 	p := &Provider{
-		client:             client,
-		ttl:                3 * time.Second,
-		refreshTTL:         1 * time.Second,
-		deregisterCritical: 60 * time.Second,
-		blockingWaitTime:   20 * time.Second,
+		client:              client,
+		ttl:                 3 * time.Second,
+		refreshTTL:          1 * time.Second,
+		deregisterCritical:  60 * time.Second,
+		blockingWaitTime:    20 * time.Second,
+		consulServerAddress: "127.0.0.1:8500",
 	}
 	for _, opt := range opts {
 		opt(p)
@@ -83,24 +87,14 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 		return err
 	}
 
-	err = p.registerService()
+	p.pid, err = c.ActorSystem.Root.SpawnNamed(actor.PropsFromProducer(func() actor.Actor {
+		return newProviderActor(p)
+	}), "consul-provider")
 	if err != nil {
+		plog.Error("Failed to start consul-provider actor", log.Error(err))
 		return err
 	}
 
-	// IMPORTANT: do these ops sync directly after registering.
-	// this will ensure that the local node sees its own information upon startup.
-
-	// force our own TTL to be OK
-	err = blockingUpdateTTLFunc(p)
-	if err != nil {
-		return err
-	}
-
-	// force our own existence to be part of the first status update
-	p.blockingStatusChange()
-	p.UpdateTTL()
-	p.monitorMemberStatusChanges()
 	return nil
 }
 
@@ -126,56 +120,12 @@ func (p *Provider) Shutdown(graceful bool) error {
 		return nil
 	}
 	p.shutdown = true
-	if !graceful {
-		return nil
+	if p.pid != nil {
+		p.cluster.ActorSystem.Root.Stop(p.pid)
+		p.pid = nil
 	}
-	p.updateTTLWaitGroup.Wait()
 
-	if !p.deregistered {
-		err := p.DeregisterMember()
-		if err != nil {
-			return err
-		}
-	}
 	return nil
-}
-
-func (p *Provider) UpdateTTL() {
-	go func() {
-		p.updateTTLWaitGroup.Add(1)
-		defer p.updateTTLWaitGroup.Done()
-
-	OUTER:
-		for !p.shutdown {
-
-			err := blockingUpdateTTLFunc(p)
-			if err == nil {
-				time.Sleep(p.refreshTTL)
-				continue
-			}
-
-			plog.Info("Failure refreshing service TTL. Trying to reregister service if not in consul.")
-
-			services, err := p.client.Agent().Services()
-			for id := range services {
-				if id == p.id {
-					plog.Info("Service found in consul -> doing nothing")
-					time.Sleep(p.refreshTTL)
-					continue OUTER
-				}
-			}
-
-			err = p.registerService()
-			if err != nil {
-				plog.Error("Error reregistering service ", log.Error(err))
-				time.Sleep(p.refreshTTL)
-				continue
-			}
-
-			plog.Info("Reregistered service in consul")
-			time.Sleep(p.refreshTTL)
-		}
-	}()
 }
 
 func (p *Provider) UpdateClusterState(state cluster.ClusterState) error {
@@ -278,9 +228,4 @@ func (p *Provider) monitorMemberStatusChanges() {
 			p.notifyStatuses()
 		}
 	}()
-}
-
-// GetHealthStatus returns an error if the cluster health status has problems
-func (p *Provider) GetHealthStatus() error {
-	return p.clusterError
 }
