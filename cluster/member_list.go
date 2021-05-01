@@ -86,6 +86,8 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 		return
 	}
 
+	ml.topologyHash = newTopologyHash
+
 	//4. create the new topology
 	newTopology := &ClusterTopology{
 		TopologyHash: newTopologyHash,
@@ -114,9 +116,9 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 	newTopology.Left = leftMembers
 
 	//6. get all banned members
-	bannedMembers := make([]*Member, 0)
+	bannedMembers := make([]string, 0)
 	for _, m := range ml.banned {
-		bannedMembers = append(bannedMembers, m)
+		bannedMembers = append(bannedMembers, m.Id)
 	}
 
 	newTopology.Banned = bannedMembers
