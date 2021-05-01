@@ -14,9 +14,7 @@ import (
 
 var (
 	ProviderShuttingDownError = fmt.Errorf("consul cluster provider is shutting down")
-	// for mocking purposes this function is assigned to a variable
-	blockingUpdateTTLFunc = blockingUpdateTTL
-	plog                  = log.New(log.DebugLevel, "[CLUSTER] [CONSUL]")
+	plog                      = log.New(log.DebugLevel, "[CLUSTER] [CONSUL]")
 )
 
 type Provider struct {
@@ -121,7 +119,9 @@ func (p *Provider) Shutdown(graceful bool) error {
 	}
 	p.shutdown = true
 	if p.pid != nil {
-		p.cluster.ActorSystem.Root.Stop(p.pid)
+		if err := p.cluster.ActorSystem.Root.StopFuture(p.pid).Wait(); err != nil {
+			plog.Error("Failed to stop consul-provider actor", log.Error(err))
+		}
 		p.pid = nil
 	}
 
