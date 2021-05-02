@@ -28,26 +28,20 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	}
 
 	actorSystem.Extensions.Register(c)
-	//TODO subscribe to eventstream and clear pid cache
-	//SubscribeToTopologyEvents()
+	c.subscribeToTopologyEvents()
 
 	return c
 }
 
-/*
-private void SubscribeToTopologyEvents() =>
-	System.EventStream.Subscribe<ClusterTopology>(e => {
-			System.Metrics.Get<ClusterMetrics>().ClusterTopologyEventGauge.Set(e.MemberSet.Count,
-				new[] {System.Id, System.Address, e.TopologyHash().ToString()}
-			);
-
-			foreach (var member in e.Left)
-			{
-				PidCache.RemoveByMember(member);
+func (c *Cluster) subscribeToTopologyEvents() {
+	c.ActorSystem.EventStream.Subscribe(func(evt interface{}) {
+		if clusterTopology, ok := evt.(*ClusterTopology); ok {
+			for _, member := range clusterTopology.Left {
+				c.PidCache.RemoveByMember(member)
 			}
 		}
-	);
-*/
+	})
+}
 
 func (c *Cluster) Id() extensions.ExtensionId {
 	return extensionId
@@ -72,7 +66,7 @@ func (c *Cluster) Start() {
 	plog.Info("Starting Proto.Actor cluster", log.String("address", address))
 
 	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
-	c.PidCache = setupPidCache(c.ActorSystem)
+	c.PidCache = NewPidCache()
 	c.MemberList = NewMemberList(c)
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)
 
@@ -99,7 +93,7 @@ func (c *Cluster) StartClient() {
 	address := c.ActorSystem.Address()
 	plog.Info("Starting Proto.Actor cluster-client", log.String("address", address))
 
-	c.PidCache = setupPidCache(c.ActorSystem)
+	c.PidCache = NewPidCache()
 	c.MemberList = NewMemberList(c)
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), true)
 
@@ -109,7 +103,6 @@ func (c *Cluster) StartClient() {
 }
 
 func (c *Cluster) Shutdown(graceful bool) {
-
 	if graceful {
 		_ = c.Config.ClusterProvider.Shutdown(graceful)
 		c.IdentityLookup.Shutdown()

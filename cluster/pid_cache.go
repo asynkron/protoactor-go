@@ -6,61 +6,59 @@ import (
 )
 
 type pidCacheValue struct {
-	cache        cmap.ConcurrentMap
-	reverseCache cmap.ConcurrentMap
-	actorSystem  *actor.ActorSystem
+	cache cmap.ConcurrentMap
 }
 
-func setupPidCache(actorSystem *actor.ActorSystem) *pidCacheValue {
+func NewPidCache() *pidCacheValue {
 	pidCache := &pidCacheValue{
-		cache:        cmap.New(),
-		reverseCache: cmap.New(),
-		actorSystem:  actorSystem,
+		cache: cmap.New(),
 	}
 
 	return pidCache
 }
 
-func (c *pidCacheValue) GetCache(name string) (*actor.PID, bool) {
-	v, ok := c.cache.Get(name)
+func key(identity string, kind string) string {
+	return identity + "." + kind
+}
+
+func (c *pidCacheValue) Get(identity string, kind string) (*actor.PID, bool) {
+	k := key(identity, kind)
+	v, ok := c.cache.Get(k)
 	if !ok {
 		return nil, false
 	}
 	return v.(*actor.PID), true
 }
 
-func (c *pidCacheValue) AddCache(name string, pid *actor.PID) bool {
-	if c.cache.SetIfAbsent(name, pid) {
-		key := pid.String()
-		c.reverseCache.Set(key, name)
-		return true
-	}
-	return false
+func (c *pidCacheValue) Set(identity string, kind string, pid *actor.PID) {
+	k := key(identity, kind)
+	c.cache.Set(k, pid)
 }
 
-func (c *pidCacheValue) RemoveCacheByPid(pid *actor.PID) {
-	key := pid.String()
-	if name, ok := c.reverseCache.Get(key); ok {
-		c.cache.Remove(name.(string))
-		c.reverseCache.Remove(key)
-	}
+func (c *pidCacheValue) RemoveByValue(identity string, kind string, pid *actor.PID) {
+	k := key(identity, kind)
+
+	c.cache.RemoveCb(k, func(key string, v interface{}, exists bool) bool {
+		if !exists {
+			return false
+		}
+
+		existing := v.(*actor.PID)
+		return existing.Equal(pid)
+	})
 }
 
-func (c *pidCacheValue) RemoveCacheByName(name string) {
-	if pid, ok := c.cache.Get(name); ok {
-		key := pid.(*actor.PID).String()
-		c.cache.Remove(name)
-		c.reverseCache.Remove(key)
-	}
+func (c *pidCacheValue) Remove(identity string, kind string) {
+	k := key(identity, kind)
+	c.cache.Remove(k)
 }
 
-func (c *pidCacheValue) RemoveCacheByMemberAddress(address string) {
+func (c *pidCacheValue) RemoveByMember(member *Member) {
+	addr := member.Address()
 	for item := range c.cache.IterBuffered() {
-		name := item.Key
 		pid := item.Val.(*actor.PID)
-		if pid.Address == address {
-			c.cache.Remove(name)
-			c.reverseCache.Remove(pid.String())
+		if pid.Address == addr {
+			c.cache.Remove(item.Key)
 		}
 	}
 }
