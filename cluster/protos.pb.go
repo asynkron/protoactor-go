@@ -4393,7 +4393,7 @@ func (this *IdentityHandoverRequest) String() string {
 	s := strings.Join([]string{`&IdentityHandoverRequest{`,
 		`TopologyHash:` + fmt.Sprintf("%v", this.TopologyHash) + `,`,
 		`Address:` + fmt.Sprintf("%v", this.Address) + `,`,
-		`Members:` + repeatedStringForMembers + `,`,
+		`MemberSet:` + repeatedStringForMembers + `,`,
 		`}`,
 	}, "")
 	return s
@@ -4545,7 +4545,7 @@ func (this *ClusterTopology) String() string {
 	repeatedStringForLeft += "}"
 	s := strings.Join([]string{`&ClusterTopology{`,
 		`TopologyHash:` + fmt.Sprintf("%v", this.TopologyHash) + `,`,
-		`Members:` + repeatedStringForMembers + `,`,
+		`MemberSet:` + repeatedStringForMembers + `,`,
 		`Joined:` + repeatedStringForJoined + `,`,
 		`Left:` + repeatedStringForLeft + `,`,
 		`}`,
@@ -4863,7 +4863,7 @@ func (m *IdentityHandoverRequest) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Members", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MemberSet", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -6232,7 +6232,7 @@ func (m *ClusterTopology) Unmarshal(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Members", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MemberSet", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {

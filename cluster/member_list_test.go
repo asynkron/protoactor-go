@@ -82,9 +82,9 @@ func TestMemberList_UpdateClusterToplogy(t *testing.T) {
 				return (list)[i].Port < (list)[j].Port
 			})
 		}
-		// dumpMembers(tpl.Members)
+		// dumpMembers(tpl.MemberSet)
 		_sortMembers(tpl.Members)
-		// dumpMembers(tpl.Members)
+		// dumpMembers(tpl.MemberSet)
 		_sortMembers(tpl.Left)
 		_sortMembers(tpl.Joined)
 	}

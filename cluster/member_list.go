@@ -14,19 +14,19 @@ import (
 type MemberList struct {
 	cluster              *Cluster
 	mutex                sync.RWMutex
-	membersByMemberId    map[string]*Member
+	members              *MemberSet
 	memberStrategyByKind map[string]MemberStrategy
-	bannedMemberIds      map[string]bool
-	topologyHash         uint64
-	chashByKind          map[string]chash.ConsistentHash
+	bannedMembers        *MemberSet
+
+	chashByKind map[string]chash.ConsistentHash
 }
 
 func NewMemberList(cluster *Cluster) *MemberList {
 	memberList := &MemberList{
 		cluster:              cluster,
-		membersByMemberId:    make(map[string]*Member),
+		members:              emptyMemberSet,
 		memberStrategyByKind: make(map[string]MemberStrategy),
-		bannedMemberIds:      make(map[string]bool),
+		bannedMembers:        emptyMemberSet,
 	}
 	return memberList
 }
@@ -52,52 +52,43 @@ func (ml *MemberList) GetActivatorMember(kind string) string {
 }
 
 func (ml *MemberList) Length() int {
-	ml.mutex.RLock()
-	defer ml.mutex.RUnlock()
-	return len(ml.membersByMemberId)
+	return ml.members.Len()
+}
+
+func (ml *MemberList) Members() *MemberSet {
+	return ml.members
 }
 
 func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
 
+	memberSet := NewMemberSet(members)
+
 	//get active members
 	//(this bit means that we will never allow a member that failed a health check to join back in)
-	activeMembers := MembersExcept(members, ml.bannedMemberIds)
-
-	//get the new topology hash
-	newTopologyHash := TopologyHash(activeMembers)
+	newMembers := memberSet.Except(ml.bannedMembers)
 
 	//nothing changed? exit
-	if newTopologyHash == ml.topologyHash {
+	if newMembers.Equals(ml.members) {
 		return
 	}
 
-	//remember the new topology hash
-	ml.topologyHash = newTopologyHash
-
-	//membersByMemberId that left
-	left := ml.getLeftMembers(activeMembers)
-
-	//membersByMemberId that joined
-	joined := ml.getJoinedMembers(activeMembers)
-
-	//union membersByMemberId that left into bannedMemberIds set
-	AddMembersToSet(ml.bannedMemberIds, left)
-
-	//replace the member lookup with new data
-	ml.membersByMemberId = MembersToMap(activeMembers)
+	left := ml.members.Except(newMembers)
+	joined := newMembers.Except(ml.members)
+	ml.bannedMembers = ml.bannedMembers.Union(left)
+	ml.members = newMembers
 
 	//for any member that left, send a endpoint terminate event
-	for _, m := range left {
+	for _, m := range left.Members() {
 		ml.TerminateMember(m)
 	}
 
 	newTopology := &ClusterTopology{
-		TopologyHash: newTopologyHash,
-		Members:      activeMembers,
-		Left:         left,
-		Joined:       joined,
+		TopologyHash: newMembers.TopologyHash(),
+		Members:      newMembers.Members(),
+		Left:         left.Members(),
+		Joined:       joined.Members(),
 	}
 
 	//recalculate member strategies
@@ -106,38 +97,11 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 	ml.cluster.ActorSystem.EventStream.Publish(newTopology)
 
 	plog.Info("Updated ClusterTopology",
-		log.Uint64("topologyHash", ml.topologyHash),
+		log.Uint64("topologyHash", ml.members.TopologyHash()),
 		log.Int("membersByMemberId", len(members)),
 		log.Int("joined", len(newTopology.Joined)),
 		log.Int("left", len(newTopology.Left)),
 	)
-}
-
-func (ml *MemberList) getJoinedMembers(activeMembers []*Member) []*Member {
-	joinedMembers := make([]*Member, 0)
-	joinedMemberIds := make(map[string]bool)
-	for _, m := range activeMembers {
-		if _, isExisting := ml.membersByMemberId[m.Id]; isExisting {
-			continue
-		}
-		joinedMembers = append(joinedMembers, m)
-		joinedMemberIds[m.Id] = true
-	}
-	return joinedMembers
-}
-
-func (ml *MemberList) getLeftMembers(activeMembers []*Member) []*Member {
-	activeMemberIds := MembersToSet(activeMembers)
-	leftMembers := make([]*Member, 0)
-	leftMemberIds := make(map[string]bool)
-	for _, m := range ml.membersByMemberId {
-		if _, isActive := activeMemberIds[m.Id]; isActive {
-			continue
-		}
-		leftMembers = append(leftMembers, m)
-		leftMemberIds[m.Id] = true
-	}
-	return leftMembers
 }
 
 func (ml *MemberList) TerminateMember(m *Member) {
