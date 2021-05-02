@@ -12,10 +12,9 @@ import (
 
 // inmemoryProvider use for test
 type inmemoryProvider struct {
-	cluster  *Cluster
-	members  map[string]*Member
-	self     *Member
-	revision uint64
+	cluster *Cluster
+	members map[string]*Member
+	self    *Member
 }
 
 func newInmemoryProvider() *inmemoryProvider {
@@ -39,14 +38,13 @@ func (p *inmemoryProvider) init(c *Cluster) error {
 }
 
 func (p *inmemoryProvider) publishClusterTopologyEvent() {
-	members := []*Member{}
+	var members []*Member
 	for _, m := range p.members {
 		members = append(members, m)
 	}
 
 	res := TopologyEvent(members)
 
-	p.revision++
 	p.cluster.MemberList.UpdateClusterTopology(res)
 	// p.cluster.ActorSystem.EventStream.Publish(res)
 }
