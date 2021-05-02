@@ -4,7 +4,6 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	clustering "github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/log"
-	cmap "github.com/orcaman/concurrent-map"
 	"time"
 )
 
@@ -17,24 +16,20 @@ type GrainMeta struct {
 type spawnTask func() *clustering.ActivationResponse
 
 type identityActor struct {
-	cluster               *clustering.Cluster
-	partitionManager      *PartitionManager
-	lookup                map[string]*actor.PID
-	spawns                map[string]spawnTask
-	lastEventId           uint64
-	lastEventTimestamp    time.Time
-	handoverTimeout       time.Duration
-	topologyChangeTimeout time.Duration
+	cluster          *clustering.Cluster
+	partitionManager *PartitionManager
+	lookup           map[string]*actor.PID
+	spawns           map[string]spawnTask
+	topologyHash     uint64
+	handoverTimeout  time.Duration
 }
 
 func newIdentityActor(c *clustering.Cluster, p *PartitionManager) *identityActor {
 	return &identityActor{
-		cluster:               c,
-		partitionManager:      p,
-		handoverTimeout:       10 * time.Second,
-		topologyChangeTimeout: 3 * time.Second,
-		lookup:                cmap.New(),
-		spawnings:             map[string]*spawningProcess{},
+		cluster:          c,
+		partitionManager: p,
+		handoverTimeout:  10 * time.Second,
+		lookup:           map[string]*actor.PID{},
 	}
 }
 
@@ -57,7 +52,6 @@ func (p *identityActor) Receive(ctx actor.Context) {
 
 func (p *identityActor) onStart(ctx actor.Context) {
 	plog.Debug("Started PartitionIdentity")
-	p.lastEventTimestamp = time.Now()
 }
 
 func (p *identityActor) onStopped() {

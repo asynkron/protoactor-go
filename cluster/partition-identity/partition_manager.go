@@ -1,10 +1,8 @@
 package partition_identity
 
 import (
-	clustering "github.com/AsynkronIT/protoactor-go/cluster"
-	"sync"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
+	clustering "github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/log"
 )
@@ -15,10 +13,8 @@ const (
 )
 
 type PartitionManager struct {
-	cluster       *clustering.Cluster
-	kinds         sync.Map
-	topologySub   *eventstream.Subscription
-	deadletterSub *eventstream.Subscription
+	cluster     *clustering.Cluster
+	topologySub *eventstream.Subscription
 }
 
 func newPartitionManager(c *clustering.Cluster) *PartitionManager {
