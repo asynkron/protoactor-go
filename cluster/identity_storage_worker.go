@@ -24,7 +24,7 @@ func newIdentityStorageWorker(storageLookup *IdentityStorageLookup) *IdentitySto
 // Receive func
 func (ids *IdentityStorageWorker) Receive(c actor.Context) {
 	m := c.Message()
-	_, ok := m.(GetPid)
+	getPid, ok := m.(GetPid)
 
 	if !ok {
 		return
@@ -35,9 +35,7 @@ func (ids *IdentityStorageWorker) Receive(c actor.Context) {
 		return
 	}
 
-	cid := m.(GetPid).ClusterIdentity.Identity + "." + m.(GetPid).ClusterIdentity.Kind
-
-	existing, _ := ids.cluster.PidCache.GetCache(cid)
+	existing, _ := ids.cluster.PidCache.Get(getPid.ClusterIdentity.Identity, getPid.ClusterIdentity.Kind)
 
 	if existing != nil {
 		log.Printf("Found %s in pidcache", m.(GetPid).ClusterIdentity.ToShortString())
