@@ -31,15 +31,6 @@ func NewMemberList(cluster *Cluster) *MemberList {
 	return memberList
 }
 
-//func (ml *MemberList) getPartitionMemberV2(clusterIdentity *ClusterIdentity) string {
-//	ml.mutex.RLock()
-//	defer ml.mutex.RUnlock()
-//	if ms, ok := ml.memberStrategyByKind[clusterIdentity.Kind]; ok {
-//		return ms.GetPartition(clusterIdentity.Identity)
-//	}
-//	return ""
-//}
-
 func (ml *MemberList) GetActivatorMember(kind string) string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()
@@ -63,45 +54,54 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
 
-	memberSet := NewMemberSet(members)
-
-	//get active members
-	//(this bit means that we will never allow a member that failed a health check to join back in)
-	newMembers := memberSet.Except(ml.bannedMembers)
-
-	//nothing changed? exit
-	if newMembers.Equals(ml.members) {
+	topology, done, active, _, left := ml.getTopologyChanges(members)
+	if done {
 		return
 	}
 
-	left := ml.members.Except(newMembers)
-	joined := newMembers.Except(ml.members)
 	ml.bannedMembers = ml.bannedMembers.Union(left)
-	ml.members = newMembers
+	ml.members = active
 
 	//for any member that left, send a endpoint terminate event
 	for _, m := range left.Members() {
 		ml.TerminateMember(m)
 	}
 
-	newTopology := &ClusterTopology{
-		TopologyHash: newMembers.TopologyHash(),
-		Members:      newMembers.Members(),
-		Left:         left.Members(),
-		Joined:       joined.Members(),
-	}
-
 	//recalculate member strategies
-	ml.refreshMemberStrategies(newTopology)
+	ml.refreshMemberStrategies(topology)
 
-	ml.cluster.ActorSystem.EventStream.Publish(newTopology)
+	ml.cluster.ActorSystem.EventStream.Publish(topology)
 
 	plog.Info("Updated ClusterTopology",
 		log.Uint64("topologyHash", ml.members.TopologyHash()),
 		log.Int("membersByMemberId", len(members)),
-		log.Int("joined", len(newTopology.Joined)),
-		log.Int("left", len(newTopology.Left)),
+		log.Int("joined", len(topology.Joined)),
+		log.Int("left", len(topology.Left)),
 	)
+}
+
+func (ml *MemberList) getTopologyChanges(members []*Member) (topology *ClusterTopology, unchanged bool, active *MemberSet, joined *MemberSet, left *MemberSet) {
+	memberSet := NewMemberSet(members)
+
+	//get active members
+	//(this bit means that we will never allow a member that failed a health check to join back in)
+	active = memberSet.Except(ml.bannedMembers)
+
+	//nothing changed? exit
+	if active.Equals(ml.members) {
+		return nil, true, nil, nil, nil
+	}
+
+	left = ml.members.Except(active)
+	joined = active.Except(ml.members)
+
+	topology = &ClusterTopology{
+		TopologyHash: active.TopologyHash(),
+		Members:      active.Members(),
+		Left:         left.Members(),
+		Joined:       joined.Members(),
+	}
+	return topology, false, active, joined, left
 }
 
 func (ml *MemberList) TerminateMember(m *Member) {
