@@ -75,7 +75,7 @@ func startNode(port int64) *cluster.Cluster {
 		return &shared.TrackGrain{}
 	})
 
-	cluster.Start()
+	cluster.StartMember()
 	return cluster
 }
 

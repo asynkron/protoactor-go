@@ -173,7 +173,7 @@ func (m *Pong) XXX_DiscardUnknown() {
 var xxx_messageInfo_Pong proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*Start)(nil), "messages.Start")
+	proto.RegisterType((*Start)(nil), "messages.StartMember")
 	proto.RegisterType((*StartRemote)(nil), "messages.StartRemote")
 	proto.RegisterType((*Ping)(nil), "messages.Ping")
 	proto.RegisterType((*Pong)(nil), "messages.Pong")
@@ -290,7 +290,7 @@ func (this *Start) GoString() string {
 		return "nil"
 	}
 	s := make([]string, 0, 4)
-	s = append(s, "&messages.Start{")
+	s = append(s, "&messages.StartMember{")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -480,7 +480,7 @@ func (this *Start) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&Start{`,
+	s := strings.Join([]string{`&StartMember{`,
 		`}`,
 	}, "")
 	return s
@@ -544,10 +544,10 @@ func (m *Start) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: Start: wiretype end group for non-group")
+			return fmt.Errorf("proto: StartMember: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Start: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: StartMember: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

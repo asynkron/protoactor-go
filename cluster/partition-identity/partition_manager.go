@@ -85,7 +85,7 @@ func (pm *PartitionManager) onClusterTopology(tplg *clustering.ClusterTopologyEv
 			chash, _ := tplg.ChashByKind[kind]
 			// start partion of kind
 			if err := pk.start(chash); err != nil {
-				plog.Error("Start PartitionKind failed", log.String("kind", kind))
+				plog.Error("StartMember PartitionKind failed", log.String("kind", kind))
 			}
 			system.Root.Send(pk.identity.PID(), msg)
 			system.Root.Send(pk.activator.PID(), msg)

@@ -52,7 +52,7 @@ func GetCluster(actorSystem *actor.ActorSystem) *Cluster {
 	return c.(*Cluster)
 }
 
-func (c *Cluster) Start() {
+func (c *Cluster) StartMember() {
 	cfg := c.Config
 	c.Remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
 	for kind, props := range cfg.Kinds {
@@ -63,9 +63,8 @@ func (c *Cluster) Start() {
 	c.Remote.Start()
 
 	address := c.ActorSystem.Address()
-	plog.Info("Starting Proto.Actor cluster", log.String("address", address))
+	plog.Info("Starting Proto.Actor cluster member", log.String("address", address))
 
-	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
 	c.PidCache = NewPidCache()
 	c.MemberList = NewMemberList(c)
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)

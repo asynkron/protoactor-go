@@ -36,7 +36,7 @@ func main() {
 	clusterConfig := cluster.Configure("my-cluster", provider, config)
 	c := cluster.New(system, clusterConfig)
 	setupLogger(c)
-	c.Start()
+	c.StartMember()
 
 	callopts := cluster.NewGrainCallOptions(c).WithTimeout(5 * time.Second).WithRetry(5)
 	doRequests(c, callopts)

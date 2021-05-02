@@ -47,7 +47,7 @@ func main() {
 	provider, _ := consul.New()
 	clusterConfig := cluster.Configure("my-cluster", provider, remoteConfig, helloKind)
 	c := cluster.New(system, clusterConfig)
-	c.Start()
+	c.StartMember()
 
 	// this node knows about Hello kind
 	hello := shared.GetHelloGrainClient(c, "MyGrain")

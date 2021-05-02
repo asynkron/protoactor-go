@@ -35,7 +35,7 @@ func newPartitionKind(c *clustering.Cluster, kind string) *PartitionKind {
 	}
 }
 
-// Start ...
+// StartMember ...
 func (pm *PartitionKind) start(_chash chash.ConsistentHash) error {
 	pm.identity = newPartitionIdentityActor(pm.cluster, pm, _chash)
 	pm.activator = newPartitionPlacementActor(pm.cluster, pm, _chash)

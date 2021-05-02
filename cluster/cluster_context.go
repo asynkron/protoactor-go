@@ -52,7 +52,7 @@ namespace Proto.Cluster
                 i => Logger.LogInformation("Throttled {LogCount} TryRequestAsync logs", i)
             );
             _clock = new TaskClock(config.ActorRequestTimeout, TimeSpan.FromSeconds(1), killSwitch);
-            _clock.Start();
+            _clock.StartMember();
         }
 
         public async Task<T?> RequestAsync<T>(ClusterIdentity clusterIdentity, object message, ISenderContext context, CancellationToken ct)

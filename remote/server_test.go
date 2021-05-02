@@ -83,7 +83,7 @@ func TestRemote_RegisterViaStruct(t *testing.T) {
 //	_ = lis.Close()
 //
 //	AdvertisedHost := "192.0.2.1:1234"
-//	remote.Start()
+//	remote.StartMember()
 //
 //	suite.NotEmpty(system.ProcessRegistry.RemoteHandlers, "AddressResolver should be registered on server start")
 //	suite.Equal(AdvertisedHost, system.ProcessRegistry.Address, "WithAdvertisedHost should have higher priority")
