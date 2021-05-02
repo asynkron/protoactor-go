@@ -1,7 +1,15 @@
 package cluster
 
+import "fmt"
+
 type ClusterContext interface {
 	Request(identity string, kind string, message interface{}) (interface{}, error)
+}
+
+func NewDefaultClusterContext(cluster *Cluster) ClusterContext {
+	return &DefaultClusterContext{
+		cluster: cluster,
+	}
 }
 
 type DefaultClusterContext struct {
@@ -9,7 +17,7 @@ type DefaultClusterContext struct {
 }
 
 func (d DefaultClusterContext) Request(identity string, kind string, message interface{}) (interface{}, error) {
-	panic("implement me")
+	return nil, fmt.Errorf("foo")
 }
 
 /*

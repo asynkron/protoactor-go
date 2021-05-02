@@ -26,8 +26,11 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 		ActorSystem: actorSystem,
 		Config:      config,
 	}
-
 	actorSystem.Extensions.Register(c)
+
+	c.context = NewDefaultClusterContext(c)
+	c.PidCache = NewPidCache()
+	c.MemberList = NewMemberList(c)
 	c.subscribeToTopologyEvents()
 
 	return c
@@ -65,8 +68,6 @@ func (c *Cluster) StartMember() {
 	address := c.ActorSystem.Address()
 	plog.Info("Starting Proto.Actor cluster member", log.String("address", address))
 
-	c.PidCache = NewPidCache()
-	c.MemberList = NewMemberList(c)
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)
 
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
@@ -92,8 +93,6 @@ func (c *Cluster) StartClient() {
 	address := c.ActorSystem.Address()
 	plog.Info("Starting Proto.Actor cluster-client", log.String("address", address))
 
-	c.PidCache = NewPidCache()
-	c.MemberList = NewMemberList(c)
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), true)
 
 	if err := cfg.ClusterProvider.StartClient(c); err != nil {
