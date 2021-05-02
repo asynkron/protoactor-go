@@ -8,7 +8,7 @@ import (
 type IdentityLookup interface {
 	Get(clusterIdentity *ClusterIdentity) *actor.PID
 
-	RemovePid(pid *actor.PID)
+	RemovePid(clusterIdentity *ClusterIdentity, pid *actor.PID)
 
 	Setup(cluster *Cluster, kinds []string, isClient bool)
 

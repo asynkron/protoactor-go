@@ -46,7 +46,7 @@ func TestStartMember(t *testing.T) {
 	eventstream := c.ActorSystem.EventStream
 	ch := make(chan interface{}, 16)
 	eventstream.Subscribe(func(m interface{}) {
-		if _, ok := m.(*cluster.ClusterTopologyEventV2); ok {
+		if _, ok := m.(*cluster.ClusterTopology); ok {
 			ch <- m
 		}
 	})
@@ -59,7 +59,7 @@ func TestStartMember(t *testing.T) {
 		assert.FailNow("no member joined yet")
 
 	case m := <-ch:
-		msg := m.(*cluster.ClusterTopologyEventV2)
+		msg := m.(*cluster.ClusterTopology)
 		// member joined
 		members := []*cluster.Member{
 			{
@@ -71,11 +71,11 @@ func TestStartMember(t *testing.T) {
 		}
 
 		expected := &cluster.ClusterTopology{
-			Members: members,
-			Joined:  members,
-			EventId: msg.ClusterTopology.EventId,
+			Members:      members,
+			Joined:       members,
+			TopologyHash: msg.TopologyHash,
 		}
-		assert.Equal(expected, msg.ClusterTopology)
+		assert.Equal(expected, msg)
 	}
 }
 
@@ -122,55 +122,6 @@ func TestRegisterMultipleMembers(t *testing.T) {
 		assert.Truef(found, "Member port not found - ID:%v Address: %v:%v",
 			entry.Service.ID, entry.Service.Address, entry.Service.Port)
 	}
-}
-
-func TestUpdateMemberState(t *testing.T) {
-	if testing.Short() {
-		return
-	}
-	assert := assert.New(t)
-
-	p, _ := New()
-	defer p.Shutdown(true)
-
-	c := newClusterForTest("mycluster3", "127.0.0.1:8000", p)
-	err := p.StartMember(c)
-	assert.NoError(err)
-
-	state := cluster.ClusterState{[]string{"yes"}}
-	err = p.UpdateClusterState(state)
-	assert.NoError(err)
-}
-
-func TestUpdateMemberState_DoesNotReregisterAfterShutdown(t *testing.T) {
-	if testing.Short() {
-		return
-	}
-	assert := assert.New(t)
-
-	p, _ := New()
-	c := newClusterForTest("mycluster4", "127.0.0.1:8001", p)
-	err := p.StartMember(c)
-	assert.NoError(err)
-	t.Cleanup(func() {
-		p.Shutdown(true)
-	})
-
-	found, _ := findService(t, p)
-	assert.True(found, "service was not registered in consul")
-
-	state := cluster.ClusterState{[]string{"yes"}}
-	err = p.UpdateClusterState(state)
-	assert.NoError(err)
-
-	err = p.Shutdown(true)
-	assert.NoError(err)
-
-	err = p.UpdateClusterState(state)
-	assert.Equal(ProviderShuttingDownError, err)
-
-	found, status := findService(t, p)
-	assert.Falsef(found, "service was re-registered in consul after shutdown (status: %s)", status)
 }
 
 func TestUpdateTTL_DoesNotReregisterAfterShutdown(t *testing.T) {

@@ -6,10 +6,12 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/extensions"
+	"github.com/google/uuid"
 )
 
 //goland:noinspection GoNameStartsWithPackageName
 type ActorSystem struct {
+	Id              string
 	ProcessRegistry *ProcessRegistryValue
 	Root            *RootContext
 	EventStream     *eventstream.EventStream
@@ -48,6 +50,7 @@ func NewActorSystem() *ActorSystem {
 
 func NewActorSystemWithConfig(config Config) *ActorSystem {
 	system := &ActorSystem{}
+	system.Id = uuid.New().String()
 	system.Config = &config
 	system.ProcessRegistry = NewProcessRegistry(system)
 	system.Root = NewRootContext(system, EmptyMessageHeader)

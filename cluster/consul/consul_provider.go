@@ -241,7 +241,7 @@ func (p *Provider) notifyStatuses() {
 	// passing events one by one, we can't know if someone left or just haven't changed status for a long time
 
 	// publish the current cluster topology onto the event stream
-	p.cluster.MemberList.UpdateClusterTopology(members, meta.LastIndex)
+	p.cluster.MemberList.UpdateClusterTopology(members)
 	// res := cluster.TopologyEvent(members)
 	// p.cluster.ActorSystem.EventStream.Publish(res)
 }

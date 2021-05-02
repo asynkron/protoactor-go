@@ -2,8 +2,6 @@ package etcd
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net"
 	"strconv"
@@ -133,19 +131,6 @@ func (p *Provider) Shutdown(graceful bool) error {
 		p.cancelWatch = nil
 	}
 	return nil
-}
-
-func (p *Provider) UpdateClusterState(state cluster.ClusterState) error {
-	if p.shutdown {
-		return fmt.Errorf("shutdowned")
-	}
-	data, err := json.Marshal(state)
-	if err != nil {
-		return err
-	}
-	value := base64.StdEncoding.EncodeToString(data)
-	p.self.SetMeta("state", value)
-	return p.registerService()
 }
 
 func (p *Provider) keepAliveForever(ctx context.Context) error {
@@ -385,8 +370,8 @@ func (p *Provider) updateNodesWithChanges(changes map[string]*Node) {
 	}
 }
 
-func (p *Provider) createClusterTopologyEvent() cluster.TopologyEvent {
-	res := make(cluster.TopologyEvent, len(p.members))
+func (p *Provider) createClusterTopologyEvent() []*cluster.Member {
+	res := make([]*cluster.Member, len(p.members))
 	i := 0
 	for _, m := range p.members {
 		res[i] = m.MemberStatus()
@@ -401,7 +386,7 @@ func (p *Provider) publishClusterTopologyEvent() {
 	// for _, m := range res {
 	// 	plog.Info("\t", log.Object("member", m))
 	// }
-	p.cluster.MemberList.UpdateClusterTopology(res, p.revision)
+	p.cluster.MemberList.UpdateClusterTopology(res)
 	// p.cluster.ActorSystem.EventStream.Publish(res)
 }
 

@@ -50,7 +50,7 @@ func (q *priorityQueue) Push(item interface{}) {
 		if itemPriority < 0 {
 			itemPriority = 0
 		}
-		if itemPriority > priorityLevels - 1 {
+		if itemPriority > priorityLevels-1 {
 			itemPriority = priorityLevels - 1
 		}
 	}

@@ -46,7 +46,6 @@ type AutoManagedProvider struct {
 	clusterTTLError       error
 	clusterMonitorError   error
 	cluster               *cluster.Cluster
-	lastEventId           uint64
 }
 
 // New creates a AutoManagedProvider that connects locally
@@ -175,9 +174,7 @@ func (p *AutoManagedProvider) UpdateTTL() {
 			return context.JSON(http.StatusOK, p.getCurrentNode())
 		})
 	}
-
 	go func() {
-
 		activeProviderRunningMutex.Lock()
 		p.activeProviderRunning = true
 		activeProviderRunningMutex.Unlock()
@@ -189,11 +186,6 @@ func (p *AutoManagedProvider) UpdateTTL() {
 		p.activeProviderRunning = false
 		activeProviderRunningMutex.Unlock()
 	}()
-}
-
-func (p *AutoManagedProvider) UpdateClusterState(state cluster.ClusterState) error {
-	plog.Error("not implemented yet")
-	return nil
 }
 
 // MonitorMemberStatusChanges creates a go routine that continuously checks other members
@@ -246,7 +238,6 @@ func (p *AutoManagedProvider) monitorStatuses() {
 		time.Sleep(p.refreshTTL)
 		return
 	}
-
 	// we should probably check if the cluster needs to be updated..
 	var members []*cluster.Member
 	var newNodes []*NodeModel
@@ -267,25 +258,20 @@ func (p *AutoManagedProvider) monitorStatuses() {
 	p.knownNodes = newNodes
 	p.clusterMonitorError = nil
 	// publish the current cluster topology onto the event stream
-	p.lastEventId++
-	p.cluster.MemberList.UpdateClusterTopology(members, p.lastEventId)
+	p.cluster.MemberList.UpdateClusterTopology(members)
 	time.Sleep(p.refreshTTL)
-
 }
 
 // checkNodes pings all the nodes and returns the new cluster topology
 func (p *AutoManagedProvider) checkNodes() ([]*NodeModel, error) {
-
 	allNodes := make([]*NodeModel, len(p.hosts))
 	g, _ := errgroup.WithContext(context.Background())
 
 	for indice, nodeHost := range p.hosts {
-
 		idx, el := indice, nodeHost // https://golang.org/doc/faq#closures_and_goroutines
 
 		// Calling go funcs to execute the node check
 		g.Go(func() error {
-
 			url := fmt.Sprintf("http://%s/_health", el)
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
@@ -347,7 +333,6 @@ func (p *AutoManagedProvider) startActiveProvider() {
 	activeProviderRunningMutex.Unlock()
 
 	if !running {
-
 		if !p.activeProviderTesting {
 			p.activeProvider = echo.New()
 			p.activeProvider.HideBanner = true
@@ -359,7 +344,6 @@ func (p *AutoManagedProvider) startActiveProvider() {
 		appURI := fmt.Sprintf("0.0.0.0:%d", p.autoManagePort)
 
 		go func() {
-
 			activeProviderRunningMutex.Lock()
 			p.activeProviderRunning = true
 			activeProviderRunningMutex.Unlock()

@@ -124,3 +124,13 @@ func (ml *MemberList) refreshMemberStrategies(tplg *ClusterTopology) {
 	ml.memberStrategyByKind = strategies
 	ml.chashByKind = chashes
 }
+
+func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
+	for _, m := range ml.members.members {
+		if !includeSelf && m.Id == ml.cluster.ActorSystem.Id {
+			continue
+		}
+
+		addr := m.Address()
+	}
+}

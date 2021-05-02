@@ -20,7 +20,7 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 	}
 	port, _ := strconv.Atoi(_port)
 	remoteConfig := remote.Configure(host, port)
-	config := cluster.Configure(name, cp, remoteConfig)
+	config := cluster.Configure(name, cp, nil, remoteConfig)
 
 	system := actor.NewActorSystem()
 	c := cluster.New(system, config)
@@ -43,7 +43,7 @@ func TestStartMember(t *testing.T) {
 	eventstream := c.ActorSystem.EventStream
 	ch := make(chan interface{}, 16)
 	eventstream.Subscribe(func(m interface{}) {
-		if _, ok := m.(*cluster.ClusterTopologyEventV2); ok {
+		if _, ok := m.(*cluster.ClusterTopology); ok {
 			ch <- m
 		}
 	})
@@ -57,7 +57,7 @@ func TestStartMember(t *testing.T) {
 
 	case m := <-ch:
 		// member joined
-		msg := m.(*cluster.ClusterTopologyEventV2)
+		msg := m.(*cluster.ClusterTopology)
 		members := []*cluster.Member{
 			{
 				Id:    "test_etcd_provider@127.0.0.1:8000",
@@ -68,11 +68,11 @@ func TestStartMember(t *testing.T) {
 		}
 
 		expected := &cluster.ClusterTopology{
-			Members: members,
-			Joined:  members,
-			EventId: msg.ClusterTopology.EventId,
+			Members:      members,
+			Joined:       members,
+			TopologyHash: msg.TopologyHash,
 		}
-		assert.Equal(expected, msg.ClusterTopology)
+		assert.Equal(expected, msg)
 
 	}
 }
@@ -126,45 +126,45 @@ func TestStartMember_Multiple(t *testing.T) {
 	}
 }
 
-func TestUpdateMemberState(t *testing.T) {
-	if testing.Short() {
-		return
-	}
-	assert := assert.New(t)
-
-	p, _ := New()
-	defer p.Shutdown(true)
-
-	c := newClusterForTest("mycluster3", "127.0.0.1:8000", p)
-	err := p.StartMember(c)
-	assert.NoError(err)
-
-	state := cluster.ClusterState{[]string{"yes"}}
-	err = p.UpdateClusterState(state)
-	assert.NoError(err)
-}
-
-func TestUpdateMemberState_DoesNotReregisterAfterShutdown(t *testing.T) {
-	if testing.Short() {
-		return
-	}
-	assert := assert.New(t)
-
-	p, _ := New()
-	c := newClusterForTest("mycluster4", "127.0.0.1:8001", p)
-	err := p.StartMember(c)
-	assert.NoError(err)
-	t.Cleanup(func() {
-		p.Shutdown(true)
-	})
-
-	state := cluster.ClusterState{[]string{"yes"}}
-	err = p.UpdateClusterState(state)
-	assert.NoError(err)
-
-	err = p.Shutdown(true)
-	assert.NoError(err)
-
-	err = p.UpdateClusterState(state)
-	assert.Error(err)
-}
+//func TestUpdateMemberState(t *testing.T) {
+//	if testing.Short() {
+//		return
+//	}
+//	assert := assert.New(t)
+//
+//	p, _ := New()
+//	defer p.Shutdown(true)
+//
+//	c := newClusterForTest("mycluster3", "127.0.0.1:8000", p)
+//	err := p.StartMember(c)
+//	assert.NoError(err)
+//
+//	state := cluster.ClusterState{[]string{"yes"}}
+//	err = p.UpdateClusterState(state)
+//	assert.NoError(err)
+//}
+//
+//func TestUpdateMemberState_DoesNotReregisterAfterShutdown(t *testing.T) {
+//	if testing.Short() {
+//		return
+//	}
+//	assert := assert.New(t)
+//
+//	p, _ := New()
+//	c := newClusterForTest("mycluster4", "127.0.0.1:8001", p)
+//	err := p.StartMember(c)
+//	assert.NoError(err)
+//	t.Cleanup(func() {
+//		p.Shutdown(true)
+//	})
+//
+//	state := cluster.ClusterState{[]string{"yes"}}
+//	err = p.UpdateClusterState(state)
+//	assert.NoError(err)
+//
+//	err = p.Shutdown(true)
+//	assert.NoError(err)
+//
+//	err = p.UpdateClusterState(state)
+//	assert.Error(err)
+//}

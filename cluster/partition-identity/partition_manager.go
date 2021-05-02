@@ -21,106 +21,50 @@ type PartitionManager struct {
 	deadletterSub *eventstream.Subscription
 }
 
-func newPartitionManager(c *clustering.Cluster, kinds ...clustering.Kind) *PartitionManager {
+func newPartitionManager(c *clustering.Cluster) *PartitionManager {
 	return &PartitionManager{
 		cluster: c,
 	}
 }
 
-// Start ...
 func (pm *PartitionManager) Start() {
 	system := pm.cluster.ActorSystem
+
+	identityProps := actor.PropsFromProducer(func() actor.Actor { return newIdentityActor(pm.cluster, pm) })
+	system.Root.SpawnNamed(identityProps, ActorNameIdentity)
+
+	activatorProps := actor.PropsFromProducer(func() actor.Actor { return newPlacementActor(pm.cluster, pm) })
+	system.Root.SpawnNamed(activatorProps, ActorNamePlacement)
+
 	pm.topologySub = system.EventStream.
 		Subscribe(func(ev interface{}) {
-			pm.onClusterTopology(ev.(*clustering.ClusterTopologyEventV2))
-		}).
-		WithPredicate(func(m interface{}) bool {
-			_, ok := m.(*clustering.ClusterTopologyEventV2)
-			return ok
+			if topology, ok := ev.(*clustering.ClusterTopology); ok {
+				pm.onClusterTopology(topology)
+			}
 		})
 }
 
-// Stop ...
 func (pm *PartitionManager) Stop() {
 	system := pm.cluster.ActorSystem
 	system.EventStream.Unsubscribe(pm.topologySub)
-	pm.kinds.Range(func(k, v interface{}) bool {
-		kind := k.(string)
-		pk := v.(*PartitionKind)
-		plog.Info("Stopping partition", log.String("kind", kind), log.String("pk", pk.actorNames.Identity))
-		pk.stop()
-		return true
-	})
 	plog.Info("Stopped PartitionManager")
 }
 
-// PidOfIdentityActor ...
-func (pm *PartitionManager) PidOfIdentityActor(kind, addr string) *actor.PID {
-	v, ok := pm.kinds.Load(kind)
-	if !ok {
-		return nil
-	}
-	pk := v.(*PartitionKind)
-	return pk.PidOfIdentityActor(addr)
+func (pm *PartitionManager) PidOfIdentityActor(addr string) *actor.PID {
+	return actor.NewPID(addr, ActorNameIdentity)
 }
 
-// // PidOfPlacementActor ...
-// func (pm *PartitionManager) PidOfPlacementActor(kind, addr string) *actor.PID {
-// 	return &actor.PID{Address: addr, Id: ActorNamePlacement}
-// }
-
-func (pm *PartitionManager) onClusterTopology(tplg *clustering.ClusterTopologyEventV2) {
-	plog.Debug("onClusterTopology", log.Uint64("eventId", tplg.EventId))
-	system := pm.cluster.ActorSystem
-	kindGroups := pm.groupClusterTopologyByKind(tplg.ClusterTopology)
-	for kind, msg := range kindGroups {
-		if v, ok := pm.kinds.Load(kind); ok {
-			pk := v.(*PartitionKind)
-			system.Root.Send(pk.identity.PID(), msg)
-			system.Root.Send(pk.activator.PID(), msg)
-		} else {
-			pk := newPartitionKind(pm.cluster, kind)
-			v, _ = pm.kinds.LoadOrStore(kind, pk)
-			pk = v.(*PartitionKind)
-			chash, _ := tplg.ChashByKind[kind]
-			// start partion of kind
-			if err := pk.start(chash); err != nil {
-				plog.Error("StartMember PartitionKind failed", log.String("kind", kind))
-			}
-			system.Root.Send(pk.identity.PID(), msg)
-			system.Root.Send(pk.activator.PID(), msg)
-		}
-	}
-
-	pm.kinds.Range(func(k, v interface{}) bool {
-		kind := k.(string)
-		if _, ok := kindGroups[kind]; !ok {
-			plog.Debug("onClusterTopology", log.String("kind", kind), log.String("status", "left"))
-			pk := v.(*PartitionKind)
-			pm.kinds.Delete(kind)
-			pk.stop()
-		}
-		return true
-	})
+func (pm *PartitionManager) PidOfActivatorActor(addr string) *actor.PID {
+	return actor.NewPID(addr, ActorNamePlacement)
 }
 
-func (pm *PartitionManager) groupClusterTopologyByKind(tplg *clustering.ClusterTopology) map[string]*clustering.ClusterTopology {
-	groups := map[string]*clustering.ClusterTopology{}
-	for kind, members := range clustering.GroupMembersByKind(tplg.Members) {
-		groups[kind] = &clustering.ClusterTopology{Members: members, EventId: tplg.EventId}
-	}
-	return groups
+func (pm *PartitionManager) onClusterTopology(tplg *clustering.ClusterTopology) {
+	plog.Debug("onClusterTopology", log.Uint64("eventId", tplg.TopologyHash))
+	//	system := pm.cluster.ActorSystem
+	//TODO: update identity owner lookup
+
 }
 
-func (pm *PartitionManager) onDeadLetterEvent(ev *actor.DeadLetterEvent) {
-	return
-	// if ev.Sender == nil {
-	// 	return
-	// }
-	// switch msg := ev.Message.(type) {
-	// case *GrainRequest:
-	// 	_ = msg
-	// 	system := pm.cluster.ActorSystem
-	// 	system.Root.Send(ev.Sender, &GrainErrorResponse{Err: "DeadLetter"})
-	// }
+func (pm *PartitionManager) Get(identity *clustering.ClusterIdentity) *actor.PID {
+	return nil
 }
