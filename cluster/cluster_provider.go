@@ -1,7 +1,5 @@
 package cluster
 
-type TopologyEvent []*Member
-
 //type ClusterState struct {
 //	BannedMembers []string `json:"bannedMembers"`
 //}

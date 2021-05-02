@@ -43,7 +43,7 @@ func (p *inmemoryProvider) publishClusterTopologyEvent() {
 		members = append(members, m)
 	}
 
-	res := TopologyEvent(members)
+	res := members
 
 	p.cluster.MemberList.UpdateClusterTopology(res)
 	// p.cluster.ActorSystem.EventStream.Publish(res)
