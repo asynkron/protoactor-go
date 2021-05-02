@@ -176,19 +176,9 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 	case *actor.Started:
 		state.initialize()
 	case *actor.Stopped:
-		if state.stream != nil {
-			err := state.stream.CloseSend()
-			if err != nil {
-				plog.Error("EndpointWriter error when closing the stream", log.Error(err))
-			}
-		}
+		state.closeClientConn()
 	case *actor.Restarting:
-		if state.stream != nil {
-			err := state.stream.CloseSend()
-			if err != nil {
-				plog.Error("EndpointWriter error when closing the stream", log.Error(err))
-			}
-		}
+		state.closeClientConn()
 	case *EndpointTerminatedEvent:
 		ctx.Stop(ctx.Self())
 	case []interface{}:
@@ -197,5 +187,20 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 		// ignore
 	default:
 		plog.Error("EndpointWriter received unknown message", log.String("address", state.address), log.TypeOf("type", msg), log.Message(msg))
+	}
+}
+
+func (state *endpointWriter) closeClientConn() {
+	if state.stream != nil {
+		err := state.stream.CloseSend()
+		if err != nil {
+			plog.Error("EndpointWriter error when closing the stream", log.Error(err))
+		}
+	}
+	if state.conn != nil {
+		err := state.conn.Close()
+		if err != nil {
+			plog.Error("EndpointWriter error when closing the client conn", log.Error(err))
+		}
 	}
 }
