@@ -24,7 +24,7 @@ func _newClusterForTest(name string) *Cluster {
 func TestPublishRaceCondition(t *testing.T) {
 	actorSystem := actor.NewActorSystem()
 	c := New(actorSystem, Configure("mycluster", nil, remote.Configure("127.0.0.1", 0)))
-	setupMemberList(c)
+	NewMemberList(c)
 	rounds := 1000
 
 	var wg sync.WaitGroup
@@ -68,7 +68,7 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 
 func TestMemberList_UpdateClusterToplogy(t *testing.T) {
 	c := _newClusterForTest("test-UpdateClusterToplogy")
-	obj := setupMemberList(c)
+	obj := NewMemberList(c)
 	dumpMembers := func(list []*Member) {
 		t.Logf("membersByMemberId=%d", len(list))
 		for _, m := range list {
@@ -137,7 +137,7 @@ func _newTopologyEventForTest(membersCount int, kinds ...string) TopologyEvent {
 func TestMemberList_getPartitionMember(t *testing.T) {
 	actorSystem := actor.NewActorSystem()
 	c := New(actorSystem, Configure("mycluster", nil, remote.Configure("127.0.0.1", 0)))
-	obj := setupMemberList(c)
+	obj := NewMemberList(c)
 
 	for _, v := range []int{1, 2, 10, 100, 1000} {
 		members := _newTopologyEventForTest(v)
@@ -162,7 +162,7 @@ func BenchmarkMemberList_getPartitionMemberV2(b *testing.B) {
 	SetLogLevel(log.ErrorLevel)
 	actorSystem := actor.NewActorSystem()
 	c := New(actorSystem, Configure("mycluster", nil, remote.Configure("127.0.0.1", 0)))
-	obj := setupMemberList(c)
+	obj := NewMemberList(c)
 	for i, v := range []int{1, 2, 3, 5, 10, 100, 1000, 2000} {
 		members := _newTopologyEventForTest(v)
 		obj.UpdateClusterTopology(members, uint64(i+1))
@@ -186,7 +186,7 @@ func TestMemberList_getPartitionMemberV2(t *testing.T) {
 
 	tplg := _newTopologyEventForTest(10)
 	c := _newClusterForTest("test-memberlist")
-	obj := setupMemberList(c)
+	obj := NewMemberList(c)
 	obj.UpdateClusterTopology(tplg, 1)
 
 	assert.Contains(obj.memberStrategyByKind, "kind")
@@ -205,7 +205,7 @@ func TestMemberList_newMemberStrategies(t *testing.T) {
 	assert := assert.New(t)
 
 	c := _newClusterForTest("test-memberslist")
-	obj := setupMemberList(c)
+	obj := NewMemberList(c)
 	for i, v := range []int{1, 10, 100, 1000} {
 		members := _newTopologyEventForTest(v, "kind1", "kind2")
 		obj.UpdateClusterTopology(members, uint64(i+1))

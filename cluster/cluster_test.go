@@ -79,7 +79,7 @@ func TestCluster_Call(t *testing.T) {
 	c := New(system, Configure("mycluster", nil, remote.Configure("nonhost", 0)))
 	c.partitionValue = partition_identity.setupPartition(c, []string{"kind"})
 	c.pidCache = setupPidCache(c.ActorSystem)
-	c.MemberList = setupMemberList(c)
+	c.MemberList = NewMemberList(c)
 	c.Config.RequestTimeoutTime = 1 * time.Second
 	c.partitionManager = partition_identity.newPartitionManager(c)
 	c.partitionManager.Start()

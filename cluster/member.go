@@ -4,6 +4,7 @@ import (
 	murmur32 "github.com/spaolacci/murmur3"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 // Address return a "host:port".
@@ -75,4 +76,37 @@ func MemberIds(members []*Member) []string {
 		ids = append(ids, m.Id)
 	}
 	return ids
+}
+
+func GroupMembersByKind(members []*Member) map[string][]*Member {
+	groups := map[string][]*Member{}
+	for _, member := range members {
+		for _, kind := range member.Kinds {
+			if list, ok := groups[kind]; ok {
+				groups[kind] = append(list, member)
+			} else {
+				groups[kind] = []*Member{member}
+			}
+		}
+	}
+	return groups
+}
+
+func SortMembers(members []*Member) {
+	sort.Slice(members, func(i, j int) bool {
+		addrI := members[i].Id
+		addrJ := members[j].Id
+		return strings.Compare(addrI, addrJ) > 0
+	})
+}
+
+func buildSortedMembers(m map[string]*Member) []*Member {
+	list := make([]*Member, len(m))
+	i := 0
+	for _, member := range m {
+		list[i] = member
+		i++
+	}
+	SortMembers(list)
+	return list
 }

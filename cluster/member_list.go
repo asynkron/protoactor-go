@@ -1,8 +1,6 @@
 package cluster
 
 import (
-	"sort"
-	"strings"
 	"sync"
 
 	"github.com/AsynkronIT/protoactor-go/cluster/chash"
@@ -24,10 +22,6 @@ type MemberList struct {
 }
 
 func NewMemberList(cluster *Cluster) *MemberList {
-	return setupMemberList(cluster)
-}
-
-func setupMemberList(cluster *Cluster) *MemberList {
 	memberList := &MemberList{
 		cluster:              cluster,
 		membersByMemberId:    make(map[string]*Member),
@@ -37,14 +31,14 @@ func setupMemberList(cluster *Cluster) *MemberList {
 	return memberList
 }
 
-func (ml *MemberList) getPartitionMemberV2(clusterIdentity *ClusterIdentity) string {
-	ml.mutex.RLock()
-	defer ml.mutex.RUnlock()
-	if ms, ok := ml.memberStrategyByKind[clusterIdentity.Kind]; ok {
-		return ms.GetPartition(clusterIdentity.Identity)
-	}
-	return ""
-}
+//func (ml *MemberList) getPartitionMemberV2(clusterIdentity *ClusterIdentity) string {
+//	ml.mutex.RLock()
+//	defer ml.mutex.RUnlock()
+//	if ms, ok := ml.memberStrategyByKind[clusterIdentity.Kind]; ok {
+//		return ms.GetPartition(clusterIdentity.Identity)
+//	}
+//	return ""
+//}
 
 func (ml *MemberList) GetActivatorMember(kind string) string {
 	ml.mutex.RLock()
@@ -83,10 +77,10 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 	ml.topologyHash = newTopologyHash
 
 	//membersByMemberId that left
-	left := ml.GetLeftMembers(activeMembers)
+	left := ml.getLeftMembers(activeMembers)
 
 	//membersByMemberId that joined
-	joined := ml.GetJoinedMembers(activeMembers)
+	joined := ml.getJoinedMembers(activeMembers)
 
 	//union membersByMemberId that left into bannedMemberIds set
 	AddMembersToSet(ml.bannedMemberIds, left)
@@ -106,6 +100,9 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 		Joined:       joined,
 	}
 
+	//recalculate member strategies
+	ml.refreshMemberStrategies(newTopology)
+
 	ml.cluster.ActorSystem.EventStream.Publish(newTopology)
 
 	plog.Info("Updated ClusterTopology",
@@ -116,7 +113,7 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 	)
 }
 
-func (ml *MemberList) GetJoinedMembers(activeMembers []*Member) []*Member {
+func (ml *MemberList) getJoinedMembers(activeMembers []*Member) []*Member {
 	joinedMembers := make([]*Member, 0)
 	joinedMemberIds := make(map[string]bool)
 	for _, m := range activeMembers {
@@ -129,7 +126,7 @@ func (ml *MemberList) GetJoinedMembers(activeMembers []*Member) []*Member {
 	return joinedMembers
 }
 
-func (ml *MemberList) GetLeftMembers(activeMembers []*Member) []*Member {
+func (ml *MemberList) getLeftMembers(activeMembers []*Member) []*Member {
 	activeMemberIds := MembersToSet(activeMembers)
 	leftMembers := make([]*Member, 0)
 	leftMemberIds := make(map[string]bool)
@@ -152,47 +149,14 @@ func (ml *MemberList) TerminateMember(m *Member) {
 	ml.cluster.ActorSystem.EventStream.Publish(endpointTerminated)
 }
 
-//func (ml *MemberList) onMembersUpdated(tplg *ClusterTopology) {
-//	groups := GroupMembersByKind(tplg.Members)
-//	strategies := map[string]MemberStrategy{}
-//	chashes := map[string]chash.ConsistentHash{}
-//	for kind, membersByMemberId := range groups {
-//		strategies[kind] = newDefaultMemberStrategyV2(kind, membersByMemberId)
-//		chashes[kind] = NewRendezvousV2(membersByMemberId)
-//	}
-//	ml.memberStrategyByKind = strategies
-//	ml.chashByKind = chashes
-//}
-
-func (ml *MemberList) buildSortedMembers(m map[string]*Member) []*Member {
-	list := make([]*Member, len(m))
-	i := 0
-	for _, member := range m {
-		list[i] = member
-		i++
+func (ml *MemberList) refreshMemberStrategies(tplg *ClusterTopology) {
+	groups := GroupMembersByKind(tplg.Members)
+	strategies := map[string]MemberStrategy{}
+	chashes := map[string]chash.ConsistentHash{}
+	for kind, membersByMemberId := range groups {
+		strategies[kind] = newDefaultMemberStrategyV2(kind, membersByMemberId)
+		chashes[kind] = NewRendezvousV2(membersByMemberId)
 	}
-	sortMembers(list)
-	return list
-}
-
-func sortMembers(members []*Member) {
-	sort.Slice(members, func(i, j int) bool {
-		addrI := members[i].Address()
-		addrJ := members[j].Address()
-		return strings.Compare(addrI, addrJ) > 0
-	})
-}
-
-func GroupMembersByKind(members []*Member) map[string][]*Member {
-	groups := map[string][]*Member{}
-	for _, member := range members {
-		for _, kind := range member.Kinds {
-			if list, ok := groups[kind]; ok {
-				groups[kind] = append(list, member)
-			} else {
-				groups[kind] = []*Member{member}
-			}
-		}
-	}
-	return groups
+	ml.memberStrategyByKind = strategies
+	ml.chashByKind = chashes
 }

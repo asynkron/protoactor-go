@@ -73,7 +73,7 @@ func (c *Cluster) Start() {
 
 	// for each known kind, spin up a partition-kind actor to handle all requests for that kind
 	c.PidCache = setupPidCache(c.ActorSystem)
-	c.MemberList = setupMemberList(c)
+	c.MemberList = NewMemberList(c)
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)
 
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
@@ -100,7 +100,7 @@ func (c *Cluster) StartClient() {
 	plog.Info("Starting Proto.Actor cluster-client", log.String("address", address))
 
 	c.PidCache = setupPidCache(c.ActorSystem)
-	c.MemberList = setupMemberList(c)
+	c.MemberList = NewMemberList(c)
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), true)
 
 	if err := cfg.ClusterProvider.StartClient(c); err != nil {
