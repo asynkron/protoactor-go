@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"sync"
 
 	"github.com/AsynkronIT/protoactor-go/cluster/chash"
@@ -131,6 +132,7 @@ func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 			continue
 		}
 
-		//	addr := m.Address()
+		pid := actor.NewPID(m.Address(), "eventstream")
+		ml.cluster.ActorSystem.Root.Send(pid, message)
 	}
 }
