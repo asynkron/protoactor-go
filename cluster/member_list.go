@@ -131,6 +131,6 @@ func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 			continue
 		}
 
-		addr := m.Address()
+		//	addr := m.Address()
 	}
 }

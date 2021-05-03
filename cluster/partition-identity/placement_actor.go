@@ -41,6 +41,25 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 
 }
 
-func (p *placementActor) onTerminated(msg *actor.Terminated, ctx actor.Context) {
+func (p *placementActor) pidToMeta(pid *actor.PID) (bool, *string, *GrainMeta) {
+	for k, v := range p.actors {
+		if v.PID == pid {
+			return true, &k, &v
+		}
+	}
+	return false, nil, nil
+}
 
+func (p *placementActor) onTerminated(msg *actor.Terminated, ctx actor.Context) {
+	found, key, meta := p.pidToMeta(msg.Who)
+
+	activationTerminated := &clustering.ActivationTerminated{
+		Pid:             msg.Who,
+		ClusterIdentity: meta.ID,
+	}
+	p.partitionManager.cluster.MemberList.BroadcastEvent(activationTerminated, true)
+
+	if found {
+		delete(p.actors, *key)
+	}
 }
