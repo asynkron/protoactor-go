@@ -19,6 +19,8 @@ type process struct {
 	actorSystem *actor.ActorSystem
 }
 
+var _ actor.Process = &process{}
+
 func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
 	_, msg, _ := actor.UnwrapEnvelope(message)
 	if _, ok := msg.(ManagementMessage); !ok {

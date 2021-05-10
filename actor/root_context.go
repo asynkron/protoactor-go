@@ -10,6 +10,10 @@ type RootContext struct {
 	guardianStrategy SupervisorStrategy
 }
 
+var _ SenderContext = &RootContext{}
+var _ SpawnerContext = &RootContext{}
+var _ stopperPart = &RootContext{}
+
 func NewRootContext(actorSystem *ActorSystem, header map[string]string, middleware ...SenderMiddleware) *RootContext {
 	if header == nil {
 		header = make(map[string]string)

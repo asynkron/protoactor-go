@@ -97,6 +97,12 @@ type actorContext struct {
 	state             int32
 }
 
+var _ SenderContext = &actorContext{}
+var _ ReceiverContext = &actorContext{}
+var _ SpawnerContext = &actorContext{}
+var _ basePart = &actorContext{}
+var _ stopperPart = &actorContext{}
+
 func newActorContext(actorSystem *ActorSystem, props *Props, parent *PID) *actorContext {
 	this := &actorContext{
 		parent:      parent,
