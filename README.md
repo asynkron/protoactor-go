@@ -281,24 +281,21 @@ func NewChildActor() actor.Actor {
 }
 
 func main() {
-    decider := func(reason interface{}) actor.Directive {
-        fmt.Println("handling failure for child")
-        return actor.StopDirective
-    }
-    supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
+	decider := func(reason interface{}) actor.Directive {
+		log.Printf("handling failure for child. reason:%v", reason)
 
-    context := actor.EmptyRootContext
-    props := actor.
-        FromProducer(NewParentActor).
-        WithSupervisor(supervisor)
+		// return actor.StopDirective
+		return actor.RestartDirective
+	}
+	supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
 
-    pid, err := context.Spawn(props)
-    if err != nil {
-        panic(err)
-    }
-    context.Send(pid, Hello{Who: "Roger"})
+	ctx := actor.NewActorSystem().Root
+	props := actor.PropsFromProducer(NewParentActor).WithSupervisor(supervisor)
 
-    console.ReadLine()
+	pid := ctx.Spawn(props)
+	ctx.Send(pid, Hello{Who: "Roger"})
+
+	console.ReadLine()
 }
 ```
 
