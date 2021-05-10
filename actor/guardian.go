@@ -49,6 +49,8 @@ type guardianProcess struct {
 	strategy  SupervisorStrategy
 }
 
+var _ Process = &guardianProcess{}
+
 func (g *guardianProcess) SendUserMessage(pid *PID, message interface{}) {
 	panic(errors.New("guardian actor cannot receive any user messages"))
 }

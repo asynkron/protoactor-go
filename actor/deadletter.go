@@ -9,6 +9,8 @@ type deadLetterProcess struct {
 	actorSystem *ActorSystem
 }
 
+var _ Process = &deadLetterProcess{}
+
 func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 
 	dp := &deadLetterProcess{

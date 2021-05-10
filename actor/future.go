@@ -124,6 +124,8 @@ type futureProcess struct {
 	Future
 }
 
+var _ Process = &futureProcess{}
+
 func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}) {
 	_, msg, _ := UnwrapEnvelope(message)
 	if _, ok := msg.(*DeadLetterResponse); ok {

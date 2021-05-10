@@ -11,6 +11,8 @@ type ActorProcess struct {
 	dead    int32
 }
 
+var _ Process = &ActorProcess{}
+
 func NewActorProcess(mailbox mailbox.Mailbox) *ActorProcess {
 	return &ActorProcess{mailbox: mailbox}
 }
