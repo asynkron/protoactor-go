@@ -1,0 +1,9 @@
+pull_request_rules:
+  - name: Automatic merge dependabot
+    conditions:
+      - author~=^dependabot(|-preview)\[bot\]$
+      - check-success=license/cla
+
+    actions:
+      merge:
+        method: merge
