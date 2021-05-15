@@ -67,7 +67,40 @@ func (p *identityActor) onStopped() {
 }
 
 func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, ctx actor.Context) {
+	ownerAddress := p.rdv.Get(msg.ClusterIdentity.AsKey())
 
+	// should I own it?
+	if ownerAddress != ctx.Self().Address {
+		ownerPid := p.partitionManager.PidOfIdentityActor(ownerAddress)
+		ctx.Forward(ownerPid)
+		return
+	}
+
+	// do I already own it?
+	if pid, ok := p.lookup[msg.ClusterIdentity.AsKey()]; ok {
+		response := &clustering.ActivationResponse{
+			Pid: pid,
+		}
+
+		ctx.Respond(response)
+		return
+	}
+
+	// Get activator
+	activatorAddress := p.cluster.MemberList.GetActivatorMember(msg.ClusterIdentity.Kind)
+	activator := p.partitionManager.PidOfActivatorActor(activatorAddress)
+
+	// No activator found, bail out and respond empty
+	if activator == nil {
+		//TODO: log
+		response := &clustering.ActivationResponse{
+			Pid: nil,
+		}
+		ctx.Respond(response)
+		return
+	}
+
+	//TODO: continue here
 }
 
 func (p *identityActor) onActivationTerminated(msg *clustering.ActivationTerminated, ctx actor.Context) {
@@ -122,14 +155,6 @@ func (p *identityActor) spawn(msg *clustering.ActivationRequest, context actor.C
 		plog.Error("spawn failed: Empty memberlist")
 		return
 	}
-
-}
-
-func (p *identityActor) spawning(spawningPID *actor.PID, msg *clustering.ActivationRequest, context actor.Context, retryCount int) {
-
-}
-
-func (p *identityActor) spawningCallback(req *clustering.ActivationRequest, ctx actor.Context, key string, resp interface{}, err error) {
 
 }
 
