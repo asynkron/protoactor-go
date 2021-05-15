@@ -41,6 +41,7 @@ func (pm *PartitionManager) Start() {
 
 	pm.topologySub = system.EventStream.
 		Subscribe(func(ev interface{}) {
+			//fmt.Printf("PM got event.... %v", ev)
 			if topology, ok := ev.(*clustering.ClusterTopology); ok {
 				pm.onClusterTopology(topology)
 			}
@@ -62,7 +63,14 @@ func (pm *PartitionManager) PidOfActivatorActor(addr string) *actor.PID {
 }
 
 func (pm *PartitionManager) onClusterTopology(tplg *clustering.ClusterTopology) {
-	plog.Debug("onClusterTopology", log.Uint64("eventId", tplg.TopologyHash))
+	plog.Info("onClusterTopology", log.Uint64("eventId", tplg.TopologyHash))
+
+	for _, m := range tplg.Members {
+		plog.Info("Got member " + m.Id)
+		for _, k := range m.Kinds {
+			plog.Info("" + m.Id + " - " + k)
+		}
+	}
 
 	pm.rdv = clustering.NewRendezvousV2(tplg.Members)
 	pm.cluster.ActorSystem.Root.Send(pm.identityActor, tplg)
@@ -71,6 +79,11 @@ func (pm *PartitionManager) onClusterTopology(tplg *clustering.ClusterTopology) 
 func (pm *PartitionManager) Get(identity *clustering.ClusterIdentity) *actor.PID {
 	key := identity.AsKey()
 	ownerAddres := pm.rdv.Get(key)
+
+	if ownerAddres == "" {
+		return nil
+	}
+
 	identityOwnerPid := pm.PidOfIdentityActor(ownerAddres)
 	request := &clustering.ActivationRequest{
 		ClusterIdentity: identity,

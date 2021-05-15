@@ -63,19 +63,19 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 	ml.bannedMembers = ml.bannedMembers.Union(left)
 	ml.members = active
 
-	//for any member that left, send a endpoint terminate event
+	// for any member that left, send a endpoint terminate event
 	for _, m := range left.Members() {
 		ml.TerminateMember(m)
 	}
 
-	//recalculate member strategies
+	// recalculate member strategies
 	ml.refreshMemberStrategies(topology)
 
 	ml.cluster.ActorSystem.EventStream.Publish(topology)
 
 	plog.Info("Updated ClusterTopology",
 		log.Uint64("topologyHash", ml.members.TopologyHash()),
-		log.Int("membersByMemberId", len(members)),
+		log.Int("membersCount", len(members)),
 		log.Int("joined", len(topology.Joined)),
 		log.Int("left", len(topology.Left)),
 	)
@@ -84,11 +84,11 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 func (ml *MemberList) getTopologyChanges(members []*Member) (topology *ClusterTopology, unchanged bool, active *MemberSet, joined *MemberSet, left *MemberSet) {
 	memberSet := NewMemberSet(members)
 
-	//get active members
-	//(this bit means that we will never allow a member that failed a health check to join back in)
+	// get active members
+	// (this bit means that we will never allow a member that failed a health check to join back in)
 	active = memberSet.Except(ml.bannedMembers)
 
-	//nothing changed? exit
+	// nothing changed? exit
 	if active.Equals(ml.members) {
 		return nil, true, nil, nil, nil
 	}
@@ -106,7 +106,7 @@ func (ml *MemberList) getTopologyChanges(members []*Member) (topology *ClusterTo
 }
 
 func (ml *MemberList) TerminateMember(m *Member) {
-	//tell the world that this endpoint should is no longer relevant
+	// tell the world that this endpoint should is no longer relevant
 	endpointTerminated := &remote.EndpointTerminatedEvent{
 		Address: m.Address(),
 	}
@@ -118,9 +118,9 @@ func (ml *MemberList) refreshMemberStrategies(tplg *ClusterTopology) {
 	groups := GroupMembersByKind(tplg.Members)
 	strategies := map[string]MemberStrategy{}
 	chashes := map[string]chash.ConsistentHash{}
-	for kind, membersByMemberId := range groups {
-		strategies[kind] = newDefaultMemberStrategyV2(kind, membersByMemberId)
-		chashes[kind] = NewRendezvousV2(membersByMemberId)
+	for kind, membersByMemberID := range groups {
+		strategies[kind] = newDefaultMemberStrategyV2(kind, membersByMemberID)
+		chashes[kind] = NewRendezvousV2(membersByMemberID)
 	}
 	ml.memberStrategyByKind = strategies
 	ml.chashByKind = chashes
