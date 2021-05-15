@@ -5,6 +5,7 @@ import (
 	clustering "github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/log"
+	"time"
 )
 
 const (
@@ -13,8 +14,11 @@ const (
 )
 
 type PartitionManager struct {
-	cluster     *clustering.Cluster
-	topologySub *eventstream.Subscription
+	cluster        *clustering.Cluster
+	topologySub    *eventstream.Subscription
+	identityActor  *actor.PID
+	placementActor *actor.PID
+	rdv            *clustering.RendezvousV2
 }
 
 func newPartitionManager(c *clustering.Cluster) *PartitionManager {
@@ -28,11 +32,11 @@ func (pm *PartitionManager) Start() {
 	system := pm.cluster.ActorSystem
 
 	identityProps := actor.PropsFromProducer(func() actor.Actor { return newIdentityActor(pm.cluster, pm) })
-	system.Root.SpawnNamed(identityProps, ActorNameIdentity)
+	pm.identityActor, _ = system.Root.SpawnNamed(identityProps, ActorNameIdentity)
 	plog.Info("Started partition identity actor")
 
 	activatorProps := actor.PropsFromProducer(func() actor.Actor { return newPlacementActor(pm.cluster, pm) })
-	system.Root.SpawnNamed(activatorProps, ActorNamePlacement)
+	pm.placementActor, _ = system.Root.SpawnNamed(activatorProps, ActorNamePlacement)
 	plog.Info("Started partition placement actor")
 
 	pm.topologySub = system.EventStream.
@@ -59,11 +63,27 @@ func (pm *PartitionManager) PidOfActivatorActor(addr string) *actor.PID {
 
 func (pm *PartitionManager) onClusterTopology(tplg *clustering.ClusterTopology) {
 	plog.Debug("onClusterTopology", log.Uint64("eventId", tplg.TopologyHash))
-	//	system := pm.cluster.ActorSystem
-	//TODO: update identity owner lookup
 
+	pm.rdv = clustering.NewRendezvousV2(tplg.Members)
+	pm.cluster.ActorSystem.Root.Send(pm.identityActor, tplg)
 }
 
 func (pm *PartitionManager) Get(identity *clustering.ClusterIdentity) *actor.PID {
-	return nil
+	key := identity.AsKey()
+	ownerAddres := pm.rdv.Get(key)
+	identityOwnerPid := pm.PidOfIdentityActor(ownerAddres)
+	request := &clustering.ActivationRequest{
+		ClusterIdentity: identity,
+		RequestId:       "aaaa",
+	}
+	future := pm.cluster.ActorSystem.Root.RequestFuture(identityOwnerPid, request, 5*time.Second)
+	res, err := future.Result()
+	if err != nil {
+		return nil
+	}
+	typed, ok := res.(*clustering.ActivationResponse)
+	if !ok {
+		return nil
+	}
+	return typed.Pid
 }

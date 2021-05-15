@@ -30,6 +30,7 @@ func newIdentityActor(c *clustering.Cluster, p *PartitionManager) *identityActor
 		partitionManager: p,
 		handoverTimeout:  10 * time.Second,
 		lookup:           map[string]*actor.PID{},
+		spawns:           map[string]*actor.Future{},
 	}
 }
 
