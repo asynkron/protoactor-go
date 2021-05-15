@@ -29,9 +29,9 @@ func startNode() *cluster.Cluster {
 	config := remote.Configure("localhost", 0)
 
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
-		switch _ := ctx.Message().(type) {
+		switch msg := ctx.Message().(type) {
 		case *actor.Started:
-			fmt.Println("Started")
+			fmt.Printf("Started %v", msg)
 			//case *shared.Noop:
 			//	fmt.Printf("Hello %v\n", msg.Who)
 		}
