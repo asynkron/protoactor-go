@@ -68,6 +68,7 @@ func (c *Cluster) StartMember() {
 	address := c.ActorSystem.Address()
 	plog.Info("Starting Proto.Actor cluster member", log.String("address", address))
 
+	c.IdentityLookup = cfg.Identitylookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)
 
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
@@ -93,6 +94,7 @@ func (c *Cluster) StartClient() {
 	address := c.ActorSystem.Address()
 	plog.Info("Starting Proto.Actor cluster-client", log.String("address", address))
 
+	c.IdentityLookup = cfg.Identitylookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), true)
 
 	if err := cfg.ClusterProvider.StartClient(c); err != nil {

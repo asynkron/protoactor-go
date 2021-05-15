@@ -16,6 +16,9 @@ func main() {
 
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()
+	pid := c.Get("abc", "hello")
+	fmt.Printf("Got pid %v", pid)
+	fmt.Println()
 
 	c.Shutdown(true)
 }
