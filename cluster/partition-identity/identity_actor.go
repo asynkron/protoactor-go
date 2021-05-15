@@ -42,7 +42,7 @@ func (p *identityActor) Receive(ctx actor.Context) {
 	case *clustering.ActivationRequest:
 		p.onActivationRequest(msg, ctx)
 	case *clustering.ActivationTerminated:
-		p.onActivationTerminated(msg, ctx)
+		p.onActivationTerminated(msg)
 	case *clustering.ClusterTopology:
 		p.onClusterTopology(msg, ctx)
 	default:
@@ -94,7 +94,6 @@ func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, c
 	// in case the actor of msg.Name is not yet spawned. there could be multiple re-entrant
 	// messages requesting it, we just reuse the same task for all those
 	// once spawned, the key is removed from this dict
-
 	res, ok := p.spawns[msg.ClusterIdentity.AsKey()]
 	if !ok {
 		res = p.spawnRemoteActor(msg, activatorAddress)
@@ -104,7 +103,6 @@ func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, c
 	// execution ends here. context.ReenterAfter is invoked once the task completes
 	// but still within the actors sequential execution
 	// but other messages could have been processed in between
-
 	// Await SpawningProcess
 	ctx.AwaitFuture(res, func(res interface{}, err error) {
 		delete(p.spawns, msg.ClusterIdentity.AsKey())
@@ -143,7 +141,7 @@ func respondEmptyActivation(ctx actor.Context) {
 	ctx.Respond(response)
 }
 
-func (p *identityActor) onActivationTerminated(msg *clustering.ActivationTerminated, ctx actor.Context) {
+func (p *identityActor) onActivationTerminated(msg *clustering.ActivationTerminated) {
 	// //we get this via broadcast to all nodes, remove if we have it, or ignore
 	key := msg.ClusterIdentity.AsKey()
 	_, ok := p.spawns[key]
@@ -186,14 +184,6 @@ func (p *identityActor) onClusterTopology(msg *clustering.ClusterTopology, ctx a
 				p.takeOwnership(activation)
 			}
 		}
-	}
-}
-
-func (p *identityActor) spawn(msg *clustering.ActivationRequest, context actor.Context) {
-	if p.cluster.MemberList.Length() <= 0 {
-		context.Respond(&clustering.ActivationResponse{Pid: nil})
-		plog.Error("spawn failed: Empty memberlist")
-		return
 	}
 }
 
