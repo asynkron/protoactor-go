@@ -109,6 +109,8 @@ func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, c
 			return
 		}
 
+		p.lookup[msg.ClusterIdentity.AsKey()] = ar.Pid
+
 		respondActivation(ar.Pid, ctx)
 	})
 }
@@ -180,7 +182,6 @@ func (p *identityActor) spawn(msg *clustering.ActivationRequest, context actor.C
 		plog.Error("spawn failed: Empty memberlist")
 		return
 	}
-
 }
 
 func (p *identityActor) takeOwnership(activation *clustering.Activation) {
