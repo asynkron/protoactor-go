@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-type spawnTask func() *clustering.ActivationResponse
-
 // This actor is responsible to keep track of identities owned by this member
 // it does not manage the cluster spawned actors itself, only identity->remote PID management
 // TLDR; this is a partition/bucket in the distributed hash table which makes up the identity lookup
@@ -20,7 +18,7 @@ type identityActor struct {
 	cluster          *clustering.Cluster
 	partitionManager *PartitionManager
 	lookup           map[string]*actor.PID
-	spawns           map[string]spawnTask
+	spawns           map[string]*actor.Future
 	topologyHash     uint64
 	handoverTimeout  time.Duration
 	rdv              *clustering.RendezvousV2
@@ -92,8 +90,23 @@ func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, c
 		return
 	}
 
-	//TODO: continue here
-	ctx.AwaitFuture(nil, func(res interface{}, err error) {
+	// What is this?
+	// in case the actor of msg.Name is not yet spawned. there could be multiple re-entrant
+	// messages requesting it, we just reuse the same task for all those
+	// once spawned, the key is removed from this dict
+
+	res, ok := p.spawns[msg.ClusterIdentity.AsKey()]
+	if !ok {
+		res = p.spawnRemoteActor(msg, activatorAddress)
+		p.spawns[msg.ClusterIdentity.AsKey()] = res
+	}
+
+	// execution ends here. context.ReenterAfter is invoked once the task completes
+	// but still within the actors sequential execution
+	// but other messages could have been processed in between
+
+	// Await SpawningProcess
+	ctx.AwaitFuture(res, func(res interface{}, err error) {
 		delete(p.spawns, msg.ClusterIdentity.AsKey())
 
 		ar, ok := res.(*clustering.ActivationResponse)
@@ -193,4 +206,8 @@ func (p *identityActor) takeOwnership(activation *clustering.Activation) {
 	}
 
 	p.lookup[key] = activation.Pid
+}
+
+func (p *identityActor) spawnRemoteActor(msg *clustering.ActivationRequest, address string) *actor.Future {
+	return nil
 }
