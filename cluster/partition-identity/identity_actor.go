@@ -78,11 +78,7 @@ func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, c
 
 	// do I already own it?
 	if pid, ok := p.lookup[msg.ClusterIdentity.AsKey()]; ok {
-		response := &clustering.ActivationResponse{
-			Pid: pid,
-		}
-
-		ctx.Respond(response)
+		respondActivation(pid, ctx)
 		return
 	}
 
@@ -92,11 +88,7 @@ func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, c
 
 	// No activator found, bail out and respond empty
 	if activator == nil {
-		//TODO: log
-		response := &clustering.ActivationResponse{
-			Pid: nil,
-		}
-		ctx.Respond(response)
+		respondEmptyActivation(ctx)
 		return
 	}
 
@@ -107,29 +99,33 @@ func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, c
 		ar, ok := res.(*clustering.ActivationResponse)
 		if !ok {
 			// spawn failed, respond empty
-			response := &clustering.ActivationResponse{
-				Pid: nil,
-			}
-			ctx.Respond(response)
+			respondEmptyActivation(ctx)
 			return
 		}
 
 		// do I already own it?
 		if pid, ok := p.lookup[msg.ClusterIdentity.AsKey()]; ok {
-			response := &clustering.ActivationResponse{
-				Pid: pid,
-			}
-
-			ctx.Respond(response)
+			respondActivation(pid, ctx)
 			return
 		}
 
-		response := &clustering.ActivationResponse{
-			Pid: ar.Pid,
-		}
-
-		ctx.Respond(response)
+		respondActivation(ar.Pid, ctx)
 	})
+}
+
+func respondActivation(pid *actor.PID, ctx actor.Context) {
+	response := &clustering.ActivationResponse{
+		Pid: pid,
+	}
+
+	ctx.Respond(response)
+}
+
+func respondEmptyActivation(ctx actor.Context) {
+	response := &clustering.ActivationResponse{
+		Pid: nil,
+	}
+	ctx.Respond(response)
 }
 
 func (p *identityActor) onActivationTerminated(msg *clustering.ActivationTerminated, ctx actor.Context) {
