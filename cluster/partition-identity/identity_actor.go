@@ -105,22 +105,16 @@ func (p *identityActor) onClusterTopology(msg *clustering.ClusterTopology, ctx a
 	}
 
 	for _, m := range members {
-
-		addr := m.Address()
-		future := ctx.RequestFuture(nil, requestMsg, 5*time.Second)
+		placementPid := p.partitionManager.PidOfActivatorActor(m.Address())
+		future := ctx.RequestFuture(placementPid, requestMsg, 5*time.Second)
 
 		futures = append(futures, future)
-		//var activatorPid = PartitionManager.RemotePartitionPlacementActor(member.Address);
-		//var request =
-		//	context.RequestAsync<IdentityHandoverResponse>(activatorPid, requestMsg, CancellationTokens.WithTimeout(_identityHandoverTimeout));
-		//requests.Add(request);
 	}
 
 	for _, f := range futures {
 		res, _ := f.Result()
 		if response, ok := res.(clustering.IdentityHandoverResponse); ok {
-
-			for activation, _ := range response.Actors {
+			for _, activation := range response.Actors {
 				p.takeOwnership(activation)
 			}
 		}
@@ -144,6 +138,13 @@ func (p *identityActor) spawningCallback(req *clustering.ActivationRequest, ctx 
 
 }
 
-func (p *identityActor) takeOwnership(activation int) {
+func (p *identityActor) takeOwnership(activation *clustering.Activation) {
+	key := activation.ClusterIdentity.Identity + "." + activation.ClusterIdentity.Kind
+	if existing, ok := p.lookup[key]; ok {
+		if existing.Address == activation.Pid.Address {
+			return
+		}
+	}
 
+	p.lookup[key] = activation.Pid
 }
