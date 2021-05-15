@@ -77,7 +77,7 @@ func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, c
 
 func (p *identityActor) onActivationTerminated(msg *clustering.ActivationTerminated, ctx actor.Context) {
 	// //we get this via broadcast to all nodes, remove if we have it, or ignore
-	key := msg.ClusterIdentity.Identity + "." + msg.ClusterIdentity.Kind
+	key := msg.ClusterIdentity.AsKey()
 	_, ok := p.spawns[key]
 	if ok {
 		return
@@ -139,7 +139,7 @@ func (p *identityActor) spawningCallback(req *clustering.ActivationRequest, ctx 
 }
 
 func (p *identityActor) takeOwnership(activation *clustering.Activation) {
-	key := activation.ClusterIdentity.Identity + "." + activation.ClusterIdentity.Kind
+	key := activation.ClusterIdentity.AsKey()
 	if existing, ok := p.lookup[key]; ok {
 		if existing.Address == activation.Pid.Address {
 			return

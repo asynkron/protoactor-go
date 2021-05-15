@@ -80,7 +80,7 @@ func (p *placementActor) onIdentityHandoverRequest(msg *clustering.IdentityHando
 }
 
 func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, ctx actor.Context) {
-	key := msg.ClusterIdentity.Identity + "/" + msg.ClusterIdentity.Kind
+	key := msg.ClusterIdentity.AsKey()
 	meta, found := p.actors[key]
 	if found {
 		response := &clustering.ActivationResponse{
