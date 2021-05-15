@@ -47,22 +47,24 @@ func (p *placementActor) onTerminated(msg *actor.Terminated, ctx actor.Context) 
 	}
 }
 
+// this is pure, we do not change any state or actually move anything
+// the requester also provide its own view of the world in terms of members
+// TLDR; we are not using any topology state from this actor itself
 func (p *placementActor) onIdentityHandoverRequest(msg *clustering.IdentityHandoverRequest, ctx actor.Context) {
-
 	count := 0
 	response := &clustering.IdentityHandoverResponse{}
 	requestAddress := ctx.Sender().Address
 	rdv := clustering.NewRendezvousV2(msg.Members)
 	for identity, meta := range p.actors {
-		//who owns this identity according to the requesters memberlist?
+		// who owns this identity according to the requesters memberlist?
 		ownerAddress := rdv.Get(identity)
-		//this identity is not owned by the requester
+		// this identity is not owned by the requester
 		if ownerAddress != requestAddress {
 			continue
 		}
-		//_logger.LogDebug("Transfer {Identity} to {newOwnerAddress} -- {TopologyHash}", clusterIdentity, ownerAddress,
-		//msg.TopologyHash
-		//);
+		// _logger.LogDebug("Transfer {Identity} to {newOwnerAddress} -- {TopologyHash}", clusterIdentity, ownerAddress,
+		// msg.TopologyHash
+		// );
 
 		actorToHandOver := &clustering.Activation{
 			ClusterIdentity: meta.ID,
@@ -78,7 +80,32 @@ func (p *placementActor) onIdentityHandoverRequest(msg *clustering.IdentityHando
 }
 
 func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, ctx actor.Context) {
+	key := msg.ClusterIdentity.Identity + "/" + msg.ClusterIdentity.Kind
+	meta, found := p.actors[key]
+	if found {
+		response := &clustering.ActivationResponse{
+			Pid: meta.PID,
+		}
+		ctx.Respond(response)
+		return
+	}
 
+	clusterKindProps := p.cluster.GetClusterKind(msg.ClusterIdentity.Kind)
+
+	//TODO: wrap in WithClusterIdentity
+
+	pid := ctx.SpawnPrefix(clusterKindProps, msg.ClusterIdentity.Identity)
+
+	p.actors[key] = GrainMeta{
+		ID:  msg.ClusterIdentity,
+		PID: pid,
+	}
+
+	response := &clustering.ActivationResponse{
+		Pid: pid,
+	}
+
+	ctx.Respond(response)
 }
 
 func (p *placementActor) pidToMeta(pid *actor.PID) (bool, *string, *GrainMeta) {

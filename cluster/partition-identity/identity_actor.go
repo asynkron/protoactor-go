@@ -8,9 +8,8 @@ import (
 )
 
 type GrainMeta struct {
-	ID      *clustering.ClusterIdentity
-	PID     *actor.PID
-	EventID uint64
+	ID  *clustering.ClusterIdentity
+	PID *actor.PID
 }
 
 type spawnTask func() *clustering.ActivationResponse
