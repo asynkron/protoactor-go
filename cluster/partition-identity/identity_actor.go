@@ -209,5 +209,7 @@ func (p *identityActor) takeOwnership(activation *clustering.Activation) {
 }
 
 func (p *identityActor) spawnRemoteActor(msg *clustering.ActivationRequest, address string) *actor.Future {
-	return nil
+	activator := p.partitionManager.PidOfActivatorActor(address)
+	future := p.cluster.ActorSystem.Root.RequestFuture(activator, msg, 5*time.Second)
+	return future
 }
