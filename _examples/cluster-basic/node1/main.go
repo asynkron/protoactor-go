@@ -19,7 +19,7 @@ func main() {
 	pid := c.Get("abc", "hello")
 	fmt.Printf("Got pid %v", pid)
 	fmt.Println()
-
+	console.ReadLine()
 	c.Shutdown(true)
 }
 

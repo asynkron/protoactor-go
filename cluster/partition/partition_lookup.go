@@ -9,11 +9,11 @@ type PartitionIdentityLookup struct {
 	partitionManager *PartitionManager
 }
 
-func (p PartitionIdentityLookup) Get(clusterIdentity *cluster.ClusterIdentity) *actor.PID {
+func (p *PartitionIdentityLookup) Get(clusterIdentity *cluster.ClusterIdentity) *actor.PID {
 	return p.partitionManager.Get(clusterIdentity)
 }
 
-func (p PartitionIdentityLookup) RemovePid(clusterIdentity *cluster.ClusterIdentity, pid *actor.PID) {
+func (p *PartitionIdentityLookup) RemovePid(clusterIdentity *cluster.ClusterIdentity, pid *actor.PID) {
 	activationTerminated := &cluster.ActivationTerminated{
 		Pid:             pid,
 		ClusterIdentity: clusterIdentity,
@@ -21,11 +21,12 @@ func (p PartitionIdentityLookup) RemovePid(clusterIdentity *cluster.ClusterIdent
 	p.partitionManager.cluster.MemberList.BroadcastEvent(activationTerminated, true)
 }
 
-func (p PartitionIdentityLookup) Setup(cluster *cluster.Cluster, kinds []string, isClient bool) {
+func (p *PartitionIdentityLookup) Setup(cluster *cluster.Cluster, kinds []string, isClient bool) {
 	p.partitionManager = newPartitionManager(cluster)
+	p.partitionManager.Start()
 }
 
-func (p PartitionIdentityLookup) Shutdown() {
+func (p *PartitionIdentityLookup) Shutdown() {
 	p.partitionManager.Stop()
 }
 

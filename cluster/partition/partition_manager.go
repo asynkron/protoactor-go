@@ -24,13 +24,16 @@ func newPartitionManager(c *clustering.Cluster) *PartitionManager {
 }
 
 func (pm *PartitionManager) Start() {
+	plog.Info("Started partition manager")
 	system := pm.cluster.ActorSystem
 
 	identityProps := actor.PropsFromProducer(func() actor.Actor { return newIdentityActor(pm.cluster, pm) })
 	system.Root.SpawnNamed(identityProps, ActorNameIdentity)
+	plog.Info("Started partition identity actor")
 
 	activatorProps := actor.PropsFromProducer(func() actor.Actor { return newPlacementActor(pm.cluster, pm) })
 	system.Root.SpawnNamed(activatorProps, ActorNamePlacement)
+	plog.Info("Started partition placement actor")
 
 	pm.topologySub = system.EventStream.
 		Subscribe(func(ev interface{}) {
