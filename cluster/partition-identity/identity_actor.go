@@ -27,6 +27,7 @@ type identityActor struct {
 	spawns           map[string]spawnTask
 	topologyHash     uint64
 	handoverTimeout  time.Duration
+	rdv              *clustering.RendezvousV2
 }
 
 func newIdentityActor(c *clustering.Cluster, p *PartitionManager) *identityActor {
@@ -87,6 +88,28 @@ func (p *identityActor) onActivationTerminated(msg *clustering.ActivationTermina
 }
 
 func (p *identityActor) onClusterTopology(msg *clustering.ClusterTopology, ctx actor.Context) {
+	// await _cluster.MemberList.TopologyConsensus();
+	if p.topologyHash == msg.TopologyHash {
+		return
+	}
+
+	members := msg.Members
+	p.rdv = clustering.NewRendezvousV2(members)
+	p.lookup = map[string]*actor.PID{}
+	requests := make([]interface{}, 0)
+
+	requestMsg := &clustering.IdentityHandoverRequest{
+		TopologyHash: msg.TopologyHash,
+		Address:      ctx.Self().Address,
+	}
+
+	for _, m := range members {
+
+		//var activatorPid = PartitionManager.RemotePartitionPlacementActor(member.Address);
+		//var request =
+		//	context.RequestAsync<IdentityHandoverResponse>(activatorPid, requestMsg, CancellationTokens.WithTimeout(_identityHandoverTimeout));
+		//requests.Add(request);
+	}
 
 }
 
