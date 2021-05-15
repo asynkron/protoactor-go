@@ -6,6 +6,11 @@ import (
 	"github.com/AsynkronIT/protoactor-go/log"
 )
 
+type GrainMeta struct {
+	ID  *clustering.ClusterIdentity
+	PID *actor.PID
+}
+
 type placementActor struct {
 	cluster          *clustering.Cluster
 	partitionManager *PartitionManager

@@ -8,11 +8,6 @@ import (
 	"time"
 )
 
-type GrainMeta struct {
-	ID  *clustering.ClusterIdentity
-	PID *actor.PID
-}
-
 type spawnTask func() *clustering.ActivationResponse
 
 // This actor is responsible to keep track of identities owned by this member
