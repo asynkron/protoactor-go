@@ -101,6 +101,35 @@ func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, c
 	}
 
 	//TODO: continue here
+	ctx.AwaitFuture(nil, func(res interface{}, err error) {
+		delete(p.spawns, msg.ClusterIdentity.AsKey())
+
+		ar, ok := res.(*clustering.ActivationResponse)
+		if !ok {
+			// spawn failed, respond empty
+			response := &clustering.ActivationResponse{
+				Pid: nil,
+			}
+			ctx.Respond(response)
+			return
+		}
+
+		// do I already own it?
+		if pid, ok := p.lookup[msg.ClusterIdentity.AsKey()]; ok {
+			response := &clustering.ActivationResponse{
+				Pid: pid,
+			}
+
+			ctx.Respond(response)
+			return
+		}
+
+		response := &clustering.ActivationResponse{
+			Pid: ar.Pid,
+		}
+
+		ctx.Respond(response)
+	})
 }
 
 func (p *identityActor) onActivationTerminated(msg *clustering.ActivationTerminated, ctx actor.Context) {
