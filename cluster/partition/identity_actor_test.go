@@ -1,4 +1,4 @@
-package partition_identity
+package partition
 
 // func TestPartitionIdentityActor_handleClusterTopology(t *testing.T) {
 // 	assert := assert.New(t)

@@ -1,4 +1,4 @@
-package partition_identity
+package partition
 
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	ActorNameIdentity  = "partition-identity"
+	ActorNameIdentity  = "partition"
 	ActorNamePlacement = "partition-activator"
 )
 

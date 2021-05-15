@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/AsynkronIT/protoactor-go/cluster/partition"
 	"log"
 	"time"
 
@@ -45,7 +46,9 @@ func main() {
 	cluster.SetLogLevel(logmod.InfoLevel)
 
 	provider, _ := consul.New()
-	clusterConfig := cluster.Configure("my-cluster", provider, remoteConfig, helloKind)
+	lookup := partition.New()
+
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, remoteConfig, helloKind)
 	c := cluster.New(system, clusterConfig)
 	c.StartMember()
 

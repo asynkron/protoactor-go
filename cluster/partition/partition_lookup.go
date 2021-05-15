@@ -1,4 +1,4 @@
-package partition_identity
+package partition
 
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -27,4 +27,8 @@ func (p PartitionIdentityLookup) Setup(cluster *cluster.Cluster, kinds []string,
 
 func (p PartitionIdentityLookup) Shutdown() {
 	p.partitionManager.Stop()
+}
+
+func New() cluster.IdentityLookup {
+	return &PartitionIdentityLookup{}
 }

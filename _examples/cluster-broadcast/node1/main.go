@@ -7,6 +7,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/cluster/automanaged"
+	"github.com/AsynkronIT/protoactor-go/cluster/partition"
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"time"
 )
@@ -60,9 +61,10 @@ func startNode(port int64) *cluster.Cluster {
 	}))
 
 	provider := automanaged.NewWithConfig(2*time.Second, 6331, "localhost:6330", "localhost:6331")
+	lookup := partition.New()
 	config := remote.Configure("localhost", 0)
 
-	clusterConfig := cluster.Configure("my-cluster", provider, config, calcKind, trackerKind)
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, calcKind, trackerKind)
 	cluster := cluster.New(system, clusterConfig)
 	shared.SetCluster(cluster)
 

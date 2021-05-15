@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/AsynkronIT/protoactor-go/cluster/partition"
 	"log"
 	"time"
 
@@ -33,7 +34,9 @@ func main() {
 	config := remote.Configure("localhost", 0)
 
 	provider, _ := consul.New()
-	clusterConfig := cluster.Configure("my-cluster", provider, config)
+	lookup := partition.New()
+
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
 	c := cluster.New(system, clusterConfig)
 	setupLogger(c)
 	c.StartMember()
