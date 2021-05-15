@@ -4,6 +4,7 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	clustering "github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/log"
+
 	"time"
 )
 
@@ -96,7 +97,7 @@ func (p *identityActor) onClusterTopology(msg *clustering.ClusterTopology, ctx a
 	members := msg.Members
 	p.rdv = clustering.NewRendezvousV2(members)
 	p.lookup = map[string]*actor.PID{}
-	requests := make([]interface{}, 0)
+	futures := make([]*actor.Future, 0)
 
 	requestMsg := &clustering.IdentityHandoverRequest{
 		TopologyHash: msg.TopologyHash,
@@ -105,12 +106,25 @@ func (p *identityActor) onClusterTopology(msg *clustering.ClusterTopology, ctx a
 
 	for _, m := range members {
 
+		addr := m.Address()
+		future := ctx.RequestFuture(nil, requestMsg, 5*time.Second)
+
+		futures = append(futures, future)
 		//var activatorPid = PartitionManager.RemotePartitionPlacementActor(member.Address);
 		//var request =
 		//	context.RequestAsync<IdentityHandoverResponse>(activatorPid, requestMsg, CancellationTokens.WithTimeout(_identityHandoverTimeout));
 		//requests.Add(request);
 	}
 
+	for _, f := range futures {
+		res, _ := f.Result()
+		if response, ok := res.(clustering.IdentityHandoverResponse); ok {
+
+			for activation, _ := range response.Actors {
+				p.takeOwnership(activation)
+			}
+		}
+	}
 }
 
 func (p *identityActor) spawn(msg *clustering.ActivationRequest, context actor.Context) {
@@ -127,5 +141,9 @@ func (p *identityActor) spawning(spawningPID *actor.PID, msg *clustering.Activat
 }
 
 func (p *identityActor) spawningCallback(req *clustering.ActivationRequest, ctx actor.Context, key string, resp interface{}, err error) {
+
+}
+
+func (p *identityActor) takeOwnership(activation int) {
 
 }
