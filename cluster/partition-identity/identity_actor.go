@@ -14,6 +14,12 @@ type GrainMeta struct {
 
 type spawnTask func() *clustering.ActivationResponse
 
+// This actor is responsible to keep track of identities owned by this member
+// it does not manage the cluster spawned actors itself, only identity->remote PID management
+// TLDR; this is a partition/bucket in the distributed hash table which makes up the identity lookup
+//
+// for spawning/activating cluster actors see PartitionActivator.cs
+
 type identityActor struct {
 	cluster          *clustering.Cluster
 	partitionManager *PartitionManager
@@ -51,6 +57,12 @@ func (p *identityActor) Receive(ctx actor.Context) {
 
 func (p *identityActor) onStart(ctx actor.Context) {
 	plog.Debug("Started PartitionIdentity")
+	self := ctx.Self()
+	ctx.ActorSystem().EventStream.Subscribe(func(evt interface{}) {
+		if at, ok := evt.(clustering.ActivationTerminated); ok {
+			p.cluster.ActorSystem.Root.Send(self, at)
+		}
+	})
 }
 
 func (p *identityActor) onStopped() {
@@ -62,7 +74,16 @@ func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, c
 }
 
 func (p *identityActor) onActivationTerminated(msg *clustering.ActivationTerminated, ctx actor.Context) {
+	// //we get this via broadcast to all nodes, remove if we have it, or ignore
+	key := msg.ClusterIdentity.Identity + "." + msg.ClusterIdentity.Kind
+	_, ok := p.spawns[key]
+	if ok {
+		return
+	}
 
+	// Logger.LogDebug("[PartitionIdentityActor] Terminated {Pid}", msg.Pid);
+	p.cluster.PidCache.RemoveByValue(msg.ClusterIdentity.Identity, msg.ClusterIdentity.Kind, msg.Pid)
+	delete(p.lookup, key)
 }
 
 func (p *identityActor) onClusterTopology(msg *clustering.ClusterTopology, ctx actor.Context) {

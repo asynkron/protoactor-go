@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	plog = log.New(log.DefaultLevel, "[CLUSTER]")
+	plog = log.New(log.DefaultLevel, "[CLUSTER PARTITION]")
 )
 
 // SetLogLevel sets the log level for the logger.
