@@ -33,7 +33,7 @@ func CalculatorFactory(factory func() Calculator) {
 	xCalculatorFactory = factory
 }
 
-// GetCalculatorGrainClient instantiates a new CalculatorGrainClient with given ID
+// GetCalculatorGrainClient instantiates a new CalculatorGrainClient with given ExtensionID
 func GetCalculatorGrainClient(c *cluster.Cluster, id string) *CalculatorGrainClient {
 	if c == nil {
 		panic(fmt.Errorf("nil cluster instance"))

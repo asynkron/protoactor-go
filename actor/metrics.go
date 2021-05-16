@@ -2,7 +2,7 @@ package actor
 
 import "github.com/AsynkronIT/protoactor-go/extensions"
 
-var extensionId = extensions.NextExtensionId()
+var extensionId = extensions.NextExtensionID()
 
 type Metrics struct {
 	enabled bool
@@ -11,7 +11,7 @@ type Metrics struct {
 func (m *Metrics) Enabled() bool {
 	return m.enabled
 }
-func (m *Metrics) Id() extensions.ExtensionId {
+func (m *Metrics) ExtensionID() extensions.ExtensionID {
 	return extensionId
 }
 

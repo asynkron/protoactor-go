@@ -29,9 +29,9 @@ func {{ $service.Name }}Factory(factory func() {{ $service.Name }}) {
 	x{{ $service.Name }}Factory = factory
 }
 
-// Get{{ $service.Name }}Grain instantiates a new {{ $service.Name }}Grain with given ID
+// Get{{ $service.Name }}Grain instantiates a new {{ $service.Name }}Grain with given ExtensionID
 func Get{{ $service.Name }}Grain(id string) *{{ $service.Name }}Grain {
-	return &{{ $service.Name }}Grain{ID: id}
+	return &{{ $service.Name }}Grain{ExtensionID: id}
 }
 
 // {{ $service.Name }} interfaces the services available to the {{ $service.Name }}
@@ -45,7 +45,7 @@ type {{ $service.Name }} interface {
 
 // {{ $service.Name }}Grain holds the base data for the {{ $service.Name }}Grain
 type {{ $service.Name }}Grain struct {
-	ID string
+	ExtensionID string
 }
 {{ range $method := $service.Methods}}	
 // {{ $method.Name }} requests the execution on to the cluster using default options
@@ -56,7 +56,7 @@ func (g *{{ $service.Name }}Grain) {{ $method.Name }}(r *{{ $method.Input.Name }
 // {{ $method.Name }}WithOpts requests the execution on to the cluster
 func (g *{{ $service.Name }}Grain) {{ $method.Name }}WithOpts(r *{{ $method.Input.Name }}, opts *cluster.GrainCallOptions) (*{{ $method.Output.Name }}, error) {
 	fun := func() (*{{ $method.Output.Name }}, error) {
-			pid, statusCode := cluster.Get(g.ID, "{{ $service.Name }}")
+			pid, statusCode := cluster.Get(g.ExtensionID, "{{ $service.Name }}")
 			if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
 				return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
 			}

@@ -119,7 +119,7 @@ func TestRegisterMultipleMembers(t *testing.T) {
 				found = true
 			}
 		}
-		assert.Truef(found, "Member port not found - ID:%v Address: %v:%v",
+		assert.Truef(found, "Member port not found - ExtensionID:%v Address: %v:%v",
 			entry.Service.ID, entry.Service.Address, entry.Service.Port)
 	}
 }

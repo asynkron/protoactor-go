@@ -33,7 +33,7 @@ func HelloFactory(factory func() Hello) {
 	xHelloFactory = factory
 }
 
-// GetHelloGrainClient instantiates a new HelloGrainClient with given ID
+// GetHelloGrainClient instantiates a new HelloGrainClient with given ExtensionID
 func GetHelloGrainClient(c *cluster.Cluster, id string) *HelloGrainClient {
 	if c == nil {
 		panic(fmt.Errorf("nil cluster instance"))

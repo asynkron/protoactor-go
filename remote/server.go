@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/grpclog"
 )
 
-var extensionId = extensions.NextExtensionId()
+var extensionId = extensions.NextExtensionID()
 
 type Remote struct {
 	actorSystem  *actor.ActorSystem
@@ -41,13 +41,14 @@ func NewRemote(actorSystem *actor.ActorSystem, config Config) *Remote {
 	return r
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func GetRemote(actorSystem *actor.ActorSystem) *Remote {
 	r := actorSystem.Extensions.Get(extensionId)
 
 	return r.(*Remote)
 }
 
-func (r *Remote) Id() extensions.ExtensionId {
+func (r *Remote) ExtensionID() extensions.ExtensionID {
 	return extensionId
 }
 

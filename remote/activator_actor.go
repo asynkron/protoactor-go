@@ -104,7 +104,7 @@ func (a *activator) Receive(context actor.Context) {
 
 		name := msg.Name
 
-		// unnamed actor, assign auto ID
+		// unnamed actor, assign auto ExtensionID
 		if name == "" {
 			name = context.ActorSystem().ProcessRegistry.NextId()
 		}

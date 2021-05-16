@@ -35,7 +35,7 @@ func CalculatorFactory(factory func() Calculator) {
 	xCalculatorFactory = factory
 }
 
-// GetCalculatorGrain instantiates a new CalculatorGrain with given ID
+// GetCalculatorGrain instantiates a new CalculatorGrain with given ExtensionID
 func GetCalculatorGrain(id string) *CalculatorGrain {
 	return &CalculatorGrain{ID: id}
 }
@@ -312,7 +312,7 @@ func TrackerFactory(factory func() Tracker) {
 	xTrackerFactory = factory
 }
 
-// GetTrackerGrain instantiates a new TrackerGrain with given ID
+// GetTrackerGrain instantiates a new TrackerGrain with given ExtensionID
 func GetTrackerGrain(id string) *TrackerGrain {
 	return &TrackerGrain{ID: id}
 }

@@ -2,13 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/cluster/partition"
-	"time"
-
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/automanaged"
+	"github.com/AsynkronIT/protoactor-go/cluster/consul"
+	"github.com/AsynkronIT/protoactor-go/cluster/partition"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
@@ -24,7 +22,7 @@ func main() {
 func startNode() *cluster.Cluster {
 	system := actor.NewActorSystem()
 
-	provider := automanaged.NewWithConfig(2*time.Second, 6330, "localhost:6330", "localhost:6331")
+	provider, _ := consul.New()
 	lookup := partition.New()
 	config := remote.Configure("localhost", 0)
 

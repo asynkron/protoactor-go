@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var extensionId = extensions.NextExtensionId()
+var extensionId = extensions.NextExtensionID()
 
 type Cluster struct {
 	ActorSystem    *actor.ActorSystem
@@ -25,6 +25,7 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	c := &Cluster{
 		ActorSystem: actorSystem,
 		Config:      config,
+		kinds:       map[string]*actor.Props{},
 	}
 	actorSystem.Extensions.Register(c)
 
@@ -46,10 +47,11 @@ func (c *Cluster) subscribeToTopologyEvents() {
 	})
 }
 
-func (c *Cluster) Id() extensions.ExtensionId {
+func (c *Cluster) ExtensionID() extensions.ExtensionID {
 	return extensionId
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func GetCluster(actorSystem *actor.ActorSystem) *Cluster {
 	c := actorSystem.Extensions.Get(extensionId)
 	return c.(*Cluster)
@@ -58,8 +60,9 @@ func GetCluster(actorSystem *actor.ActorSystem) *Cluster {
 func (c *Cluster) StartMember() {
 	cfg := c.Config
 	c.Remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
+
 	for kind, props := range cfg.Kinds {
-		c.Remote.Register(kind, props)
+		c.kinds[kind] = props
 	}
 
 	// TODO: make it possible to become a cluster even if remoting is already started
@@ -129,4 +132,47 @@ func (c *Cluster) GetClusterKind(kind string) *actor.Props {
 		return nil
 	}
 	return props
+}
+
+// Call is a wrap of context.RequestFuture with retries.
+func (c *Cluster) Call(name string, kind string, msg interface{}, callopts ...*GrainCallOptions) (interface{}, error) {
+	var _callopts *GrainCallOptions = nil
+	if len(callopts) > 0 {
+		_callopts = callopts[0]
+	} else {
+		_callopts = DefaultGrainCallOptions(c)
+	}
+
+	_context := c.ActorSystem.Root
+	var lastError error
+	for i := 0; i < _callopts.RetryCount; i++ {
+		pid := c.Get(name, kind)
+
+		if pid == nil {
+			return nil, remote.ErrUnknownError
+		}
+
+		timeout := _callopts.Timeout
+		_resp, err := _context.RequestFuture(pid, msg, timeout).Result()
+		if err != nil {
+			plog.Error("cluster.RequestFuture failed", log.Error(err), log.PID("pid", pid))
+			lastError = err
+			switch err {
+			case actor.ErrTimeout, remote.ErrTimeout:
+				_callopts.RetryAction(i)
+				id := ClusterIdentity{Kind: kind, Identity: name}
+				c.PidCache.Remove(id.Identity, id.Kind)
+				continue
+			case actor.ErrDeadLetter, remote.ErrDeadLetter:
+				_callopts.RetryAction(i)
+				id := ClusterIdentity{Kind: kind, Identity: name}
+				c.PidCache.Remove(id.Identity, id.Kind)
+				continue
+			default:
+				return nil, err
+			}
+		}
+		return _resp, nil
+	}
+	return nil, lastError
 }

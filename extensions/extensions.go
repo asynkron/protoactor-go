@@ -2,12 +2,12 @@ package extensions
 
 import "sync/atomic"
 
-type ExtensionId int32
+type ExtensionID int32
 
-var currentId int32 = 0
+var currentID int32
 
 type Extension interface {
-	Id() ExtensionId
+	ExtensionID() ExtensionID
 }
 
 type Extensions struct {
@@ -21,16 +21,16 @@ func NewExtensions() *Extensions {
 	return ex
 }
 
-func NextExtensionId() ExtensionId {
-	id := atomic.AddInt32(&currentId, 1)
-	return ExtensionId(id)
+func NextExtensionID() ExtensionID {
+	id := atomic.AddInt32(&currentID, 1)
+	return ExtensionID(id)
 }
 
-func (ex *Extensions) Get(id ExtensionId) Extension {
+func (ex *Extensions) Get(id ExtensionID) Extension {
 	return ex.extensions[id]
 }
 
 func (ex *Extensions) Register(extension Extension) {
-	id := extension.Id()
+	id := extension.ExtensionID()
 	ex.extensions[id] = extension
 }
