@@ -4,8 +4,6 @@ go 1.13
 
 replace github.com/AsynkronIT/protoactor-go => ../..
 
-replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
-
 require (
 	github.com/AsynkronIT/goconsole v0.0.0-20160504192649-bfa12eebf716
 	github.com/AsynkronIT/protoactor-go v0.0.0-00010101000000-000000000000
