@@ -1,7 +1,7 @@
 module github.com/AsynkronIT/protoactor-go
 
-// See https://github.com/etcd-io/etcd/issues/12124
-// replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
+// because etcd/v3 need go 1.16 version
+go 1.16
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
@@ -40,5 +40,3 @@ require (
 	gopkg.in/couchbaselabs/gojcbmock.v1 v1.0.4 // indirect
 	gopkg.in/couchbaselabs/jsonx.v1 v1.0.0 // indirect
 )
-
-go 1.13
