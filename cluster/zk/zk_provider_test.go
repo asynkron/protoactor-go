@@ -268,6 +268,7 @@ func (suite *ZkProviderTestSuite) SetupTest() {
 
 func (suite *ZkProviderTestSuite) TearDownTest() {
 	suite.ctrl.Finish()
+	time.Sleep(time.Second)
 }
 
 func TestZkProviderTestSuite(t *testing.T) {
