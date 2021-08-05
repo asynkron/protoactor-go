@@ -163,5 +163,5 @@ func (m *defaultMailbox) Start() {
 }
 
 func (m *defaultMailbox) UserMessageCount() int {
-	return int(m.userMessages)
+	return int(atomic.LoadInt32(&m.userMessages))
 }
