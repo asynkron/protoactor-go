@@ -39,6 +39,11 @@ func generateCode(req *plugin.CodeGeneratorRequest, filenameSuffix string, goFmt
 
 func generate(file *google_protobuf.FileDescriptorProto) string {
 
+	// only generate grains for proto files containing service definitions
+	if len(file.GetService()) == 0 {
+		panic("proto file does not contain any service definition.")
+	}
+
 	pkg := ProtoAst(file)
 
 	t := template.New("grain")
