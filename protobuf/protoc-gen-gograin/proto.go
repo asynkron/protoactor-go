@@ -3,9 +3,40 @@ package main
 import (
 	"bytes"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	google_protobuf "github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 )
+
+// code lifted from gogo proto
+var isGoKeyword = map[string]bool{
+	"break":       true,
+	"case":        true,
+	"chan":        true,
+	"const":       true,
+	"continue":    true,
+	"default":     true,
+	"else":        true,
+	"defer":       true,
+	"fallthrough": true,
+	"for":         true,
+	"func":        true,
+	"go":          true,
+	"goto":        true,
+	"if":          true,
+	"import":      true,
+	"interface":   true,
+	"map":         true,
+	"package":     true,
+	"range":       true,
+	"return":      true,
+	"select":      true,
+	"struct":      true,
+	"switch":      true,
+	"type":        true,
+	"var":         true,
+}
 
 // ProtoFile reprpesents a parsed proto file
 type ProtoFile struct {
@@ -43,8 +74,20 @@ type ProtoMethod struct {
 func ProtoAst(file *google_protobuf.FileDescriptorProto) *ProtoFile {
 
 	pkg := &ProtoFile{}
-	pkg.PackageName = file.GetPackage()
 	pkg.Namespace = file.Options.GetCsharpNamespace()
+
+	// let us check the option go_package is defined in the file and use that one instead of the
+	// default one
+	var packageName string
+	if file.GetOptions().GetGoPackage() != "" {
+		packageName = cleanPackageName(file.GetOptions().GetGoPackage())
+	} else {
+		packageName = cleanPackageName(file.GetPackage())
+	}
+
+	// let us the go package name
+	pkg.PackageName = packageName
+
 	messages := make(map[string]*ProtoMessage)
 	for _, message := range file.GetMessageType() {
 		m := &ProtoMessage{}
@@ -90,4 +133,27 @@ func MakeFirstLowerCase(s string) string {
 	rest := bts[1:]
 
 	return string(bytes.Join([][]byte{lc, rest}, nil))
+}
+
+// cleanPackageName lifted from gogo generator
+// https://github.com/gogo/protobuf/blob/master/protoc-gen-gogo/generator/generator.go#L695
+func cleanPackageName(name string) string {
+	name = strings.Map(badToUnderscore, name)
+	// Identifier must not be keyword: insert _.
+	if isGoKeyword[name] {
+		name = "_" + name
+	}
+	// Identifier must not begin with digit: insert _.
+	if r, _ := utf8.DecodeRuneInString(name); unicode.IsDigit(r) {
+		name = "_" + name
+	}
+	return name
+}
+
+// badToUnderscore lifted from gogo generator
+func badToUnderscore(r rune) rune {
+	if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' {
+		return r
+	}
+	return '_'
 }
