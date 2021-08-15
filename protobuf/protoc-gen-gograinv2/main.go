@@ -25,13 +25,17 @@ func generateCode(req *plugin.CodeGeneratorRequest, filenameSuffix string, goFmt
 	response := &plugin.CodeGeneratorResponse{}
 	for _, f := range req.GetProtoFile() {
 		s := generate(f)
-		fileName := strings.Replace(f.GetName(), ".", "_", 1) + "actor.go"
-		r := &plugin.CodeGeneratorResponse_File{
-			Content: &s,
-			Name:    &fileName,
-		}
 
-		response.File = append(response.File, r)
+		// we only generate grains for proto files containing valid service definition
+		if len(f.GetService()) > 0 {
+			fileName := strings.Replace(f.GetName(), ".", "_", 1) + "actor.go"
+			r := &plugin.CodeGeneratorResponse_File{
+				Content: &s,
+				Name:    &fileName,
+			}
+
+			response.File = append(response.File, r)
+		}
 	}
 
 	return response
