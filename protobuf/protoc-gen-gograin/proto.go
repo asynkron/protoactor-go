@@ -110,8 +110,8 @@ func ProtoAst(file *google_protobuf.FileDescriptorProto) *ProtoFile {
 			m.PascalName = MakeFirstLowerCase(m.Name)
 			//		m.InputStream = *method.ClientStreaming
 			//		m.OutputStream = *method.ServerStreaming
-			input := removePackagePrefix(method.GetInputType(), pkg.PackageName)
-			output := removePackagePrefix(method.GetOutputType(), pkg.PackageName)
+			input := removePackagePrefix(method.GetInputType(), file.GetPackage())
+			output := removePackagePrefix(method.GetOutputType(), file.GetPackage())
 			m.Input = messages[input]
 			m.Output = messages[output]
 			s.Methods = append(s.Methods, m)
