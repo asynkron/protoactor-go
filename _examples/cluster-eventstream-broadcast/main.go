@@ -20,19 +20,12 @@ func main() {
 
 	cluster := startNode(remotingPort, clusteringPort, clusterMembers)
 
-	//publisherProps := actor.PropsFromProducer(func() actor.Actor { return NewPublisherActor(cluster) })
 	cancelPublisher := publish(cluster)
-	//subscriberProps := actor.PropsFromProducer(func() actor.Actor { return NewSubscriberActor() })
 	cancelSubscriber := subscribe(cluster)
-
-	//publisher := cluster.ActorSystem.Root.Spawn(publisherProps)
-	//subscriber := cluster.ActorSystem.Root.Spawn(subscriberProps)
 
 	console.ReadLine()
 
-	//cluster.ActorSystem.Root.StopFuture(publisher).Wait()
 	cancelPublisher()
-	//cluster.ActorSystem.Root.StopFuture(subscriber).Wait()
 	cancelSubscriber()
 
 	cluster.Shutdown(true)
