@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster/chash"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
@@ -211,4 +212,14 @@ func groupMembersByKind(members []*Member) map[string][]*Member {
 		}
 	}
 	return groups
+}
+
+func (ml *MemberList) BroadcastEvent(message interface{}) {
+	ml.mutex.RLock()
+	defer ml.mutex.RUnlock()
+
+	for _, member := range ml.members {
+		pid := actor.NewPID(member.Address(), "eventstream")
+		ml.cluster.ActorSystem.Root.Send(pid, message)
+	}
 }
