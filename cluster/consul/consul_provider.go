@@ -3,9 +3,10 @@ package consul
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/actor"
 	"sync"
 	"time"
+
+	"github.com/AsynkronIT/protoactor-go/actor"
 
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -53,7 +54,7 @@ func NewWithConfig(consulConfig *api.Config, opts ...Option) (*Provider, error) 
 		refreshTTL:          1 * time.Second,
 		deregisterCritical:  60 * time.Second,
 		blockingWaitTime:    20 * time.Second,
-		consulServerAddress: "127.0.0.1:8500",
+		consulServerAddress: consulConfig.Address,
 	}
 	for _, opt := range opts {
 		opt(p)
@@ -97,7 +98,9 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 }
 
 func (p *Provider) StartClient(c *cluster.Cluster) error {
-	p.init(c)
+	if err := p.init(c); err != nil {
+		return err
+	}
 	p.blockingStatusChange()
 	p.monitorMemberStatusChanges()
 	return nil
@@ -196,7 +199,7 @@ func (p *Provider) notifyStatuses() {
 	}
 	p.index = meta.LastIndex
 
-	members := []*cluster.Member{}
+	var members []*cluster.Member
 	for _, v := range statuses {
 		if len(v.Checks) > 0 && v.Checks.AggregatedStatus() == api.HealthPassing {
 			memberId := v.Service.Meta["id"]
