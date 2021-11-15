@@ -23,8 +23,11 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-var plog = log.New(log.DebugLevel, "[CLUSTER] [KUBERNETES]")
-var watchTimeoutSeconds int64 = 30
+var (
+	plog                            = log.New(log.DebugLevel, "[CLUSTER] [KUBERNETES]")
+	watchTimeoutSeconds       int64 = 30
+	ProviderShuttingDownError       = fmt.Errorf("kubernetes cluster provider is being shut down")
+)
 
 // Convenience type to store cluster labels
 type Labels map[string]string
@@ -153,7 +156,7 @@ func (p *Provider) Shutdown(graceful bool) error {
 func (p *Provider) UpdateClusterState(state cluster.ClusterState) error {
 	if p.shutdown {
 		// do not re-register while we are shutting down already
-		return fmt.Errorf("kubernetes cluster provider is being shut down")
+		return ProviderShuttingDownError
 	}
 
 	value, err := json.Marshal(state.BannedMembers)
