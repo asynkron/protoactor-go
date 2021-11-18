@@ -15,7 +15,6 @@ import (
 
 var (
 	ProviderShuttingDownError = fmt.Errorf("consul cluster provider is shutting down")
-	plog                      = log.New(log.DebugLevel, "[CLUSTER] [CONSUL]")
 )
 
 type Provider struct {

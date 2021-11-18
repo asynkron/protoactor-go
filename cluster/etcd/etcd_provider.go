@@ -16,10 +16,6 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-var (
-	plog = log.New(log.DefaultLevel, "[CLU/ETCD]")
-)
-
 type Provider struct {
 	leaseID       clientv3.LeaseID
 	cluster       *cluster.Cluster
