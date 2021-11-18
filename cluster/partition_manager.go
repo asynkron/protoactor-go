@@ -18,6 +18,7 @@ type PartitionManager struct {
 	kinds         sync.Map
 	topologySub   *eventstream.Subscription
 	deadletterSub *eventstream.Subscription
+	mux           sync.Mutex
 }
 
 func newPartitionManager(c *Cluster, kinds ...Kind) *PartitionManager {
@@ -69,7 +70,12 @@ func (pm *PartitionManager) PidOfIdentityActor(kind, addr string) *actor.PID {
 // }
 
 func (pm *PartitionManager) onClusterTopology(tplg *ClusterTopologyEventV2) {
-	plog.Debug("onClusterTopology", log.Uint64("eventId", tplg.EventId))
+	pm.mux.Lock()
+	defer pm.mux.Unlock()
+
+	_log := plog.With(log.Uint64("eventId", tplg.EventId))
+	_log.Debug("onClusterTopology start")
+
 	system := pm.cluster.ActorSystem
 	kindGroups := pm.groupClusterTopologyByKind(tplg.ClusterTopology)
 	for kind, msg := range kindGroups {
@@ -78,29 +84,30 @@ func (pm *PartitionManager) onClusterTopology(tplg *ClusterTopologyEventV2) {
 			system.Root.Send(pk.identity.PID(), msg)
 			system.Root.Send(pk.activator.PID(), msg)
 		} else {
-			pk := newPartitionKind(pm.cluster, kind)
-			v, _ = pm.kinds.LoadOrStore(kind, pk)
-			pk = v.(*PartitionKind)
+			// start partition of kind
 			chash, _ := tplg.chashByKind[kind]
-			// start partion of kind
+			pk := newPartitionKind(pm.cluster, kind)
 			if err := pk.start(chash); err != nil {
-				plog.Error("Start PartitionKind failed", log.String("kind", kind))
+				_log.Error("Start PartitionKind failed", log.String("kind", kind), log.Error(err))
+			} else {
+				pm.kinds.Store(kind, pk)
+				system.Root.Send(pk.identity.PID(), msg)
+				system.Root.Send(pk.activator.PID(), msg)
 			}
-			system.Root.Send(pk.identity.PID(), msg)
-			system.Root.Send(pk.activator.PID(), msg)
 		}
 	}
 
 	pm.kinds.Range(func(k, v interface{}) bool {
 		kind := k.(string)
 		if _, ok := kindGroups[kind]; !ok {
-			plog.Debug("onClusterTopology", log.String("kind", kind), log.String("status", "left"))
 			pk := v.(*PartitionKind)
 			pm.kinds.Delete(kind)
 			pk.stop()
+			_log.Info("Stopped PartitionKind", log.String("kind", kind))
 		}
 		return true
 	})
+	_log.Debug("onClusterTopology end")
 }
 
 func (pm *PartitionManager) groupClusterTopologyByKind(tplg *ClusterTopology) map[string]*ClusterTopology {

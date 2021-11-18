@@ -1,6 +1,6 @@
 module remoteactivate
 
-go 1.13
+go 1.16
 
 replace github.com/AsynkronIT/protoactor-go => ../..
 

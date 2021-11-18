@@ -12,10 +12,10 @@ start:
 	tmux split-window -t "eg:0.0" -h -p 66
 	tmux split-window -t "eg:0.1" -h -p 50
 	tmux select-pane -t "eg:0.3"
-	tmux send-keys -t "eg:0.0" "go run server/main.go --provider $(cp) --ttl $(ttl) --port 8081" Enter
-	tmux send-keys -t "eg:0.1" "go run server/main.go --provider $(cp) --ttl $(ttl) --port 8082" Enter
-	tmux send-keys -t "eg:0.2" "go run server/main.go --provider $(cp) --ttl $(ttl) --port 8083" Enter
-	tmux send-keys -t "eg:0.3" "sleep 3 && go run client/main.go --provider $(cp) --clients $(clients) --loops $(loops) --interval $(interval) " Enter
+	tmux send-keys -t "eg:0.0" "go run server/main.go --provider $(cp) --ttl $(ttl) --port 9991" Enter
+	tmux send-keys -t "eg:0.1" "go run server/main.go --provider $(cp) --ttl $(ttl) --port 9992" Enter
+	tmux send-keys -t "eg:0.2" "go run server/main.go --provider $(cp) --ttl $(ttl) --port 9993" Enter
+	tmux send-keys -t "eg:0.3" "sleep 2 && go run client/main.go --provider $(cp) --clients $(clients) --loops $(loops) --interval $(interval) " Enter
 	# tmux send-keys -t "eg:0.2" "go run member/main.go" Enter
 	tmux attach -t eg
 	tmux kill-session -t eg

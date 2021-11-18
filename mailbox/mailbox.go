@@ -28,6 +28,7 @@ type Mailbox interface {
 	PostSystemMessage(message interface{})
 	RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher)
 	Start()
+	UserMessageCount() int
 }
 
 // Producer is a function which creates a new mailbox
@@ -159,4 +160,8 @@ func (m *defaultMailbox) Start() {
 	for _, ms := range m.mailboxStats {
 		ms.MailboxStarted()
 	}
+}
+
+func (m *defaultMailbox) UserMessageCount() int {
+	return int(atomic.LoadInt32(&m.userMessages))
 }

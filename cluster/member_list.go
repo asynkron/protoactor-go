@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster/chash"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
@@ -87,7 +88,7 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member, eventId uint64) {
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
 	if ml.lastEventId >= eventId {
-		// plog.Debug("Skipped ClusterTopology", log.Int("members", len(members)), log.Uint64("eventId", eventId))
+		plog.Debug("Skipped ClusterTopology", log.Uint64("eventId", eventId), log.Int("members", len(members)))
 		return
 	}
 	ml.lastEventId = eventId
@@ -211,4 +212,14 @@ func groupMembersByKind(members []*Member) map[string][]*Member {
 		}
 	}
 	return groups
+}
+
+func (ml *MemberList) BroadcastEvent(message interface{}) {
+	ml.mutex.RLock()
+	defer ml.mutex.RUnlock()
+
+	for _, member := range ml.members {
+		pid := actor.NewPID(member.Address(), "eventstream")
+		ml.cluster.ActorSystem.Root.Send(pid, message)
+	}
 }

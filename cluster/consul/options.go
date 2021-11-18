@@ -15,9 +15,3 @@ func WithRefreshTTL(refreshTTL time.Duration) Option {
 		p.refreshTTL = refreshTTL
 	}
 }
-
-func WithConsulServerAddress(address string) Option {
-	return func(p *Provider) {
-		p.consulServerAddress = address
-	}
-}

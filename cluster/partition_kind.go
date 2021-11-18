@@ -48,9 +48,7 @@ func (pm *PartitionKind) start(_chash chash.ConsistentHash) error {
 		if err != nil {
 			return err
 		}
-		if err := pm.waiting(pid, 3*time.Second); err != nil {
-			return err
-		}
+		pm.activator.self = pid
 	}
 
 	// spawn PartitionIdentityActor
@@ -62,10 +60,15 @@ func (pm *PartitionKind) start(_chash chash.ConsistentHash) error {
 		if err != nil {
 			return err
 		}
+		pm.identity.self = pid
+	}
 
-		if err := pm.waiting(pid, 3*time.Second); err != nil {
-			return err
-		}
+	if err := pm.waiting(pm.identity.PID(), 3*time.Second); err != nil {
+		return err
+	}
+
+	if err := pm.waiting(pm.activator.PID(), 3*time.Second); err != nil {
+		return err
 	}
 
 	address := pm.identity.PID().GetAddress()

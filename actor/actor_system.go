@@ -58,5 +58,7 @@ func NewActorSystemWithConfig(config Config) *ActorSystem {
 	SubscribeSupervision(system)
 	system.Extensions.Register(NewMetrics())
 
+	system.ProcessRegistry.Add(NewEventStreamProcess(system), "eventstream")
+
 	return system
 }

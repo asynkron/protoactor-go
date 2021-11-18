@@ -17,8 +17,7 @@ import (
 )
 
 var (
-	_    cluster.ClusterProvider = new(Provider)
-	plog                         = log.New(log.InfoLevel, "[CLU/ZK]")
+	_ cluster.ClusterProvider = new(Provider)
 )
 
 type RoleType int
@@ -87,6 +86,10 @@ func New(endpoints []string, opts ...Option) (*Provider, error) {
 	p.conn = conn
 
 	return p, nil
+}
+
+func (p *Provider) IsLeader() bool {
+	return p.role == Leader
 }
 
 func (p *Provider) init(c *cluster.Cluster) error {
@@ -354,9 +357,9 @@ func (p *Provider) updateLeadership(ns []*Node) {
 	}
 	if role != p.role {
 		plog.Info("Role changed.", log.String("from", p.role.String()), log.String("to", role.String()))
+		p.role = role
 		p.roleChangedChan <- role
 	}
-	p.role = role
 }
 
 func (p *Provider) onEvent(evt zk.Event) {
@@ -376,6 +379,9 @@ func (p *Provider) onEvent(evt zk.Event) {
 }
 
 func (p *Provider) isLeaderOf(ns []*Node) bool {
+	if len(ns) == 1 && p.self != nil && ns[0].ID == p.self.ID {
+		return true
+	}
 	var minSeq int
 	for _, node := range ns {
 		if seq := node.GetSeq(); (seq > 0 && seq < minSeq) || minSeq == 0 {

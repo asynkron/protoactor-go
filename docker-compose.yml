@@ -2,9 +2,19 @@
 # @see https://docs.docker.com/compose/compose-file/
 version: '3.4'
 services:
- dev-etcd:
+ consul:
+    container_name: dev-consul
+    image: consul:1.10
+    restart: unless-stopped
+    ports:
+      - 8500:8500
+      - 8600:8600/udp
+    command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
+
+
+ etcd:
     container_name: dev-etcd
-    image: quay.io/coreos/etcd:latest
+    image: quay.io/coreos/etcd:v3.5.0
     restart: unless-stopped
     ports:
       - 2379:2379
@@ -20,3 +30,10 @@ services:
           --initial-cluster node1=http://127.0.0.1:2380
           --auto-compaction-mode=periodic 
           --auto-compaction-retention=30m
+
+ zookeeper:
+    container_name: dev-zookeeper
+    image: zookeeper:3.7
+    restart: unless-stopped
+    ports:
+      - 8000:2181

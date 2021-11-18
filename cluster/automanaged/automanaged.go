@@ -18,7 +18,6 @@ import (
 
 //TODO: needs to be attached to the provider instance
 var (
-	plog                       = log.New(log.DebugLevel, "[CLUSTER] [AUTOMANAGED]")
 	clusterTTLErrorMutex       = new(sync.Mutex)
 	clusterMonitorErrorMutex   = new(sync.Mutex)
 	shutdownMutex              = new(sync.Mutex)

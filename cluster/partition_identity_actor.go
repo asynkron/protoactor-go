@@ -78,7 +78,6 @@ func (p *partitionIdentityActor) Receive(ctx actor.Context) {
 func (p *partitionIdentityActor) onStart(ctx actor.Context) {
 	plog.Debug("Started PartitionIdentity", p.logPartition)
 	p.lastEventTimestamp = time.Now()
-	p.self = ctx.Self()
 }
 
 func (p *partitionIdentityActor) onStopped(ctx actor.Context) {
