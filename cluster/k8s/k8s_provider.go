@@ -24,7 +24,6 @@ import (
 )
 
 var (
-	plog                            = log.New(log.DebugLevel, "[CLUSTER] [KUBERNETES]")
 	watchTimeoutSeconds       int64 = 30
 	ProviderShuttingDownError       = fmt.Errorf("kubernetes cluster provider is being shut down")
 )
