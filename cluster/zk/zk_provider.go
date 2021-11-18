@@ -17,8 +17,7 @@ import (
 )
 
 var (
-	_    cluster.ClusterProvider = new(Provider)
-	plog                         = log.New(log.InfoLevel, "[CLU/ZK]")
+	_ cluster.ClusterProvider = new(Provider)
 )
 
 type RoleType int
