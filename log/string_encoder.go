@@ -50,6 +50,7 @@ func resetEventSubscriber(f func(evt Event)) {
 func (l *ioLogger) listenEvent() {
 	for true {
 		if noStdErrLogs {
+			Unsubscribe(sub)
 			break
 		}
 
