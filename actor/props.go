@@ -1,9 +1,12 @@
 package actor
 
 import (
+	"context"
 	"errors"
 
 	"github.com/AsynkronIT/protoactor-go/mailbox"
+	"github.com/AsynkronIT/protoactor-go/metrics"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // Props types
@@ -20,6 +23,21 @@ var (
 	defaultSpawner         = func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (*PID, error) {
 		ctx := newActorContext(actorSystem, props, parentContext.Self())
 		mb := props.produceMailbox()
+
+		// prepare the mailbox number counter
+		sysMetrics, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		if ok && sysMetrics.enabled {
+			if instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+				sysMetrics.PrepareMailboxLengthGauge(
+					func(_ context.Context, result metric.Int64ObserverResult) {
+
+						messageCount := int64(mb.UserMessageCount())
+						result.Observe(messageCount, sysMetrics.CommonLabels(ctx)...)
+					},
+				)
+			}
+		}
+
 		dp := props.getDispatcher()
 		proc := NewActorProcess(mb)
 		pid, absent := actorSystem.ProcessRegistry.Add(proc, id)

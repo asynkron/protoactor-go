@@ -1,6 +1,7 @@
 package actor
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"sync/atomic"
@@ -8,6 +9,8 @@ import (
 	"unsafe"
 
 	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/AsynkronIT/protoactor-go/metrics"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // ErrTimeout is the error used when a future times out before receiving a result.
@@ -24,6 +27,17 @@ func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
 	pid, ok := actorSystem.ProcessRegistry.Add(ref, "future"+id)
 	if !ok {
 		plog.Error("failed to register future process", log.Stringer("pid", pid))
+	}
+
+	sysMetrics, ok := actorSystem.Extensions.Get(extensionId).(*Metrics)
+	if ok && sysMetrics.enabled {
+		if instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+			ctx := context.Background()
+			labels := []attribute.KeyValue{
+				attribute.String("address", ref.actorSystem.Address()),
+			}
+			instruments.FuturesStartedCount.Add(ctx, 1, labels...)
+		}
 	}
 
 	ref.pid = pid
@@ -127,6 +141,8 @@ type futureProcess struct {
 var _ Process = &futureProcess{}
 
 func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}) {
+
+	defer ref.instrument()
 	_, msg, _ := UnwrapEnvelope(message)
 	if _, ok := msg.(*DeadLetterResponse); ok {
 		ref.result = nil
@@ -138,8 +154,30 @@ func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}) {
 }
 
 func (ref *futureProcess) SendSystemMessage(pid *PID, message interface{}) {
+
+	defer ref.instrument()
 	ref.result = message
 	ref.Stop(pid)
+}
+
+func (ref *futureProcess) instrument() {
+
+	sysMetrics, ok := ref.actorSystem.Extensions.Get(extensionId).(*Metrics)
+	if ok && sysMetrics.enabled {
+		ctx := context.Background()
+		labels := []attribute.KeyValue{
+			attribute.String("address", ref.actorSystem.Address()),
+		}
+
+		instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics)
+		if instruments != nil {
+			if ref.err == nil {
+				instruments.FuturesCompletedCount.Add(ctx, 1, labels...)
+			} else {
+				instruments.FuturesTimedOutCount.Add(ctx, 1, labels...)
+			}
+		}
+	}
 }
 
 func (ref *futureProcess) Stop(pid *PID) {

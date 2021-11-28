@@ -1,8 +1,14 @@
 package actor
 
 import (
-	"github.com/AsynkronIT/protoactor-go/log"
+	"context"
+	"fmt"
 	"strconv"
+	"strings"
+
+	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/AsynkronIT/protoactor-go/metrics"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type deadLetterProcess struct {
@@ -69,6 +75,18 @@ type DeadLetterEvent struct {
 }
 
 func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
+
+	metricsSystem, ok := dp.actorSystem.Extensions.Get(extensionId).(*Metrics)
+	if ok && metricsSystem.enabled {
+		ctx := context.Background()
+		if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+			labels := []attribute.KeyValue{
+				attribute.String("address", dp.actorSystem.Address()),
+				attribute.String("messagetype", strings.Replace(fmt.Sprintf("%T", message), "*", "", 1)),
+			}
+			instruments.DeadLetterCount.Add(ctx, 1, labels...)
+		}
+	}
 	_, msg, sender := UnwrapEnvelope(message)
 	dp.actorSystem.EventStream.Publish(&DeadLetterEvent{
 		PID:     pid,
