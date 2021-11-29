@@ -1,13 +1,16 @@
 package actor
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync/atomic"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/AsynkronIT/protoactor-go/metrics"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 const (
@@ -388,6 +391,16 @@ func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 
 // Stop will stop actor immediately regardless of existing user messages in mailbox.
 func (ctx *actorContext) Stop(pid *PID) {
+
+	if ctx.actorSystem.Config.MetricsProvider != nil {
+		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		if ok && metricsSystem.enabled {
+			_ctx := context.Background()
+			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+				instruments.ActorStoppedCount.Add(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
+			}
+		}
+	}
 	pid.ref(ctx.actorSystem).Stop(pid)
 }
 
@@ -435,7 +448,22 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 		}
 	}
 
+	t := time.Now()
 	ctx.processMessage(md)
+
+	delta := time.Now().Sub(t)
+	systemMetrics, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+	if ok && systemMetrics.enabled {
+		_ctx := context.Background()
+		if instruments := systemMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+			histoGram := instruments.ActorMessageReceiveHistogram
+			labels := append(
+				systemMetrics.CommonLabels(ctx),
+				attribute.String("messagetype", fmt.Sprintf("%T", md)),
+			)
+			histoGram.Record(_ctx, delta.Seconds(), labels...)
+		}
+	}
 
 	if ctx.receiveTimeout > 0 && influenceTimeout {
 		ctx.extras.resetReceiveTimeoutTimer(ctx.receiveTimeout)
@@ -459,8 +487,17 @@ func (ctx *actorContext) processMessage(m interface{}) {
 }
 
 func (ctx *actorContext) incarnateActor() {
+
 	atomic.StoreInt32(&ctx.state, stateAlive)
 	ctx.actor = ctx.props.producer()
+
+	metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+	if ok && metricsSystem.enabled {
+		_ctx := context.Background()
+		if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+			instruments.ActorSpawnCount.Add(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
+		}
+	}
 }
 
 func (ctx *actorContext) InvokeSystemMessage(message interface{}) {
@@ -514,6 +551,14 @@ func (ctx *actorContext) handleRestart(msg *Restart) {
 	ctx.InvokeUserMessage(restartingMessage)
 	ctx.stopAllChildren()
 	ctx.tryRestartOrTerminate()
+
+	metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+	if ok && metricsSystem.enabled {
+		_ctx := context.Background()
+		if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+			instruments.ActorRestartedCount.Add(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
+		}
+	}
 }
 
 // I am stopping
@@ -612,6 +657,14 @@ func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}
 	if ctx.actorSystem.Config.DeveloperSupervisionLogging {
 		fmt.Println("[Supervision] Actor:", ctx.self, " failed with message:", message, " exception:", reason)
 		plog.Error("[Supervision]", log.Stringer("actor", ctx.self), log.Object("message", message), log.Object("exception", reason))
+	}
+
+	metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+	if ok && metricsSystem.enabled {
+		_ctx := context.Background()
+		if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+			instruments.ActorFailureCount.Add(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
+		}
 	}
 
 	failure := &Failure{Reason: reason, Who: ctx.self, RestartStats: ctx.ensureExtras().restartStats(), Message: message}

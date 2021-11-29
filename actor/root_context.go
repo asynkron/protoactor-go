@@ -1,6 +1,8 @@
 package actor
 
-import "time"
+import (
+	"time"
+)
 
 type RootContext struct {
 	actorSystem      *ActorSystem
