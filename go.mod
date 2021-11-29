@@ -43,7 +43,7 @@ require (
 	gopkg.in/couchbaselabs/gocbconnstr.v1 v1.0.4 // indirect
 	gopkg.in/couchbaselabs/gojcbmock.v1 v1.0.4 // indirect
 	gopkg.in/couchbaselabs/jsonx.v1 v1.0.0 // indirect
-	k8s.io/api v0.22.3
-	k8s.io/apimachinery v0.22.3
+	k8s.io/api v0.22.4
+	k8s.io/apimachinery v0.22.4
 	k8s.io/client-go v0.22.3
 )
