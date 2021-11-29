@@ -18,8 +18,18 @@ type ioLogger struct {
 }
 
 var (
-	sub *Subscription
+	noStdErrLogs bool
+	sub          *Subscription
 )
+
+// Disables Proto.Actor standard error logs if there is one
+// or more additional log subscribers registered
+func SetNoStdErrLogs() {
+
+	if len(es.subscriptions) >= 2 {
+		noStdErrLogs = true
+	}
+}
 
 func init() {
 	l := &ioLogger{c: make(chan Event, 100), out: os.Stderr}
@@ -39,6 +49,11 @@ func resetEventSubscriber(f func(evt Event)) {
 
 func (l *ioLogger) listenEvent() {
 	for true {
+		if noStdErrLogs {
+			Unsubscribe(sub)
+			break
+		}
+
 		e := <-l.c
 		l.writeEvent(e)
 	}
