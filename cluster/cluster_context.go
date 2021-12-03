@@ -1,23 +1,10 @@
 package cluster
 
-import "fmt"
+import "time"
 
+// Interface any cluster context needs to implement
 type ClusterContext interface {
-	Request(identity string, kind string, message interface{}) (interface{}, error)
-}
-
-func NewDefaultClusterContext(cluster *Cluster) ClusterContext {
-	return &DefaultClusterContext{
-		cluster: cluster,
-	}
-}
-
-type DefaultClusterContext struct {
-	cluster *Cluster
-}
-
-func (d DefaultClusterContext) Request(identity string, kind string, message interface{}) (interface{}, error) {
-	return nil, fmt.Errorf("foo")
+	Request(identity string, kind string, message interface{}, timeout ...time.Duration) (interface{}, error)
 }
 
 /*
