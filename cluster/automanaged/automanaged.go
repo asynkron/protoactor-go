@@ -222,8 +222,9 @@ func (p *AutoManagedProvider) GetHealthStatus() error {
 	if p.clusterMonitorError != nil {
 		if err != nil {
 			err = fmt.Errorf("%s - Monitor: %s", err.Error(), p.clusterMonitorError.Error())
+		} else {
+			err = fmt.Errorf("Monitor: %s", p.clusterMonitorError.Error())
 		}
-		err = fmt.Errorf("Monitor: %s", p.clusterMonitorError.Error())
 	}
 
 	return err
