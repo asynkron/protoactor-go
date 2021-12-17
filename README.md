@@ -1,4 +1,4 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/AsynkronIT/protoactor-go)](https://goreportcard.com/report/github.com/AsynkronIT/protoactor-go) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/AsynkronIT/protoactor-go)](https://goreportcard.com/report/github.com/AsynkronIT/protoactor-go)
 [![GoDoc](https://godoc.org/github.com/AsynkronIT/protoactor-go?status.svg)](https://godoc.org/github.com/AsynkronIT/protoactor-go)
 [![Build Status](https://travis-ci.org/AsynkronIT/protoactor-go.svg?branch=dev)](https://travis-ci.org/AsynkronIT/protoactor-go)
 [![Coverage Status](https://coveralls.io/repos/github/AsynkronIT/protoactor-go/badge.svg?branch=dev)](https://coveralls.io/github/AsynkronIT/protoactor-go?branch=dev)
@@ -15,6 +15,7 @@ The Go implementation is still in beta, there are users using Proto Actor for Go
 But be aware that the API might change over time until 1.0.
 
 ## Sourcecode - Go
+
 This is the Go repository for Proto Actor.
 
 The C# implementation can be found here [https://github.com/AsynkronIT/protoactor-dotnet](https://github.com/AsynkronIT/protoactor-dotnet)
@@ -71,7 +72,7 @@ Proto Actor builds on existing technologies, Protobuf for serialization, gRPC st
 This ensures cross platform compatibility, network protocol version tolerance and battle proven stability.
 
 Another extremely important factor here is business agility and having an exit strategy.
-By being cross platform, your organization is no longer tied into a specific platform, if you are migrating from .NET to Go, 
+By being cross platform, your organization is no longer tied into a specific platform, if you are migrating from .NET to Go,
 This can be done while still allowing actor based services to communicate between platforms.
 
 Reinvent by not reinventing.
@@ -82,9 +83,9 @@ Reinvent by not reinventing.
 
 ![batman](/resources/batman.jpg)
 
-* Decoupled Concurrency
-* Distributed by default
-* Fault tolerance
+- Decoupled Concurrency
+- Distributed by default
+- Fault tolerance
 
 For a more indepth description of the differences, see this thread [Actors vs. CSP](https://www.quora.com/Go-programming-language-How-are-Akka-actors-are-different-than-Goroutines-and-Channels)
 
@@ -382,18 +383,21 @@ message Response {
   string SomeValue = 1;
 }
 ```
+
 Notice: always use "gogoslick_out" instead of "go_out" when generating proto code. "gogoslick_out" will create type names which will be used during serialization.
 
 For more examples, see the example folder in this repository.
 
-## Contributors 
+## Sponsors
+
+Our awesome sponsors:
+
+<!-- sponsors --><!-- sponsors -->
+
+## Contributors
 
 <a href="https://github.com/AsynkronIT/protoactor-go/graphs/contributors">
   <img src="https://contributors-img.web.app/image?repo=AsynkronIT/protoactor-go" />
 </a>
 
 Made with [contributors-img](https://contributors-img.web.app).
-
-## Sponsors
-
-<!-- sponsors --><a href="https://github.com/jhston02"><img src="https://github.com/jhston02.png" width="60px" alt="" /></a><a href="https://github.com/schafer14"><img src="https://github.com/schafer14.png" width="60px" alt="" /></a><!-- sponsors -->
