@@ -45,5 +45,5 @@ require (
 	gopkg.in/couchbaselabs/jsonx.v1 v1.0.0 // indirect
 	k8s.io/api v0.23.1
 	k8s.io/apimachinery v0.23.1
-	k8s.io/client-go v0.23.0
+	k8s.io/client-go v0.23.1
 )
