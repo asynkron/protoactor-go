@@ -396,4 +396,4 @@ Made with [contributors-img](https://contributors-img.web.app).
 
 ## Sponsors
 
-<!-- sponsors --><!-- sponsors -->
+<!-- sponsors --><a href="https://github.com/jhston02"><img src="https://github.com/jhston02.png" width="60px" alt="" /></a><a href="https://github.com/schafer14"><img src="https://github.com/schafer14.png" width="60px" alt="" /></a><!-- sponsors -->
