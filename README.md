@@ -394,6 +394,6 @@ For more examples, see the example folder in this repository.
 
 Made with [contributors-img](https://contributors-img.web.app).
 
-### Support
+## Sponsors
 
-Many thanks to [JetBrains](https://www.jetbrains.com) for support!
+<!-- sponsors --><!-- sponsors -->
