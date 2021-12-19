@@ -114,6 +114,10 @@ func (m *endpointWriterMailbox) run() {
 	}
 }
 
+func (m *endpointWriterMailbox) UserMessageCount() int {
+	return int(m.userMailbox.Length())
+}
+
 func endpointWriterMailboxProducer(batchSize, initialSize int) mailbox.Producer {
 	return func() mailbox.Mailbox {
 		userMailbox := goring.New(int64(initialSize))

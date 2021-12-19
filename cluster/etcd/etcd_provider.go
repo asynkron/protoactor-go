@@ -11,11 +11,7 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/coreos/etcd/clientv3"
-)
-
-var (
-	plog = log.New(log.DefaultLevel, "[CLU/ETCD]")
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 type Provider struct {

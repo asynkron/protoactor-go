@@ -1,10 +1,8 @@
 module cluster-restartgracefully
 
-go 1.13
+go 1.16
 
 replace github.com/AsynkronIT/protoactor-go => ../..
-
-replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
 
 require (
 	github.com/AsynkronIT/goconsole v0.0.0-20160504192649-bfa12eebf716

@@ -16,6 +16,8 @@ func newProcess(pid *actor.PID, r *Remote) actor.Process {
 	}
 }
 
+var _ actor.Process = &process{}
+
 func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
 	header, msg, sender := actor.UnwrapEnvelope(message)
 	ref.remote.SendMessage(pid, header, msg, sender, -1)

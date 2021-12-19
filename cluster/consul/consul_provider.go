@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
+
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/hashicorp/consul/api"
@@ -12,28 +14,27 @@ import (
 
 var (
 	ProviderShuttingDownError = fmt.Errorf("consul cluster provider is shutting down")
-	// for mocking purposes this function is assigned to a variable
-	blockingUpdateTTLFunc = blockingUpdateTTL
-	plog                  = log.New(log.DebugLevel, "[CLUSTER] [CONSUL]")
 )
 
 type Provider struct {
-	cluster            *cluster.Cluster
-	deregistered       bool
-	shutdown           bool
-	id                 string
-	clusterName        string
-	address            string
-	port               int
-	knownKinds         []string
-	index              uint64 // consul blocking index
-	client             *api.Client
-	ttl                time.Duration
-	refreshTTL         time.Duration
-	updateTTLWaitGroup sync.WaitGroup
-	deregisterCritical time.Duration
-	blockingWaitTime   time.Duration
-	clusterError       error
+	cluster             *cluster.Cluster
+	deregistered        bool
+	shutdown            bool
+	id                  string
+	clusterName         string
+	address             string
+	port                int
+	knownKinds          []string
+	index               uint64 // consul blocking index
+	client              *api.Client
+	ttl                 time.Duration
+	refreshTTL          time.Duration
+	updateTTLWaitGroup  sync.WaitGroup
+	deregisterCritical  time.Duration
+	blockingWaitTime    time.Duration
+	clusterError        error
+	consulServerAddress string
+	pid                 *actor.PID
 }
 
 func New(opts ...Option) (*Provider, error) {
@@ -46,11 +47,12 @@ func NewWithConfig(consulConfig *api.Config, opts ...Option) (*Provider, error) 
 		return nil, err
 	}
 	p := &Provider{
-		client:             client,
-		ttl:                3 * time.Second,
-		refreshTTL:         1 * time.Second,
-		deregisterCritical: 60 * time.Second,
-		blockingWaitTime:   20 * time.Second,
+		client:              client,
+		ttl:                 3 * time.Second,
+		refreshTTL:          1 * time.Second,
+		deregisterCritical:  60 * time.Second,
+		blockingWaitTime:    20 * time.Second,
+		consulServerAddress: consulConfig.Address,
 	}
 	for _, opt := range opts {
 		opt(p)
@@ -83,29 +85,21 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 		return err
 	}
 
-	err = p.registerService()
+	p.pid, err = c.ActorSystem.Root.SpawnNamed(actor.PropsFromProducer(func() actor.Actor {
+		return newProviderActor(p)
+	}), "consul-provider")
 	if err != nil {
+		plog.Error("Failed to start consul-provider actor", log.Error(err))
 		return err
 	}
 
-	// IMPORTANT: do these ops sync directly after registering.
-	// this will ensure that the local node sees its own information upon startup.
-
-	// force our own TTL to be OK
-	err = blockingUpdateTTLFunc(p)
-	if err != nil {
-		return err
-	}
-
-	// force our own existence to be part of the first status update
-	p.blockingStatusChange()
-	p.UpdateTTL()
-	p.monitorMemberStatusChanges()
 	return nil
 }
 
 func (p *Provider) StartClient(c *cluster.Cluster) error {
-	p.init(c)
+	if err := p.init(c); err != nil {
+		return err
+	}
 	p.blockingStatusChange()
 	p.monitorMemberStatusChanges()
 	return nil
@@ -126,56 +120,14 @@ func (p *Provider) Shutdown(graceful bool) error {
 		return nil
 	}
 	p.shutdown = true
-	if !graceful {
-		return nil
-	}
-	p.updateTTLWaitGroup.Wait()
-
-	if !p.deregistered {
-		err := p.DeregisterMember()
-		if err != nil {
-			return err
+	if p.pid != nil {
+		if err := p.cluster.ActorSystem.Root.StopFuture(p.pid).Wait(); err != nil {
+			plog.Error("Failed to stop consul-provider actor", log.Error(err))
 		}
+		p.pid = nil
 	}
+
 	return nil
-}
-
-func (p *Provider) UpdateTTL() {
-	go func() {
-		p.updateTTLWaitGroup.Add(1)
-		defer p.updateTTLWaitGroup.Done()
-
-	OUTER:
-		for !p.shutdown {
-
-			err := blockingUpdateTTLFunc(p)
-			if err == nil {
-				time.Sleep(p.refreshTTL)
-				continue
-			}
-
-			plog.Info("Failure refreshing service TTL. Trying to reregister service if not in consul.")
-
-			services, err := p.client.Agent().Services()
-			for id := range services {
-				if id == p.id {
-					plog.Info("Service found in consul -> doing nothing")
-					time.Sleep(p.refreshTTL)
-					continue OUTER
-				}
-			}
-
-			err = p.registerService()
-			if err != nil {
-				plog.Error("Error reregistering service ", log.Error(err))
-				time.Sleep(p.refreshTTL)
-				continue
-			}
-
-			plog.Info("Reregistered service in consul")
-			time.Sleep(p.refreshTTL)
-		}
-	}()
 }
 
 func blockingUpdateTTL(p *Provider) error {
@@ -221,7 +173,7 @@ func (p *Provider) notifyStatuses() {
 	}
 	p.index = meta.LastIndex
 
-	members := []*cluster.Member{}
+	var members []*cluster.Member
 	for _, v := range statuses {
 		if len(v.Checks) > 0 && v.Checks.AggregatedStatus() == api.HealthPassing {
 			memberId := v.Service.Meta["id"]
@@ -253,9 +205,4 @@ func (p *Provider) monitorMemberStatusChanges() {
 			p.notifyStatuses()
 		}
 	}()
-}
-
-// GetHealthStatus returns an error if the cluster health status has problems
-func (p *Provider) GetHealthStatus() error {
-	return p.clusterError
 }

@@ -18,7 +18,6 @@ import (
 
 //TODO: needs to be attached to the provider instance
 var (
-	plog                       = log.New(log.DebugLevel, "[CLUSTER] [AUTOMANAGED]")
 	clusterTTLErrorMutex       = new(sync.Mutex)
 	clusterMonitorErrorMutex   = new(sync.Mutex)
 	shutdownMutex              = new(sync.Mutex)
@@ -215,8 +214,9 @@ func (p *AutoManagedProvider) GetHealthStatus() error {
 	if p.clusterMonitorError != nil {
 		if err != nil {
 			err = fmt.Errorf("%s - Monitor: %s", err.Error(), p.clusterMonitorError.Error())
+		} else {
+			err = fmt.Errorf("Monitor: %s", p.clusterMonitorError.Error())
 		}
-		err = fmt.Errorf("Monitor: %s", p.clusterMonitorError.Error())
 	}
 
 	return err

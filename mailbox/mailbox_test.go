@@ -132,3 +132,24 @@ func TestBoundedDroppingMailbox(t *testing.T) {
 	m.Push("4")
 	assert.Equal(t, "2", m.Pop())
 }
+
+func TestMailboxUserMessageCount(t *testing.T) {
+	max := 10
+	c := 10
+	var wg sync.WaitGroup
+	wg.Add(1)
+	p := UnboundedLockfree()
+	mi := &invoker{
+		max: max,
+		wg:  &wg,
+	}
+	q := p()
+	q.RegisterHandlers(mi, NewDefaultDispatcher(300))
+
+	for j := 0; j < c; j++ {
+		q.PostUserMessage(fmt.Sprintf("%v", j))
+	}
+	assert.Equal(t, c, q.UserMessageCount())
+	wg.Wait()
+	time.Sleep(100 * time.Millisecond)
+}

@@ -24,10 +24,8 @@ func startTimer(delay, interval time.Duration, fn func()) CancelFunc {
 	var t *time.Timer
 	var state int32
 	t = time.AfterFunc(delay, func() {
-		state := atomic.LoadInt32(&state)
-		for state == stateInit {
+		for atomic.LoadInt32(&state) == stateInit {
 			runtime.Gosched()
-			state = atomic.LoadInt32(&state)
 		}
 
 		if state == stateDone {

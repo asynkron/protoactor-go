@@ -1,6 +1,8 @@
 package actor
 
-import "time"
+import (
+	"time"
+)
 
 type RootContext struct {
 	actorSystem      *ActorSystem
@@ -9,6 +11,10 @@ type RootContext struct {
 	headers          messageHeader
 	guardianStrategy SupervisorStrategy
 }
+
+var _ SenderContext = &RootContext{}
+var _ SpawnerContext = &RootContext{}
+var _ stopperPart = &RootContext{}
 
 func NewRootContext(actorSystem *ActorSystem, header map[string]string, middleware ...SenderMiddleware) *RootContext {
 	if header == nil {

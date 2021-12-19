@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -124,6 +123,56 @@ func TestRegisterMultipleMembers(t *testing.T) {
 	}
 }
 
+func TestUpdateMemberState(t *testing.T) {
+	if testing.Short() {
+		return
+	}
+	assert := assert.New(t)
+
+	p, _ := New()
+	defer p.Shutdown(true)
+
+	c := newClusterForTest("mycluster3", "127.0.0.1:8000", p)
+	err := p.StartMember(c)
+	assert.NoError(err)
+
+	state := cluster.ClusterState{[]string{"yes"}}
+	err = p.UpdateClusterState(state)
+	assert.NoError(err)
+}
+
+func TestUpdateMemberState_DoesNotReregisterAfterShutdown(t *testing.T) {
+	if testing.Short() {
+		return
+	}
+	assert := assert.New(t)
+
+	p, _ := New()
+	c := newClusterForTest("mycluster4", "127.0.0.1:8001", p)
+	err := p.StartMember(c)
+	assert.NoError(err)
+	t.Cleanup(func() {
+		p.Shutdown(true)
+	})
+
+	time.Sleep(time.Second)
+	found, _ := findService(t, p)
+	assert.True(found, "service was not registered in consul")
+
+	state := cluster.ClusterState{[]string{"yes"}}
+	err = p.UpdateClusterState(state)
+	assert.NoError(err)
+
+	err = p.Shutdown(true)
+	assert.NoError(err)
+
+	err = p.UpdateClusterState(state)
+	assert.Equal(ProviderShuttingDownError, err)
+
+	found, status := findService(t, p)
+	assert.Falsef(found, "service was re-registered in consul after shutdown (status: %s)", status)
+}
+
 func TestUpdateTTL_DoesNotReregisterAfterShutdown(t *testing.T) {
 	if testing.Short() {
 		return
@@ -132,45 +181,15 @@ func TestUpdateTTL_DoesNotReregisterAfterShutdown(t *testing.T) {
 
 	p, _ := New()
 	c := newClusterForTest("mycluster5", "127.0.0.1:8001", p)
-	port := c.Config.RemoteConfig.Port
-
-	originalBlockingUpdateTTLFunc := blockingUpdateTTLFunc
-	defer func() {
-		blockingUpdateTTLFunc = originalBlockingUpdateTTLFunc
-	}()
-
-	registeredInConsul := false
-
-	var blockingUpdateTTLBlockReachedWg sync.WaitGroup
-	blockingUpdateTTLBlockReachedWg.Add(1)
-
-	// shutdownShouldHaveResolved := false
 
 	shutdownShouldHaveResolved := make(chan bool, 1)
 
-	// this simulates `blockingUpdateTTL` in `UpdateTTL` to be slower than `Shutdown`
-	blockingUpdateTTLFunc = func(p *Provider) error {
-		// default behaviour until `StartMember` was called
-		if !registeredInConsul || p.port != port {
-			return originalBlockingUpdateTTLFunc(p)
-		}
-
-		blockingUpdateTTLBlockReachedWg.Done()
-
-		// wait until it is safe to assume that `Shutdown` will not finish until this call resolves or that `Shutdown` is already done
-		<-shutdownShouldHaveResolved
-		return originalBlockingUpdateTTLFunc(p)
-	}
-
 	err := p.StartMember(c)
 	assert.NoError(err)
-	registeredInConsul = true
 
+	time.Sleep(time.Second)
 	found, _ := findService(t, p)
 	assert.True(found, "service was not registered in consul")
-
-	// Wait until `blockingUpdateTTL` waits for the deregistration/shutdown of the member
-	blockingUpdateTTLBlockReachedWg.Wait()
 
 	go func() {
 		// if after 5 seconds `Shutdown` did not resolve, assume that it will not resolve until `blockingUpdateTTL` resolves

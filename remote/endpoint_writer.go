@@ -30,6 +30,8 @@ type endpointWriter struct {
 }
 
 func (state *endpointWriter) initialize() {
+	now := time.Now()
+	plog.Info("Started EndpointWriter. connecting", log.String("address", state.address))
 	err := state.initializeInternal()
 	if err != nil {
 		plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
@@ -38,20 +40,18 @@ func (state *endpointWriter) initialize() {
 		time.Sleep(2 * time.Second)
 		panic(err)
 	}
+	plog.Info("EndpointWriter connected", log.String("address", state.address), log.Duration("cost", time.Since(now)))
 }
 
 func (state *endpointWriter) initializeInternal() error {
-	plog.Info("Started EndpointWriter. connecting", log.String("address", state.address))
 	conn, err := grpc.Dial(state.address, state.config.DialOptions...)
 	if err != nil {
-		plog.Info("EndpointWriter connect failed", log.String("address", state.address), log.Error(err))
 		return err
 	}
 	state.conn = conn
 	c := NewRemotingClient(conn)
 	resp, err := c.Connect(context.Background(), &ConnectRequest{})
 	if err != nil {
-		plog.Info("EndpointWriter connect failed", log.String("address", state.address), log.Error(err))
 		return err
 	}
 	state.defaultSerializerId = resp.DefaultSerializerId
@@ -59,7 +59,6 @@ func (state *endpointWriter) initializeInternal() error {
 	//	log.Printf("Getting stream from address %v", state.address)
 	stream, err := c.Receive(context.Background(), state.config.CallOptions...)
 	if err != nil {
-		plog.Info("EndpointWriter connect failed", log.String("address", state.address), log.Error(err))
 		return err
 	}
 	go func() {
@@ -88,7 +87,6 @@ func (state *endpointWriter) initializeInternal() error {
 		}
 	}()
 
-	plog.Info("EndpointWriter connected", log.String("address", state.address))
 	connected := &EndpointConnectedEvent{Address: state.address}
 	state.remote.actorSystem.EventStream.Publish(connected)
 	state.stream = stream
@@ -176,20 +174,11 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 	case *actor.Started:
 		state.initialize()
 	case *actor.Stopped:
-		if state.stream != nil {
-			err := state.stream.CloseSend()
-			if err != nil {
-				plog.Error("EndpointWriter error when closing the stream", log.Error(err))
-			}
-		}
+		state.closeClientConn()
 	case *actor.Restarting:
-		if state.stream != nil {
-			err := state.stream.CloseSend()
-			if err != nil {
-				plog.Error("EndpointWriter error when closing the stream", log.Error(err))
-			}
-		}
+		state.closeClientConn()
 	case *EndpointTerminatedEvent:
+		plog.Info("Stopping EnpointWriter", log.String("address", state.address))
 		ctx.Stop(ctx.Self())
 	case []interface{}:
 		state.sendEnvelopes(msg, ctx)
@@ -197,5 +186,20 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 		// ignore
 	default:
 		plog.Error("EndpointWriter received unknown message", log.String("address", state.address), log.TypeOf("type", msg), log.Message(msg))
+	}
+}
+
+func (state *endpointWriter) closeClientConn() {
+	if state.stream != nil {
+		err := state.stream.CloseSend()
+		if err != nil {
+			plog.Error("EndpointWriter error when closing the stream", log.Error(err))
+		}
+	}
+	if state.conn != nil {
+		err := state.conn.Close()
+		if err != nil {
+			plog.Error("EndpointWriter error when closing the client conn", log.Error(err))
+		}
 	}
 }

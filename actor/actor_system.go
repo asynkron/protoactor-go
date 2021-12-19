@@ -59,7 +59,9 @@ func NewActorSystemWithConfig(config Config) *ActorSystem {
 	system.DeadLetter = NewDeadLetter(system)
 	system.Extensions = extensions.NewExtensions()
 	SubscribeSupervision(system)
-	system.Extensions.Register(NewMetrics())
+	system.Extensions.Register(NewMetrics(config.MetricsProvider))
+
+	system.ProcessRegistry.Add(NewEventStreamProcess(system), "eventstream")
 
 	return system
 }
