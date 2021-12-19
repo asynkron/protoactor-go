@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	console "github.com/AsynkronIT/goconsole"
+	. "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 )
 
@@ -46,5 +46,5 @@ func main() {
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, Hello{Who: "Roger"})
 	rootContext.Send(pid, Hello{Who: "Roger"})
-	console.ReadLine()
+	_, _ = ReadLine()
 }
