@@ -44,8 +44,9 @@ func (as *ActorSystem) GetHostPort() (host string, port int, err error) {
 	return
 }
 
-func NewActorSystem() *ActorSystem {
-	return NewActorSystemWithConfig(defaultConfig())
+func NewActorSystem(options ...ConfigOption) *ActorSystem {
+	config := Configure(options...)
+	return NewActorSystemWithConfig(config)
 }
 
 func NewActorSystemWithConfig(config Config) *ActorSystem {

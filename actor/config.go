@@ -124,7 +124,7 @@ func WithMetricProviders(provider metric.MeterProvider) ConfigOption {
 	}
 }
 
-func (asc Config) WithDefaultPrometheusProvider(port ...int) ConfigOption {
+func WithDefaultPrometheusProvider(port ...int) ConfigOption {
 	_port := 2222
 	if len(port) > 0 {
 		_port = port[0]
