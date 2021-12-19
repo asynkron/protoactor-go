@@ -391,7 +391,6 @@ func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 
 // Stop will stop actor immediately regardless of existing user messages in mailbox.
 func (ctx *actorContext) Stop(pid *PID) {
-
 	if ctx.actorSystem.Config.MetricsProvider != nil {
 		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
 		if ok && metricsSystem.enabled {
@@ -451,7 +450,7 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 	t := time.Now()
 	ctx.processMessage(md)
 
-	delta := time.Now().Sub(t)
+	delta := time.Since(t)
 	systemMetrics, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
 	if ok && systemMetrics.enabled {
 		_ctx := context.Background()
@@ -487,7 +486,6 @@ func (ctx *actorContext) processMessage(m interface{}) {
 }
 
 func (ctx *actorContext) incarnateActor() {
-
 	atomic.StoreInt32(&ctx.state, stateAlive)
 	ctx.actor = ctx.props.producer()
 
@@ -513,13 +511,13 @@ func (ctx *actorContext) InvokeSystemMessage(message interface{}) {
 	case *Unwatch:
 		ctx.handleUnwatch(msg)
 	case *Stop:
-		ctx.handleStop(msg)
+		ctx.handleStop()
 	case *Terminated:
 		ctx.handleTerminated(msg)
 	case *Failure:
 		ctx.handleFailure(msg)
 	case *Restart:
-		ctx.handleRestart(msg)
+		ctx.handleRestart()
 	default:
 		plog.Error("unknown system message", log.Message(msg))
 	}
@@ -546,7 +544,7 @@ func (ctx *actorContext) handleUnwatch(msg *Unwatch) {
 	ctx.extras.unwatch(msg.Watcher)
 }
 
-func (ctx *actorContext) handleRestart(msg *Restart) {
+func (ctx *actorContext) handleRestart() {
 	atomic.StoreInt32(&ctx.state, stateRestarting)
 	ctx.InvokeUserMessage(restartingMessage)
 	ctx.stopAllChildren()
@@ -562,7 +560,7 @@ func (ctx *actorContext) handleRestart(msg *Restart) {
 }
 
 // I am stopping
-func (ctx *actorContext) handleStop(msg *Stop) {
+func (ctx *actorContext) handleStop() {
 	if atomic.LoadInt32(&ctx.state) >= stateStopping {
 		// already stopping or stopped
 		return
@@ -652,7 +650,6 @@ func (ctx *actorContext) finalizeStop() {
 //
 
 func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {
-
 	//debug setting, allows to output supervision failures in console/error level
 	if ctx.actorSystem.Config.DeveloperSupervisionLogging {
 		fmt.Println("[Supervision] Actor:", ctx.self, " failed with message:", message, " exception:", reason)
