@@ -68,9 +68,11 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 	return provider
 }
 
-func NewConfig() Config {
-	return defaultActorSystemConfig()
 type ConfigOption func(config Config) Config
+
+func NewConfig() Config {
+	return defaultConfig()
+}
 
 func Configure(options ...ConfigOption) Config {
 	config := defaultConfig()
@@ -115,17 +117,17 @@ func WithDiagnosticsSerializer(serializer func(Actor) string) ConfigOption {
 	}
 }
 
-func (asc Config) WithMetricProviders(provider metric.MeterProvider) Config {
-
-	asc.MetricsProvider = provider
-	return asc
+func WithMetricProviders(provider metric.MeterProvider) ConfigOption {
+	return func(config Config) Config {
+		config.MetricsProvider = provider
+		return config
+	}
 }
 
-func (asc Config) WithDefaultPrometheusProvider(port ...int) Config {
-
+func (asc Config) WithDefaultPrometheusProvider(port ...int) ConfigOption {
 	_port := 2222
 	if len(port) > 0 {
 		_port = port[0]
 	}
-	return asc.WithMetricProviders(defaultPrometheusProvider(_port))
+	return WithMetricProviders(defaultPrometheusProvider(_port))
 }

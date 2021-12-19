@@ -173,19 +173,6 @@ func (p *Provider) Shutdown(graceful bool) error {
 	return nil
 }
 
-func (p *Provider) UpdateClusterState(state cluster.ClusterState) error {
-	if p.shutdown {
-		return fmt.Errorf("shutdowned")
-	}
-	data, err := json.Marshal(state)
-	if err != nil {
-		return err
-	}
-	value := base64.StdEncoding.EncodeToString(data)
-	p.self.SetMeta("state", value)
-	return p.registerService()
-}
-
 func (p *Provider) getID() string {
 	return p.self.ID
 }
@@ -497,7 +484,7 @@ func (p *Provider) createClusterTopologyEvent() cluster.TopologyEvent {
 func (p *Provider) publishClusterTopologyEvent() {
 	res := p.createClusterTopologyEvent()
 	plog.Info("Update cluster.", log.Int("members", len(res)))
-	p.cluster.MemberList.UpdateClusterTopology(res, p.revision)
+	p.cluster.MemberList.UpdateClusterTopology(res)
 }
 
 func splitHostPort(addr string) (host string, port int, err error) {

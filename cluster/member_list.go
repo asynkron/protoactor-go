@@ -136,13 +136,3 @@ func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 		ml.cluster.ActorSystem.Root.Send(pid, message)
 	}
 }
-
-func (ml *MemberList) BroadcastEvent(message interface{}) {
-	ml.mutex.RLock()
-	defer ml.mutex.RUnlock()
-
-	for _, member := range ml.members {
-		pid := actor.NewPID(member.Address(), "eventstream")
-		ml.cluster.ActorSystem.Root.Send(pid, message)
-	}
-}

@@ -62,7 +62,7 @@ func (pa *providerActor) running(ctx actor.Context) {
 			plog.Warn("Failed to update TTL", log.Error(err))
 		}
 	case *MemberListUpdated:
-		pa.cluster.MemberList.UpdateClusterTopology(msg.members, msg.index)
+		pa.cluster.MemberList.UpdateClusterTopology(msg.members)
 	case *actor.Stopping:
 		pa.refreshCanceller()
 		if err := pa.deregisterService(); err != nil {
