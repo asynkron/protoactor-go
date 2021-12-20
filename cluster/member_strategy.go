@@ -2,11 +2,11 @@ package cluster
 
 type MemberStrategy interface {
 	GetAllMembers() []*Member
-	// AddMember(member *Member)
-	// UpdateMember(member *Member)
-	// RemoveMember(member *Member)
+	AddMember(member *Member)
+	UpdateMember(member *Member)
+	RemoveMember(member *Member)
 	GetPartition(key string) string
-	GetActivator() string
+	GetActivator(senderAddress string) string
 }
 
 type simpleMemberStrategy struct {
@@ -54,6 +54,6 @@ func (m *simpleMemberStrategy) GetPartition(key string) string {
 	return m.rdv.GetByRdv(key)
 }
 
-func (m *simpleMemberStrategy) GetActivator() string {
+func (m *simpleMemberStrategy) GetActivator(senderAddress string) string {
 	return m.rr.GetByRoundRobin()
 }

@@ -32,13 +32,13 @@ func NewMemberList(cluster *Cluster) *MemberList {
 	return memberList
 }
 
-func (ml *MemberList) GetActivatorMember(kind string) string {
+func (ml *MemberList) GetActivatorMember(kind string, requestSourceAddress string) string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()
 
 	var res string
 	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
-		res = memberStrategy.GetActivator()
+		res = memberStrategy.GetActivator(requestSourceAddress)
 	}
 	return res
 }
@@ -68,8 +68,8 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 		ml.TerminateMember(m)
 	}
 
-	// recalculate member strategies
-	ml.refreshMemberStrategies(topology)
+	//TODO: port this from C#
+	//....code
 
 	ml.cluster.ActorSystem.EventStream.Publish(topology)
 
@@ -114,17 +114,17 @@ func (ml *MemberList) TerminateMember(m *Member) {
 	ml.cluster.ActorSystem.EventStream.Publish(endpointTerminated)
 }
 
-func (ml *MemberList) refreshMemberStrategies(tplg *ClusterTopology) {
-	groups := GroupMembersByKind(tplg.Members)
-	strategies := map[string]MemberStrategy{}
-	chashes := map[string]chash.ConsistentHash{}
-	for kind, membersByMemberID := range groups {
-		strategies[kind] = newDefaultMemberStrategyV2(kind, membersByMemberID)
-		chashes[kind] = NewRendezvousV2(membersByMemberID)
-	}
-	ml.memberStrategyByKind = strategies
-	ml.chashByKind = chashes
-}
+//func (ml *MemberList) refreshMemberStrategies(tplg *ClusterTopology) {
+//	groups := GroupMembersByKind(tplg.Members)
+//	strategies := map[string]MemberStrategy{}
+//	chashes := map[string]chash.ConsistentHash{}
+//	for kind, membersByMemberID := range groups {
+//		strategies[kind] = newDefaultMemberStrategy(kind)
+//		chashes[kind] = NewRendezvous(membersByMemberID)
+//	}
+//	ml.memberStrategyByKind = strategies
+//	ml.chashByKind = chashes
+//}
 
 func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 	for _, m := range ml.members.members {
