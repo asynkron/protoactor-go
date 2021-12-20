@@ -13,11 +13,11 @@ type GrainMeta struct {
 
 type placementActor struct {
 	cluster          *clustering.Cluster
-	partitionManager *PartitionManager
+	partitionManager *Manager
 	actors           map[string]GrainMeta
 }
 
-func newPlacementActor(c *clustering.Cluster, pm *PartitionManager) *placementActor {
+func newPlacementActor(c *clustering.Cluster, pm *Manager) *placementActor {
 	return &placementActor{
 		cluster:          c,
 		partitionManager: pm,

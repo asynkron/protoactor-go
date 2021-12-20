@@ -16,7 +16,7 @@ import (
 
 type identityActor struct {
 	cluster          *clustering.Cluster
-	partitionManager *PartitionManager
+	partitionManager *Manager
 	lookup           map[string]*actor.PID
 	spawns           map[string]*actor.Future
 	topologyHash     uint64
@@ -24,7 +24,7 @@ type identityActor struct {
 	rdv              *clustering.RendezvousV2
 }
 
-func newIdentityActor(c *clustering.Cluster, p *PartitionManager) *identityActor {
+func newIdentityActor(c *clustering.Cluster, p *Manager) *identityActor {
 	return &identityActor{
 		cluster:          c,
 		partitionManager: p,

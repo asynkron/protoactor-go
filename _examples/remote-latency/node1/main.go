@@ -23,8 +23,7 @@ func makeTimestamp() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 func main() {
-	cfg := remote.Configure("127.0.0.1", 8081)
-	cfg = cfg.WithEndpointManagerBatchSize(10000)
+	cfg := remote.Configure("127.0.0.1", 8081, remote.WithEndpointManagerBatchSize(10000))
 	r := remote.NewRemote(system, cfg)
 	r.Start()
 

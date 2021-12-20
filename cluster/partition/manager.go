@@ -13,7 +13,7 @@ const (
 	ActorNamePlacement = "partition-activator"
 )
 
-type PartitionManager struct {
+type Manager struct {
 	cluster        *clustering.Cluster
 	topologySub    *eventstream.Subscription
 	identityActor  *actor.PID
@@ -21,13 +21,13 @@ type PartitionManager struct {
 	rdv            *clustering.RendezvousV2
 }
 
-func newPartitionManager(c *clustering.Cluster) *PartitionManager {
-	return &PartitionManager{
+func newPartitionManager(c *clustering.Cluster) *Manager {
+	return &Manager{
 		cluster: c,
 	}
 }
 
-func (pm *PartitionManager) Start() {
+func (pm *Manager) Start() {
 	plog.Info("Started partition manager")
 	system := pm.cluster.ActorSystem
 
@@ -48,21 +48,21 @@ func (pm *PartitionManager) Start() {
 		})
 }
 
-func (pm *PartitionManager) Stop() {
+func (pm *Manager) Stop() {
 	system := pm.cluster.ActorSystem
 	system.EventStream.Unsubscribe(pm.topologySub)
 	plog.Info("Stopped PartitionManager")
 }
 
-func (pm *PartitionManager) PidOfIdentityActor(addr string) *actor.PID {
+func (pm *Manager) PidOfIdentityActor(addr string) *actor.PID {
 	return actor.NewPID(addr, ActorNameIdentity)
 }
 
-func (pm *PartitionManager) PidOfActivatorActor(addr string) *actor.PID {
+func (pm *Manager) PidOfActivatorActor(addr string) *actor.PID {
 	return actor.NewPID(addr, ActorNamePlacement)
 }
 
-func (pm *PartitionManager) onClusterTopology(tplg *clustering.ClusterTopology) {
+func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 	plog.Info("onClusterTopology", log.Uint64("eventId", tplg.TopologyHash))
 
 	for _, m := range tplg.Members {
@@ -76,7 +76,7 @@ func (pm *PartitionManager) onClusterTopology(tplg *clustering.ClusterTopology) 
 	pm.cluster.ActorSystem.Root.Send(pm.identityActor, tplg)
 }
 
-func (pm *PartitionManager) Get(identity *clustering.ClusterIdentity) *actor.PID {
+func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
 	key := identity.AsKey()
 	ownerAddres := pm.rdv.Get(key)
 
