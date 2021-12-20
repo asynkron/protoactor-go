@@ -16,11 +16,11 @@ import (
 )
 
 type Config struct {
-	DeadLetterThrottleInterval  time.Duration      //throttle deadletter logging after this interval
-	DeadLetterThrottleCount     int32              //throttle deadletter logging after this count
-	DeadLetterRequestLogging    bool               //do not log deadletters with sender
-	DeveloperSupervisionLogging bool               //console log and promote supervision logs to Warning level
-	DiagnosticsSerializer       func(Actor) string //extract diagnostics from actor and return as string
+	DeadLetterThrottleInterval  time.Duration      // throttle deadletter logging after this interval
+	DeadLetterThrottleCount     int32              // throttle deadletter logging after this count
+	DeadLetterRequestLogging    bool               // do not log dead-letters with sender
+	DeveloperSupervisionLogging bool               // console log and promote supervision logs to Warning level
+	DiagnosticsSerializer       func(Actor) string // extract diagnostics from actor and return as string
 	MetricsProvider             metric.MeterProvider
 }
 
@@ -35,9 +35,7 @@ func defaultConfig() Config {
 		},
 	}
 }
-
 func defaultPrometheusProvider(port int) metric.MeterProvider {
-
 	config := prometheus.Config{}
 	c := controller.New(
 		processor.NewFactory(
@@ -49,7 +47,7 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 
 	exporter, err := prometheus.New(config, c)
 	if err != nil {
-		err = fmt.Errorf("Failed to initialize prometheus exporter: %w", err)
+		err = fmt.Errorf("failed to initialize prometheus exporter: %w", err)
 		plog.Error(err.Error(), log.Error(err))
 		return nil
 	}
