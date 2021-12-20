@@ -4,6 +4,7 @@ import (
 	"cluster-restartgracefully/shared"
 	"flag"
 	"fmt"
+	"github.com/AsynkronIT/protoactor-go/cluster/partition"
 	"sync"
 	"time"
 
@@ -66,8 +67,9 @@ func startNode(port int, provider string) {
 		panic(err)
 	}
 
+	id := partition.New()
 	remoteCfg := remote.Configure("127.0.0.1", port)
-	cfg := cluster.Configure("cluster-restartgracefully", cp, remoteCfg)
+	cfg := cluster.Configure("cluster-restartgracefully", cp, id, remoteCfg)
 	_cluster = cluster.New(system, cfg)
 	_cluster.StartClient()
 }
