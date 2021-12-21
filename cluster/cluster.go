@@ -18,7 +18,7 @@ type Cluster struct {
 	PidCache       *pidCacheValue
 	MemberList     *MemberList
 	IdentityLookup IdentityLookup
-	kinds          map[string]*actor.Props
+	kinds          map[string]*ActivatedKind
 	context        ClusterContext
 }
 
@@ -27,7 +27,7 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	c := Cluster{
 		ActorSystem: actorSystem,
 		Config:      config,
-		kinds:       map[string]*actor.Props{},
+		kinds:       map[string]*ActivatedKind{},
 	}
 	actorSystem.Extensions.Register(&c)
 
@@ -63,9 +63,7 @@ func (c *Cluster) StartMember() {
 	cfg := c.Config
 	c.Remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
 
-	for kind, props := range cfg.Kinds {
-		c.kinds[kind] = props
-	}
+	c.initKinds()
 
 	// TODO: make it possible to become a cluster even if remoting is already started
 	c.Remote.Start()
@@ -127,18 +125,24 @@ func (c *Cluster) Request(identity string, kind string, message interface{}) (in
 	return c.context.Request(identity, kind, message)
 }
 
-func (c *Cluster) GetClusterKind(kind string) *actor.Props {
-	props, ok := c.Config.Kinds[kind]
+func (c *Cluster) GetClusterKind(kind string) *ActivatedKind {
+	k, ok := c.kinds[kind]
 	if !ok {
 		plog.Error("Invalid kind", log.String("kind", kind))
 		return nil
 	}
-	return props
+	return k
+}
+
+func (c *Cluster) initKinds() {
+	for name, kind := range c.Config.Kinds {
+		c.kinds[name] = kind.Build(c)
+	}
 }
 
 // Call is a wrap of context.RequestFuture with retries.
 func (c *Cluster) Call(name string, kind string, msg interface{}, callopts ...*GrainCallOptions) (interface{}, error) {
-	var _callopts *GrainCallOptions = nil
+	var _callopts *GrainCallOptions
 	if len(callopts) > 0 {
 		_callopts = callopts[0]
 	} else {

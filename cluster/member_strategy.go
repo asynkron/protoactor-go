@@ -15,7 +15,7 @@ type simpleMemberStrategy struct {
 	rdv     *Rendezvous
 }
 
-func newDefaultMemberStrategy(kind string) MemberStrategy {
+func newDefaultMemberStrategy(cluster *Cluster, kind string) MemberStrategy {
 	ms := &simpleMemberStrategy{members: make([]*Member, 0)}
 	ms.rr = NewSimpleRoundRobin(MemberStrategy(ms))
 	ms.rdv = NewRendezvous(MemberStrategy(ms))

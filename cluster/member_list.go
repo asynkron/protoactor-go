@@ -55,21 +55,30 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
 
-	topology, done, active, _, left := ml.getTopologyChanges(members)
+	// TLDR:
+	// this method basically filters out any member status in the banned list
+	// then makes a delta between new and old members
+	// notifying the cluster accordingly which members left or joined
+
+	topology, done, active, joined, left := ml.getTopologyChanges(members)
 	if done {
 		return
 	}
 
+	// include any new banned members into the known set of banned members
 	ml.bannedMembers = ml.bannedMembers.Union(left)
 	ml.members = active
 
-	// for any member that left, send a endpoint terminate event
+	// notify that these members left
 	for _, m := range left.Members() {
+		ml.memberLeave(m)
 		ml.TerminateMember(m)
 	}
 
-	//TODO: port this from C#
-	//....code
+	// notify that these members joined
+	for _, m := range joined.Members() {
+		ml.memberJoin(m)
+	}
 
 	ml.cluster.ActorSystem.EventStream.Publish(topology)
 
@@ -79,6 +88,26 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 		log.Int("joined", len(topology.Joined)),
 		log.Int("left", len(topology.Left)),
 	)
+}
+
+func (ml *MemberList) memberJoin(m *Member) {
+	for _, k := range m.Kinds {
+		if ml.memberStrategyByKind[k] == nil {
+			ml.memberStrategyByKind[k] = ml.getMemberStrategyByKind(k)
+		}
+
+		ml.memberStrategyByKind[k].AddMember(m)
+	}
+}
+
+func (ml *MemberList) memberLeave(m *Member) {
+	for _, k := range m.Kinds {
+		if ml.memberStrategyByKind[k] != nil {
+			continue
+		}
+
+		ml.memberStrategyByKind[k].RemoveMember(m)
+	}
 }
 
 func (ml *MemberList) getTopologyChanges(members []*Member) (topology *ClusterTopology, unchanged bool, active *MemberSet, joined *MemberSet, left *MemberSet) {
@@ -114,18 +143,6 @@ func (ml *MemberList) TerminateMember(m *Member) {
 	ml.cluster.ActorSystem.EventStream.Publish(endpointTerminated)
 }
 
-func (ml *MemberList) refreshMemberStrategies(tplg *ClusterTopology) {
-	groups := GroupMembersByKind(tplg.Members)
-	strategies := map[string]MemberStrategy{}
-	chashes := map[string]chash.ConsistentHash{}
-	for kind, membersByMemberID := range groups {
-		strategies[kind] = newDefaultMemberStrategy(kind)
-		chashes[kind] = NewRendezvous(membersByMemberID)
-	}
-	ml.memberStrategyByKind = strategies
-	ml.chashByKind = chashes
-}
-
 func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 	for _, m := range ml.members.members {
 		if !includeSelf && m.Id == ml.cluster.ActorSystem.Id {
@@ -135,4 +152,16 @@ func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 		pid := actor.NewPID(m.Address(), "eventstream")
 		ml.cluster.ActorSystem.Root.Send(pid, message)
 	}
+}
+
+func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {
+	clusterKind := ml.cluster.GetClusterKind(kind)
+
+	var strategy = clusterKind.Strategy
+	if strategy != nil {
+		return strategy
+	}
+
+	//TODO: complete this
+	return ml.cluster.Config.MemberStrategyBuilder(ml.cluster, kind)
 }

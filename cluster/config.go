@@ -19,8 +19,8 @@ type Config struct {
 	RequestsLogThrottlePeriod                    time.Duration
 	MaxNumberOfEventsInRequestLogThrottledPeriod int
 	ClusterContextProducer                       ClusterContextProducer
-	MemberStrategyBuilder                        func(kind string) MemberStrategy
-	Kinds                                        map[string]*actor.Props
+	MemberStrategyBuilder                        func(cluster *Cluster, kind string) MemberStrategy
+	Kinds                                        map[string]*Kind
 }
 
 func Configure(clusterName string, clusterProvider ClusterProvider, identityLookup IdentityLookup, remoteConfig remote.Config, kinds ...*Kind) *Config {
@@ -32,13 +32,13 @@ func Configure(clusterName string, clusterProvider ClusterProvider, identityLook
 		RequestsLogThrottlePeriod: defaultRequestsLogThrottlePeriod,
 		MemberStrategyBuilder:     newDefaultMemberStrategy,
 		RemoteConfig:              remoteConfig,
-		Kinds:                     make(map[string]*actor.Props),
+		Kinds:                     make(map[string]*Kind),
 		ClusterContextProducer:    newDefaultClusterContext,
 		MaxNumberOfEventsInRequestLogThrottledPeriod: defaultMaxNumberOfEvetsInRequestLogThrottledPeriod,
 	}
 
 	for _, kind := range kinds {
-		config.Kinds[kind.Kind] = kind.Props
+		config.Kinds[kind.Kind] = kind
 	}
 
 	return config
@@ -94,11 +94,9 @@ type Kind struct {
 // Creates a new instance of a kind
 func NewKind(kind string, props *actor.Props) *Kind {
 	return &Kind{
-		Kind:  kind,
-		Props: props,
-		StrategyBuilder: func(cluster *Cluster) MemberStrategy {
-			return nil
-		},
+		Kind:            kind,
+		Props:           props,
+		StrategyBuilder: nil,
 	}
 }
 
