@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -84,13 +85,44 @@ func (c *Config) ToClusterContextConfig() *ClusterContextConfig {
 }
 
 type Kind struct {
-	Kind  string
-	Props *actor.Props
+	Kind            string
+	Props           *actor.Props
+	StrategyBuilder func(*Cluster) MemberStrategy
 }
 
 func NewKind(kind string, props *actor.Props) *Kind {
 	return &Kind{
 		Kind:  kind,
 		Props: props,
+		StrategyBuilder: func(cluster *Cluster) MemberStrategy {
+			return nil
+		},
 	}
+}
+
+func (k *Kind) WithMemberStrategy(strategyBuilder func(*Cluster) MemberStrategy) {
+	k.StrategyBuilder = strategyBuilder
+}
+
+func (k *Kind) Build(cluster *Cluster) *ActivatedKind {
+	return &ActivatedKind{
+		Kind:     k.Kind,
+		Props:    k.Props,
+		Strategy: k.StrategyBuilder(cluster),
+	}
+}
+
+type ActivatedKind struct {
+	Kind     string
+	Props    *actor.Props
+	Strategy MemberStrategy
+	count    int32
+}
+
+func (ak *ActivatedKind) Inc() {
+	atomic.AddInt32(&ak.count, 1)
+}
+
+func (ak *ActivatedKind) Dev() {
+	atomic.AddInt32(&ak.count, -1)
 }

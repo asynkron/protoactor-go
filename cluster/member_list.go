@@ -114,17 +114,17 @@ func (ml *MemberList) TerminateMember(m *Member) {
 	ml.cluster.ActorSystem.EventStream.Publish(endpointTerminated)
 }
 
-//func (ml *MemberList) refreshMemberStrategies(tplg *ClusterTopology) {
-//	groups := GroupMembersByKind(tplg.Members)
-//	strategies := map[string]MemberStrategy{}
-//	chashes := map[string]chash.ConsistentHash{}
-//	for kind, membersByMemberID := range groups {
-//		strategies[kind] = newDefaultMemberStrategy(kind)
-//		chashes[kind] = NewRendezvous(membersByMemberID)
-//	}
-//	ml.memberStrategyByKind = strategies
-//	ml.chashByKind = chashes
-//}
+func (ml *MemberList) refreshMemberStrategies(tplg *ClusterTopology) {
+	groups := GroupMembersByKind(tplg.Members)
+	strategies := map[string]MemberStrategy{}
+	chashes := map[string]chash.ConsistentHash{}
+	for kind, membersByMemberID := range groups {
+		strategies[kind] = newDefaultMemberStrategy(kind)
+		chashes[kind] = NewRendezvous(membersByMemberID)
+	}
+	ml.memberStrategyByKind = strategies
+	ml.chashByKind = chashes
+}
 
 func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 	for _, m := range ml.members.members {
