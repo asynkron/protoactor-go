@@ -15,7 +15,7 @@ import (
 // Defines a type to provide DefaultClusterContext configurations / implementations
 type ClusterContextProducer func(*Cluster) ClusterContext
 
-// Defines a default cluster context data structure
+// Defines a default cluster context hashBytes structure
 type DefaultClusterContext struct {
 	cluster *Cluster
 }

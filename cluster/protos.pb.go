@@ -1198,7 +1198,7 @@ func (m *UnsubscribeResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_UnsubscribeResponse proto.InternalMessageInfo
 
 type PublishRequest struct {
-	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	Data []byte `protobuf:"bytes,1,opt,name=hashBytes,proto3" json:"hashBytes,omitempty"`
 }
 
 func (m *PublishRequest) Reset()      { *m = PublishRequest{} }

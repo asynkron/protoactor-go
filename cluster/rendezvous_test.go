@@ -16,13 +16,13 @@ func Benchmark_Rendezvous_Get(b *testing.B) {
 		for _, member := range members {
 			ms.AddMember(member)
 		}
-		obj := NewRendezvous(ms)
-		obj.UpdateRdv()
+		obj := NewRendezvous()
+		obj.UpdateMembers(members)
 		testName := fmt.Sprintf("member*%d", v)
 		runtime.GC()
 		b.Run(testName, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				address := obj.GetByRdv("0123456789abcdefghijklmnopqrstuvwxyz")
+				address := obj.GetByIdentity("0123456789abcdefghijklmnopqrstuvwxyz")
 				if address == "" {
 					b.Fatalf("empty address res=%d", len(members))
 				}

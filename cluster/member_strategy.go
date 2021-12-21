@@ -17,13 +17,13 @@ type simpleMemberStrategy struct {
 func newDefaultMemberStrategy(cluster *Cluster, kind string) MemberStrategy {
 	ms := &simpleMemberStrategy{members: make([]*Member, 0)}
 	ms.rr = NewSimpleRoundRobin(MemberStrategy(ms))
-	ms.rdv = NewRendezvous(MemberStrategy(ms))
+	ms.rdv = NewRendezvous()
 	return ms
 }
 
 func (m *simpleMemberStrategy) AddMember(member *Member) {
 	m.members = append(m.members, member)
-	m.rdv.UpdateRdv()
+	m.rdv.UpdateMembers(m.members)
 }
 
 func (m *simpleMemberStrategy) UpdateMember(member *Member) {
@@ -39,7 +39,7 @@ func (m *simpleMemberStrategy) RemoveMember(member *Member) {
 	for i, mb := range m.members {
 		if mb.Address() == member.Address() {
 			m.members = append(m.members[:i], m.members[i+1:]...)
-			m.rdv.UpdateRdv()
+			m.rdv.UpdateMembers(m.members)
 			return
 		}
 	}
@@ -50,7 +50,7 @@ func (m *simpleMemberStrategy) GetAllMembers() []*Member {
 }
 
 func (m *simpleMemberStrategy) GetPartition(key string) string {
-	return m.rdv.GetByRdv(key)
+	return m.rdv.GetByIdentity(key)
 }
 
 func (m *simpleMemberStrategy) GetActivator(senderAddress string) string {

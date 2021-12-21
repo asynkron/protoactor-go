@@ -18,8 +18,8 @@ func TopologyHash(members []*Member) uint64 {
 	//C# version
 	//var x = membersByMemberId.Select(m => m.Id).OrderBy(i => i).ToArray();
 	//var key = string.Join("", x);
-	//var hash = MurmurHash2.Hash(key);
-	//return hash;
+	//var hashBytes = MurmurHash2.Hash(key);
+	//return hashBytes;
 
 	sort.Slice(members, func(i, j int) bool {
 		return members[i].Id < members[j].Id
@@ -31,7 +31,7 @@ func TopologyHash(members []*Member) uint64 {
 		s += m.Id
 	}
 
-	//TODO: this HAS to be compatible with the same hash in .NET
+	//TODO: this HAS to be compatible with the same hashBytes in .NET
 	//add plenty of tests
 	hash := murmur32.Sum64([]byte(s))
 	return hash
