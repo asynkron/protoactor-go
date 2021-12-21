@@ -9,13 +9,12 @@ import (
 )
 
 const (
-	ActorNameIdentity = "partition"
+	PartitionActivatorActorName = "partition-activator"
 )
 
 type Manager struct {
 	cluster        *clustering.Cluster
 	topologySub    *eventstream.Subscription
-	identityActor  *actor.PID
 	placementActor *actor.PID
 	rdv            *clustering.Rendezvous
 }
@@ -30,17 +29,12 @@ func (pm *Manager) Start() {
 	plog.Info("Started partition manager")
 	system := pm.cluster.ActorSystem
 
-	identityProps := actor.PropsFromProducer(func() actor.Actor { return newIdentityActor(pm.cluster, pm) })
-	pm.identityActor, _ = system.Root.SpawnNamed(identityProps, ActorNameIdentity)
-	plog.Info("Started partition identity actor")
-
 	activatorProps := actor.PropsFromProducer(func() actor.Actor { return newPlacementActor(pm.cluster, pm) })
-	pm.placementActor, _ = system.Root.SpawnNamed(activatorProps, ActorNamePlacement)
+	pm.placementActor, _ = system.Root.SpawnNamed(activatorProps, PartitionActivatorActorName)
 	plog.Info("Started partition placement actor")
 
 	pm.topologySub = system.EventStream.
 		Subscribe(func(ev interface{}) {
-			//fmt.Printf("PM got event.... %v", ev)
 			if topology, ok := ev.(*clustering.ClusterTopology); ok {
 				pm.onClusterTopology(topology)
 			}
@@ -53,12 +47,8 @@ func (pm *Manager) Stop() {
 	plog.Info("Stopped PartitionManager")
 }
 
-func (pm *Manager) PidOfIdentityActor(addr string) *actor.PID {
-	return actor.NewPID(addr, ActorNameIdentity)
-}
-
 func (pm *Manager) PidOfActivatorActor(addr string) *actor.PID {
-	return actor.NewPID(addr, ActorNamePlacement)
+	return actor.NewPID(addr, PartitionActivatorActorName)
 }
 
 func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
@@ -71,19 +61,20 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 		}
 	}
 
-	pm.rdv = clustering.NewRendezvous(tplg.Members)
-	pm.cluster.ActorSystem.Root.Send(pm.identityActor, tplg)
+	pm.rdv = clustering.NewRendezvous()
+	pm.rdv.UpdateMembers(tplg.Members)
+	pm.cluster.ActorSystem.Root.Send(pm.placementActor, tplg)
 }
 
 func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
 	key := identity.AsKey()
-	ownerAddres := pm.rdv.Get(key)
+	ownerAddress := pm.rdv.GetByIdentity(key)
 
-	if ownerAddres == "" {
+	if ownerAddress == "" {
 		return nil
 	}
 
-	identityOwnerPid := pm.PidOfIdentityActor(ownerAddres)
+	identityOwnerPid := pm.PidOfActivatorActor(ownerAddress)
 	request := &clustering.ActivationRequest{
 		ClusterIdentity: identity,
 		RequestId:       "aaaa",

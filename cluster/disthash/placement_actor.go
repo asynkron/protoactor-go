@@ -59,10 +59,11 @@ func (p *placementActor) onIdentityHandoverRequest(msg *clustering.IdentityHando
 	count := 0
 	response := &clustering.IdentityHandoverResponse{}
 	requestAddress := ctx.Sender().Address
-	rdv := clustering.NewRendezvousV2(msg.Members)
+	rdv := clustering.NewRendezvous()
+	rdv.UpdateMembers(msg.Members)
 	for identity, meta := range p.actors {
 		// who owns this identity according to the requesters memberlist?
-		ownerAddress := rdv.Get(identity)
+		ownerAddress := rdv.GetByIdentity(identity)
 		// this identity is not owned by the requester
 		if ownerAddress != requestAddress {
 			continue
@@ -95,11 +96,11 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 		return
 	}
 
-	clusterKindProps := p.cluster.GetClusterKind(msg.ClusterIdentity.Kind)
+	clusterKind := p.cluster.GetClusterKind(msg.ClusterIdentity.Kind)
 
 	//TODO: wrap in WithClusterIdentity
 
-	pid := ctx.SpawnPrefix(clusterKindProps, msg.ClusterIdentity.Identity)
+	pid := ctx.SpawnPrefix(clusterKind.Props, msg.ClusterIdentity.Identity)
 
 	p.actors[key] = GrainMeta{
 		ID:  msg.ClusterIdentity,
