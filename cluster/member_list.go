@@ -90,23 +90,23 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 	)
 }
 
-func (ml *MemberList) memberJoin(m *Member) {
-	for _, k := range m.Kinds {
-		if ml.memberStrategyByKind[k] == nil {
-			ml.memberStrategyByKind[k] = ml.getMemberStrategyByKind(k)
+func (ml *MemberList) memberJoin(joiningMember *Member) {
+	for _, kind := range joiningMember.Kinds {
+		if ml.memberStrategyByKind[kind] == nil {
+			ml.memberStrategyByKind[kind] = ml.getMemberStrategyByKind(kind)
 		}
 
-		ml.memberStrategyByKind[k].AddMember(m)
+		ml.memberStrategyByKind[kind].AddMember(joiningMember)
 	}
 }
 
-func (ml *MemberList) memberLeave(m *Member) {
-	for _, k := range m.Kinds {
-		if ml.memberStrategyByKind[k] != nil {
+func (ml *MemberList) memberLeave(leavingMember *Member) {
+	for _, kind := range leavingMember.Kinds {
+		if ml.memberStrategyByKind[kind] != nil {
 			continue
 		}
 
-		ml.memberStrategyByKind[k].RemoveMember(m)
+		ml.memberStrategyByKind[kind].RemoveMember(leavingMember)
 	}
 }
 
