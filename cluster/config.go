@@ -84,12 +84,14 @@ func (c *Config) ToClusterContextConfig() *ClusterContextConfig {
 	return &clusterContextConfig
 }
 
+// Represents the kinds of actors a cluster can manage
 type Kind struct {
 	Kind            string
 	Props           *actor.Props
 	StrategyBuilder func(*Cluster) MemberStrategy
 }
 
+// Creates a new instance of a kind
 func NewKind(kind string, props *actor.Props) *Kind {
 	return &Kind{
 		Kind:  kind,
