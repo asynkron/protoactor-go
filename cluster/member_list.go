@@ -157,11 +157,17 @@ func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {
 	clusterKind := ml.cluster.GetClusterKind(kind)
 
-	var strategy = clusterKind.Strategy
+	var strategy MemberStrategy
+
+	strategy = clusterKind.Strategy
 	if strategy != nil {
 		return strategy
 	}
 
-	//TODO: complete this
-	return ml.cluster.Config.MemberStrategyBuilder(ml.cluster, kind)
+	strategy = ml.cluster.Config.MemberStrategyBuilder(ml.cluster, kind)
+	if strategy != nil {
+		return strategy
+	}
+
+	return newDefaultMemberStrategy(ml.cluster, kind)
 }
