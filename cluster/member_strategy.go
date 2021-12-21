@@ -3,7 +3,6 @@ package cluster
 type MemberStrategy interface {
 	GetAllMembers() []*Member
 	AddMember(member *Member)
-	//UpdateMember(member *Member)
 	RemoveMember(member *Member)
 	GetPartition(key string) string
 	GetActivator(senderAddress string) string
