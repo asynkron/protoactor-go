@@ -12,7 +12,7 @@ func Benchmark_Rendezvous_Get(b *testing.B) {
 	SetLogLevel(log.ErrorLevel)
 	for _, v := range []int{1, 2, 3, 5, 10, 100, 1000, 2000} {
 		members := _newTopologyEventForTest(v)
-		ms := newDefaultMemberStrategy("kind").(*simpleMemberStrategy)
+		ms := newDefaultMemberStrategy(nil, "kind").(*simpleMemberStrategy)
 		for _, member := range members {
 			ms.AddMember(member)
 		}

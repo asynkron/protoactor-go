@@ -4,7 +4,6 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"sync"
 
-	"github.com/AsynkronIT/protoactor-go/cluster/chash"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
@@ -17,9 +16,7 @@ type MemberList struct {
 	mutex                sync.RWMutex
 	members              *MemberSet
 	memberStrategyByKind map[string]MemberStrategy
-	bannedMembers        *MemberSet
-
-	chashByKind map[string]chash.ConsistentHash
+	blockedMembers       *MemberSet
 }
 
 func NewMemberList(cluster *Cluster) *MemberList {
@@ -27,7 +24,7 @@ func NewMemberList(cluster *Cluster) *MemberList {
 		cluster:              cluster,
 		members:              emptyMemberSet,
 		memberStrategyByKind: make(map[string]MemberStrategy),
-		bannedMembers:        emptyMemberSet,
+		blockedMembers:       emptyMemberSet,
 	}
 	return memberList
 }
@@ -66,7 +63,7 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member) {
 	}
 
 	// include any new banned members into the known set of banned members
-	ml.bannedMembers = ml.bannedMembers.Union(left)
+	ml.blockedMembers = ml.blockedMembers.Union(left)
 	ml.members = active
 
 	// notify that these members left
@@ -115,7 +112,7 @@ func (ml *MemberList) getTopologyChanges(members []*Member) (topology *ClusterTo
 
 	// get active members
 	// (this bit means that we will never allow a member that failed a health check to join back in)
-	active = memberSet.Except(ml.bannedMembers)
+	active = memberSet.Except(ml.blockedMembers)
 
 	// nothing changed? exit
 	if active.Equals(ml.members) {
@@ -136,11 +133,9 @@ func (ml *MemberList) getTopologyChanges(members []*Member) (topology *ClusterTo
 
 func (ml *MemberList) TerminateMember(m *Member) {
 	// tell the world that this endpoint should is no longer relevant
-	endpointTerminated := &remote.EndpointTerminatedEvent{
+	ml.cluster.ActorSystem.EventStream.Publish(&remote.EndpointTerminatedEvent{
 		Address: m.Address(),
-	}
-
-	ml.cluster.ActorSystem.EventStream.Publish(endpointTerminated)
+	})
 }
 
 func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {

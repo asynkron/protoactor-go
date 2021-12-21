@@ -1,7 +1,7 @@
 package cluster
 
 //type ClusterState struct {
-//	BannedMembers []string `json:"bannedMembers"`
+//	BannedMembers []string `json:"blockedMembers"`
 //}
 
 type ClusterProvider interface {
