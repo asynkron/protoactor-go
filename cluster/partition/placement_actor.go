@@ -59,7 +59,7 @@ func (p *placementActor) onIdentityHandoverRequest(msg *clustering.IdentityHando
 	count := 0
 	response := &clustering.IdentityHandoverResponse{}
 	requestAddress := ctx.Sender().Address
-	rdv := clustering.NewRendezvousV2(msg.Members)
+	rdv := clustering.NewRendezvous(msg.Members)
 	for identity, meta := range p.actors {
 		// who owns this identity according to the requesters memberlist?
 		ownerAddress := rdv.Get(identity)

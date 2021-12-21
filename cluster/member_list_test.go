@@ -29,8 +29,8 @@ func _newClusterForTest(name string) *Cluster {
 //
 //	go func() {
 //		for i := 0; i < rounds; i++ {
-//			actorSystem.EventStream.Publish(TopologyEvent([]*Member{{}, {}}))
-//			actorSystem.EventStream.Publish(TopologyEvent([]*Member{{}}))
+//			actorSystem.EventStream.Publish(TopologyEvent(Members{{}, {}}))
+//			actorSystem.EventStream.Publish(TopologyEvent(Members{{}}))
 //			wg.Done()
 //		}
 //	}()
@@ -66,7 +66,7 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 func TestMemberList_UpdateClusterToplogy(t *testing.T) {
 	c := _newClusterForTest("test-UpdateClusterToplogy")
 	obj := NewMemberList(c)
-	dumpMembers := func(list []*Member) {
+	dumpMembers := func(list Members) {
 		t.Logf("membersByMemberId=%d", len(list))
 		for _, m := range list {
 			t.Logf("\t%s", m.Address())
@@ -74,7 +74,7 @@ func TestMemberList_UpdateClusterToplogy(t *testing.T) {
 	}
 	_ = dumpMembers
 	_sorted := func(tpl *ClusterTopology) {
-		_sortMembers := func(list []*Member) {
+		_sortMembers := func(list Members) {
 			sort.Slice(list, func(i, j int) bool {
 				return (list)[i].Port < (list)[j].Port
 			})
@@ -114,11 +114,11 @@ func TestMemberList_UpdateClusterToplogy(t *testing.T) {
 	})
 }
 
-func _newTopologyEventForTest(membersCount int, kinds ...string) []*Member {
+func _newTopologyEventForTest(membersCount int, kinds ...string) Members {
 	if len(kinds) <= 0 {
 		kinds = append(kinds, "kind")
 	}
-	members := make([]*Member, membersCount)
+	members := make(Members, membersCount)
 	for i := 0; i < membersCount; i++ {
 		memberId := fmt.Sprintf("memberId-%d", i)
 		members[i] = &Member{

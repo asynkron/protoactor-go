@@ -38,7 +38,7 @@ func (p *inmemoryProvider) init(c *Cluster) error {
 }
 
 func (p *inmemoryProvider) publishClusterTopologyEvent() {
-	var members []*Member
+	var members Members
 	for _, m := range p.members {
 		members = append(members, m)
 	}
@@ -75,7 +75,7 @@ func TestCluster_Call(t *testing.T) {
 	c.MemberList = NewMemberList(c)
 	c.Config.RequestTimeoutTime = 1 * time.Second
 
-	members := []*Member{
+	members := Members{
 		{
 			Id:    "1",
 			Host:  "nonhost",

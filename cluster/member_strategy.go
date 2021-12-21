@@ -1,7 +1,7 @@
 package cluster
 
 type MemberStrategy interface {
-	GetAllMembers() []*Member
+	GetAllMembers() Members
 	AddMember(member *Member)
 	RemoveMember(member *Member)
 	GetPartition(key string) string
@@ -9,13 +9,13 @@ type MemberStrategy interface {
 }
 
 type simpleMemberStrategy struct {
-	members []*Member
+	members Members
 	rr      *SimpleRoundRobin
 	rdv     *Rendezvous
 }
 
 func newDefaultMemberStrategy(cluster *Cluster, kind string) MemberStrategy {
-	ms := &simpleMemberStrategy{members: make([]*Member, 0)}
+	ms := &simpleMemberStrategy{members: make(Members, 0)}
 	ms.rr = NewSimpleRoundRobin(MemberStrategy(ms))
 	ms.rdv = NewRendezvous()
 	return ms
@@ -45,7 +45,7 @@ func (m *simpleMemberStrategy) RemoveMember(member *Member) {
 	}
 }
 
-func (m *simpleMemberStrategy) GetAllMembers() []*Member {
+func (m *simpleMemberStrategy) GetAllMembers() Members {
 	return m.members
 }
 

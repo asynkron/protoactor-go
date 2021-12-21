@@ -152,43 +152,6 @@ func (p *Provider) Shutdown(graceful bool) error {
 	return nil
 }
 
-func (p *Provider) UpdateClusterState(state cluster.ClusterState) error {
-	if p.shutdown {
-		// do not re-register while we are shutting down already
-		return ProviderShuttingDownError
-	}
-
-	value, err := json.Marshal(state.BannedMembers)
-	if err != nil {
-		plog.Error("Failed to UpdateClusterState. json.Marshal", log.Error(err))
-		return err
-	}
-
-	timeout := time.Second * 10
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	pod, err := p.client.CoreV1().Pods(p.retrieveNamespace()).Get(ctx, p.podName, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("Unable to get own pod information for %s: %w", p.podName, err)
-	}
-
-	annotations := pod.GetAnnotations()
-	annotations["banned"] = string(value)
-	pod.SetAnnotations(annotations)
-	_, updaterr := p.client.CoreV1().Pods(pod.GetNamespace()).Update(ctx, pod, metav1.UpdateOptions{})
-	if updaterr != nil {
-		plog.Error("Failed to UpdateClusterState.", log.Error(err))
-		return err
-	}
-
-	if err := p.registerMember(timeout); err != nil {
-		plog.Error("Failed to registerMember.", log.Error(err))
-		return err
-	}
-	return nil
-}
-
 // starts the cluster monitor in its own goroutine
 func (p *Provider) startClusterMonitor(c *cluster.Cluster) error {
 
@@ -351,7 +314,7 @@ func (p *Provider) startWatchingCluster(timeout time.Duration) error {
 			}
 
 			plog.Debug(fmt.Sprintf("Topology received from Kubernetes %#v", members))
-			p.cluster.MemberList.UpdateClusterTopology(members, uint64(pod.GetGeneration()))
+			p.cluster.MemberList.UpdateClusterTopology(members)
 		}
 	}()
 

@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"github.com/AsynkronIT/protoactor-go/cluster/disthash"
 	"net"
 	"strconv"
 	"testing"
@@ -15,7 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cluster.Cluster {
+func newClusterForTest(name string, addr string, cp cluster.ClusterProvider, id cluster.IdentityLookup) *cluster.Cluster {
 
 	host, _port, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -23,7 +24,7 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 	}
 	port, _ := strconv.Atoi(_port)
 	remoteConfig := remote.Configure(host, port)
-	config := cluster.Configure(name, cp, remoteConfig)
+	config := cluster.Configure(name, cp, id, remoteConfig)
 
 	system := actor.NewActorSystem()
 	c := cluster.New(system, config)
@@ -42,13 +43,14 @@ func TestStartMember(t *testing.T) {
 	assert := assert.New(t)
 
 	p, _ := New()
+	id := disthash.New()
 	defer p.Shutdown(true)
 
-	c := newClusterForTest("k8scluster", "127.0.0.1:8000", p)
+	c := newClusterForTest("k8scluster", "127.0.0.1:8000", p, id)
 	eventstream := c.ActorSystem.EventStream
 	ch := make(chan interface{}, 16)
 	eventstream.Subscribe(func(m interface{}) {
-		if _, ok := m.(*cluster.ClusterTopologyEventV2); ok {
+		if _, ok := m.(*cluster.ClusterTopology); ok {
 			ch <- m
 		}
 	})
@@ -61,7 +63,7 @@ func TestStartMember(t *testing.T) {
 		assert.FailNow("no member joined yet")
 
 	case m := <-ch:
-		msg := m.(*cluster.ClusterTopologyEventV2)
+		msg := m.(*cluster.ClusterTopology)
 		// member joined
 		members := []*cluster.Member{
 			{
@@ -75,9 +77,8 @@ func TestStartMember(t *testing.T) {
 		expected := &cluster.ClusterTopology{
 			Members: members,
 			Joined:  members,
-			EventId: msg.ClusterTopology.EventId,
 		}
-		assert.Equal(expected, msg.ClusterTopology)
+		assert.Equal(expected, msg)
 	}
 }
 
@@ -102,7 +103,8 @@ func TestRegisterMultipleMembers(t *testing.T) {
 	for _, member := range members {
 		addr := fmt.Sprintf("%s:%d", member.host, member.port)
 		_p, _ := New()
-		c := newClusterForTest(member.cluster, addr, _p)
+		_id := disthash.New()
+		c := newClusterForTest(member.cluster, addr, _p, _id)
 		err := p.StartMember(c)
 		assert.NoError(err)
 		t.Cleanup(func() {
@@ -125,14 +127,11 @@ func TestUpdateMemberState(t *testing.T) {
 	assert := assert.New(t)
 
 	p, _ := New()
+	id := disthash.New()
 	defer p.Shutdown(true)
 
-	c := newClusterForTest("k8scluster3", "127.0.0.1:8000", p)
+	c := newClusterForTest("k8scluster3", "127.0.0.1:8000", p, id)
 	err := p.StartMember(c)
-	assert.NoError(err)
-
-	state := cluster.ClusterState{BannedMembers: []string{"yes"}}
-	err = p.UpdateClusterState(state)
 	assert.NoError(err)
 }
 
@@ -143,20 +142,16 @@ func TestUpdateMemberState_DoesNotReregisterAfterShutdown(t *testing.T) {
 	assert := assert.New(t)
 
 	p, _ := New()
-	c := newClusterForTest("k8scluster4", "127.0.0.1:8001", p)
+	id := disthash.New()
+	c := newClusterForTest("k8scluster4", "127.0.0.1:8001", p, id)
 	err := p.StartMember(c)
 	assert.NoError(err)
 	t.Cleanup(func() {
 		p.Shutdown(true)
 	})
 
-	state := cluster.ClusterState{BannedMembers: []string{"yes"}}
-	err = p.UpdateClusterState(state)
-	assert.NoError(err)
-
 	err = p.Shutdown(true)
 	assert.NoError(err)
 
-	err = p.UpdateClusterState(state)
 	assert.Equal(ProviderShuttingDownError, err)
 }

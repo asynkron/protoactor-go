@@ -9,7 +9,7 @@ type MemberSet struct {
 var emptyMemberSet = NewMemberSet(make(Members, 0))
 
 func NewMemberSet(members Members) *MemberSet {
-	SortMembers(members)
+	members = CopySortMembers(members)
 	lookup := MembersToMap(members)
 	ms := &MemberSet{
 		topologyHash: TopologyHash(members),

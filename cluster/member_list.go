@@ -48,7 +48,7 @@ func (ml *MemberList) Members() *MemberSet {
 	return ml.members
 }
 
-func (ml *MemberList) UpdateClusterTopology(members []*Member) {
+func (ml *MemberList) UpdateClusterTopology(members Members) {
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
 
@@ -107,7 +107,7 @@ func (ml *MemberList) memberLeave(leavingMember *Member) {
 	}
 }
 
-func (ml *MemberList) getTopologyChanges(members []*Member) (topology *ClusterTopology, unchanged bool, active *MemberSet, joined *MemberSet, left *MemberSet) {
+func (ml *MemberList) getTopologyChanges(members Members) (topology *ClusterTopology, unchanged bool, active *MemberSet, joined *MemberSet, left *MemberSet) {
 	memberSet := NewMemberSet(members)
 
 	// get active members

@@ -7,7 +7,20 @@ import (
 	"strings"
 )
 
-type Members = []*Member
+type Members []*Member
+
+func (m *Members) ToSet() *MemberSet {
+	return NewMemberSet(*m)
+}
+
+func (m *Member) HasKind(kind string) bool {
+	for _, k := range m.Kinds {
+		if k == kind {
+			return true
+		}
+	}
+	return false
+}
 
 // Address return a "host:port".
 // Member defined by protos.proto
@@ -16,7 +29,6 @@ func (m *Member) Address() string {
 }
 
 func TopologyHash(members Members) uint64 {
-
 	//C# version
 	//var x = membersByMemberId.Select(m => m.Id).OrderBy(i => i).ToArray();
 	//var key = string.Join("", x);
@@ -27,24 +39,16 @@ func TopologyHash(members Members) uint64 {
 		return members[i].Id < members[j].Id
 	})
 
-	//I assume this is not the fastest way to do this?
+	// I assume this is not the fastest way to do this?
 	s := ""
 	for _, m := range members {
 		s += m.Id
 	}
 
 	//TODO: this HAS to be compatible with the same hashBytes in .NET
-	//add plenty of tests
+	// add plenty of tests
 	hash := murmur32.Sum64([]byte(s))
 	return hash
-}
-
-func MembersToSet(members Members) map[string]bool {
-	set := make(map[string]bool)
-	for _, m := range members {
-		set[m.Id] = true
-	}
-	return set
 }
 
 func MembersToMap(members Members) map[string]*Member {
@@ -53,45 +57,6 @@ func MembersToMap(members Members) map[string]*Member {
 		mapp[m.Id] = m
 	}
 	return mapp
-}
-
-func MembersExcept(members Members, except map[string]bool) Members {
-	filtered := make(Members, 0)
-	for _, m := range members {
-		if _, found := except[m.Id]; found {
-			continue
-		}
-		filtered = append(filtered, m)
-	}
-	return filtered
-}
-
-func AddMembersToSet(set map[string]bool, members Members) {
-	for _, m := range members {
-		set[m.Id] = true
-	}
-}
-
-func MemberIds(members Members) []string {
-	ids := make([]string, 0)
-	for _, m := range members {
-		ids = append(ids, m.Id)
-	}
-	return ids
-}
-
-func GroupMembersByKind(members Members) map[string]Members {
-	groups := map[string]Members{}
-	for _, member := range members {
-		for _, kind := range member.Kinds {
-			if list, ok := groups[kind]; ok {
-				groups[kind] = append(list, member)
-			} else {
-				groups[kind] = Members{member}
-			}
-		}
-	}
-	return groups
 }
 
 func SortMembers(members Members) {
@@ -106,15 +71,4 @@ func CopySortMembers(members Members) Members {
 	tmp := append(make(Members, 0, len(members)), members...)
 	SortMembers(tmp)
 	return tmp
-}
-
-func buildSortedMembers(m map[string]*Member) Members {
-	list := make(Members, len(m))
-	i := 0
-	for _, member := range m {
-		list[i] = member
-		i++
-	}
-	SortMembers(list)
-	return list
 }

@@ -67,8 +67,8 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 }
 
 func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
-	key := identity.AsKey()
-	ownerAddress := pm.rdv.GetByIdentity(key)
+
+	ownerAddress := pm.rdv.GetByClusterIdentity(identity)
 
 	if ownerAddress == "" {
 		return nil

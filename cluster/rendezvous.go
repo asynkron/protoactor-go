@@ -7,6 +7,7 @@ package cluster
 import (
 	"hash"
 	"hash/fnv"
+	"sync"
 )
 
 type memberData struct {
@@ -14,18 +15,23 @@ type memberData struct {
 	hashBytes []byte
 }
 type Rendezvous struct {
+	mutex   sync.RWMutex
 	hasher  hash.Hash32
 	members []*memberData
 }
 
 func NewRendezvous() *Rendezvous {
-	return &Rendezvous{fnv.New32a(), make([]*memberData, 0)}
+	return &Rendezvous{
+		hasher:  fnv.New32a(),
+		members: make([]*memberData, 0)}
 }
 
 func (r *Rendezvous) GetByClusterIdentity(ci *ClusterIdentity) string {
+	r.mutex.RLock()
+	defer r.mutex.Unlock()
+
 	identity := ci.Identity
-	m := r.members
-	//TODO: filter on kind ci.Kind
+	m := r.memberDataByKind(ci.Kind)
 
 	l := len(m)
 
@@ -56,45 +62,25 @@ func (r *Rendezvous) GetByClusterIdentity(ci *ClusterIdentity) string {
 	}
 	return maxMember.member.Address()
 }
-func (r *Rendezvous) GetByIdentity(identity string) string {
-	m := r.members
-	l := len(m)
 
-	if l == 0 {
-		return ""
-	}
-
-	if l == 1 {
-		return m[0].member.Address()
-	}
-
-	keyBytes := []byte(identity)
-
-	var maxScore uint32
-	var maxMember *memberData
-	var score uint32
-
-	for _, node := range m {
-		score = r.hash(node.hashBytes, keyBytes)
-		if score > maxScore {
-			maxScore = score
-			maxMember = node
+func (r *Rendezvous) memberDataByKind(kind string) []*memberData {
+	m := make([]*memberData, 0)
+	for _, md := range r.members {
+		if md.member.HasKind(kind) {
+			m = append(m, md)
 		}
 	}
-
-	if maxMember == nil {
-		return ""
-	}
-	return maxMember.member.Address()
+	return m
 }
 
 func (r *Rendezvous) UpdateMembers(members Members) {
-	//TODO: lock?
-	//TODO: is this needed?
-	tmp := CopySortMembers(members)
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	tmp := members.ToSet()
 	r.members = make([]*memberData, 0)
 
-	for _, m := range tmp {
+	for _, m := range tmp.Members() {
 		keyBytes := []byte(m.Address()) //TODO: should be utf8 to match .net
 		r.members = append(r.members, &memberData{
 			member:    m,
