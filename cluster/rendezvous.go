@@ -88,11 +88,13 @@ func (r *Rendezvous) GetByIdentity(identity string) string {
 	return maxMember.member.Address()
 }
 
-//TODO: lock?
-func (r *Rendezvous) UpdateMembers(members []*Member) {
+func (r *Rendezvous) UpdateMembers(members Members) {
+	//TODO: lock?
+	//TODO: is this needed?
+	tmp := CopySortMembers(members)
 	r.members = make([]*memberData, 0)
-	//TODO: sort
-	for _, m := range members {
+
+	for _, m := range tmp {
 		keyBytes := []byte(m.Address()) //TODO: should be utf8 to match .net
 		r.members = append(r.members, &memberData{
 			member:    m,

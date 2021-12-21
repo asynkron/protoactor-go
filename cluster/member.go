@@ -7,13 +7,15 @@ import (
 	"strings"
 )
 
+type Members = []*Member
+
 // Address return a "host:port".
 // Member defined by protos.proto
 func (m *Member) Address() string {
 	return m.Host + ":" + strconv.FormatInt(int64(m.Port), 10)
 }
 
-func TopologyHash(members []*Member) uint64 {
+func TopologyHash(members Members) uint64 {
 
 	//C# version
 	//var x = membersByMemberId.Select(m => m.Id).OrderBy(i => i).ToArray();
@@ -37,7 +39,7 @@ func TopologyHash(members []*Member) uint64 {
 	return hash
 }
 
-func MembersToSet(members []*Member) map[string]bool {
+func MembersToSet(members Members) map[string]bool {
 	set := make(map[string]bool)
 	for _, m := range members {
 		set[m.Id] = true
@@ -45,7 +47,7 @@ func MembersToSet(members []*Member) map[string]bool {
 	return set
 }
 
-func MembersToMap(members []*Member) map[string]*Member {
+func MembersToMap(members Members) map[string]*Member {
 	mapp := make(map[string]*Member)
 	for _, m := range members {
 		mapp[m.Id] = m
@@ -53,8 +55,8 @@ func MembersToMap(members []*Member) map[string]*Member {
 	return mapp
 }
 
-func MembersExcept(members []*Member, except map[string]bool) []*Member {
-	filtered := make([]*Member, 0)
+func MembersExcept(members Members, except map[string]bool) Members {
+	filtered := make(Members, 0)
 	for _, m := range members {
 		if _, found := except[m.Id]; found {
 			continue
@@ -64,13 +66,13 @@ func MembersExcept(members []*Member, except map[string]bool) []*Member {
 	return filtered
 }
 
-func AddMembersToSet(set map[string]bool, members []*Member) {
+func AddMembersToSet(set map[string]bool, members Members) {
 	for _, m := range members {
 		set[m.Id] = true
 	}
 }
 
-func MemberIds(members []*Member) []string {
+func MemberIds(members Members) []string {
 	ids := make([]string, 0)
 	for _, m := range members {
 		ids = append(ids, m.Id)
@@ -78,21 +80,21 @@ func MemberIds(members []*Member) []string {
 	return ids
 }
 
-func GroupMembersByKind(members []*Member) map[string][]*Member {
-	groups := map[string][]*Member{}
+func GroupMembersByKind(members Members) map[string]Members {
+	groups := map[string]Members{}
 	for _, member := range members {
 		for _, kind := range member.Kinds {
 			if list, ok := groups[kind]; ok {
 				groups[kind] = append(list, member)
 			} else {
-				groups[kind] = []*Member{member}
+				groups[kind] = Members{member}
 			}
 		}
 	}
 	return groups
 }
 
-func SortMembers(members []*Member) {
+func SortMembers(members Members) {
 	sort.Slice(members, func(i, j int) bool {
 		addrI := members[i].Id
 		addrJ := members[j].Id
@@ -100,8 +102,14 @@ func SortMembers(members []*Member) {
 	})
 }
 
-func buildSortedMembers(m map[string]*Member) []*Member {
-	list := make([]*Member, len(m))
+func CopySortMembers(members Members) Members {
+	tmp := append(make(Members, 0, len(members)), members...)
+	SortMembers(tmp)
+	return tmp
+}
+
+func buildSortedMembers(m map[string]*Member) Members {
+	list := make(Members, len(m))
 	i := 0
 	for _, member := range m {
 		list[i] = member

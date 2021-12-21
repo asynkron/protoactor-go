@@ -2,13 +2,13 @@ package cluster
 
 type MemberSet struct {
 	topologyHash uint64
-	members      []*Member
+	members      Members
 	lookup       map[string]*Member
 }
 
-var emptyMemberSet = NewMemberSet(make([]*Member, 0))
+var emptyMemberSet = NewMemberSet(make(Members, 0))
 
-func NewMemberSet(members []*Member) *MemberSet {
+func NewMemberSet(members Members) *MemberSet {
 	SortMembers(members)
 	lookup := MembersToMap(members)
 	ms := &MemberSet{
@@ -27,7 +27,7 @@ func (ms *MemberSet) TopologyHash() uint64 {
 	return ms.topologyHash
 }
 
-func (ms *MemberSet) Members() []*Member {
+func (ms *MemberSet) Members() Members {
 	return ms.members
 }
 
@@ -43,7 +43,7 @@ func (ms *MemberSet) GetMemberById(id string) *Member {
 
 func (ms *MemberSet) Except(other *MemberSet) *MemberSet {
 
-	res := make([]*Member, 0)
+	res := make(Members, 0)
 	for _, m := range ms.members {
 		if other.ContainsId(m.Id) {
 			continue
@@ -63,7 +63,7 @@ func (ms *MemberSet) Union(other *MemberSet) *MemberSet {
 	for _, m := range other.members {
 		mapp[m.Id] = m
 	}
-	res := make([]*Member, 0)
+	res := make(Members, 0)
 	for _, m := range mapp {
 		res = append(res, m)
 	}
