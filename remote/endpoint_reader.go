@@ -15,6 +15,11 @@ type endpointReader struct {
 	remote    *Remote
 }
 
+func (s *endpointReader) mustEmbedUnimplementedRemotingServer() {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (s *endpointReader) ListProcesses(ctx context.Context, request *ListProcessesRequest) (*ListProcessesResponse, error) {
 	panic("implement me")
 }
