@@ -2,7 +2,6 @@ package remote
 
 import (
 	"fmt"
-	"golang.org/x/net/context"
 	"io/ioutil"
 	"net"
 	"time"
@@ -25,31 +24,6 @@ type Remote struct {
 	config       *Config
 	kinds        map[string]*actor.Props
 	activatorPid *actor.PID
-}
-
-func (r *Remote) Connect(ctx context.Context, request *ConnectRequest) (*ConnectResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *Remote) Receive(server Remoting_ReceiveServer) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *Remote) ListProcesses(ctx context.Context, request *ListProcessesRequest) (*ListProcessesResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *Remote) GetProcessDiagnostics(ctx context.Context, request *GetProcessDiagnosticsRequest) (*GetProcessDiagnosticsResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *Remote) mustEmbedUnimplementedRemotingServer() {
-	//TODO implement me
-	panic("implement me")
 }
 
 func NewRemote(actorSystem *actor.ActorSystem, config Config) *Remote {
