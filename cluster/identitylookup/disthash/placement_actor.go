@@ -63,7 +63,7 @@ func (p *placementActor) onIdentityHandoverRequest(msg *clustering.IdentityHando
 	rdv.UpdateMembers(msg.Members)
 	for identity, meta := range p.actors {
 		// who owns this identity according to the requesters memberlist?
-		ownerAddress := rdv.GetByIdentity(identity)
+		ownerAddress := rdv.GetByClusterIdentity(identity)
 		// this identity is not owned by the requester
 		if ownerAddress != requestAddress {
 			continue

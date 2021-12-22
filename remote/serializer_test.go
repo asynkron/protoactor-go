@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/gogo/protobuf/jsonpb"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,8 +18,7 @@ func TestJsonSerializer_round_trip(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	typed := res.(*ActorPidRequest)
-
+	var typed = res.(*ActorPidRequest)
 	assert.Equal(t, "remote.ActorPidRequest", typeName)
 	assert.Equal(t, m, typed)
 }
@@ -27,7 +26,7 @@ func TestJsonSerializer_round_trip(t *testing.T) {
 func TestJsonSerializer_Serialize_PID_raw(t *testing.T) {
 	system := actor.NewActorSystem()
 	m, _ := system.Root.SpawnNamed(actor.PropsFromFunc(func(ctx actor.Context) {}), "actorpid")
-	ser := jsonpb.Marshaler{}
+	var ser = jsonpb.Marshaler{}
 	res, _ := ser.MarshalToString(m)
 	assert.Equal(t, "{\"Address\":\"nonhost\",\"Id\":\"actorpid\"}", res)
 }
@@ -40,8 +39,7 @@ func TestJsonSerializer_Serialize_PID(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	typed := res.(*actor.PID)
-
+	var typed = res.(*actor.PID)
 	assert.Equal(t, "actor.PID", typeName)
 	assert.Equal(t, m, typed)
 }

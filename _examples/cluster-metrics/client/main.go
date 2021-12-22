@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/cluster/partition"
+	"github.com/AsynkronIT/protoactor-go/cluster/identitylookup/partition"
 	"log"
 	"time"
 
@@ -11,7 +11,7 @@ import (
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
+	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/consul"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 

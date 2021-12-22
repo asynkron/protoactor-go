@@ -4,15 +4,15 @@ import (
 	"cluster-restartgracefully/shared"
 	"flag"
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/cluster/partition"
+	"github.com/AsynkronIT/protoactor-go/cluster/identitylookup/partition"
 	"sync"
 	"time"
 
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
-	"github.com/AsynkronIT/protoactor-go/cluster/etcd"
+	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/etcd"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )

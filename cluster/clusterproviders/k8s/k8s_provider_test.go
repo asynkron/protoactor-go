@@ -3,7 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/cluster/disthash"
+	"github.com/AsynkronIT/protoactor-go/cluster/identitylookup/disthash"
 	"net"
 	"strconv"
 	"testing"

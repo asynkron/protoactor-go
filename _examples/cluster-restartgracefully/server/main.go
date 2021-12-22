@@ -11,8 +11,8 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
-	"github.com/AsynkronIT/protoactor-go/cluster/etcd"
+	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/etcd"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )

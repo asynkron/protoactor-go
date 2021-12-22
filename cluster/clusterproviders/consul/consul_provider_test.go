@@ -123,56 +123,6 @@ func TestRegisterMultipleMembers(t *testing.T) {
 	}
 }
 
-func TestUpdateMemberState(t *testing.T) {
-	if testing.Short() {
-		return
-	}
-	assert := assert.New(t)
-
-	p, _ := New()
-	defer p.Shutdown(true)
-
-	c := newClusterForTest("mycluster3", "127.0.0.1:8000", p)
-	err := p.StartMember(c)
-	assert.NoError(err)
-
-	state := cluster.ClusterState{[]string{"yes"}}
-	err = p.UpdateClusterState(state)
-	assert.NoError(err)
-}
-
-func TestUpdateMemberState_DoesNotReregisterAfterShutdown(t *testing.T) {
-	if testing.Short() {
-		return
-	}
-	assert := assert.New(t)
-
-	p, _ := New()
-	c := newClusterForTest("mycluster4", "127.0.0.1:8001", p)
-	err := p.StartMember(c)
-	assert.NoError(err)
-	t.Cleanup(func() {
-		p.Shutdown(true)
-	})
-
-	time.Sleep(time.Second)
-	found, _ := findService(t, p)
-	assert.True(found, "service was not registered in consul")
-
-	state := cluster.ClusterState{[]string{"yes"}}
-	err = p.UpdateClusterState(state)
-	assert.NoError(err)
-
-	err = p.Shutdown(true)
-	assert.NoError(err)
-
-	err = p.UpdateClusterState(state)
-	assert.Equal(ProviderShuttingDownError, err)
-
-	found, status := findService(t, p)
-	assert.Falsef(found, "service was re-registered in consul after shutdown (status: %s)", status)
-}
-
 func TestUpdateTTL_DoesNotReregisterAfterShutdown(t *testing.T) {
 	if testing.Short() {
 		return

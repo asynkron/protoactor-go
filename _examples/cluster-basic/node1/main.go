@@ -5,8 +5,8 @@ import (
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
-	"github.com/AsynkronIT/protoactor-go/cluster/partition"
+	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/AsynkronIT/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
@@ -26,7 +26,7 @@ func startNode() *cluster.Cluster {
 	system := actor.NewActorSystem()
 
 	provider, _ := consul.New()
-	lookup := partition.New()
+	lookup := disthash.New()
 	config := remote.Configure("localhost", 0)
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
 	c := cluster.New(system, clusterConfig)

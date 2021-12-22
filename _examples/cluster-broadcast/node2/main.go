@@ -3,13 +3,13 @@ package main
 import (
 	"cluster-broadcast/shared"
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/cluster/partition"
+	"github.com/AsynkronIT/protoactor-go/cluster/identitylookup/partition"
 	"time"
 
 	console "github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/automanaged"
+	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/automanaged"
 	"github.com/AsynkronIT/protoactor-go/remote"
 )
 
