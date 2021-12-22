@@ -18,7 +18,7 @@ type Manager struct {
 	topologySub    *eventstream.Subscription
 	identityActor  *actor.PID
 	placementActor *actor.PID
-	rdv            *clustering.RendezvousV2
+	rdv            *clustering.Rendezvous
 }
 
 func newPartitionManager(c *clustering.Cluster) *Manager {
@@ -67,24 +67,25 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 
 	for _, m := range tplg.Members {
 		plog.Info("Got member " + m.Id)
+
 		for _, k := range m.Kinds {
 			plog.Info("" + m.Id + " - " + k)
 		}
 	}
 
-	pm.rdv = clustering.NewRendezvousV2(tplg.Members)
+	pm.rdv = clustering.NewRendezvous()
+	pm.rdv.UpdateMembers(tplg.Members)
 	pm.cluster.ActorSystem.Root.Send(pm.identityActor, tplg)
 }
 
 func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
-	key := identity.AsKey()
-	ownerAddres := pm.rdv.Get(key)
+	ownerAddress := pm.rdv.GetByClusterIdentity(identity)
 
-	if ownerAddres == "" {
+	if ownerAddress == "" {
 		return nil
 	}
 
-	identityOwnerPid := pm.PidOfIdentityActor(ownerAddres)
+	identityOwnerPid := pm.PidOfIdentityActor(ownerAddress)
 	request := &clustering.ActivationRequest{
 		ClusterIdentity: identity,
 		RequestId:       "aaaa",
