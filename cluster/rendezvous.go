@@ -63,6 +63,41 @@ func (r *Rendezvous) GetByClusterIdentity(ci *ClusterIdentity) string {
 	return maxMember.member.Address()
 }
 
+func (r *Rendezvous) GetByIdentity(identity string) string {
+	r.mutex.RLock()
+	defer r.mutex.Unlock()
+
+	m := r.members
+	l := len(m)
+
+	if l == 0 {
+		return ""
+	}
+
+	if l == 1 {
+		return m[0].member.Address()
+	}
+
+	keyBytes := []byte(identity)
+
+	var maxScore uint32
+	var maxMember *memberData
+	var score uint32
+
+	for _, node := range m {
+		score = r.hash(node.hashBytes, keyBytes)
+		if score > maxScore {
+			maxScore = score
+			maxMember = node
+		}
+	}
+
+	if maxMember == nil {
+		return ""
+	}
+	return maxMember.member.Address()
+}
+
 func (r *Rendezvous) memberDataByKind(kind string) []*memberData {
 	m := make([]*memberData, 0)
 	for _, md := range r.members {
