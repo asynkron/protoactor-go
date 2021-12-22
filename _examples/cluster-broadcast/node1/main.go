@@ -6,7 +6,7 @@ import (
 	"github.com/AsynkronIT/goconsole"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/automanaged"
+	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/_automanaged"
 	"github.com/AsynkronIT/protoactor-go/cluster/identitylookup/partition"
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"time"
