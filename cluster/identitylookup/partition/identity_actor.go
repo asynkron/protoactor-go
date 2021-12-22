@@ -21,7 +21,7 @@ type identityActor struct {
 	spawns           map[string]*actor.Future
 	topologyHash     uint64
 	handoverTimeout  time.Duration
-	rdv              *clustering.RendezvousV2
+	rdv              *clustering.Rendezvous
 }
 
 func newIdentityActor(c *clustering.Cluster, p *Manager) *identityActor {
@@ -66,7 +66,7 @@ func (p *identityActor) onStopped() {
 }
 
 func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, ctx actor.Context) {
-	ownerAddress := p.rdv.Get(msg.ClusterIdentity.AsKey())
+	ownerAddress := p.rdv.GetByClusterIdentity(msg.ClusterIdentity)
 
 	// should I own it?
 	if ownerAddress != ctx.Self().Address {
@@ -82,7 +82,7 @@ func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, c
 	}
 
 	// Get activator
-	activatorAddress := p.cluster.MemberList.GetActivatorMember(msg.ClusterIdentity.Kind)
+	activatorAddress := p.cluster.MemberList.GetActivatorMember(msg.ClusterIdentity.Kind, ctx.Sender().Address)
 	activator := p.partitionManager.PidOfActivatorActor(activatorAddress)
 
 	// No activator found, bail out and respond empty
@@ -162,7 +162,8 @@ func (p *identityActor) onClusterTopology(msg *clustering.ClusterTopology, ctx a
 	}
 
 	members := msg.Members
-	p.rdv = clustering.NewRendezvousV2(members)
+	p.rdv = clustering.NewRendezvous()
+	p.rdv.UpdateMembers(members)
 	p.lookup = map[string]*actor.PID{}
 	futures := make([]*actor.Future, 0)
 
