@@ -49,7 +49,7 @@ func (state *endpointWatcher) connected(ctx actor.Context) {
 
 		terminated := &actor.Terminated{
 			Who: msg.Watchee,
-			Why: actor.UnknownReason,
+			Why: actor.TerminatedReason_Stopped,
 		}
 		ref, ok := state.remote.actorSystem.ProcessRegistry.GetLocal(msg.Watcher.Id)
 		if ok {
@@ -69,7 +69,7 @@ func (state *endpointWatcher) connected(ctx actor.Context) {
 					// create a terminated event for the Watched actor
 					terminated := &actor.Terminated{
 						Who: pid,
-						Why: actor.AddressTerminated,
+						Why: actor.TerminatedReason_AddressTerminated,
 					}
 
 					watcher := state.remote.actorSystem.NewLocalPID(id)
@@ -133,7 +133,7 @@ func (state *endpointWatcher) terminated(ctx actor.Context) {
 			// create a terminated event for the Watched actor
 			terminated := &actor.Terminated{
 				Who: msg.Watchee,
-				Why: actor.AddressTerminated,
+				Why: actor.TerminatedReason_AddressTerminated,
 			}
 			// send the address Terminated event to the Watcher
 			ref.SendSystemMessage(msg.Watcher, terminated)

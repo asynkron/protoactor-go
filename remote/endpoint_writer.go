@@ -124,7 +124,9 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		if rd.header == nil || rd.header.Length() == 0 {
 			header = nil
 		} else {
-			header = &MessageHeader{rd.header.ToMap()}
+			header = &MessageHeader{
+				HeaderData: rd.header.ToMap(),
+			}
 		}
 
 		bytes, typeName, err := Serialize(rd.message, serializerID)
