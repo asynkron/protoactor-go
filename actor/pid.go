@@ -5,18 +5,23 @@ import (
 	"unsafe"
 )
 
-type PID struct {
-	Address string `protobuf:"bytes,1,opt,name=Address,proto3" json:"Address,omitempty"`
-	Id      string `protobuf:"bytes,2,opt,name=Id,proto3" json:"Id,omitempty"`
+/*
+ensure the generated pid file contains the p *Process
+TODO: make some sed command to inject this somehow
 
+type PID struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Address   string `protobuf:"bytes,1,opt,name=Address,proto3" json:"Address,omitempty"`
+	Id        string `protobuf:"bytes,2,opt,name=Id,proto3" json:"Id,omitempty"`
+	RequestId uint32 `protobuf:"varint,3,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+
+	//manually added
 	p *Process
 }
-
-/*
-func (m *PID) MarshalJSONPB(*jsonpb.Marshaler) ([]byte, error) {
-	str := fmt.Sprintf("{\"Address\":\"%v\", \"Id\":\"%v\"}", m.Address, m.Id)
-	return []byte(str), nil
-}*/
+*/
 
 func (pid *PID) ref(actorSystem *ActorSystem) Process {
 	p := (*Process)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p))))
@@ -45,12 +50,16 @@ func (pid *PID) sendSystemMessage(actorSystem *ActorSystem, message interface{})
 	pid.ref(actorSystem).SendSystemMessage(pid, message)
 }
 
-func (pid *PID) String() string {
-	if pid == nil {
-		return "nil"
-	}
-	return pid.Address + "/" + pid.Id
+func (pid *PID) Equal(other *PID) bool {
+	return pid.Id == other.Id && pid.Address == other.Address && pid.RequestId == other.RequestId
 }
+
+//func (pid *PID) String() string {
+//	if pid == nil {
+//		return "nil"
+//	}
+//	return pid.Address + "/" + pid.Id
+//}
 
 // NewPID returns a new instance of the PID struct
 func NewPID(address, id string) *PID {

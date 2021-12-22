@@ -1,10 +1,7 @@
 syntax = "proto3";
 package remote;
-
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
-
-option (gogoproto.gostring_all) = false;
+option go_package="/github.com/AsynkronIT/protoactor-go/remote";
+import "actor.proto";
 
 message MessageBatch {
   repeated string type_names = 1;
