@@ -45,6 +45,7 @@ import (
 
 func TestProtobufSerializer_Serialize_PID(t *testing.T) {
 	s := NewSerialization()
+
 	s.RegisterFileDescriptor(actor.File_actor_proto)
 	system := actor.NewActorSystem()
 	m := system.NewLocalPID("foo")
@@ -55,5 +56,5 @@ func TestProtobufSerializer_Serialize_PID(t *testing.T) {
 
 	var typed = res.(*actor.PID)
 	assert.Equal(t, "actor.PID", typeName)
-	assert.Equal(t, m, typed)
+	assert.True(t, m.Equal(typed))
 }

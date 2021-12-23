@@ -27,6 +27,7 @@ func (s *Serialization) RegisterFileDescriptor(desc protoreflect.FileDescriptor)
 	messages := desc.Messages()
 	for i := 0; i < messages.Len(); i++ {
 		message := messages.Get(i)
+
 		s.p.typeLookup[string(message.FullName())] = message
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/dynamicpb"
+	protoregistry "google.golang.org/protobuf/reflect/protoregistry"
 )
 
 type protoSerializer struct {
@@ -35,9 +35,10 @@ func (p *protoSerializer) Deserialize(typeName string, bytes []byte) (interface{
 		return nil, fmt.Errorf("unknown message type %v", typeName)
 	}
 
-	//Wrong
-	//mt := dynamicpb.NewMessageType(md)
-	//pm := mt.New().Interface()
+	yy := protoregistry.GlobalTypes
+	n, _ := yy.FindMessageByName(protoreflect.FullName(typeName))
+	pm := n.New().Interface()
+
 	proto.Unmarshal(bytes, pm)
 	return pm, nil
 }
