@@ -4,17 +4,13 @@ import (
 	"fmt"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	protoregistry "google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-type protoSerializer struct {
-	//	typeLookup map[string]protoreflect.MessageDescriptor
-}
+type protoSerializer struct{}
 
 func newProtoSerializer() *protoSerializer {
-	return &protoSerializer{
-		//	typeLookup: make(map[string]protoreflect.MessageDescriptor),
-	}
+	return &protoSerializer{}
 }
 
 func (p *protoSerializer) Serialize(msg interface{}) ([]byte, error) {
@@ -30,11 +26,6 @@ func (p *protoSerializer) Serialize(msg interface{}) ([]byte, error) {
 }
 
 func (p *protoSerializer) Deserialize(typeName string, bytes []byte) (interface{}, error) {
-	//md := p.typeLookup[typeName]
-	//if md == nil {
-	//	return nil, fmt.Errorf("unknown message type %v", typeName)
-	//}
-
 	n, _ := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(typeName))
 	pm := n.New().Interface()
 
