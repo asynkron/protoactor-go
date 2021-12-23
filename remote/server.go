@@ -15,6 +15,7 @@ import (
 )
 
 var extensionId = extensions.NextExtensionID()
+var ser = NewSerialization()
 
 type Remote struct {
 	actorSystem  *actor.ActorSystem

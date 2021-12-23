@@ -2,18 +2,22 @@ package remote
 
 import (
 	"fmt"
-	"reflect"
-
-	"github.com/gogo/protobuf/proto"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
-type protoSerializer struct{}
-
-func newProtoSerializer() Serializer {
-	return &protoSerializer{}
+type protoSerializer struct {
+	typeLookup map[string]protoreflect.MessageDescriptor
 }
 
-func (protoSerializer) Serialize(msg interface{}) ([]byte, error) {
+func newProtoSerializer() *protoSerializer {
+	return &protoSerializer{
+		typeLookup: make(map[string]protoreflect.MessageDescriptor),
+	}
+}
+
+func (p *protoSerializer) Serialize(msg interface{}) ([]byte, error) {
 	if message, ok := msg.(proto.Message); ok {
 		bytes, err := proto.Marshal(message)
 		if err != nil {
@@ -25,25 +29,24 @@ func (protoSerializer) Serialize(msg interface{}) ([]byte, error) {
 	return nil, fmt.Errorf("msg must be proto.Message")
 }
 
-func (protoSerializer) Deserialize(typeName string, bytes []byte) (interface{}, error) {
-	protoType := proto.MessageType(typeName)
-	if protoType == nil {
+func (p *protoSerializer) Deserialize(typeName string, bytes []byte) (interface{}, error) {
+	md := p.typeLookup[typeName]
+	if md == nil {
 		return nil, fmt.Errorf("unknown message type %v", typeName)
 	}
-	t := protoType.Elem()
 
-	intPtr := reflect.New(t)
-	instance := intPtr.Interface().(proto.Message)
-	proto.Unmarshal(bytes, instance)
-
-	return instance, nil
+	//Wrong
+	//mt := dynamicpb.NewMessageType(md)
+	//pm := mt.New().Interface()
+	proto.Unmarshal(bytes, pm)
+	return pm, nil
 }
 
 func (protoSerializer) GetTypeName(msg interface{}) (string, error) {
 	if message, ok := msg.(proto.Message); ok {
 		typeName := proto.MessageName(message)
 
-		return typeName, nil
+		return string(typeName), nil
 	}
 	return "", fmt.Errorf("msg must be proto.Message")
 }
