@@ -8,12 +8,12 @@ import (
 )
 
 type protoSerializer struct {
-	typeLookup map[string]protoreflect.MessageDescriptor
+	//	typeLookup map[string]protoreflect.MessageDescriptor
 }
 
 func newProtoSerializer() *protoSerializer {
 	return &protoSerializer{
-		typeLookup: make(map[string]protoreflect.MessageDescriptor),
+		//	typeLookup: make(map[string]protoreflect.MessageDescriptor),
 	}
 }
 
@@ -30,17 +30,16 @@ func (p *protoSerializer) Serialize(msg interface{}) ([]byte, error) {
 }
 
 func (p *protoSerializer) Deserialize(typeName string, bytes []byte) (interface{}, error) {
-	md := p.typeLookup[typeName]
-	if md == nil {
-		return nil, fmt.Errorf("unknown message type %v", typeName)
-	}
+	//md := p.typeLookup[typeName]
+	//if md == nil {
+	//	return nil, fmt.Errorf("unknown message type %v", typeName)
+	//}
 
-	yy := protoregistry.GlobalTypes
-	n, _ := yy.FindMessageByName(protoreflect.FullName(typeName))
+	n, _ := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(typeName))
 	pm := n.New().Interface()
 
-	proto.Unmarshal(bytes, pm)
-	return pm, nil
+	err := proto.Unmarshal(bytes, pm)
+	return pm, err
 }
 
 func (protoSerializer) GetTypeName(msg interface{}) (string, error) {

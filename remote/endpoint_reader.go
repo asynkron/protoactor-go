@@ -89,7 +89,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 
 		for _, envelope := range batch.Envelopes {
 			pid := targets[envelope.Target]
-			message, err := ser.Deserialize(envelope.MessageData, batch.TypeNames[envelope.TypeId], envelope.SerializerId)
+			message, err := Deserialize(envelope.MessageData, batch.TypeNames[envelope.TypeId], envelope.SerializerId)
 			if err != nil {
 				plog.Debug("EndpointReader failed to deserialize", log.Error(err))
 				return err

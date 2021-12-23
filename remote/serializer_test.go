@@ -44,13 +44,11 @@ import (
 //}
 
 func TestProtobufSerializer_Serialize_PID(t *testing.T) {
-	s := NewSerialization()
 
-	s.RegisterFileDescriptor(actor.File_actor_proto)
 	system := actor.NewActorSystem()
 	m := system.NewLocalPID("foo")
-	b, typeName, _ := s.Serialize(m, 0)
-	res, err := s.Deserialize(b, typeName, 0)
+	b, typeName, _ := Serialize(m, 0)
+	res, err := Deserialize(b, typeName, 0)
 
 	assert.Nil(t, err)
 
