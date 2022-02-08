@@ -1,5 +1,5 @@
 syntax = "proto3";
-package gossip;
+package cluster;
 
 import "google/protobuf/any.proto";
 

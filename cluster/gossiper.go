@@ -1,14 +1,14 @@
 // Copyright (C) 2015-2022 Asynkron AB All rights reserved
 
-package gossip
+package cluster
 
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
@@ -42,8 +42,6 @@ type Gossiper struct {
 	// Channel use to stop the gossip loop
 	close chan struct{}
 }
-
-var _ cluster.Gossiper = (*Gossiper)(nil)
 
 // Creates a new Gossiper value and return it back
 func newGossiper(cl *Cluster, opts ...Option) (Gossiper, error) {
@@ -98,7 +96,13 @@ func (g *Gossiper) GetState(key string) (map[string]*types.Any, error) {
 // Sends fire and forget message to update member state
 func (g *Gossiper) SetState(key string, value proto.Message) {
 
-	plog.Debug(fmt.Sprintf("Gossiper setting state to %s", g.pid))
+	if plog.Level() == log.DebugLevel {
+		// log this just 10% of the time to prevent excessive flooding
+		if v := rand.Intn(100); v > 90 {
+			plog.Debug(fmt.Sprintf("Gossiper setting state to %s", g.pid))
+		}
+	}
+
 	if g.pid == nil {
 		return
 	}
@@ -110,7 +114,13 @@ func (g *Gossiper) SetState(key string, value proto.Message) {
 // Sends a Request (that blocks) to update member state
 func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
 
-	plog.Debug(fmt.Sprintf("Gossiper setting state to %s", g.pid))
+	if plog.Level() == log.DebugLevel {
+		// log this just 10% of the time to prevent excessive flooding
+		if v := rand.Intn(100); v > 90 {
+			plog.Debug(fmt.Sprintf("Gossiper setting state to %s", g.pid))
+		}
+	}
+
 	if g.pid == nil {
 		return errors.New("Gossiper Actor PID is nil")
 	}
@@ -155,7 +165,7 @@ func (g *Gossiper) SendState() {
 
 // Builds a consensus handler and a consensus checker, send the checker to the
 // Gossip actor and returns the handler back to the caller
-func (g *Gossiper) RegisterConsensusCheck(key string, getValue func(*types.Any) interface{}) cluster.ConsensusHandler {
+func (g *Gossiper) RegisterConsensusCheck(key string, getValue func(*types.Any) interface{}) ConsensusHandler {
 
 	definition := NewConsensusCheckBuilder(key, getValue)
 	consensusHandle, check := definition.Build()
@@ -222,7 +232,7 @@ breakLoop:
 			plog.Info("Stopping Gossip Loop")
 			break breakLoop
 		case <-ticker.C:
-			g.SetState(HearthbeatKey, &cluster.MemberHeartbeat{})
+			g.SetState(HearthbeatKey, &MemberHeartbeat{})
 			g.SendState()
 		}
 	}

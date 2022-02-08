@@ -1,6 +1,6 @@
 // Copyright (C) 2015-2022 Asynkron AB All rights reserved
 
-package gossip
+package cluster
 
 import (
 	"context"
@@ -16,6 +16,11 @@ type consensusResult struct {
 
 	consensus bool
 	value     interface{}
+}
+
+type ConsensusHandler interface {
+	GetID() string
+	TryGetConsensus(context.Context) (interface{}, bool)
 }
 
 type gossipConsensusHandler struct {
@@ -59,4 +64,7 @@ func (hdl *gossipConsensusHandler) TrySetConsensus(consensus interface{}) {
 
 func (hdl *gossipConsensusHandler) TryResetConsensus() {
 
+	// this is a noop for now need to discuss the right
+	// approach for check waiting in Go as might be another
+	// way of expressing this
 }

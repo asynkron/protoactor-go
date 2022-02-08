@@ -160,6 +160,15 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member, eventId uint64) {
 		log.Int("joined", len(tplg.Joined)),
 		log.Int("left", len(tplg.Left)),
 		log.Int("alives", len(tplg.Members)))
+
+	ml.broadCastTopologyChanges(tplg)
+}
+
+func (ml *MemberList) broadCastTopologyChanges(topology *ClusterTopology) {
+
+	plog.Debug("Memberlist sending state")
+	ml.cluster.Gossip.SetState(TopologyKey, topology)
+	ml.eventSteam.Publish(topology)
 }
 
 func (ml *MemberList) _updateClusterTopoLogy(members []*Member, eventId uint64) *ClusterTopology {

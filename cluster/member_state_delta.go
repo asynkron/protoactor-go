@@ -1,6 +1,6 @@
 // Copyright (C) 2015-2022 Asynkron AB All rights reserved
 
-package gossip
+package cluster
 
 type MemberStateDelta struct {
 	TargetMemberID string

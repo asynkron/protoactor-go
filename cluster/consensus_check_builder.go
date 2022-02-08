@@ -1,12 +1,11 @@
 // Copyright (C) 2015-2022 Asynkron AB All rights reserved
 
-package gossip
+package cluster
 
 import (
 	fmt "fmt"
 	"strings"
 
-	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/gogo/protobuf/types"
 )
@@ -47,7 +46,7 @@ func NewConsensusCheckBuilder(key string, getValue func(*types.Any) interface{})
 }
 
 // Builds a new ConsensusHandler and ConsensusCheck values and returns pointers to them
-func (ccb *ConsensusCheckBuilder) Build() (cluster.ConsensusHandler, *ConsensusCheck) {
+func (ccb *ConsensusCheckBuilder) Build() (ConsensusHandler, *ConsensusCheck) {
 
 	handle := NewGossipConsensusHandler()
 	onConsensus := handle.TrySetConsensus

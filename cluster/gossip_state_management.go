@@ -1,7 +1,6 @@
-package gossip
+package cluster
 
 import (
-	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 )
@@ -49,7 +48,7 @@ func setKey(state GossipState, key string, value proto.Message, memberID string,
 }
 
 // merges the local and the incoming remote states into a new states slice and return it
-func mergeState(localState *GossipState, remoteState *GossipState) ([]*cluster.GossipUpdate, *GossipState, map[string]empty) {
+func mergeState(localState *GossipState, remoteState *GossipState) ([]*GossipUpdate, *GossipState, map[string]empty) {
 
 	// make a copy of the localState (we do not want to modify localState just yet)
 	mergedState := &GossipState{Members: make(map[string]*GossipState_GossipMemberState)}
@@ -57,14 +56,14 @@ func mergeState(localState *GossipState, remoteState *GossipState) ([]*cluster.G
 		mergedState.Members[id] = member
 	}
 
-	updates := []*cluster.GossipUpdate{}
+	updates := []*GossipUpdate{}
 	updatedKeys := make(map[string]empty)
 
 	for memberID, remoteMemberState := range remoteState.Members {
 		if _, ok := mergedState.Members[memberID]; !ok {
 			mergedState.Members[memberID] = remoteMemberState
 			for key, entry := range remoteMemberState.Values {
-				update := cluster.GossipUpdate{
+				update := GossipUpdate{
 					MemberID:  memberID,
 					Key:       key,
 					Value:     entry.Value,
@@ -82,7 +81,7 @@ func mergeState(localState *GossipState, remoteState *GossipState) ([]*cluster.G
 			// this entry does not exists in newMemberState, just copy all of it
 			if _, ok := newMemberState.Values[key]; !ok {
 				newMemberState.Values[key] = remoteValue
-				update := cluster.GossipUpdate{
+				update := GossipUpdate{
 					MemberID:  memberID,
 					Key:       key,
 					Value:     remoteValue.Value,
@@ -102,7 +101,7 @@ func mergeState(localState *GossipState, remoteState *GossipState) ([]*cluster.G
 
 			// just replace the existing value
 			newMemberState.Values[key] = remoteValue
-			update := cluster.GossipUpdate{
+			update := GossipUpdate{
 				MemberID:  memberID,
 				Key:       key,
 				Value:     remoteValue.Value,

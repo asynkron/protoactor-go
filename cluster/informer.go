@@ -1,6 +1,6 @@
 // Copyright (C) 2015-2022 Asynkron AB All rights reserved
 
-package gossip
+package cluster
 
 import (
 	fmt "fmt"
@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
@@ -29,7 +28,7 @@ type Informer struct {
 	state             GossipState
 	commitedOffsets   map[string]int64
 	activeMemberIDs   map[string]empty
-	otherMembers      []*cluster.Member
+	otherMembers      []*Member
 	consensusChecks   *ConsensusChecks
 	getBlockedMembers func() map[string]empty
 	gossipFanOut      int
@@ -50,7 +49,7 @@ func newInformer(myID string, getBlockedMembers func() map[string]empty, fanOut 
 		},
 		commitedOffsets:   map[string]int64{},
 		activeMemberIDs:   map[string]empty{},
-		otherMembers:      []*cluster.Member{},
+		otherMembers:      []*Member{},
 		consensusChecks:   NewConsensusChecks(),
 		getBlockedMembers: getBlockedMembers,
 		gossipFanOut:      fanOut,
@@ -62,7 +61,7 @@ func newInformer(myID string, getBlockedMembers func() map[string]empty, fanOut 
 // called when there is a cluster topology update
 func (inf *Informer) UpdateClusterTopology(topology *ClusterTopology) {
 
-	others := []*cluster.Member{}
+	others := []*Member{}
 	for _, member := range topology.Members {
 		if member.Id != inf.myID {
 			others = append(others, member)
@@ -82,7 +81,18 @@ func (inf *Informer) UpdateClusterTopology(topology *ClusterTopology) {
 func (inf *Informer) SetState(key string, message proto.Message) {
 
 	inf.localSeqNumber = setKey(inf.state, key, message, inf.myID, inf.localSeqNumber)
-	plog.Debug("Setting state", log.String("key", key), log.Object("value", message), log.Object("state", inf.state))
+	if plog.Level() == log.DebugLevel {
+		// show this log a 10% of the times to don't flood the output too much
+		if v := rand.Intn(100); v > 90 {
+			sequenceNumbers := map[string]uint64{}
+			for _, memberState := range inf.state.Members {
+				for key, value := range memberState.Values {
+					sequenceNumbers[key] = uint64(value.SequenceNumber)
+				}
+			}
+			plog.Debug("Setting state", log.String("key", key), log.String("value", message.String()), log.Object("state", sequenceNumbers))
+		}
+	}
 
 	if _, ok := inf.state.Members[inf.myID]; !ok {
 		plog.Error("State corrupt")
@@ -102,7 +112,7 @@ func (inf *Informer) SendState(sendStateToMember LocalStateSender) {
 	}
 
 	// make a copy of the otherMembers so we can sort it randomly
-	otherMembers := make([]*cluster.Member, 0, len(inf.otherMembers))
+	otherMembers := make([]*Member, 0, len(inf.otherMembers))
 	for i, member := range inf.otherMembers {
 		otherMembers[i] = member
 	}
@@ -240,7 +250,7 @@ func (inf *Informer) GetState(key string) map[string]*types.Any {
 }
 
 // receives a remote informer state
-func (inf *Informer) ReceiveState(remoteState *GossipState) []*cluster.GossipUpdate {
+func (inf *Informer) ReceiveState(remoteState *GossipState) []*GossipUpdate {
 
 	updates, newState, updatedKeys := mergeState(&inf.state, remoteState)
 	if len(updates) == 0 {

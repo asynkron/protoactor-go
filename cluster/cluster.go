@@ -30,7 +30,11 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	}
 
 	actorSystem.Extensions.Register(c)
-	c.Gossip = newGossiper(c)
+	var err error
+	c.Gossip, err = newGossiper(c)
+	if err != nil {
+		panic(err)
+	}
 
 	return c
 }

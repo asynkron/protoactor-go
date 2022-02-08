@@ -1,12 +1,11 @@
 // Copyright (C) 2015-2022 Asynkron AB All rights reserved
 
-package gossip
+package cluster
 
 import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/log"
 )
 
@@ -77,7 +76,7 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 	plog.Debug("Gossip request", log.PID("sender", ctx.Sender()))
 	ga.ReceiveState(r.State, ctx)
 
-	if !cluster.GetCluster(ctx.ActorSystem()).MemberList.ContainsMemberID(r.MemberId) {
+	if !GetCluster(ctx.ActorSystem()).MemberList.ContainsMemberID(r.MemberId) {
 		plog.Warn("Got gossip request from unknown member", log.String("MemberId", r.MemberId))
 
 		// nothing to send, do not provide sender or state payload
@@ -98,7 +97,7 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 	msg := GossipResponse{
 		State: memberState.State,
 	}
-	future := ctx.RequestFuture(ctx.Sender(), &msg, cluster.GetCluster(ctx.ActorSystem()).Config.GossipRequestTimeout)
+	future := ctx.RequestFuture(ctx.Sender(), &msg, GetCluster(ctx.ActorSystem()).Config.GossipRequestTimeout)
 
 	// wait until we get a response or an error from the future
 	resp, err := future.Result()
@@ -119,12 +118,14 @@ func (ga *GossipActor) onSetGossipStateKey(r *SetGossipStateKey, ctx actor.Conte
 
 	key, message := r.Key, r.Value
 	ga.gossip.SetState(key, message)
-	ctx.Respond(&SetGossipStateResponse{})
+	if ctx.Sender() != nil {
+		ctx.Respond(&SetGossipStateResponse{})
+	}
 }
 
 func (ga *GossipActor) onSendGossipState(ctx actor.Context) {
 
-	ga.gossip.SendState(func(memberState *MemberStateDelta, member *cluster.Member) {
+	ga.gossip.SendState(func(memberState *MemberStateDelta, member *Member) {
 		ga.sendGossipForMember(member, memberState, ctx)
 	})
 	ctx.Respond(&SendGossipStateResponse{})
@@ -139,7 +140,7 @@ func (ga *GossipActor) ReceiveState(remoteState *GossipState, ctx actor.Context)
 	}
 }
 
-func (ga *GossipActor) sendGossipForMember(member *cluster.Member, memberStateDelta *MemberStateDelta, ctx actor.Context) {
+func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *MemberStateDelta, ctx actor.Context) {
 
 	pid := actor.NewPID(member.Address(), DefaultGossipActorName)
 	plog.Info("Sending GossipRequest", log.String("MemberId", member.Id))
