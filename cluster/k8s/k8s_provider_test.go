@@ -41,7 +41,10 @@ func TestStartMember(t *testing.T) {
 	}
 	assert := assert.New(t)
 
-	p, _ := New()
+	p, newErr := New()
+	if newErr != nil {
+		panic(fmt.Errorf("could not create new cluster provider: %w", newErr))
+	}
 	defer p.Shutdown(true)
 
 	c := newClusterForTest("k8scluster", "127.0.0.1:8000", p)
