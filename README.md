@@ -405,11 +405,9 @@ Our awesome sponsors:
 <!-- markdownlint-disable -->
 <table>
   <tr>
-
     <td align="center"><a href="https://github.com/umitkavala"><img src="https://avatars.githubusercontent.com/u/3861934?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Umit Kavala</b></sub></a><br /><a href="https://github.com/asynkron/protoactor-go/commits?author=umitkavala" title="Code">💻</a></td>
-
+    <td align="center"><a href="http://asynkron.se"><img src="https://avatars.githubusercontent.com/u/647031?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Roger Johansson</b></sub></a><br /><a href="https://github.com/asynkron/protoactor-go/commits?author=rogeralsing" title="Code">💻</a></td>
     <td align="center"><a href="https://crm.fsf.org/civicrm/pcp/info?reset=1&id=25"><img src="https://avatars.githubusercontent.com/u/329766?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Oscar Campos</b></sub></a><br /><a href="https://github.com/asynkron/protoactor-go/commits?author=DamnWidget" title="Code">💻</a></td>
-
   </tr>
 </table>
 

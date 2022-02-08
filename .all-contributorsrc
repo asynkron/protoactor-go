@@ -5,6 +5,15 @@
   "imageSize": 100,
   "commit": false,
   "contributors": [
+   {
+      "login": "rogeralsing",
+      "name": "Roger Johansson",
+      "avatar_url": "https://avatars.githubusercontent.com/u/647031?v=4",
+      "profile": "http://asynkron.se",
+      "contributions": [
+        "code"
+      ]
+    },
     {
       "login": "umitkavala",
       "name": "Umit Kavala",
