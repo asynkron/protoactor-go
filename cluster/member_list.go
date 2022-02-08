@@ -70,6 +70,9 @@ func setupMemberList(cluster *Cluster) *MemberList {
 
 func (ml *MemberList) updateBannedMembers(members []*Member) {
 
+	ml.mutex.Lock()
+	defer ml.mutex.Unlock()
+
 	for _, member := range members {
 		ml.banned[member.Id] = struct{}{}
 	}

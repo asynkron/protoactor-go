@@ -22,9 +22,10 @@ type GossipActor struct {
 // Creates a new GossipActor and returns a pointer to its location in the heap
 func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers func() map[string]empty, fanOut int, maxSend int) *GossipActor {
 
+	informer := newInformer(myID, getBlockedMembers, fanOut, maxSend)
 	gossipActor := GossipActor{
 		gossipRequestTimeout: requestTimeout,
-		gossip:               newInformer(myID, getBlockedMembers, fanOut, maxSend),
+		gossip:               informer,
 	}
 	return &gossipActor
 }

@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
@@ -33,6 +34,7 @@ type Informer struct {
 	getBlockedMembers func() map[string]empty
 	gossipFanOut      int
 	gossipMaxSend     int
+	throttler         actor.ShouldThrottle
 }
 
 // makes sure Informer complies with the Gossip interface
@@ -55,6 +57,7 @@ func newInformer(myID string, getBlockedMembers func() map[string]empty, fanOut 
 		gossipFanOut:      fanOut,
 		gossipMaxSend:     maxSend,
 	}
+	informer.throttler = actor.NewThrottle(3, 60*time.Second, informer.throttledLog)
 	return &informer
 }
 
@@ -81,17 +84,14 @@ func (inf *Informer) UpdateClusterTopology(topology *ClusterTopology) {
 func (inf *Informer) SetState(key string, message proto.Message) {
 
 	inf.localSeqNumber = setKey(inf.state, key, message, inf.myID, inf.localSeqNumber)
-	if plog.Level() == log.DebugLevel {
-		// show this log a 10% of the times to don't flood the output too much
-		if v := rand.Intn(100); v > 90 {
-			sequenceNumbers := map[string]uint64{}
-			for _, memberState := range inf.state.Members {
-				for key, value := range memberState.Values {
-					sequenceNumbers[key] = uint64(value.SequenceNumber)
-				}
+	if inf.throttler() == actor.Open {
+		sequenceNumbers := map[string]uint64{}
+		for _, memberState := range inf.state.Members {
+			for key, value := range memberState.Values {
+				sequenceNumbers[key] = uint64(value.SequenceNumber)
 			}
-			plog.Debug("Setting state", log.String("key", key), log.String("value", message.String()), log.Object("state", sequenceNumbers))
 		}
+		plog.Debug("Setting state", log.String("key", key), log.String("value", message.String()), log.Object("state", sequenceNumbers))
 	}
 
 	if _, ok := inf.state.Members[inf.myID]; !ok {
@@ -290,4 +290,9 @@ func (inf *Informer) commitPendingOffsets(offsets map[string]int64) {
 			inf.commitedOffsets[key] = seqNumber
 		}
 	}
+}
+
+func (inf *Informer) throttledLog(counter int32) {
+
+	plog.Info("[Gossip] Setting State", log.Int("throttled", int(counter)))
 }

@@ -5,7 +5,6 @@ package cluster
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -41,6 +40,9 @@ type Gossiper struct {
 
 	// Channel use to stop the gossip loop
 	close chan struct{}
+
+	// Message throttler
+	throttler actor.ShouldThrottle
 }
 
 // Creates a new Gossiper value and return it back
@@ -52,6 +54,8 @@ func newGossiper(cl *Cluster, opts ...Option) (Gossiper, error) {
 		cluster:         cl,
 		close:           make(chan struct{}),
 	}
+
+	gossiper.throttler = actor.NewThrottle(3, 60*time.Second, gossiper.throttledLog)
 
 	// apply any given options
 	for _, opt := range opts {
@@ -96,11 +100,8 @@ func (g *Gossiper) GetState(key string) (map[string]*types.Any, error) {
 // Sends fire and forget message to update member state
 func (g *Gossiper) SetState(key string, value proto.Message) {
 
-	if plog.Level() == log.DebugLevel {
-		// log this just 10% of the time to prevent excessive flooding
-		if v := rand.Intn(100); v > 90 {
-			plog.Debug(fmt.Sprintf("Gossiper setting state to %s", g.pid))
-		}
+	if g.throttler() == actor.Open {
+		plog.Debug(fmt.Sprintf("Gossiper setting state %s to %s", key, g.pid))
 	}
 
 	if g.pid == nil {
@@ -114,11 +115,8 @@ func (g *Gossiper) SetState(key string, value proto.Message) {
 // Sends a Request (that blocks) to update member state
 func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
 
-	if plog.Level() == log.DebugLevel {
-		// log this just 10% of the time to prevent excessive flooding
-		if v := rand.Intn(100); v > 90 {
-			plog.Debug(fmt.Sprintf("Gossiper setting state to %s", g.pid))
-		}
+	if g.throttler() == actor.Open {
+		plog.Debug(fmt.Sprintf("Gossiper setting state %s to %s", key, g.pid))
 	}
 
 	if g.pid == nil {
@@ -200,7 +198,7 @@ func (g *Gossiper) StartGossiping() error {
 	}
 
 	g.cluster.ActorSystem.EventStream.Subscribe(func(evt interface{}) {
-		if topology, ok := evt.(*ClusterTopologyEventV2); ok {
+		if topology, ok := evt.(*ClusterTopology); ok {
 			g.cluster.ActorSystem.Root.Send(g.pid, topology)
 		}
 	})
@@ -236,4 +234,9 @@ breakLoop:
 			g.SendState()
 		}
 	}
+}
+
+func (g *Gossiper) throttledLog(counter int32) {
+
+	plog.Info(fmt.Sprintf("[Gossiper] Gossiper Setting State to %s", g.pid), log.Int("throttled", int(counter)))
 }
