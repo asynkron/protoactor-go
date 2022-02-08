@@ -1,0 +1,24 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "rogeralsing",
+      "name": "Roger Johansson",
+      "avatar_url": "https://avatars.githubusercontent.com/u/647031?v=4",
+      "profile": "http://asynkron.se",
+      "contributions": [
+        "code"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "protoactor-go",
+  "projectOwner": "asynkron",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "skipCi": true
+}
