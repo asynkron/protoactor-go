@@ -1,0 +1,24 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "umitkavala",
+      "name": "Umit Kavala",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3861934?v=4",
+      "profile": "https://github.com/umitkavala",
+      "contributions": [
+        "code"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "protoactor-go",
+  "projectOwner": "asynkron",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "skipCi": true
+}
