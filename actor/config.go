@@ -26,8 +26,8 @@ type Config struct {
 
 func defaultActorSystemConfig() Config {
 	return Config{
-		DeadLetterThrottleInterval:  time.Duration(0),
-		DeadLetterThrottleCount:     0,
+		DeadLetterThrottleInterval:  1 * time.Second,
+		DeadLetterThrottleCount:     3,
 		DeadLetterRequestLogging:    true,
 		DeveloperSupervisionLogging: false,
 		DiagnosticsSerializer: func(actor Actor) string {
