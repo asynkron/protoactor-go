@@ -95,7 +95,7 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member, eventId uint64) {
 	tplg := ml._updateClusterTopoLogy(members, eventId)
 
 	ml.onMembersUpdated(tplg)
-	ml.cluster.ActorSystem.EventStream.PublishUnsafe(&ClusterTopologyEventV2{
+	ml.cluster.ActorSystem.EventStream.Publish(&ClusterTopologyEventV2{
 		ClusterTopology: tplg,
 		chashByKind:     ml.chashByKind,
 	})
@@ -159,12 +159,12 @@ func (ml *MemberList) onMemberLeft(member *Member) {
 		Kinds: member.Kinds,
 	}
 	left := &MemberLeftEvent{MemberMeta: meta}
-	ml.cluster.ActorSystem.EventStream.PublishUnsafe(left)
+	ml.cluster.ActorSystem.EventStream.Publish(left)
 
 	addr := member.Address()
 	delete(ml.members, addr)
 	rt := &remote.EndpointTerminatedEvent{Address: addr}
-	ml.cluster.ActorSystem.EventStream.PublishUnsafe(rt)
+	ml.cluster.ActorSystem.EventStream.Publish(rt)
 	return
 }
 
@@ -178,7 +178,7 @@ func (ml *MemberList) onMemberJoined(member *Member) {
 		Kinds: member.Kinds,
 	}
 	joined := &MemberJoinedEvent{MemberMeta: meta}
-	ml.cluster.ActorSystem.EventStream.PublishUnsafe(joined)
+	ml.cluster.ActorSystem.EventStream.Publish(joined)
 }
 
 func (ml *MemberList) buildSortedMembers(m map[string]*Member) []*Member {
