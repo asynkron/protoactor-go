@@ -31,13 +31,16 @@ func newPartitionManager(c *Cluster, kinds ...Kind) *PartitionManager {
 func (pm *PartitionManager) Start() {
 	system := pm.cluster.ActorSystem
 	pm.topologySub = system.EventStream.
-		Subscribe(func(ev interface{}) {
-			pm.onClusterTopology(ev.(*ClusterTopologyEventV2))
-		}).
-		WithPredicate(func(m interface{}) bool {
-			_, ok := m.(*ClusterTopologyEventV2)
-			return ok
-		})
+		SubscribeWithPredicate(
+			func(ev interface{}) {
+				pm.onClusterTopology(ev.(*ClusterTopologyEventV2))
+			},
+			func(m interface{}) bool {
+				_, ok := m.(*ClusterTopologyEventV2)
+				return ok
+			},
+		)
+
 }
 
 // Stop ...

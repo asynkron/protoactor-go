@@ -25,11 +25,10 @@ func setupPidCache(actorSystem *actor.ActorSystem) *pidCacheValue {
 	props := actor.PropsFromProducer(newPidCacheWatcher(pidCache)).WithGuardian(actor.RestartingSupervisorStrategy())
 	pidCache.watcher, _ = actorSystem.Root.SpawnNamed(props, "PidCacheWatcher")
 
-	pidCache.memberStatusSub = actorSystem.EventStream.Subscribe(pidCache.onMemberStatusEvent).
-		WithPredicate(func(m interface{}) bool {
-			_, ok := m.(MemberStatusEvent)
-			return ok
-		})
+	pidCache.memberStatusSub = actorSystem.EventStream.SubscribeWithPredicate(pidCache.onMemberStatusEvent, func(m interface{}) bool {
+		_, ok := m.(MemberStatusEvent)
+		return ok
+	})
 
 	return pidCache
 }
