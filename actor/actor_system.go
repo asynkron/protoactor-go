@@ -3,9 +3,11 @@ package actor
 import (
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/extensions"
+	"github.com/google/uuid"
 )
 
 //goland:noinspection GoNameStartsWithPackageName
@@ -17,6 +19,7 @@ type ActorSystem struct {
 	DeadLetter      *deadLetterProcess
 	Extensions      *extensions.Extensions
 	Config          *Config
+	ID              string
 }
 
 func (as *ActorSystem) NewLocalPID(id string) *PID {
@@ -59,6 +62,8 @@ func NewActorSystemWithConfig(config Config) *ActorSystem {
 	system.Extensions.Register(NewMetrics(config.MetricsProvider))
 
 	system.ProcessRegistry.Add(NewEventStreamProcess(system), "eventstream")
+
+	system.ID = strings.Replace(uuid.New().String(), "-", "", -1)
 
 	return system
 }

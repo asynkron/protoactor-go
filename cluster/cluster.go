@@ -15,6 +15,7 @@ var extensionId = extensions.NextExtensionId()
 type Cluster struct {
 	ActorSystem      *actor.ActorSystem
 	Config           *Config
+	Gossip           Gossiper
 	remote           *remote.Remote
 	pidCache         *pidCacheValue
 	MemberList       *MemberList
@@ -29,6 +30,11 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	}
 
 	actorSystem.Extensions.Register(c)
+	var err error
+	c.Gossip, err = newGossiper(c)
+	if err != nil {
+		panic(err)
+	}
 
 	return c
 }
@@ -40,6 +46,10 @@ func (c *Cluster) Id() extensions.ExtensionId {
 func GetCluster(actorSystem *actor.ActorSystem) *Cluster {
 	c := actorSystem.Extensions.Get(extensionId)
 	return c.(*Cluster)
+}
+
+func (c *Cluster) GetBlockedMembers() map[string]struct{} {
+	return c.remote.BlockList().BlockedMembers()
 }
 
 func (c *Cluster) Start() {
@@ -62,6 +72,12 @@ func (c *Cluster) Start() {
 	c.MemberList = setupMemberList(c)
 	c.partitionManager = newPartitionManager(c)
 	c.partitionManager.Start()
+
+	// gossiper must be started whenever any topology events starts flowing
+	if err := c.Gossip.StartGossiping(); err != nil {
+		panic(err)
+	}
+	c.MemberList.InitializeTopologyConsensus()
 
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
 		panic(err)
@@ -100,6 +116,7 @@ func (c *Cluster) Shutdown(graceful bool) {
 		c.pidCache.stopPidCache()
 		c.partitionValue.stopPartition()
 		c.partitionManager.Stop()
+		c.Gossip.Shutdown()
 	}
 
 	c.remote.Shutdown(graceful)

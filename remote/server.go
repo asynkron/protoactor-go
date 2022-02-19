@@ -24,6 +24,7 @@ type Remote struct {
 	config       *Config
 	nameLookup   map[string]actor.Props
 	activatorPid *actor.PID
+	blocklist    *BlockList
 }
 
 func NewRemote(actorSystem *actor.ActorSystem, config Config) *Remote {
@@ -47,6 +48,8 @@ func GetRemote(actorSystem *actor.ActorSystem) *Remote {
 func (r *Remote) Id() extensions.ExtensionId {
 	return extensionId
 }
+
+func (r *Remote) BlockList() *BlockList { return r.blocklist }
 
 // Start the remote server
 func (r *Remote) Start() {

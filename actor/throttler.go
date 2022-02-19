@@ -25,7 +25,13 @@ func NewThrottle(maxEventsInPeriod int32, period time.Duration, throttledCallBac
 
 	startTimer := func(duration time.Duration, back func(int32)) {
 		go func() {
-			time.Sleep(duration)
+			// crete ticker to mimic sleep, we do not want to put the goroutine to sleep
+			// as it will schedule it out of the P making a syscall, we just want it to
+			// halt for the given period of time
+			ticker := time.NewTicker(duration)
+			defer ticker.Stop()
+			<-ticker.C // wait for the ticker to tick once
+
 			timesCalled := atomic.SwapInt32(&currentEvents, 0)
 			if timesCalled > maxEventsInPeriod {
 				throttledCallBack(timesCalled - maxEventsInPeriod)
