@@ -231,7 +231,7 @@ func (ml *MemberList) onMemberLeft(member *Member) {
 	addr := member.Address()
 	delete(ml.members, addr)
 	rt := &remote.EndpointTerminatedEvent{Address: addr}
-	ml.cluster.ActorSystem.EventStream.PublishUnsafe(rt)
+	ml.cluster.ActorSystem.EventStream.Publish(rt)
 }
 
 func (ml *MemberList) onMemberJoined(member *Member) {
