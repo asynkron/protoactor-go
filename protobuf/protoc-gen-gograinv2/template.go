@@ -116,8 +116,11 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 		ctx.Poison(ctx.Self())
 
 	case actor.AutoReceiveMessage: // pass
-	case actor.SystemMessage: // pass
-
+	case actor.SystemMessage: 
+		if _, ok := msg.(*actor.Watch); ok {
+			// give a chance to the inner implementations to catch Watch messages
+			a.inner.ReceiveDefault(ctx)
+		}
 	case *cluster.GrainRequest:
 		switch msg.MethodIndex {
 		{{ range $method := $service.Methods -}}
