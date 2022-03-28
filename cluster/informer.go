@@ -294,5 +294,5 @@ func (inf *Informer) commitPendingOffsets(offsets map[string]int64) {
 
 func (inf *Informer) throttledLog(counter int32) {
 
-	plog.Info("[Gossip] Setting State", log.Int("throttled", int(counter)))
+	plog.Debug("[Gossip] Setting State", log.Int("throttled", int(counter)))
 }
