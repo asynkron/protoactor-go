@@ -55,8 +55,6 @@ func newGossiper(cl *Cluster, opts ...Option) (Gossiper, error) {
 		close:           make(chan struct{}),
 	}
 
-	gossiper.throttler = actor.NewThrottle(3, 60*time.Second, gossiper.throttledLog)
-
 	// apply any given options
 	for _, opt := range opts {
 		opt(&gossiper)
@@ -203,6 +201,7 @@ func (g *Gossiper) StartGossiping() error {
 		}
 	})
 	plog.Info("Started Cluster Gossip")
+	g.throttler = actor.NewThrottle(3, 60*time.Second, g.throttledLog)
 	go g.gossipLoop()
 
 	return nil
@@ -238,5 +237,5 @@ breakLoop:
 
 func (g *Gossiper) throttledLog(counter int32) {
 
-	plog.Info(fmt.Sprintf("[Gossiper] Gossiper Setting State to %s", g.pid), log.Int("throttled", int(counter)))
+	plog.Debug(fmt.Sprintf("[Gossiper] Gossiper Setting State to %s", g.pid), log.Int("throttled", int(counter)))
 }
