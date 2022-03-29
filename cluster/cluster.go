@@ -12,9 +12,9 @@ import (
 var extensionId = extensions.NextExtensionID()
 
 type Cluster struct {
-	ActorSystem      *actor.ActorSystem
-	Config           *Config
-	Gossip           Gossiper
+	ActorSystem    *actor.ActorSystem
+	Config         *Config
+	Gossip         Gossiper
 	Remote         *remote.Remote
 	PidCache       *pidCacheValue
 	MemberList     *MemberList
@@ -36,9 +36,9 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	c.MemberList = NewMemberList(&c)
 	c.subscribeToTopologyEvents()
 
-	actorSystem.Extensions.Register(c)
+	actorSystem.Extensions.Register(&c)
 	var err error
-	c.Gossip, err = newGossiper(c)
+	c.Gossip, err = newGossiper(&c)
 	if err != nil {
 		panic(err)
 	}
@@ -66,7 +66,7 @@ func GetCluster(actorSystem *actor.ActorSystem) *Cluster {
 }
 
 func (c *Cluster) GetBlockedMembers() map[string]struct{} {
-	return c.remote.BlockList().BlockedMembers()
+	return c.Remote.BlockList().BlockedMembers()
 }
 
 func (c *Cluster) StartMember() {
@@ -94,15 +94,6 @@ func (c *Cluster) StartMember() {
 		panic(err)
 	}
 	time.Sleep(1 * time.Second)
-}
-
-func (c *Cluster) GetClusterKind(kind string) *actor.Props {
-	props, ok := c.Config.Kinds[kind]
-	if !ok {
-		plog.Error("Invalid kind", log.String("kind", kind))
-		return nil
-	}
-	return props
 }
 
 func (c *Cluster) GetClusterKinds() []string {
@@ -137,9 +128,7 @@ func (c *Cluster) Shutdown(graceful bool) {
 		// This is to wait ownership transferring complete.
 		time.Sleep(time.Millisecond * 2000)
 		c.MemberList.stopMemberList()
-		c.pidCache.stopPidCache()
-		c.partitionValue.stopPartition()
-		c.partitionManager.Stop()
+		c.IdentityLookup.Shutdown()
 		c.Gossip.Shutdown()
 	}
 

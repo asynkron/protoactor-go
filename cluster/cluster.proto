@@ -6,14 +6,56 @@ import "actor.proto";
 //request response call from Identity actor sent to each member
 //asking what activations they hold that belong to the requester
 message IdentityHandoverRequest {
-  uint64 topology_hash = 1;
+  Topology current_topology = 1;
   string address = 2;
-  repeated Member members = 3;
+  // If the requester passes a delta topology, only return activations which would not be assigned to the member
+  // in the previous topology.
+  Topology delta_topology = 3;
+  message Topology{
+    uint64 topology_hash = 1;
+    repeated Member members = 3;
+  }
 }
 
-//response message to the above
-message IdentityHandoverResponse {
+message IdentityHandover {
   repeated Activation actors = 1;
+  int32 chunk_id = 2;
+  bool final = 3;
+  uint64 topology_hash = 4;
+  int32 skipped = 5; // Total number of activations skipped
+  int32 sent = 6;    // Total number of activations sent
+}
+
+message RemoteIdentityHandover {
+  PackedActivations actors = 1;
+  int32 chunk_id = 2;
+  bool final = 3;
+  uint64 topology_hash = 4;
+  int32 skipped = 5;
+  int32 sent = 6;
+}
+
+message PackedActivations{
+  string address = 1;
+  repeated Kind actors = 2;
+  message Kind{
+    string name = 1;
+    repeated Activation activations = 2;
+  }
+  message Activation{
+    string identity = 1;
+    string activation_id = 2;
+  }
+}
+
+message IdentityHandoverAck {
+  int32 chunk_id = 1;
+  uint64 topology_hash = 2;
+  State processing_state = 3;
+  enum State {
+    processed = 0;
+    incorrect_topology = 1;
+  }
 }
 
 message ClusterIdentity{
@@ -26,6 +68,13 @@ message Activation {
   ClusterIdentity cluster_identity = 2;
 }
 
+// Started terminating, not yet removed from IIdentityLookup
+message ActivationTerminating {
+  actor.PID pid = 1;
+  ClusterIdentity cluster_identity = 2;
+}
+
+// Terminated, removed from lookup
 message ActivationTerminated {
   actor.PID pid = 1;
   ClusterIdentity cluster_identity = 2;
@@ -34,6 +83,7 @@ message ActivationTerminated {
 message ActivationRequest {
   ClusterIdentity cluster_identity = 1;
   string request_id = 2;
+  uint64 topology_hash = 3;
 }
 
 message ProxyActivationRequest {
@@ -43,21 +93,15 @@ message ProxyActivationRequest {
 
 message ActivationResponse {
   actor.PID pid = 1;
+  bool failed = 2;
+  uint64 topology_hash = 3;
 }
 
-message GrainRequest {
-  int32 method_index = 1;
-  bytes message_data = 2;
-  string message_type_name = 3;
+message ReadyForRebalance {
+  uint64 topology_hash = 1;
 }
-
-message GrainResponse {
-  bytes message_data = 1;
-  string message_type_name = 2;
-}
-
-message GrainErrorResponse {
-  string err = 1;
+message RebalanceCompleted {
+  uint64 topology_hash = 1;
 }
 
 message Member {
@@ -72,15 +116,7 @@ message ClusterTopology {
   repeated Member members = 2;
   repeated Member joined = 3;
   repeated Member left = 4;
-}
-
-message HeartbeatRequest {
-}
-
-message HeartbeatResponse {
-  uint32 actor_count = 1;
-  string member_id = 2;
-  uint32 topology_hash = 3;
+  repeated string blocked = 5;
 }
 
 message ClusterTopologyNotification {
@@ -89,75 +125,18 @@ message ClusterTopologyNotification {
   string leader_id = 3;
 }
 
-message GracefulShutdown {
-  string member_id = 3;
+message MemberHeartbeat {
+  ActorStatistics actor_statistics=1;
+}
+
+message ActorStatistics {
+  map<string,int64> actor_count=1;
 }
 
 
 
-message SubscriberIdentity {
-  oneof Identity {
-    actor.PID pid = 1;
-    ClusterIdentity cluster_identity = 2;
-  }
-}
 
-message Subscribers {
-  repeated SubscriberIdentity subscribers = 1;
-}
-
-message SubscribeRequest {
-  SubscriberIdentity subscriber = 1;
-}
-
-message SubscribeResponse {
-
-}
-
-message UnsubscribeRequest {
-  SubscriberIdentity subscriber = 1;
-}
-
-message UnsubscribeResponse {
-
-}
-
-message PublishRequest {
-  bytes data = 1;
-}
-
-message PublishResponse {}
-
-//this goes out to the delivery actors
-message DeliveryBatch {
-  Subscribers subscribers = 1;
-  ProducerBatch batch = 2;
-}
-
-//messages going into the topic actors
-message ProducerBatch {
-  repeated string type_names = 1;
-  repeated ProducerEnvelope envelopes = 2;
-}
-
-message ProducerEnvelope {
-  int32 type_id = 1;
-  bytes message_data = 2;
-  int32 serializer_id = 3;
-}
-
-//messages going out of the topic actors
-message TopicBatchRequest {
-  repeated string type_names = 1;
-  repeated TopicEnvelope envelopes = 2;
-}
-
-message TopicBatchResponse {
-
-}
-
-message TopicEnvelope {
-  int32 type_id = 1;
-  bytes message_data = 2;
-  int32 serializer_id = 3;
-}
+//keys to implement initially
+//topology - value is repeated members, this can replace ClusterTopologyNotification, as it would be the same, but better
+//heartbeat - value is unit, or sender timestamp?
+//leader - value is leader member id

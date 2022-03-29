@@ -1,47 +1,54 @@
 syntax = "proto3";
 package cluster;
-
 import "google/protobuf/any.proto";
 
+
 message GossipRequest {
-  GossipState state = 1;
   string member_id = 2;
+  GossipState state = 1;
 }
 
-// Ack a gossip request
-message GossipResponse { GossipState state = 1; }
+//Ack a gossip request
+message GossipResponse {
+  GossipState state = 1;
+}
 
-message GossipResponseAck {}
+message GossipResponseAck { // Or just use empty GossipResponse?
+}
 
-// two GossipState objects can be merged
-// key + member_id gets it's own entry, if collision, highest version is
-// selected
+//two GossipState objects can be merged
+//key + member_id gets it's own entry, if collision, highest version is selected
 message GossipState {
-  message GossipMemberState { map<string, GossipKeyValue> values = 1; }
+  message GossipMemberState {
+    map<string,GossipKeyValue> values = 1;
+  }
 
-  map<string, GossipMemberState> members = 1;
+  map<string, GossipMemberState>  members = 1;
 }
 
-// a known key might be heartbeat. if we locally tag each entry with a local
-// timestamp this means that we can measure if we have not received a new
-// heartbeat from one member in some time even if we don't know the exact time
-// the heartbeat was issued, due to clock differences. we still know when _we_
-// as in this node, got this data. and we can measure time from then til now.
+
+
+//a known key might be heartbeat. if we locally tag each entry with a local timestamp
+//this means that we can measure if we have not received a new heartbeat from one member in some time
+//even if we don't know the exact time the heartbeat was issued, due to clock differences.
+//we still know when _we_ as in this node, got this data.
+//and we can measure time from then til now.
 //
-// if we got a hear-beat from another node, and X seconds pass, we can assume it
-// to be dead
+//if we got a hear-beat from another node, and X seconds pass, we can assume it to be dead
 message GossipKeyValue {
-  int64 sequence_number = 2;     // version is local to the owner member
-  google.protobuf.Any value = 4; // value is any format
+  int64 sequence_number = 2; //version is local to the owner member
+  google.protobuf.Any value = 4; //value is any format
+  int64  local_timestamp_unix_milliseconds = 5;
 }
 
-// represents a value that can be sent in form of a delta change
-// instead of a full value replace
-message GossipDeltaValue {
-  // these are the entries of a delta value
-  // this can be seen as an array with data, where each element in the array is
-  // tagged with a sequence number
-  message GossipDeltaEntry {
+//represents a value that can be sent in form of a delta change
+//instead of a full value replace
+message GossipDeltaValue
+{
+  //these are the entries of a delta value
+  //this can be seen as an array with data, where each element in the array is tagged with a sequence number
+  message GossipDeltaEntry
+  {
     int64 sequence_number = 1;
     bytes data = 2;
   }

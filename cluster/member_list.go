@@ -2,42 +2,35 @@ package cluster
 
 import (
 	"context"
-	"sort"
-	"strings"
-	"sync"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster/chash"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
-	"sync"
-
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/gogo/protobuf/types"
+	"sync"
 )
 
 // MemberList is responsible to keep track of the current cluster topology
 // it does so by listening to changes from the ClusterProvider.
 // the default ClusterProvider is consul.ConsulProvider which uses the Consul HTTP API to scan for changes
 type MemberList struct {
+	system               *actor.ActorSystem
 	cluster              *Cluster
 	mutex                sync.RWMutex
 	members              *MemberSet
 	memberStrategyByKind map[string]MemberStrategy
-	blockedMembers       *MemberSet
-	banned               map[string]struct{}
 	lastEventId          uint64
-	chashByKind          map[string]chash.ConsistentHash
-	eventSteam           *eventstream.EventStream
-	topologyConsensus    ConsensusHandler
+
+	eventSteam        *eventstream.EventStream
+	topologyConsensus ConsensusHandler
 }
 
 func NewMemberList(cluster *Cluster) *MemberList {
 	memberList := &MemberList{
+		system:               cluster.ActorSystem,
 		cluster:              cluster,
 		members:              emptyMemberSet,
 		memberStrategyByKind: make(map[string]MemberStrategy),
-		blockedMembers:       emptyMemberSet,
-		banned:               map[string]struct{}{},
 		eventSteam:           cluster.ActorSystem.EventStream,
 	}
 	memberList.eventSteam.Subscribe(func(evt interface{}) {
@@ -49,27 +42,17 @@ func NewMemberList(cluster *Cluster) *MemberList {
 			}
 
 			// get banned members from all other member states
-			// and merge that with out own banned set
+			// and merge that without own banned set
 			var topology ClusterTopology
 			if err := types.UnmarshalAny(t.Value, &topology); err != nil {
 				plog.Warn("could not unpack into ClusterToplogy proto.Message form Any", log.Error(err))
 				break
 			}
-			banned := topology.Banned
-			memberList.updateBannedMembers(banned)
+			blocked := topology.Blocked
+			memberList.cluster.Remote.BlockList().Block(blocked...)
 		}
 	})
 	return memberList
-}
-
-func (ml *MemberList) updateBannedMembers(members []*Member) {
-
-	ml.mutex.Lock()
-	defer ml.mutex.Unlock()
-
-	for _, member := range members {
-		ml.banned[member.Id] = struct{}{}
-	}
 }
 
 func (ml *MemberList) stopMemberList() {
@@ -85,7 +68,7 @@ func (ml *MemberList) InitializeTopologyConsensus() {
 			plog.Error("could not unpack topology message", log.Error(unpackErr))
 			return nil
 		}
-		return topology.EventId
+		return topology.TopologyHash
 	})
 }
 
@@ -119,7 +102,6 @@ func (ml *MemberList) getPartitionMemberV2(clusterIdentity *ClusterIdentity) str
 	return ""
 }
 
-func (ml *MemberList) getActivatorMember(kind string) string {
 func (ml *MemberList) GetActivatorMember(kind string, requestSourceAddress string) string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()
@@ -154,7 +136,7 @@ func (ml *MemberList) UpdateClusterTopology(members Members) {
 	}
 
 	// include any new banned members into the known set of banned members
-	ml.blockedMembers = ml.blockedMembers.Union(left)
+	ml.cluster.Remote.BlockList().Block(left)
 	ml.members = active
 
 	// notify that these members left
@@ -203,7 +185,7 @@ func (ml *MemberList) getTopologyChanges(members Members) (topology *ClusterTopo
 
 	// get active members
 	// (this bit means that we will never allow a member that failed a health check to join back in)
-	active = memberSet.Except(ml.blockedMembers)
+	active = memberSet.Except(ml.cluster.Remote.BlockList().())
 
 	// nothing changed? exit
 	if active.Equals(ml.members) {
@@ -242,9 +224,7 @@ func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 }
 
 func (ml *MemberList) ContainsMemberID(memberID string) bool {
-
-	_, ok := ml.members[memberID]
-	return ok
+	return ml.members.ContainsId(memberID)
 }
 
 func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {
