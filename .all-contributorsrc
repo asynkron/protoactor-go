@@ -1,0 +1,43 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+   {
+      "login": "rogeralsing",
+      "name": "Roger Johansson",
+      "avatar_url": "https://avatars.githubusercontent.com/u/647031?v=4",
+      "profile": "http://asynkron.se",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "umitkavala",
+      "name": "Umit Kavala",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3861934?v=4",
+      "profile": "https://github.com/umitkavala",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "DamnWidget",
+      "name": "Oscar Campos",
+      "avatar_url": "https://avatars.githubusercontent.com/u/329766?v=4",
+      "profile": "https://crm.fsf.org/civicrm/pcp/info?reset=1&id=25",
+
+      "contributions": [
+        "code"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "protoactor-go",
+  "projectOwner": "asynkron",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "skipCi": true
+}

@@ -12,8 +12,9 @@ import (
 var extensionId = extensions.NextExtensionID()
 
 type Cluster struct {
-	ActorSystem    *actor.ActorSystem
-	Config         *Config
+	ActorSystem      *actor.ActorSystem
+	Config           *Config
+	Gossip           Gossiper
 	Remote         *remote.Remote
 	PidCache       *pidCacheValue
 	MemberList     *MemberList
@@ -23,7 +24,6 @@ type Cluster struct {
 }
 
 func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
-
 	c := Cluster{
 		ActorSystem: actorSystem,
 		Config:      config,
@@ -36,6 +36,12 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	c.MemberList = NewMemberList(&c)
 	c.subscribeToTopologyEvents()
 
+	actorSystem.Extensions.Register(c)
+	var err error
+	c.Gossip, err = newGossiper(c)
+	if err != nil {
+		panic(err)
+	}
 	return &c
 }
 
@@ -59,6 +65,10 @@ func GetCluster(actorSystem *actor.ActorSystem) *Cluster {
 	return c.(*Cluster)
 }
 
+func (c *Cluster) GetBlockedMembers() map[string]struct{} {
+	return c.remote.BlockList().BlockedMembers()
+}
+
 func (c *Cluster) StartMember() {
 	cfg := c.Config
 	c.Remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
@@ -74,10 +84,25 @@ func (c *Cluster) StartMember() {
 	c.IdentityLookup = cfg.Identitylookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)
 
+	// gossiper must be started whenever any topology events starts flowing
+	if err := c.Gossip.StartGossiping(); err != nil {
+		panic(err)
+	}
+	c.MemberList.InitializeTopologyConsensus()
+
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
 		panic(err)
 	}
 	time.Sleep(1 * time.Second)
+}
+
+func (c *Cluster) GetClusterKind(kind string) *actor.Props {
+	props, ok := c.Config.Kinds[kind]
+	if !ok {
+		plog.Error("Invalid kind", log.String("kind", kind))
+		return nil
+	}
+	return props
 }
 
 func (c *Cluster) GetClusterKinds() []string {
@@ -109,6 +134,13 @@ func (c *Cluster) Shutdown(graceful bool) {
 	if graceful {
 		_ = c.Config.ClusterProvider.Shutdown(graceful)
 		c.IdentityLookup.Shutdown()
+		// This is to wait ownership transferring complete.
+		time.Sleep(time.Millisecond * 2000)
+		c.MemberList.stopMemberList()
+		c.pidCache.stopPidCache()
+		c.partitionValue.stopPartition()
+		c.partitionManager.Stop()
+		c.Gossip.Shutdown()
 	}
 
 	c.Remote.Shutdown(graceful)

@@ -9,15 +9,17 @@ import (
 // Subscribe subscribes to events
 func ExampleEventStream_Subscribe() {
 	es := eventstream.NewEventStream()
-	sub := es.Subscribe(func(event interface{}) {
+	handler := func(event interface{}) {
 		fmt.Println(event)
-	})
+	}
 
 	// only allow strings
-	sub.WithPredicate(func(evt interface{}) bool {
-		_, ok := evt.(string)
+	predicate := func(event interface{}) bool {
+		_, ok := event.(string)
 		return ok
-	})
+	}
+
+	sub := es.SubscribeWithPredicate(handler, predicate)
 
 	es.Publish("Hello World")
 	es.Publish(1)

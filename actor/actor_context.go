@@ -101,11 +101,13 @@ type actorContext struct {
 	state             int32
 }
 
-var _ SenderContext = &actorContext{}
-var _ ReceiverContext = &actorContext{}
-var _ SpawnerContext = &actorContext{}
-var _ basePart = &actorContext{}
-var _ stopperPart = &actorContext{}
+var (
+	_ SenderContext   = &actorContext{}
+	_ ReceiverContext = &actorContext{}
+	_ SpawnerContext  = &actorContext{}
+	_ basePart        = &actorContext{}
+	_ stopperPart     = &actorContext{}
+)
 
 func newActorContext(actorSystem *ActorSystem, props *Props, parent *PID) *actorContext {
 	this := &actorContext{
@@ -606,12 +608,12 @@ func (ctx *actorContext) tryRestartOrTerminate() {
 		return
 	}
 
-	ctx.CancelReceiveTimeout()
-
 	switch atomic.LoadInt32(&ctx.state) {
 	case stateRestarting:
+		ctx.CancelReceiveTimeout()
 		ctx.restart()
 	case stateStopping:
+		ctx.CancelReceiveTimeout()
 		ctx.finalizeStop()
 	}
 }
@@ -650,7 +652,7 @@ func (ctx *actorContext) finalizeStop() {
 //
 
 func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {
-	//debug setting, allows to output supervision failures in console/error level
+	// debug setting, allows to output supervision failures in console/error level
 	if ctx.actorSystem.Config.DeveloperSupervisionLogging {
 		fmt.Println("[Supervision] Actor:", ctx.self, " failed with message:", message, " exception:", reason)
 		plog.Error("[Supervision]", log.Stringer("actor", ctx.self), log.Object("message", message), log.Object("exception", reason))

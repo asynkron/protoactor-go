@@ -1,7 +1,14 @@
 package cluster
 
 import (
+	"context"
+	"sort"
+	"strings"
+	"sync"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/AsynkronIT/protoactor-go/cluster/chash"
+	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"sync"
 
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -17,6 +24,11 @@ type MemberList struct {
 	members              *MemberSet
 	memberStrategyByKind map[string]MemberStrategy
 	blockedMembers       *MemberSet
+	banned               map[string]struct{}
+	lastEventId          uint64
+	chashByKind          map[string]chash.ConsistentHash
+	eventSteam           *eventstream.EventStream
+	topologyConsensus    ConsensusHandler
 }
 
 func NewMemberList(cluster *Cluster) *MemberList {
@@ -25,10 +37,89 @@ func NewMemberList(cluster *Cluster) *MemberList {
 		members:              emptyMemberSet,
 		memberStrategyByKind: make(map[string]MemberStrategy),
 		blockedMembers:       emptyMemberSet,
+		banned:               map[string]struct{}{},
+		eventSteam:           cluster.ActorSystem.EventStream,
 	}
+	memberList.eventSteam.Subscribe(func(evt interface{}) {
+
+		switch t := evt.(type) {
+		case *GossipUpdate:
+			if t.Key != "topology" {
+				break
+			}
+
+			// get banned members from all other member states
+			// and merge that with out own banned set
+			var topology ClusterTopology
+			if err := types.UnmarshalAny(t.Value, &topology); err != nil {
+				plog.Warn("could not unpack into ClusterToplogy proto.Message form Any", log.Error(err))
+				break
+			}
+			banned := topology.Banned
+			memberList.updateBannedMembers(banned)
+		}
+	})
 	return memberList
 }
 
+func (ml *MemberList) updateBannedMembers(members []*Member) {
+
+	ml.mutex.Lock()
+	defer ml.mutex.Unlock()
+
+	for _, member := range members {
+		ml.banned[member.Id] = struct{}{}
+	}
+}
+
+func (ml *MemberList) stopMemberList() {
+	// ml.cluster.ActorSystem.EventStream.Unsubscribe(ml.membershipSub)
+}
+
+func (ml *MemberList) InitializeTopologyConsensus() {
+
+	ml.topologyConsensus = ml.cluster.Gossip.RegisterConsensusCheck("topology", func(any *types.Any) interface{} {
+
+		var topology ClusterTopology
+		if unpackErr := types.UnmarshalAny(any, &topology); unpackErr != nil {
+			plog.Error("could not unpack topology message", log.Error(unpackErr))
+			return nil
+		}
+		return topology.EventId
+	})
+}
+
+func (ml *MemberList) TopologyConsensus(ctx context.Context) (uint64, bool) {
+
+	result, ok := ml.topologyConsensus.TryGetConsensus(ctx)
+	if ok {
+		return result.(uint64), true
+	}
+
+	return 0, false
+}
+
+func (ml *MemberList) getPartitionMember(name, kind string) string {
+	ml.mutex.RLock()
+	defer ml.mutex.RUnlock()
+
+	var res string
+	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
+		res = memberStrategy.GetPartition(name)
+	}
+	return res
+}
+
+func (ml *MemberList) getPartitionMemberV2(clusterIdentity *ClusterIdentity) string {
+	ml.mutex.RLock()
+	defer ml.mutex.RUnlock()
+	if ms, ok := ml.memberStrategyByKind[clusterIdentity.Kind]; ok {
+		return ms.GetPartition(clusterIdentity.Identity)
+	}
+	return ""
+}
+
+func (ml *MemberList) getActivatorMember(kind string) string {
 func (ml *MemberList) GetActivatorMember(kind string, requestSourceAddress string) string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()
@@ -147,6 +238,13 @@ func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 		pid := actor.NewPID(m.Address(), "eventstream")
 		ml.cluster.ActorSystem.Root.Send(pid, message)
 	}
+
+}
+
+func (ml *MemberList) ContainsMemberID(memberID string) bool {
+
+	_, ok := ml.members[memberID]
+	return ok
 }
 
 func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {

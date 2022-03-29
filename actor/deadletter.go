@@ -3,7 +3,6 @@ package actor
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -24,7 +23,7 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 	}
 
 	shouldThrottle := NewThrottle(actorSystem.Config.DeadLetterThrottleCount, actorSystem.Config.DeadLetterThrottleInterval, func(i int32) {
-		plog.Info("[DeadLetter]", log.String("throttled", strconv.Itoa(int(i))))
+		plog.Info("[DeadLetter]", log.Int64("throttled", int64(i)))
 	})
 
 	actorSystem.ProcessRegistry.Add(dp, "deadletter")
@@ -41,10 +40,10 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 				return
 			}
 
-			_, isIgnoreDeadLetter := deadLetter.Message.(IgnoreDeadLetterLogging)
-
-			if (shouldThrottle() == Open) && !isIgnoreDeadLetter {
-				plog.Debug("[DeadLetter]", log.Stringer("pid", deadLetter.PID), log.TypeOf("msg", deadLetter.Message), log.Stringer("sender", deadLetter.Sender))
+			if _, isIgnoreDeadLetter := deadLetter.Message.(IgnoreDeadLetterLogging); !isIgnoreDeadLetter {
+				if shouldThrottle() == Open {
+					plog.Debug("[DeadLetter]", log.Stringer("pid", deadLetter.PID), log.TypeOf("msg", deadLetter.Message), log.Stringer("sender", deadLetter.Sender))
+				}
 			}
 		}
 	})

@@ -43,6 +43,10 @@ func TestStartMember(t *testing.T) {
 	assert := assert.New(t)
 
 	p, _ := New()
+	p, newErr := New()
+	if newErr != nil {
+		panic(fmt.Errorf("could not create new cluster provider: %w", newErr))
+	}
 	id := disthash.New()
 	defer p.Shutdown(true)
 

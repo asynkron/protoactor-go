@@ -21,6 +21,14 @@ type Config struct {
 	ClusterContextProducer                       ClusterContextProducer
 	MemberStrategyBuilder                        func(cluster *Cluster, kind string) MemberStrategy
 	Kinds                                        map[string]*Kind
+
+	TimeoutTime           time.Duration
+	GossipInterval        time.Duration
+	GossipRequestTimeout  time.Duration
+	GossipFanOut          int
+	GossipMaxSend         int
+
+
 }
 
 func Configure(clusterName string, clusterProvider ClusterProvider, identityLookup IdentityLookup, remoteConfig remote.Config, kinds ...*Kind) *Config {
@@ -35,6 +43,11 @@ func Configure(clusterName string, clusterProvider ClusterProvider, identityLook
 		Kinds:                     make(map[string]*Kind),
 		ClusterContextProducer:    newDefaultClusterContext,
 		MaxNumberOfEventsInRequestLogThrottledPeriod: defaultMaxNumberOfEvetsInRequestLogThrottledPeriod,
+		TimeoutTime:           time.Second * 5,
+		GossipInterval:        time.Millisecond * 300,
+		GossipRequestTimeout:  time.Millisecond * 500,
+		GossipFanOut:          3,
+		GossipMaxSend:         50,
 	}
 
 	for _, kind := range kinds {

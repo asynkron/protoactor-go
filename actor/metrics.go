@@ -45,7 +45,7 @@ func (m *Metrics) PrepareMailboxLengthGauge(cb metric.Int64ObserverFunc) {
 		metric.WithDescription("Actor's Mailbox Length"),
 		metric.WithUnit(unit.Dimensionless),
 	)
-	m.metrics.Instruments().ActorMailboxLength = gauge
+	m.metrics.Instruments().SetActorMailboxLengthGauge(gauge)
 }
 
 func (m *Metrics) CommonLabels(ctx Context) []attribute.KeyValue {
@@ -56,15 +56,3 @@ func (m *Metrics) CommonLabels(ctx Context) []attribute.KeyValue {
 	}
 	return labels
 }
-
-//func (m *Metrics) NewGauge() {
-//
-//}
-//
-//func (m *Metrics) NewCounter() {
-//
-//}
-//
-//func (m *Metrics) NewHistogram() {
-//
-//}

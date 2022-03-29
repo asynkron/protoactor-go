@@ -4,6 +4,7 @@ package metrics
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/AsynkronIT/protoactor-go/log"
 	"go.opentelemetry.io/otel/metric"
@@ -14,6 +15,9 @@ import (
 const LibName string = "protoactor"
 
 type ActorMetrics struct {
+	// Mutual Exclusion Primitive to use with ActorMailboxLength
+	mu *sync.Mutex
+
 	// MetricsID
 	ID string
 
@@ -49,7 +53,7 @@ func NewActorMetrics() *ActorMetrics {
 func newInstruments() *ActorMetrics {
 
 	meter := global.Meter(LibName)
-	instruments := ActorMetrics{}
+	instruments := ActorMetrics{mu: &sync.Mutex{}}
 
 	var err error
 	if instruments.ActorFailureCount, err = meter.NewInt64Counter(
@@ -142,4 +146,14 @@ func newInstruments() *ActorMetrics {
 	}
 
 	return &instruments
+}
+
+// Makes sure access to ActorMailboxLength is sequenced
+func (am *ActorMetrics) SetActorMailboxLengthGauge(gauge metric.Int64GaugeObserver) {
+
+	// lock our mutex
+	am.mu.Lock()
+	defer am.mu.Unlock()
+
+	am.ActorMailboxLength = gauge
 }

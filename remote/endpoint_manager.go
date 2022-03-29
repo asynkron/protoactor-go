@@ -77,8 +77,7 @@ func newEndpointManager(r *Remote) *endpointManager {
 func (em *endpointManager) start() {
 	eventStream := em.remote.actorSystem.EventStream
 	em.endpointSub = eventStream.
-		Subscribe(em.endpointEvent).
-		WithPredicate(func(m interface{}) bool {
+		SubscribeWithPredicate(em.endpointEvent, func(m interface{}) bool {
 			switch m.(type) {
 			case *EndpointTerminatedEvent, *EndpointConnectedEvent:
 				return true
