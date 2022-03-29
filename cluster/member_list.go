@@ -14,7 +14,6 @@ import (
 // it does so by listening to changes from the ClusterProvider.
 // the default ClusterProvider is consul.ConsulProvider which uses the Consul HTTP API to scan for changes
 type MemberList struct {
-	system               *actor.ActorSystem
 	cluster              *Cluster
 	mutex                sync.RWMutex
 	members              *MemberSet
@@ -27,7 +26,6 @@ type MemberList struct {
 
 func NewMemberList(cluster *Cluster) *MemberList {
 	memberList := &MemberList{
-		system:               cluster.ActorSystem,
 		cluster:              cluster,
 		members:              emptyMemberSet,
 		memberStrategyByKind: make(map[string]MemberStrategy),
@@ -136,7 +134,10 @@ func (ml *MemberList) UpdateClusterTopology(members Members) {
 	}
 
 	// include any new banned members into the known set of banned members
-	ml.cluster.Remote.BlockList().Block(left)
+	for _, m := range left.Members() {
+		ml.cluster.Remote.BlockList().Block(m.Id)
+	}
+
 	ml.members = active
 
 	// notify that these members left
@@ -185,7 +186,8 @@ func (ml *MemberList) getTopologyChanges(members Members) (topology *ClusterTopo
 
 	// get active members
 	// (this bit means that we will never allow a member that failed a health check to join back in)
-	active = memberSet.Except(ml.cluster.Remote.BlockList().())
+	blocked := ml.cluster.GetBlockedMembers()
+	active = memberSet.Except(blocked)
 
 	// nothing changed? exit
 	if active.Equals(ml.members) {
