@@ -30,6 +30,7 @@ require (
 
 require (
 	github.com/armon/go-metrics v0.3.0 // indirect
+	github.com/asynkron/gofun v0.0.0-20220329202556-71fcd65827d8 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

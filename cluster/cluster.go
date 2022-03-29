@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"github.com/asynkron/gofun/set"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -65,7 +66,7 @@ func GetCluster(actorSystem *actor.ActorSystem) *Cluster {
 	return c.(*Cluster)
 }
 
-func (c *Cluster) GetBlockedMembers() map[string]struct{} {
+func (c *Cluster) GetBlockedMembers() set.Set[string] {
 	return c.Remote.BlockList().BlockedMembers()
 }
 

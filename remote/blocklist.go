@@ -4,35 +4,27 @@
 
 package remote
 
-import "sync"
-
-type empty struct{}
+import (
+	"github.com/asynkron/gofun/set"
+	"sync"
+)
 
 // TODO: document it
 type BlockList struct {
 	mu             *sync.RWMutex
-	blockedMembers map[string]empty
+	blockedMembers *set.ImmutableSet[string]
 }
 
 func NewBlockList() BlockList {
-
 	blocklist := BlockList{
 		mu:             &sync.RWMutex{},
-		blockedMembers: make(map[string]empty),
+		blockedMembers: set.NewImmutable[string](),
 	}
 	return blocklist
 }
 
-// Returns back a copy of the internal blockedMembers map
-func (bl *BlockList) BlockedMembers() map[string]struct{} {
-
-	// we don't allow external users to mutate our map, so make a copy
-	blocked := make(map[string]struct{})
-	for k := range bl.blockedMembers {
-		blocked[k] = struct{}{}
-	}
-
-	return blocked
+func (bl *BlockList) BlockedMembers() set.Set[string] {
+	return bl.blockedMembers
 }
 
 // Block adds the given memberID list to the BlockList
@@ -43,7 +35,7 @@ func (bl *BlockList) Block(memberIDs ...string) {
 	defer bl.mu.Unlock()
 
 	for _, memberID := range memberIDs {
-		bl.blockedMembers[memberID] = empty{}
+		bl.blockedMembers = bl.blockedMembers.Add(memberID)
 	}
 }
 
@@ -52,9 +44,5 @@ func (bl *BlockList) Block(memberIDs ...string) {
 func (bl *BlockList) IsBlocked(memberID string) bool {
 
 	// acquire our mutual exclusion primitive for reading
-	bl.mu.RLock()
-	defer bl.mu.RUnlock()
-
-	_, ok := bl.blockedMembers[memberID]
-	return ok
+	return bl.blockedMembers.Contains(memberID)
 }

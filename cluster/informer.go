@@ -4,6 +4,7 @@ package cluster
 
 import (
 	fmt "fmt"
+	"github.com/asynkron/gofun/set"
 	"math/rand"
 	"reflect"
 	"time"
@@ -31,7 +32,7 @@ type Informer struct {
 	activeMemberIDs   map[string]empty
 	otherMembers      []*Member
 	consensusChecks   *ConsensusChecks
-	getBlockedMembers func() map[string]empty
+	getBlockedMembers func() set.Set[string]
 	gossipFanOut      int
 	gossipMaxSend     int
 	throttler         actor.ShouldThrottle
@@ -42,7 +43,7 @@ var _ Gossip = (*Informer)(nil)
 
 // Creates a new Informer value with the given properties and returns
 // back a pointer to its memory location in the heap
-func newInformer(myID string, getBlockedMembers func() map[string]empty, fanOut int, maxSend int) *Informer {
+func newInformer(myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int) *Informer {
 
 	informer := Informer{
 		myID: myID,

@@ -5,6 +5,7 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"github.com/asynkron/gofun/set"
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -177,13 +178,9 @@ func (g *Gossiper) StartGossiping() error {
 		return NewGossipActor(
 			g.cluster.Config.GossipRequestTimeout,
 			g.cluster.ActorSystem.ID,
-			func() map[string]empty {
+			func() set.Set[string] {
 
-				blockedMembers := make(map[string]empty)
-				for k := range g.cluster.GetBlockedMembers() {
-					blockedMembers[k] = empty{}
-				}
-				return blockedMembers
+				return g.cluster.GetBlockedMembers()
 			},
 			g.cluster.Config.GossipFanOut,
 			g.cluster.Config.GossipMaxSend,

@@ -7,7 +7,6 @@ import (
 	"github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/gogo/protobuf/types"
-	"golang.org/x/exp/maps"
 	"sync"
 )
 
@@ -187,7 +186,7 @@ func (ml *MemberList) getTopologyChanges(members Members) (topology *ClusterTopo
 
 	// get active members
 	// (this bit means that we will never allow a member that failed a health check to join back in)
-	blocked := maps.Keys(ml.cluster.GetBlockedMembers())
+	blocked := ml.cluster.GetBlockedMembers().ToSlice()
 
 	active = memberSet.ExceptIds(blocked)
 
