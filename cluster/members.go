@@ -55,6 +55,19 @@ func (ms *MemberSet) Except(other *MemberSet) *MemberSet {
 	return NewMemberSet(res)
 }
 
+func (ms *MemberSet) ExceptIds(ids []string) *MemberSet {
+
+	res := make(Members, 0)
+	for _, s := range ids {
+		if ms.ContainsId(s) {
+			continue
+		}
+		res = append(res, ms.GetMemberById(s))
+	}
+
+	return NewMemberSet(res)
+}
+
 func (ms *MemberSet) Union(other *MemberSet) *MemberSet {
 	mapp := make(map[string]*Member, 0)
 	for _, m := range ms.members {
