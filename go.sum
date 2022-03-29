@@ -48,10 +48,10 @@ github.com/armon/go-metrics v0.3.0 h1:B7AQgHi8QSEi4uHu7Sbsga+IJDU+CENgjxoo81vDUq
 github.com/armon/go-metrics v0.3.0/go.mod h1:zXjbSimjXTd7vOpY8B0/2LpvNvDoXBuplAD+gJD3GYs=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
 github.com/armon/go-radix v1.0.0/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
-github.com/asynkron/gofun v0.0.0-20220329115932-5264c0ff42d1 h1:XvA4jTMD9DvZ7PlVQ09e23IFc3YPCbfP3r6wp4Fzhj4=
-github.com/asynkron/gofun v0.0.0-20220329115932-5264c0ff42d1/go.mod h1:5GMOSqaYxNWwuVRWyampTPJEntwz7Mj9J8v1a7gSU2E=
 github.com/asynkron/gofun v0.0.0-20220329202556-71fcd65827d8 h1:gsmvIGrHKYcDZ2i7BI62CgWOTpr66RnaSSaibXazEOI=
 github.com/asynkron/gofun v0.0.0-20220329202556-71fcd65827d8/go.mod h1:5GMOSqaYxNWwuVRWyampTPJEntwz7Mj9J8v1a7gSU2E=
+github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2 h1:jEsFZ9d/ieJGVrx3fSPi8oe/qv21fRmyUL5cS3ZEn5A=
+github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2/go.mod h1:5GMOSqaYxNWwuVRWyampTPJEntwz7Mj9J8v1a7gSU2E=
 github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
 github.com/benbjohnson/clock v1.3.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=

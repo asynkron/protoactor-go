@@ -7,7 +7,7 @@ replace github.com/AsynkronIT/protoactor-go => ../..
 require (
 	github.com/AsynkronIT/goconsole v0.0.0-20160504192649-bfa12eebf716
 	github.com/AsynkronIT/protoactor-go v0.0.0-00010101000000-000000000000
-	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.3.0
-	google.golang.org/grpc v1.41.0 // indirect
+	github.com/labstack/echo v3.3.10+incompatible // indirect
+	github.com/labstack/gommon v0.3.1 // indirect
 )

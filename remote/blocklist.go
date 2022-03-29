@@ -34,9 +34,7 @@ func (bl *BlockList) Block(memberIDs ...string) {
 	bl.mu.Lock()
 	defer bl.mu.Unlock()
 
-	for _, memberID := range memberIDs {
-		bl.blockedMembers = bl.blockedMembers.Add(memberID)
-	}
+	bl.blockedMembers = bl.blockedMembers.AddRange(memberIDs...)
 }
 
 // IsBlocked returns true if the given memberID string has been

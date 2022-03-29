@@ -5,6 +5,7 @@ go 1.18
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53
+	github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/couchbase/gocb v1.6.7
 	github.com/emirpasic/gods v1.12.0
@@ -22,7 +23,6 @@ require (
 	go.opentelemetry.io/otel/metric v0.27.0
 	go.opentelemetry.io/otel/sdk/export/metric v0.27.0
 	go.opentelemetry.io/otel/sdk/metric v0.27.0
-	golang.org/x/exp v0.0.0-20220328175248-053ad81199eb
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63
 	google.golang.org/grpc v1.45.0
 	google.golang.org/protobuf v1.27.1
@@ -30,7 +30,6 @@ require (
 
 require (
 	github.com/armon/go-metrics v0.3.0 // indirect
-	github.com/asynkron/gofun v0.0.0-20220329202556-71fcd65827d8 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -63,6 +62,7 @@ require (
 	go.opentelemetry.io/otel/internal/metric v0.27.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.4.0 // indirect
 	go.opentelemetry.io/otel/trace v1.5.0 // indirect
+	golang.org/x/exp v0.0.0-20220328175248-053ad81199eb // indirect
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	golang.org/x/text v0.3.6 // indirect
 	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c // indirect
