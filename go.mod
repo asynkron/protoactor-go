@@ -19,6 +19,7 @@ require (
 	github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72
 	github.com/stretchr/testify v1.7.1
 	go.opentelemetry.io/otel v1.5.0
+	go.etcd.io/etcd/client/v3 v3.5.2
 	go.opentelemetry.io/otel/exporters/prometheus v0.27.0
 	go.opentelemetry.io/otel/metric v0.27.0
 	go.opentelemetry.io/otel/sdk/export/metric v0.27.0
