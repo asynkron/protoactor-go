@@ -32,7 +32,7 @@ func startNode() *cluster.Cluster {
 		case *actor.Started:
 			fmt.Printf("Started %v", msg)
 		case *shared.Hello:
-			fmt.Printf("Hello %v\n", msg.Who)
+			fmt.Printf("Hello %v\n", msg.Name)
 		}
 	})
 	helloKind := cluster.NewKind("hello", props)
