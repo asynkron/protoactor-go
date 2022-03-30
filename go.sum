@@ -48,8 +48,6 @@ github.com/armon/go-metrics v0.3.0 h1:B7AQgHi8QSEi4uHu7Sbsga+IJDU+CENgjxoo81vDUq
 github.com/armon/go-metrics v0.3.0/go.mod h1:zXjbSimjXTd7vOpY8B0/2LpvNvDoXBuplAD+gJD3GYs=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
 github.com/armon/go-radix v1.0.0/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
-github.com/asynkron/gofun v0.0.0-20220329202556-71fcd65827d8 h1:gsmvIGrHKYcDZ2i7BI62CgWOTpr66RnaSSaibXazEOI=
-github.com/asynkron/gofun v0.0.0-20220329202556-71fcd65827d8/go.mod h1:5GMOSqaYxNWwuVRWyampTPJEntwz7Mj9J8v1a7gSU2E=
 github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2 h1:jEsFZ9d/ieJGVrx3fSPi8oe/qv21fRmyUL5cS3ZEn5A=
 github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2/go.mod h1:5GMOSqaYxNWwuVRWyampTPJEntwz7Mj9J8v1a7gSU2E=
 github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
@@ -357,20 +355,17 @@ go.opentelemetry.io/otel/exporters/prometheus v0.27.0 h1:HcGi6HmYRuszR3stcvN2Gct
 go.opentelemetry.io/otel/exporters/prometheus v0.27.0/go.mod h1:u0vTzijx2B6gGDa8FuIVoESW6z0HdKkXZWZMSTsoJKs=
 go.opentelemetry.io/otel/internal/metric v0.27.0 h1:9dAVGAfFiiEq5NVB9FUJ5et+btbDQAUIJehJ+ikyryk=
 go.opentelemetry.io/otel/internal/metric v0.27.0/go.mod h1:n1CVxRqKqYZtqyTh9U/onvKapPGv7y/rpyOTI+LFNzw=
+go.opentelemetry.io/otel/metric v0.27.0 h1:HhJPsGhJoKRSegPQILFbODU56NS/L1UE4fS1sC5kIwQ=
 go.opentelemetry.io/otel/metric v0.27.0/go.mod h1:raXDJ7uP2/Jc0nVZWQjJtzoyssOYWu/+pjZqRzfvZ7g=
-
 go.opentelemetry.io/otel/sdk v1.4.0 h1:LJE4SW3jd4lQTESnlpQZcBhQ3oci0U2MLR5uhicfTHQ=
 go.opentelemetry.io/otel/sdk v1.4.0/go.mod h1:71GJPNJh4Qju6zJuYl1CrYtXbrgfau/M9UAggqiy1UE=
 go.opentelemetry.io/otel/sdk/export/metric v0.27.0 h1:taOJ0vVylY9PxuOSkiLAT82o6GYMy2mb7Vs5lw6wf+o=
 go.opentelemetry.io/otel/sdk/export/metric v0.27.0/go.mod h1:d30U31er9jws2ZMsV1N36Zyr2v8QA5E3NtAQvj1WFQo=
 go.opentelemetry.io/otel/sdk/metric v0.27.0 h1:CDEu96Js5IP7f4bJ8eimxF09V5hKYmE7CeyKSjmAL1s=
-
 go.opentelemetry.io/otel/sdk/metric v0.27.0/go.mod h1:lOgrT5C3ORdbqp2LsDrx+pBj6gbZtQ5Omk27vH3EaW0=
 go.opentelemetry.io/otel/trace v1.4.0/go.mod h1:uc3eRsqDfWs9R7b92xbQbU42/eTNz4N+gLP8qJCi4aE=
-
 go.opentelemetry.io/otel/trace v1.5.0 h1:AKQZ9zJsBRFAp7zLdyGNkqG2rToCDIt3i5tcLzQlbmU=
 go.opentelemetry.io/otel/trace v1.5.0/go.mod h1:sq55kfhjXYr1zVSyexg0w1mpa03AYXR5eyTkB9NPPdE=
-
 go.opentelemetry.io/proto/otlp v0.7.0/go.mod h1:PqfVotwruBrMGOCsRd/89rSnXhoiJIqeYNgFYFoEGnI=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
