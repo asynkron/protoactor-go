@@ -57,10 +57,10 @@ func (p *placementActor) onTerminated(msg *actor.Terminated, ctx actor.Context) 
 // TLDR; we are not using any topology state from this actor itself
 func (p *placementActor) onIdentityHandoverRequest(msg *clustering.IdentityHandoverRequest, ctx actor.Context) {
 	count := 0
-	response := &clustering.IdentityHandoverResponse{}
+	response := &clustering.IdentityHandover{}
 	requestAddress := ctx.Sender().Address
 	rdv := clustering.NewRendezvous()
-	rdv.UpdateMembers(msg.Members)
+	rdv.UpdateMembers(msg.CurrentTopology.Members)
 	for identity, meta := range p.actors {
 		// who owns this identity according to the requesters memberlist?
 		ownerAddress := rdv.GetByIdentity(identity)

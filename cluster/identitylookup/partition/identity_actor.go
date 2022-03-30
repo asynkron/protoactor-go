@@ -168,8 +168,12 @@ func (p *identityActor) onClusterTopology(msg *clustering.ClusterTopology, ctx a
 	futures := make([]*actor.Future, 0)
 
 	requestMsg := &clustering.IdentityHandoverRequest{
-		TopologyHash: msg.TopologyHash,
-		Address:      ctx.Self().Address,
+		CurrentTopology: &clustering.IdentityHandoverRequest_Topology{
+			Members:      msg.Members,
+			TopologyHash: msg.TopologyHash,
+		},
+
+		Address: ctx.Self().Address,
 	}
 
 	for _, m := range members {
@@ -181,7 +185,7 @@ func (p *identityActor) onClusterTopology(msg *clustering.ClusterTopology, ctx a
 
 	for _, f := range futures {
 		res, _ := f.Result()
-		if response, ok := res.(clustering.IdentityHandoverResponse); ok {
+		if response, ok := res.(clustering.IdentityHandover); ok {
 			for _, activation := range response.Actors {
 				p.takeOwnership(activation)
 			}
