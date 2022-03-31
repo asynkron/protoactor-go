@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"context"
-	"fmt"
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/eventstream"
 	"github.com/asynkron/protoactor-go/log"
@@ -122,7 +121,6 @@ func (ml *MemberList) Members() *MemberSet {
 
 func (ml *MemberList) UpdateClusterTopology(members Members) {
 
-	plog.Info("updating cluster topology", log.String("members", fmt.Sprintf("%v", members)))
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
 

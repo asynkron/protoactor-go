@@ -147,10 +147,7 @@ type HelloActor struct {
 func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
-		plog.Info("Started")
 	case *cluster.ClusterInit:
-		plog.Info("ClusterInit")
-
 		a.inner = xHelloFactory()
 		a.inner.Init(msg.ID)
 		if a.Timeout > 0 {

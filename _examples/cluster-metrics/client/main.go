@@ -48,8 +48,8 @@ func main() {
 }
 
 func doRequests(c *cluster.Cluster, callopts *cluster.GrainCallOptions) {
-	msg := &shared.HelloRequest{Name: "GAM"}
-	helloGrain := shared.GetHelloGrainClient(c, "abc")
+	msg := &shared.HelloRequest{Name: "Proto.Actor"}
+	helloGrain := shared.GetHelloGrainClient(c, "MyGrain123")
 	// with default callopts
 	resp, err := helloGrain.SayHello(msg)
 	if err != nil {
