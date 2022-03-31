@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/partition"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"log"
 	"time"
 
@@ -34,7 +34,7 @@ func main() {
 	config := remote.Configure("localhost", 0)
 
 	provider, _ := consul.New()
-	lookup := partition.New()
+	lookup := disthash.New()
 
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
 	c := cluster.New(system, clusterConfig)
@@ -92,7 +92,7 @@ func setupLogger(c *cluster.Cluster) {
 			log.Printf("Member Unavailable " + msg.Name())
 		case *cluster.MemberAvailableEvent:
 			log.Printf("Member Available " + msg.Name())
-		case cluster.TopologyEvent:
+		case cluster.ClusterTopology:
 			log.Printf("Cluster Topology Poll")
 		}
 	})

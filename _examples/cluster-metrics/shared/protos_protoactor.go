@@ -4,14 +4,13 @@ package shared
 import (
 	"errors"
 	"fmt"
+	"google.golang.org/protobuf/proto"
 	"math"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	logmod "github.com/asynkron/protoactor-go/log"
-	"github.com/asynkron/protoactor-go/remote"
-	"github.com/gogo/protobuf/proto"
 )
 
 var (
@@ -41,7 +40,7 @@ func GetHelloGrainClient(c *cluster.Cluster, id string) *HelloGrainClient {
 	if id == "" {
 		panic(fmt.Errorf("empty id"))
 	}
-	return &HelloGrainClient{ID: id, cluster: c}
+	return &HelloGrainClient{ExtensionID: id, cluster: c}
 }
 
 // Hello interfaces the services available to the Hello
@@ -56,8 +55,8 @@ type Hello interface {
 
 // HelloGrainClient holds the base data for the HelloGrain
 type HelloGrainClient struct {
-	ID      string
-	cluster *cluster.Cluster
+	ExtensionID string
+	cluster     *cluster.Cluster
 }
 
 // SayHello requests the execution on to the cluster with CallOptions
@@ -67,7 +66,7 @@ func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallO
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Hello", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.ExtensionID, "Hello", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +79,6 @@ func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallO
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -96,7 +92,7 @@ func (g *HelloGrainClient) Add(r *AddRequest, opts ...*cluster.GrainCallOptions)
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Hello", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.ExtensionID, "Hello", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -109,9 +105,6 @@ func (g *HelloGrainClient) Add(r *AddRequest, opts ...*cluster.GrainCallOptions)
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -125,7 +118,7 @@ func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...*cluster.GrainCallOpt
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 2, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Hello", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.ExtensionID, "Hello", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -138,9 +131,6 @@ func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...*cluster.GrainCallOpt
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -157,7 +147,10 @@ type HelloActor struct {
 func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
+		plog.Info("Started")
 	case *cluster.ClusterInit:
+		plog.Info("ClusterInit")
+
 		a.inner = xHelloFactory()
 		a.inner.Init(msg.ID)
 		if a.Timeout > 0 {
@@ -179,6 +172,12 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			if err != nil {
 				plog.Error("SayHello(HelloRequest) proto.Unmarshal failed.", logmod.Error(err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				ctx.Respond(resp)
+				return
+			}
+			if a.inner == nil {
+				plog.Error("SayHello(HelloRequest) a.inner is nil.")
+				resp := &cluster.GrainErrorResponse{Err: "a.inner is nil"}
 				ctx.Respond(resp)
 				return
 			}

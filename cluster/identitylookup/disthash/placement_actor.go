@@ -103,6 +103,10 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 	//TODO: wrap in WithClusterIdentity
 
 	pid := ctx.SpawnPrefix(clusterKind.Props, msg.ClusterIdentity.Identity)
+	ctx.Send(pid, &clustering.ClusterInit{
+		ID:   msg.ClusterIdentity.Identity,
+		Kind: msg.ClusterIdentity.Kind,
+	})
 
 	p.actors[key] = GrainMeta{
 		ID:  msg.ClusterIdentity,

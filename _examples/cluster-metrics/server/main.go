@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/partition"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"log"
 	"time"
 
@@ -46,7 +46,7 @@ func main() {
 	cluster.SetLogLevel(logmod.InfoLevel)
 
 	provider, _ := consul.New()
-	lookup := partition.New()
+	lookup := disthash.New()
 
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, remoteConfig, helloKind)
 	c := cluster.New(system, clusterConfig)
