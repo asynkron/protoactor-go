@@ -8,13 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"google.golang.org/protobuf/proto"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/remote"
 	logmod "github.com/asynkron/protoactor-go/log"
-	"github.com/gogo/protobuf/proto"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 var (
@@ -84,9 +84,6 @@ func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input.
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -106,7 +103,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 	case *actor.Started:
 	case *cluster.ClusterInit:
 		a.inner = x{{ $service.Name }}Factory()
-		a.inner.Init(msg.ExtensionID)
+		a.inner.Init(msg.ID)
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}

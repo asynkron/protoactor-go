@@ -1,4 +1,5 @@
 syntax = "proto3";
+option go_package="github.com/asynkron/protoactor-go/_examples/cluster-metrics/shared";
 package shared;
 
 message Unit {}

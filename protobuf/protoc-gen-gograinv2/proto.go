@@ -120,6 +120,11 @@ func ProtoAst(file *google_protobuf.FileDescriptorProto) *ProtoFile {
 	return pkg
 }
 
+func goPkgLastElement(full string) string {
+	pkgSplitted := strings.Split(full, "/")
+	return pkgSplitted[len(pkgSplitted)-1]
+}
+
 // MakeFirstLowerCase makes the first character in a string lower case
 func MakeFirstLowerCase(s string) string {
 
@@ -138,6 +143,9 @@ func MakeFirstLowerCase(s string) string {
 // cleanPackageName lifted from gogo generator
 // https://github.com/gogo/protobuf/blob/master/protoc-gen-gogo/generator/generator.go#L695
 func cleanPackageName(name string) string {
+	parts := strings.Split(name, "/")
+	name = parts[len(parts)-1]
+
 	name = strings.Map(badToUnderscore, name)
 	// Identifier must not be keyword: insert _.
 	if isGoKeyword[name] {

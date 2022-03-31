@@ -1,6 +1,7 @@
 syntax = "proto3";
 package messages;
-import "github.com/asynkron/protoactor-go/actor/protos.proto";
+option go_package="github.com/asynkron/protoactor-go/_examples/remote-header/messages";
+import "actor.proto";
 
 message Start {}
 message StartRemote {
