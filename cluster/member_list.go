@@ -40,8 +40,8 @@ func NewMemberList(cluster *Cluster) *MemberList {
 				break
 			}
 
-			// get banned members from all other member states
-			// and merge that without own banned set
+			// get blocked members from all other member states
+			// and merge that without own blocked set
 			var topology ClusterTopology
 			if err := types.UnmarshalAny(t.Value, &topology); err != nil {
 				plog.Warn("could not unpack into ClusterToplogy proto.Message form Any", log.Error(err))
@@ -127,7 +127,7 @@ func (ml *MemberList) UpdateClusterTopology(members Members) {
 	defer ml.mutex.Unlock()
 
 	// TLDR:
-	// this method basically filters out any member status in the banned list
+	// this method basically filters out any member status in the blocked list
 	// then makes a delta between new and old members
 	// notifying the cluster accordingly which members left or joined
 
@@ -136,7 +136,7 @@ func (ml *MemberList) UpdateClusterTopology(members Members) {
 		return
 	}
 
-	// include any new banned members into the known set of banned members
+	// include any new blocked members into the known set of blocked members
 	for _, m := range left.Members() {
 		ml.cluster.Remote.BlockList().Block(m.Id)
 	}
@@ -165,6 +165,7 @@ func (ml *MemberList) UpdateClusterTopology(members Members) {
 }
 
 func (ml *MemberList) memberJoin(joiningMember *Member) {
+	plog.Info("member joined", log.String("member", joiningMember.Id))
 	for _, kind := range joiningMember.Kinds {
 		if ml.memberStrategyByKind[kind] == nil {
 			ml.memberStrategyByKind[kind] = ml.getMemberStrategyByKind(kind)
@@ -234,6 +235,8 @@ func (ml *MemberList) ContainsMemberID(memberID string) bool {
 }
 
 func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {
+
+	plog.Info("creating member strategy", log.String("kind", kind))
 
 	clusterKind := ml.cluster.GetClusterKind(kind)
 

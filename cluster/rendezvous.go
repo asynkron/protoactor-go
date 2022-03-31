@@ -5,7 +5,6 @@ package cluster
 // https://github.com/tysonmote/rendezvous/blob/master/rendezvous.go
 
 import (
-	"fmt"
 	"hash"
 	"hash/fnv"
 	"sync"
@@ -36,18 +35,13 @@ func (r *Rendezvous) GetByClusterIdentity(ci *ClusterIdentity) string {
 
 	l := len(m)
 
-	fmt.Println("AAAAA")
 	if l == 0 {
 		return ""
 	}
 
-	fmt.Println("BBBBB")
-
 	if l == 1 {
 		return m[0].member.Address()
 	}
-
-	fmt.Println("CCCCC")
 
 	keyBytes := []byte(identity)
 

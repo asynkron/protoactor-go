@@ -1,5 +1,7 @@
 package cluster
 
+import "github.com/asynkron/gofun/set"
+
 type MemberSet struct {
 	topologyHash uint64
 	members      Members
@@ -56,13 +58,14 @@ func (ms *MemberSet) Except(other *MemberSet) *MemberSet {
 }
 
 func (ms *MemberSet) ExceptIds(ids []string) *MemberSet {
-
+	other := set.New(ids...)
 	res := make(Members, 0)
-	for _, s := range ids {
-		if ms.ContainsId(s) {
+	for _, m := range ms.members {
+		if other.Contains(m.Id) {
 			continue
 		}
-		res = append(res, ms.GetMemberById(s))
+
+		res = append(res, m)
 	}
 
 	return NewMemberSet(res)
