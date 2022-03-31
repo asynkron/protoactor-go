@@ -74,8 +74,8 @@ func main() {
 		}()
 	}
 
-	runtime.GOMAXPROCS(runtime.NumCPU() * 1)
-	runtime.GC()
+	//runtime.GOMAXPROCS(runtime.NumCPU() * 1)
+	//runtime.GC()
 
 	messageCount := 1000000
 	// remote.DefaultSerializerID = 1
