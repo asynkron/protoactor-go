@@ -9,24 +9,13 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/gogo/protobuf/proto"
 )
 
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
-
-var system *actor.ActorSystem
-// SetCluster pass created cluster
-func SetSystem(sys *actor.ActorSystem) {
-	system = sys
-}
-
-var c *cluster.Cluster
-// SetCluster pass created cluster
-func SetCluster(cluster *cluster.Cluster) {
-	c = cluster
-}
 
 var xCalculatorFactory func() Calculator
 
@@ -37,7 +26,7 @@ func CalculatorFactory(factory func() Calculator) {
 
 // GetCalculatorGrain instantiates a new CalculatorGrain with given ExtensionID
 func GetCalculatorGrain(id string) *CalculatorGrain {
-	return &CalculatorGrain{ID: id}
+	return &CalculatorGrain{ExtensionID: id}
 }
 
 // Calculator interfaces the services available to the Calculator
@@ -54,43 +43,61 @@ type Calculator interface {
 
 // CalculatorGrain holds the base data for the CalculatorGrain
 type CalculatorGrain struct {
-	ID string
+	ExtensionID string
 }
 
 // Add requests the execution on to the cluster using default options
 func (g *CalculatorGrain) Add(r *NumberRequest) (*CountResponse, error) {
-	return g.AddWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.AddWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // AddWithOpts requests the execution on to the cluster
-func (g *CalculatorGrain) AddWithOpts(r *NumberRequest, opts ...*cluster.GrainCallOptions) (*CountResponse, error) {
-	bytes, err := proto.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	request := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	response, err := c.Call(g.ID, "Calculator", request, opts...)
-	if err != nil {
-		return nil, err
-	}
-	switch msg := response.(type) {
-	case *cluster.GrainResponse:
-		result := &CountResponse{}
-		err = proto.Unmarshal(msg.MessageData, result)
+func (g *CalculatorGrain) AddWithOpts(r *NumberRequest, opts *cluster.GrainCallOptions) (*CountResponse, error) {
+	fun := func() (*CountResponse, error) {
+		pid, statusCode := cluster.Get(g.ExtensionID, "Calculator")
+		if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
+			return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
+		}
+		bytes, err := proto.Marshal(r)
 		if err != nil {
 			return nil, err
 		}
-		return result, nil
-	case *cluster.GrainErrorResponse:
-		return nil, errors.New(msg.Err)
-	default:
-		return nil, errors.New("unknown response")
+		request := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
+		response, err := rootContext.RequestFuture(pid, request, opts.Timeout).Result()
+		if err != nil {
+			return nil, err
+		}
+		switch msg := response.(type) {
+		case *cluster.GrainResponse:
+			result := &CountResponse{}
+			err = proto.Unmarshal(msg.MessageData, result)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		case *cluster.GrainErrorResponse:
+			return nil, errors.New(msg.Err)
+		default:
+			return nil, errors.New("unknown response")
+		}
 	}
+
+	var res *CountResponse
+	var err error
+	for i := 0; i < opts.RetryCount; i++ {
+		res, err = fun()
+		if err == nil || err.Error() != "future: timeout" {
+			return res, err
+		} else if opts.RetryAction != nil {
+			opts.RetryAction(i)
+		}
+	}
+	return nil, err
 }
 
 // AddChan allows to use a channel to execute the method using default options
 func (g *CalculatorGrain) AddChan(r *NumberRequest) (<-chan *CountResponse, <-chan error) {
-	return g.AddChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.AddChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // AddChanWithOpts allows to use a channel to execute the method
@@ -112,38 +119,56 @@ func (g *CalculatorGrain) AddChanWithOpts(r *NumberRequest, opts *cluster.GrainC
 
 // Subtract requests the execution on to the cluster using default options
 func (g *CalculatorGrain) Subtract(r *NumberRequest) (*CountResponse, error) {
-	return g.SubtractWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.SubtractWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // SubtractWithOpts requests the execution on to the cluster
-func (g *CalculatorGrain) SubtractWithOpts(r *NumberRequest, opts ...*cluster.GrainCallOptions) (*CountResponse, error) {
-	bytes, err := proto.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	request := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
-	response, err := c.Call(g.ID, "Calculator", request, opts...)
-	if err != nil {
-		return nil, err
-	}
-	switch msg := response.(type) {
-	case *cluster.GrainResponse:
-		result := &CountResponse{}
-		err = proto.Unmarshal(msg.MessageData, result)
+func (g *CalculatorGrain) SubtractWithOpts(r *NumberRequest, opts *cluster.GrainCallOptions) (*CountResponse, error) {
+	fun := func() (*CountResponse, error) {
+		pid, statusCode := cluster.Get(g.ExtensionID, "Calculator")
+		if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
+			return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
+		}
+		bytes, err := proto.Marshal(r)
 		if err != nil {
 			return nil, err
 		}
-		return result, nil
-	case *cluster.GrainErrorResponse:
-		return nil, errors.New(msg.Err)
-	default:
-		return nil, errors.New("unknown response")
+		request := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
+		response, err := rootContext.RequestFuture(pid, request, opts.Timeout).Result()
+		if err != nil {
+			return nil, err
+		}
+		switch msg := response.(type) {
+		case *cluster.GrainResponse:
+			result := &CountResponse{}
+			err = proto.Unmarshal(msg.MessageData, result)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		case *cluster.GrainErrorResponse:
+			return nil, errors.New(msg.Err)
+		default:
+			return nil, errors.New("unknown response")
+		}
 	}
+
+	var res *CountResponse
+	var err error
+	for i := 0; i < opts.RetryCount; i++ {
+		res, err = fun()
+		if err == nil || err.Error() != "future: timeout" {
+			return res, err
+		} else if opts.RetryAction != nil {
+			opts.RetryAction(i)
+		}
+	}
+	return nil, err
 }
 
 // SubtractChan allows to use a channel to execute the method using default options
 func (g *CalculatorGrain) SubtractChan(r *NumberRequest) (<-chan *CountResponse, <-chan error) {
-	return g.SubtractChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.SubtractChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // SubtractChanWithOpts allows to use a channel to execute the method
@@ -165,38 +190,56 @@ func (g *CalculatorGrain) SubtractChanWithOpts(r *NumberRequest, opts *cluster.G
 
 // GetCurrent requests the execution on to the cluster using default options
 func (g *CalculatorGrain) GetCurrent(r *Noop) (*CountResponse, error) {
-	return g.GetCurrentWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.GetCurrentWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // GetCurrentWithOpts requests the execution on to the cluster
-func (g *CalculatorGrain) GetCurrentWithOpts(r *Noop, opts ...*cluster.GrainCallOptions) (*CountResponse, error) {
-	bytes, err := proto.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	request := &cluster.GrainRequest{MethodIndex: 2, MessageData: bytes}
-	response, err := c.Call(g.ID, "Calculator", request, opts...)
-	if err != nil {
-		return nil, err
-	}
-	switch msg := response.(type) {
-	case *cluster.GrainResponse:
-		result := &CountResponse{}
-		err = proto.Unmarshal(msg.MessageData, result)
+func (g *CalculatorGrain) GetCurrentWithOpts(r *Noop, opts *cluster.GrainCallOptions) (*CountResponse, error) {
+	fun := func() (*CountResponse, error) {
+		pid, statusCode := cluster.Get(g.ExtensionID, "Calculator")
+		if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
+			return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
+		}
+		bytes, err := proto.Marshal(r)
 		if err != nil {
 			return nil, err
 		}
-		return result, nil
-	case *cluster.GrainErrorResponse:
-		return nil, errors.New(msg.Err)
-	default:
-		return nil, errors.New("unknown response")
+		request := &cluster.GrainRequest{MethodIndex: 2, MessageData: bytes}
+		response, err := rootContext.RequestFuture(pid, request, opts.Timeout).Result()
+		if err != nil {
+			return nil, err
+		}
+		switch msg := response.(type) {
+		case *cluster.GrainResponse:
+			result := &CountResponse{}
+			err = proto.Unmarshal(msg.MessageData, result)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		case *cluster.GrainErrorResponse:
+			return nil, errors.New(msg.Err)
+		default:
+			return nil, errors.New("unknown response")
+		}
 	}
+
+	var res *CountResponse
+	var err error
+	for i := 0; i < opts.RetryCount; i++ {
+		res, err = fun()
+		if err == nil || err.Error() != "future: timeout" {
+			return res, err
+		} else if opts.RetryAction != nil {
+			opts.RetryAction(i)
+		}
+	}
+	return nil, err
 }
 
 // GetCurrentChan allows to use a channel to execute the method using default options
 func (g *CalculatorGrain) GetCurrentChan(r *Noop) (<-chan *CountResponse, <-chan error) {
-	return g.GetCurrentChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.GetCurrentChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // GetCurrentChanWithOpts allows to use a channel to execute the method
@@ -234,7 +277,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 		}
 	case *actor.ReceiveTimeout:
 		a.inner.Terminate()
-		system.Root.PoisonFuture(ctx.Self()).Wait()
+		ctx.Self().Poison()
 
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
@@ -314,7 +357,7 @@ func TrackerFactory(factory func() Tracker) {
 
 // GetTrackerGrain instantiates a new TrackerGrain with given ExtensionID
 func GetTrackerGrain(id string) *TrackerGrain {
-	return &TrackerGrain{ID: id}
+	return &TrackerGrain{ExtensionID: id}
 }
 
 // Tracker interfaces the services available to the Tracker
@@ -331,43 +374,61 @@ type Tracker interface {
 
 // TrackerGrain holds the base data for the TrackerGrain
 type TrackerGrain struct {
-	ID string
+	ExtensionID string
 }
 
 // RegisterGrain requests the execution on to the cluster using default options
 func (g *TrackerGrain) RegisterGrain(r *RegisterMessage) (*Noop, error) {
-	return g.RegisterGrainWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.RegisterGrainWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // RegisterGrainWithOpts requests the execution on to the cluster
-func (g *TrackerGrain) RegisterGrainWithOpts(r *RegisterMessage, opts ...*cluster.GrainCallOptions) (*Noop, error) {
-	bytes, err := proto.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	request := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	response, err := c.Call(g.ID, "Tracker", request, opts...)
-	if err != nil {
-		return nil, err
-	}
-	switch msg := response.(type) {
-	case *cluster.GrainResponse:
-		result := &Noop{}
-		err = proto.Unmarshal(msg.MessageData, result)
+func (g *TrackerGrain) RegisterGrainWithOpts(r *RegisterMessage, opts *cluster.GrainCallOptions) (*Noop, error) {
+	fun := func() (*Noop, error) {
+		pid, statusCode := cluster.Get(g.ExtensionID, "Tracker")
+		if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
+			return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
+		}
+		bytes, err := proto.Marshal(r)
 		if err != nil {
 			return nil, err
 		}
-		return result, nil
-	case *cluster.GrainErrorResponse:
-		return nil, errors.New(msg.Err)
-	default:
-		return nil, errors.New("unknown response")
+		request := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
+		response, err := rootContext.RequestFuture(pid, request, opts.Timeout).Result()
+		if err != nil {
+			return nil, err
+		}
+		switch msg := response.(type) {
+		case *cluster.GrainResponse:
+			result := &Noop{}
+			err = proto.Unmarshal(msg.MessageData, result)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		case *cluster.GrainErrorResponse:
+			return nil, errors.New(msg.Err)
+		default:
+			return nil, errors.New("unknown response")
+		}
 	}
+
+	var res *Noop
+	var err error
+	for i := 0; i < opts.RetryCount; i++ {
+		res, err = fun()
+		if err == nil || err.Error() != "future: timeout" {
+			return res, err
+		} else if opts.RetryAction != nil {
+			opts.RetryAction(i)
+		}
+	}
+	return nil, err
 }
 
 // RegisterGrainChan allows to use a channel to execute the method using default options
 func (g *TrackerGrain) RegisterGrainChan(r *RegisterMessage) (<-chan *Noop, <-chan error) {
-	return g.RegisterGrainChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.RegisterGrainChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // RegisterGrainChanWithOpts allows to use a channel to execute the method
@@ -389,38 +450,56 @@ func (g *TrackerGrain) RegisterGrainChanWithOpts(r *RegisterMessage, opts *clust
 
 // DeregisterGrain requests the execution on to the cluster using default options
 func (g *TrackerGrain) DeregisterGrain(r *RegisterMessage) (*Noop, error) {
-	return g.DeregisterGrainWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.DeregisterGrainWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // DeregisterGrainWithOpts requests the execution on to the cluster
-func (g *TrackerGrain) DeregisterGrainWithOpts(r *RegisterMessage, opts ...*cluster.GrainCallOptions) (*Noop, error) {
-	bytes, err := proto.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	request := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
-	response, err := c.Call(g.ID, "Tracker", request, opts...)
-	if err != nil {
-		return nil, err
-	}
-	switch msg := response.(type) {
-	case *cluster.GrainResponse:
-		result := &Noop{}
-		err = proto.Unmarshal(msg.MessageData, result)
+func (g *TrackerGrain) DeregisterGrainWithOpts(r *RegisterMessage, opts *cluster.GrainCallOptions) (*Noop, error) {
+	fun := func() (*Noop, error) {
+		pid, statusCode := cluster.Get(g.ExtensionID, "Tracker")
+		if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
+			return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
+		}
+		bytes, err := proto.Marshal(r)
 		if err != nil {
 			return nil, err
 		}
-		return result, nil
-	case *cluster.GrainErrorResponse:
-		return nil, errors.New(msg.Err)
-	default:
-		return nil, errors.New("unknown response")
+		request := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
+		response, err := rootContext.RequestFuture(pid, request, opts.Timeout).Result()
+		if err != nil {
+			return nil, err
+		}
+		switch msg := response.(type) {
+		case *cluster.GrainResponse:
+			result := &Noop{}
+			err = proto.Unmarshal(msg.MessageData, result)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		case *cluster.GrainErrorResponse:
+			return nil, errors.New(msg.Err)
+		default:
+			return nil, errors.New("unknown response")
+		}
 	}
+
+	var res *Noop
+	var err error
+	for i := 0; i < opts.RetryCount; i++ {
+		res, err = fun()
+		if err == nil || err.Error() != "future: timeout" {
+			return res, err
+		} else if opts.RetryAction != nil {
+			opts.RetryAction(i)
+		}
+	}
+	return nil, err
 }
 
 // DeregisterGrainChan allows to use a channel to execute the method using default options
 func (g *TrackerGrain) DeregisterGrainChan(r *RegisterMessage) (<-chan *Noop, <-chan error) {
-	return g.DeregisterGrainChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.DeregisterGrainChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // DeregisterGrainChanWithOpts allows to use a channel to execute the method
@@ -442,38 +521,56 @@ func (g *TrackerGrain) DeregisterGrainChanWithOpts(r *RegisterMessage, opts *clu
 
 // BroadcastGetCounts requests the execution on to the cluster using default options
 func (g *TrackerGrain) BroadcastGetCounts(r *Noop) (*TotalsResponse, error) {
-	return g.BroadcastGetCountsWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.BroadcastGetCountsWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // BroadcastGetCountsWithOpts requests the execution on to the cluster
-func (g *TrackerGrain) BroadcastGetCountsWithOpts(r *Noop, opts ...*cluster.GrainCallOptions) (*TotalsResponse, error) {
-	bytes, err := proto.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	request := &cluster.GrainRequest{MethodIndex: 2, MessageData: bytes}
-	response, err := c.Call(g.ID, "Tracker", request, opts...)
-	if err != nil {
-		return nil, err
-	}
-	switch msg := response.(type) {
-	case *cluster.GrainResponse:
-		result := &TotalsResponse{}
-		err = proto.Unmarshal(msg.MessageData, result)
+func (g *TrackerGrain) BroadcastGetCountsWithOpts(r *Noop, opts *cluster.GrainCallOptions) (*TotalsResponse, error) {
+	fun := func() (*TotalsResponse, error) {
+		pid, statusCode := cluster.Get(g.ExtensionID, "Tracker")
+		if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
+			return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
+		}
+		bytes, err := proto.Marshal(r)
 		if err != nil {
 			return nil, err
 		}
-		return result, nil
-	case *cluster.GrainErrorResponse:
-		return nil, errors.New(msg.Err)
-	default:
-		return nil, errors.New("unknown response")
+		request := &cluster.GrainRequest{MethodIndex: 2, MessageData: bytes}
+		response, err := rootContext.RequestFuture(pid, request, opts.Timeout).Result()
+		if err != nil {
+			return nil, err
+		}
+		switch msg := response.(type) {
+		case *cluster.GrainResponse:
+			result := &TotalsResponse{}
+			err = proto.Unmarshal(msg.MessageData, result)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		case *cluster.GrainErrorResponse:
+			return nil, errors.New(msg.Err)
+		default:
+			return nil, errors.New("unknown response")
+		}
 	}
+
+	var res *TotalsResponse
+	var err error
+	for i := 0; i < opts.RetryCount; i++ {
+		res, err = fun()
+		if err == nil || err.Error() != "future: timeout" {
+			return res, err
+		} else if opts.RetryAction != nil {
+			opts.RetryAction(i)
+		}
+	}
+	return nil, err
 }
 
 // BroadcastGetCountsChan allows to use a channel to execute the method using default options
 func (g *TrackerGrain) BroadcastGetCountsChan(r *Noop) (<-chan *TotalsResponse, <-chan error) {
-	return g.BroadcastGetCountsChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
+	return g.BroadcastGetCountsChanWithOpts(r, cluster.DefaultGrainCallOptions())
 }
 
 // BroadcastGetCountsChanWithOpts allows to use a channel to execute the method
@@ -511,7 +608,7 @@ func (a *TrackerActor) Receive(ctx actor.Context) {
 		}
 	case *actor.ReceiveTimeout:
 		a.inner.Terminate()
-		system.Root.PoisonFuture(ctx.Self()).Wait()
+		ctx.Self().Poison()
 
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
