@@ -15,8 +15,7 @@ var (
 )
 
 func main() {
-	cfg := remote.Configure("0.0.0.0", 8080)
-	cfg = cfg.WithAdvertisedHost("localhost:8080")
+	cfg := remote.Configure("0.0.0.0", 8080, remote.WithAdvertisedHost("localhost:8080"))
 	r := remote.NewRemote(system, cfg)
 	r.Start()
 
