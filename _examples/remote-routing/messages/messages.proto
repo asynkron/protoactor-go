@@ -1,8 +1,8 @@
 syntax = "proto3";
-
+option go_package="github.com/asynkron/protoactor-go/_examples/remote-routing/messages";
 package messages;
 
-import "github.com/asynkron/protoactor-go/actor/protos.proto";
+
 
 message Ping {
 	string User = 1; 
