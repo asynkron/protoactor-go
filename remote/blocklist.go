@@ -15,12 +15,12 @@ type BlockList struct {
 	blockedMembers *set.ImmutableSet[string]
 }
 
-func NewBlockList() BlockList {
+func NewBlockList() *BlockList {
 	blocklist := BlockList{
 		mu:             &sync.RWMutex{},
 		blockedMembers: set.NewImmutable[string](),
 	}
-	return blocklist
+	return &blocklist
 }
 
 func (bl *BlockList) BlockedMembers() set.Set[string] {

@@ -22,6 +22,7 @@ type Manager struct {
 func newPartitionManager(c *clustering.Cluster) *Manager {
 	return &Manager{
 		cluster: c,
+		rdv:     clustering.NewRendezvous(),
 	}
 }
 

@@ -32,6 +32,7 @@ func NewRemote(actorSystem *actor.ActorSystem, config Config) *Remote {
 		actorSystem: actorSystem,
 		config:      &config,
 		kinds:       make(map[string]*actor.Props),
+		blocklist:   NewBlockList(),
 	}
 	for k, v := range config.Kinds {
 		r.kinds[k] = v

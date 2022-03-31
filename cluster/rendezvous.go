@@ -28,7 +28,7 @@ func NewRendezvous() *Rendezvous {
 
 func (r *Rendezvous) GetByClusterIdentity(ci *ClusterIdentity) string {
 	r.mutex.RLock()
-	defer r.mutex.Unlock()
+	defer r.mutex.RUnlock()
 
 	identity := ci.Identity
 	m := r.memberDataByKind(ci.Kind)
