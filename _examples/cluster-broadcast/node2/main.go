@@ -3,14 +3,13 @@ package main
 import (
 	"cluster-broadcast/shared"
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/cluster/identitylookup/partition"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/partition"
 	"time"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/_automanaged"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 func main() {

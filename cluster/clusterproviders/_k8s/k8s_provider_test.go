@@ -3,15 +3,15 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"net"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

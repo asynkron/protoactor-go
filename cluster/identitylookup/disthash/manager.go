@@ -1,10 +1,10 @@
 package disthash
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
-	clustering "github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/actor"
+	clustering "github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/asynkron/protoactor-go/log"
 	"time"
 )
 

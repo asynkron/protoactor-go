@@ -2,8 +2,8 @@ package shared
 
 import (
 	"fmt"
+	"github.com/asynkron/protoactor-go/cluster"
 	"strings"
-	"github.com/AsynkronIT/protoactor-go/cluster"
 )
 
 type TrackGrain struct {
@@ -21,7 +21,7 @@ func (t *TrackGrain) Terminate() {
 
 func (t *TrackGrain) RegisterGrain(n *RegisterMessage, ctx cluster.GrainContext) (*Noop, error) {
 	parts := strings.Split(n.GrainId, "/")
-	grainID := parts[len(parts) - 1]
+	grainID := parts[len(parts)-1]
 	t.grainsMap[grainID] = true
 	return &Noop{}, nil
 }

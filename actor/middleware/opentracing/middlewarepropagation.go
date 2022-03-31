@@ -1,8 +1,8 @@
 package opentracing
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/actor/middleware/propagator"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor/middleware/propagator"
 )
 
 func TracingMiddleware() actor.SpawnMiddleware {

@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/remote"
 	"github.com/go-zookeeper/zk"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"

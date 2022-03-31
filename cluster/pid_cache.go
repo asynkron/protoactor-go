@@ -1,7 +1,7 @@
 package cluster
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 	cmap "github.com/orcaman/concurrent-map"
 )
 

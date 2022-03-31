@@ -1,6 +1,6 @@
 syntax = "proto3";
 package remote;
-option go_package="/github.com/AsynkronIT/protoactor-go/remote";
+option go_package="/github.com/asynkron/protoactor-go/remote";
 import "actor.proto";
 
 message MessageBatch {

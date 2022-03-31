@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/log"
 )
 
 func intToStr(i int) string {

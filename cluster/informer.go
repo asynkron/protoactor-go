@@ -5,14 +5,14 @@ package cluster
 import (
 	fmt "fmt"
 	"github.com/asynkron/gofun/set"
+	"google.golang.org/protobuf/types/known/anypb"
 	"math/rand"
 	"reflect"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/log"
 	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
 )
 
 const (
@@ -239,9 +239,9 @@ func (inf *Informer) RemoveConsensusCheck(id string) {
 }
 
 // retrieves this informer current state for the given key
-func (inf *Informer) GetState(key string) map[string]*types.Any {
+func (inf *Informer) GetState(key string) map[string]*anypb.Any {
 
-	entries := make(map[string]*types.Any)
+	entries := make(map[string]*anypb.Any)
 	for memberID, memberState := range inf.state.Members {
 		if value, ok := memberState.Values[memberID]; ok {
 			entries[memberID] = value.Value

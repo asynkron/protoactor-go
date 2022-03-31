@@ -10,8 +10,8 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/log"
 	"github.com/labstack/echo"
 	"golang.org/x/sync/errgroup"
 )

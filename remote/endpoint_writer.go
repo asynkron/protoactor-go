@@ -4,8 +4,8 @@ import (
 	io "io"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )

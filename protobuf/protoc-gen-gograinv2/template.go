@@ -10,10 +10,10 @@ import (
 	"math"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	logmod "github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/remote"
+	logmod "github.com/asynkron/protoactor-go/log"
 	"github.com/gogo/protobuf/proto"
 )
 

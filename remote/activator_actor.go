@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/log"
 )
 
 // Register a known actor props by name

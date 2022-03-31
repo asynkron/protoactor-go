@@ -1,6 +1,6 @@
 package actor
 
-import "github.com/AsynkronIT/protoactor-go/mailbox"
+import "github.com/asynkron/protoactor-go/mailbox"
 
 // IgnoreDeadLetterLogging messages are not logged in deadletter log
 type IgnoreDeadLetterLogging interface {

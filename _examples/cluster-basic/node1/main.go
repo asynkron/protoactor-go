@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/AsynkronIT/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 func main() {

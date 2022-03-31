@@ -3,11 +3,11 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/gogo/protobuf/types"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/asynkron/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/remote"
+	"google.golang.org/protobuf/types/known/anypb"
 	"sync"
 )
 
@@ -43,8 +43,8 @@ func NewMemberList(cluster *Cluster) *MemberList {
 			// get blocked members from all other member states
 			// and merge that without own blocked set
 			var topology ClusterTopology
-			if err := types.UnmarshalAny(t.Value, &topology); err != nil {
-				plog.Warn("could not unpack into ClusterToplogy proto.Message form Any", log.Error(err))
+			if err := t.Value.UnmarshalTo(&topology); err != nil {
+				plog.Warn("could not unpack into ClusterTopology proto.Message form Any", log.Error(err))
 				break
 			}
 			blocked := topology.Blocked
@@ -60,10 +60,10 @@ func (ml *MemberList) stopMemberList() {
 
 func (ml *MemberList) InitializeTopologyConsensus() {
 
-	ml.topologyConsensus = ml.cluster.Gossip.RegisterConsensusCheck("topology", func(any *types.Any) interface{} {
+	ml.topologyConsensus = ml.cluster.Gossip.RegisterConsensusCheck("topology", func(any *anypb.Any) interface{} {
 
 		var topology ClusterTopology
-		if unpackErr := types.UnmarshalAny(any, &topology); unpackErr != nil {
+		if unpackErr := any.UnmarshalTo(&topology); unpackErr != nil {
 			plog.Error("could not unpack topology message", log.Error(unpackErr))
 			return nil
 		}

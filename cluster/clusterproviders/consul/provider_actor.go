@@ -2,10 +2,10 @@ package consul
 
 import (
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/AsynkronIT/protoactor-go/scheduler"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/scheduler"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 )

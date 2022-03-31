@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AsynkronIT/protoactor-go/extensions"
-	"github.com/AsynkronIT/protoactor-go/metrics"
+	"github.com/asynkron/protoactor-go/extensions"
+	"github.com/asynkron/protoactor-go/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"

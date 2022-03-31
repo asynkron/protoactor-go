@@ -7,10 +7,10 @@ import (
 	"math"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	logmod "github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	logmod "github.com/asynkron/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/remote"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -52,7 +52,6 @@ type Calculator interface {
 	Add(*NumberRequest, cluster.GrainContext) (*CountResponse, error)
 	Subtract(*NumberRequest, cluster.GrainContext) (*CountResponse, error)
 	GetCurrent(*Void, cluster.GrainContext) (*CountResponse, error)
-	
 }
 
 // CalculatorGrainClient holds the base data for the CalculatorGrain
@@ -147,7 +146,6 @@ func (g *CalculatorGrainClient) GetCurrent(r *Void, opts ...*cluster.GrainCallOp
 		return nil, errors.New("unknown response")
 	}
 }
-
 
 // CalculatorActor represents the actor structure
 type CalculatorActor struct {
@@ -247,7 +245,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 			}
 			resp := &cluster.GrainResponse{MessageData: bytes}
 			ctx.Respond(resp)
-		
+
 		}
 	default:
 		a.inner.ReceiveDefault(ctx)

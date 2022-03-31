@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 type hello struct{ Who string }

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/log"
 	"github.com/go-zookeeper/zk"
 )
 

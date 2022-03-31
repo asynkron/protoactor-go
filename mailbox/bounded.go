@@ -1,8 +1,8 @@
 package mailbox
 
 import (
-	"github.com/AsynkronIT/protoactor-go/internal/queue/mpsc"
 	rbqueue "github.com/Workiva/go-datastructures/queue"
+	"github.com/asynkron/protoactor-go/internal/queue/mpsc"
 )
 
 type boundedMailboxQueue struct {

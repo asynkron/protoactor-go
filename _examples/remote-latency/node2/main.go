@@ -10,10 +10,10 @@ import (
 
 	"remotelatency/messages"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/mailbox"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/mailbox"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 type remoteActor struct {

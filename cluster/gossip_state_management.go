@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/proto"
+	anypb "google.golang.org/protobuf/types/known/anypb"
 )
 
 // convenience type alias
@@ -43,7 +43,7 @@ func setKey(state GossipState, key string, value proto.Message, memberID string,
 
 	sequenceNo++
 	entry.SequenceNumber = sequenceNo
-	entry.Value = &types.Any{Value: []byte(value.String())}
+	entry.Value = &anypb.Any{Value: []byte(value.String())}
 	return sequenceNo
 }
 

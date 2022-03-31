@@ -1,6 +1,6 @@
 syntax = "proto3";
 package cluster;
-option go_package="/github.com/AsynkronIT/protoactor-go/cluster";
+option go_package="/github.com/asynkron/protoactor-go/cluster";
 import "actor.proto";
 
 //request response call from Identity actor sent to each member

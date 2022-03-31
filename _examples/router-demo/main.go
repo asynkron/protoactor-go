@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/router"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/router"
 )
 
 type myMessage struct{ i int }

@@ -1,6 +1,6 @@
 package shared
 
-import "github.com/AsynkronIT/protoactor-go/cluster"
+import "github.com/asynkron/protoactor-go/cluster"
 
 type CalcGrain struct {
 	cluster.Grain

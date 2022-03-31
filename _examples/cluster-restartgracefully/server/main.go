@@ -9,12 +9,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/etcd"
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/etcd"
+	"github.com/asynkron/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 var (

@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AsynkronIT/protoactor-go/eventstream"
-	"github.com/AsynkronIT/protoactor-go/extensions"
+	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/asynkron/protoactor-go/extensions"
 	"github.com/google/uuid"
 )
 

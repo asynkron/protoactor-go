@@ -6,8 +6,8 @@ import (
 	fmt "fmt"
 	"strings"
 
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/gogo/protobuf/types"
+	"github.com/asynkron/protoactor-go/log"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type ConsensusCheckDefinition interface {
@@ -17,7 +17,7 @@ type ConsensusCheckDefinition interface {
 
 type consensusValue struct {
 	Key   string
-	Value func(*types.Any) interface{}
+	Value func(*anypb.Any) interface{}
 }
 
 type consensusMemberValue struct {
@@ -31,7 +31,7 @@ type ConsensusCheckBuilder struct {
 	check              ConsensusChecker
 }
 
-func NewConsensusCheckBuilder(key string, getValue func(*types.Any) interface{}) *ConsensusCheckBuilder {
+func NewConsensusCheckBuilder(key string, getValue func(*anypb.Any) interface{}) *ConsensusCheckBuilder {
 
 	builder := ConsensusCheckBuilder{
 		getConsensusValues: []*consensusValue{

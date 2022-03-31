@@ -3,12 +3,12 @@ package main
 import (
 	"cluster-broadcast/shared"
 	"fmt"
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/AsynkronIT/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 func main() {

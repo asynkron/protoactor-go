@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 type broadcastGroupRouter struct {

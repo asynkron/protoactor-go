@@ -3,7 +3,7 @@ package actor
 import (
 	"sync/atomic"
 
-	"github.com/AsynkronIT/protoactor-go/mailbox"
+	"github.com/asynkron/protoactor-go/mailbox"
 )
 
 type ActorProcess struct {

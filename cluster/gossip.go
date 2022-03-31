@@ -4,7 +4,7 @@ package cluster
 
 import (
 	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // customary type that defines a states sender callback
@@ -13,7 +13,7 @@ type LocalStateSender func(memberStateDelta *MemberStateDelta, member *Member)
 // This interface must be implemented by any value that
 // wants to be used as a gossip state storage
 type GossipStateStorer interface {
-	GetState(key string) map[string]*types.Any
+	GetState(key string) map[string]*anypb.Any
 	SetState(key string, value proto.Message)
 }
 

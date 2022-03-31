@@ -7,10 +7,10 @@ import (
 	"math"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	logmod "github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	logmod "github.com/asynkron/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/remote"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -52,7 +52,6 @@ type Hello interface {
 	SayHello(*HelloRequest, cluster.GrainContext) (*HelloResponse, error)
 	Add(*AddRequest, cluster.GrainContext) (*AddResponse, error)
 	VoidFunc(*AddRequest, cluster.GrainContext) (*Unit, error)
-	
 }
 
 // HelloGrainClient holds the base data for the HelloGrain
@@ -147,7 +146,6 @@ func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...*cluster.GrainCallOpt
 		return nil, errors.New("unknown response")
 	}
 }
-
 
 // HelloActor represents the actor structure
 type HelloActor struct {
@@ -247,7 +245,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			}
 			resp := &cluster.GrainResponse{MessageData: bytes}
 			ctx.Respond(resp)
-		
+
 		}
 	default:
 		a.inner.ReceiveDefault(ctx)

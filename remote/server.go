@@ -6,10 +6,10 @@ import (
 	"net"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/extensions"
+	"github.com/asynkron/protoactor-go/extensions"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )
