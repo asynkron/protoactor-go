@@ -167,6 +167,8 @@ func (p *Provider) notifyStatuses() {
 		WaitIndex: p.index,
 		WaitTime:  p.blockingWaitTime,
 	})
+	plog.Info("Consul health check")
+
 	if err != nil {
 		plog.Error("notifyStatues", log.Error(err))
 		return
@@ -195,8 +197,6 @@ func (p *Provider) notifyStatuses() {
 
 	// publish the current cluster topology onto the event stream
 	p.cluster.MemberList.UpdateClusterTopology(members)
-	// res := cluster.TopologyEvent(members)
-	// p.cluster.ActorSystem.EventStream.Publish(res)
 }
 
 func (p *Provider) monitorMemberStatusChanges() {

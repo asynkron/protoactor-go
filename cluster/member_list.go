@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/eventstream"
 	"github.com/AsynkronIT/protoactor-go/log"
@@ -120,6 +121,8 @@ func (ml *MemberList) Members() *MemberSet {
 }
 
 func (ml *MemberList) UpdateClusterTopology(members Members) {
+
+	plog.Info("updating cluster topology", log.String("members", fmt.Sprintf("%v", members)))
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
 
@@ -231,6 +234,7 @@ func (ml *MemberList) ContainsMemberID(memberID string) bool {
 }
 
 func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {
+
 	clusterKind := ml.cluster.GetClusterKind(kind)
 
 	var strategy MemberStrategy

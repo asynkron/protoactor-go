@@ -27,6 +27,8 @@ func newPlacementActor(c *clustering.Cluster, pm *Manager) *placementActor {
 
 func (p *placementActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
+	case *actor.Started:
+		plog.Info("Placement actor started")
 	case *actor.Terminated:
 		p.onTerminated(msg, ctx)
 	case *clustering.IdentityHandoverRequest:
