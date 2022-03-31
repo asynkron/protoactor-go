@@ -34,7 +34,7 @@ func main() {
 		WithMailbox(mailbox.Bounded(1000000))
 
 	system := actor.NewActorSystem()
-	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 12000))
+	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 12000 /*, remote.WithCallOptions(grpc.UseCompressor(gzip.Name))*/))
 	r.Register("echo", props)
 	r.Start()
 

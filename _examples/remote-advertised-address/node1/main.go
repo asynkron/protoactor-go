@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"remote-benchmark/messages"
 
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"

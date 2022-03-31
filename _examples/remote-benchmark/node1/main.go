@@ -80,7 +80,7 @@ func main() {
 	messageCount := 1000000
 	// remote.DefaultSerializerID = 1
 	system := actor.NewActorSystem()
-	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 8081))
+	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 8081 /*, remote.WithCallOptions(grpc.UseCompressor(gzip.Name))*/))
 	r.Start()
 
 	rootContext := system.Root

@@ -28,6 +28,7 @@ func newConfig(options ...ConfigOption) Config {
 	return config
 }
 
+// WithEndpointWriterBatchSize sets the batch size for the endpoint writer
 func WithEndpointWriterBatchSize(batchSize int) ConfigOption {
 	return func(config Config) Config {
 		config.EndpointWriterBatchSize = batchSize
@@ -35,6 +36,7 @@ func WithEndpointWriterBatchSize(batchSize int) ConfigOption {
 	}
 }
 
+// WithEndpointWriterQueueSize sets the queue size for the endpoint writer
 func WithEndpointWriterQueueSize(queueSize int) ConfigOption {
 	return func(config Config) Config {
 		config.EndpointWriterQueueSize = queueSize
@@ -42,6 +44,7 @@ func WithEndpointWriterQueueSize(queueSize int) ConfigOption {
 	}
 }
 
+// WithEndpointManagerBatchSize sets the batch size for the endpoint manager
 func WithEndpointManagerBatchSize(batchSize int) ConfigOption {
 	return func(config Config) Config {
 		config.EndpointManagerBatchSize = batchSize
@@ -49,6 +52,7 @@ func WithEndpointManagerBatchSize(batchSize int) ConfigOption {
 	}
 }
 
+// WithEndpointManagerQueueSize sets the queue size for the endpoint manager
 func WithEndpointManagerQueueSize(queueSize int) ConfigOption {
 	return func(config Config) Config {
 		config.EndpointManagerQueueSize = queueSize
@@ -56,6 +60,7 @@ func WithEndpointManagerQueueSize(queueSize int) ConfigOption {
 	}
 }
 
+// WithDialOptions sets the dial options for the remote
 func WithDialOptions(options ...grpc.DialOption) ConfigOption {
 	return func(config Config) Config {
 		config.DialOptions = options
@@ -63,6 +68,7 @@ func WithDialOptions(options ...grpc.DialOption) ConfigOption {
 	}
 }
 
+// WithServerOptions sets the server options for the remote
 func WithServerOptions(options ...grpc.ServerOption) ConfigOption {
 	return func(config Config) Config {
 		config.ServerOptions = options
@@ -70,6 +76,7 @@ func WithServerOptions(options ...grpc.ServerOption) ConfigOption {
 	}
 }
 
+// WithCallOptions sets the call options for the remote
 func WithCallOptions(options ...grpc.CallOption) ConfigOption {
 	return func(config Config) Config {
 		config.CallOptions = options
@@ -77,6 +84,7 @@ func WithCallOptions(options ...grpc.CallOption) ConfigOption {
 	}
 }
 
+// WithAdvertisedHost sets the advertised host for the remote
 func WithAdvertisedHost(address string) ConfigOption {
 	return func(config Config) Config {
 		config.AdvertisedHost = address
@@ -84,6 +92,7 @@ func WithAdvertisedHost(address string) ConfigOption {
 	}
 }
 
+// WithKinds adds the kinds to the remote
 func WithKinds(kinds ...*Kind) ConfigOption {
 	return func(config Config) Config {
 		for _, k := range kinds {
@@ -93,6 +102,7 @@ func WithKinds(kinds ...*Kind) ConfigOption {
 	}
 }
 
+// WithKind adds a kind to the remote
 func WithKind(kind string, props *actor.Props) ConfigOption {
 	return func(config Config) Config {
 		config.Kinds[kind] = props
@@ -100,10 +110,12 @@ func WithKind(kind string, props *actor.Props) ConfigOption {
 	}
 }
 
+// Address returns the address of the remote
 func (rc Config) Address() string {
 	return fmt.Sprintf("%v:%v", rc.Host, rc.Port)
 }
 
+// Configure configures the remote
 func Configure(host string, port int, options ...ConfigOption) Config {
 	c := newConfig(options...)
 	c.Host = host
