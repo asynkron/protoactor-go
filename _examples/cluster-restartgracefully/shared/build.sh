@@ -1,2 +1,2 @@
-protoc -I=. -I=$GOPATH/src --gogoslick_out=. protos.proto
-protoc -I=. -I=$GOPATH/src --gograin_out=. protos.proto 
+protoc -I="../../../actor" --go_out=. --go_opt=paths=source_relative --proto_path=. protos.proto
+
