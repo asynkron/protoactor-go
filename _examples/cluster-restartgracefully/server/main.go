@@ -4,6 +4,7 @@ import (
 	"cluster-restartgracefully/shared"
 	"flag"
 	"fmt"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,7 +13,6 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/etcd"
 	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
 )
@@ -59,11 +59,13 @@ func startNode(port int, provider string, timeout time.Duration) {
 	switch provider {
 	case "consul":
 		cp, err = consul.New()
-	case "etcd":
-		cp, err = etcd.New()
+	//case "etcd":
+	//	cp, err = etcd.New()
 	default:
 		panic(fmt.Errorf("Invalid provider:%s", provider))
 	}
+
+	id := disthash.New()
 
 	if err != nil {
 		panic(err)
@@ -75,7 +77,7 @@ func startNode(port int, provider string, timeout time.Duration) {
 		}
 	}))
 	remoteCfg := remote.Configure("127.0.0.1", port)
-	cfg := cluster.Configure("cluster-restartgracefully", cp, remoteCfg, kind)
+	cfg := cluster.Configure("cluster-restartgracefully", cp, id, remoteCfg, kind)
 	_cluster = cluster.New(system, cfg)
 	_cluster.StartMember()
 }
