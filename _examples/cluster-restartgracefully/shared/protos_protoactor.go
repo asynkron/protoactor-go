@@ -4,14 +4,13 @@ package shared
 import (
 	"errors"
 	"fmt"
+	"google.golang.org/protobuf/proto"
 	"math"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	logmod "github.com/asynkron/protoactor-go/log"
-	"github.com/asynkron/protoactor-go/remote"
-	"github.com/gogo/protobuf/proto"
 )
 
 var (
@@ -41,7 +40,7 @@ func GetCalculatorGrainClient(c *cluster.Cluster, id string) *CalculatorGrainCli
 	if id == "" {
 		panic(fmt.Errorf("empty id"))
 	}
-	return &CalculatorGrainClient{ID: id, cluster: c}
+	return &CalculatorGrainClient{ExtensionID: id, cluster: c}
 }
 
 // Calculator interfaces the services available to the Calculator
@@ -56,8 +55,8 @@ type Calculator interface {
 
 // CalculatorGrainClient holds the base data for the CalculatorGrain
 type CalculatorGrainClient struct {
-	ID      string
-	cluster *cluster.Cluster
+	ExtensionID string
+	cluster     *cluster.Cluster
 }
 
 // Add requests the execution on to the cluster with CallOptions
@@ -67,7 +66,7 @@ func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...*cluster.GrainCall
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.ExtensionID, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +79,6 @@ func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...*cluster.GrainCall
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -96,7 +92,7 @@ func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...*cluster.Grai
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.ExtensionID, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -109,9 +105,6 @@ func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...*cluster.Grai
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -125,7 +118,7 @@ func (g *CalculatorGrainClient) GetCurrent(r *Void, opts ...*cluster.GrainCallOp
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 2, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.ExtensionID, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -138,9 +131,6 @@ func (g *CalculatorGrainClient) GetCurrent(r *Void, opts ...*cluster.GrainCallOp
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
