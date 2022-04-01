@@ -37,7 +37,7 @@ func main() {
 		}
 	}()
 
-	config := actor.NewConfig().WithMetricProviders(provider)
+	config := actor.Configure(actor.WithMetricProviders(provider))
 	system := actor.NewActorSystemWithConfig(config)
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return &helloActor{}

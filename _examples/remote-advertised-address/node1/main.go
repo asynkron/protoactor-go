@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"remoteadvertisedaddress/messages"
 
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"

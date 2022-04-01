@@ -10,7 +10,7 @@ type GrainContext interface {
 	// Self returns the PID for the current actor
 	Self() *actor.PID
 
-	// Returns a slice of the actors children
+	// Children returns a slice of the actors children
 	Children() []*actor.PID
 
 	// Watch registers the actor as a monitor for the specified PID
@@ -25,7 +25,7 @@ type GrainContext interface {
 	// Message returns the current message to be processed
 	Message() interface{}
 
-	// Tell sends a message to the given PID
+	// Send sends a message to the given PID
 	Send(pid *actor.PID, message interface{})
 
 	// Request sends a message to the given PID and also provides a Sender PID

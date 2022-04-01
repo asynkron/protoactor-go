@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"remote-benchmark/messages"
+	"remoteadvertisedaddress/messages"
 
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
