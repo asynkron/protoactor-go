@@ -35,7 +35,7 @@ func (t *TrackGrain) BroadcastGetCounts(n *Noop, ctx cluster.GrainContext) (*Tot
 
 	totals := map[string]int64{}
 	for grainAddress, _ := range t.grainsMap {
-		calcGrain := GetCalculatorGrain(grainAddress)
+		calcGrain := GetCalculatorGrainClient(grainAddress)
 		grainTotal, err := calcGrain.GetCurrent(&Noop{})
 		if err != nil {
 			fmt.Sprintf("Grain %s issued an error : %s", grainAddress, err)

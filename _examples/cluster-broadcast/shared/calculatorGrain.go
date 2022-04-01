@@ -12,14 +12,14 @@ func (c *CalcGrain) Init(id string) {
 	c.total = 0
 
 	// register with the tracker
-	trackerGrain := GetTrackerGrain("singleTrackerGrain")
+	trackerGrain := GetTrackerGrainClient("singleTrackerGrain")
 	trackerGrain.RegisterGrain(&RegisterMessage{GrainId: c.ID()})
 }
 
 func (c *CalcGrain) Terminate() {
 
 	// deregister with the tracker
-	trackerGrain := GetTrackerGrain("singleTrackerGrain")
+	trackerGrain := GetTrackerGrainClient("singleTrackerGrain")
 	trackerGrain.DeregisterGrain(&RegisterMessage{GrainId: c.ID()})
 }
 
