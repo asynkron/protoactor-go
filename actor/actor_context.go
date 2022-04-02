@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel/attribute"
 	"sync/atomic"
 	"time"
 
 	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/metrics"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 const (
@@ -449,12 +449,11 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 		}
 	}
 
-	t := time.Now()
-	ctx.processMessage(md)
-
-	delta := time.Since(t)
 	systemMetrics, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
 	if ok && systemMetrics.enabled {
+		t := time.Now()
+		ctx.processMessage(md)
+		delta := time.Since(t)
 		_ctx := context.Background()
 		if instruments := systemMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
 			histoGram := instruments.ActorMessageReceiveHistogram
@@ -464,6 +463,8 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 			)
 			histoGram.Record(_ctx, delta.Seconds(), labels...)
 		}
+	} else {
+		ctx.processMessage(md)
 	}
 
 	if ctx.receiveTimeout > 0 && influenceTimeout {

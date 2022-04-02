@@ -29,6 +29,9 @@ func (m *Metrics) ExtensionID() extensions.ExtensionID {
 }
 
 func NewMetrics(provider metric.MeterProvider) *Metrics {
+	if provider == nil {
+		return &Metrics{}
+	}
 
 	return &Metrics{
 		metrics: metrics.NewProtoMetrics(provider),

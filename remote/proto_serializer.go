@@ -7,7 +7,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-type protoSerializer struct{}
+type protoSerializer struct {
+}
 
 func newProtoSerializer() *protoSerializer {
 	return &protoSerializer{}
@@ -27,6 +28,7 @@ func (p *protoSerializer) Serialize(msg interface{}) ([]byte, error) {
 
 func (p *protoSerializer) Deserialize(typeName string, bytes []byte) (interface{}, error) {
 	n, _ := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(typeName))
+
 	pm := n.New().Interface()
 
 	err := proto.Unmarshal(bytes, pm)

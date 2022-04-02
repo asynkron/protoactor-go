@@ -26,6 +26,7 @@ type Config struct {
 
 func defaultConfig() Config {
 	return Config{
+		MetricsProvider:             nil,
 		DeadLetterThrottleInterval:  1 * time.Second,
 		DeadLetterThrottleCount:     3,
 		DeadLetterRequestLogging:    true,
