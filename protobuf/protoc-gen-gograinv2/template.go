@@ -37,7 +37,7 @@ func {{ $service.Name }}Factory(factory func() {{ $service.Name }}) {
 	x{{ $service.Name }}Factory = factory
 }
 
-// Get{{ $service.Name }}GrainClient instantiates a new {{ $service.Name }}GrainClient with given ExtensionID
+// Get{{ $service.Name }}GrainClient instantiates a new {{ $service.Name }}GrainClient with given Identity
 func Get{{ $service.Name }}GrainClient(c *cluster.Cluster, id string) *{{ $service.Name }}GrainClient {
 	if c == nil {
 		panic(fmt.Errorf("nil cluster instance"))
@@ -45,7 +45,7 @@ func Get{{ $service.Name }}GrainClient(c *cluster.Cluster, id string) *{{ $servi
 	if id == "" {
 		panic(fmt.Errorf("empty id"))
 	}
-	return &{{ $service.Name }}GrainClient{ExtensionID: id, cluster: c}
+	return &{{ $service.Name }}GrainClient{Identity: id, cluster: c}
 }
 
 // {{ $service.Name }} interfaces the services available to the {{ $service.Name }}
@@ -60,7 +60,7 @@ type {{ $service.Name }} interface {
 
 // {{ $service.Name }}GrainClient holds the base data for the {{ $service.Name }}Grain
 type {{ $service.Name }}GrainClient struct {
-	ExtensionID      string
+	Identity      string
 	cluster *cluster.Cluster
 }
 {{ range $method := $service.Methods}}
@@ -71,7 +71,7 @@ func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input.
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: {{ $method.Index }}, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ExtensionID, "{{ $service.Name }}", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "{{ $service.Name }}", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
