@@ -1,6 +1,7 @@
 package actor
 
 import (
+	"hash/crc32"
 	"sync/atomic"
 
 	cmap "github.com/orcaman/concurrent-map"
@@ -10,8 +11,26 @@ type ProcessRegistryValue struct {
 	SequenceID     uint64
 	ActorSystem    *ActorSystem
 	Address        string
-	LocalPIDs      cmap.ConcurrentMap
+	LocalPIDs      *SliceMap
 	RemoteHandlers []AddressResolver
+}
+
+type SliceMap struct {
+	LocalPIDs []cmap.ConcurrentMap
+}
+
+func newSliceMap() *SliceMap {
+	sm := &SliceMap{}
+	sm.LocalPIDs = make([]cmap.ConcurrentMap, 1024)
+	for i := 0; i < len(sm.LocalPIDs); i++ {
+		sm.LocalPIDs[i] = cmap.New()
+	}
+	return sm
+}
+
+func (s *SliceMap) GetBucket(key string) cmap.ConcurrentMap {
+	index := int(crc32.ChecksumIEEE([]byte(key))) % len(s.LocalPIDs)
+	return s.LocalPIDs[index]
 }
 
 var (
@@ -22,7 +41,7 @@ func NewProcessRegistry(actorSystem *ActorSystem) *ProcessRegistryValue {
 	return &ProcessRegistryValue{
 		ActorSystem: actorSystem,
 		Address:     localAddress,
-		LocalPIDs:   cmap.New(),
+		LocalPIDs:   newSliceMap(),
 	}
 }
 
@@ -61,14 +80,18 @@ func (pr *ProcessRegistryValue) NextId() string {
 }
 
 func (pr *ProcessRegistryValue) Add(process Process, id string) (*PID, bool) {
+	bucket := pr.LocalPIDs.GetBucket(id)
+
 	return &PID{
 		Address: pr.Address,
 		Id:      id,
-	}, pr.LocalPIDs.SetIfAbsent(id, process)
+	}, bucket.SetIfAbsent(id, process)
 }
 
 func (pr *ProcessRegistryValue) Remove(pid *PID) {
-	ref, _ := pr.LocalPIDs.Pop(pid.Id)
+	bucket := pr.LocalPIDs.GetBucket(pid.Id)
+
+	ref, _ := bucket.Pop(pid.Id)
 	if l, ok := ref.(*ActorProcess); ok {
 		atomic.StoreInt32(&l.dead, 1)
 	}
@@ -87,7 +110,8 @@ func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {
 		}
 		return pr.ActorSystem.DeadLetter, false
 	}
-	ref, ok := pr.LocalPIDs.Get(pid.Id)
+	bucket := pr.LocalPIDs.GetBucket(pid.Id)
+	ref, ok := bucket.Get(pid.Id)
 	if !ok {
 		return pr.ActorSystem.DeadLetter, false
 	}
@@ -95,7 +119,8 @@ func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {
 }
 
 func (pr *ProcessRegistryValue) GetLocal(id string) (Process, bool) {
-	ref, ok := pr.LocalPIDs.Get(id)
+	bucket := pr.LocalPIDs.GetBucket(id)
+	ref, ok := bucket.Get(id)
 	if !ok {
 		return pr.ActorSystem.DeadLetter, false
 	}
