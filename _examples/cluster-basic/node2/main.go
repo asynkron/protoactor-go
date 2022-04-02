@@ -36,7 +36,7 @@ func startNode() *cluster.Cluster {
 		}
 	})
 	helloKind := cluster.NewKind("hello", props)
-	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, helloKind)
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKind(helloKind))
 	c := cluster.New(system, clusterConfig)
 
 	c.StartMember()
