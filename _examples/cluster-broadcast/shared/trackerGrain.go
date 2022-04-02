@@ -11,8 +11,8 @@ type TrackGrain struct {
 	grainsMap map[string]bool
 }
 
-func (t *TrackGrain) Init(id string) {
-	t.Grain.Init(id)
+func (t *TrackGrain) Init(ci *cluster.ClusterIdentity, c *cluster.Cluster) {
+	t.Grain.Init(ci, c)
 	t.grainsMap = map[string]bool{}
 }
 
@@ -35,7 +35,7 @@ func (t *TrackGrain) BroadcastGetCounts(n *Noop, ctx cluster.GrainContext) (*Tot
 
 	totals := map[string]int64{}
 	for grainAddress, _ := range t.grainsMap {
-		calcGrain := GetCalculatorGrainClient(grainAddress)
+		calcGrain := GetCalculatorGrainClient(t.Cluster(), grainAddress)
 		grainTotal, err := calcGrain.GetCurrent(&Noop{})
 		if err != nil {
 			fmt.Sprintf("Grain %s issued an error : %s", grainAddress, err)

@@ -34,14 +34,14 @@ type GrainContext interface {
 	// RequestFuture sends a message to a given PID and returns a Future
 	RequestFuture(pid *actor.PID, message interface{}, timeout time.Duration) *actor.Future
 
-	// Spawn starts a new child actor based on props and named with a unique id
+	// Spawn starts a new child actor based on props and named with a unique identity
 	Spawn(props *actor.Props) *actor.PID
 
-	// SpawnPrefix starts a new child actor based on props and named using a prefix followed by a unique id
+	// SpawnPrefix starts a new child actor based on props and named using a prefix followed by a unique identity
 	SpawnPrefix(props *actor.Props, prefix string) *actor.PID
 
 	// SpawnNamed starts a new child actor based on props and named using the specified name
 	//
-	// ErrNameExists will be returned if id already exists
+	// ErrNameExists will be returned if identity already exists
 	SpawnNamed(props *actor.Props, id string) (*actor.PID, error)
 }

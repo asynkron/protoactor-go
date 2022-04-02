@@ -23,7 +23,7 @@ func (h *HelloGrain) Init(id string) {
 }
 
 func (h *HelloGrain) Terminate() {
-	log.Printf("delete grain id=%s", h.Grain.ID())
+	log.Printf("delete grain id=%s", h.Grain.Identity())
 }
 
 func (*HelloGrain) ReceiveDefault(ctx actor.Context) {
@@ -32,7 +32,7 @@ func (*HelloGrain) ReceiveDefault(ctx actor.Context) {
 }
 
 func (h *HelloGrain) SayHello(r *HelloRequest, ctx cluster.GrainContext) (*HelloResponse, error) {
-	return &HelloResponse{Message: "hello " + r.Name + " from " + h.ID()}, nil
+	return &HelloResponse{Message: "hello " + r.Name + " from " + h.Identity()}, nil
 }
 
 func (*HelloGrain) Add(r *AddRequest, ctx cluster.GrainContext) (*AddResponse, error) {

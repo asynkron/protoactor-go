@@ -19,7 +19,7 @@ func (c *CalcGrain) Init(id string) {
 }
 
 func (c *CalcGrain) Terminate() {
-	id := c.Grain.ID()
+	id := c.Grain.Identity()
 	cache.SetCountor(id, c.total)
 	plog.Info("stop", log.String("id", id), log.Int64("number", c.total))
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	logmod "github.com/asynkron/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 var (
@@ -32,7 +33,7 @@ func CalculatorFactory(factory func() Calculator) {
 	xCalculatorFactory = factory
 }
 
-// GetCalculatorGrainClient instantiates a new CalculatorGrainClient with given ExtensionID
+// GetCalculatorGrainClient instantiates a new CalculatorGrainClient with given Identity
 func GetCalculatorGrainClient(c *cluster.Cluster, id string) *CalculatorGrainClient {
 	if c == nil {
 		panic(fmt.Errorf("nil cluster instance"))
@@ -40,12 +41,12 @@ func GetCalculatorGrainClient(c *cluster.Cluster, id string) *CalculatorGrainCli
 	if id == "" {
 		panic(fmt.Errorf("empty id"))
 	}
-	return &CalculatorGrainClient{ExtensionID: id, cluster: c}
+	return &CalculatorGrainClient{Identity: id, cluster: c}
 }
 
 // Calculator interfaces the services available to the Calculator
 type Calculator interface {
-	Init(id string)
+	Init(ci *ClusterIdentity, cluster *cluster.Cluster)
 	Terminate()
 	ReceiveDefault(ctx actor.Context)
 	Add(*NumberRequest, cluster.GrainContext) (*CountResponse, error)
@@ -55,8 +56,8 @@ type Calculator interface {
 
 // CalculatorGrainClient holds the base data for the CalculatorGrain
 type CalculatorGrainClient struct {
-	ExtensionID string
-	cluster     *cluster.Cluster
+	Identity string
+	cluster  *cluster.Cluster
 }
 
 // Add requests the execution on to the cluster with CallOptions
@@ -66,7 +67,7 @@ func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...*cluster.GrainCall
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ExtensionID, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +93,7 @@ func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...*cluster.Grai
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ExtensionID, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +119,7 @@ func (g *CalculatorGrainClient) GetCurrent(r *Noop, opts ...*cluster.GrainCallOp
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 2, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ExtensionID, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +150,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 	case *actor.Started:
 	case *cluster.ClusterInit:
 		a.inner = xCalculatorFactory()
-		a.inner.Init(msg.ID)
+		a.inner.Init(msg.Identity, msg.Cluster)
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
@@ -249,7 +250,7 @@ func TrackerFactory(factory func() Tracker) {
 	xTrackerFactory = factory
 }
 
-// GetTrackerGrainClient instantiates a new TrackerGrainClient with given ExtensionID
+// GetTrackerGrainClient instantiates a new TrackerGrainClient with given Identity
 func GetTrackerGrainClient(c *cluster.Cluster, id string) *TrackerGrainClient {
 	if c == nil {
 		panic(fmt.Errorf("nil cluster instance"))
@@ -257,12 +258,12 @@ func GetTrackerGrainClient(c *cluster.Cluster, id string) *TrackerGrainClient {
 	if id == "" {
 		panic(fmt.Errorf("empty id"))
 	}
-	return &TrackerGrainClient{ExtensionID: id, cluster: c}
+	return &TrackerGrainClient{Identity: id, cluster: c}
 }
 
 // Tracker interfaces the services available to the Tracker
 type Tracker interface {
-	Init(id string)
+	Init(ci *ClusterIdentity, cluster *cluster.Cluster)
 	Terminate()
 	ReceiveDefault(ctx actor.Context)
 	RegisterGrain(*RegisterMessage, cluster.GrainContext) (*Noop, error)
@@ -272,8 +273,8 @@ type Tracker interface {
 
 // TrackerGrainClient holds the base data for the TrackerGrain
 type TrackerGrainClient struct {
-	ExtensionID string
-	cluster     *cluster.Cluster
+	Identity string
+	cluster  *cluster.Cluster
 }
 
 // RegisterGrain requests the execution on to the cluster with CallOptions
@@ -283,7 +284,7 @@ func (g *TrackerGrainClient) RegisterGrain(r *RegisterMessage, opts ...*cluster.
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ExtensionID, "Tracker", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Tracker", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +310,7 @@ func (g *TrackerGrainClient) DeregisterGrain(r *RegisterMessage, opts ...*cluste
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ExtensionID, "Tracker", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Tracker", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +336,7 @@ func (g *TrackerGrainClient) BroadcastGetCounts(r *Noop, opts ...*cluster.GrainC
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 2, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ExtensionID, "Tracker", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Tracker", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -366,7 +367,7 @@ func (a *TrackerActor) Receive(ctx actor.Context) {
 	case *actor.Started:
 	case *cluster.ClusterInit:
 		a.inner = xTrackerFactory()
-		a.inner.Init(msg.ID)
+		a.inner.Init(msg.Identity, msg.Cluster)
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}

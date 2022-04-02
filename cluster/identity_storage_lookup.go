@@ -59,8 +59,8 @@ func (id *IdentityStorageLookup) Setup(cluster *Cluster, kinds []string, isClien
 	id.system = cluster.ActorSystem
 	id.memberID = cluster.ActorSystem.Id
 
-	//workerProps := actor.PropsFromProducer(func() actor.Actor { return newIdentityStorageWorker(id) })
+	//workerProps := actor.PropsFromProducer(func() actor.Actor { return newIdentityStorageWorker(identity) })
 
-	//routerProps := id.system.Root.(workerProps, 50);
+	//routerProps := identity.system.Root.(workerProps, 50);
 
 }

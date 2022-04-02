@@ -930,7 +930,7 @@ type Member struct {
 
 	Host  string   `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	Port  int32    `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Id    string   `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
+	Id    string   `protobuf:"bytes,3,opt,name=identity,proto3" json:"identity,omitempty"`
 	Kinds []string `protobuf:"bytes,4,rep,name=kinds,proto3" json:"kinds,omitempty"`
 }
 

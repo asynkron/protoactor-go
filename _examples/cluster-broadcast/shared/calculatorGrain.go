@@ -7,20 +7,20 @@ type CalcGrain struct {
 	total int64
 }
 
-func (c *CalcGrain) Init(id string) {
-	c.Grain.Init(id)
+func (c *CalcGrain) Init(ci *cluster.ClusterIdentity, cl *cluster.Cluster) {
+	c.Grain.Init(ci, cl)
 	c.total = 0
 
 	// register with the tracker
-	trackerGrain := GetTrackerGrainClient("singleTrackerGrain")
-	trackerGrain.RegisterGrain(&RegisterMessage{GrainId: c.ID()})
+	trackerGrain := GetTrackerGrainClient(c.Cluster(), "singleTrackerGrain")
+	trackerGrain.RegisterGrain(&RegisterMessage{GrainId: c.Identity()})
 }
 
 func (c *CalcGrain) Terminate() {
 
 	// deregister with the tracker
-	trackerGrain := GetTrackerGrainClient("singleTrackerGrain")
-	trackerGrain.DeregisterGrain(&RegisterMessage{GrainId: c.ID()})
+	trackerGrain := GetTrackerGrainClient(c.Cluster(), "singleTrackerGrain")
+	trackerGrain.DeregisterGrain(&RegisterMessage{GrainId: c.Identity()})
 }
 
 func (c *CalcGrain) Add(n *NumberRequest, ctx cluster.GrainContext) (*CountResponse, error) {

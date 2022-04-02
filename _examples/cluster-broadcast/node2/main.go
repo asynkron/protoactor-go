@@ -3,6 +3,7 @@ package main
 import (
 	"cluster-broadcast/shared"
 	"fmt"
+	automanaged "github.com/asynkron/protoactor-go/cluster/clusterproviders/_automanaged"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/partition"
 	"time"
 
@@ -20,22 +21,22 @@ func main() {
 
 	fmt.Print("\nAdding 1 Egg - Enter\n")
 	console.ReadLine()
-	calcAdd("Eggs", 1)
+	calcAdd(cluster, "Eggs", 1)
 
 	fmt.Print("\nAdding 10 Egg - Enter\n")
 	console.ReadLine()
-	calcAdd("Eggs", 10)
+	calcAdd(cluster, "Eggs", 10)
 
 	fmt.Print("\nAdding 100 Bananas - Enter\n")
 	console.ReadLine()
-	calcAdd("Bananas", 100)
+	calcAdd(cluster, "Bananas", 100)
 
 	fmt.Print("\nAdding 2 Meat - Enter\n")
 	console.ReadLine()
-	calcAdd("Meat", 3)
-	calcAdd("Meat", 9000)
+	calcAdd(cluster, "Meat", 3)
+	calcAdd(cluster, "Meat", 9000)
 
-	getAll()
+	getAll(cluster)
 
 	console.ReadLine()
 
@@ -47,16 +48,15 @@ func startNode(port int64) *cluster.Cluster {
 	timeout := 10 * time.Minute
 
 	system := actor.NewActorSystem()
-	shared.SetSystem(system)
 
 	calcKind := cluster.NewKind("Calculator", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.CalculatorActor{
-			Timeout: &timeout,
+			Timeout: timeout,
 		}
 	}))
 	trackerKind := cluster.NewKind("Tracker", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.TrackerActor{
-			Timeout: &timeout,
+			Timeout: timeout,
 		}
 	}))
 
@@ -80,18 +80,18 @@ func startNode(port int64) *cluster.Cluster {
 	return cluster
 }
 
-func calcAdd(grainId string, addNumber int64) {
-	calcGrain := shared.GetCalculatorGrain(grainId)
+func calcAdd(cluster *cluster.Cluster, grainId string, addNumber int64) {
+	calcGrain := shared.GetCalculatorGrainClient(cluster, grainId)
 	total1, err := calcGrain.Add(&shared.NumberRequest{Number: addNumber})
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("Grain: %v - Total: %v \n", calcGrain.ID, total1.Number)
+	fmt.Printf("Grain: %v - Total: %v \n", calcGrain.Identity, total1.Number)
 }
 
-func getAll() {
-	trackerGrain := shared.GetTrackerGrain("singleTrackerGrain")
+func getAll(cluster *cluster.Cluster) {
+	trackerGrain := shared.GetTrackerGrainClient(cluster, "singleTrackerGrain")
 	totals, err := trackerGrain.BroadcastGetCounts(&shared.Noop{})
 	if err != nil {
 		panic(err)

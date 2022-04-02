@@ -3,15 +3,25 @@ package cluster
 import "time"
 
 type Grain struct {
-	id string
+	ci      *ClusterIdentity
+	cluster *Cluster
 }
 
-func (g *Grain) ID() string {
-	return g.id
+func (g *Grain) Identity() string {
+	return g.ci.Identity
 }
 
-func (g *Grain) Init(id string) {
-	g.id = id
+func (g *Grain) Kind() string {
+	return g.ci.Kind
+}
+
+func (g *Grain) Cluster() *Cluster {
+	return g.cluster
+}
+
+func (g *Grain) Init(ci *ClusterIdentity, cluster *Cluster) {
+	g.ci = ci
+	g.cluster = cluster
 }
 
 type GrainCallOptions struct {
@@ -56,6 +66,6 @@ func (config *GrainCallOptions) WithRetryAction(act func(i int)) *GrainCallOptio
 }
 
 type ClusterInit struct {
-	ID   string
-	Kind string
+	Identity *ClusterIdentity
+	Cluster  *Cluster
 }

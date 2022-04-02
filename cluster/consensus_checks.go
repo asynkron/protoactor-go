@@ -88,7 +88,7 @@ func (cc *ConsensusChecks) Add(id string, check *ConsensusCheck) {
 	cc.registerAffectedKeys(id, check.affectedKeys)
 }
 
-// removed the given ConsensusCheck id from the storage and
+// removed the given ConsensusCheck identity from the storage and
 // removes its affected by keys index if needed after cleaning
 func (cc *ConsensusChecks) Remove(id string) {
 

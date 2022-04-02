@@ -144,12 +144,12 @@ func TestMemberList_getPartitionMember(t *testing.T) {
 		t.Run(testName, func(t *testing.T) {
 			//assert := assert.New(t)
 			//
-			//id := NewClusterIdentity("name", "kind")
-			////	address := obj.getPartitionMemberV2(id)
+			//identity := NewClusterIdentity("name", "kind")
+			////	address := obj.getPartitionMemberV2(identity)
 			////	assert.NotEmpty(address)
 			//
-			//id = NewClusterIdentity("name", "nonkind")
-			////		address = obj.getPartitionMemberV2(id)
+			//identity = NewClusterIdentity("name", "nonkind")
+			////		address = obj.getPartitionMemberV2(identity)
 			////	assert.Empty(address)
 		})
 	}
@@ -166,10 +166,10 @@ func TestMemberList_getPartitionMember(t *testing.T) {
 //		testName := fmt.Sprintf("member*%d", v)
 //		runtime.GC()
 //
-//		id := &ClusterIdentity{Identity: fmt.Sprintf("name-%d", rand.Int()), Kind: "kind"}
+//		identity := &ClusterIdentity{Identity: fmt.Sprintf("name-%d", rand.Int()), Kind: "kind"}
 //		b.Run(testName, func(b *testing.B) {
 //			for i := 0; i < b.N; i++ {
-//				address := obj.getPartitionMemberV2(id)
+//				address := obj.getPartitionMemberV2(identity)
 //				if address == "" {
 //					b.Fatalf("empty address membersByMemberId=%d", v)
 //				}
