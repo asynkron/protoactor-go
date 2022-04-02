@@ -24,8 +24,8 @@ type Config struct {
 	MetricsProvider             metric.MeterProvider
 }
 
-func defaultConfig() Config {
-	return Config{
+func defaultConfig() *Config {
+	return &Config{
 		MetricsProvider:             nil,
 		DeadLetterThrottleInterval:  1 * time.Second,
 		DeadLetterThrottleCount:     3,
@@ -67,59 +67,53 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 	return provider
 }
 
-type ConfigOption func(config Config) Config
+type ConfigOption func(config *Config)
 
-func NewConfig() Config {
+func NewConfig() *Config {
 	return defaultConfig()
 }
 
-func Configure(options ...ConfigOption) Config {
+func Configure(options ...ConfigOption) *Config {
 	config := defaultConfig()
 	for _, option := range options {
-		config = option(config)
+		option(config)
 	}
 	return config
 }
 
 func WithDeadLetterThrottleInterval(duration time.Duration) ConfigOption {
-	return func(config Config) Config {
+	return func(config *Config) {
 		config.DeadLetterThrottleInterval = duration
-		return config
 	}
 }
 
 func WithDeadLetterThrottleCount(count int32) ConfigOption {
-	return func(config Config) Config {
+	return func(config *Config) {
 		config.DeadLetterThrottleCount = count
-		return config
 	}
 }
 
 func WithDeadLetterRequestLogging(enabled bool) ConfigOption {
-	return func(config Config) Config {
+	return func(config *Config) {
 		config.DeadLetterRequestLogging = enabled
-		return config
 	}
 }
 
 func WithDeveloperSupervisionLogging(enabled bool) ConfigOption {
-	return func(config Config) Config {
+	return func(config *Config) {
 		config.DeveloperSupervisionLogging = enabled
-		return config
 	}
 }
 
 func WithDiagnosticsSerializer(serializer func(Actor) string) ConfigOption {
-	return func(config Config) Config {
+	return func(config *Config) {
 		config.DiagnosticsSerializer = serializer
-		return config
 	}
 }
 
 func WithMetricProviders(provider metric.MeterProvider) ConfigOption {
-	return func(config Config) Config {
+	return func(config *Config) {
 		config.MetricsProvider = provider
-		return config
 	}
 }
 

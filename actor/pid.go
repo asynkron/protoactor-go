@@ -51,6 +51,9 @@ func (pid *PID) sendSystemMessage(actorSystem *ActorSystem, message interface{})
 }
 
 func (pid *PID) Equal(other *PID) bool {
+	if pid != nil && other == nil {
+		return false
+	}
 	return pid.Id == other.Id && pid.Address == other.Address && pid.RequestId == other.RequestId
 }
 

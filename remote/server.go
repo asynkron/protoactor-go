@@ -27,10 +27,10 @@ type Remote struct {
 	blocklist    *BlockList
 }
 
-func NewRemote(actorSystem *actor.ActorSystem, config Config) *Remote {
+func NewRemote(actorSystem *actor.ActorSystem, config *Config) *Remote {
 	r := &Remote{
 		actorSystem: actorSystem,
-		config:      &config,
+		config:      config,
 		kinds:       make(map[string]*actor.Props),
 		blocklist:   NewBlockList(),
 	}

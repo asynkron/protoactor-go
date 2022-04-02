@@ -82,7 +82,7 @@ func (c *Cluster) StartMember() {
 	address := c.ActorSystem.Address()
 	plog.Info("Starting Proto.Actor cluster member", log.String("address", address))
 
-	c.IdentityLookup = cfg.Identitylookup
+	c.IdentityLookup = cfg.IdentityLookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)
 
 	// gossiper must be started whenever any topology events starts flowing
@@ -114,7 +114,7 @@ func (c *Cluster) StartClient() {
 	address := c.ActorSystem.Address()
 	plog.Info("Starting Proto.Actor cluster-client", log.String("address", address))
 
-	c.IdentityLookup = cfg.Identitylookup
+	c.IdentityLookup = cfg.IdentityLookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), true)
 
 	if err := cfg.ClusterProvider.StartClient(c); err != nil {

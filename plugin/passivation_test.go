@@ -35,20 +35,20 @@ func TestPassivation(t *testing.T) {
 	time.Sleep(UnitOfTime)
 	time.Sleep(UnitOfTime)
 	{
-		_, found := system.ProcessRegistry.LocalPIDs.Get(pid.Id)
+		_, found := system.ProcessRegistry.GetLocal(pid.Id)
 		assert.True(t, found)
 	}
 	rootContext.Send(pid, "keepalive")
 	time.Sleep(UnitOfTime)
 	time.Sleep(UnitOfTime)
 	{
-		_, found := system.ProcessRegistry.LocalPIDs.Get(pid.Id)
+		_, found := system.ProcessRegistry.GetLocal(pid.Id)
 		assert.True(t, found)
 	}
 	time.Sleep(UnitOfTime)
 	time.Sleep(UnitOfTime)
 	{
-		_, found := system.ProcessRegistry.LocalPIDs.Get(pid.Id)
+		_, found := system.ProcessRegistry.GetLocal(pid.Id)
 		assert.False(t, found)
 	}
 }

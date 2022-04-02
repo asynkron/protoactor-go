@@ -52,6 +52,6 @@ func (a *groupRouterActor) Receive(context actor.Context) {
 			routees[i] = pid
 		})
 
-		context.Respond(&Routees{routees})
+		context.Respond(&Routees{PIDs: routees})
 	}
 }

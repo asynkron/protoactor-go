@@ -13,8 +13,8 @@ type Config struct {
 	Name                                         string
 	Address                                      string
 	ClusterProvider                              ClusterProvider
-	Identitylookup                               IdentityLookup
-	RemoteConfig                                 remote.Config
+	IdentityLookup                               IdentityLookup
+	RemoteConfig                                 *remote.Config
 	RequestTimeoutTime                           time.Duration
 	RequestsLogThrottlePeriod                    time.Duration
 	MaxNumberOfEventsInRequestLogThrottledPeriod int
@@ -29,11 +29,13 @@ type Config struct {
 	GossipMaxSend        int
 }
 
-func Configure(clusterName string, clusterProvider ClusterProvider, identityLookup IdentityLookup, remoteConfig remote.Config, kinds ...*Kind) *Config {
+type ConfigOption func(config *Config)
+
+func Configure(clusterName string, clusterProvider ClusterProvider, identityLookup IdentityLookup, remoteConfig *remote.Config, options ...ConfigOption) *Config {
 	config := &Config{
 		Name:                      clusterName,
 		ClusterProvider:           clusterProvider,
-		Identitylookup:            identityLookup,
+		IdentityLookup:            identityLookup,
 		RequestTimeoutTime:        defaultActorRequestTimeout,
 		RequestsLogThrottlePeriod: defaultRequestsLogThrottlePeriod,
 		MemberStrategyBuilder:     newDefaultMemberStrategy,
@@ -48,39 +50,53 @@ func Configure(clusterName string, clusterProvider ClusterProvider, identityLook
 		GossipMaxSend:        50,
 	}
 
-	for _, kind := range kinds {
-		config.Kinds[kind.Kind] = kind
+	for _, option := range options {
+		option(config)
 	}
 
 	return config
 }
 
-func (c *Config) WithRequestTimeout(t time.Duration) *Config {
-	c.RequestTimeoutTime = t
-	return c
+// WithRequestTimeout sets the request timeout
+func WithRequestTimeout(t time.Duration) ConfigOption {
+	return func(c *Config) {
+		c.RequestTimeoutTime = t
+	}
 }
 
-// Sets the given request log throttle period duration
-// and returns itself back
-func (c *Config) WithRequestsLogThrottlePeriod(period time.Duration) *Config {
-
-	c.RequestsLogThrottlePeriod = period
-	return c
+// WithRequestsLogThrottlePeriod sets the requests log throttle period
+func WithRequestsLogThrottlePeriod(period time.Duration) ConfigOption {
+	return func(c *Config) {
+		c.RequestsLogThrottlePeriod = period
+	}
 }
 
-// Sets the given context producer and returns itself back
-func (c *Config) WithClusterContextProducer(producer ClusterContextProducer) *Config {
-
-	c.ClusterContextProducer = producer
-	return c
+// WithClusterContextProducer sets the cluster context producer
+func WithClusterContextProducer(producer ClusterContextProducer) ConfigOption {
+	return func(c *Config) {
+		c.ClusterContextProducer = producer
+	}
 }
 
-// Sets the given max number of events in requests log throttle period
-// and returns itself back
-func (c *Config) WithMaxNumberOfEventsInRequestLogThrottlePeriod(maxNumber int) *Config {
+// WithMaxNumberOfEventsInRequestLogThrottlePeriod sets the max number of events in request log throttled period
+func WithMaxNumberOfEventsInRequestLogThrottlePeriod(maxNumber int) ConfigOption {
+	return func(c *Config) {
+		c.MaxNumberOfEventsInRequestLogThrottledPeriod = maxNumber
+	}
+}
 
-	c.MaxNumberOfEventsInRequestLogThrottledPeriod = maxNumber
-	return c
+func WithKind(kind *Kind) ConfigOption {
+	return func(c *Config) {
+		c.Kinds[kind.Kind] = kind
+	}
+}
+
+func WithKinds(kinds ...*Kind) ConfigOption {
+	return func(c *Config) {
+		for _, kind := range kinds {
+			c.Kinds[kind.Kind] = kind
+		}
+	}
 }
 
 // Converts this Cluster config ClusterContext parameters

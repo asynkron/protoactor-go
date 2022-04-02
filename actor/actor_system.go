@@ -51,10 +51,10 @@ func NewActorSystem(options ...ConfigOption) *ActorSystem {
 	return NewActorSystemWithConfig(config)
 }
 
-func NewActorSystemWithConfig(config Config) *ActorSystem {
+func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system := &ActorSystem{}
 	system.Id = uuid.New().String()
-	system.Config = &config
+	system.Config = config
 	system.ProcessRegistry = NewProcessRegistry(system)
 	system.Root = NewRootContext(system, EmptyMessageHeader)
 	system.Guardians = NewGuardians(system)

@@ -1,6 +1,7 @@
 syntax = "proto3";
 package router;
-import "github.com/asynkron/protoactor-go/actor/protos.proto";
+option go_package="github.com/asynkron/protoactor-go/router";
+import "actor.proto";
 
 message AddRoutee {
     actor.PID PID = 1;
