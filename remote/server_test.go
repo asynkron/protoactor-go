@@ -55,7 +55,7 @@ func TestRemote_RegisterViaOptions(t *testing.T) {
 
 func TestRemote_RegisterViaStruct(t *testing.T) {
 	system := actor.NewActorSystem()
-	config := Config{
+	config := &Config{
 		Host: "localhost",
 		Port: 0,
 		Kinds: map[string]*actor.Props{
