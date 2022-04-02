@@ -43,7 +43,7 @@ func (s *state) Receive(ctx actor.Context) {
 		s.replies = msg.div
 		s.replyTo = ctx.Sender()
 		for i := 0; i < msg.div; i++ {
-			child := ctx.Spawn(props)
+			child := ctx.ActorSystem().Root.Spawn(props)
 			ctx.Request(child, &request{
 				num:  msg.num + i*(msg.size/msg.div),
 				size: msg.size / msg.div,
@@ -72,8 +72,8 @@ func main() {
 		_ = pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-	//	runtime.GOMAXPROCS(runtime.NumCPU())
-	//	runtime.GC()
+	//runtime.GOMAXPROCS(runtime.NumCPU())
+	//runtime.GC()
 	system := actor.NewActorSystem()
 
 	rootContext := system.Root
