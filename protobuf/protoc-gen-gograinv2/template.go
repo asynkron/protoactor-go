@@ -50,7 +50,7 @@ func Get{{ $service.Name }}GrainClient(c *cluster.Cluster, id string) *{{ $servi
 
 // {{ $service.Name }} interfaces the services available to the {{ $service.Name }}
 type {{ $service.Name }} interface {
-	Init(ci *ClusterIdentity, cluster *cluster.Cluster)
+	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)
 	Terminate()
 	ReceiveDefault(ctx actor.Context)
 	{{ range $method := $service.Methods -}}

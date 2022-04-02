@@ -47,16 +47,15 @@ func startNode(port int64) *cluster.Cluster {
 	timeout := 10 * time.Minute
 
 	system := actor.NewActorSystem()
-	shared.SetSystem(system)
 
 	calcKind := cluster.NewKind("Calculator", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.CalculatorActor{
-			Timeout: &timeout,
+			Timeout: timeout,
 		}
 	}))
 	trackerKind := cluster.NewKind("Tracker", actor.PropsFromProducer(func() actor.Actor {
 		return &shared.TrackerActor{
-			Timeout: &timeout,
+			Timeout: timeout,
 		}
 	}))
 

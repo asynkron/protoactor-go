@@ -2,6 +2,7 @@ package shared
 
 import (
 	"fmt"
+	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"strings"
 )
@@ -9,6 +10,10 @@ import (
 type TrackGrain struct {
 	cluster.Grain
 	grainsMap map[string]bool
+}
+
+func (t *TrackGrain) ReceiveDefault(ctx actor.Context) {
+
 }
 
 func (t *TrackGrain) Init(ci *cluster.ClusterIdentity, c *cluster.Cluster) {

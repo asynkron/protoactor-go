@@ -1,10 +1,17 @@
 package shared
 
-import "github.com/asynkron/protoactor-go/cluster"
+import (
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+)
 
 type CalcGrain struct {
 	cluster.Grain
 	total int64
+}
+
+func (c *CalcGrain) ReceiveDefault(ctx actor.Context) {
+
 }
 
 func (c *CalcGrain) Init(ci *cluster.ClusterIdentity, cl *cluster.Cluster) {

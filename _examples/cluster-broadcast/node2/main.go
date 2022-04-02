@@ -14,33 +14,33 @@ import (
 )
 
 func main() {
-	cluster := startNode(8081)
+	c := startNode(8081)
 
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()
 
 	fmt.Print("\nAdding 1 Egg - Enter\n")
 	console.ReadLine()
-	calcAdd(cluster, "Eggs", 1)
+	calcAdd(c, "Eggs", 1)
 
 	fmt.Print("\nAdding 10 Egg - Enter\n")
 	console.ReadLine()
-	calcAdd(cluster, "Eggs", 10)
+	calcAdd(c, "Eggs", 10)
 
 	fmt.Print("\nAdding 100 Bananas - Enter\n")
 	console.ReadLine()
-	calcAdd(cluster, "Bananas", 100)
+	calcAdd(c, "Bananas", 100)
 
 	fmt.Print("\nAdding 2 Meat - Enter\n")
 	console.ReadLine()
-	calcAdd(cluster, "Meat", 3)
-	calcAdd(cluster, "Meat", 9000)
+	calcAdd(c, "Meat", 3)
+	calcAdd(c, "Meat", 9000)
 
-	getAll(cluster)
+	getAll(c)
 
 	console.ReadLine()
 
-	cluster.Shutdown(true)
+	c.Shutdown(true)
 }
 
 func startNode(port int64) *cluster.Cluster {
@@ -66,7 +66,6 @@ func startNode(port int64) *cluster.Cluster {
 
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, calcKind, trackerKind)
 	cluster := cluster.New(system, clusterConfig)
-	shared.SetCluster(cluster)
 
 	shared.CalculatorFactory(func() shared.Calculator {
 		return &shared.CalcGrain{}

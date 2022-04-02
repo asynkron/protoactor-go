@@ -11,7 +11,6 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	logmod "github.com/asynkron/protoactor-go/log"
-	"github.com/asynkron/protoactor-go/remote"
 )
 
 var (
@@ -46,7 +45,7 @@ func GetCalculatorGrainClient(c *cluster.Cluster, id string) *CalculatorGrainCli
 
 // Calculator interfaces the services available to the Calculator
 type Calculator interface {
-	Init(ci *ClusterIdentity, cluster *cluster.Cluster)
+	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)
 	Terminate()
 	ReceiveDefault(ctx actor.Context)
 	Add(*NumberRequest, cluster.GrainContext) (*CountResponse, error)
@@ -263,7 +262,7 @@ func GetTrackerGrainClient(c *cluster.Cluster, id string) *TrackerGrainClient {
 
 // Tracker interfaces the services available to the Tracker
 type Tracker interface {
-	Init(ci *ClusterIdentity, cluster *cluster.Cluster)
+	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)
 	Terminate()
 	ReceiveDefault(ctx actor.Context)
 	RegisterGrain(*RegisterMessage, cluster.GrainContext) (*Noop, error)
