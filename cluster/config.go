@@ -114,7 +114,16 @@ type Kind struct {
 
 // Creates a new instance of a kind
 func NewKind(kind string, props *actor.Props) *Kind {
-	props.WithOptions(actor.WithReceiverMiddleware(func(next actor.ReceiverFunc) actor.ReceiverFunc {
+	props.WithOptions(clusterReceiveMiddleware())
+	return &Kind{
+		Kind:            kind,
+		Props:           props,
+		StrategyBuilder: nil,
+	}
+}
+
+func clusterReceiveMiddleware() actor.PropsOption {
+	return actor.WithReceiverMiddleware(func(next actor.ReceiverFunc) actor.ReceiverFunc {
 		return func(c actor.ReceiverContext, envelope *actor.MessageEnvelope) {
 
 			//the above code as a type switch
@@ -129,12 +138,7 @@ func NewKind(kind string, props *actor.Props) *Kind {
 
 			return
 		}
-	}))
-	return &Kind{
-		Kind:            kind,
-		Props:           props,
-		StrategyBuilder: nil,
-	}
+	})
 }
 
 //TODO: implement
