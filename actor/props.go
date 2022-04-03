@@ -119,6 +119,13 @@ func (props *Props) spawn(actorSystem *ActorSystem, name string, parentContext S
 	return props.getSpawner()(actorSystem, name, props, parentContext)
 }
 
+func (props *Props) WithOptions(opts ...PropsOption) *Props {
+	for _, opt := range opts {
+		opt(props)
+	}
+	return props
+}
+
 //props options
 type PropsOption func(props *Props)
 
@@ -303,14 +310,18 @@ func WithSpawnMiddleware(middleware ...SpawnMiddleware) PropsOption {
 }
 
 // PropsFromProducer creates a props with the given actor producer assigned
-func PropsFromProducer(producer Producer) *Props {
-	return &Props{
+func PropsFromProducer(producer Producer, opts ...PropsOption) *Props {
+	p := &Props{
 		producer:         producer,
 		contextDecorator: make([]ContextDecorator, 0),
 	}
+	p.WithOptions(opts...)
+	return p
 }
 
 // PropsFromFunc creates a props with the given receive func assigned as the actor producer
-func PropsFromFunc(f ReceiveFunc) *Props {
-	return PropsFromProducer(func() Actor { return f })
+func PropsFromFunc(f ReceiveFunc, opts ...PropsOption) *Props {
+	p := PropsFromProducer(func() Actor { return f })
+	p.WithOptions(opts...)
+	return p
 }
