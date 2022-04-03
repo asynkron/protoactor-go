@@ -25,16 +25,18 @@ var (
 		mb := props.produceMailbox()
 
 		// prepare the mailbox number counter
-		sysMetrics, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
-		if ok && sysMetrics.enabled {
-			if instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-				sysMetrics.PrepareMailboxLengthGauge(
-					func(_ context.Context, result metric.Int64ObserverResult) {
+		if ctx.actorSystem.Config.MetricsProvider != nil {
+			sysMetrics, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+			if ok && sysMetrics.enabled {
+				if instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+					sysMetrics.PrepareMailboxLengthGauge(
+						func(_ context.Context, result metric.Int64ObserverResult) {
 
-						messageCount := int64(mb.UserMessageCount())
-						result.Observe(messageCount, sysMetrics.CommonLabels(ctx)...)
-					},
-				)
+							messageCount := int64(mb.UserMessageCount())
+							result.Observe(messageCount, sysMetrics.CommonLabels(ctx)...)
+						},
+					)
+				}
 			}
 		}
 
@@ -45,9 +47,12 @@ var (
 			return pid, ErrNameExists
 		}
 		ctx.self = pid
-		mb.Start()
+
+		initialize(props, ctx)
+
 		mb.RegisterHandlers(ctx, dp)
 		mb.PostSystemMessage(startedMessage)
+		mb.Start()
 
 		return pid, nil
 	}
@@ -55,6 +60,12 @@ var (
 		return ctx
 	}
 )
+
+func initialize(props *Props, ctx *actorContext) {
+	for _, init := range props.onInit {
+		init(ctx)
+	}
+}
 
 // DefaultSpawner this is a hacking way to allow Proto.Router access default spawner func
 var DefaultSpawner SpawnFunc = defaultSpawner
@@ -78,6 +89,7 @@ type Props struct {
 	spawnMiddlewareChain    SpawnFunc
 	contextDecorator        []ContextDecorator
 	contextDecoratorChain   ContextDecoratorFunc
+	onInit                  []func(ctx Context)
 }
 
 func (props *Props) getSpawner() SpawnFunc {
@@ -219,8 +231,11 @@ type PropsOption func(props *Props)
 //	return props
 //}
 
-//all of the With* functions as PropsOption functions
-
+func WithOnInit(init ...func(ctx Context)) PropsOption {
+	return func(props *Props) {
+		props.onInit = append(props.onInit, init...)
+	}
+}
 func WithProducer(p Producer) PropsOption {
 	return func(props *Props) {
 		props.producer = p
@@ -314,6 +329,7 @@ func PropsFromProducer(producer Producer, opts ...PropsOption) *Props {
 	p := &Props{
 		producer:         producer,
 		contextDecorator: make([]ContextDecorator, 0),
+		onInit:           make([]func(ctx Context), 0),
 	}
 	p.WithOptions(opts...)
 	return p
@@ -321,7 +337,6 @@ func PropsFromProducer(producer Producer, opts ...PropsOption) *Props {
 
 // PropsFromFunc creates a props with the given receive func assigned as the actor producer
 func PropsFromFunc(f ReceiveFunc, opts ...PropsOption) *Props {
-	p := PropsFromProducer(func() Actor { return f })
-	p.WithOptions(opts...)
+	p := PropsFromProducer(func() Actor { return f }, opts...)
 	return p
 }
