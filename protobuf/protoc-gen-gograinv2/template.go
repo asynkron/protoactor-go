@@ -48,12 +48,13 @@ func Get{{ $service.Name }}GrainClient(c *cluster.Cluster, id string) *{{ $servi
 }
 
 // Get{{ $service.Name }}Kind instantiates a new cluster.Kind for {{ $service.Name }}
-func Get{{ $service.Name }}Kind() *cluster.Kind {
-	kind := cluster.NewKind("{{ $service.Name }}", actor.PropsFromProducer(func() actor.Actor {
+func Get{{ $service.Name }}Kind(opts ...actor.PropsOption) *cluster.Kind {
+	props := actor.PropsFromProducer(func() actor.Actor {
 		return &{{ $service.Name }}Actor{
 			Timeout: 60 * time.Second,
 		}
-	}))
+	}, opts...)
+	kind := cluster.NewKind("{{ $service.Name }}", props)
 	return kind
 }
 

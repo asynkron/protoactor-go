@@ -71,13 +71,8 @@ func startNode(port int, provider string, timeout time.Duration) {
 		panic(err)
 	}
 
-	kind := cluster.NewKind("Calculator", actor.PropsFromProducer(func() actor.Actor {
-		return &shared.CalculatorActor{
-			Timeout: timeout,
-		}
-	}))
 	remoteCfg := remote.Configure("127.0.0.1", port)
-	cfg := cluster.Configure("cluster-restartgracefully", cp, id, remoteCfg, cluster.WithKind(kind))
+	cfg := cluster.Configure("cluster-restartgracefully", cp, id, remoteCfg, cluster.WithKind(shared.GetCalculatorKind()))
 	_cluster = cluster.New(system, cfg)
 	_cluster.StartMember()
 }

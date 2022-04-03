@@ -44,27 +44,14 @@ func main() {
 }
 
 func startNode(port int64) *cluster.Cluster {
-	// how long before the grain poisons itself
-	timeout := 10 * time.Minute
 
 	system := actor.NewActorSystem()
-
-	calcKind := cluster.NewKind("Calculator", actor.PropsFromProducer(func() actor.Actor {
-		return &shared.CalculatorActor{
-			Timeout: timeout,
-		}
-	}))
-	trackerKind := cluster.NewKind("Tracker", actor.PropsFromProducer(func() actor.Actor {
-		return &shared.TrackerActor{
-			Timeout: timeout,
-		}
-	}))
 
 	provider := automanaged.NewWithConfig(2*time.Second, 6330, "localhost:6330", "localhost:6331")
 	lookup := partition.New()
 	config := remote.Configure("localhost", 0)
 
-	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKinds(calcKind, trackerKind))
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKinds(shared.GetCalculatorKind(), shared.GetTrackerKind()))
 	cluster := cluster.New(system, clusterConfig)
 
 	cluster.StartMember()

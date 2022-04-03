@@ -4,8 +4,8 @@ package shared
 import (
 	"errors"
 	"fmt"
-	"google.golang.org/protobuf/proto"
 	"math"
+	"google.golang.org/protobuf/proto"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -43,6 +43,17 @@ func GetCalculatorGrainClient(c *cluster.Cluster, id string) *CalculatorGrainCli
 	return &CalculatorGrainClient{Identity: id, cluster: c}
 }
 
+// GetCalculatorKind instantiates a new cluster.Kind for Calculator
+func GetCalculatorKind(opts ...actor.PropsOption) *cluster.Kind {
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &CalculatorActor{
+			Timeout: 60 * time.Second,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Calculator", props)
+	return kind
+}
+
 // Calculator interfaces the services available to the Calculator
 type Calculator interface {
 	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)
@@ -51,12 +62,13 @@ type Calculator interface {
 	Add(*NumberRequest, cluster.GrainContext) (*CountResponse, error)
 	Subtract(*NumberRequest, cluster.GrainContext) (*CountResponse, error)
 	GetCurrent(*Void, cluster.GrainContext) (*CountResponse, error)
+	
 }
 
 // CalculatorGrainClient holds the base data for the CalculatorGrain
 type CalculatorGrainClient struct {
-	Identity string
-	cluster  *cluster.Cluster
+	Identity      string
+	cluster *cluster.Cluster
 }
 
 // Add requests the execution on to the cluster with CallOptions
@@ -136,6 +148,7 @@ func (g *CalculatorGrainClient) GetCurrent(r *Void, opts ...*cluster.GrainCallOp
 		return nil, errors.New("unknown response")
 	}
 }
+
 
 // CalculatorActor represents the actor structure
 type CalculatorActor struct {
@@ -235,7 +248,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 			}
 			resp := &cluster.GrainResponse{MessageData: bytes}
 			ctx.Respond(resp)
-
+		
 		}
 	default:
 		a.inner.ReceiveDefault(ctx)

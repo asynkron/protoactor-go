@@ -43,6 +43,17 @@ func GetCalculatorGrainClient(c *cluster.Cluster, id string) *CalculatorGrainCli
 	return &CalculatorGrainClient{Identity: id, cluster: c}
 }
 
+// GetCalculatorKind instantiates a new cluster.Kind for Calculator
+func GetCalculatorKind(opts ...actor.PropsOption) *cluster.Kind {
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &CalculatorActor{
+			Timeout: 60 * time.Second,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Calculator", props)
+	return kind
+}
+
 // Calculator interfaces the services available to the Calculator
 type Calculator interface {
 	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)
@@ -258,6 +269,17 @@ func GetTrackerGrainClient(c *cluster.Cluster, id string) *TrackerGrainClient {
 		panic(fmt.Errorf("empty id"))
 	}
 	return &TrackerGrainClient{Identity: id, cluster: c}
+}
+
+// GetTrackerKind instantiates a new cluster.Kind for Tracker
+func GetTrackerKind(opts ...actor.PropsOption) *cluster.Kind {
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &TrackerActor{
+			Timeout: 60 * time.Second,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Tracker", props)
+	return kind
 }
 
 // Tracker interfaces the services available to the Tracker

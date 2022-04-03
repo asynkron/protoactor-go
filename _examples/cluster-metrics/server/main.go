@@ -74,8 +74,7 @@ func main() {
 	flag.Parse()
 	system := actor.NewActorSystem()
 	remoteConfig := remote.Configure("127.0.0.1", *port)
-	props := actor.PropsFromProducer(newHelloActor).WithReceiverMiddleware(Logger)
-	helloKind := cluster.NewKind("Hello", props)
+	helloKind := shared.GetHelloKind(actor.WithReceiverMiddleware(Logger))
 	cluster.SetLogLevel(logmod.InfoLevel)
 
 	provider, _ := consul.New()

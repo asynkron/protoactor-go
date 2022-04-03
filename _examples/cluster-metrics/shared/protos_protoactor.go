@@ -44,12 +44,13 @@ func GetHelloGrainClient(c *cluster.Cluster, id string) *HelloGrainClient {
 }
 
 // GetHelloKind instantiates a new cluster.Kind for Hello
-func GetHelloKind() *cluster.Kind {
-	kind := cluster.NewKind("Hello", actor.PropsFromProducer(func() actor.Actor {
+func GetHelloKind(opts ...actor.PropsOption) *cluster.Kind {
+	props := actor.PropsFromProducer(func() actor.Actor {
 		return &HelloActor{
 			Timeout: 60 * time.Second,
 		}
-	}))
+	}, opts...)
+	kind := cluster.NewKind("Hello", props)
 	return kind
 }
 
