@@ -85,12 +85,6 @@ func WithMaxNumberOfEventsInRequestLogThrottlePeriod(maxNumber int) ConfigOption
 	}
 }
 
-func WithKind(kind *Kind) ConfigOption {
-	return func(c *Config) {
-		c.Kinds[kind.Kind] = kind
-	}
-}
-
 func WithKinds(kinds ...*Kind) ConfigOption {
 	return func(c *Config) {
 		for _, kind := range kinds {

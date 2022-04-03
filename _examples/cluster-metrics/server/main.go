@@ -80,7 +80,7 @@ func main() {
 	provider, _ := consul.New()
 	lookup := disthash.New()
 
-	clusterConfig := cluster.Configure("my-cluster", provider, lookup, remoteConfig, cluster.WithKind(helloKind))
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, remoteConfig, cluster.WithKinds(helloKind))
 	c := cluster.New(system, clusterConfig)
 	c.StartMember()
 
