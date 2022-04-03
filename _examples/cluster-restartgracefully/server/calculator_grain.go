@@ -1,7 +1,8 @@
-package shared
+package main
 
 import (
 	"cluster-restartgracefully/cache"
+	"cluster-restartgracefully/shared"
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/log"
@@ -27,16 +28,16 @@ func (c *CalcGrain) Terminate() {
 func (c *CalcGrain) ReceiveDefault(ctx actor.Context) {
 }
 
-func (c *CalcGrain) Add(n *NumberRequest, ctx cluster.GrainContext) (*CountResponse, error) {
+func (c *CalcGrain) Add(n *shared.NumberRequest, ctx cluster.GrainContext) (*shared.CountResponse, error) {
 	c.total = c.total + n.Number
-	return &CountResponse{Number: c.total}, nil
+	return &shared.CountResponse{Number: c.total}, nil
 }
 
-func (c *CalcGrain) Subtract(n *NumberRequest, ctx cluster.GrainContext) (*CountResponse, error) {
+func (c *CalcGrain) Subtract(n *shared.NumberRequest, ctx cluster.GrainContext) (*shared.CountResponse, error) {
 	c.total = c.total - n.Number
-	return &CountResponse{Number: c.total}, nil
+	return &shared.CountResponse{Number: c.total}, nil
 }
 
-func (c *CalcGrain) GetCurrent(n *Void, ctx cluster.GrainContext) (*CountResponse, error) {
-	return &CountResponse{Number: c.total}, nil
+func (c *CalcGrain) GetCurrent(n *shared.Void, ctx cluster.GrainContext) (*shared.CountResponse, error) {
+	return &shared.CountResponse{Number: c.total}, nil
 }

@@ -51,7 +51,7 @@ func main() {
 func startNode(port int, provider string, timeout time.Duration) {
 	plog.Info("press 'CTRL-C' to shutdown server.")
 	shared.CalculatorFactory(func() shared.Calculator {
-		return &shared.CalcGrain{}
+		return &CalcGrain{}
 	})
 
 	var cp cluster.ClusterProvider

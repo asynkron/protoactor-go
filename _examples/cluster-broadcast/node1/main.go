@@ -63,7 +63,7 @@ func startNode(port int64) *cluster.Cluster {
 	lookup := partition.New()
 	config := remote.Configure("localhost", 0)
 
-	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, calcKind, trackerKind)
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKinds(calcKind, trackerKind))
 	cluster := cluster.New(system, clusterConfig)
 
 	shared.CalculatorFactory(func() shared.Calculator {
