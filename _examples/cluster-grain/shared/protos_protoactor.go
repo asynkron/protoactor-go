@@ -54,6 +54,18 @@ func GetHelloKind(opts ...actor.PropsOption) *cluster.Kind {
 	return kind
 }
 
+// GetHelloKind instantiates a new cluster.Kind for Hello
+func NewHelloKind(factory func() Hello, timeout time.Duration, opts ...actor.PropsOption) *cluster.Kind {
+	xHelloFactory = factory
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &HelloActor{
+			Timeout: timeout,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Hello", props)
+	return kind
+}
+
 // Hello interfaces the services available to the Hello
 type Hello interface {
 	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)

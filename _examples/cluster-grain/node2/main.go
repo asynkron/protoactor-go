@@ -26,9 +26,6 @@ func (h HelloGrain) SayHello(request *shared.HelloRequest, context cluster.Grain
 }
 
 func main() {
-
-	shared.HelloFactory(func() shared.Hello { return &HelloGrain{} })
-
 	cluster := startNode()
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()
@@ -40,7 +37,9 @@ func startNode() *cluster.Cluster {
 	provider, _ := consul.New()
 	lookup := disthash.New()
 	remoteConfig := remote.Configure("localhost", 0)
-	helloKind := shared.GetHelloKind()
+	helloKind := shared.NewHelloKind(func() shared.Hello {
+		return &HelloGrain{}
+	}, 0)
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, remoteConfig, cluster.WithKinds(helloKind))
 	c := cluster.New(system, clusterConfig)
 	c.StartMember()

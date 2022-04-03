@@ -58,6 +58,18 @@ func Get{{ $service.Name }}Kind(opts ...actor.PropsOption) *cluster.Kind {
 	return kind
 }
 
+// Get{{ $service.Name }}Kind instantiates a new cluster.Kind for {{ $service.Name }}
+func New{{ $service.Name }}Kind(factory func() {{ $service.Name }}, timeout time.Duration ,opts ...actor.PropsOption) *cluster.Kind {
+	x{{ $service.Name }}Factory = factory
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &{{ $service.Name }}Actor{
+			Timeout: timeout,
+		}
+	}, opts...)
+	kind := cluster.NewKind("{{ $service.Name }}", props)
+	return kind
+}
+
 // {{ $service.Name }} interfaces the services available to the {{ $service.Name }}
 type {{ $service.Name }} interface {
 	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)

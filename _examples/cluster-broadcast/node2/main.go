@@ -4,7 +4,7 @@ import (
 	"cluster-broadcast/shared"
 	"fmt"
 	automanaged "github.com/asynkron/protoactor-go/cluster/clusterproviders/_automanaged"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/partition"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"time"
 
 	console "github.com/asynkron/goconsole"
@@ -48,10 +48,18 @@ func startNode(port int64) *cluster.Cluster {
 	system := actor.NewActorSystem()
 
 	provider := automanaged.NewWithConfig(2*time.Second, 6330, "localhost:6330", "localhost:6331")
-	lookup := partition.New()
+	lookup := disthash.New()
 	config := remote.Configure("localhost", 0)
 
-	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKinds(shared.GetCalculatorKind(), shared.GetTrackerKind()))
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config,
+		cluster.WithKinds(
+			shared.NewCalculatorKind(func() shared.Calculator {
+				return &shared.CalcGrain{}
+			}, 0),
+			shared.NewTrackerKind(func() shared.Tracker {
+				return &shared.TrackGrain{}
+			}, 0)))
+
 	cluster := cluster.New(system, clusterConfig)
 
 	cluster.StartMember()

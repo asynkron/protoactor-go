@@ -54,6 +54,18 @@ func GetCalculatorKind(opts ...actor.PropsOption) *cluster.Kind {
 	return kind
 }
 
+// GetCalculatorKind instantiates a new cluster.Kind for Calculator
+func NewCalculatorKind(factory func() Calculator, timeout time.Duration, opts ...actor.PropsOption) *cluster.Kind {
+	xCalculatorFactory = factory
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &CalculatorActor{
+			Timeout: timeout,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Calculator", props)
+	return kind
+}
+
 // Calculator interfaces the services available to the Calculator
 type Calculator interface {
 	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)
@@ -276,6 +288,18 @@ func GetTrackerKind(opts ...actor.PropsOption) *cluster.Kind {
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return &TrackerActor{
 			Timeout: 60 * time.Second,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Tracker", props)
+	return kind
+}
+
+// GetTrackerKind instantiates a new cluster.Kind for Tracker
+func NewTrackerKind(factory func() Tracker, timeout time.Duration, opts ...actor.PropsOption) *cluster.Kind {
+	xTrackerFactory = factory
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &TrackerActor{
+			Timeout: timeout,
 		}
 	}, opts...)
 	kind := cluster.NewKind("Tracker", props)

@@ -7,12 +7,19 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	automanaged "github.com/asynkron/protoactor-go/cluster/clusterproviders/_automanaged"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/partition"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
 	"time"
 )
 
 func main() {
+	shared.TrackerFactory(func() shared.Tracker {
+		return &shared.TrackGrain{}
+	})
+	shared.CalculatorFactory(func() shared.Calculator {
+		return &shared.CalcGrain{}
+	})
+
 	c := startNode(8080)
 
 	fmt.Print("\nBoot other nodes and press Enter\n")
@@ -47,10 +54,18 @@ func startNode(port int64) *cluster.Cluster {
 	system := actor.NewActorSystem()
 
 	provider := automanaged.NewWithConfig(2*time.Second, 6331, "localhost:6330", "localhost:6331")
-	lookup := partition.New()
+	lookup := disthash.New()
 	config := remote.Configure("localhost", 0)
 
-	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKinds(shared.GetCalculatorKind(), shared.GetTrackerKind()))
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config,
+		cluster.WithKinds(
+			shared.NewCalculatorKind(func() shared.Calculator {
+				return &shared.CalcGrain{}
+			}, 0),
+			shared.NewTrackerKind(func() shared.Tracker {
+				return &shared.TrackGrain{}
+			}, 0)))
+
 	cluster := cluster.New(system, clusterConfig)
 
 	shared.TrackerFactory(func() shared.Tracker {

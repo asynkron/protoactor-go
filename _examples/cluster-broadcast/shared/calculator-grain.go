@@ -10,13 +10,6 @@ type CalcGrain struct {
 	total int64
 }
 
-func init() {
-	// apply DI and setup logic
-	CalculatorFactory(func() Calculator {
-		return &CalcGrain{}
-	})
-}
-
 func (c *CalcGrain) ReceiveDefault(ctx actor.Context) {
 
 }
