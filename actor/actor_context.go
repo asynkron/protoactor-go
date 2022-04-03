@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/asynkron/protoactor-go/ctxtensions"
+	"github.com/asynkron/protoactor-go/ctxext"
 	"go.opentelemetry.io/otel/attribute"
 	"sync/atomic"
 	"time"
@@ -29,7 +29,7 @@ type actorContextExtras struct {
 	stash               *linkedliststack.Stack
 	watchers            PIDSet
 	context             Context
-	extensions          *ctxtensions.Extensions
+	extensions          *ctxext.ContextExtensions
 }
 
 func newActorContextExtras(context Context) *actorContextExtras {
@@ -708,13 +708,13 @@ func (ctx *actorContext) String() string {
 	return ctx.self.String()
 }
 
-func (ctx *actorContext) Get(id ctxtensions.ExtensionID) ctxtensions.Extension {
+func (ctx *actorContext) Get(id ctxext.ContextExtensionID) ctxext.ContextExtension {
 	extras := ctx.ensureExtras()
 	ext := extras.extensions.Get(id)
 	return ext
 }
 
-func (ctx *actorContext) Set(ext ctxtensions.Extension) {
+func (ctx *actorContext) Set(ext ctxext.ContextExtension) {
 	extras := ctx.ensureExtras()
 	extras.extensions.Set(ext)
 }

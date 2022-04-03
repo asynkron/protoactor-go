@@ -1,6 +1,9 @@
 package actor
 
-import "time"
+import (
+	"github.com/asynkron/protoactor-go/ctxext"
+	"time"
+)
 
 // Context contains contextual information for actors
 type Context interface {
@@ -11,6 +14,16 @@ type Context interface {
 	receiverPart
 	spawnerPart
 	stopperPart
+	extensionPart
+}
+
+type extensionPart interface {
+	Get(id ctxext.ContextExtensionID) ctxext.ContextExtension
+	Set(ext ctxext.ContextExtension)
+}
+
+type ExtensionContext interface {
+	extensionPart
 }
 
 type SenderContext interface {
