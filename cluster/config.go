@@ -114,11 +114,38 @@ type Kind struct {
 
 // Creates a new instance of a kind
 func NewKind(kind string, props *actor.Props) *Kind {
+	props.WithOptions(actor.WithReceiverMiddleware(func(next actor.ReceiverFunc) actor.ReceiverFunc {
+		return func(c actor.ReceiverContext, envelope *actor.MessageEnvelope) {
+
+			//the above code as a type switch
+			switch envelope.Message.(type) {
+			case *actor.Started:
+				handleStarted(c, next, envelope)
+			case *actor.Stopped:
+				handleStopped(c, next, envelope)
+			default:
+				next(c, envelope)
+			}
+
+			return
+		}
+	}))
 	return &Kind{
 		Kind:            kind,
 		Props:           props,
 		StrategyBuilder: nil,
 	}
+}
+
+func handleStopped(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *actor.MessageEnvelope) {
+	next(c, envelope)
+}
+
+func handleStarted(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *actor.MessageEnvelope) {
+	next(c, envelope)
+
+	//env := actor.WrapEnvelope(&ClusterInit{})
+	//next(c, env)
 }
 
 func (k *Kind) WithMemberStrategy(strategyBuilder func(*Cluster) MemberStrategy) {
