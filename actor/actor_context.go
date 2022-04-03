@@ -251,7 +251,7 @@ func (ctx *actorContext) Forward(pid *PID) {
 	ctx.sendUserMessage(pid, ctx.messageOrEnvelope)
 }
 
-func (ctx *actorContext) AwaitFuture(f *Future, cont func(res interface{}, err error)) {
+func (ctx *actorContext) ReenterAfter(f *Future, cont func(res interface{}, err error)) {
 	wrapper := func() {
 		cont(f.result, f.err)
 	}

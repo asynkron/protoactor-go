@@ -242,7 +242,7 @@ func TestActorContinueFutureInActor(t *testing.T) {
 		}
 		if ctx.Message() == "start" {
 			f := ctx.RequestFuture(ctx.Self(), "request", 5*time.Second)
-			ctx.AwaitFuture(f, func(res interface{}, err error) {
+			ctx.ReenterAfter(f, func(res interface{}, err error) {
 				ctx.Respond(res)
 			})
 		}

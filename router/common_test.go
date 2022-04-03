@@ -89,7 +89,7 @@ func (m *mockContext) Forward(pid *actor.PID) {
 	m.Called()
 }
 
-func (m *mockContext) AwaitFuture(f *actor.Future, cont func(res interface{}, err error)) {
+func (m *mockContext) ReenterAfter(f *actor.Future, cont func(res interface{}, err error)) {
 	m.Called(f, cont)
 }
 

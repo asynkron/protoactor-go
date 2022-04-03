@@ -105,7 +105,7 @@ func (p *identityActor) onActivationRequest(msg *clustering.ActivationRequest, c
 	// but still within the actors sequential execution
 	// but other messages could have been processed in between
 	// Await SpawningProcess
-	ctx.AwaitFuture(res, func(res interface{}, err error) {
+	ctx.ReenterAfter(res, func(res interface{}, err error) {
 		delete(p.spawns, msg.ClusterIdentity.AsKey())
 
 		ar, ok := res.(*clustering.ActivationResponse)

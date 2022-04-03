@@ -75,7 +75,7 @@ type basePart interface {
 	// Forward forwards current message to the given PID
 	Forward(pid *PID)
 
-	AwaitFuture(f *Future, continuation func(res interface{}, err error))
+	ReenterAfter(f *Future, continuation func(res interface{}, err error))
 }
 
 type messagePart interface {
