@@ -51,14 +51,16 @@ func startNode(port int64) *cluster.Cluster {
 	lookup := disthash.New()
 	config := remote.Configure("localhost", 0)
 
+	calculatorKind := shared.NewCalculatorKind(func() shared.Calculator {
+		return &shared.CalcGrain{}
+	}, 0)
+
+	trackerKind := shared.NewTrackerKind(func() shared.Tracker {
+		return &shared.TrackGrain{}
+	}, 0)
+
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config,
-		cluster.WithKinds(
-			shared.NewCalculatorKind(func() shared.Calculator {
-				return &shared.CalcGrain{}
-			}, 0),
-			shared.NewTrackerKind(func() shared.Tracker {
-				return &shared.TrackGrain{}
-			}, 0)))
+		cluster.WithKinds(calculatorKind, trackerKind))
 
 	cluster := cluster.New(system, clusterConfig)
 
