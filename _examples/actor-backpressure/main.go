@@ -50,13 +50,14 @@ func (p *producer) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		// spawn our worker
-		workerProps := actor.PropsFromProducer(func() actor.Actor {
-			return &worker{}
-		})
 		mb := mailbox.Unbounded(&requestWorkBehavior{
 			producer: ctx.Self(),
 		})
-		p.worker = ctx.Spawn(workerProps.WithMailbox(mb))
+		workerProps := actor.PropsFromProducer(func() actor.Actor {
+			return &worker{}
+		}, actor.WithMailbox(mb))
+
+		p.worker = ctx.Spawn(workerProps)
 	case *requestMoreWork:
 		p.requestedWork += msg.items
 		log.Println("Producer got a new work request")

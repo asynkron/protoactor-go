@@ -125,15 +125,15 @@ func main() {
 		d := mailbox.NewDefaultDispatcher(tp)
 
 		clientProps := actor.
-			PropsFromProducer(newPingActor(&wg, messageCount, batchSize)).
-			WithMailbox(mailbox.Bounded(batchSize + 10)).
-			WithDispatcher(d)
+			PropsFromProducer(newPingActor(&wg, messageCount, batchSize),
+				actor.WithMailbox(mailbox.Bounded(batchSize+10)),
+				actor.WithDispatcher(d))
 		rootContext := system.Root
 
 		echoProps := actor.
-			PropsFromFunc(pongActor).
-			WithMailbox(mailbox.Bounded(batchSize + 10)).
-			WithDispatcher(d)
+			PropsFromFunc(pongActor,
+				actor.WithMailbox(mailbox.Bounded(batchSize+10)),
+				actor.WithDispatcher(d))
 
 		clients := make([]*actor.PID, 0)
 		echos := make([]*actor.PID, 0)

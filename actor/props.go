@@ -129,95 +129,95 @@ func (props *Props) WithOptions(opts ...PropsOption) *Props {
 //props options
 type PropsOption func(props *Props)
 
-// WithProducer assigns a actor producer to the props
-func (props *Props) WithProducer(p Producer) *Props {
-	props.producer = p
-	return props
-}
-
-// WithDispatcher assigns a dispatcher to the props
-func (props *Props) WithDispatcher(dispatcher mailbox.Dispatcher) *Props {
-	props.dispatcher = dispatcher
-	return props
-}
-
-// WithMailbox assigns the desired mailbox producer to the props
-func (props *Props) WithMailbox(mailbox mailbox.Producer) *Props {
-	props.mailboxProducer = mailbox
-	return props
-}
-
-// WithContextDecorator assigns context decorator to the props
-func (props *Props) WithContextDecorator(contextDecorator ...ContextDecorator) *Props {
-	props.contextDecorator = append(props.contextDecorator, contextDecorator...)
-
-	props.contextDecoratorChain = makeContextDecoratorChain(props.contextDecorator, func(ctx Context) Context {
-		return ctx
-	})
-
-	return props
-}
-
-// WithGuardian assigns a guardian strategy to the props
-func (props *Props) WithGuardian(guardian SupervisorStrategy) *Props {
-	props.guardianStrategy = guardian
-	return props
-}
-
-// WithSupervisor assigns a supervision strategy to the props
-func (props *Props) WithSupervisor(supervisor SupervisorStrategy) *Props {
-	props.supervisionStrategy = supervisor
-	return props
-}
-
-// Assign one or more middleware to the props
-func (props *Props) WithReceiverMiddleware(middleware ...ReceiverMiddleware) *Props {
-	props.receiverMiddleware = append(props.receiverMiddleware, middleware...)
-
-	// Construct the receiver middleware chain with the final receiver at the end
-	props.receiverMiddlewareChain = makeReceiverMiddlewareChain(props.receiverMiddleware, func(ctx ReceiverContext, envelope *MessageEnvelope) {
-		ctx.Receive(envelope)
-	})
-
-	return props
-}
-
-func (props *Props) WithSenderMiddleware(middleware ...SenderMiddleware) *Props {
-	props.senderMiddleware = append(props.senderMiddleware, middleware...)
-
-	// Construct the sender middleware chain with the final sender at the end
-	props.senderMiddlewareChain = makeSenderMiddlewareChain(props.senderMiddleware, func(sender SenderContext, target *PID, envelope *MessageEnvelope) {
-		target.sendUserMessage(sender.ActorSystem(), envelope)
-	})
-
-	return props
-}
-
-// WithSpawnFunc assigns a custom spawn func to the props, this is mainly for internal usage
-func (props *Props) WithSpawnFunc(spawn SpawnFunc) *Props {
-	props.spawner = spawn
-	return props
-}
-
-// WithFunc assigns a receive func to the props
-func (props *Props) WithFunc(f ReceiveFunc) *Props {
-	props.producer = func() Actor { return f }
-	return props
-}
-
-func (props *Props) WithSpawnMiddleware(middleware ...SpawnMiddleware) *Props {
-	props.spawnMiddleware = append(props.spawnMiddleware, middleware...)
-
-	// Construct the spawner middleware chain with the final spawner at the end
-	props.spawnMiddlewareChain = makeSpawnMiddlewareChain(props.spawnMiddleware, func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
-		if props.spawner == nil {
-			return defaultSpawner(actorSystem, id, props, parentContext)
-		}
-		return props.spawner(actorSystem, id, props, parentContext)
-	})
-
-	return props
-}
+//// WithProducer assigns a actor producer to the props
+//func (props *Props) WithProducer(p Producer) *Props {
+//	props.producer = p
+//	return props
+//}
+//
+//// WithDispatcher assigns a dispatcher to the props
+//func (props *Props) WithDispatcher(dispatcher mailbox.Dispatcher) *Props {
+//	props.dispatcher = dispatcher
+//	return props
+//}
+//
+//// WithMailbox assigns the desired mailbox producer to the props
+//func (props *Props) WithMailbox(mailbox mailbox.Producer) *Props {
+//	props.mailboxProducer = mailbox
+//	return props
+//}
+//
+//// WithContextDecorator assigns context decorator to the props
+//func (props *Props) WithContextDecorator(contextDecorator ...ContextDecorator) *Props {
+//	props.contextDecorator = append(props.contextDecorator, contextDecorator...)
+//
+//	props.contextDecoratorChain = makeContextDecoratorChain(props.contextDecorator, func(ctx Context) Context {
+//		return ctx
+//	})
+//
+//	return props
+//}
+//
+//// WithGuardian assigns a guardian strategy to the props
+//func (props *Props) WithGuardian(guardian SupervisorStrategy) *Props {
+//	props.guardianStrategy = guardian
+//	return props
+//}
+//
+//// WithSupervisor assigns a supervision strategy to the props
+//func (props *Props) WithSupervisor(supervisor SupervisorStrategy) *Props {
+//	props.supervisionStrategy = supervisor
+//	return props
+//}
+//
+//// Assign one or more middleware to the props
+//func (props *Props) WithReceiverMiddleware(middleware ...ReceiverMiddleware) *Props {
+//	props.receiverMiddleware = append(props.receiverMiddleware, middleware...)
+//
+//	// Construct the receiver middleware chain with the final receiver at the end
+//	props.receiverMiddlewareChain = makeReceiverMiddlewareChain(props.receiverMiddleware, func(ctx ReceiverContext, envelope *MessageEnvelope) {
+//		ctx.Receive(envelope)
+//	})
+//
+//	return props
+//}
+//
+//func (props *Props) WithSenderMiddleware(middleware ...SenderMiddleware) *Props {
+//	props.senderMiddleware = append(props.senderMiddleware, middleware...)
+//
+//	// Construct the sender middleware chain with the final sender at the end
+//	props.senderMiddlewareChain = makeSenderMiddlewareChain(props.senderMiddleware, func(sender SenderContext, target *PID, envelope *MessageEnvelope) {
+//		target.sendUserMessage(sender.ActorSystem(), envelope)
+//	})
+//
+//	return props
+//}
+//
+//// WithSpawnFunc assigns a custom spawn func to the props, this is mainly for internal usage
+//func (props *Props) WithSpawnFunc(spawn SpawnFunc) *Props {
+//	props.spawner = spawn
+//	return props
+//}
+//
+//// WithFunc assigns a receive func to the props
+//func (props *Props) WithFunc(f ReceiveFunc) *Props {
+//	props.producer = func() Actor { return f }
+//	return props
+//}
+//
+//func (props *Props) WithSpawnMiddleware(middleware ...SpawnMiddleware) *Props {
+//	props.spawnMiddleware = append(props.spawnMiddleware, middleware...)
+//
+//	// Construct the spawner middleware chain with the final spawner at the end
+//	props.spawnMiddlewareChain = makeSpawnMiddlewareChain(props.spawnMiddleware, func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
+//		if props.spawner == nil {
+//			return defaultSpawner(actorSystem, id, props, parentContext)
+//		}
+//		return props.spawner(actorSystem, id, props, parentContext)
+//	})
+//
+//	return props
+//}
 
 //all of the With* functions as PropsOption functions
 

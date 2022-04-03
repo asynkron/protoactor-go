@@ -19,7 +19,7 @@ type request struct {
 }
 
 var (
-	props = actor.PropsFromProducer(newState).WithMailbox(mailbox.Unbounded())
+	props = actor.PropsFromProducer(newState, actor.WithMailbox(mailbox.Unbounded()))
 )
 
 type state struct {

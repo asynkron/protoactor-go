@@ -130,7 +130,7 @@ func TestCluster_Get(t *testing.T) {
 			_ = msg
 		}
 	}))
-	c := New(system, Configure("mycluster", cp, nil, remote.Configure("127.0.0.1", 0), WithKind(kind)))
+	c := New(system, Configure("mycluster", cp, nil, remote.Configure("127.0.0.1", 0), WithKinds(kind)))
 	c.StartMember()
 	cp.publishClusterTopologyEvent()
 	t.Run("invalid kind", func(t *testing.T) {

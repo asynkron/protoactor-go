@@ -68,7 +68,7 @@ func spawn(actorSystem *actor.ActorSystem, id string, config RouterConfig, props
 	}
 
 	var pc = *props
-	pc.WithSpawnFunc(nil)
+	pc.WithOptions(actor.WithSpawnFunc(nil))
 	ref.state = config.CreateRouterState()
 
 	if config.RouterType() == GroupRouterType {

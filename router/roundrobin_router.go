@@ -37,11 +37,11 @@ func (state *roundRobinState) RouteMessage(message interface{}) {
 }
 
 func NewRoundRobinPool(size int) *actor.Props {
-	return (&actor.Props{}).WithSpawnFunc(spawner(&roundRobinPoolRouter{PoolRouter{PoolSize: size}}))
+	return (&actor.Props{}).WithOptions(actor.WithSpawnFunc(spawner(&roundRobinPoolRouter{PoolRouter{PoolSize: size}})))
 }
 
 func NewRoundRobinGroup(routees ...*actor.PID) *actor.Props {
-	return (&actor.Props{}).WithSpawnFunc(spawner(&roundRobinGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
+	return (&actor.Props{}).WithOptions(actor.WithSpawnFunc(spawner(&roundRobinGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}})))
 }
 
 func (config *roundRobinPoolRouter) CreateRouterState() State {

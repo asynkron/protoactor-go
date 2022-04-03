@@ -83,7 +83,8 @@ func main() {
 	provider.InitState("persistent", 4, 3)
 
 	rootContext := system.Root
-	props := actor.PropsFromProducer(func() actor.Actor { return &Actor{} }).WithReceiverMiddleware(persistence.Using(provider))
+	props := actor.PropsFromProducer(func() actor.Actor { return &Actor{} },
+		actor.WithReceiverMiddleware(persistence.Using(provider)))
 	pid, _ := rootContext.SpawnNamed(props, "persistent")
 	rootContext.Send(pid, &Message{protoMsg: protoMsg{state: "state4"}})
 	rootContext.Send(pid, &Message{protoMsg: protoMsg{state: "state5"}})

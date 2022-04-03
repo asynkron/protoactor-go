@@ -48,7 +48,7 @@ func TestSupervisorEventHandleFromEventstream(t *testing.T) {
 			})
 			defer system.EventStream.Unsubscribe(sid)
 
-			props := PropsFromProducer(func() Actor { return &panicActor{} }).WithSupervisor(v.strategy)
+			props := PropsFromProducer(func() Actor { return &panicActor{} }, WithSupervisor(v.strategy))
 			pid := rootContext.Spawn(props)
 
 			wg.Add(1)

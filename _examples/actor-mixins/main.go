@@ -46,11 +46,11 @@ func main() {
 	system := actor.NewActorSystem()
 	rootContext := system.Root
 	props := actor.
-		PropsFromProducer(func() actor.Actor { return &myActor{} }).
-		WithReceiverMiddleware(
-			plugin.Use(&NamerPlugin{}),
-			middleware.Logger,
-		)
+		PropsFromProducer(func() actor.Actor { return &myActor{} },
+			actor.WithReceiverMiddleware(
+				plugin.Use(&NamerPlugin{}),
+				middleware.Logger,
+			))
 
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, "bar")

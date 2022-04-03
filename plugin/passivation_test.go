@@ -28,8 +28,8 @@ func TestPassivation(t *testing.T) {
 	PassivationDuration := 3 * UnitOfTime
 	rootContext := system.Root
 	props := actor.
-		PropsFromProducer(func() actor.Actor { return &SmartActor{} }).
-		WithReceiverMiddleware(Use(&PassivationPlugin{Duration: PassivationDuration}))
+		PropsFromProducer(func() actor.Actor { return &SmartActor{} },
+			actor.WithReceiverMiddleware(Use(&PassivationPlugin{Duration: PassivationDuration})))
 
 	pid := rootContext.Spawn(props)
 	time.Sleep(UnitOfTime)

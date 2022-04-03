@@ -28,7 +28,7 @@ func main() {
 	rootContext := system.Root
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 
-	}).WithMailbox(mailbox.Unbounded(&mailboxLogger{}))
+	}, actor.WithMailbox(mailbox.Unbounded(&mailboxLogger{})))
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, "Hello")
 	_, _ = console.ReadLine()

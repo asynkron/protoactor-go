@@ -42,16 +42,16 @@ func (propagator *MiddlewarePropagator) WithContextDecorator(decorators ...actor
 func (propagator *MiddlewarePropagator) SpawnMiddleware(next actor.SpawnFunc) actor.SpawnFunc {
 	return func(actorSystem *actor.ActorSystem, id string, props *actor.Props, parentContext actor.SpawnerContext) (pid *actor.PID, e error) {
 		if propagator.spawnMiddleware != nil {
-			props = props.WithSpawnMiddleware(propagator.spawnMiddleware...)
+			props = props.WithOptions(actor.WithSpawnMiddleware(propagator.spawnMiddleware...))
 		}
 		if propagator.senderMiddleware != nil {
-			props = props.WithSenderMiddleware(propagator.senderMiddleware...)
+			props = props.WithOptions(actor.WithSenderMiddleware(propagator.senderMiddleware...))
 		}
 		if propagator.receiverMiddleware != nil {
-			props = props.WithReceiverMiddleware(propagator.receiverMiddleware...)
+			props = props.WithOptions(actor.WithReceiverMiddleware(propagator.receiverMiddleware...))
 		}
 		if propagator.contextDecorators != nil {
-			props = props.WithContextDecorator(propagator.contextDecorators...)
+			props = props.WithOptions(actor.WithContextDecorator(propagator.contextDecorators...))
 		}
 		pid, err := next(actorSystem, id, props, parentContext)
 		return pid, err

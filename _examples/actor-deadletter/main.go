@@ -23,8 +23,7 @@ func main() {
 	flag.Parse()
 
 	// init
-	cfg := actor.NewConfig().
-		WithDeadLetterThrottleCount(int32(*throttle))
+	cfg := actor.Configure(actor.WithDeadLetterThrottleCount(int32(*throttle)))
 	system := actor.NewActorSystemWithConfig(cfg)
 
 	btn := int32(1)
