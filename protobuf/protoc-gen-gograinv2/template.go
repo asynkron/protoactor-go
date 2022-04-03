@@ -47,6 +47,16 @@ func Get{{ $service.Name }}GrainClient(c *cluster.Cluster, id string) *{{ $servi
 	return &{{ $service.Name }}GrainClient{Identity: id, cluster: c}
 }
 
+// Get{{ $service.Name }}Kind instantiates a new cluster.Kind for {{ $service.Name }}
+func Get{{ $service.Name }}Kind() *cluster.Kind {
+	kind := cluster.NewKind("{{ $service.Name }}", actor.PropsFromProducer(func() actor.Actor {
+		return &{{ $service.Name }}Actor{
+			Timeout: 60 * time.Second,
+		}
+	}))
+	return kind
+}
+
 // {{ $service.Name }} interfaces the services available to the {{ $service.Name }}
 type {{ $service.Name }} interface {
 	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)

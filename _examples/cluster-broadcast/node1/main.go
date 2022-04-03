@@ -66,10 +66,6 @@ func startNode(port int64) *cluster.Cluster {
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKinds(calcKind, trackerKind))
 	cluster := cluster.New(system, clusterConfig)
 
-	shared.CalculatorFactory(func() shared.Calculator {
-		return &shared.CalcGrain{}
-	})
-
 	shared.TrackerFactory(func() shared.Tracker {
 		return &shared.TrackGrain{}
 	})

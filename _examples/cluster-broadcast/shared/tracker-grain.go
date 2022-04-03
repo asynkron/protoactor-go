@@ -12,6 +12,13 @@ type TrackGrain struct {
 	grainsMap map[string]bool
 }
 
+func init() {
+	// apply DI and setup logic
+	TrackerFactory(func() Tracker {
+		return &TrackGrain{}
+	})
+}
+
 func (t *TrackGrain) ReceiveDefault(ctx actor.Context) {
 
 }

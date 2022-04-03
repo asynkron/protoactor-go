@@ -9,10 +9,27 @@ import (
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
-	"time"
 )
 
+type HelloGrain struct {
+	cluster.Grain
+}
+
+func (h HelloGrain) Terminate() {
+}
+
+func (h HelloGrain) ReceiveDefault(ctx actor.Context) {
+}
+
+func (h HelloGrain) SayHello(request *shared.HelloRequest, context cluster.GrainContext) (*shared.HelloResponse, error) {
+
+	return &shared.HelloResponse{Message: "Hello " + request.Name}, nil
+}
+
 func main() {
+
+	shared.HelloFactory(func() shared.Hello { return &HelloGrain{} })
+
 	cluster := startNode()
 
 	fmt.Print("\nBoot other nodes and press Enter\n")
@@ -28,13 +45,7 @@ func startNode() *cluster.Cluster {
 	lookup := disthash.New()
 	config := remote.Configure("localhost", 0)
 
-	kind := cluster.NewKind("Hello", actor.PropsFromProducer(func() actor.Actor {
-		return &shared.HelloActor{
-			Timeout: 60 * time.Second,
-		}
-	}))
-
-	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKind(kind))
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKind(shared.GetHelloKind()))
 	c := cluster.New(system, clusterConfig)
 
 	c.StartMember()

@@ -43,6 +43,16 @@ func GetHelloGrainClient(c *cluster.Cluster, id string) *HelloGrainClient {
 	return &HelloGrainClient{Identity: id, cluster: c}
 }
 
+// GetHelloKind instantiates a new cluster.Kind for Hello
+func GetHelloKind() *cluster.Kind {
+	kind := cluster.NewKind("Hello", actor.PropsFromProducer(func() actor.Actor {
+		return &HelloActor{
+			Timeout: 60 * time.Second,
+		}
+	}))
+	return kind
+}
+
 // Hello interfaces the services available to the Hello
 type Hello interface {
 	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)
