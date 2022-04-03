@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cluster-grain/shared"
 	"fmt"
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
@@ -15,8 +16,14 @@ func main() {
 
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()
-	pid := c.Get("abc", "hello")
-	fmt.Printf("Got pid %v", pid)
+	client := shared.GetHelloGrainClient(c, "mygrain1")
+	res, err := client.SayHello(&shared.HelloRequest{})
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Response: %v\n", res)
 	fmt.Println()
 	console.ReadLine()
 	c.Shutdown(true)

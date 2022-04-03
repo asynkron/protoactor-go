@@ -32,7 +32,7 @@ func CalculatorFactory(factory func() Calculator) {
 	xCalculatorFactory = factory
 }
 
-// GetCalculatorGrainClient instantiates a new CalculatorGrainClient with given ExtensionID
+// GetCalculatorGrainClient instantiates a new CalculatorGrainClient with given Identity
 func GetCalculatorGrainClient(c *cluster.Cluster, id string) *CalculatorGrainClient {
 	if c == nil {
 		panic(fmt.Errorf("nil cluster instance"))
@@ -40,12 +40,12 @@ func GetCalculatorGrainClient(c *cluster.Cluster, id string) *CalculatorGrainCli
 	if id == "" {
 		panic(fmt.Errorf("empty id"))
 	}
-	return &CalculatorGrainClient{ExtensionID: id, cluster: c}
+	return &CalculatorGrainClient{Identity: id, cluster: c}
 }
 
 // Calculator interfaces the services available to the Calculator
 type Calculator interface {
-	Init(id string)
+	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)
 	Terminate()
 	ReceiveDefault(ctx actor.Context)
 	Add(*NumberRequest, cluster.GrainContext) (*CountResponse, error)
@@ -55,8 +55,8 @@ type Calculator interface {
 
 // CalculatorGrainClient holds the base data for the CalculatorGrain
 type CalculatorGrainClient struct {
-	ExtensionID string
-	cluster     *cluster.Cluster
+	Identity string
+	cluster  *cluster.Cluster
 }
 
 // Add requests the execution on to the cluster with CallOptions
@@ -66,7 +66,7 @@ func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...*cluster.GrainCall
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ExtensionID, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...*cluster.Grai
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ExtensionID, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func (g *CalculatorGrainClient) GetCurrent(r *Void, opts ...*cluster.GrainCallOp
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 2, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ExtensionID, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 	case *actor.Started:
 	case *cluster.ClusterInit:
 		a.inner = xCalculatorFactory()
-		a.inner.Init(msg.ID)
+		a.inner.Init(msg.Identity, msg.Cluster)
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}

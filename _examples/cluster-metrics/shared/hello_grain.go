@@ -17,9 +17,9 @@ type HelloGrain struct {
 	cluster.Grain
 }
 
-func (h *HelloGrain) Init(id string) {
-	h.Grain.Init(id)
-	log.Printf("new grain id=%s", id)
+func (h *HelloGrain) Init(ci *cluster.ClusterIdentity, cl *cluster.Cluster) {
+	h.Grain.Init(ci, cl)
+	log.Printf("new grain id=%s", ci.Identity)
 }
 
 func (h *HelloGrain) Terminate() {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"cluster-broadcast/shared"
+	"cluster-grain/shared"
 	"fmt"
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
@@ -9,6 +9,7 @@ import (
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
+	"time"
 )
 
 func main() {
@@ -27,16 +28,13 @@ func startNode() *cluster.Cluster {
 	lookup := disthash.New()
 	config := remote.Configure("localhost", 0)
 
-	props := actor.PropsFromFunc(func(ctx actor.Context) {
-		switch msg := ctx.Message().(type) {
-		case *actor.Started:
-			fmt.Printf("Started %v", msg)
-		case *shared.Hello:
-			fmt.Printf("Hello %v\n", msg.Name)
+	kind := cluster.NewKind("Hello", actor.PropsFromProducer(func() actor.Actor {
+		return &shared.HelloActor{
+			Timeout: 60 * time.Second,
 		}
-	})
-	helloKind := cluster.NewKind("hello", props)
-	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKind(helloKind))
+	}))
+
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKind(kind))
 	c := cluster.New(system, clusterConfig)
 
 	c.StartMember()

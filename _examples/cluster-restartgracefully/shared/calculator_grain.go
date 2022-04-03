@@ -12,10 +12,10 @@ type CalcGrain struct {
 	total int64
 }
 
-func (c *CalcGrain) Init(id string) {
-	c.Grain.Init(id)
-	c.total = cache.GetCountor(id)
-	plog.Info("start", log.String("id", id), log.Int64("number", c.total))
+func (c *CalcGrain) Init(ci *cluster.ClusterIdentity, cl *cluster.Cluster) {
+	c.Grain.Init(ci, cl)
+	c.total = cache.GetCountor(c.Identity())
+	plog.Info("start", log.String("id", c.Identity()), log.Int64("number", c.total))
 }
 
 func (c *CalcGrain) Terminate() {
