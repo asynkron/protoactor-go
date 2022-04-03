@@ -62,6 +62,10 @@ var (
 )
 
 func initialize(props *Props, ctx *actorContext) {
+	if props.onInit == nil {
+		return
+	}
+
 	for _, init := range props.onInit {
 		init(ctx)
 	}
@@ -329,7 +333,6 @@ func PropsFromProducer(producer Producer, opts ...PropsOption) *Props {
 	p := &Props{
 		producer:         producer,
 		contextDecorator: make([]ContextDecorator, 0),
-		onInit:           make([]func(ctx Context), 0),
 	}
 	p.WithOptions(opts...)
 	return p
