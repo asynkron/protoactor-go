@@ -137,12 +137,43 @@ func NewKind(kind string, props *actor.Props) *Kind {
 	}
 }
 
+//TODO: implement
 func handleStopped(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *actor.MessageEnvelope) {
 	next(c, envelope)
+
+	/*
+		   clusterKind.Dec();
+		   var cluster = ctx.System.Cluster();
+		   var identity = ctx.Get<ClusterIdentity>();
+
+		   if (identity is not null)
+		   {
+			   ctx.System.EventStream.Publish(new ActivationTerminating
+			   {
+				   Pid = ctx.Self,
+				   ClusterIdentity = identity,
+			   });
+			   cluster.PidCache.RemoveByVal(identity, ctx.Self);
+		   }
+
+		   await baseReceive(ctx, stopEnvelope);
+	*/
 }
 
+//TODO: implement
 func handleStarted(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *actor.MessageEnvelope) {
 	next(c, envelope)
+	/*
+		await baseReceive(ctx, startEnvelope);
+		var identity = ctx.Get<ClusterIdentity>();
+		var cluster = ctx.System.Cluster();
+		#pragma warning disable 618
+		var grainInit = new ClusterInit(identity!, cluster);
+		#pragma warning restore 618
+		var grainInitEnvelope = new MessageEnvelope(grainInit, null);
+		clusterKind.Inc();
+		await baseReceive(ctx, grainInitEnvelope);
+	*/
 
 	//env := actor.WrapEnvelope(&ClusterInit{})
 	//next(c, env)
