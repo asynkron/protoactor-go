@@ -39,8 +39,8 @@ func main() {
 	var wgStop sync.WaitGroup
 
 	props := actor.
-		PropsFromProducer(newLocalActor(&wgStop, messageCount)).
-		WithMailbox(mailbox.Bounded(10000))
+		PropsFromProducer(newLocalActor(&wgStop, messageCount),
+			actor.WithMailbox(mailbox.Bounded(10000)))
 
 	pid := rootContext.Spawn(props)
 

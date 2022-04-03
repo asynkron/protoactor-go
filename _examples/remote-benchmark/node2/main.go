@@ -30,8 +30,8 @@ func main() {
 	//runtime.GC()
 
 	props := actor.
-		PropsFromProducer(func() actor.Actor { return &echoActor{} }).
-		WithMailbox(mailbox.Bounded(1000000))
+		PropsFromProducer(func() actor.Actor { return &echoActor{} },
+			actor.WithMailbox(mailbox.Bounded(1000000)))
 
 	system := actor.NewActorSystem()
 	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 12000 /*, remote.WithCallOptions(grpc.UseCompressor(gzip.Name))*/))

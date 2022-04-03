@@ -54,8 +54,8 @@ func main() {
 	supervisor := actor.NewOneForOneStrategy(10, 1000, decider)
 	rootContext := system.Root
 	props := actor.
-		PropsFromProducer(newParentActor).
-		WithSupervisor(supervisor)
+		PropsFromProducer(newParentActor,
+			actor.WithSupervisor(supervisor))
 
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, &hello{Who: "Roger"})
