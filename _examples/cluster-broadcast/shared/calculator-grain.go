@@ -1,7 +1,6 @@
 package shared
 
 import (
-	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 )
 
@@ -10,24 +9,23 @@ type CalcGrain struct {
 	total int64
 }
 
-func (c *CalcGrain) ReceiveDefault(ctx actor.Context) {
+func (c *CalcGrain) ReceiveDefault(ctx cluster.GrainContext) {
 
 }
 
-func (c *CalcGrain) Init(ci *cluster.ClusterIdentity, cl *cluster.Cluster) {
-	c.Grain.Init(ci, cl)
+func (c *CalcGrain) Init(ctx cluster.GrainContext) {
 	c.total = 0
 
 	// register with the tracker
-	trackerGrain := GetTrackerGrainClient(c.Cluster(), "singleTrackerGrain")
-	trackerGrain.RegisterGrain(&RegisterMessage{GrainId: c.Identity()})
+	trackerGrain := GetTrackerGrainClient(ctx.Cluster(), "singleTrackerGrain")
+	trackerGrain.RegisterGrain(&RegisterMessage{GrainId: ctx.Identity()})
 }
 
-func (c *CalcGrain) Terminate() {
+func (c *CalcGrain) Terminate(ctx cluster.GrainContext) {
 
 	// deregister with the tracker
-	trackerGrain := GetTrackerGrainClient(c.Cluster(), "singleTrackerGrain")
-	trackerGrain.DeregisterGrain(&RegisterMessage{GrainId: c.Identity()})
+	trackerGrain := GetTrackerGrainClient(ctx.Cluster(), "singleTrackerGrain")
+	trackerGrain.DeregisterGrain(&RegisterMessage{GrainId: ctx.Identity()})
 }
 
 func (c *CalcGrain) Add(n *NumberRequest, ctx cluster.GrainContext) (*CountResponse, error) {

@@ -68,7 +68,7 @@ func NewHelloKind(factory func() Hello, timeout time.Duration, opts ...actor.Pro
 
 // Hello interfaces the services available to the Hello
 type Hello interface {
-	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)
+	Init(ctx cluster.GrainContext)
 	Terminate()
 	ReceiveDefault(ctx actor.Context)
 	SayHello(*HelloRequest, cluster.GrainContext) (*HelloResponse, error)
@@ -108,6 +108,7 @@ func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallO
 
 // HelloActor represents the actor structure
 type HelloActor struct {
+	ctx     cluster.GrainContext
 	inner   Hello
 	Timeout time.Duration
 }
@@ -117,8 +118,10 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 	case *cluster.ClusterInit:
+		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = xHelloFactory()
-		a.inner.Init(msg.Identity, msg.Cluster)
+		a.inner.Init(a.ctx)
+
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
@@ -141,7 +144,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.SayHello(req, ctx)
+			r0, err := a.inner.SayHello(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)

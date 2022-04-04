@@ -2,27 +2,12 @@ package cluster
 
 import "time"
 
-type Grain struct {
-	ci      *ClusterIdentity
-	cluster *Cluster
-}
-
-func (g *Grain) Identity() string {
-	return g.ci.Identity
-}
-
-func (g *Grain) Kind() string {
-	return g.ci.Kind
-}
-
-func (g *Grain) Cluster() *Cluster {
-	return g.cluster
-}
-
-func (g *Grain) Init(ci *ClusterIdentity, cluster *Cluster) {
-	g.ci = ci
-	g.cluster = cluster
-}
+//type Grain struct {
+//}
+//
+//func (g *Grain) Init(ctx GrainContext) {
+//
+//}
 
 type GrainCallOptions struct {
 	RetryCount  int

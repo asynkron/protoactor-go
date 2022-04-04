@@ -44,4 +44,34 @@ type GrainContext interface {
 	//
 	// ErrNameExists will be returned if identity already exists
 	SpawnNamed(props *actor.Props, id string) (*actor.PID, error)
+
+	Identity() string
+	Kind() string
+	Cluster() *Cluster
+}
+
+type grainContextImpl struct {
+	actor.Context
+	ci      *ClusterIdentity
+	cluster *Cluster
+}
+
+func (g grainContextImpl) Identity() string {
+	return g.ci.Identity
+}
+
+func (g grainContextImpl) Kind() string {
+	return g.ci.Kind
+}
+
+func (g grainContextImpl) Cluster() *Cluster {
+	return g.cluster
+}
+
+func NewGrainContext(context actor.Context, identity *ClusterIdentity, cluster *Cluster) GrainContext {
+	return &grainContextImpl{
+		Context: context,
+		ci:      identity,
+		cluster: cluster,
+	}
 }

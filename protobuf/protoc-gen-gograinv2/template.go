@@ -72,9 +72,9 @@ func New{{ $service.Name }}Kind(factory func() {{ $service.Name }}, timeout time
 
 // {{ $service.Name }} interfaces the services available to the {{ $service.Name }}
 type {{ $service.Name }} interface {
-	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)
-	Terminate()
-	ReceiveDefault(ctx actor.Context)
+	Init(ctx cluster.GrainContext)
+	Terminate(ctx cluster.GrainContext)
+	ReceiveDefault(ctx cluster.GrainContext)
 	{{ range $method := $service.Methods -}}
 	{{ $method.Name }}(*{{ $method.Input.Name }}, cluster.GrainContext) (*{{ $method.Output.Name }}, error)
 	{{ end }}
@@ -115,6 +115,7 @@ func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input.
 
 // {{ $service.Name }}Actor represents the actor structure
 type {{ $service.Name }}Actor struct {
+	ctx     cluster.GrainContext
 	inner   {{ $service.Name }}
 	Timeout time.Duration
 }
@@ -122,18 +123,19 @@ type {{ $service.Name }}Actor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started:
+	case *actor.Started: //pass
 	case *cluster.ClusterInit:
+		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = x{{ $service.Name }}Factory()
-		a.inner.Init(msg.Identity, msg.Cluster)
+		a.inner.Init(a.ctx)
+
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
-
-	case *actor.ReceiveTimeout:
-		a.inner.Terminate()
+	case *actor.ReceiveTimeout:		
 		ctx.Poison(ctx.Self())
-
+	case *actor.Stopped:
+		a.inner.Terminate(a.ctx)
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
 
@@ -149,7 +151,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.{{ $method.Name }}(req, ctx)
+			r0, err := a.inner.{{ $method.Name }}(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -167,7 +169,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 		{{ end }}
 		}
 	default:
-		a.inner.ReceiveDefault(ctx)
+		a.inner.ReceiveDefault(a.ctx)
 	}
 }
 {{ end -}}

@@ -2,7 +2,6 @@ package shared
 
 import (
 	"fmt"
-	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"strings"
 )
@@ -12,16 +11,15 @@ type TrackGrain struct {
 	grainsMap map[string]bool
 }
 
-func (t *TrackGrain) ReceiveDefault(ctx actor.Context) {
+func (t *TrackGrain) ReceiveDefault(ctx cluster.GrainContext) {
 
 }
 
-func (t *TrackGrain) Init(ci *cluster.ClusterIdentity, c *cluster.Cluster) {
-	t.Grain.Init(ci, c)
+func (t *TrackGrain) Init(ctx cluster.GrainContext) {
 	t.grainsMap = map[string]bool{}
 }
 
-func (t *TrackGrain) Terminate() {
+func (t *TrackGrain) Terminate(ctx cluster.GrainContext) {
 }
 
 func (t *TrackGrain) RegisterGrain(n *RegisterMessage, ctx cluster.GrainContext) (*Noop, error) {
@@ -40,7 +38,7 @@ func (t *TrackGrain) BroadcastGetCounts(n *Noop, ctx cluster.GrainContext) (*Tot
 
 	totals := map[string]int64{}
 	for grainAddress, _ := range t.grainsMap {
-		calcGrain := GetCalculatorGrainClient(t.Cluster(), grainAddress)
+		calcGrain := GetCalculatorGrainClient(ctx.Cluster(), grainAddress)
 		grainTotal, err := calcGrain.GetCurrent(&Noop{})
 		if err != nil {
 			fmt.Sprintf("Grain %s issued an error : %s", grainAddress, err)
