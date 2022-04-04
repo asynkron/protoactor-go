@@ -107,6 +107,7 @@ func Configure(host string, port int, options ...ConfigOption) *Config {
 	return c
 }
 
+// Config is the configuration for the remote
 type Config struct {
 	Host                     string
 	Port                     int
@@ -121,11 +122,13 @@ type Config struct {
 	Kinds                    map[string]*actor.Props
 }
 
+// Kind is the configuration for a kind
 type Kind struct {
 	Kind  string
 	Props *actor.Props
 }
 
+// NewKind creates a new kind configuration
 func NewKind(kind string, props *actor.Props) *Kind {
 	return &Kind{
 		Kind:  kind,
