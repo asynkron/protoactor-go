@@ -30,7 +30,7 @@ func main() {
 
 	system := actor.NewActorSystem()
 	remoteConfig := remote.Configure("127.0.0.1", 8080,
-		remote.WithKind("hello", actor.PropsFromProducer(newHelloActor)))
+		remote.WithKinds(remote.NewKind("hello", actor.PropsFromProducer(newHelloActor))))
 
 	remoter := remote.NewRemote(system, remoteConfig)
 	remoter.Start()

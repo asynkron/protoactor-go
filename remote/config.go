@@ -93,13 +93,6 @@ func WithKinds(kinds ...*Kind) ConfigOption {
 	}
 }
 
-// WithKind adds a kind to the remote
-func WithKind(kind string, props *actor.Props) ConfigOption {
-	return func(config *Config) {
-		config.Kinds[kind] = props
-	}
-}
-
 // Address returns the address of the remote
 func (rc Config) Address() string {
 	return fmt.Sprintf("%v:%v", rc.Host, rc.Port)
