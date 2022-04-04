@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"github.com/asynkron/protoactor-go/ctxext"
 	"io/ioutil"
 	"log"
 	"time"
@@ -22,14 +23,23 @@ type mockContext struct {
 	mock.Mock
 }
 
+//
+// Interface: Context
+//
+
+func (m *mockContext) Get(id ctxext.ContextExtensionID) ctxext.ContextExtension {
+	args := m.Called(id)
+	return args.Get(0).(ctxext.ContextExtension)
+}
+
+func (m *mockContext) Set(ext ctxext.ContextExtension) {
+	m.Called(ext)
+}
+
 func (m *mockContext) ActorSystem() *actor.ActorSystem {
 	args := m.Called()
 	return args.Get(0).(*actor.ActorSystem)
 }
-
-//
-// Interface: Context
-//
 
 func (m *mockContext) Parent() *actor.PID {
 	args := m.Called()
