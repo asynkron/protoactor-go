@@ -27,10 +27,10 @@ func (ci *ClusterIdentity) ExtensionID() ctxext.ContextExtensionID {
 	return ciExtensionId
 }
 
-func GetClusterIdentity(ctx actor.Context) *ClusterIdentity {
+func GetClusterIdentity(ctx actor.ExtensionContext) *ClusterIdentity {
 	return ctx.Get(ciExtensionId).(*ClusterIdentity)
 }
 
-func SetClusterIdentity(ctx actor.Context, ci *ClusterIdentity) {
+func SetClusterIdentity(ctx actor.ExtensionContext, ci *ClusterIdentity) {
 	ctx.Set(ci)
 }

@@ -151,46 +151,37 @@ func withClusterReceiveMiddleware() actor.PropsOption {
 	})
 }
 
-//TODO: implement
 func handleStopped(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *actor.MessageEnvelope) {
-	next(c, envelope)
 
 	/*
-		   clusterKind.Dec();
-		   var cluster = ctx.System.Cluster();
-		   var identity = ctx.Get<ClusterIdentity>();
-
-		   if (identity is not null)
-		   {
-			   ctx.System.EventStream.Publish(new ActivationTerminating
-			   {
-				   Pid = ctx.Self,
-				   ClusterIdentity = identity,
-			   });
-			   cluster.PidCache.RemoveByVal(identity, ctx.Self);
-		   }
-
-		   await baseReceive(ctx, stopEnvelope);
+	   clusterKind.Dec();
 	*/
+	cl := GetCluster(c.ActorSystem())
+	identity := GetClusterIdentity(c)
+
+	if identity != nil {
+		cl.ActorSystem.EventStream.Publish(&ActivationTerminating{
+			Pid:             c.Self(),
+			ClusterIdentity: identity,
+		})
+		cl.PidCache.RemoveByValue(identity.Identity, identity.Kind, c.Self())
+	}
+
+	next(c, envelope)
 }
 
-//TODO: implement
 func handleStarted(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *actor.MessageEnvelope) {
 	next(c, envelope)
-	/*
-		await baseReceive(ctx, startEnvelope);
-		var identity = ctx.Get<ClusterIdentity>();
-		var cluster = ctx.System.Cluster();
-		#pragma warning disable 618
-		var grainInit = new ClusterInit(identity!, cluster);
-		#pragma warning restore 618
-		var grainInitEnvelope = new MessageEnvelope(grainInit, null);
-		clusterKind.Inc();
-		await baseReceive(ctx, grainInitEnvelope);
-	*/
+	cl := GetCluster(c.ActorSystem())
+	identity := GetClusterIdentity(c)
 
-	//env := actor.WrapEnvelope(&ClusterInit{})
-	//next(c, env)
+	grainInit := &ClusterInit{
+		Identity: identity,
+		Cluster:  cl,
+	}
+
+	ge := actor.WrapEnvelope(grainInit)
+	next(c, ge)
 }
 
 func (k *Kind) WithMemberStrategy(strategyBuilder func(*Cluster) MemberStrategy) {

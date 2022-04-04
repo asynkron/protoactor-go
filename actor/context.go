@@ -17,11 +17,6 @@ type Context interface {
 	extensionPart
 }
 
-type extensionPart interface {
-	Get(id ctxext.ContextExtensionID) ctxext.ContextExtension
-	Set(ext ctxext.ContextExtension)
-}
-
 type ExtensionContext interface {
 	extensionPart
 }
@@ -36,11 +31,17 @@ type ReceiverContext interface {
 	infoPart
 	receiverPart
 	messagePart
+	extensionPart
 }
 
 type SpawnerContext interface {
 	infoPart
 	spawnerPart
+}
+
+type extensionPart interface {
+	Get(id ctxext.ContextExtensionID) ctxext.ContextExtension
+	Set(ext ctxext.ContextExtension)
 }
 
 type infoPart interface {
