@@ -114,6 +114,7 @@ type Kind struct {
 
 // Creates a new instance of a kind
 func NewKind(kind string, props *actor.Props) *Kind {
+	//add cluster middleware
 	p := props.Clone(withClusterReceiveMiddleware())
 	return &Kind{
 		Kind:            kind,
@@ -123,17 +124,12 @@ func NewKind(kind string, props *actor.Props) *Kind {
 }
 
 func WithClusterIdentity(props *actor.Props, ci *ClusterIdentity) *actor.Props {
+	//inject the cluster identity into the actor context
 	p := props.Clone(
 		actor.WithOnInit(func(ctx actor.Context) {
 			ctx.Set(ci)
 		}))
 	return p
-}
-
-func withClusterIdentityPlugin(ci *ClusterIdentity) actor.PropsOption {
-	return actor.WithOnInit(func(ctx actor.Context) {
-		ctx.Set(ci)
-	})
 }
 
 func withClusterReceiveMiddleware() actor.PropsOption {
