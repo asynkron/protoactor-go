@@ -38,7 +38,6 @@ func newHelloActor() actor.Actor {
 
 // a Go struct implementing the Hello interface
 type HelloGrain struct {
-	cluster.Grain
 }
 
 func (h *HelloGrain) Init(ci *cluster.ClusterIdentity, cl *cluster.Cluster) {

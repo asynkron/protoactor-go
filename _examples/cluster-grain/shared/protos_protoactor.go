@@ -69,8 +69,8 @@ func NewHelloKind(factory func() Hello, timeout time.Duration, opts ...actor.Pro
 // Hello interfaces the services available to the Hello
 type Hello interface {
 	Init(ctx cluster.GrainContext)
-	Terminate()
-	ReceiveDefault(ctx actor.Context)
+	Terminate(ctx cluster.GrainContext)
+	ReceiveDefault(ctx cluster.GrainContext)
 	SayHello(*HelloRequest, cluster.GrainContext) (*HelloResponse, error)
 }
 
@@ -116,7 +116,7 @@ type HelloActor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started:
+	case *actor.Started: //pass
 	case *cluster.ClusterInit:
 		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = xHelloFactory()
@@ -125,11 +125,10 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
-
 	case *actor.ReceiveTimeout:
-		a.inner.Terminate()
 		ctx.Poison(ctx.Self())
-
+	case *actor.Stopped:
+		a.inner.Terminate(a.ctx)
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
 
@@ -162,6 +161,6 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 
 		}
 	default:
-		a.inner.ReceiveDefault(ctx)
+		a.inner.ReceiveDefault(a.ctx)
 	}
 }

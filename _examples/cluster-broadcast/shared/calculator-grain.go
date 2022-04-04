@@ -5,7 +5,6 @@ import (
 )
 
 type CalcGrain struct {
-	cluster.Grain
 	total int64
 }
 

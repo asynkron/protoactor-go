@@ -12,13 +12,16 @@ import (
 )
 
 type HelloGrain struct {
-	cluster.Grain
 }
 
-func (h HelloGrain) Terminate() {
+func (h HelloGrain) Init(ctx cluster.GrainContext) {
+
 }
 
-func (h HelloGrain) ReceiveDefault(ctx actor.Context) {
+func (h HelloGrain) Terminate(ctx cluster.GrainContext) {
+}
+
+func (h HelloGrain) ReceiveDefault(ctx cluster.GrainContext) {
 }
 
 func (h HelloGrain) SayHello(request *shared.HelloRequest, context cluster.GrainContext) (*shared.HelloResponse, error) {

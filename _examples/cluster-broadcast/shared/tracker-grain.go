@@ -7,7 +7,6 @@ import (
 )
 
 type TrackGrain struct {
-	cluster.Grain
 	grainsMap map[string]bool
 }
 
