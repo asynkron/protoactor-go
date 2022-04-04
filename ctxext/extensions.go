@@ -16,7 +16,7 @@ type ContextExtensions struct {
 
 func NewContextExtensions() *ContextExtensions {
 	ex := &ContextExtensions{
-		extensions: make([]ContextExtension, 100),
+		extensions: make([]ContextExtension, 3),
 	}
 	return ex
 }
@@ -31,6 +31,11 @@ func (ex *ContextExtensions) Get(id ContextExtensionID) ContextExtension {
 }
 
 func (ex *ContextExtensions) Set(extension ContextExtension) {
-	id := extension.ExtensionID()
+	id := int32(extension.ExtensionID())
+	if id >= int32(len(ex.extensions)) {
+		newExtensions := make([]ContextExtension, id*2)
+		copy(newExtensions, ex.extensions)
+		ex.extensions = newExtensions
+	}
 	ex.extensions[id] = extension
 }
