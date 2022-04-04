@@ -99,10 +99,17 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 	}
 
 	clusterKind := p.cluster.GetClusterKind(msg.ClusterIdentity.Kind)
+	if clusterKind == nil {
+		plog.Error("Unknown cluster kind", log.String("kind", msg.ClusterIdentity.Kind))
 
-	//TODO: wrap in WithClusterIdentity
+		//TODO: what to do here?
+		ctx.Respond(nil)
+		return
+	}
 
-	pid := ctx.SpawnPrefix(clusterKind.Props, msg.ClusterIdentity.Identity)
+	props := clustering.WithClusterIdentity(clusterKind.Props, msg.ClusterIdentity)
+
+	pid := ctx.SpawnPrefix(props, msg.ClusterIdentity.Identity)
 	ctx.Send(pid, &clustering.ClusterInit{
 		Identity: msg.ClusterIdentity,
 		Cluster:  p.cluster,

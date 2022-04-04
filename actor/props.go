@@ -135,7 +135,7 @@ func (props *Props) spawn(actorSystem *ActorSystem, name string, parentContext S
 	return props.getSpawner()(actorSystem, name, props, parentContext)
 }
 
-func (props *Props) WithOptions(opts ...PropsOption) *Props {
+func (props *Props) Configure(opts ...PropsOption) *Props {
 	for _, opt := range opts {
 		opt(props)
 	}
@@ -334,7 +334,7 @@ func PropsFromProducer(producer Producer, opts ...PropsOption) *Props {
 		producer:         producer,
 		contextDecorator: make([]ContextDecorator, 0),
 	}
-	p.WithOptions(opts...)
+	p.Configure(opts...)
 	return p
 }
 
@@ -342,4 +342,21 @@ func PropsFromProducer(producer Producer, opts ...PropsOption) *Props {
 func PropsFromFunc(f ReceiveFunc, opts ...PropsOption) *Props {
 	p := PropsFromProducer(func() Actor { return f }, opts...)
 	return p
+}
+
+func (props *Props) Clone(opts ...PropsOption) *Props {
+	cp :=
+		PropsFromProducer(props.producer,
+			WithDispatcher(props.dispatcher),
+			WithMailbox(props.mailboxProducer),
+			WithContextDecorator(props.contextDecorator...),
+			WithGuardian(props.guardianStrategy),
+			WithSupervisor(props.supervisionStrategy),
+			WithReceiverMiddleware(props.receiverMiddleware...),
+			WithSenderMiddleware(props.senderMiddleware...),
+			WithSpawnFunc(props.spawner),
+			WithSpawnMiddleware(props.spawnMiddleware...))
+
+	cp.Configure(opts...)
+	return cp
 }

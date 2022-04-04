@@ -114,15 +114,29 @@ type Kind struct {
 
 // Creates a new instance of a kind
 func NewKind(kind string, props *actor.Props) *Kind {
-	props.WithOptions(clusterReceiveMiddleware())
+	p := props.Clone(withClusterReceiveMiddleware())
 	return &Kind{
 		Kind:            kind,
-		Props:           props,
+		Props:           p,
 		StrategyBuilder: nil,
 	}
 }
 
-func clusterReceiveMiddleware() actor.PropsOption {
+func WithClusterIdentity(props *actor.Props, ci *ClusterIdentity) *actor.Props {
+	p := props.Clone(
+		actor.WithOnInit(func(ctx actor.Context) {
+			ctx.Set(ci)
+		}))
+	return p
+}
+
+func withClusterIdentityPlugin(ci *ClusterIdentity) actor.PropsOption {
+	return actor.WithOnInit(func(ctx actor.Context) {
+		ctx.Set(ci)
+	})
+}
+
+func withClusterReceiveMiddleware() actor.PropsOption {
 	return actor.WithReceiverMiddleware(func(next actor.ReceiverFunc) actor.ReceiverFunc {
 		return func(c actor.ReceiverContext, envelope *actor.MessageEnvelope) {
 
