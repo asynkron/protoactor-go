@@ -34,7 +34,8 @@ type actorContextExtras struct {
 
 func newActorContextExtras(context Context) *actorContextExtras {
 	this := &actorContextExtras{
-		context: context,
+		context:    context,
+		extensions: ctxext.NewContextExtensions(),
 	}
 	return this
 }
