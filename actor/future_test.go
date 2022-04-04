@@ -102,3 +102,25 @@ func TestFuture_Result_DeadLetterResponse(t *testing.T) {
 	assert.Equal(ErrDeadLetter, err)
 	assert.Nil(resp)
 }
+
+func TestFuture_Result_Timeout(t *testing.T) {
+	assert := assert.New(t)
+
+	plog.SetLevel(log.OffLevel)
+
+	future := NewFuture(system, 1*time.Second)
+	resp, err := future.Result()
+	assert.Equal(ErrTimeout, err)
+	assert.Nil(resp)
+}
+
+func TestFuture_Result_Success(t *testing.T) {
+	assert := assert.New(t)
+
+	plog.SetLevel(log.OffLevel)
+
+	future := NewFuture(system, 1*time.Second)
+	rootContext.Send(future.PID(), EchoResponse{})
+	resp := assertFutureSuccess(future, t)
+	assert.Equal(EchoResponse{}, resp)
+}

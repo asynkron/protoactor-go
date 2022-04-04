@@ -1,7 +1,7 @@
 package actor
 
 import (
-	"hash/crc32"
+	murmur32 "github.com/spaolacci/murmur3"
 	"sync/atomic"
 
 	cmap "github.com/orcaman/concurrent-map"
@@ -29,7 +29,8 @@ func newSliceMap() *SliceMap {
 }
 
 func (s *SliceMap) GetBucket(key string) cmap.ConcurrentMap {
-	index := int(crc32.ChecksumIEEE([]byte(key))) % len(s.LocalPIDs)
+	hash := murmur32.Sum32([]byte(key))
+	index := int(hash) % len(s.LocalPIDs)
 	return s.LocalPIDs[index]
 }
 

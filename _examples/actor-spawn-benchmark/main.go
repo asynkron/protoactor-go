@@ -74,21 +74,23 @@ func main() {
 	}
 	//runtime.GOMAXPROCS(runtime.NumCPU())
 	//runtime.GC()
-	system := actor.NewActorSystem()
 
-	rootContext := system.Root
+	for i := 0; i < 10; i++ {
+		system := actor.NewActorSystem()
+		rootContext := system.Root
 
-	start := time.Now()
-	pid := rootContext.Spawn(props)
-	res, _ := rootContext.RequestFuture(pid, &request{
-		num:  0,
-		size: 1000000,
-		div:  10,
-	}, 10*time.Second).Result()
-	result := res.(int)
+		start := time.Now()
+		pid := rootContext.Spawn(props)
+		res, _ := rootContext.RequestFuture(pid, &request{
+			num:  0,
+			size: 1000000,
+			div:  10,
+		}, 10*time.Second).Result()
+		result := res.(int)
 
-	took := time.Since(start)
-	fmt.Printf("Result: %d in %d ms.\n", result, took.Nanoseconds()/1e6)
+		took := time.Since(start)
+		fmt.Printf("Result: %d in %d ms.\n", result, took.Nanoseconds()/1e6)
+	}
 
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
