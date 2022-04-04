@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/couchbase/gocb"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type cbState struct {

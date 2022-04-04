@@ -3,7 +3,7 @@ package persistence
 import (
 	"sync"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type entry struct {

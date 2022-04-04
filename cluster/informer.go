@@ -12,7 +12,7 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/log"
-	"github.com/gogo/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -92,7 +92,8 @@ func (inf *Informer) SetState(key string, message proto.Message) {
 				sequenceNumbers[key] = uint64(value.SequenceNumber)
 			}
 		}
-		plog.Debug("Setting state", log.String("key", key), log.String("value", message.String()), log.Object("state", sequenceNumbers))
+
+		//plog.Debug("Setting state", log.String("key", key), log.String("value", message.String()), log.Object("state", sequenceNumbers))
 	}
 
 	if _, ok := inf.state.Members[inf.myID]; !ok {

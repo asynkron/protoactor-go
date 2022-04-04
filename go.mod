@@ -10,7 +10,6 @@ require (
 	github.com/couchbase/gocb v1.6.7
 	github.com/emirpasic/gods v1.12.0
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/consul/api v1.12.0
 	github.com/opentracing/opentracing-go v1.2.0
@@ -27,6 +26,8 @@ require (
 	google.golang.org/grpc v1.45.0
 	google.golang.org/protobuf v1.27.1
 )
+
+require github.com/golang/protobuf v1.5.2
 
 require (
 	github.com/armon/go-metrics v0.3.0 // indirect

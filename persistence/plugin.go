@@ -2,7 +2,7 @@ package persistence
 
 import (
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type persistent interface {

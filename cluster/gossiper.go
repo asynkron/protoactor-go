@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/asynkron/gofun/set"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
