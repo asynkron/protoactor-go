@@ -40,22 +40,21 @@ func newHelloActor() actor.Actor {
 type HelloGrain struct {
 }
 
-func (h *HelloGrain) Init(ci *cluster.ClusterIdentity, cl *cluster.Cluster) {
-	h.Grain.Init(ci, cl)
-	log.Printf("new grain id=%s", ci.Identity)
+func (h *HelloGrain) Init(ctx cluster.GrainContext) {
+	log.Printf("new grain id=%s", ctx.Identity)
 }
 
-func (h *HelloGrain) Terminate() {
-	log.Printf("delete grain id=%s", h.Grain.Identity())
+func (h *HelloGrain) Terminate(ctx cluster.GrainContext) {
+	log.Printf("delete grain id=%s", ctx.Identity())
 }
 
-func (*HelloGrain) ReceiveDefault(ctx actor.Context) {
+func (*HelloGrain) ReceiveDefault(ctx cluster.GrainContext) {
 	msg := ctx.Message()
 	log.Printf("Unknown message %v", msg)
 }
 
 func (h *HelloGrain) SayHello(r *shared.HelloRequest, ctx cluster.GrainContext) (*shared.HelloResponse, error) {
-	return &shared.HelloResponse{Message: "hello " + r.Name + " from " + h.Identity()}, nil
+	return &shared.HelloResponse{Message: "hello " + r.Name + " from " + ctx.Identity()}, nil
 }
 
 func (*HelloGrain) Add(r *shared.AddRequest, ctx cluster.GrainContext) (*shared.AddResponse, error) {
@@ -67,13 +66,11 @@ func (*HelloGrain) VoidFunc(r *shared.AddRequest, ctx cluster.GrainContext) (*sh
 }
 
 func main() {
-	shared.HelloFactory(func() shared.Hello { return &HelloGrain{} })
-
 	port := flag.Int("port", 0, "")
 	flag.Parse()
 	system := actor.NewActorSystem()
 	remoteConfig := remote.Configure("127.0.0.1", *port)
-	helloKind := shared.GetHelloKind(actor.WithReceiverMiddleware(Logger))
+	helloKind := shared.NewHelloKind(func() shared.Hello { return &HelloGrain{} }, 0, actor.WithReceiverMiddleware(Logger))
 	cluster.SetLogLevel(logmod.InfoLevel)
 
 	provider, _ := consul.New()

@@ -54,11 +54,23 @@ func GetHelloKind(opts ...actor.PropsOption) *cluster.Kind {
 	return kind
 }
 
+// GetHelloKind instantiates a new cluster.Kind for Hello
+func NewHelloKind(factory func() Hello, timeout time.Duration, opts ...actor.PropsOption) *cluster.Kind {
+	xHelloFactory = factory
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &HelloActor{
+			Timeout: timeout,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Hello", props)
+	return kind
+}
+
 // Hello interfaces the services available to the Hello
 type Hello interface {
-	Init(ci *cluster.ClusterIdentity, cluster *cluster.Cluster)
-	Terminate()
-	ReceiveDefault(ctx actor.Context)
+	Init(ctx cluster.GrainContext)
+	Terminate(ctx cluster.GrainContext)
+	ReceiveDefault(ctx cluster.GrainContext)
 	SayHello(*HelloRequest, cluster.GrainContext) (*HelloResponse, error)
 	Add(*AddRequest, cluster.GrainContext) (*AddResponse, error)
 	VoidFunc(*AddRequest, cluster.GrainContext) (*Unit, error)
@@ -150,6 +162,7 @@ func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...*cluster.GrainCallOpt
 
 // HelloActor represents the actor structure
 type HelloActor struct {
+	ctx     cluster.GrainContext
 	inner   Hello
 	Timeout time.Duration
 }
@@ -157,18 +170,19 @@ type HelloActor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started:
+	case *actor.Started: //pass
 	case *cluster.ClusterInit:
+		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = xHelloFactory()
-		a.inner.Init(msg.Identity, msg.Cluster)
+		a.inner.Init(a.ctx)
+
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
-
 	case *actor.ReceiveTimeout:
-		a.inner.Terminate()
 		ctx.Poison(ctx.Self())
-
+	case *actor.Stopped:
+		a.inner.Terminate(a.ctx)
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
 
@@ -183,7 +197,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.SayHello(req, ctx)
+			r0, err := a.inner.SayHello(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -207,7 +221,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.Add(req, ctx)
+			r0, err := a.inner.Add(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -231,7 +245,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.VoidFunc(req, ctx)
+			r0, err := a.inner.VoidFunc(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -249,6 +263,6 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 
 		}
 	default:
-		a.inner.ReceiveDefault(ctx)
+		a.inner.ReceiveDefault(a.ctx)
 	}
 }

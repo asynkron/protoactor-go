@@ -15,7 +15,6 @@ type HelloGrain struct {
 }
 
 func (h HelloGrain) Init(ctx cluster.GrainContext) {
-
 }
 
 func (h HelloGrain) Terminate(ctx cluster.GrainContext) {
