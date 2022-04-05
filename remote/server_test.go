@@ -27,10 +27,12 @@ func TestConfig_WithAdvertisedHost(t *testing.T) {
 
 func TestRemote_Register(t *testing.T) {
 	system := actor.NewActorSystem()
-	config := Configure("localhost", 0)
+	config := Configure("localhost", 0, WithKinds(
+		NewKind("someKind", actor.PropsFromProducer(nil)),
+		NewKind("someOther", actor.PropsFromProducer(nil)),
+	))
 	remote := NewRemote(system, config)
-	remote.Register("someKind", actor.PropsFromProducer(nil))
-	remote.Register("someOther", actor.PropsFromProducer(nil))
+
 	kinds := remote.GetKnownKinds()
 	assert.Equal(t, 2, len(kinds))
 	sort.Strings(kinds)

@@ -8,6 +8,7 @@ import (
 	"github.com/asynkron/protoactor-go/log"
 )
 
+// Middleware is an interface for intercepting messages and events in the mailbox
 type Middleware interface {
 	MailboxStarted()
 	MessagePosted(message interface{})

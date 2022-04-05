@@ -15,9 +15,9 @@ var (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	cfg := remote.Configure("127.0.0.1", 8080)
 
 	props := actor.PropsFromFunc(func(ctx actor.Context) {})
+	cfg := remote.Configure("127.0.0.1", 8080, remote.WithKinds(remote.NewKind("remote", props)))
 
 	r := remote.NewRemote(system, cfg)
 	r.Register("remote", props)
