@@ -28,16 +28,16 @@ func (q *boundedMailboxQueue) Pop() interface{} {
 }
 
 // Bounded returns a producer which creates an bounded mailbox of the specified size
-func Bounded(size int, mailboxStats ...Statistics) Producer {
+func Bounded(size int, mailboxStats ...Middleware) Producer {
 	return bounded(size, false, mailboxStats...)
 }
 
 // Bounded dropping returns a producer which creates an bounded mailbox of the specified size that drops front element on push
-func BoundedDropping(size int, mailboxStats ...Statistics) Producer {
+func BoundedDropping(size int, mailboxStats ...Middleware) Producer {
 	return bounded(size, true, mailboxStats...)
 }
 
-func bounded(size int, dropping bool, mailboxStats ...Statistics) Producer {
+func bounded(size int, dropping bool, mailboxStats ...Middleware) Producer {
 	return func() Mailbox {
 		q := &boundedMailboxQueue{
 			userMailbox: rbqueue.NewRingBuffer(uint64(size)),

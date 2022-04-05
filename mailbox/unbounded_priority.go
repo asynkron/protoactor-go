@@ -13,7 +13,7 @@ func NewPriorityGoringQueue() *priorityQueue {
 	})
 }
 
-func UnboundedPriority(mailboxStats ...Statistics) Producer {
+func UnboundedPriority(mailboxStats ...Middleware) Producer {
 	return func() Mailbox {
 		return &defaultMailbox{
 			systemMailbox: mpsc.New(),
@@ -29,7 +29,7 @@ func NewPriorityMpscQueue() *priorityQueue {
 	})
 }
 
-func UnboundedPriorityMpsc(mailboxStats ...Statistics) Producer {
+func UnboundedPriorityMpsc(mailboxStats ...Middleware) Producer {
 	return func() Mailbox {
 		return &defaultMailbox{
 			systemMailbox: mpsc.New(),

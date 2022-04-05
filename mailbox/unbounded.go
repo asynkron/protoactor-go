@@ -22,7 +22,7 @@ func (q *unboundedMailboxQueue) Pop() interface{} {
 }
 
 // Unbounded returns a producer which creates an unbounded mailbox
-func Unbounded(mailboxStats ...Statistics) Producer {
+func Unbounded(mailboxStats ...Middleware) Producer {
 	return func() Mailbox {
 		q := &unboundedMailboxQueue{
 			userMailbox: goring.New(10),

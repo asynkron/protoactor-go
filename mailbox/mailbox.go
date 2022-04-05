@@ -8,7 +8,7 @@ import (
 	"github.com/asynkron/protoactor-go/log"
 )
 
-type Statistics interface {
+type Middleware interface {
 	MailboxStarted()
 	MessagePosted(message interface{})
 	MessageReceived(message interface{})
@@ -48,7 +48,7 @@ type defaultMailbox struct {
 	suspended       int32
 	invoker         MessageInvoker
 	dispatcher      Dispatcher
-	mailboxStats    []Statistics
+	mailboxStats    []Middleware
 }
 
 func (m *defaultMailbox) PostUserMessage(message interface{}) {

@@ -6,7 +6,7 @@ import (
 
 // UnboundedLockfree returns a producer which creates an unbounded, lock-free mailbox.
 // This mailbox is cheaper to allocate, but has a slower throughput than the plain Unbounded mailbox.
-func UnboundedLockfree(mailboxStats ...Statistics) Producer {
+func UnboundedLockfree(mailboxStats ...Middleware) Producer {
 	return func() Mailbox {
 		return &defaultMailbox{
 			userMailbox:   mpsc.New(),
