@@ -35,8 +35,10 @@ func (state *broadcastRouterState) RouteMessage(message interface{}) {
 	})
 }
 
-func NewBroadcastPool(size int) *actor.Props {
-	return (&actor.Props{}).Configure(actor.WithSpawnFunc(spawner(&broadcastPoolRouter{PoolRouter{PoolSize: size}})))
+func NewBroadcastPool(size int, opts ...actor.PropsOption) *actor.Props {
+	return (&actor.Props{}).
+		Configure(actor.WithSpawnFunc(spawner(&broadcastPoolRouter{PoolRouter{PoolSize: size}}))).
+		Configure(opts...)
 }
 
 func NewBroadcastGroup(routees ...*actor.PID) *actor.Props {

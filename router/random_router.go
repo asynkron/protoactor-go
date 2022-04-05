@@ -35,8 +35,11 @@ func (state *randomRouterState) RouteMessage(message interface{}) {
 	state.sender.Send(pid, message)
 }
 
-func NewRandomPool(size int) *actor.Props {
-	return (&actor.Props{}).Configure(actor.WithSpawnFunc(spawner(&randomPoolRouter{PoolRouter{PoolSize: size}})))
+func NewRandomPool(size int, opts ...actor.PropsOption) *actor.Props {
+	return (&actor.Props{}).
+		Configure(actor.WithSpawnFunc(spawner(&randomPoolRouter{PoolRouter{PoolSize: size}}))).
+		Configure(opts...)
+
 }
 
 func NewRandomGroup(routees ...*actor.PID) *actor.Props {
