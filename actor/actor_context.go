@@ -334,18 +334,29 @@ func (ctx *actorContext) Receive(envelope *MessageEnvelope) {
 }
 
 func (ctx *actorContext) defaultReceive() {
-	if _, ok := ctx.Message().(*PoisonPill); ok {
+	switch msg := ctx.Message().(type) {
+	case *PoisonPill:
 		ctx.Stop(ctx.self)
-		return
-	}
 
-	// are we using decorators, if so, ensure it has been created
-	if ctx.props.contextDecoratorChain != nil {
-		ctx.actor.Receive(ctx.ensureExtras().context)
-		return
-	}
+	case AutoRespond:
+		if ctx.props.contextDecoratorChain != nil {
+			ctx.actor.Receive(ctx.ensureExtras().context)
+		} else {
+			ctx.actor.Receive(ctx)
+		}
 
-	ctx.actor.Receive(Context(ctx))
+		res := msg.GetAutoResponse(ctx)
+		ctx.Respond(res)
+
+	default:
+		// are we using decorators, if so, ensure it has been created
+		if ctx.props.contextDecoratorChain != nil {
+			ctx.actor.Receive(ctx.ensureExtras().context)
+			return
+		} else {
+			ctx.actor.Receive(ctx)
+		}
+	}
 }
 
 //

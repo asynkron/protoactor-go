@@ -251,3 +251,20 @@ func TestActorContinueFutureInActor(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "done", res)
 }
+
+type dummyAutoRespond struct {
+}
+
+func (*dummyAutoRespond) GetAutoResponse(_ Context) any {
+	return &dummyResponse{}
+}
+
+func TestActorContextAutoRespondMessage(t *testing.T) {
+	pid := rootContext.Spawn(PropsFromFunc(func(ctx Context) {}))
+	var msg AutoRespond = &dummyAutoRespond{}
+
+	res, err := rootContext.RequestFuture(pid, msg, 1*time.Second).Result()
+	assert.NoError(t, err)
+	assert.IsType(t, &dummyResponse{}, res)
+
+}

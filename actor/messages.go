@@ -2,6 +2,11 @@ package actor
 
 import "github.com/asynkron/protoactor-go/mailbox"
 
+//InfrastructureMessage is a marker for all built in Proto.Actor messages
+type InfrastructureMessage interface {
+	InfrastructureMessage()
+}
+
 // IgnoreDeadLetterLogging messages are not logged in deadletter log
 type IgnoreDeadLetterLogging interface {
 	IgnoreDeadLetterLogging()
@@ -40,6 +45,7 @@ type Started struct{}
 // Restart is message sent by the actor system to control the lifecycle of an actor
 type Restart struct{}
 
+// Failure message is sent to an actor parent when an exception is thrown by one of its methods
 type Failure struct {
 	Who          *PID
 	Reason       interface{}
@@ -67,17 +73,17 @@ func (*Restart) SystemMessage()      {}
 func (*continuation) SystemMessage() {}
 
 var (
-	restartingMessage     interface{} = &Restarting{}
-	stoppingMessage       interface{} = &Stopping{}
-	stoppedMessage        interface{} = &Stopped{}
-	poisonPillMessage     interface{} = &PoisonPill{}
-	receiveTimeoutMessage interface{} = &ReceiveTimeout{}
+	restartingMessage     any = &Restarting{}
+	stoppingMessage       any = &Stopping{}
+	stoppedMessage        any = &Stopped{}
+	poisonPillMessage     any = &PoisonPill{}
+	receiveTimeoutMessage any = &ReceiveTimeout{}
 )
 
 var (
-	restartMessage        interface{} = &Restart{}
-	startedMessage        interface{} = &Started{}
-	stopMessage           interface{} = &Stop{}
-	resumeMailboxMessage  interface{} = &mailbox.ResumeMailbox{}
-	suspendMailboxMessage interface{} = &mailbox.SuspendMailbox{}
+	restartMessage        any = &Restart{}
+	startedMessage        any = &Started{}
+	stopMessage           any = &Stop{}
+	resumeMailboxMessage  any = &mailbox.ResumeMailbox{}
+	suspendMailboxMessage any = &mailbox.SuspendMailbox{}
 )
