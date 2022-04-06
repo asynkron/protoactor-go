@@ -32,6 +32,7 @@ func TestActorReceivesEachMessageInAMessageBatch(t *testing.T) {
 	}
 
 	rootContext.Send(pid, batch)
+
 	seenMessagesWg.Wait()
 	seenBatchMessageWg.Wait()
 }
