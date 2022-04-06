@@ -6,7 +6,6 @@ import (
 
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/mailbox"
 	"github.com/asynkron/protoactor-go/remote"
 )
 
@@ -31,7 +30,7 @@ func main() {
 
 	props := actor.
 		PropsFromProducer(func() actor.Actor { return &echoActor{} },
-			actor.WithMailbox(mailbox.Bounded(1000000)))
+			actor.WithMailbox(actor.Bounded(1000000)))
 
 	system := actor.NewActorSystem()
 	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 12000 /*, remote.WithCallOptions(grpc.UseCompressor(gzip.Name))*/))

@@ -1,4 +1,4 @@
-package mailbox
+package actor
 
 // A priority queue is a sort of meta-queue that uses a queue per priority level.
 // The underlying queues can be anything that implements the queue interface.

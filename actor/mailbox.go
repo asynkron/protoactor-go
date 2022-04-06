@@ -1,4 +1,4 @@
-package mailbox
+package actor
 
 import (
 	"runtime"
@@ -32,8 +32,8 @@ type Mailbox interface {
 	UserMessageCount() int
 }
 
-// Producer is a function which creates a new mailbox
-type Producer func() Mailbox
+// MailboxProducer is a function which creates a new mailbox
+type MailboxProducer func() Mailbox
 
 const (
 	idle int32 = iota
@@ -49,11 +49,33 @@ type defaultMailbox struct {
 	suspended       int32
 	invoker         MessageInvoker
 	dispatcher      Dispatcher
-	mailboxStats    []Middleware
+	middlewares     []Middleware
 }
 
 func (m *defaultMailbox) PostUserMessage(message interface{}) {
-	for _, ms := range m.mailboxStats {
+
+	//is it a raw batch message?
+	if batch, ok := message.(MessageBatch); ok {
+		messages := batch.GetMessages()
+
+		for _, msg := range messages {
+			m.PostUserMessage(msg)
+		}
+	}
+
+	//is it an envelope batch message?
+	if env, ok := message.(MessageEnvelope); ok {
+		if batch, ok := env.Message.(MessageBatch); ok {
+			messages := batch.GetMessages()
+
+			for _, msg := range messages {
+				m.PostUserMessage(msg)
+			}
+		}
+	}
+
+	//normal messages
+	for _, ms := range m.middlewares {
 		ms.MessagePosted(message)
 	}
 	m.userMailbox.Push(message)
@@ -62,7 +84,7 @@ func (m *defaultMailbox) PostUserMessage(message interface{}) {
 }
 
 func (m *defaultMailbox) PostSystemMessage(message interface{}) {
-	for _, ms := range m.mailboxStats {
+	for _, ms := range m.middlewares {
 		ms.MessagePosted(message)
 	}
 	m.systemMailbox.Push(message)
@@ -98,7 +120,7 @@ process:
 		}
 	}
 
-	for _, ms := range m.mailboxStats {
+	for _, ms := range m.middlewares {
 		ms.MailboxEmpty()
 	}
 }
@@ -133,7 +155,7 @@ func (m *defaultMailbox) run() {
 			default:
 				m.invoker.InvokeSystemMessage(msg)
 			}
-			for _, ms := range m.mailboxStats {
+			for _, ms := range m.middlewares {
 				ms.MessageReceived(msg)
 			}
 			continue
@@ -147,7 +169,7 @@ func (m *defaultMailbox) run() {
 		if msg = m.userMailbox.Pop(); msg != nil {
 			atomic.AddInt32(&m.userMessages, -1)
 			m.invoker.InvokeUserMessage(msg)
-			for _, ms := range m.mailboxStats {
+			for _, ms := range m.middlewares {
 				ms.MessageReceived(msg)
 			}
 		} else {
@@ -158,7 +180,7 @@ func (m *defaultMailbox) run() {
 }
 
 func (m *defaultMailbox) Start() {
-	for _, ms := range m.mailboxStats {
+	for _, ms := range m.middlewares {
 		ms.MailboxStarted()
 	}
 }

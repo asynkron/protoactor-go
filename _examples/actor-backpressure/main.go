@@ -7,7 +7,6 @@ import (
 
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/mailbox"
 )
 
 // sent to producer to request more work
@@ -50,7 +49,7 @@ func (p *producer) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		// spawn our worker
-		mb := mailbox.Unbounded(&requestWorkBehavior{
+		mb := actor.Unbounded(&requestWorkBehavior{
 			producer: ctx.Self(),
 		})
 		workerProps := actor.PropsFromProducer(func() actor.Actor {

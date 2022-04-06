@@ -1,6 +1,14 @@
 package actor
 
-import "github.com/asynkron/protoactor-go/mailbox"
+// ResumeMailbox is message sent by the actor system to resume mailbox processing.
+//
+// This will not be forwarded to the Receive method
+type ResumeMailbox struct{}
+
+// SuspendMailbox is message sent by the actor system to suspend mailbox processing.
+//
+// This will not be forwarded to the Receive method
+type SuspendMailbox struct{}
 
 //InfrastructureMessage is a marker for all built in Proto.Actor messages
 type InfrastructureMessage interface {
@@ -84,6 +92,6 @@ var (
 	restartMessage        any = &Restart{}
 	startedMessage        any = &Started{}
 	stopMessage           any = &Stop{}
-	resumeMailboxMessage  any = &mailbox.ResumeMailbox{}
-	suspendMailboxMessage any = &mailbox.SuspendMailbox{}
+	resumeMailboxMessage  any = &ResumeMailbox{}
+	suspendMailboxMessage any = &SuspendMailbox{}
 )

@@ -5,11 +5,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/asynkron/protoactor-go/log"
-	"github.com/asynkron/protoactor-go/mailbox"
-
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/asynkron/protoactor-go/log"
 )
 
 type endpointLazy struct {
@@ -145,7 +143,7 @@ func (em *endpointManager) startSupervisor() {
 	},
 		actor.WithGuardian(actor.RestartingSupervisorStrategy()),
 		actor.WithSupervisor(actor.RestartingSupervisorStrategy()),
-		actor.WithDispatcher(mailbox.NewSynchronizedDispatcher(300)))
+		actor.WithDispatcher(actor.NewSynchronizedDispatcher(300)))
 
 	pid, err := r.actorSystem.Root.SpawnNamed(props, "EndpointSupervisor")
 	if err != nil {

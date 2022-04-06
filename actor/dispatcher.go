@@ -1,4 +1,4 @@
-package mailbox
+package actor
 
 type Dispatcher interface {
 	Schedule(fn func())

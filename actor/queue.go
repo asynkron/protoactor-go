@@ -1,4 +1,4 @@
-package mailbox
+package actor
 
 type queue interface {
 	Push(interface{})

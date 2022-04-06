@@ -5,7 +5,6 @@ import (
 
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/mailbox"
 )
 
 type mailboxLogger struct{}
@@ -28,7 +27,7 @@ func main() {
 	rootContext := system.Root
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 
-	}, actor.WithMailbox(mailbox.Unbounded(&mailboxLogger{})))
+	}, actor.WithMailbox(actor.Unbounded(&mailboxLogger{})))
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, "Hello")
 	_, _ = console.ReadLine()

@@ -1,4 +1,4 @@
-package mailbox
+package actor
 
 import (
 	"github.com/asynkron/protoactor-go/internal/queue/goring"
@@ -13,12 +13,12 @@ func NewPriorityGoringQueue() *priorityQueue {
 	})
 }
 
-func UnboundedPriority(mailboxStats ...Middleware) Producer {
+func UnboundedPriority(mailboxStats ...Middleware) MailboxProducer {
 	return func() Mailbox {
 		return &defaultMailbox{
 			systemMailbox: mpsc.New(),
 			userMailbox:   NewPriorityGoringQueue(),
-			mailboxStats:  mailboxStats,
+			middlewares:   mailboxStats,
 		}
 	}
 }
@@ -29,12 +29,12 @@ func NewPriorityMpscQueue() *priorityQueue {
 	})
 }
 
-func UnboundedPriorityMpsc(mailboxStats ...Middleware) Producer {
+func UnboundedPriorityMpsc(mailboxStats ...Middleware) MailboxProducer {
 	return func() Mailbox {
 		return &defaultMailbox{
 			systemMailbox: mpsc.New(),
 			userMailbox:   NewPriorityMpscQueue(),
-			mailboxStats:  mailboxStats,
+			middlewares:   mailboxStats,
 		}
 	}
 }

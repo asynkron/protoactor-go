@@ -1,4 +1,4 @@
-package mailbox
+package actor
 
 import (
 	"github.com/asynkron/protoactor-go/internal/queue/goring"
@@ -22,7 +22,7 @@ func (q *unboundedMailboxQueue) Pop() interface{} {
 }
 
 // Unbounded returns a producer which creates an unbounded mailbox
-func Unbounded(mailboxStats ...Middleware) Producer {
+func Unbounded(mailboxStats ...Middleware) MailboxProducer {
 	return func() Mailbox {
 		q := &unboundedMailboxQueue{
 			userMailbox: goring.New(10),
@@ -30,7 +30,7 @@ func Unbounded(mailboxStats ...Middleware) Producer {
 		return &defaultMailbox{
 			systemMailbox: mpsc.New(),
 			userMailbox:   q,
-			mailboxStats:  mailboxStats,
+			middlewares:   mailboxStats,
 		}
 	}
 }

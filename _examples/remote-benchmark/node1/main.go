@@ -16,8 +16,6 @@ import (
 
 	"runtime"
 	"time"
-
-	"github.com/asynkron/protoactor-go/mailbox"
 )
 
 type localActor struct {
@@ -91,7 +89,7 @@ func main() {
 			var wg sync.WaitGroup
 			props := actor.
 				PropsFromProducer(newLocalActor(&wg, messageCount),
-					actor.WithMailbox(mailbox.Bounded(1000000)))
+					actor.WithMailbox(actor.Bounded(1000000)))
 
 			pid := rootContext.Spawn(props)
 

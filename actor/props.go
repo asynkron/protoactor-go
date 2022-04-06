@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/asynkron/protoactor-go/mailbox"
 	"github.com/asynkron/protoactor-go/metrics"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -18,8 +17,8 @@ type SpawnMiddleware func(next SpawnFunc) SpawnFunc
 
 // Default values
 var (
-	defaultDispatcher      = mailbox.NewDefaultDispatcher(300)
-	defaultMailboxProducer = mailbox.Unbounded()
+	defaultDispatcher      = NewDefaultDispatcher(300)
+	defaultMailboxProducer = Unbounded()
 	defaultSpawner         = func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (*PID, error) {
 		ctx := newActorContext(actorSystem, props, parentContext.Self())
 		mb := props.produceMailbox()
@@ -81,10 +80,10 @@ var ErrNameExists = errors.New("spawn: name exists")
 type Props struct {
 	spawner                 SpawnFunc
 	producer                Producer
-	mailboxProducer         mailbox.Producer
+	mailboxProducer         MailboxProducer
 	guardianStrategy        SupervisorStrategy
 	supervisionStrategy     SupervisorStrategy
-	dispatcher              mailbox.Dispatcher
+	dispatcher              Dispatcher
 	receiverMiddleware      []ReceiverMiddleware
 	senderMiddleware        []SenderMiddleware
 	spawnMiddleware         []SpawnMiddleware
@@ -103,7 +102,7 @@ func (props *Props) getSpawner() SpawnFunc {
 	return props.spawner
 }
 
-func (props *Props) getDispatcher() mailbox.Dispatcher {
+func (props *Props) getDispatcher() Dispatcher {
 	if props.dispatcher == nil {
 		return defaultDispatcher
 	}
@@ -124,7 +123,7 @@ func (props *Props) getContextDecoratorChain() ContextDecoratorFunc {
 	return props.contextDecoratorChain
 }
 
-func (props *Props) produceMailbox() mailbox.Mailbox {
+func (props *Props) produceMailbox() Mailbox {
 	if props.mailboxProducer == nil {
 		return defaultMailboxProducer()
 	}
@@ -246,13 +245,13 @@ func WithProducer(p Producer) PropsOption {
 	}
 }
 
-func WithDispatcher(dispatcher mailbox.Dispatcher) PropsOption {
+func WithDispatcher(dispatcher Dispatcher) PropsOption {
 	return func(props *Props) {
 		props.dispatcher = dispatcher
 	}
 }
 
-func WithMailbox(mailbox mailbox.Producer) PropsOption {
+func WithMailbox(mailbox MailboxProducer) PropsOption {
 	return func(props *Props) {
 		props.mailboxProducer = mailbox
 	}

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/mailbox"
 )
 
 type request struct {
@@ -19,7 +18,7 @@ type request struct {
 }
 
 var (
-	props = actor.PropsFromProducer(newState, actor.WithMailbox(mailbox.Unbounded()))
+	props = actor.PropsFromProducer(newState, actor.WithMailbox(actor.Unbounded()))
 )
 
 type state struct {

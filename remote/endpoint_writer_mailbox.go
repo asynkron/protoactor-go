@@ -1,13 +1,13 @@
 package remote
 
 import (
+	"github.com/asynkron/protoactor-go/actor"
 	"runtime"
 	"sync/atomic"
 
 	"github.com/asynkron/protoactor-go/internal/queue/goring"
 	"github.com/asynkron/protoactor-go/internal/queue/mpsc"
 	"github.com/asynkron/protoactor-go/log"
-	"github.com/asynkron/protoactor-go/mailbox"
 )
 
 const (
@@ -24,9 +24,9 @@ type endpointWriterMailbox struct {
 	systemMailbox   *mpsc.Queue
 	schedulerStatus int32
 	hasMoreMessages int32
-	invoker         mailbox.MessageInvoker
+	invoker         actor.MessageInvoker
 	batchSize       int
-	dispatcher      mailbox.Dispatcher
+	dispatcher      actor.Dispatcher
 	suspended       bool
 }
 
@@ -41,7 +41,7 @@ func (m *endpointWriterMailbox) PostSystemMessage(message interface{}) {
 	m.schedule()
 }
 
-func (m *endpointWriterMailbox) RegisterHandlers(invoker mailbox.MessageInvoker, dispatcher mailbox.Dispatcher) {
+func (m *endpointWriterMailbox) RegisterHandlers(invoker actor.MessageInvoker, dispatcher actor.Dispatcher) {
 	m.invoker = invoker
 	m.dispatcher = dispatcher
 }
@@ -87,9 +87,9 @@ func (m *endpointWriterMailbox) run() {
 		// keep processing system messages until queue is empty
 		if msg = m.systemMailbox.Pop(); msg != nil {
 			switch msg.(type) {
-			case *mailbox.SuspendMailbox:
+			case *actor.SuspendMailbox:
 				m.suspended = true
-			case *mailbox.ResumeMailbox:
+			case *actor.ResumeMailbox:
 				m.suspended = false
 			default:
 				m.invoker.InvokeSystemMessage(msg)
@@ -118,8 +118,8 @@ func (m *endpointWriterMailbox) UserMessageCount() int {
 	return int(m.userMailbox.Length())
 }
 
-func endpointWriterMailboxProducer(batchSize, initialSize int) mailbox.Producer {
-	return func() mailbox.Mailbox {
+func endpointWriterMailboxProducer(batchSize, initialSize int) actor.MailboxProducer {
+	return func() actor.Mailbox {
 		userMailbox := goring.New(int64(initialSize))
 		systemMailbox := mpsc.New()
 		return &endpointWriterMailbox{
