@@ -10,6 +10,13 @@ type ResumeMailbox struct{}
 // This will not be forwarded to the Receive method
 type SuspendMailbox struct{}
 
+type MailboxMessage interface {
+	MailboxMessage()
+}
+
+func (*SuspendMailbox) MailboxMessage() {}
+func (*ResumeMailbox) MailboxMessage()  {}
+
 //InfrastructureMessage is a marker for all built in Proto.Actor messages
 type InfrastructureMessage interface {
 	InfrastructureMessage()
@@ -87,17 +94,14 @@ func (*Restart) SystemMessage()      {}
 func (*continuation) SystemMessage() {}
 
 var (
-	restartingMessage     any = &Restarting{}
-	stoppingMessage       any = &Stopping{}
-	stoppedMessage        any = &Stopped{}
-	poisonPillMessage     any = &PoisonPill{}
-	receiveTimeoutMessage any = &ReceiveTimeout{}
-)
-
-var (
-	restartMessage        any = &Restart{}
-	startedMessage        any = &Started{}
-	stopMessage           any = &Stop{}
-	resumeMailboxMessage  any = &ResumeMailbox{}
-	suspendMailboxMessage any = &SuspendMailbox{}
+	restartingMessage     AutoReceiveMessage = &Restarting{}
+	stoppingMessage       AutoReceiveMessage = &Stopping{}
+	stoppedMessage        AutoReceiveMessage = &Stopped{}
+	poisonPillMessage     AutoReceiveMessage = &PoisonPill{}
+	receiveTimeoutMessage any                = &ReceiveTimeout{}
+	restartMessage        SystemMessage      = &Restart{}
+	startedMessage        SystemMessage      = &Started{}
+	stopMessage           SystemMessage      = &Stop{}
+	resumeMailboxMessage  MailboxMessage     = &ResumeMailbox{}
+	suspendMailboxMessage MailboxMessage     = &SuspendMailbox{}
 )

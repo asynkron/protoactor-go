@@ -34,7 +34,7 @@ func (s *SliceMap) GetBucket(key string) cmap.ConcurrentMap {
 	return s.LocalPIDs[index]
 }
 
-var (
+const (
 	localAddress = "nonhost"
 )
 
