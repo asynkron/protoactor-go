@@ -21,6 +21,8 @@ type Metrics struct {
 	enabled bool
 }
 
+var _ extensions.Extension = &Metrics{}
+
 func (m *Metrics) Enabled() bool {
 	return m.enabled
 }

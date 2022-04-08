@@ -16,7 +16,7 @@ func ExampleRootContext_SpawnNamed() {
 	// create root context
 	context := system.Root
 
-	// define the actor props
+	// define the actor props.
 	// props define the creation process of an actor
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		// check if the message is a *actor.Started message

@@ -113,17 +113,16 @@ func PropsFromFunc(f ReceiveFunc, opts ...PropsOption) *Props {
 }
 
 func (props *Props) Clone(opts ...PropsOption) *Props {
-	cp :=
-		PropsFromProducer(props.producer,
-			WithDispatcher(props.dispatcher),
-			WithMailbox(props.mailboxProducer),
-			WithContextDecorator(props.contextDecorator...),
-			WithGuardian(props.guardianStrategy),
-			WithSupervisor(props.supervisionStrategy),
-			WithReceiverMiddleware(props.receiverMiddleware...),
-			WithSenderMiddleware(props.senderMiddleware...),
-			WithSpawnFunc(props.spawner),
-			WithSpawnMiddleware(props.spawnMiddleware...))
+	cp := PropsFromProducer(props.producer,
+		WithDispatcher(props.dispatcher),
+		WithMailbox(props.mailboxProducer),
+		WithContextDecorator(props.contextDecorator...),
+		WithGuardian(props.guardianStrategy),
+		WithSupervisor(props.supervisionStrategy),
+		WithReceiverMiddleware(props.receiverMiddleware...),
+		WithSenderMiddleware(props.senderMiddleware...),
+		WithSpawnFunc(props.spawner),
+		WithSpawnMiddleware(props.spawnMiddleware...))
 
 	cp.Configure(opts...)
 	return cp

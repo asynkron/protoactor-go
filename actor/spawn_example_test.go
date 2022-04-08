@@ -13,7 +13,7 @@ func ExampleRootContext_Spawn() {
 	wg.Add(1)
 
 	// create root context
-	// define the actor props
+	// define the actor props.
 	// props define the creation process of an actor
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		// check if the message is a *actor.Started message

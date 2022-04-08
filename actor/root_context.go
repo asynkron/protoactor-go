@@ -25,7 +25,7 @@ func NewRootContext(actorSystem *ActorSystem, header map[string]string, middlewa
 		senderMiddleware: makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
 			target.sendUserMessage(actorSystem, envelope)
 		}),
-		headers: messageHeader(header),
+		headers: header,
 	}
 }
 

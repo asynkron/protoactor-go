@@ -7,6 +7,8 @@ type Dispatcher interface {
 
 type goroutineDispatcher int
 
+var _ Dispatcher = goroutineDispatcher(0)
+
 func (goroutineDispatcher) Schedule(fn func()) {
 	go fn()
 }
@@ -20,6 +22,8 @@ func NewDefaultDispatcher(throughput int) Dispatcher {
 }
 
 type synchronizedDispatcher int
+
+var _ Dispatcher = synchronizedDispatcher(0)
 
 func (synchronizedDispatcher) Schedule(fn func()) {
 	fn()
