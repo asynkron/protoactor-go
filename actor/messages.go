@@ -66,6 +66,10 @@ type continuation struct {
 	f       func()
 }
 
+func (*Touch) GetAutoResponse(ctx Context) any {
+	return &Touched{}
+}
+
 func (*Restarting) AutoReceiveMessage() {}
 func (*Stopping) AutoReceiveMessage()   {}
 func (*Stopped) AutoReceiveMessage()    {}

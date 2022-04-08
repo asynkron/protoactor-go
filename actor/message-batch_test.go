@@ -5,6 +5,14 @@ import (
 	"testing"
 )
 
+type dummyMessageBatch struct {
+	messages []any
+}
+
+func (d dummyMessageBatch) GetMessages() []any {
+	return d.messages
+}
+
 func TestActorReceivesEachMessageInAMessageBatch(t *testing.T) {
 
 	// each message in the batch

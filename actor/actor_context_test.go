@@ -268,10 +268,11 @@ func TestActorContextAutoRespondMessage(t *testing.T) {
 	assert.IsType(t, &dummyResponse{}, res)
 }
 
-type dummyMessageBatch struct {
-	messages []any
-}
+func TestActorContextAutoRespondTouchedMessage(t *testing.T) {
+	pid := rootContext.Spawn(PropsFromFunc(func(ctx Context) {}))
+	var msg AutoRespond = &Touch{}
 
-func (d dummyMessageBatch) GetMessages() []any {
-	return d.messages
+	res, err := rootContext.RequestFuture(pid, msg, 1*time.Second).Result()
+	assert.NoError(t, err)
+	assert.IsType(t, &Touched{}, res)
 }
