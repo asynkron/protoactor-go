@@ -24,6 +24,8 @@ type Cluster struct {
 	context        ClusterContext
 }
 
+var _ extensions.Extension = &Cluster{}
+
 func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	c := Cluster{
 		ActorSystem: actorSystem,
