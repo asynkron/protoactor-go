@@ -27,7 +27,7 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 	})
 
 	actorSystem.ProcessRegistry.Add(dp, "deadletter")
-	_ = actorSystem.EventStream.Subscribe(func(msg any) {
+	_ = actorSystem.EventStream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 
 			// send back a response instead of timeout.

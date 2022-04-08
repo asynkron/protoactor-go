@@ -6,10 +6,10 @@ import (
 )
 
 type dummyMessageBatch struct {
-	messages []any
+	messages []interface{}
 }
 
-func (d dummyMessageBatch) GetMessages() []any {
+func (d dummyMessageBatch) GetMessages() []interface{} {
 	return d.messages
 }
 
@@ -33,7 +33,7 @@ func TestActorReceivesEachMessageInAMessageBatch(t *testing.T) {
 		}
 	}))
 
-	batch := &dummyMessageBatch{messages: make([]any, 10)}
+	batch := &dummyMessageBatch{messages: make([]interface{}, 10)}
 
 	for i := 0; i < 10; i++ {
 		batch.messages[i] = &DummyMessage{}

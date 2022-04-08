@@ -73,7 +73,7 @@ type continuation struct {
 	f       func()
 }
 
-func (*Touch) GetAutoResponse(ctx Context) any {
+func (*Touch) GetAutoResponse(ctx Context) interface{} {
 	return &Touched{
 		Who: ctx.Self(),
 	}
@@ -98,7 +98,7 @@ var (
 	stoppingMessage       AutoReceiveMessage = &Stopping{}
 	stoppedMessage        AutoReceiveMessage = &Stopped{}
 	poisonPillMessage     AutoReceiveMessage = &PoisonPill{}
-	receiveTimeoutMessage any                = &ReceiveTimeout{}
+	receiveTimeoutMessage interface{}        = &ReceiveTimeout{}
 	restartMessage        SystemMessage      = &Restart{}
 	startedMessage        SystemMessage      = &Started{}
 	stopMessage           SystemMessage      = &Stop{}

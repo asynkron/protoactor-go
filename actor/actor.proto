@@ -1,11 +1,11 @@
 syntax = "proto3";
 package actor;
-option go_package="github.com/asynkron/protoactor-go/actor";
+option go_package = "github.com/asynkron/protoactor-go/actor";
 
 message PID {
-    string Address = 1;
-    string Id = 2;
-    uint32 request_id = 3;
+  string Address = 1;
+  string Id = 2;
+  uint32 request_id = 3;
 }
 
 //user messages
@@ -13,27 +13,27 @@ message PoisonPill {
 }
 
 message DeadLetterResponse {
-    PID Target = 1;
+  PID Target = 1;
 }
 
 //system messages
 message Watch {
-    PID Watcher = 1;
+  PID Watcher = 1;
 }
 
 message Unwatch {
-    PID Watcher = 1;
+  PID Watcher = 1;
 }
 
 message Terminated {
-    PID who = 1;
-    TerminatedReason Why = 2;
+  PID who = 1;
+  TerminatedReason Why = 2;
 }
 
 enum TerminatedReason {
-    Stopped = 0;
-    AddressTerminated = 1;
-    NotFound = 2;
+  Stopped = 0;
+  AddressTerminated = 1;
+  NotFound = 2;
 }
 
 message Stop {
@@ -43,5 +43,5 @@ message Touch {
 }
 
 message Touched {
-    PID who = 1;
+  PID who = 1;
 }

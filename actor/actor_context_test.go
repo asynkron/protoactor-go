@@ -255,7 +255,7 @@ func TestActorContinueFutureInActor(t *testing.T) {
 type dummyAutoRespond struct {
 }
 
-func (*dummyAutoRespond) GetAutoResponse(_ Context) any {
+func (*dummyAutoRespond) GetAutoResponse(_ Context) interface{} {
 	return &dummyResponse{}
 }
 
