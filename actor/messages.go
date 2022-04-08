@@ -67,7 +67,9 @@ type continuation struct {
 }
 
 func (*Touch) GetAutoResponse(ctx Context) any {
-	return &Touched{}
+	return &Touched{
+		Who: ctx.Self(),
+	}
 }
 
 func (*Restarting) AutoReceiveMessage() {}

@@ -273,6 +273,8 @@ func TestActorContextAutoRespondTouchedMessage(t *testing.T) {
 	var msg AutoRespond = &Touch{}
 
 	res, err := rootContext.RequestFuture(pid, msg, 1*time.Second).Result()
+	res2 := res.(*Touched)
 	assert.NoError(t, err)
 	assert.IsType(t, &Touched{}, res)
+	assert.True(t, res2.Who.Equal(pid))
 }
