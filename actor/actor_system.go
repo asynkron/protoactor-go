@@ -8,6 +8,7 @@ import (
 	"github.com/asynkron/protoactor-go/eventstream"
 	"github.com/asynkron/protoactor-go/extensions"
 	"github.com/google/uuid"
+	"github.com/lithammer/shortuuid/v4"
 )
 
 //goland:noinspection GoNameStartsWithPackageName
@@ -57,7 +58,7 @@ func NewActorSystem(options ...ConfigOption) *ActorSystem {
 
 func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system := &ActorSystem{}
-	system.Id = uuid.New().String()
+	system.Id = shortuuid.New()
 	system.Config = config
 	system.ProcessRegistry = NewProcessRegistry(system)
 	system.Root = NewRootContext(system, EmptyMessageHeader)

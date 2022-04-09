@@ -27,7 +27,10 @@ require (
 	google.golang.org/protobuf v1.27.1
 )
 
-require github.com/golang/protobuf v1.5.2
+require (
+	github.com/golang/protobuf v1.5.2
+	github.com/lithammer/shortuuid/v4 v4.0.0
+)
 
 require (
 	github.com/armon/go-metrics v0.3.0 // indirect
