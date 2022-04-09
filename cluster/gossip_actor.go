@@ -48,6 +48,8 @@ func (ga *GossipActor) Receive(ctx actor.Context) {
 		ga.onRemoveConsensusCheck(r, ctx)
 	case *ClusterTopology:
 		ga.onClusterTopology(r)
+	case *GossipResponse:
+		// noop: review after roger's work is done
 	default:
 		plog.Warn("Gossip received unknown message request", log.Message(r))
 	}
@@ -150,7 +152,11 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 	// for timeout, blocking other gossips from getting through
 
 	msg := GossipRequest{
-		MemberId: ctx.ActorSystem().ID,
+		// TODO: Uncomment this line when we replace the current "address:port" as ID
+		// with the proper ActorSystem.ID after new API refactor changes
+		// Oscar Campos: 2022-04-09
+		// MemberId: ctx.ActorSystem().ID,
+		MemberId: member.Address(),
 		State:    memberStateDelta.State,
 	}
 	future := ctx.RequestFuture(pid, &msg, ga.gossipRequestTimeout)

@@ -164,7 +164,8 @@ func (ml *MemberList) UpdateClusterTopology(members []*Member, eventId uint64) {
 		log.Int("left", len(tplg.Left)),
 		log.Int("alives", len(tplg.Members)))
 
-	ml.broadCastTopologyChanges(tplg)
+	// TODO: uncomment this after Gossip is properly fixed
+	//ml.broadCastTopologyChanges(tplg)
 }
 
 func (ml *MemberList) broadCastTopologyChanges(topology *ClusterTopology) {
@@ -292,6 +293,10 @@ func (ml *MemberList) BroadcastEvent(message interface{}) {
 }
 
 func (ml *MemberList) ContainsMemberID(memberID string) bool {
+
+	// lock our mutex
+	ml.mutex.RLock()
+	defer ml.mutex.RUnlock()
 
 	_, ok := ml.members[memberID]
 	return ok
