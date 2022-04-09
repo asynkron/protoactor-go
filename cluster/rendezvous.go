@@ -65,7 +65,7 @@ func (r *Rendezvous) GetByClusterIdentity(ci *ClusterIdentity) string {
 
 func (r *Rendezvous) GetByIdentity(identity string) string {
 	r.mutex.RLock()
-	defer r.mutex.Unlock()
+	defer r.mutex.RUnlock()
 
 	m := r.members
 	l := len(m)

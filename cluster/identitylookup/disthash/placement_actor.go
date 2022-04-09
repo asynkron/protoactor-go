@@ -31,12 +31,10 @@ func (p *placementActor) Receive(ctx actor.Context) {
 		plog.Info("Placement actor started")
 	case *actor.Terminated:
 		p.onTerminated(msg, ctx)
-	case *clustering.IdentityHandoverRequest:
-		p.onIdentityHandoverRequest(msg, ctx)
 	case *clustering.ActivationRequest:
 		p.onActivationRequest(msg, ctx)
 	case *clustering.ClusterTopology:
-		//pqss
+		p.onClusterTopology(msg, ctx)
 	default:
 		plog.Error("Invalid message", log.TypeOf("type", msg), log.PID("sender", ctx.Sender()))
 	}
@@ -54,39 +52,6 @@ func (p *placementActor) onTerminated(msg *actor.Terminated, ctx actor.Context) 
 	if found {
 		delete(p.actors, *key)
 	}
-}
-
-// this is pure, we do not change any state or actually move anything
-// the requester also provide its own view of the world in terms of members
-// TLDR; we are not using any topology state from this actor itself
-func (p *placementActor) onIdentityHandoverRequest(msg *clustering.IdentityHandoverRequest, ctx actor.Context) {
-	count := 0
-	response := &clustering.IdentityHandover{}
-	requestAddress := ctx.Sender().Address
-	rdv := clustering.NewRendezvous()
-	rdv.UpdateMembers(msg.CurrentTopology.Members)
-	for identity, meta := range p.actors {
-		// who owns this identity according to the requesters memberlist?
-		ownerAddress := rdv.GetByIdentity(identity)
-		// this identity is not owned by the requester
-		if ownerAddress != requestAddress {
-			continue
-		}
-		// _logger.LogDebug("Transfer {Identity} to {newOwnerAddress} -- {TopologyHash}", clusterIdentity, ownerAddress,
-		// msg.TopologyHash
-		// );
-
-		actorToHandOver := &clustering.Activation{
-			ClusterIdentity: meta.ID,
-			Pid:             meta.PID,
-		}
-
-		response.Actors = append(response.Actors, actorToHandOver)
-		count++
-	}
-
-	plog.Debug("Transferred ownership to other members", log.Int("count", count))
-	ctx.Respond(response)
 }
 
 func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, ctx actor.Context) {
@@ -132,4 +97,22 @@ func (p *placementActor) pidToMeta(pid *actor.PID) (bool, *string, *GrainMeta) {
 		}
 	}
 	return false, nil, nil
+}
+
+func (p *placementActor) onClusterTopology(msg *clustering.ClusterTopology, ctx actor.Context) {
+	rdv := clustering.NewRendezvous()
+	rdv.UpdateMembers(msg.Members)
+	myAddress := p.cluster.ActorSystem.Address()
+	for identity, meta := range p.actors {
+		ownerAddress := rdv.GetByIdentity(identity)
+		if ownerAddress == myAddress {
+
+			plog.Debug("Actor stays", log.String("identity", identity), log.String("owner", ownerAddress), log.String("me", myAddress))
+			continue
+		}
+
+		plog.Debug("Actor moved", log.String("identity", identity), log.String("owner", ownerAddress), log.String("me", myAddress))
+
+		ctx.Poison(meta.PID)
+	}
 }
