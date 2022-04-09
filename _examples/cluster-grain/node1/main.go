@@ -35,5 +35,18 @@ func main() {
 	fmt.Printf("Response: %v\n", res)
 	fmt.Println()
 	console.ReadLine()
+
+	res, err = client.SayHello(&shared.HelloRequest{
+		Name: "World",
+	})
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Response: %v\n", res)
+	fmt.Println()
+
+	console.ReadLine()
 	c.Shutdown(true)
 }
