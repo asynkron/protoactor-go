@@ -50,13 +50,19 @@ func (p *inmemoryProvider) publishClusterTopologyEvent() {
 }
 
 func (p *inmemoryProvider) StartMember(c *Cluster) error {
-	p.init(c)
+	err := p.init(c)
+	if err != nil {
+		return err
+	}
 	p.members[p.self.Id] = p.self
 	p.publishClusterTopologyEvent()
 	return nil
 }
 func (p *inmemoryProvider) StartClient(c *Cluster) error {
-	p.init(c)
+	err := p.init(c)
+	if err != nil {
+		return err
+	}
 	p.publishClusterTopologyEvent()
 	return nil
 }

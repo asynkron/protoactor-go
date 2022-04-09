@@ -21,7 +21,7 @@ type Cluster struct {
 	MemberList     *MemberList
 	IdentityLookup IdentityLookup
 	kinds          map[string]*ActivatedKind
-	context        ClusterContext
+	context        Context
 }
 
 var _ extensions.Extension = &Cluster{}
@@ -173,7 +173,11 @@ func (c *Cluster) Call(name string, kind string, msg interface{}, callopts ...*G
 		_callopts = DefaultGrainCallOptions(c)
 	}
 
-	_context := c.ActorSystem.Root
+	_context := _callopts.Context
+	if _context == nil {
+		_context = c.ActorSystem.Root
+	}
+
 	var lastError error
 	for i := 0; i < _callopts.RetryCount; i++ {
 		pid := c.Get(name, kind)

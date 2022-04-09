@@ -12,27 +12,27 @@ import (
 	"github.com/asynkron/protoactor-go/remote"
 )
 
-// Defines a type to provide DefaultClusterContext configurations / implementations
-type ClusterContextProducer func(*Cluster) ClusterContext
+// Defines a type to provide DefaultContext configurations / implementations
+type ContextProducer func(*Cluster) Context
 
 // Defines a default cluster context hashBytes structure
-type DefaultClusterContext struct {
+type DefaultContext struct {
 	cluster *Cluster
 }
 
-var _ ClusterContext = (*DefaultClusterContext)(nil)
+var _ Context = (*DefaultContext)(nil)
 
-// Creates a new DefaultClusterContext value and returns
-// a pointer to its memory address as a ClusterContext
-func newDefaultClusterContext(cluster *Cluster) ClusterContext {
+// Creates a new DefaultContext value and returns
+// a pointer to its memory address as a Context
+func newDefaultClusterContext(cluster *Cluster) Context {
 
-	clusterContext := DefaultClusterContext{
+	clusterContext := DefaultContext{
 		cluster: cluster,
 	}
 	return &clusterContext
 }
 
-func (dcc *DefaultClusterContext) Request(identity, kind string, message interface{}, timeout ...time.Duration) (interface{}, error) {
+func (dcc *DefaultContext) Request(identity, kind string, message interface{}, timeout ...time.Duration) (interface{}, error) {
 
 	var err error
 	var resp interface{}
@@ -99,7 +99,7 @@ selectloop:
 
 // gets the cached PID for the given identity
 // it can return nil if none is found
-func (dcc *DefaultClusterContext) getCachedPid(identity, kind string) *actor.PID {
+func (dcc *DefaultContext) getCachedPid(identity, kind string) *actor.PID {
 
 	pid, _ := dcc.cluster.PidCache.Get(identity, kind)
 	return pid

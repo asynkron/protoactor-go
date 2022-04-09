@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	plog = logmod.New(logmod.InfoLevel, "[GRAIN]")
+	plog = logmod.New(logmod.InfoLevel, "[GRAIN][{{.PackageName}}]")
 	_    = proto.Marshal
 	_    = fmt.Errorf
 	_    = math.Inf
@@ -45,7 +45,7 @@ func Get{{ $service.Name }}GrainClient(c *cluster.Cluster, id string) *{{ $servi
 		panic(fmt.Errorf("empty id"))
 	}
 	return &{{ $service.Name }}GrainClient{Identity: id, cluster: c}
-}
+}z
 
 // Get{{ $service.Name }}Kind instantiates a new cluster.Kind for {{ $service.Name }}
 func Get{{ $service.Name }}Kind(opts ...actor.PropsOption) *cluster.Kind {

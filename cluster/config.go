@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"sync/atomic"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -18,18 +17,15 @@ type Config struct {
 	RequestTimeoutTime                           time.Duration
 	RequestsLogThrottlePeriod                    time.Duration
 	MaxNumberOfEventsInRequestLogThrottledPeriod int
-	ClusterContextProducer                       ClusterContextProducer
+	ClusterContextProducer                       ContextProducer
 	MemberStrategyBuilder                        func(cluster *Cluster, kind string) MemberStrategy
 	Kinds                                        map[string]*Kind
-
-	TimeoutTime          time.Duration
-	GossipInterval       time.Duration
-	GossipRequestTimeout time.Duration
-	GossipFanOut         int
-	GossipMaxSend        int
+	TimeoutTime                                  time.Duration
+	GossipInterval                               time.Duration
+	GossipRequestTimeout                         time.Duration
+	GossipFanOut                                 int
+	GossipMaxSend                                int
 }
-
-type ConfigOption func(config *Config)
 
 func Configure(clusterName string, clusterProvider ClusterProvider, identityLookup IdentityLookup, remoteConfig *remote.Config, options ...ConfigOption) *Config {
 	config := &Config{
@@ -57,43 +53,7 @@ func Configure(clusterName string, clusterProvider ClusterProvider, identityLook
 	return config
 }
 
-// WithRequestTimeout sets the request timeout
-func WithRequestTimeout(t time.Duration) ConfigOption {
-	return func(c *Config) {
-		c.RequestTimeoutTime = t
-	}
-}
-
-// WithRequestsLogThrottlePeriod sets the requests log throttle period
-func WithRequestsLogThrottlePeriod(period time.Duration) ConfigOption {
-	return func(c *Config) {
-		c.RequestsLogThrottlePeriod = period
-	}
-}
-
-// WithClusterContextProducer sets the cluster context producer
-func WithClusterContextProducer(producer ClusterContextProducer) ConfigOption {
-	return func(c *Config) {
-		c.ClusterContextProducer = producer
-	}
-}
-
-// WithMaxNumberOfEventsInRequestLogThrottlePeriod sets the max number of events in request log throttled period
-func WithMaxNumberOfEventsInRequestLogThrottlePeriod(maxNumber int) ConfigOption {
-	return func(c *Config) {
-		c.MaxNumberOfEventsInRequestLogThrottledPeriod = maxNumber
-	}
-}
-
-func WithKinds(kinds ...*Kind) ConfigOption {
-	return func(c *Config) {
-		for _, kind := range kinds {
-			c.Kinds[kind.Kind] = kind
-		}
-	}
-}
-
-// Converts this Cluster config ClusterContext parameters
+// ToClusterContextConfig converts this cluster Config Context parameters
 // into a valid ClusterContextConfig value and returns a pointer to its memory
 func (c *Config) ToClusterContextConfig() *ClusterContextConfig {
 
@@ -103,24 +63,6 @@ func (c *Config) ToClusterContextConfig() *ClusterContextConfig {
 		MaxNumberOfEventsInRequestLogThrottledPeriod: c.MaxNumberOfEventsInRequestLogThrottledPeriod,
 	}
 	return &clusterContextConfig
-}
-
-// Represents the kinds of actors a cluster can manage
-type Kind struct {
-	Kind            string
-	Props           *actor.Props
-	StrategyBuilder func(*Cluster) MemberStrategy
-}
-
-// Creates a new instance of a kind
-func NewKind(kind string, props *actor.Props) *Kind {
-	//add cluster middleware
-	p := props.Clone(withClusterReceiveMiddleware())
-	return &Kind{
-		Kind:            kind,
-		Props:           p,
-		StrategyBuilder: nil,
-	}
 }
 
 func WithClusterIdentity(props *actor.Props, ci *ClusterIdentity) *actor.Props {
@@ -182,37 +124,4 @@ func handleStarted(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *a
 
 	ge := actor.WrapEnvelope(grainInit)
 	next(c, ge)
-}
-
-func (k *Kind) WithMemberStrategy(strategyBuilder func(*Cluster) MemberStrategy) {
-	k.StrategyBuilder = strategyBuilder
-}
-
-func (k *Kind) Build(cluster *Cluster) *ActivatedKind {
-
-	var strategy MemberStrategy = nil
-	if k.StrategyBuilder != nil {
-		strategy = k.StrategyBuilder(cluster)
-	}
-
-	return &ActivatedKind{
-		Kind:     k.Kind,
-		Props:    k.Props,
-		Strategy: strategy,
-	}
-}
-
-type ActivatedKind struct {
-	Kind     string
-	Props    *actor.Props
-	Strategy MemberStrategy
-	count    int32
-}
-
-func (ak *ActivatedKind) Inc() {
-	atomic.AddInt32(&ak.count, 1)
-}
-
-func (ak *ActivatedKind) Dev() {
-	atomic.AddInt32(&ak.count, -1)
 }

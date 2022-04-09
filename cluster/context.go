@@ -2,17 +2,13 @@ package cluster
 
 import "time"
 
-// Interface any cluster context needs to implement
-type ClusterContext interface {
+// Context is an interface any cluster context needs to implement
+type Context interface {
 	Request(identity string, kind string, message interface{}, timeout ...time.Duration) (interface{}, error)
 }
 
 /*
-// -----------------------------------------------------------------------
-// <copyright file="DefaultClusterContext.cs" company="Asynkron AB">
-//      Copyright (C) 2015-2020 Asynkron AB All rights reserved
-// </copyright>
-// -----------------------------------------------------------------------
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -27,16 +23,16 @@ using Proto.Utils;
 
 namespace Proto.Cluster
 {
-    public class DefaultClusterContext : IClusterContext
+    public class DefaultContext : IClusterContext
     {
         private readonly IIdentityLookup _identityLookup;
 
         private readonly PidCache _pidCache;
         private readonly ShouldThrottle _requestLogThrottle;
         private readonly TaskClock _clock;
-        private static readonly ILogger Logger = Log.CreateLogger<DefaultClusterContext>();
+        private static readonly ILogger Logger = Log.CreateLogger<DefaultContext>();
 
-        public DefaultClusterContext(IIdentityLookup identityLookup, PidCache pidCache, ClusterContextConfig config, CancellationToken killSwitch)
+        public DefaultContext(IIdentityLookup identityLookup, PidCache pidCache, ClusterContextConfig config, CancellationToken killSwitch)
         {
             _identityLookup = identityLookup;
             _pidCache = pidCache;
