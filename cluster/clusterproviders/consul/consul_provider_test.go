@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"net"
 	"strconv"
 	"testing"
@@ -20,7 +21,8 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 	}
 	port, _ := strconv.Atoi(_port)
 	remoteConfig := remote.Configure(host, port)
-	config := cluster.Configure(name, cp, nil, remoteConfig)
+	lookup := disthash.New()
+	config := cluster.Configure(name, cp, lookup, remoteConfig)
 	// return cluster.NewForTest(system, config)
 
 	system := actor.NewActorSystem()
