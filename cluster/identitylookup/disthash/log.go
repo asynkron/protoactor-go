@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	plog = log.New(log.DefaultLevel, "[CLUSTER] [DISTHASH]")
+	plog = log.New(log.DefaultLevel, "[DISTHASH]")
 )
 
 // SetLogLevel sets the log level for the logger.

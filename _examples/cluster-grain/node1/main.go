@@ -24,7 +24,9 @@ func main() {
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()
 	client := shared.GetHelloGrainClient(c, "mygrain1")
-	res, err := client.SayHello(&shared.HelloRequest{})
+	res, err := client.SayHello(&shared.HelloRequest{
+		Name: "World",
+	})
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return

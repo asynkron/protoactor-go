@@ -35,6 +35,8 @@ func (p *placementActor) Receive(ctx actor.Context) {
 		p.onIdentityHandoverRequest(msg, ctx)
 	case *clustering.ActivationRequest:
 		p.onActivationRequest(msg, ctx)
+	case *clustering.ClusterTopology:
+		//pqss
 	default:
 		plog.Error("Invalid message", log.TypeOf("type", msg), log.PID("sender", ctx.Sender()))
 	}

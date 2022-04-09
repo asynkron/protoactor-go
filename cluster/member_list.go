@@ -155,14 +155,12 @@ func (ml *MemberList) UpdateClusterTopology(members Members) {
 	ml.cluster.ActorSystem.EventStream.Publish(topology)
 
 	plog.Info("Updated ClusterTopology",
-		log.Uint64("eventId", ml.lastEventId),
+		log.Uint64("topology-hash", topology.TopologyHash),
 		log.Int("members", len(members)),
-		log.Int("joined", len(tplg.Joined)),
-		log.Int("left", len(tplg.Left)),
-		log.Int("alives", len(tplg.Members)))
-
-	// TODO: uncomment this after Gossip is properly fixed
-	//ml.broadCastTopologyChanges(tplg)
+		log.Int("joined", len(topology.Joined)),
+		log.Int("left", len(topology.Left)),
+		log.Int("blocked", len(topology.Blocked)),
+		log.Int("members", len(topology.Members)))
 }
 
 func (ml *MemberList) memberJoin(joiningMember *Member) {
