@@ -46,6 +46,10 @@ func (as *ActorSystem) GetHostPort() (host string, port int, err error) {
 	return
 }
 
+func (as *ActorSystem) Shutdown() {
+
+}
+
 func NewActorSystem(options ...ConfigOption) *ActorSystem {
 	config := Configure(options...)
 	return NewActorSystemWithConfig(config)

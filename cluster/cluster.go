@@ -126,6 +126,7 @@ func (c *Cluster) StartClient() {
 }
 
 func (c *Cluster) Shutdown(graceful bool) {
+	c.ActorSystem.Shutdown()
 	if graceful {
 		_ = c.Config.ClusterProvider.Shutdown(graceful)
 		c.IdentityLookup.Shutdown()

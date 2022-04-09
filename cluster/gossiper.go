@@ -205,10 +205,13 @@ func (g *Gossiper) StartGossiping() error {
 }
 
 func (g *Gossiper) Shutdown() {
+	if g.pid == nil {
+		return
+	}
 
-	plog.Info("Shutting down heartbeat")
+	plog.Info("Shutting down gossip")
 	g.cluster.ActorSystem.Root.Stop(g.pid)
-	plog.Info("Shut down heartbeat")
+	plog.Info("Shut down gossip")
 }
 
 func (g *Gossiper) gossipLoop() {

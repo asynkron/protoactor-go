@@ -71,7 +71,7 @@ func (p *Provider) init(c *cluster.Cluster) error {
 	}
 
 	p.cluster = c
-	p.id = fmt.Sprintf("%v@%v", clusterName, memberId)
+	p.id = memberId
 	p.clusterName = clusterName
 	p.address = host
 	p.port = port
