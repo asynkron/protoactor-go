@@ -81,7 +81,7 @@ type HelloGrainClient struct {
 }
 
 // SayHello requests the execution on to the cluster with CallOptions
-func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallOptions) (*HelloResponse, error) {
+func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallConfig) (*HelloResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err

@@ -33,7 +33,7 @@ func main() {
 	console.ReadLine()
 }
 
-func doRequests(c *cluster.Cluster, callopts *cluster.GrainCallOptions) {
+func doRequests(c *cluster.Cluster, callopts *cluster.GrainCallConfig) {
 	msg := &shared.HelloRequest{Name: "Proto.Actor"}
 	helloGrain := shared.GetHelloGrainClient(c, "MyGrain123")
 	// with default callopts
@@ -56,7 +56,7 @@ func doRequests(c *cluster.Cluster, callopts *cluster.GrainCallOptions) {
 	log.Println("Done")
 }
 
-func doRequestsAsync(c *cluster.Cluster, callopts *cluster.GrainCallOptions) {
+func doRequestsAsync(c *cluster.Cluster, callopts *cluster.GrainCallConfig) {
 	// sorry, golang has not magic, just use goroutine.
 	go func() {
 		doRequests(c, callopts)

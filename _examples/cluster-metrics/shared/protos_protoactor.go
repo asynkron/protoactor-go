@@ -83,7 +83,7 @@ type HelloGrainClient struct {
 }
 
 // SayHello requests the execution on to the cluster with CallOptions
-func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallOptions) (*HelloResponse, error) {
+func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallConfig) (*HelloResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallO
 }
 
 // Add requests the execution on to the cluster with CallOptions
-func (g *HelloGrainClient) Add(r *AddRequest, opts ...*cluster.GrainCallOptions) (*AddResponse, error) {
+func (g *HelloGrainClient) Add(r *AddRequest, opts ...*cluster.GrainCallConfig) (*AddResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (g *HelloGrainClient) Add(r *AddRequest, opts ...*cluster.GrainCallOptions)
 }
 
 // VoidFunc requests the execution on to the cluster with CallOptions
-func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...*cluster.GrainCallOptions) (*Unit, error) {
+func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...*cluster.GrainCallConfig) (*Unit, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err

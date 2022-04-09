@@ -165,40 +165,38 @@ func (c *Cluster) initKinds() {
 }
 
 // Call is a wrap of context.RequestFuture with retries.
-func (c *Cluster) Call(name string, kind string, msg interface{}, callopts ...*GrainCallOptions) (interface{}, error) {
-	var _callopts *GrainCallOptions
-	if len(callopts) > 0 {
-		_callopts = callopts[0]
-	} else {
-		_callopts = DefaultGrainCallOptions(c)
+func (c *Cluster) Call(name string, kind string, msg interface{}, opts ...GrainCallOption) (interface{}, error) {
+	callConfig := DefaultGrainCallConfig(c)
+	for _, o := range opts {
+		o(callConfig)
 	}
 
-	_context := _callopts.Context
+	_context := callConfig.Context
 	if _context == nil {
 		_context = c.ActorSystem.Root
 	}
 
 	var lastError error
-	for i := 0; i < _callopts.RetryCount; i++ {
+	for i := 0; i < callConfig.RetryCount; i++ {
 		pid := c.Get(name, kind)
 
 		if pid == nil {
 			return nil, remote.ErrUnknownError
 		}
 
-		timeout := _callopts.Timeout
+		timeout := callConfig.Timeout
 		_resp, err := _context.RequestFuture(pid, msg, timeout).Result()
 		if err != nil {
 			plog.Error("cluster.RequestFuture failed", log.Error(err), log.PID("pid", pid))
 			lastError = err
 			switch err {
 			case actor.ErrTimeout, remote.ErrTimeout:
-				_callopts.RetryAction(i)
+				callConfig.RetryAction(i)
 				id := ClusterIdentity{Kind: kind, Identity: name}
 				c.PidCache.Remove(id.Identity, id.Kind)
 				continue
 			case actor.ErrDeadLetter, remote.ErrDeadLetter:
-				_callopts.RetryAction(i)
+				callConfig.RetryAction(i)
 				id := ClusterIdentity{Kind: kind, Identity: name}
 				c.PidCache.Remove(id.Identity, id.Kind)
 				continue

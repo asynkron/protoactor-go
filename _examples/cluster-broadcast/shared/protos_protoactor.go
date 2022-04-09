@@ -83,7 +83,7 @@ type CalculatorGrainClient struct {
 }
 
 // Add requests the execution on to the cluster with CallOptions
-func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...*cluster.GrainCallOptions) (*CountResponse, error) {
+func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...*cluster.GrainCallConfig) (*CountResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...*cluster.GrainCall
 }
 
 // Subtract requests the execution on to the cluster with CallOptions
-func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...*cluster.GrainCallOptions) (*CountResponse, error) {
+func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...*cluster.GrainCallConfig) (*CountResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...*cluster.Grai
 }
 
 // GetCurrent requests the execution on to the cluster with CallOptions
-func (g *CalculatorGrainClient) GetCurrent(r *Noop, opts ...*cluster.GrainCallOptions) (*CountResponse, error) {
+func (g *CalculatorGrainClient) GetCurrent(r *Noop, opts ...*cluster.GrainCallConfig) (*CountResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -325,7 +325,7 @@ type TrackerGrainClient struct {
 }
 
 // RegisterGrain requests the execution on to the cluster with CallOptions
-func (g *TrackerGrainClient) RegisterGrain(r *RegisterMessage, opts ...*cluster.GrainCallOptions) (*Noop, error) {
+func (g *TrackerGrainClient) RegisterGrain(r *RegisterMessage, opts ...*cluster.GrainCallConfig) (*Noop, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -351,7 +351,7 @@ func (g *TrackerGrainClient) RegisterGrain(r *RegisterMessage, opts ...*cluster.
 }
 
 // DeregisterGrain requests the execution on to the cluster with CallOptions
-func (g *TrackerGrainClient) DeregisterGrain(r *RegisterMessage, opts ...*cluster.GrainCallOptions) (*Noop, error) {
+func (g *TrackerGrainClient) DeregisterGrain(r *RegisterMessage, opts ...*cluster.GrainCallConfig) (*Noop, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -377,7 +377,7 @@ func (g *TrackerGrainClient) DeregisterGrain(r *RegisterMessage, opts ...*cluste
 }
 
 // BroadcastGetCounts requests the execution on to the cluster with CallOptions
-func (g *TrackerGrainClient) BroadcastGetCounts(r *Noop, opts ...*cluster.GrainCallOptions) (*TotalsResponse, error) {
+func (g *TrackerGrainClient) BroadcastGetCounts(r *Noop, opts ...*cluster.GrainCallConfig) (*TotalsResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err

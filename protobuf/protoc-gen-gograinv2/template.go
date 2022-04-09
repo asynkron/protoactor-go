@@ -87,7 +87,7 @@ type {{ $service.Name }}GrainClient struct {
 }
 {{ range $method := $service.Methods}}
 // {{ $method.Name }} requests the execution on to the cluster with CallOptions
-func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input.Name }}, opts ...*cluster.GrainCallOptions) (*{{ $method.Output.Name }}, error) {
+func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input.Name }}, opts ...cluster.GrainCallOption) (*{{ $method.Output.Name }}, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err

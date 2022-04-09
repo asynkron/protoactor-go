@@ -12,24 +12,26 @@ import (
 //
 //}
 
-type GrainCallOptions struct {
+type GrainCallConfig struct {
 	RetryCount  int
 	Timeout     time.Duration
 	RetryAction func(n int)
 	Context     actor.SenderContext
 }
 
-var defaultGrainCallOptions *GrainCallOptions
+type GrainCallOption func(config *GrainCallConfig)
 
-func DefaultGrainCallOptions(cluster *Cluster) *GrainCallOptions {
+var defaultGrainCallOptions *GrainCallConfig
+
+func DefaultGrainCallConfig(cluster *Cluster) *GrainCallConfig {
 	if defaultGrainCallOptions == nil {
 		defaultGrainCallOptions = NewGrainCallOptions(cluster)
 	}
 	return defaultGrainCallOptions
 }
 
-func NewGrainCallOptions(cluster *Cluster) *GrainCallOptions {
-	return &GrainCallOptions{
+func NewGrainCallOptions(cluster *Cluster) *GrainCallConfig {
+	return &GrainCallConfig{
 		RetryCount: 10,
 		Timeout:    cluster.Config.RequestTimeoutTime,
 		RetryAction: func(i int) {
@@ -39,24 +41,28 @@ func NewGrainCallOptions(cluster *Cluster) *GrainCallOptions {
 	}
 }
 
-func (config *GrainCallOptions) WithTimeout(timeout time.Duration) *GrainCallOptions {
-	config.Timeout = timeout
-	return config
+func WithTimeout(timeout time.Duration) GrainCallOption {
+	return func(config *GrainCallConfig) {
+		config.Timeout = timeout
+	}
 }
 
-func (config *GrainCallOptions) WithRetry(count int) *GrainCallOptions {
-	config.RetryCount = count
-	return config
+func WithRetry(count int) GrainCallOption {
+	return func(config *GrainCallConfig) {
+		config.RetryCount = count
+	}
 }
 
-func (config *GrainCallOptions) WithRetryAction(act func(i int)) *GrainCallOptions {
-	config.RetryAction = act
-	return config
+func WithRetryAction(act func(i int)) GrainCallOption {
+	return func(config *GrainCallConfig) {
+		config.RetryAction = act
+	}
 }
 
-func (config *GrainCallOptions) WithContext(ctx actor.SenderContext) *GrainCallOptions {
-	config.Context = ctx
-	return config
+func WithContext(ctx actor.SenderContext) GrainCallOption {
+	return func(config *GrainCallConfig) {
+		config.Context = ctx
+	}
 }
 
 type ClusterInit struct {
