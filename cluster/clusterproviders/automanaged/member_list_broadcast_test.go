@@ -1,6 +1,7 @@
 package automanaged
 
 import (
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"testing"
 	"time"
 
@@ -32,10 +33,11 @@ func startNode() *cluster.Cluster {
 	provider := New()
 	config := remote.Configure("localhost", 0)
 
-	clusterConfig := cluster.Configure("my-cluster", provider, config)
+	lookup := disthash.New()
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
 	cluster := cluster.New(system, clusterConfig)
 
-	cluster.Start()
+	cluster.StartMember()
 
 	return cluster
 }
@@ -57,7 +59,7 @@ func trySendAndReceiveMessage(t *testing.T, c *cluster.Cluster, methodIndex int3
 
 	time.Sleep(500 * time.Millisecond)
 
-	c.MemberList.BroadcastEvent(&cluster.GrainRequest{MethodIndex: methodIndex})
+	c.MemberList.BroadcastEvent(&cluster.GrainRequest{MethodIndex: methodIndex}, true)
 
 	select {
 	case receivedEvent = <-events:
