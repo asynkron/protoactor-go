@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	plog = logmod.New(logmod.InfoLevel, "[GRAIN]")
+	plog = logmod.New(logmod.InfoLevel, "[GRAIN][shared]")
 	_    = proto.Marshal
 	_    = fmt.Errorf
 	_    = math.Inf
@@ -83,7 +83,7 @@ type CalculatorGrainClient struct {
 }
 
 // Add requests the execution on to the cluster with CallOptions
-func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...*cluster.GrainCallConfig) (*CountResponse, error) {
+func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...cluster.GrainCallOption) (*CountResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...*cluster.GrainCall
 }
 
 // Subtract requests the execution on to the cluster with CallOptions
-func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...*cluster.GrainCallConfig) (*CountResponse, error) {
+func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...cluster.GrainCallOption) (*CountResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...*cluster.Grai
 }
 
 // GetCurrent requests the execution on to the cluster with CallOptions
-func (g *CalculatorGrainClient) GetCurrent(r *Void, opts ...*cluster.GrainCallConfig) (*CountResponse, error) {
+func (g *CalculatorGrainClient) GetCurrent(r *Void, opts ...cluster.GrainCallOption) (*CountResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err

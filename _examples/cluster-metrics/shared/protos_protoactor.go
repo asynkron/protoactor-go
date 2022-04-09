@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	plog = logmod.New(logmod.InfoLevel, "[GRAIN]")
+	plog = logmod.New(logmod.InfoLevel, "[GRAIN][shared]")
 	_    = proto.Marshal
 	_    = fmt.Errorf
 	_    = math.Inf
@@ -83,7 +83,7 @@ type HelloGrainClient struct {
 }
 
 // SayHello requests the execution on to the cluster with CallOptions
-func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallConfig) (*HelloResponse, error) {
+func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...cluster.GrainCallOption) (*HelloResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallC
 }
 
 // Add requests the execution on to the cluster with CallOptions
-func (g *HelloGrainClient) Add(r *AddRequest, opts ...*cluster.GrainCallConfig) (*AddResponse, error) {
+func (g *HelloGrainClient) Add(r *AddRequest, opts ...cluster.GrainCallOption) (*AddResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (g *HelloGrainClient) Add(r *AddRequest, opts ...*cluster.GrainCallConfig) 
 }
 
 // VoidFunc requests the execution on to the cluster with CallOptions
-func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...*cluster.GrainCallConfig) (*Unit, error) {
+func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...cluster.GrainCallOption) (*Unit, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
