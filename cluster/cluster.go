@@ -87,11 +87,12 @@ func (c *Cluster) StartMember() {
 	c.IdentityLookup = cfg.IdentityLookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)
 
+	// TODO: Disable Gossip for now until API changes are done
 	// gossiper must be started whenever any topology events starts flowing
-	if err := c.Gossip.StartGossiping(); err != nil {
-		panic(err)
-	}
-	c.MemberList.InitializeTopologyConsensus()
+	// if err := c.Gossip.StartGossiping(); err != nil {
+	// 	panic(err)
+	// }
+	// c.MemberList.InitializeTopologyConsensus()
 
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
 		panic(err)

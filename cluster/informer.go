@@ -114,10 +114,8 @@ func (inf *Informer) SendState(sendStateToMember LocalStateSender) {
 	}
 
 	// make a copy of the otherMembers so we can sort it randomly
-	otherMembers := make([]*Member, 0, len(inf.otherMembers))
-	for i, member := range inf.otherMembers {
-		otherMembers[i] = member
-	}
+	otherMembers := make([]*Member, len(inf.otherMembers))
+	copy(otherMembers, inf.otherMembers)
 
 	// shuffles the order of the slice elements
 	rnd.Shuffle(len(otherMembers), func(i, j int) {
@@ -182,7 +180,9 @@ func (inf *Informer) GetMemberStateDelta(targetMemberID string) MemberStateDelta
 	for memberID, memberState := range members {
 
 		// create an empty state
-		newMemberState := GossipState_GossipMemberState{}
+		newMemberState := GossipState_GossipMemberState{
+			Values: make(map[string]*GossipKeyValue),
+		}
 
 		watermarkKey := fmt.Sprintf("%s.%s", targetMemberID, memberID)
 
