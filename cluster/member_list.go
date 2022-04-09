@@ -237,16 +237,15 @@ func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {
 
 	plog.Info("creating member strategy", log.String("kind", kind))
 
-	clusterKind := ml.cluster.GetClusterKind(kind)
+	clusterKind, ok := ml.cluster.TryGetClusterKind(kind)
 
-	var strategy MemberStrategy
-
-	strategy = clusterKind.Strategy
-	if strategy != nil {
-		return strategy
+	if ok {
+		if clusterKind.Strategy != nil {
+			return clusterKind.Strategy
+		}
 	}
 
-	strategy = ml.cluster.Config.MemberStrategyBuilder(ml.cluster, kind)
+	strategy := ml.cluster.Config.MemberStrategyBuilder(ml.cluster, kind)
 	if strategy != nil {
 		return strategy
 	}

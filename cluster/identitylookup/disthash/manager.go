@@ -53,10 +53,10 @@ func (pm *Manager) PidOfActivatorActor(addr string) *actor.PID {
 }
 
 func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
-	plog.Info("onClusterTopology", log.Uint64("eventId", tplg.TopologyHash))
+	plog.Info("onClusterTopology", log.Uint64("topology-hash", tplg.TopologyHash))
 
 	for _, m := range tplg.Members {
-		plog.Info("Got member " + m.Id)
+		plog.Info("Got member ", log.String("MemberId", m.Id))
 		for _, k := range m.Kinds {
 			plog.Info("" + m.Id + " - " + k)
 		}

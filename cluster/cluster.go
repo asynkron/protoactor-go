@@ -159,6 +159,11 @@ func (c *Cluster) GetClusterKind(kind string) *ActivatedKind {
 	return k
 }
 
+func (c *Cluster) TryGetClusterKind(kind string) (*ActivatedKind, bool) {
+	k, ok := c.kinds[kind]
+	return k, ok
+}
+
 func (c *Cluster) initKinds() {
 	for name, kind := range c.Config.Kinds {
 		c.kinds[name] = kind.Build(c)
