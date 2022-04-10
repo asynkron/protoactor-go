@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestReceiveFromStream(t *testing.T) {
+func TestReceiveFromTypedStream(t *testing.T) {
 	var system = actor.NewActorSystem()
-	s := NewUntypedStream(system)
+	s := NewTypedStream[string](system)
 	go func() {
 		rootContext := system.Root
 		rootContext.Send(s.PID(), "hello")
@@ -17,6 +17,6 @@ func TestReceiveFromStream(t *testing.T) {
 	}()
 	res := <-s.C()
 	res2 := <-s.C()
-	assert.Equal(t, "hello", res.(string))
-	assert.Equal(t, "you", res2.(string))
+	assert.Equal(t, "hello", res)
+	assert.Equal(t, "you", res2)
 }
