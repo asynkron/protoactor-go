@@ -1,11 +1,11 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/AsynkronIT/protoactor-go)](https://goreportcard.com/report/github.com/AsynkronIT/protoactor-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/asynkron/protoactor-go)](https://goreportcard.com/report/github.com/asynkron/protoactor-go)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
-[![GoDoc](https://godoc.org/github.com/AsynkronIT/protoactor-go?status.svg)](https://godoc.org/github.com/AsynkronIT/protoactor-go)
-[![Build Status](https://travis-ci.org/AsynkronIT/protoactor-go.svg?branch=dev)](https://travis-ci.org/AsynkronIT/protoactor-go)
-[![Coverage Status](https://coveralls.io/repos/github/AsynkronIT/protoactor-go/badge.svg?branch=dev)](https://coveralls.io/github/AsynkronIT/protoactor-go?branch=dev)
-[![Sourcegraph](https://sourcegraph.com/github.com/AsynkronIT/protoactor-go/-/badge.svg)](https://sourcegraph.com/github.com/AsynkronIT/protoactor-go?badge)
+[![GoDoc](https://godoc.org/github.com/asynkron/protoactor-go?status.svg)](https://godoc.org/github.com/asynkron/protoactor-go)
+[![Build Status](https://travis-ci.org/asynkron/protoactor-go.svg?branch=dev)](https://travis-ci.org/asynkron/protoactor-go)
+[![Coverage Status](https://coveralls.io/repos/github/asynkron/protoactor-go/badge.svg?branch=dev)](https://coveralls.io/github/asynkron/protoactor-go?branch=dev)
+[![Sourcegraph](https://sourcegraph.com/github.com/asynkron/protoactor-go/-/badge.svg)](https://sourcegraph.com/github.com/asynkron/protoactor-go?badge)
 
 ### [Join our Slack channel](https://join.slack.com/t/asynkron/shared_invite/zt-ko824601-yGN1d3GHF9jzZX2VtONodQ)
 
@@ -21,7 +21,7 @@ But be aware that the API might change over time until 1.0.
 
 This is the Go repository for Proto Actor.
 
-The C# implementation can be found here [https://github.com/AsynkronIT/protoactor-dotnet](https://github.com/AsynkronIT/protoactor-dotnet)
+The C# implementation can be found here [https://github.com/asynkron/protoactor-dotnet](https://github.com/asynkron/protoactor-dotnet)
 
 ## Design principles:
 
@@ -99,8 +99,8 @@ You need to ensure that your `$GOPATH` variable is properly set.
 Next, install the [standard protocol buffer implementation](https://github.com/google/protobuf) and run the following commands to get all the necessary tooling:
 
 ```
-go get github.com/AsynkronIT/protoactor-go/...
-cd $GOPATH/src/github.com/AsynkronIT/protoactor-go
+go get github.com/asynkron/protoactor-go/...
+cd $GOPATH/src/github.com/asynkron/protoactor-go
 go get ./...
 make
 ```
@@ -120,15 +120,15 @@ go test `go list ./... | grep -v consul` | grep -v 'no test files'
 If everything is ok, you will get the output:
 
 ```
-ok  	github.com/AsynkronIT/protoactor-go/actor	0.115s
-ok  	github.com/AsynkronIT/protoactor-go/eventstream	0.020s
-ok  	github.com/AsynkronIT/protoactor-go/internal/queue/goring	2.524s
-ok  	github.com/AsynkronIT/protoactor-go/internal/queue/mpsc	2.385s
-ok  	github.com/AsynkronIT/protoactor-go/log	0.017s
-ok  	github.com/AsynkronIT/protoactor-go/mailbox	2.742s
-ok  	github.com/AsynkronIT/protoactor-go/plugin	1.227s
-ok  	github.com/AsynkronIT/protoactor-go/router	1.836s
-ok  	github.com/AsynkronIT/protoactor-go/stream	0.017s
+ok  	github.com/asynkron/protoactor-go/actor	0.115s
+ok  	github.com/asynkron/protoactor-go/eventstream	0.020s
+ok  	github.com/asynkron/protoactor-go/internal/queue/goring	2.524s
+ok  	github.com/asynkron/protoactor-go/internal/queue/mpsc	2.385s
+ok  	github.com/asynkron/protoactor-go/log	0.017s
+ok  	github.com/asynkron/protoactor-go/mailbox	2.742s
+ok  	github.com/asynkron/protoactor-go/plugin	1.227s
+ok  	github.com/asynkron/protoactor-go/router	1.836s
+ok  	github.com/asynkron/protoactor-go/stream	0.017s
 ```
 
 ## Hello world
@@ -399,7 +399,7 @@ Our awesome sponsors:
 
 ## Contributors
 
-<a href="https://github.com/AsynkronIT/protoactor-go/graphs/contributors">
+<a href="https://github.com/asynkron/protoactor-go/graphs/contributors">
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
@@ -415,7 +415,7 @@ Our awesome sponsors:
 <!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
-  <img src="https://contributors-img.web.app/image?repo=AsynkronIT/protoactor-go" />
+  <img src="https://contributors-img.web.app/image?repo=asynkron/protoactor-go" />
 </a>
 
 Made with [contributors-img](https://contributors-img.web.app).

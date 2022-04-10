@@ -1,121 +1,64 @@
 package cluster
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
+	"github.com/asynkron/protoactor-go/actor"
 	cmap "github.com/orcaman/concurrent-map"
 )
 
 type pidCacheValue struct {
-	cache        cmap.ConcurrentMap
-	reverseCache cmap.ConcurrentMap
-
-	watcher         *actor.PID
-	memberStatusSub *eventstream.Subscription
-	actorSystem     *actor.ActorSystem
+	cache cmap.ConcurrentMap
 }
 
-func setupPidCache(actorSystem *actor.ActorSystem) *pidCacheValue {
+func NewPidCache() *pidCacheValue {
 	pidCache := &pidCacheValue{
-		cache:        cmap.New(),
-		reverseCache: cmap.New(),
-		actorSystem:  actorSystem,
+		cache: cmap.New(),
 	}
-
-	props := actor.PropsFromProducer(newPidCacheWatcher(pidCache)).WithGuardian(actor.RestartingSupervisorStrategy())
-	pidCache.watcher, _ = actorSystem.Root.SpawnNamed(props, "PidCacheWatcher")
-
-	pidCache.memberStatusSub = actorSystem.EventStream.SubscribeWithPredicate(pidCache.onMemberStatusEvent, func(m interface{}) bool {
-		_, ok := m.(MemberStatusEvent)
-		return ok
-	})
 
 	return pidCache
 }
 
-func (c *pidCacheValue) stopPidCache() {
-	_ = c.actorSystem.Root.StopFuture(c.watcher).Wait()
-	c.actorSystem.EventStream.Unsubscribe(c.memberStatusSub)
+func key(identity string, kind string) string {
+	return identity + "." + kind
 }
 
-func (c *pidCacheValue) onMemberStatusEvent(evn interface{}) {
-	switch msEvn := evn.(type) {
-	case *MemberLeftEvent:
-		address := msEvn.Name()
-		c.removeCacheByMemberAddress(address)
-	case *MemberRejoinedEvent:
-		address := msEvn.Name()
-		c.removeCacheByMemberAddress(address)
-	}
-}
-
-func (c *pidCacheValue) getCache(name string) (*actor.PID, bool) {
-	v, ok := c.cache.Get(name)
+func (c *pidCacheValue) Get(identity string, kind string) (*actor.PID, bool) {
+	k := key(identity, kind)
+	v, ok := c.cache.Get(k)
 	if !ok {
 		return nil, false
 	}
 	return v.(*actor.PID), true
 }
 
-func (c *pidCacheValue) addCache(name string, pid *actor.PID) bool {
-	if c.cache.SetIfAbsent(name, pid) {
-		key := pid.String()
-		c.reverseCache.Set(key, name)
-		// watch the pid so we know if the node or pid dies
-		c.actorSystem.Root.Send(c.watcher, &watchPidRequest{pid})
-		return true
-	}
-	return false
+func (c *pidCacheValue) Set(identity string, kind string, pid *actor.PID) {
+	k := key(identity, kind)
+	c.cache.Set(k, pid)
 }
 
-func (c *pidCacheValue) removeCacheByPid(pid *actor.PID) {
-	key := pid.String()
-	if name, ok := c.reverseCache.Get(key); ok {
-		c.cache.Remove(name.(string))
-		c.reverseCache.Remove(key)
-	}
+func (c *pidCacheValue) RemoveByValue(identity string, kind string, pid *actor.PID) {
+	k := key(identity, kind)
+
+	c.cache.RemoveCb(k, func(key string, v interface{}, exists bool) bool {
+		if !exists {
+			return false
+		}
+
+		existing := v.(*actor.PID)
+		return existing.Equal(pid)
+	})
 }
 
-func (c *pidCacheValue) removeCacheByName(name string) {
-	if pid, ok := c.cache.Get(name); ok {
-		key := pid.(*actor.PID).String()
-		c.cache.Remove(name)
-		c.reverseCache.Remove(key)
-	}
+func (c *pidCacheValue) Remove(identity string, kind string) {
+	k := key(identity, kind)
+	c.cache.Remove(k)
 }
 
-func (c *pidCacheValue) removeCacheByMemberAddress(address string) {
+func (c *pidCacheValue) RemoveByMember(member *Member) {
+	addr := member.Address()
 	for item := range c.cache.IterBuffered() {
-		name := item.Key
 		pid := item.Val.(*actor.PID)
-		if pid.Address == address {
-			c.cache.Remove(name)
-			c.reverseCache.Remove(pid.String())
+		if pid.Address == addr {
+			c.cache.Remove(item.Key)
 		}
-	}
-}
-
-type watchPidRequest struct {
-	pid *actor.PID
-}
-
-type pidCacheWatcherActor struct {
-	pidCache *pidCacheValue
-}
-
-func newPidCacheWatcher(pidCache *pidCacheValue) actor.Producer {
-	return func() actor.Actor {
-		return &pidCacheWatcherActor{
-			pidCache: pidCache,
-		}
-	}
-}
-
-func (a *pidCacheWatcherActor) Receive(ctx actor.Context) {
-	switch msg := ctx.Message().(type) {
-	case *watchPidRequest:
-		ctx.Watch(msg.pid)
-	case *actor.Terminated:
-		a.pidCache.removeCacheByPid(msg.Who)
 	}
 }

@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	"remote-benchmark/messages"
+	"remoteheader/messages"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 var (
@@ -32,15 +32,15 @@ func main() {
 				case *messages.Ping:
 					context.Send(sender, &messages.Pong{})
 				}
-			}).
-		WithSenderMiddleware(
-			func(next actor.SenderFunc) actor.SenderFunc {
-				return func(ctx actor.SenderContext, target *actor.PID, envelope *actor.MessageEnvelope) {
-					envelope.SetHeader("test_header", "header_from_node2")
-					log.Println("set header")
-					next(ctx, target, envelope)
-				}
-			})
+			},
+			actor.WithSenderMiddleware(
+				func(next actor.SenderFunc) actor.SenderFunc {
+					return func(ctx actor.SenderContext, target *actor.PID, envelope *actor.MessageEnvelope) {
+						envelope.SetHeader("test_header", "header_from_node2")
+						log.Println("set header")
+						next(ctx, target, envelope)
+					}
+				}))
 
 	rootContext.SpawnNamed(props, "remote")
 

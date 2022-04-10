@@ -5,9 +5,9 @@ import (
 
 	"remoteactivate/messages"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 type helloActor struct{}
@@ -25,14 +25,15 @@ func newHelloActor() actor.Actor {
 	return &helloActor{}
 }
 
-func init() {
-	remote.Register("hello", actor.PropsFromProducer(newHelloActor))
-}
-
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	remote.Start("127.0.0.1:8080")
+	system := actor.NewActorSystem()
+	remoteConfig := remote.Configure("127.0.0.1", 8080,
+		remote.WithKinds(remote.NewKind("hello", actor.PropsFromProducer(newHelloActor))))
+
+	remoter := remote.NewRemote(system, remoteConfig)
+	remoter.Start()
 
 	console.ReadLine()
 }

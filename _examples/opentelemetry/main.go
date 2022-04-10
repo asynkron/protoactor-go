@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 type hello struct{ Who string }
@@ -20,9 +20,7 @@ func (state *helloActor) Receive(context actor.Context) {
 }
 
 func main() {
-
-	config := actor.NewConfig().WithDefaultPrometheusProvider(2222)
-	system := actor.NewActorSystemWithConfig(config)
+	system := actor.NewActorSystem(actor.WithDefaultPrometheusProvider(2222))
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return &helloActor{}
 	})

@@ -7,17 +7,15 @@ import (
 
 	"remotebenchmark/messages"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/remote"
 
 	"log"
 	"sync"
 
 	"runtime"
 	"time"
-
-	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
 type localActor struct {
@@ -74,13 +72,13 @@ func main() {
 		}()
 	}
 
-	runtime.GOMAXPROCS(runtime.NumCPU() * 1)
-	runtime.GC()
+	//runtime.GOMAXPROCS(runtime.NumCPU() * 1)
+	//runtime.GC()
 
 	messageCount := 1000000
 	// remote.DefaultSerializerID = 1
 	system := actor.NewActorSystem()
-	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 8081))
+	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 8081 /*, remote.WithCallOptions(grpc.UseCompressor(gzip.Name))*/))
 	r.Start()
 
 	rootContext := system.Root
@@ -90,8 +88,8 @@ func main() {
 		for run == true {
 			var wg sync.WaitGroup
 			props := actor.
-				PropsFromProducer(newLocalActor(&wg, messageCount)).
-				WithMailbox(mailbox.Bounded(1000000))
+				PropsFromProducer(newLocalActor(&wg, messageCount),
+					actor.WithMailbox(actor.Bounded(1000000)))
 
 			pid := rootContext.Spawn(props)
 

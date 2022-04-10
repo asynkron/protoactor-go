@@ -4,18 +4,17 @@ package shared
 import (
 	"errors"
 	"fmt"
+	"google.golang.org/protobuf/proto"
 	"math"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	logmod "github.com/AsynkronIT/protoactor-go/log"
-	"github.com/gogo/protobuf/proto"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	logmod "github.com/asynkron/protoactor-go/log"
 )
 
 var (
-	plog = logmod.New(logmod.InfoLevel, "[GRAIN]")
+	plog = logmod.New(logmod.InfoLevel, "[GRAIN][shared]")
 	_    = proto.Marshal
 	_    = fmt.Errorf
 	_    = math.Inf
@@ -33,7 +32,7 @@ func CalculatorFactory(factory func() Calculator) {
 	xCalculatorFactory = factory
 }
 
-// GetCalculatorGrainClient instantiates a new CalculatorGrainClient with given ID
+// GetCalculatorGrainClient instantiates a new CalculatorGrainClient with given Identity
 func GetCalculatorGrainClient(c *cluster.Cluster, id string) *CalculatorGrainClient {
 	if c == nil {
 		panic(fmt.Errorf("nil cluster instance"))
@@ -41,34 +40,56 @@ func GetCalculatorGrainClient(c *cluster.Cluster, id string) *CalculatorGrainCli
 	if id == "" {
 		panic(fmt.Errorf("empty id"))
 	}
-	return &CalculatorGrainClient{ID: id, cluster: c}
+	return &CalculatorGrainClient{Identity: id, cluster: c}
+}
+
+// GetCalculatorKind instantiates a new cluster.Kind for Calculator
+func GetCalculatorKind(opts ...actor.PropsOption) *cluster.Kind {
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &CalculatorActor{
+			Timeout: 60 * time.Second,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Calculator", props)
+	return kind
+}
+
+// GetCalculatorKind instantiates a new cluster.Kind for Calculator
+func NewCalculatorKind(factory func() Calculator, timeout time.Duration, opts ...actor.PropsOption) *cluster.Kind {
+	xCalculatorFactory = factory
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &CalculatorActor{
+			Timeout: timeout,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Calculator", props)
+	return kind
 }
 
 // Calculator interfaces the services available to the Calculator
 type Calculator interface {
-	Init(id string)
-	Terminate()
-	ReceiveDefault(ctx actor.Context)
+	Init(ctx cluster.GrainContext)
+	Terminate(ctx cluster.GrainContext)
+	ReceiveDefault(ctx cluster.GrainContext)
 	Add(*NumberRequest, cluster.GrainContext) (*CountResponse, error)
 	Subtract(*NumberRequest, cluster.GrainContext) (*CountResponse, error)
 	GetCurrent(*Void, cluster.GrainContext) (*CountResponse, error)
-	
 }
 
 // CalculatorGrainClient holds the base data for the CalculatorGrain
 type CalculatorGrainClient struct {
-	ID      string
-	cluster *cluster.Cluster
+	Identity string
+	cluster  *cluster.Cluster
 }
 
 // Add requests the execution on to the cluster with CallOptions
-func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...*cluster.GrainCallOptions) (*CountResponse, error) {
+func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...cluster.GrainCallOption) (*CountResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -81,9 +102,6 @@ func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...*cluster.GrainCall
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -91,13 +109,13 @@ func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...*cluster.GrainCall
 }
 
 // Subtract requests the execution on to the cluster with CallOptions
-func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...*cluster.GrainCallOptions) (*CountResponse, error) {
+func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...cluster.GrainCallOption) (*CountResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -110,9 +128,6 @@ func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...*cluster.Grai
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -120,13 +135,13 @@ func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...*cluster.Grai
 }
 
 // GetCurrent requests the execution on to the cluster with CallOptions
-func (g *CalculatorGrainClient) GetCurrent(r *Void, opts ...*cluster.GrainCallOptions) (*CountResponse, error) {
+func (g *CalculatorGrainClient) GetCurrent(r *Void, opts ...cluster.GrainCallOption) (*CountResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 2, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -139,18 +154,15 @@ func (g *CalculatorGrainClient) GetCurrent(r *Void, opts ...*cluster.GrainCallOp
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
 	}
 }
 
-
 // CalculatorActor represents the actor structure
 type CalculatorActor struct {
+	ctx     cluster.GrainContext
 	inner   Calculator
 	Timeout time.Duration
 }
@@ -158,18 +170,19 @@ type CalculatorActor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *CalculatorActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started:
+	case *actor.Started: //pass
 	case *cluster.ClusterInit:
+		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = xCalculatorFactory()
-		a.inner.Init(msg.ID)
+		a.inner.Init(a.ctx)
+
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
-
 	case *actor.ReceiveTimeout:
-		a.inner.Terminate()
 		ctx.Poison(ctx.Self())
-
+	case *actor.Stopped:
+		a.inner.Terminate(a.ctx)
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
 
@@ -184,7 +197,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.Add(req, ctx)
+			r0, err := a.inner.Add(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -208,7 +221,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.Subtract(req, ctx)
+			r0, err := a.inner.Subtract(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -232,7 +245,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.GetCurrent(req, ctx)
+			r0, err := a.inner.GetCurrent(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -247,9 +260,9 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 			}
 			resp := &cluster.GrainResponse{MessageData: bytes}
 			ctx.Respond(resp)
-		
+
 		}
 	default:
-		a.inner.ReceiveDefault(ctx)
+		a.inner.ReceiveDefault(a.ctx)
 	}
 }

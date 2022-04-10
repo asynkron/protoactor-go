@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 // Spawn creates instances of actors, similar to 'new' or 'make' but for actors.
@@ -13,7 +13,7 @@ func ExampleRootContext_Spawn() {
 	wg.Add(1)
 
 	// create root context
-	// define the actor props
+	// define the actor props.
 	// props define the creation process of an actor
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		// check if the message is a *actor.Started message

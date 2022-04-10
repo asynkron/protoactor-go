@@ -3,7 +3,7 @@ package router
 import (
 	"sync"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 type RouterType int
@@ -68,7 +68,7 @@ func spawn(actorSystem *actor.ActorSystem, id string, config RouterConfig, props
 	}
 
 	var pc = *props
-	pc.WithSpawnFunc(nil)
+	pc.Configure(actor.WithSpawnFunc(nil))
 	ref.state = config.CreateRouterState()
 
 	if config.RouterType() == GroupRouterType {

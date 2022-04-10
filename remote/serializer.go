@@ -8,11 +8,6 @@ func init() {
 	RegisterSerializer(newJsonSerializer())
 }
 
-func RegisterSerializerAsDefault(serializer Serializer) {
-	serializers = append(serializers, serializer)
-	DefaultSerializerID = int32(len(serializers) - 1)
-}
-
 func RegisterSerializer(serializer Serializer) {
 	serializers = append(serializers, serializer)
 }

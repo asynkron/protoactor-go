@@ -3,7 +3,7 @@ package router
 import (
 	"testing"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -14,7 +14,7 @@ func TestGroupRouterActor_Receive_AddRoute(t *testing.T) {
 
 	p1 := system.NewLocalPID("p1")
 	c := new(mockContext)
-	c.On("Message").Return(&AddRoutee{p1})
+	c.On("Message").Return(&AddRoutee{PID: p1})
 	c.On("Watch", p1).Once()
 
 	state.On("GetRoutees").Return(&actor.PIDSet{})
@@ -31,7 +31,7 @@ func TestGroupRouterActor_Receive_AddRoute_NoDuplicates(t *testing.T) {
 
 	p1 := system.NewLocalPID("p1")
 	c := new(mockContext)
-	c.On("Message").Return(&AddRoutee{p1})
+	c.On("Message").Return(&AddRoutee{PID: p1})
 
 	state.On("GetRoutees").Return(actor.NewPIDSet(p1))
 
@@ -49,7 +49,7 @@ func TestGroupRouterActor_Receive_RemoveRoute(t *testing.T) {
 
 	p2 := system.NewLocalPID("p2")
 	c := new(mockContext)
-	c.On("Message").Return(&RemoveRoutee{p1})
+	c.On("Message").Return(&RemoveRoutee{PID: p1})
 	c.On("Unwatch", p1).
 		Run(func(args mock.Arguments) {
 

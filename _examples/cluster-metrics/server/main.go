@@ -2,17 +2,18 @@ package main
 
 import (
 	"flag"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"log"
 	"time"
 
 	"cluster-metrics/shared"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
-	logmod "github.com/AsynkronIT/protoactor-go/log"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
+	logmod "github.com/asynkron/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
@@ -35,19 +36,49 @@ func newHelloActor() actor.Actor {
 	}
 }
 
+// a Go struct implementing the Hello interface
+type HelloGrain struct {
+}
+
+func (h *HelloGrain) Init(ctx cluster.GrainContext) {
+	log.Printf("new grain id=%s", ctx.Identity)
+}
+
+func (h *HelloGrain) Terminate(ctx cluster.GrainContext) {
+	log.Printf("delete grain id=%s", ctx.Identity())
+}
+
+func (*HelloGrain) ReceiveDefault(ctx cluster.GrainContext) {
+	msg := ctx.Message()
+	log.Printf("Unknown message %v", msg)
+}
+
+func (h *HelloGrain) SayHello(r *shared.HelloRequest, ctx cluster.GrainContext) (*shared.HelloResponse, error) {
+	return &shared.HelloResponse{Message: "hello " + r.Name + " from " + ctx.Identity()}, nil
+}
+
+func (*HelloGrain) Add(r *shared.AddRequest, ctx cluster.GrainContext) (*shared.AddResponse, error) {
+	return &shared.AddResponse{Result: r.A + r.B}, nil
+}
+
+func (*HelloGrain) VoidFunc(r *shared.AddRequest, ctx cluster.GrainContext) (*shared.Unit, error) {
+	return &shared.Unit{}, nil
+}
+
 func main() {
 	port := flag.Int("port", 0, "")
 	flag.Parse()
 	system := actor.NewActorSystem()
 	remoteConfig := remote.Configure("127.0.0.1", *port)
-	props := actor.PropsFromProducer(newHelloActor).WithReceiverMiddleware(Logger)
-	helloKind := cluster.NewKind("Hello", props)
+	helloKind := shared.NewHelloKind(func() shared.Hello { return &HelloGrain{} }, 0, actor.WithReceiverMiddleware(Logger))
 	cluster.SetLogLevel(logmod.InfoLevel)
 
 	provider, _ := consul.New()
-	clusterConfig := cluster.Configure("my-cluster", provider, remoteConfig, helloKind)
+	lookup := disthash.New()
+
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, remoteConfig, cluster.WithKinds(helloKind))
 	c := cluster.New(system, clusterConfig)
-	c.Start()
+	c.StartMember()
 
 	// this node knows about Hello kind
 	hello := shared.GetHelloGrainClient(c, "MyGrain")

@@ -5,11 +5,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/AsynkronIT/protoactor-go/mailbox"
-
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/asynkron/protoactor-go/log"
 )
 
 type endpointLazy struct {
@@ -126,7 +124,7 @@ func (em *endpointManager) stop() {
 
 func (em *endpointManager) startActivator() {
 	p := newActivatorActor(em.remote)
-	props := actor.PropsFromProducer(p).WithGuardian(actor.RestartingSupervisorStrategy())
+	props := actor.PropsFromProducer(p, actor.WithGuardian(actor.RestartingSupervisorStrategy()))
 	pid, err := em.remote.actorSystem.Root.SpawnNamed(props, "activator")
 	if err != nil {
 		panic(err)
@@ -142,10 +140,11 @@ func (em *endpointManager) startSupervisor() {
 	r := em.remote
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return newEndpointSupervisor(r)
-	}).
-		WithGuardian(actor.RestartingSupervisorStrategy()).
-		WithSupervisor(actor.RestartingSupervisorStrategy()).
-		WithDispatcher(mailbox.NewSynchronizedDispatcher(300))
+	},
+		actor.WithGuardian(actor.RestartingSupervisorStrategy()),
+		actor.WithSupervisor(actor.RestartingSupervisorStrategy()),
+		actor.WithDispatcher(actor.NewSynchronizedDispatcher(300)))
+
 	pid, err := r.actorSystem.Root.SpawnNamed(props, "EndpointSupervisor")
 	if err != nil {
 		panic(err)
@@ -281,8 +280,8 @@ func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, s
 
 func (state *endpointSupervisor) spawnEndpointWriter(remote *Remote, address string, ctx actor.Context) *actor.PID {
 	props := actor.
-		PropsFromProducer(endpointWriterProducer(remote, address, remote.config)).
-		WithMailbox(endpointWriterMailboxProducer(remote.config.EndpointWriterBatchSize, remote.config.EndpointWriterQueueSize))
+		PropsFromProducer(endpointWriterProducer(remote, address, remote.config),
+			actor.WithMailbox(endpointWriterMailboxProducer(remote.config.EndpointWriterBatchSize, remote.config.EndpointWriterQueueSize)))
 	pid := ctx.Spawn(props)
 	return pid
 }

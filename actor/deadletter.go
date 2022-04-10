@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/AsynkronIT/protoactor-go/metrics"
+	"github.com/asynkron/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/metrics"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -57,7 +57,7 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 				// we know that this is a local actor since we get it on our own event stream, thus the address is not terminated
 				m.Watcher.sendSystemMessage(actorSystem, &Terminated{
 					Who: deadLetter.PID,
-					Why: NotFound,
+					Why: TerminatedReason_NotFound,
 				})
 			}
 		}

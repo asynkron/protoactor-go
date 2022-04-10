@@ -2,6 +2,7 @@ package actor
 
 import (
 	"fmt"
+	"github.com/asynkron/protoactor-go/ctxext"
 	"time"
 
 	"github.com/stretchr/testify/mock"
@@ -31,6 +32,15 @@ type mockContext struct {
 func (m *mockContext) ActorSystem() *ActorSystem {
 	args := m.Called()
 	return args.Get(0).(*ActorSystem)
+}
+
+func (m *mockContext) Get(id ctxext.ContextExtensionID) ctxext.ContextExtension {
+	args := m.Called(id)
+	return args.Get(0).(ctxext.ContextExtension)
+}
+
+func (m *mockContext) Set(ext ctxext.ContextExtension) {
+	m.Called(ext)
 }
 
 func (m *mockContext) Parent() *PID {
@@ -91,7 +101,7 @@ func (m *mockContext) Forward(pid *PID) {
 	m.Called()
 }
 
-func (m *mockContext) AwaitFuture(f *Future, cont func(res interface{}, err error)) {
+func (m *mockContext) ReenterAfter(f *Future, cont func(res interface{}, err error)) {
 	m.Called(f, cont)
 }
 

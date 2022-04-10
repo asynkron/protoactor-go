@@ -4,16 +4,16 @@ import (
 	"cluster-restartgracefully/shared"
 	"flag"
 	"fmt"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/partition"
 	"sync"
 	"time"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
-	"github.com/AsynkronIT/protoactor-go/cluster/etcd"
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/asynkron/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 var (
@@ -56,8 +56,8 @@ func startNode(port int, provider string) {
 		ttl := consul.WithTTL(100 * time.Millisecond)
 		refreshTTL := consul.WithRefreshTTL(100 * time.Millisecond)
 		cp, err = consul.New(ttl, refreshTTL)
-	case "etcd":
-		cp, err = etcd.New()
+	//case "etcd":
+	//	cp, err = etcd.New()
 	default:
 		panic(fmt.Errorf("Invalid provider:%s", provider))
 	}
@@ -66,8 +66,9 @@ func startNode(port int, provider string) {
 		panic(err)
 	}
 
+	id := partition.New()
 	remoteCfg := remote.Configure("127.0.0.1", port)
-	cfg := cluster.Configure("cluster-restartgracefully", cp, remoteCfg)
+	cfg := cluster.Configure("cluster-restartgracefully", cp, id, remoteCfg)
 	_cluster = cluster.New(system, cfg)
 	_cluster.StartClient()
 }
@@ -98,7 +99,7 @@ func runClientsAll(clients int, loops int, interval time.Duration) {
 }
 
 func runClient(grainId string, loops int, interval time.Duration) {
-	callOpts := cluster.DefaultGrainCallOptions(_cluster).WithRetry(3).WithTimeout(6 * time.Second)
+	callOpts := cluster.DefaultGrainCallConfig(_cluster).WithRetry(3).WithTimeout(6 * time.Second)
 	now := time.Now()
 	calcGrain := shared.GetCalculatorGrainClient(_cluster, grainId)
 	resp, err := calcGrain.GetCurrent(&shared.Void{}, callOpts)
@@ -122,7 +123,7 @@ func runClient(grainId string, loops int, interval time.Duration) {
 }
 
 func calcAdd(grainId string, addNumber int64) int64 {
-	callOpts := cluster.DefaultGrainCallOptions(_cluster).WithRetry(3).WithTimeout(6 * time.Second)
+	callOpts := cluster.DefaultGrainCallConfig(_cluster).WithRetry(3).WithTimeout(6 * time.Second)
 	calcGrain := shared.GetCalculatorGrainClient(_cluster, grainId)
 	resp, err := calcGrain.Add(&shared.NumberRequest{Number: addNumber}, callOpts)
 	if err != nil {

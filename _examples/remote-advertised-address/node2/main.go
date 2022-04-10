@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"remote-benchmark/messages"
+	"remoteadvertisedaddress/messages"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 var (
@@ -15,8 +15,7 @@ var (
 )
 
 func main() {
-	cfg := remote.Configure("0.0.0.0", 8080)
-	cfg = cfg.WithAdvertisedHost("localhost:8080")
+	cfg := remote.Configure("0.0.0.0", 8080, remote.WithAdvertisedHost("localhost:8080"))
 	r := remote.NewRemote(system, cfg)
 	r.Start()
 

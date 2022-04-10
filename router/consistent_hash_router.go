@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 	"github.com/serialx/hashring"
 	"log"
 )
@@ -81,12 +81,14 @@ func (state *consistentHashRouterState) InvokeRouterManagementMessage(msg Manage
 
 }
 
-func NewConsistentHashPool(size int) *actor.Props {
-	return (&actor.Props{}).WithSpawnFunc(spawner(&consistentHashPoolRouter{PoolRouter{PoolSize: size}}))
+func NewConsistentHashPool(size int, opts ...actor.PropsOption) *actor.Props {
+	return (&actor.Props{}).
+		Configure(actor.WithSpawnFunc(spawner(&consistentHashPoolRouter{PoolRouter{PoolSize: size}}))).
+		Configure(opts...)
 }
 
 func NewConsistentHashGroup(routees ...*actor.PID) *actor.Props {
-	return (&actor.Props{}).WithSpawnFunc(spawner(&consistentHashGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
+	return (&actor.Props{}).Configure(actor.WithSpawnFunc(spawner(&consistentHashGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}})))
 }
 
 func (config *consistentHashPoolRouter) CreateRouterState() State {

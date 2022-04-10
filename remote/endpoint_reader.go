@@ -3,8 +3,8 @@ package remote
 import (
 	io "io"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -13,6 +13,19 @@ import (
 type endpointReader struct {
 	suspended bool
 	remote    *Remote
+}
+
+func (s *endpointReader) mustEmbedUnimplementedRemotingServer() {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *endpointReader) ListProcesses(ctx context.Context, request *ListProcessesRequest) (*ListProcessesResponse, error) {
+	panic("implement me")
+}
+
+func (s *endpointReader) GetProcessDiagnostics(ctx context.Context, request *GetProcessDiagnosticsRequest) (*GetProcessDiagnosticsResponse, error) {
+	panic("implement me")
 }
 
 func newEndpointReader(r *Remote) *endpointReader {
@@ -26,7 +39,7 @@ func (s *endpointReader) Connect(ctx context.Context, req *ConnectRequest) (*Con
 		return nil, status.Error(codes.Canceled, "Suspended")
 	}
 
-	return &ConnectResponse{DefaultSerializerId: DefaultSerializerID}, nil
+	return &ConnectResponse{DefaultSerializerId: 0}, nil
 }
 
 func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {

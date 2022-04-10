@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // Used to query the GossipActor about a given key status
@@ -19,10 +19,10 @@ func NewGetGossipStateRequest(key string) GetGossipStateRequest {
 
 // Used by the GossipActor to send back the status value of a given key
 type GetGossipStateResponse struct {
-	State map[string]*types.Any
+	State map[string]*anypb.Any
 }
 
-func NewGetGossipStateResponse(state map[string]*types.Any) GetGossipStateResponse {
+func NewGetGossipStateResponse(state map[string]*anypb.Any) GetGossipStateResponse {
 
 	value := GetGossipStateResponse{
 		State: state,

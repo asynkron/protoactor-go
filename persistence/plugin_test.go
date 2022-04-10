@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -130,8 +130,8 @@ func TestRecovery(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
 			rootContext := system.Root
-			props := actor.PropsFromProducer(makeActor).
-				WithReceiverMiddleware(Using(tc.init))
+			props := actor.PropsFromProducer(makeActor,
+				actor.WithReceiverMiddleware(Using(tc.init)))
 			pid, err := rootContext.SpawnNamed(props, ActorName)
 			require.NoError(t, err)
 

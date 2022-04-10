@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 	"sync/atomic"
 )
 
@@ -36,12 +36,14 @@ func (state *roundRobinState) RouteMessage(message interface{}) {
 	state.sender.Send(pid, message)
 }
 
-func NewRoundRobinPool(size int) *actor.Props {
-	return (&actor.Props{}).WithSpawnFunc(spawner(&roundRobinPoolRouter{PoolRouter{PoolSize: size}}))
+func NewRoundRobinPool(size int, opts ...actor.PropsOption) *actor.Props {
+	return (&actor.Props{}).
+		Configure(actor.WithSpawnFunc(spawner(&roundRobinPoolRouter{PoolRouter{PoolSize: size}}))).
+		Configure(opts...)
 }
 
 func NewRoundRobinGroup(routees ...*actor.PID) *actor.Props {
-	return (&actor.Props{}).WithSpawnFunc(spawner(&roundRobinGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
+	return (&actor.Props{}).Configure(actor.WithSpawnFunc(spawner(&roundRobinGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}})))
 }
 
 func (config *roundRobinPoolRouter) CreateRouterState() State {

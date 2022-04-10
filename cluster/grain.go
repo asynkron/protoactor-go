@@ -1,38 +1,39 @@
 package cluster
 
-import "time"
+import (
+	"github.com/asynkron/protoactor-go/actor"
+	"time"
+)
 
-type Grain struct {
-	id string
-}
+//type Grain struct {
+//}
+//
+//func (g *Grain) Init(ctx GrainContext) {
+//
+//}
 
-func (g *Grain) ID() string {
-	return g.id
-}
-
-func (g *Grain) Init(id string) {
-	g.id = id
-}
-
-type GrainCallOptions struct {
+type GrainCallConfig struct {
 	RetryCount  int
 	Timeout     time.Duration
 	RetryAction func(n int)
+	Context     actor.SenderContext
 }
 
-var defaultGrainCallOptions *GrainCallOptions
+type GrainCallOption func(config *GrainCallConfig)
 
-func DefaultGrainCallOptions(cluster *Cluster) *GrainCallOptions {
+var defaultGrainCallOptions *GrainCallConfig
+
+func DefaultGrainCallConfig(cluster *Cluster) *GrainCallConfig {
 	if defaultGrainCallOptions == nil {
 		defaultGrainCallOptions = NewGrainCallOptions(cluster)
 	}
 	return defaultGrainCallOptions
 }
 
-func NewGrainCallOptions(cluster *Cluster) *GrainCallOptions {
-	return &GrainCallOptions{
+func NewGrainCallOptions(cluster *Cluster) *GrainCallConfig {
+	return &GrainCallConfig{
 		RetryCount: 10,
-		Timeout:    cluster.Config.TimeoutTime,
+		Timeout:    cluster.Config.RequestTimeoutTime,
 		RetryAction: func(i int) {
 			i++
 			time.Sleep(time.Duration(i * i * 50))
@@ -40,22 +41,31 @@ func NewGrainCallOptions(cluster *Cluster) *GrainCallOptions {
 	}
 }
 
-func (config *GrainCallOptions) WithTimeout(timeout time.Duration) *GrainCallOptions {
-	config.Timeout = timeout
-	return config
+func WithTimeout(timeout time.Duration) GrainCallOption {
+	return func(config *GrainCallConfig) {
+		config.Timeout = timeout
+	}
 }
 
-func (config *GrainCallOptions) WithRetry(count int) *GrainCallOptions {
-	config.RetryCount = count
-	return config
+func WithRetry(count int) GrainCallOption {
+	return func(config *GrainCallConfig) {
+		config.RetryCount = count
+	}
 }
 
-func (config *GrainCallOptions) WithRetryAction(act func(i int)) *GrainCallOptions {
-	config.RetryAction = act
-	return config
+func WithRetryAction(act func(i int)) GrainCallOption {
+	return func(config *GrainCallConfig) {
+		config.RetryAction = act
+	}
+}
+
+func WithContext(ctx actor.SenderContext) GrainCallOption {
+	return func(config *GrainCallConfig) {
+		config.Context = ctx
+	}
 }
 
 type ClusterInit struct {
-	ID   string
-	Kind string
+	Identity *ClusterIdentity
+	Cluster  *Cluster
 }

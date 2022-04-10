@@ -4,17 +4,17 @@ import (
 	"cluster-restartgracefully/shared"
 	"flag"
 	"fmt"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
-	"github.com/AsynkronIT/protoactor-go/cluster/etcd"
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/asynkron/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 var (
@@ -51,7 +51,7 @@ func main() {
 func startNode(port int, provider string, timeout time.Duration) {
 	plog.Info("press 'CTRL-C' to shutdown server.")
 	shared.CalculatorFactory(func() shared.Calculator {
-		return &shared.CalcGrain{}
+		return &CalcGrain{}
 	})
 
 	var cp cluster.ClusterProvider
@@ -59,23 +59,20 @@ func startNode(port int, provider string, timeout time.Duration) {
 	switch provider {
 	case "consul":
 		cp, err = consul.New()
-	case "etcd":
-		cp, err = etcd.New()
+	//case "etcd":
+	//	cp, err = etcd.New()
 	default:
 		panic(fmt.Errorf("Invalid provider:%s", provider))
 	}
+
+	id := disthash.New()
 
 	if err != nil {
 		panic(err)
 	}
 
-	kind := cluster.NewKind("Calculator", actor.PropsFromProducer(func() actor.Actor {
-		return &shared.CalculatorActor{
-			Timeout: timeout,
-		}
-	}))
 	remoteCfg := remote.Configure("127.0.0.1", port)
-	cfg := cluster.Configure("cluster-restartgracefully", cp, remoteCfg, kind)
+	cfg := cluster.Configure("cluster-restartgracefully", cp, id, remoteCfg, cluster.WithKinds(shared.GetCalculatorKind()))
 	_cluster = cluster.New(system, cfg)
-	_cluster.Start()
+	_cluster.StartMember()
 }

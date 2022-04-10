@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/actor/middleware"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor/middleware"
 )
 
 type hello struct{ Who string }
@@ -20,7 +20,7 @@ func receive(context actor.Context) {
 func main() {
 	system := actor.NewActorSystem()
 	rootContext := system.Root
-	props := actor.PropsFromFunc(receive).WithReceiverMiddleware(middleware.Logger)
+	props := actor.PropsFromFunc(receive, actor.WithReceiverMiddleware(middleware.Logger))
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, &hello{Who: "Roger"})
 	_, _ = console.ReadLine()

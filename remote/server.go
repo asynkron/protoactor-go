@@ -6,15 +6,15 @@ import (
 	"net"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/extensions"
+	"github.com/asynkron/protoactor-go/extensions"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )
 
-var extensionId = extensions.NextExtensionId()
+var extensionId = extensions.NextExtensionID()
 
 type Remote struct {
 	actorSystem  *actor.ActorSystem
@@ -22,16 +22,20 @@ type Remote struct {
 	edpReader    *endpointReader
 	edpManager   *endpointManager
 	config       *Config
-	nameLookup   map[string]actor.Props
+	kinds        map[string]*actor.Props
 	activatorPid *actor.PID
 	blocklist    *BlockList
 }
 
-func NewRemote(actorSystem *actor.ActorSystem, config Config) *Remote {
+func NewRemote(actorSystem *actor.ActorSystem, config *Config) *Remote {
 	r := &Remote{
 		actorSystem: actorSystem,
-		config:      &config,
-		nameLookup:  make(map[string]actor.Props),
+		config:      config,
+		kinds:       make(map[string]*actor.Props),
+		blocklist:   NewBlockList(),
+	}
+	for k, v := range config.Kinds {
+		r.kinds[k] = v
 	}
 
 	actorSystem.Extensions.Register(r)
@@ -39,13 +43,14 @@ func NewRemote(actorSystem *actor.ActorSystem, config Config) *Remote {
 	return r
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func GetRemote(actorSystem *actor.ActorSystem) *Remote {
 	r := actorSystem.Extensions.Get(extensionId)
 
 	return r.(*Remote)
 }
 
-func (r *Remote) Id() extensions.ExtensionId {
+func (r *Remote) ExtensionID() extensions.ExtensionID {
 	return extensionId
 }
 
@@ -65,7 +70,7 @@ func (r *Remote) Start() {
 	} else {
 		address = lis.Addr().String()
 	}
-	// r.actorSystem.ProcessRegistry.RegisterAddressResolver(remoteHandler)
+
 	r.actorSystem.ProcessRegistry.RegisterAddressResolver(r.remoteHandler)
 	r.actorSystem.ProcessRegistry.Address = address
 

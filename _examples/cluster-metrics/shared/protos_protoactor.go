@@ -4,18 +4,17 @@ package shared
 import (
 	"errors"
 	"fmt"
+	"google.golang.org/protobuf/proto"
 	"math"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	logmod "github.com/AsynkronIT/protoactor-go/log"
-	"github.com/gogo/protobuf/proto"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	logmod "github.com/asynkron/protoactor-go/log"
 )
 
 var (
-	plog = logmod.New(logmod.InfoLevel, "[GRAIN]")
+	plog = logmod.New(logmod.InfoLevel, "[GRAIN][shared]")
 	_    = proto.Marshal
 	_    = fmt.Errorf
 	_    = math.Inf
@@ -33,7 +32,7 @@ func HelloFactory(factory func() Hello) {
 	xHelloFactory = factory
 }
 
-// GetHelloGrainClient instantiates a new HelloGrainClient with given ID
+// GetHelloGrainClient instantiates a new HelloGrainClient with given Identity
 func GetHelloGrainClient(c *cluster.Cluster, id string) *HelloGrainClient {
 	if c == nil {
 		panic(fmt.Errorf("nil cluster instance"))
@@ -41,34 +40,56 @@ func GetHelloGrainClient(c *cluster.Cluster, id string) *HelloGrainClient {
 	if id == "" {
 		panic(fmt.Errorf("empty id"))
 	}
-	return &HelloGrainClient{ID: id, cluster: c}
+	return &HelloGrainClient{Identity: id, cluster: c}
+}
+
+// GetHelloKind instantiates a new cluster.Kind for Hello
+func GetHelloKind(opts ...actor.PropsOption) *cluster.Kind {
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &HelloActor{
+			Timeout: 60 * time.Second,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Hello", props)
+	return kind
+}
+
+// GetHelloKind instantiates a new cluster.Kind for Hello
+func NewHelloKind(factory func() Hello, timeout time.Duration, opts ...actor.PropsOption) *cluster.Kind {
+	xHelloFactory = factory
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &HelloActor{
+			Timeout: timeout,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Hello", props)
+	return kind
 }
 
 // Hello interfaces the services available to the Hello
 type Hello interface {
-	Init(id string)
-	Terminate()
-	ReceiveDefault(ctx actor.Context)
+	Init(ctx cluster.GrainContext)
+	Terminate(ctx cluster.GrainContext)
+	ReceiveDefault(ctx cluster.GrainContext)
 	SayHello(*HelloRequest, cluster.GrainContext) (*HelloResponse, error)
 	Add(*AddRequest, cluster.GrainContext) (*AddResponse, error)
 	VoidFunc(*AddRequest, cluster.GrainContext) (*Unit, error)
-	
 }
 
 // HelloGrainClient holds the base data for the HelloGrain
 type HelloGrainClient struct {
-	ID      string
-	cluster *cluster.Cluster
+	Identity string
+	cluster  *cluster.Cluster
 }
 
 // SayHello requests the execution on to the cluster with CallOptions
-func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallOptions) (*HelloResponse, error) {
+func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...cluster.GrainCallOption) (*HelloResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Hello", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Hello", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -81,9 +102,6 @@ func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallO
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -91,13 +109,13 @@ func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...*cluster.GrainCallO
 }
 
 // Add requests the execution on to the cluster with CallOptions
-func (g *HelloGrainClient) Add(r *AddRequest, opts ...*cluster.GrainCallOptions) (*AddResponse, error) {
+func (g *HelloGrainClient) Add(r *AddRequest, opts ...cluster.GrainCallOption) (*AddResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Hello", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Hello", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -110,9 +128,6 @@ func (g *HelloGrainClient) Add(r *AddRequest, opts ...*cluster.GrainCallOptions)
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -120,13 +135,13 @@ func (g *HelloGrainClient) Add(r *AddRequest, opts ...*cluster.GrainCallOptions)
 }
 
 // VoidFunc requests the execution on to the cluster with CallOptions
-func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...*cluster.GrainCallOptions) (*Unit, error) {
+func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...cluster.GrainCallOption) (*Unit, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 2, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Hello", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Hello", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -139,18 +154,15 @@ func (g *HelloGrainClient) VoidFunc(r *AddRequest, opts ...*cluster.GrainCallOpt
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
 	}
 }
 
-
 // HelloActor represents the actor structure
 type HelloActor struct {
+	ctx     cluster.GrainContext
 	inner   Hello
 	Timeout time.Duration
 }
@@ -158,18 +170,19 @@ type HelloActor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started:
+	case *actor.Started: //pass
 	case *cluster.ClusterInit:
+		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = xHelloFactory()
-		a.inner.Init(msg.ID)
+		a.inner.Init(a.ctx)
+
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
-
 	case *actor.ReceiveTimeout:
-		a.inner.Terminate()
 		ctx.Poison(ctx.Self())
-
+	case *actor.Stopped:
+		a.inner.Terminate(a.ctx)
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
 
@@ -184,7 +197,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.SayHello(req, ctx)
+			r0, err := a.inner.SayHello(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -208,7 +221,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.Add(req, ctx)
+			r0, err := a.inner.Add(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -232,7 +245,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.VoidFunc(req, ctx)
+			r0, err := a.inner.VoidFunc(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -247,9 +260,9 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			}
 			resp := &cluster.GrainResponse{MessageData: bytes}
 			ctx.Respond(resp)
-		
+
 		}
 	default:
-		a.inner.ReceiveDefault(ctx)
+		a.inner.ReceiveDefault(a.ctx)
 	}
 }

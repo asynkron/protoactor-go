@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/persistence"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/persistence"
 	"github.com/couchbase/gocb"
 )
 

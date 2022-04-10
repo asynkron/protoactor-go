@@ -8,17 +8,16 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"google.golang.org/protobuf/proto"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	logmod "github.com/AsynkronIT/protoactor-go/log"
-	"github.com/gogo/protobuf/proto"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	logmod "github.com/asynkron/protoactor-go/log"
 )
 
 var (
-	plog = logmod.New(logmod.InfoLevel, "[GRAIN]")
+	plog = logmod.New(logmod.InfoLevel, "[GRAIN][{{.PackageName}}]")
 	_    = proto.Marshal
 	_    = fmt.Errorf
 	_    = math.Inf
@@ -37,7 +36,7 @@ func {{ $service.Name }}Factory(factory func() {{ $service.Name }}) {
 	x{{ $service.Name }}Factory = factory
 }
 
-// Get{{ $service.Name }}GrainClient instantiates a new {{ $service.Name }}GrainClient with given ID
+// Get{{ $service.Name }}GrainClient instantiates a new {{ $service.Name }}GrainClient with given Identity
 func Get{{ $service.Name }}GrainClient(c *cluster.Cluster, id string) *{{ $service.Name }}GrainClient {
 	if c == nil {
 		panic(fmt.Errorf("nil cluster instance"))
@@ -45,14 +44,37 @@ func Get{{ $service.Name }}GrainClient(c *cluster.Cluster, id string) *{{ $servi
 	if id == "" {
 		panic(fmt.Errorf("empty id"))
 	}
-	return &{{ $service.Name }}GrainClient{ID: id, cluster: c}
+	return &{{ $service.Name }}GrainClient{Identity: id, cluster: c}
+}
+
+// Get{{ $service.Name }}Kind instantiates a new cluster.Kind for {{ $service.Name }}
+func Get{{ $service.Name }}Kind(opts ...actor.PropsOption) *cluster.Kind {
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &{{ $service.Name }}Actor{
+			Timeout: 60 * time.Second,
+		}
+	}, opts...)
+	kind := cluster.NewKind("{{ $service.Name }}", props)
+	return kind
+}
+
+// Get{{ $service.Name }}Kind instantiates a new cluster.Kind for {{ $service.Name }}
+func New{{ $service.Name }}Kind(factory func() {{ $service.Name }}, timeout time.Duration ,opts ...actor.PropsOption) *cluster.Kind {
+	x{{ $service.Name }}Factory = factory
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &{{ $service.Name }}Actor{
+			Timeout: timeout,
+		}
+	}, opts...)
+	kind := cluster.NewKind("{{ $service.Name }}", props)
+	return kind
 }
 
 // {{ $service.Name }} interfaces the services available to the {{ $service.Name }}
 type {{ $service.Name }} interface {
-	Init(id string)
-	Terminate()
-	ReceiveDefault(ctx actor.Context)
+	Init(ctx cluster.GrainContext)
+	Terminate(ctx cluster.GrainContext)
+	ReceiveDefault(ctx cluster.GrainContext)
 	{{ range $method := $service.Methods -}}
 	{{ $method.Name }}(*{{ $method.Input.Name }}, cluster.GrainContext) (*{{ $method.Output.Name }}, error)
 	{{ end }}
@@ -60,18 +82,18 @@ type {{ $service.Name }} interface {
 
 // {{ $service.Name }}GrainClient holds the base data for the {{ $service.Name }}Grain
 type {{ $service.Name }}GrainClient struct {
-	ID      string
+	Identity      string
 	cluster *cluster.Cluster
 }
 {{ range $method := $service.Methods}}
 // {{ $method.Name }} requests the execution on to the cluster with CallOptions
-func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input.Name }}, opts ...*cluster.GrainCallOptions) (*{{ $method.Output.Name }}, error) {
+func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input.Name }}, opts ...cluster.GrainCallOption) (*{{ $method.Output.Name }}, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: {{ $method.Index }}, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "{{ $service.Name }}", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "{{ $service.Name }}", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -84,9 +106,6 @@ func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input.
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -96,6 +115,7 @@ func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input.
 
 // {{ $service.Name }}Actor represents the actor structure
 type {{ $service.Name }}Actor struct {
+	ctx     cluster.GrainContext
 	inner   {{ $service.Name }}
 	Timeout time.Duration
 }
@@ -103,18 +123,19 @@ type {{ $service.Name }}Actor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started:
+	case *actor.Started: //pass
 	case *cluster.ClusterInit:
+		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = x{{ $service.Name }}Factory()
-		a.inner.Init(msg.ID)
+		a.inner.Init(a.ctx)
+
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
-
-	case *actor.ReceiveTimeout:
-		a.inner.Terminate()
+	case *actor.ReceiveTimeout:		
 		ctx.Poison(ctx.Self())
-
+	case *actor.Stopped:
+		a.inner.Terminate(a.ctx)
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
 
@@ -130,7 +151,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.{{ $method.Name }}(req, ctx)
+			r0, err := a.inner.{{ $method.Name }}(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -148,7 +169,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 		{{ end }}
 		}
 	default:
-		a.inner.ReceiveDefault(ctx)
+		a.inner.ReceiveDefault(a.ctx)
 	}
 }
 {{ end -}}

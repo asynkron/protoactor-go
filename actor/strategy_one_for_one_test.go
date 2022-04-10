@@ -12,13 +12,13 @@ func TestOneForOneStrategy_requestRestartPermission(t *testing.T) {
 		n              string
 		expectedResult bool
 		expectedCount  int
-		s              oneForOne
+		s              oneForOneStrategy
 		rs             RestartStatistics
 	}{
 		{
 			n: "no restart if max retries is 0",
 
-			s:  oneForOne{maxNrOfRetries: 0},
+			s:  oneForOneStrategy{maxNrOfRetries: 0},
 			rs: RestartStatistics{},
 
 			expectedResult: true,
@@ -27,7 +27,7 @@ func TestOneForOneStrategy_requestRestartPermission(t *testing.T) {
 		{
 			n: "restart when duration is 0",
 
-			s:  oneForOne{maxNrOfRetries: 1},
+			s:  oneForOneStrategy{maxNrOfRetries: 1},
 			rs: RestartStatistics{},
 
 			expectedResult: false,
@@ -36,7 +36,7 @@ func TestOneForOneStrategy_requestRestartPermission(t *testing.T) {
 		{
 			n: "no restart when duration is 0 and exceeds max retries",
 
-			s:  oneForOne{maxNrOfRetries: 1},
+			s:  oneForOneStrategy{maxNrOfRetries: 1},
 			rs: RestartStatistics{failureTimes: []time.Time{time.Now().Add(-1 * time.Second)}},
 
 			expectedResult: true,
@@ -45,7 +45,7 @@ func TestOneForOneStrategy_requestRestartPermission(t *testing.T) {
 		{
 			n: "restart when duration set and within window",
 
-			s:  oneForOne{maxNrOfRetries: 2, withinDuration: 10 * time.Second},
+			s:  oneForOneStrategy{maxNrOfRetries: 2, withinDuration: 10 * time.Second},
 			rs: RestartStatistics{failureTimes: []time.Time{time.Now().Add(-5 * time.Second)}},
 
 			expectedResult: false,
@@ -54,7 +54,7 @@ func TestOneForOneStrategy_requestRestartPermission(t *testing.T) {
 		{
 			n: "no restart when duration set, within window and exceeds max retries",
 
-			s:  oneForOne{maxNrOfRetries: 1, withinDuration: 10 * time.Second},
+			s:  oneForOneStrategy{maxNrOfRetries: 1, withinDuration: 10 * time.Second},
 			rs: RestartStatistics{failureTimes: []time.Time{time.Now().Add(-5 * time.Second), time.Now().Add(-5 * time.Second)}},
 
 			expectedResult: true,
@@ -63,7 +63,7 @@ func TestOneForOneStrategy_requestRestartPermission(t *testing.T) {
 		{
 			n: "restart and FailureCount reset when duration set and outside window",
 
-			s:  oneForOne{maxNrOfRetries: 1, withinDuration: 10 * time.Second},
+			s:  oneForOneStrategy{maxNrOfRetries: 1, withinDuration: 10 * time.Second},
 			rs: RestartStatistics{failureTimes: []time.Time{time.Now().Add(-11 * time.Second), time.Now().Add(-11 * time.Second)}},
 
 			expectedResult: false,

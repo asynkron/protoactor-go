@@ -1,4 +1,1 @@
-protoc -I=. -I=%GOPATH%\src --gogoslick_out=plugins=grpc:. protos.proto 
-protoc -I=. -I=$GOPATH/src --gogoslick_out=\
-    Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types,\
-    plugins=grpc:. gossip.proto
+protoc -I=../actor --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative --proto_path=. cluster.proto

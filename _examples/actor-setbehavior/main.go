@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	console "github.com/asynkron/goconsole"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 type Hello struct{ Who string }
@@ -46,5 +46,5 @@ func main() {
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, Hello{Who: "Roger"})
 	rootContext.Send(pid, Hello{Who: "Roger"})
-	console.ReadLine()
+	_, _ = console.ReadLine()
 }

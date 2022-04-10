@@ -2,15 +2,16 @@ package main
 
 import (
 	"flag"
-	fmt "fmt"
+	"fmt"
+	automanaged "github.com/asynkron/protoactor-go/cluster/clusterproviders/_automanaged"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"strings"
 	"time"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/automanaged"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/remote"
 	"github.com/google/uuid"
 )
 
@@ -35,12 +36,13 @@ func startNode(remotingPort int, clusteringPort int, clusterMembers []string) *c
 	system := actor.NewActorSystem()
 
 	provider := automanaged.NewWithConfig(2*time.Second, clusteringPort, clusterMembers...)
+	lookup := disthash.New()
 	config := remote.Configure("localhost", remotingPort)
 
-	clusterConfig := cluster.Configure("my-cluster", provider, config)
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
 	cluster := cluster.New(system, clusterConfig)
 
-	cluster.Start()
+	cluster.StartMember()
 
 	return cluster
 }
@@ -61,7 +63,7 @@ func publish(cluster *cluster.Cluster) (cancel func()) {
 				event := &MyEvent{
 					Description: fmt.Sprintf("Hello from %s at %s", id, time.Now().Format(time.RFC3339)),
 				}
-				cluster.MemberList.BroadcastEvent(event)
+				cluster.MemberList.BroadcastEvent(event, true)
 			}
 		}
 	}()

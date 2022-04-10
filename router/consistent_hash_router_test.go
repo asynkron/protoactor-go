@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/router"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/router"
 )
 
 var system = actor.NewActorSystem()
@@ -85,7 +85,7 @@ func TestConcurrency(t *testing.T) {
 	}
 
 	wait.Add(100 * 1000)
-	rpid := system.Root.Spawn(router.NewConsistentHashPool(100).WithProducer(func() actor.Actor { return &routerActor{} }))
+	rpid := system.Root.Spawn(router.NewConsistentHashPool(100).Configure(actor.WithProducer(func() actor.Actor { return &routerActor{} })))
 
 	props := actor.PropsFromProducer(func() actor.Actor { return &tellerActor{} })
 	for i := 0; i < 1000; i++ {

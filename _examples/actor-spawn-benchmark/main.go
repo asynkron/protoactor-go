@@ -8,8 +8,7 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/mailbox"
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 type request struct {
@@ -19,7 +18,7 @@ type request struct {
 }
 
 var (
-	props = actor.PropsFromProducer(newState).WithMailbox(mailbox.Unbounded())
+	props = actor.PropsFromProducer(newState, actor.WithMailbox(actor.Unbounded()))
 )
 
 type state struct {
@@ -43,7 +42,7 @@ func (s *state) Receive(ctx actor.Context) {
 		s.replies = msg.div
 		s.replyTo = ctx.Sender()
 		for i := 0; i < msg.div; i++ {
-			child := ctx.Spawn(props)
+			child := ctx.ActorSystem().Root.Spawn(props)
 			ctx.Request(child, &request{
 				num:  msg.num + i*(msg.size/msg.div),
 				size: msg.size / msg.div,
@@ -72,23 +71,25 @@ func main() {
 		_ = pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-	//	runtime.GOMAXPROCS(runtime.NumCPU())
-	//	runtime.GC()
-	system := actor.NewActorSystem()
+	//runtime.GOMAXPROCS(runtime.NumCPU())
+	//runtime.GC()
 
-	rootContext := system.Root
+	for i := 0; i < 10; i++ {
+		system := actor.NewActorSystem()
+		rootContext := system.Root
 
-	start := time.Now()
-	pid := rootContext.Spawn(props)
-	res, _ := rootContext.RequestFuture(pid, &request{
-		num:  0,
-		size: 1000000,
-		div:  10,
-	}, 10*time.Second).Result()
-	result := res.(int)
+		start := time.Now()
+		pid := rootContext.Spawn(props)
+		res, _ := rootContext.RequestFuture(pid, &request{
+			num:  0,
+			size: 1000000,
+			div:  10,
+		}, 10*time.Second).Result()
+		result := res.(int)
 
-	took := time.Since(start)
-	fmt.Printf("Result: %d in %d ms.\n", result, took.Nanoseconds()/1e6)
+		took := time.Since(start)
+		fmt.Printf("Result: %d in %d ms.\n", result, took.Nanoseconds()/1e6)
+	}
 
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)

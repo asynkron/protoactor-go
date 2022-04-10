@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -36,7 +36,7 @@ func __TestRouterSendsUserMessageToChild(t *testing.T) {
 	grc := newGroupRouterConfig(child)
 	grc.On("CreateRouterState").Return(rs)
 
-	routerPID := system.Root.Spawn((&actor.Props{}).WithSpawnFunc(spawner(grc)))
+	routerPID := system.Root.Spawn((&actor.Props{}).Configure(actor.WithSpawnFunc(spawner(grc))))
 	system.Root.Send(routerPID, "hello")
 	system.Root.RequestWithCustomSender(routerPID, "hello", routerPID)
 

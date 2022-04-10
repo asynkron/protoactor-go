@@ -3,94 +3,83 @@ package main
 import (
 	"cluster-broadcast/shared"
 	"fmt"
+	automanaged "github.com/asynkron/protoactor-go/cluster/clusterproviders/_automanaged"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"time"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/automanaged"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 func main() {
-	cluster := startNode(8081)
+	c := startNode(8081)
 
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()
 
 	fmt.Print("\nAdding 1 Egg - Enter\n")
 	console.ReadLine()
-	calcAdd("Eggs", 1)
+	calcAdd(c, "Eggs", 1)
 
 	fmt.Print("\nAdding 10 Egg - Enter\n")
 	console.ReadLine()
-	calcAdd("Eggs", 10)
+	calcAdd(c, "Eggs", 10)
 
 	fmt.Print("\nAdding 100 Bananas - Enter\n")
 	console.ReadLine()
-	calcAdd("Bananas", 100)
+	calcAdd(c, "Bananas", 100)
 
 	fmt.Print("\nAdding 2 Meat - Enter\n")
 	console.ReadLine()
-	calcAdd("Meat", 3)
-	calcAdd("Meat", 9000)
+	calcAdd(c, "Meat", 3)
+	calcAdd(c, "Meat", 9000)
 
-	getAll()
+	getAll(c)
 
 	console.ReadLine()
 
-	cluster.Shutdown(true)
+	c.Shutdown(true)
 }
 
 func startNode(port int64) *cluster.Cluster {
-	// how long before the grain poisons itself
-	timeout := 10 * time.Minute
 
 	system := actor.NewActorSystem()
-	shared.SetSystem(system)
-
-	calcKind := cluster.NewKind("Calculator", actor.PropsFromProducer(func() actor.Actor {
-		return &shared.CalculatorActor{
-			Timeout: &timeout,
-		}
-	}))
-	trackerKind := cluster.NewKind("Tracker", actor.PropsFromProducer(func() actor.Actor {
-		return &shared.TrackerActor{
-			Timeout: &timeout,
-		}
-	}))
 
 	provider := automanaged.NewWithConfig(2*time.Second, 6330, "localhost:6330", "localhost:6331")
+	lookup := disthash.New()
 	config := remote.Configure("localhost", 0)
 
-	clusterConfig := cluster.Configure("my-cluster", provider, config, calcKind, trackerKind)
-	cluster := cluster.New(system, clusterConfig)
-	shared.SetCluster(cluster)
-
-	shared.CalculatorFactory(func() shared.Calculator {
+	calculatorKind := shared.NewCalculatorKind(func() shared.Calculator {
 		return &shared.CalcGrain{}
-	})
+	}, 0)
 
-	shared.TrackerFactory(func() shared.Tracker {
+	trackerKind := shared.NewTrackerKind(func() shared.Tracker {
 		return &shared.TrackGrain{}
-	})
+	}, 0)
 
-	cluster.Start()
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config,
+		cluster.WithKinds(calculatorKind, trackerKind))
+
+	cluster := cluster.New(system, clusterConfig)
+
+	cluster.StartMember()
 	return cluster
 }
 
-func calcAdd(grainId string, addNumber int64) {
-	calcGrain := shared.GetCalculatorGrain(grainId)
+func calcAdd(cluster *cluster.Cluster, grainId string, addNumber int64) {
+	calcGrain := shared.GetCalculatorGrainClient(cluster, grainId)
 	total1, err := calcGrain.Add(&shared.NumberRequest{Number: addNumber})
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("Grain: %v - Total: %v \n", calcGrain.ID, total1.Number)
+	fmt.Printf("Grain: %v - Total: %v \n", calcGrain.Identity, total1.Number)
 }
 
-func getAll() {
-	trackerGrain := shared.GetTrackerGrain("singleTrackerGrain")
+func getAll(cluster *cluster.Cluster) {
+	trackerGrain := shared.GetTrackerGrainClient(cluster, "singleTrackerGrain")
 	totals, err := trackerGrain.BroadcastGetCounts(&shared.Noop{})
 	if err != nil {
 		panic(err)

@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
 	"golang.org/x/time/rate"
 )
 
@@ -23,8 +23,7 @@ func main() {
 	flag.Parse()
 
 	// init
-	cfg := actor.NewConfig().
-		WithDeadLetterThrottleCount(int32(*throttle))
+	cfg := actor.Configure(actor.WithDeadLetterThrottleCount(int32(*throttle)))
 	system := actor.NewActorSystemWithConfig(cfg)
 
 	btn := int32(1)

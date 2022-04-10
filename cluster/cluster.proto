@@ -1,0 +1,142 @@
+syntax = "proto3";
+package cluster;
+option go_package="/github.com/asynkron/protoactor-go/cluster";
+import "actor.proto";
+
+//request response call from Identity actor sent to each member
+//asking what activations they hold that belong to the requester
+message IdentityHandoverRequest {
+  Topology current_topology = 1;
+  string address = 2;
+  // If the requester passes a delta topology, only return activations which would not be assigned to the member
+  // in the previous topology.
+  Topology delta_topology = 3;
+  message Topology{
+    uint64 topology_hash = 1;
+    repeated Member members = 3;
+  }
+}
+
+message IdentityHandover {
+  repeated Activation actors = 1;
+  int32 chunk_id = 2;
+  bool final = 3;
+  uint64 topology_hash = 4;
+  int32 skipped = 5; // Total number of activations skipped
+  int32 sent = 6;    // Total number of activations sent
+}
+
+message RemoteIdentityHandover {
+  PackedActivations actors = 1;
+  int32 chunk_id = 2;
+  bool final = 3;
+  uint64 topology_hash = 4;
+  int32 skipped = 5;
+  int32 sent = 6;
+}
+
+message PackedActivations{
+  string address = 1;
+  repeated Kind actors = 2;
+  message Kind{
+    string name = 1;
+    repeated Activation activations = 2;
+  }
+  message Activation{
+    string identity = 1;
+    string activation_id = 2;
+  }
+}
+
+message IdentityHandoverAck {
+  int32 chunk_id = 1;
+  uint64 topology_hash = 2;
+  State processing_state = 3;
+  enum State {
+    processed = 0;
+    incorrect_topology = 1;
+  }
+}
+
+message ClusterIdentity{
+  string identity = 1;
+  string kind = 2;
+}
+
+message Activation {
+  actor.PID pid = 1;
+  ClusterIdentity cluster_identity = 2;
+}
+
+// Started terminating, not yet removed from IIdentityLookup
+message ActivationTerminating {
+  actor.PID pid = 1;
+  ClusterIdentity cluster_identity = 2;
+}
+
+// Terminated, removed from lookup
+message ActivationTerminated {
+  actor.PID pid = 1;
+  ClusterIdentity cluster_identity = 2;
+}
+
+message ActivationRequest {
+  ClusterIdentity cluster_identity = 1;
+  string request_id = 2;
+  uint64 topology_hash = 3;
+}
+
+message ProxyActivationRequest {
+  ClusterIdentity cluster_identity = 1;
+  actor.PID replaced_activation = 2;
+}
+
+message ActivationResponse {
+  actor.PID pid = 1;
+  bool failed = 2;
+  uint64 topology_hash = 3;
+}
+
+message ReadyForRebalance {
+  uint64 topology_hash = 1;
+}
+message RebalanceCompleted {
+  uint64 topology_hash = 1;
+}
+
+message Member {
+  string host = 1;
+  int32 port = 2;
+  string id = 3;
+  repeated string kinds = 4;
+}
+
+message ClusterTopology {
+  uint64 topology_hash = 1;
+  repeated Member members = 2;
+  repeated Member joined = 3;
+  repeated Member left = 4;
+  repeated string blocked = 5;
+}
+
+message ClusterTopologyNotification {
+  string member_id = 1;
+  uint32 topology_hash = 2;
+  string leader_id = 3;
+}
+
+message MemberHeartbeat {
+  ActorStatistics actor_statistics=1;
+}
+
+message ActorStatistics {
+  map<string,int64> actor_count=1;
+}
+
+
+
+
+//keys to implement initially
+//topology - value is repeated members, this can replace ClusterTopologyNotification, as it would be the same, but better
+//heartbeat - value is unit, or sender timestamp?
+//leader - value is leader member id

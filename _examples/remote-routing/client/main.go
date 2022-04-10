@@ -9,11 +9,10 @@ import (
 
 	"remoterouting/messages"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/mailbox"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/AsynkronIT/protoactor-go/router"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/remote"
+	"github.com/asynkron/protoactor-go/router"
 )
 
 var (
@@ -39,8 +38,8 @@ func main() {
 	var wgStop sync.WaitGroup
 
 	props := actor.
-		PropsFromProducer(newLocalActor(&wgStop, messageCount)).
-		WithMailbox(mailbox.Bounded(10000))
+		PropsFromProducer(newLocalActor(&wgStop, messageCount),
+			actor.WithMailbox(actor.Bounded(10000)))
 
 	pid := rootContext.Spawn(props)
 

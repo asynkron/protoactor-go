@@ -5,15 +5,13 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 
 	"log"
 	"sync"
 
 	"runtime"
 	"time"
-
-	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
 type Msg struct {
@@ -122,18 +120,18 @@ func main() {
 	log.Println("Dispatcher Throughput			Elapsed Time			Messages per sec")
 	for _, tp := range tps {
 
-		d := mailbox.NewDefaultDispatcher(tp)
+		d := actor.NewDefaultDispatcher(tp)
 
 		clientProps := actor.
-			PropsFromProducer(newPingActor(&wg, messageCount, batchSize)).
-			WithMailbox(mailbox.Bounded(batchSize + 10)).
-			WithDispatcher(d)
+			PropsFromProducer(newPingActor(&wg, messageCount, batchSize),
+				actor.WithMailbox(actor.Bounded(batchSize+10)),
+				actor.WithDispatcher(d))
 		rootContext := system.Root
 
 		echoProps := actor.
-			PropsFromFunc(pongActor).
-			WithMailbox(mailbox.Bounded(batchSize + 10)).
-			WithDispatcher(d)
+			PropsFromFunc(pongActor,
+				actor.WithMailbox(actor.Bounded(batchSize+10)),
+				actor.WithDispatcher(d))
 
 		clients := make([]*actor.PID, 0)
 		echos := make([]*actor.PID, 0)

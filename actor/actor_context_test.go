@@ -21,7 +21,7 @@ func TestActorContext_SpawnNamed(t *testing.T) {
 		},
 	}
 
-	parent := &actorContext{self: NewPID("nohost", "foo"), props: props, actorSystem: system}
+	parent := &actorContext{self: NewPID(localAddress, "foo"), props: props, actorSystem: system}
 	child, err := parent.SpawnNamed(props, "bar")
 	assert.NoError(t, err)
 	assert.Equal(t, parent.Children()[0], child)
@@ -38,7 +38,7 @@ func TestActorContext_Stop(t *testing.T) {
 
 	o.On("SendSystemMessage", other, &Terminated{Who: pid})
 
-	props := PropsFromProducer(nullProducer).WithSupervisor(DefaultSupervisorStrategy())
+	props := PropsFromProducer(nullProducer, WithSupervisor(DefaultSupervisorStrategy()))
 	lc := newActorContext(system, props, nil)
 	lc.self = pid
 	lc.InvokeSystemMessage(&Stop{})
@@ -59,7 +59,7 @@ func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
 		}
 	}
 
-	props := PropsFromProducer(nullProducer).WithSupervisor(DefaultSupervisorStrategy()).WithSenderMiddleware(mw)
+	props := PropsFromProducer(nullProducer, WithSupervisor(DefaultSupervisorStrategy()), WithSenderMiddleware(mw))
 	ctx := newActorContext(system, props, nil)
 
 	// Define a receiver to which the local context will send a message
@@ -193,7 +193,7 @@ func BenchmarkActorContext_ProcessMessageWithMiddleware(b *testing.B) {
 		}
 	}
 
-	props := PropsFromProducer(nullProducer).WithSupervisor(DefaultSupervisorStrategy()).WithReceiverMiddleware(fn)
+	props := PropsFromProducer(nullProducer, WithSupervisor(DefaultSupervisorStrategy()), WithReceiverMiddleware(fn))
 	ctx := newActorContext(system, props, nil)
 
 	for i := 0; i < b.N; i++ {
@@ -210,10 +210,10 @@ func benchmarkactorcontextSpawnwithmiddlewaren(n int, b *testing.B) {
 
 	props := PropsFromProducer(nullProducer)
 	for i := 0; i < n; i++ {
-		props = props.WithSenderMiddleware(middlewareFn)
+		props = props.Configure(WithSenderMiddleware(middlewareFn))
 	}
 	system := NewActorSystem()
-	parent := &actorContext{self: NewPID("nohost", "foo"), props: props, actorSystem: system}
+	parent := &actorContext{self: NewPID(localAddress, "foo"), props: props, actorSystem: system}
 	for i := 0; i < b.N; i++ {
 		parent.Spawn(props)
 	}
@@ -242,7 +242,7 @@ func TestActorContinueFutureInActor(t *testing.T) {
 		}
 		if ctx.Message() == "start" {
 			f := ctx.RequestFuture(ctx.Self(), "request", 5*time.Second)
-			ctx.AwaitFuture(f, func(res interface{}, err error) {
+			ctx.ReenterAfter(f, func(res interface{}, err error) {
 				ctx.Respond(res)
 			})
 		}
@@ -250,4 +250,31 @@ func TestActorContinueFutureInActor(t *testing.T) {
 	res, err := rootContext.RequestFuture(pid, "start", time.Second).Result()
 	assert.NoError(t, err)
 	assert.Equal(t, "done", res)
+}
+
+type dummyAutoRespond struct {
+}
+
+func (*dummyAutoRespond) GetAutoResponse(_ Context) interface{} {
+	return &dummyResponse{}
+}
+
+func TestActorContextAutoRespondMessage(t *testing.T) {
+	pid := rootContext.Spawn(PropsFromFunc(func(ctx Context) {}))
+	var msg AutoRespond = &dummyAutoRespond{}
+
+	res, err := rootContext.RequestFuture(pid, msg, 1*time.Second).Result()
+	assert.NoError(t, err)
+	assert.IsType(t, &dummyResponse{}, res)
+}
+
+func TestActorContextAutoRespondTouchedMessage(t *testing.T) {
+	pid := rootContext.Spawn(PropsFromFunc(func(ctx Context) {}))
+	var msg AutoRespond = &Touch{}
+
+	res, err := rootContext.RequestFuture(pid, msg, 1*time.Second).Result()
+	res2 := res.(*Touched)
+	assert.NoError(t, err)
+	assert.IsType(t, &Touched{}, res)
+	assert.True(t, res2.Who.Equal(pid))
 }

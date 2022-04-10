@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
 	stdout "go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
@@ -37,7 +37,7 @@ func main() {
 		}
 	}()
 
-	config := actor.NewConfig().WithMetricProviders(provider)
+	config := actor.Configure(actor.WithMetricProviders(provider))
 	system := actor.NewActorSystemWithConfig(config)
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return &helloActor{}

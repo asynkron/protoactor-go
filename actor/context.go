@@ -1,6 +1,9 @@
 package actor
 
-import "time"
+import (
+	"github.com/asynkron/protoactor-go/ctxext"
+	"time"
+)
 
 // Context contains contextual information for actors
 type Context interface {
@@ -11,6 +14,11 @@ type Context interface {
 	receiverPart
 	spawnerPart
 	stopperPart
+	extensionPart
+}
+
+type ExtensionContext interface {
+	extensionPart
 }
 
 type SenderContext interface {
@@ -23,11 +31,17 @@ type ReceiverContext interface {
 	infoPart
 	receiverPart
 	messagePart
+	extensionPart
 }
 
 type SpawnerContext interface {
 	infoPart
 	spawnerPart
+}
+
+type extensionPart interface {
+	Get(id ctxext.ContextExtensionID) ctxext.ContextExtension
+	Set(ext ctxext.ContextExtension)
 }
 
 type infoPart interface {
@@ -75,7 +89,7 @@ type basePart interface {
 	// Forward forwards current message to the given PID
 	Forward(pid *PID)
 
-	AwaitFuture(f *Future, continuation func(res interface{}, err error))
+	ReenterAfter(f *Future, continuation func(res interface{}, err error))
 }
 
 type messagePart interface {

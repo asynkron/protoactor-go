@@ -7,20 +7,22 @@ import "time"
 //
 // This strategy is applicable if it is safe to handle a single child in isolation from its peers or dependents
 func NewOneForOneStrategy(maxNrOfRetries int, withinDuration time.Duration, decider DeciderFunc) SupervisorStrategy {
-	return &oneForOne{
+	return &oneForOneStrategy{
 		maxNrOfRetries: maxNrOfRetries,
 		withinDuration: withinDuration,
 		decider:        decider,
 	}
 }
 
-type oneForOne struct {
+type oneForOneStrategy struct {
 	maxNrOfRetries int
 	withinDuration time.Duration
 	decider        DeciderFunc
 }
 
-func (strategy *oneForOne) HandleFailure(actorSystem *ActorSystem, supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
+var _ SupervisorStrategy = &oneForOneStrategy{}
+
+func (strategy *oneForOneStrategy) HandleFailure(actorSystem *ActorSystem, supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
 	directive := strategy.decider(reason)
 
 	switch directive {
@@ -49,7 +51,7 @@ func (strategy *oneForOne) HandleFailure(actorSystem *ActorSystem, supervisor Su
 	}
 }
 
-func (strategy *oneForOne) shouldStop(rs *RestartStatistics) bool {
+func (strategy *oneForOneStrategy) shouldStop(rs *RestartStatistics) bool {
 	// supervisor says this child may not restart
 	if strategy.maxNrOfRetries == 0 {
 		return true

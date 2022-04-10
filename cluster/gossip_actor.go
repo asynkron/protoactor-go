@@ -3,10 +3,11 @@
 package cluster
 
 import (
+	"github.com/asynkron/gofun/set"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/log"
 )
 
 // convenience customary type to represent an empty value
@@ -20,7 +21,7 @@ type GossipActor struct {
 }
 
 // Creates a new GossipActor and returns a pointer to its location in the heap
-func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers func() map[string]empty, fanOut int, maxSend int) *GossipActor {
+func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int) *GossipActor {
 
 	informer := newInformer(myID, getBlockedMembers, fanOut, maxSend)
 	gossipActor := GossipActor{

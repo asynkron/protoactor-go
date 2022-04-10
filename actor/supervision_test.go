@@ -19,7 +19,7 @@ func (a *actorWithSupervisor) Receive(ctx Context) {
 	}
 }
 
-func (a *actorWithSupervisor) HandleFailure(actorSystem *ActorSystem, supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
+func (a *actorWithSupervisor) HandleFailure(*ActorSystem, Supervisor, *PID, *RestartStatistics, interface{}, interface{}) {
 	a.wg.Done()
 }
 
@@ -83,7 +83,7 @@ func (e *Expector) ExpectNoMsg(t *testing.T) {
 
 func TestActorStopsAfterXRestarts(t *testing.T) {
 	m, e := NewObserver()
-	props := PropsFromProducer(func() Actor { return &failingChildActor{} }).WithReceiverMiddleware(m)
+	props := PropsFromProducer(func() Actor { return &failingChildActor{} }, WithReceiverMiddleware(m))
 	child := rootContext.Spawn(props)
 	fail := "fail!"
 

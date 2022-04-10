@@ -3,7 +3,7 @@ package router
 import (
 	"sync"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 type groupRouterActor struct {
@@ -52,6 +52,6 @@ func (a *groupRouterActor) Receive(context actor.Context) {
 			routees[i] = pid
 		})
 
-		context.Respond(&Routees{routees})
+		context.Respond(&Routees{PIDs: routees})
 	}
 }

@@ -5,13 +5,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AsynkronIT/protoactor-go/eventstream"
-	"github.com/AsynkronIT/protoactor-go/extensions"
+	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/asynkron/protoactor-go/extensions"
 	"github.com/google/uuid"
+	"github.com/lithammer/shortuuid/v4"
 )
 
 //goland:noinspection GoNameStartsWithPackageName
 type ActorSystem struct {
+	Id              string
 	ProcessRegistry *ProcessRegistryValue
 	Root            *RootContext
 	EventStream     *eventstream.EventStream
@@ -45,13 +47,19 @@ func (as *ActorSystem) GetHostPort() (host string, port int, err error) {
 	return
 }
 
-func NewActorSystem() *ActorSystem {
-	return NewActorSystemWithConfig(defaultActorSystemConfig())
+func (as *ActorSystem) Shutdown() {
+
 }
 
-func NewActorSystemWithConfig(config Config) *ActorSystem {
+func NewActorSystem(options ...ConfigOption) *ActorSystem {
+	config := Configure(options...)
+	return NewActorSystemWithConfig(config)
+}
+
+func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system := &ActorSystem{}
-	system.Config = &config
+	system.Id = shortuuid.New()
+	system.Config = config
 	system.ProcessRegistry = NewProcessRegistry(system)
 	system.Root = NewRootContext(system, EmptyMessageHeader)
 	system.Guardians = NewGuardians(system)

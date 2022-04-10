@@ -4,6 +4,8 @@ type EventStreamProcess struct {
 	system *ActorSystem
 }
 
+var _ Process = &EventStreamProcess{}
+
 func NewEventStreamProcess(actorSystem *ActorSystem) *EventStreamProcess {
 	return &EventStreamProcess{system: actorSystem}
 }

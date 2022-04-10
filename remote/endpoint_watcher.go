@@ -1,8 +1,8 @@
 package remote
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/log"
 )
 
 func newEndpointWatcher(remote *Remote, address string) actor.Producer {
@@ -49,7 +49,7 @@ func (state *endpointWatcher) connected(ctx actor.Context) {
 
 		terminated := &actor.Terminated{
 			Who: msg.Watchee,
-			Why: actor.UnknownReason,
+			Why: actor.TerminatedReason_Stopped,
 		}
 		ref, ok := state.remote.actorSystem.ProcessRegistry.GetLocal(msg.Watcher.Id)
 		if ok {
@@ -62,14 +62,14 @@ func (state *endpointWatcher) connected(ctx actor.Context) {
 			log.String("address", state.address), log.Int("watched", len(state.watched)))
 
 		for id, pidSet := range state.watched {
-			// try to find the watcher ID in the local actor registry
+			// try to find the watcher ExtensionID in the local actor registry
 			ref, ok := state.remote.actorSystem.ProcessRegistry.GetLocal(id)
 			if ok {
 				pidSet.ForEach(func(i int, pid *actor.PID) {
 					// create a terminated event for the Watched actor
 					terminated := &actor.Terminated{
 						Who: pid,
-						Why: actor.AddressTerminated,
+						Why: actor.TerminatedReason_AddressTerminated,
 					}
 
 					watcher := state.remote.actorSystem.NewLocalPID(id)
@@ -126,14 +126,14 @@ func (state *endpointWatcher) connected(ctx actor.Context) {
 func (state *endpointWatcher) terminated(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *remoteWatch:
-		// try to find the watcher ID in the local actor registry
+		// try to find the watcher ExtensionID in the local actor registry
 		ref, ok := state.remote.actorSystem.ProcessRegistry.GetLocal(msg.Watcher.Id)
 		if ok {
 
 			// create a terminated event for the Watched actor
 			terminated := &actor.Terminated{
 				Who: msg.Watchee,
-				Why: actor.AddressTerminated,
+				Why: actor.TerminatedReason_AddressTerminated,
 			}
 			// send the address Terminated event to the Watcher
 			ref.SendSystemMessage(msg.Watcher, terminated)

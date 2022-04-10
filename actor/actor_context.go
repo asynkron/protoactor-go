@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/asynkron/protoactor-go/ctxext"
+	"go.opentelemetry.io/otel/attribute"
 	"sync/atomic"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/AsynkronIT/protoactor-go/metrics"
+	"github.com/asynkron/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/metrics"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 const (
@@ -28,11 +29,13 @@ type actorContextExtras struct {
 	stash               *linkedliststack.Stack
 	watchers            PIDSet
 	context             Context
+	extensions          *ctxext.ContextExtensions
 }
 
 func newActorContextExtras(context Context) *actorContextExtras {
 	this := &actorContextExtras{
-		context: context,
+		context:    context,
+		extensions: ctxext.NewContextExtensions(),
 	}
 	return this
 }
@@ -249,7 +252,7 @@ func (ctx *actorContext) Forward(pid *PID) {
 	ctx.sendUserMessage(pid, ctx.messageOrEnvelope)
 }
 
-func (ctx *actorContext) AwaitFuture(f *Future, cont func(res interface{}, err error)) {
+func (ctx *actorContext) ReenterAfter(f *Future, cont func(res interface{}, err error)) {
 	wrapper := func() {
 		cont(f.result, f.err)
 	}
@@ -331,18 +334,29 @@ func (ctx *actorContext) Receive(envelope *MessageEnvelope) {
 }
 
 func (ctx *actorContext) defaultReceive() {
-	if _, ok := ctx.Message().(*PoisonPill); ok {
+	switch msg := ctx.Message().(type) {
+	case *PoisonPill:
 		ctx.Stop(ctx.self)
-		return
-	}
 
-	// are we using decorators, if so, ensure it has been created
-	if ctx.props.contextDecoratorChain != nil {
-		ctx.actor.Receive(ctx.ensureExtras().context)
-		return
-	}
+	case AutoRespond:
+		if ctx.props.contextDecoratorChain != nil {
+			ctx.actor.Receive(ctx.ensureExtras().context)
+		} else {
+			ctx.actor.Receive(ctx)
+		}
 
-	ctx.actor.Receive(Context(ctx))
+		res := msg.GetAutoResponse(ctx)
+		ctx.Respond(res)
+
+	default:
+		// are we using decorators, if so, ensure it has been created
+		if ctx.props.contextDecoratorChain != nil {
+			ctx.actor.Receive(ctx.ensureExtras().context)
+			return
+		} else {
+			ctx.actor.Receive(ctx)
+		}
+	}
 }
 
 //
@@ -449,12 +463,11 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 		}
 	}
 
-	t := time.Now()
-	ctx.processMessage(md)
-
-	delta := time.Now().Sub(t)
 	systemMetrics, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
 	if ok && systemMetrics.enabled {
+		t := time.Now()
+		ctx.processMessage(md)
+		delta := time.Since(t)
 		_ctx := context.Background()
 		if instruments := systemMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
 			histoGram := instruments.ActorMessageReceiveHistogram
@@ -464,6 +477,8 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 			)
 			histoGram.Record(_ctx, delta.Seconds(), labels...)
 		}
+	} else {
+		ctx.processMessage(md)
 	}
 
 	if ctx.receiveTimeout > 0 && influenceTimeout {
@@ -513,13 +528,13 @@ func (ctx *actorContext) InvokeSystemMessage(message interface{}) {
 	case *Unwatch:
 		ctx.handleUnwatch(msg)
 	case *Stop:
-		ctx.handleStop(msg)
+		ctx.handleStop()
 	case *Terminated:
 		ctx.handleTerminated(msg)
 	case *Failure:
 		ctx.handleFailure(msg)
 	case *Restart:
-		ctx.handleRestart(msg)
+		ctx.handleRestart()
 	default:
 		plog.Error("unknown system message", log.Message(msg))
 	}
@@ -546,7 +561,7 @@ func (ctx *actorContext) handleUnwatch(msg *Unwatch) {
 	ctx.extras.unwatch(msg.Watcher)
 }
 
-func (ctx *actorContext) handleRestart(msg *Restart) {
+func (ctx *actorContext) handleRestart() {
 	atomic.StoreInt32(&ctx.state, stateRestarting)
 	ctx.InvokeUserMessage(restartingMessage)
 	ctx.stopAllChildren()
@@ -562,7 +577,7 @@ func (ctx *actorContext) handleRestart(msg *Restart) {
 }
 
 // I am stopping
-func (ctx *actorContext) handleStop(msg *Stop) {
+func (ctx *actorContext) handleStop() {
 	if atomic.LoadInt32(&ctx.state) >= stateStopping {
 		// already stopping or stopped
 		return
@@ -703,4 +718,15 @@ func (ctx *actorContext) GoString() string {
 
 func (ctx *actorContext) String() string {
 	return ctx.self.String()
+}
+
+func (ctx *actorContext) Get(id ctxext.ContextExtensionID) ctxext.ContextExtension {
+	extras := ctx.ensureExtras()
+	ext := extras.extensions.Get(id)
+	return ext
+}
+
+func (ctx *actorContext) Set(ext ctxext.ContextExtension) {
+	extras := ctx.ensureExtras()
+	extras.extensions.Set(ext)
 }

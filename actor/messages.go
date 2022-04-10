@@ -1,6 +1,26 @@
 package actor
 
-import "github.com/AsynkronIT/protoactor-go/mailbox"
+// ResumeMailbox is message sent by the actor system to resume mailbox processing.
+//
+// This will not be forwarded to the Receive method
+type ResumeMailbox struct{}
+
+// SuspendMailbox is message sent by the actor system to suspend mailbox processing.
+//
+// This will not be forwarded to the Receive method
+type SuspendMailbox struct{}
+
+type MailboxMessage interface {
+	MailboxMessage()
+}
+
+func (*SuspendMailbox) MailboxMessage() {}
+func (*ResumeMailbox) MailboxMessage()  {}
+
+//InfrastructureMessage is a marker for all built in Proto.Actor messages
+type InfrastructureMessage interface {
+	InfrastructureMessage()
+}
 
 // IgnoreDeadLetterLogging messages are not logged in deadletter log
 type IgnoreDeadLetterLogging interface {
@@ -40,6 +60,7 @@ type Started struct{}
 // Restart is message sent by the actor system to control the lifecycle of an actor
 type Restart struct{}
 
+// Failure message is sent to an actor parent when an exception is thrown by one of its methods
 type Failure struct {
 	Who          *PID
 	Reason       interface{}
@@ -50,6 +71,12 @@ type Failure struct {
 type continuation struct {
 	message interface{}
 	f       func()
+}
+
+func (*Touch) GetAutoResponse(ctx Context) interface{} {
+	return &Touched{
+		Who: ctx.Self(),
+	}
 }
 
 func (*Restarting) AutoReceiveMessage() {}
@@ -67,17 +94,14 @@ func (*Restart) SystemMessage()      {}
 func (*continuation) SystemMessage() {}
 
 var (
-	restartingMessage     interface{} = &Restarting{}
-	stoppingMessage       interface{} = &Stopping{}
-	stoppedMessage        interface{} = &Stopped{}
-	poisonPillMessage     interface{} = &PoisonPill{}
-	receiveTimeoutMessage interface{} = &ReceiveTimeout{}
-)
-
-var (
-	restartMessage        interface{} = &Restart{}
-	startedMessage        interface{} = &Started{}
-	stopMessage           interface{} = &Stop{}
-	resumeMailboxMessage  interface{} = &mailbox.ResumeMailbox{}
-	suspendMailboxMessage interface{} = &mailbox.SuspendMailbox{}
+	restartingMessage     AutoReceiveMessage = &Restarting{}
+	stoppingMessage       AutoReceiveMessage = &Stopping{}
+	stoppedMessage        AutoReceiveMessage = &Stopped{}
+	poisonPillMessage     AutoReceiveMessage = &PoisonPill{}
+	receiveTimeoutMessage interface{}        = &ReceiveTimeout{}
+	restartMessage        SystemMessage      = &Restart{}
+	startedMessage        SystemMessage      = &Started{}
+	stopMessage           SystemMessage      = &Stop{}
+	resumeMailboxMessage  MailboxMessage     = &ResumeMailbox{}
+	suspendMailboxMessage MailboxMessage     = &SuspendMailbox{}
 )

@@ -5,9 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/mailbox"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 // sent to producer to request more work
@@ -50,13 +49,14 @@ func (p *producer) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		// spawn our worker
-		workerProps := actor.PropsFromProducer(func() actor.Actor {
-			return &worker{}
-		})
-		mb := mailbox.Unbounded(&requestWorkBehavior{
+		mb := actor.Unbounded(&requestWorkBehavior{
 			producer: ctx.Self(),
 		})
-		p.worker = ctx.Spawn(workerProps.WithMailbox(mb))
+		workerProps := actor.PropsFromProducer(func() actor.Actor {
+			return &worker{}
+		}, actor.WithMailbox(mb))
+
+		p.worker = ctx.Spawn(workerProps)
 	case *requestMoreWork:
 		p.requestedWork += msg.items
 		log.Println("Producer got a new work request")

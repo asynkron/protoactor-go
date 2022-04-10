@@ -5,12 +5,13 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"github.com/asynkron/gofun/set"
+	"google.golang.org/protobuf/proto"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/log"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const DefaultGossipActorName string = "gossip"
@@ -18,7 +19,7 @@ const DefaultGossipActorName string = "gossip"
 // Used to update gossip data when a Clustertopology event occurs
 type GossipUpdate struct {
 	MemberID, Key string
-	Value         *types.Any
+	Value         *anypb.Any
 	SeqNumber     int64
 }
 
@@ -63,7 +64,7 @@ func newGossiper(cl *Cluster, opts ...Option) (Gossiper, error) {
 	return gossiper, nil
 }
 
-func (g *Gossiper) GetState(key string) (map[string]*types.Any, error) {
+func (g *Gossiper) GetState(key string) (map[string]*anypb.Any, error) {
 
 	plog.Debug(fmt.Sprintf("Gossiper getting state from %s", g.pid))
 
@@ -161,7 +162,7 @@ func (g *Gossiper) SendState() {
 
 // Builds a consensus handler and a consensus checker, send the checker to the
 // Gossip actor and returns the handler back to the caller
-func (g *Gossiper) RegisterConsensusCheck(key string, getValue func(*types.Any) interface{}) ConsensusHandler {
+func (g *Gossiper) RegisterConsensusCheck(key string, getValue func(*anypb.Any) interface{}) ConsensusHandler {
 
 	definition := NewConsensusCheckBuilder(key, getValue)
 	consensusHandle, check := definition.Build()
@@ -177,13 +178,9 @@ func (g *Gossiper) StartGossiping() error {
 		return NewGossipActor(
 			g.cluster.Config.GossipRequestTimeout,
 			g.cluster.ActorSystem.ID,
-			func() map[string]empty {
+			func() set.Set[string] {
 
-				blockedMembers := make(map[string]empty)
-				for k := range g.cluster.GetBlockedMembers() {
-					blockedMembers[k] = empty{}
-				}
-				return blockedMembers
+				return g.cluster.GetBlockedMembers()
 			},
 			g.cluster.Config.GossipFanOut,
 			g.cluster.Config.GossipMaxSend,
@@ -208,10 +205,13 @@ func (g *Gossiper) StartGossiping() error {
 }
 
 func (g *Gossiper) Shutdown() {
+	if g.pid == nil {
+		return
+	}
 
-	plog.Info("Shutting down heartbeat")
+	plog.Info("Shutting down gossip")
 	g.cluster.ActorSystem.Root.Stop(g.pid)
-	plog.Info("Shut down heartbeat")
+	plog.Info("Shut down gossip")
 }
 
 func (g *Gossiper) gossipLoop() {

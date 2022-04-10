@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/log"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
@@ -16,16 +16,17 @@ import (
 )
 
 type Config struct {
-	DeadLetterThrottleInterval  time.Duration      //throttle deadletter logging after this interval
-	DeadLetterThrottleCount     int32              //throttle deadletter logging after this count
-	DeadLetterRequestLogging    bool               //do not log deadletters with sender
-	DeveloperSupervisionLogging bool               //console log and promote supervision logs to Warning level
-	DiagnosticsSerializer       func(Actor) string //extract diagnostics from actor and return as string
+	DeadLetterThrottleInterval  time.Duration      // throttle deadletter logging after this interval
+	DeadLetterThrottleCount     int32              // throttle deadletter logging after this count
+	DeadLetterRequestLogging    bool               // do not log dead-letters with sender
+	DeveloperSupervisionLogging bool               // console log and promote supervision logs to Warning level
+	DiagnosticsSerializer       func(Actor) string // extract diagnostics from actor and return as string
 	MetricsProvider             metric.MeterProvider
 }
 
-func defaultActorSystemConfig() Config {
-	return Config{
+func defaultConfig() *Config {
+	return &Config{
+		MetricsProvider:             nil,
 		DeadLetterThrottleInterval:  1 * time.Second,
 		DeadLetterThrottleCount:     3,
 		DeadLetterRequestLogging:    true,
@@ -37,7 +38,6 @@ func defaultActorSystemConfig() Config {
 }
 
 func defaultPrometheusProvider(port int) metric.MeterProvider {
-
 	config := prometheus.Config{}
 	c := controller.New(
 		processor.NewFactory(
@@ -49,7 +49,7 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 
 	exporter, err := prometheus.New(config, c)
 	if err != nil {
-		err = fmt.Errorf("Failed to initialize prometheus exporter: %w", err)
+		err = fmt.Errorf("failed to initialize prometheus exporter: %w", err)
 		plog.Error(err.Error(), log.Error(err))
 		return nil
 	}
@@ -68,46 +68,6 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 	return provider
 }
 
-func NewConfig() Config {
-	return defaultActorSystemConfig()
-}
-
-func (asc Config) WithDeadLetterThrottleInterval(duration time.Duration) Config {
-	asc.DeadLetterThrottleInterval = duration
-	return asc
-}
-
-func (asc Config) WithDeadLetterThrottleCount(count int32) Config {
-	asc.DeadLetterThrottleCount = count
-	return asc
-}
-
-func (asc Config) WithDeadLetterRequestLogging(enabled bool) Config {
-	asc.DeadLetterRequestLogging = enabled
-	return asc
-}
-
-func (asc Config) WithDeveloperSupervisionLogging(enabled bool) Config {
-	asc.DeveloperSupervisionLogging = enabled
-	return asc
-}
-
-func (asc Config) WithDiagnosticsSerializer(serializer func(Actor) string) Config {
-	asc.DiagnosticsSerializer = serializer
-	return asc
-}
-
-func (asc Config) WithMetricProviders(provider metric.MeterProvider) Config {
-
-	asc.MetricsProvider = provider
-	return asc
-}
-
-func (asc Config) WithDefaultPrometheusProvider(port ...int) Config {
-
-	_port := 2222
-	if len(port) > 0 {
-		_port = port[0]
-	}
-	return asc.WithMetricProviders(defaultPrometheusProvider(_port))
+func NewConfig() *Config {
+	return defaultConfig()
 }

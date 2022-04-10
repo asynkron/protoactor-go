@@ -2,12 +2,12 @@ package remote
 
 import (
 	"fmt"
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 	"google.golang.org/grpc"
 )
 
-func defaultRemoteConfig() Config {
-	return Config{
+func defaultConfig() *Config {
+	return &Config{
 		AdvertisedHost:           "",
 		DialOptions:              []grpc.DialOption{grpc.WithInsecure()},
 		EndpointWriterBatchSize:  1000,
@@ -18,61 +18,29 @@ func defaultRemoteConfig() Config {
 	}
 }
 
-func (rc Config) WithEndpointWriterBatchSize(batchSize int) Config {
-	rc.EndpointWriterBatchSize = batchSize
-	return rc
+func newConfig(options ...ConfigOption) *Config {
+	config := defaultConfig()
+	for _, option := range options {
+		option(config)
+	}
+	return config
 }
 
-func (rc Config) WithEndpointWriterQueueSize(queueSize int) Config {
-	rc.EndpointWriterQueueSize = queueSize
-	return rc
-}
-
-func (rc Config) WithEndpointManagerBatchSize(batchSize int) Config {
-	rc.EndpointManagerBatchSize = batchSize
-	return rc
-}
-
-func (rc Config) WithEndpointManagerQueueSize(queueSize int) Config {
-	rc.EndpointManagerQueueSize = queueSize
-	return rc
-}
-
-func (rc Config) WithDialOptions(options ...grpc.DialOption) Config {
-	rc.DialOptions = options
-	return rc
-}
-
-func (rc Config) WithServerOptions(options ...grpc.ServerOption) Config {
-	rc.ServerOptions = options
-	return rc
-}
-
-func (rc Config) WithCallOptions(options ...grpc.CallOption) Config {
-	rc.CallOptions = options
-	return rc
-}
-
-func (rc Config) WithAdvertisedHost(address string) Config {
-	rc.AdvertisedHost = address
-	return rc
-}
-
+// Address returns the address of the remote
 func (rc Config) Address() string {
 	return fmt.Sprintf("%v:%v", rc.Host, rc.Port)
 }
 
-func Configure(host string, port int, kinds ...*Kind) Config {
-	c := defaultRemoteConfig()
+// Configure configures the remote
+func Configure(host string, port int, options ...ConfigOption) *Config {
+	c := newConfig(options...)
 	c.Host = host
 	c.Port = port
 
-	for _, kind := range kinds {
-		c.Kinds[kind.Kind] = kind.Props
-	}
 	return c
 }
 
+// Config is the configuration for the remote
 type Config struct {
 	Host                     string
 	Port                     int
@@ -85,16 +53,4 @@ type Config struct {
 	EndpointManagerBatchSize int
 	EndpointManagerQueueSize int
 	Kinds                    map[string]*actor.Props
-}
-
-type Kind struct {
-	Kind  string
-	Props *actor.Props
-}
-
-func NewKind(kind string, props *actor.Props) *Kind {
-	return &Kind{
-		Kind:  kind,
-		Props: props,
-	}
 }

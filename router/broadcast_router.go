@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 type broadcastGroupRouter struct {
@@ -35,12 +35,14 @@ func (state *broadcastRouterState) RouteMessage(message interface{}) {
 	})
 }
 
-func NewBroadcastPool(size int) *actor.Props {
-	return (&actor.Props{}).WithSpawnFunc(spawner(&broadcastPoolRouter{PoolRouter{PoolSize: size}}))
+func NewBroadcastPool(size int, opts ...actor.PropsOption) *actor.Props {
+	return (&actor.Props{}).
+		Configure(actor.WithSpawnFunc(spawner(&broadcastPoolRouter{PoolRouter{PoolSize: size}}))).
+		Configure(opts...)
 }
 
 func NewBroadcastGroup(routees ...*actor.PID) *actor.Props {
-	return (&actor.Props{}).WithSpawnFunc(spawner(&broadcastGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
+	return (&actor.Props{}).Configure(actor.WithSpawnFunc(spawner(&broadcastGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}})))
 }
 
 func (config *broadcastPoolRouter) CreateRouterState() State {

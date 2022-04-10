@@ -19,5 +19,6 @@ func (r *ResponseError) Error() string {
 	if r == nil {
 		return "nil"
 	}
+
 	return r.Code.String()
 }

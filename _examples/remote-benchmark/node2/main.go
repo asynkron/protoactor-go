@@ -2,14 +2,11 @@ package main
 
 import (
 	"log"
-	"runtime"
-
 	"remotebenchmark/messages"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/mailbox"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/remote"
 )
 
 type echoActor struct {
@@ -28,15 +25,15 @@ func (state *echoActor) Receive(context actor.Context) {
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU() * 1)
-	runtime.GC()
+	//runtime.GOMAXPROCS(runtime.NumCPU() * 1)
+	//runtime.GC()
 
 	props := actor.
-		PropsFromProducer(func() actor.Actor { return &echoActor{} }).
-		WithMailbox(mailbox.Bounded(1000000))
+		PropsFromProducer(func() actor.Actor { return &echoActor{} },
+			actor.WithMailbox(actor.Bounded(1000000)))
 
 	system := actor.NewActorSystem()
-	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 12000))
+	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 12000 /*, remote.WithCallOptions(grpc.UseCompressor(gzip.Name))*/))
 	r.Register("echo", props)
 	r.Start()
 

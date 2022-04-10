@@ -2,41 +2,30 @@ package main
 
 import (
 	"fmt"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"log"
 	"time"
 
 	"cluster-metrics/shared"
 
-	console "github.com/AsynkronIT/goconsole"
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/consul"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/asynkron/protoactor-go/remote"
 )
-
-// Logger is message middleware which logs messages before continuing to the next middleware
-func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
-	fn := func(context actor.ReceiverContext, env *actor.MessageEnvelope) {
-		switch env.Message.(type) {
-		case *actor.Started:
-			log.Printf("actor started " + context.Self().String())
-		case *actor.Stopped:
-			log.Printf("actor stopped " + context.Self().String())
-		}
-		next(context, env)
-	}
-	return fn
-}
 
 func main() {
 	system := actor.NewActorSystem()
 	config := remote.Configure("localhost", 0)
 
 	provider, _ := consul.New()
-	clusterConfig := cluster.Configure("my-cluster", provider, config)
+	lookup := disthash.New()
+
+	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
 	c := cluster.New(system, clusterConfig)
 	setupLogger(c)
-	c.Start()
+	c.StartMember()
 
 	callopts := cluster.NewGrainCallOptions(c).WithTimeout(5 * time.Second).WithRetry(5)
 	doRequests(c, callopts)
@@ -44,9 +33,9 @@ func main() {
 	console.ReadLine()
 }
 
-func doRequests(c *cluster.Cluster, callopts *cluster.GrainCallOptions) {
-	msg := &shared.HelloRequest{Name: "GAM"}
-	helloGrain := shared.GetHelloGrainClient(c, "abc")
+func doRequests(c *cluster.Cluster, callopts *cluster.GrainCallConfig) {
+	msg := &shared.HelloRequest{Name: "Proto.Actor"}
+	helloGrain := shared.GetHelloGrainClient(c, "MyGrain123")
 	// with default callopts
 	resp, err := helloGrain.SayHello(msg)
 	if err != nil {
@@ -67,7 +56,7 @@ func doRequests(c *cluster.Cluster, callopts *cluster.GrainCallOptions) {
 	log.Println("Done")
 }
 
-func doRequestsAsync(c *cluster.Cluster, callopts *cluster.GrainCallOptions) {
+func doRequestsAsync(c *cluster.Cluster, callopts *cluster.GrainCallConfig) {
 	// sorry, golang has not magic, just use goroutine.
 	go func() {
 		doRequests(c, callopts)
@@ -89,7 +78,7 @@ func setupLogger(c *cluster.Cluster) {
 			log.Printf("Member Unavailable " + msg.Name())
 		case *cluster.MemberAvailableEvent:
 			log.Printf("Member Available " + msg.Name())
-		case cluster.TopologyEvent:
+		case cluster.ClusterTopology:
 			log.Printf("Cluster Topology Poll")
 		}
 	})

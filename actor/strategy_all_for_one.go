@@ -21,6 +21,8 @@ type allForOneStrategy struct {
 	decider        DeciderFunc
 }
 
+var _ SupervisorStrategy = &allForOneStrategy{}
+
 func (strategy *allForOneStrategy) HandleFailure(actorSystem *ActorSystem, supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
 	directive := strategy.decider(reason)
 	switch directive {

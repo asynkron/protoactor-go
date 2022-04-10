@@ -4,14 +4,15 @@ package cluster
 
 import (
 	fmt "fmt"
+	"github.com/asynkron/gofun/set"
+	"google.golang.org/protobuf/types/known/anypb"
 	"math/rand"
 	"reflect"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/log"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -31,7 +32,7 @@ type Informer struct {
 	activeMemberIDs   map[string]empty
 	otherMembers      []*Member
 	consensusChecks   *ConsensusChecks
-	getBlockedMembers func() map[string]empty
+	getBlockedMembers func() set.Set[string]
 	gossipFanOut      int
 	gossipMaxSend     int
 	throttler         actor.ShouldThrottle
@@ -42,7 +43,7 @@ var _ Gossip = (*Informer)(nil)
 
 // Creates a new Informer value with the given properties and returns
 // back a pointer to its memory location in the heap
-func newInformer(myID string, getBlockedMembers func() map[string]empty, fanOut int, maxSend int) *Informer {
+func newInformer(myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int) *Informer {
 
 	informer := Informer{
 		myID: myID,
@@ -91,7 +92,8 @@ func (inf *Informer) SetState(key string, message proto.Message) {
 				sequenceNumbers[key] = uint64(value.SequenceNumber)
 			}
 		}
-		plog.Debug("Setting state", log.String("key", key), log.String("value", message.String()), log.Object("state", sequenceNumbers))
+
+		//plog.Debug("Setting state", log.String("key", key), log.String("value", message.String()), log.Object("state", sequenceNumbers))
 	}
 
 	if _, ok := inf.state.Members[inf.myID]; !ok {
@@ -238,9 +240,9 @@ func (inf *Informer) RemoveConsensusCheck(id string) {
 }
 
 // retrieves this informer current state for the given key
-func (inf *Informer) GetState(key string) map[string]*types.Any {
+func (inf *Informer) GetState(key string) map[string]*anypb.Any {
 
-	entries := make(map[string]*types.Any)
+	entries := make(map[string]*anypb.Any)
 	for memberID, memberState := range inf.state.Members {
 		if value, ok := memberState.Values[memberID]; ok {
 			entries[memberID] = value.Value

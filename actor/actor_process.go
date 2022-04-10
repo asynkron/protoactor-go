@@ -2,18 +2,16 @@ package actor
 
 import (
 	"sync/atomic"
-
-	"github.com/AsynkronIT/protoactor-go/mailbox"
 )
 
 type ActorProcess struct {
-	mailbox mailbox.Mailbox
+	mailbox Mailbox
 	dead    int32
 }
 
 var _ Process = &ActorProcess{}
 
-func NewActorProcess(mailbox mailbox.Mailbox) *ActorProcess {
+func NewActorProcess(mailbox Mailbox) *ActorProcess {
 	return &ActorProcess{mailbox: mailbox}
 }
 

@@ -2,22 +2,13 @@ package cluster
 
 import (
 	"context"
-	"sort"
-	"strings"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/asynkron/protoactor-go/log"
+	"github.com/asynkron/protoactor-go/remote"
+	"google.golang.org/protobuf/types/known/anypb"
 	"sync"
-
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster/chash"
-	"github.com/AsynkronIT/protoactor-go/eventstream"
-	"github.com/AsynkronIT/protoactor-go/log"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/gogo/protobuf/types"
 )
-
-type ClusterTopologyEventV2 struct {
-	*ClusterTopology
-	chashByKind map[string]chash.ConsistentHash
-}
 
 // MemberList is responsible to keep track of the current cluster topology
 // it does so by listening to changes from the ClusterProvider.
@@ -25,25 +16,19 @@ type ClusterTopologyEventV2 struct {
 type MemberList struct {
 	cluster              *Cluster
 	mutex                sync.RWMutex
-	members              map[string]*Member
+	members              *MemberSet
 	memberStrategyByKind map[string]MemberStrategy
-	banned               map[string]struct{}
 	lastEventId          uint64
-	chashByKind          map[string]chash.ConsistentHash
-	eventSteam           *eventstream.EventStream
-	topologyConsensus    ConsensusHandler
+
+	eventSteam        *eventstream.EventStream
+	topologyConsensus ConsensusHandler
 }
 
 func NewMemberList(cluster *Cluster) *MemberList {
-	return setupMemberList(cluster)
-}
-
-func setupMemberList(cluster *Cluster) *MemberList {
 	memberList := &MemberList{
 		cluster:              cluster,
-		members:              make(map[string]*Member),
+		members:              emptyMemberSet,
 		memberStrategyByKind: make(map[string]MemberStrategy),
-		banned:               map[string]struct{}{},
 		eventSteam:           cluster.ActorSystem.EventStream,
 	}
 	memberList.eventSteam.Subscribe(func(evt interface{}) {
@@ -54,28 +39,18 @@ func setupMemberList(cluster *Cluster) *MemberList {
 				break
 			}
 
-			// get banned members from all other member states
-			// and merge that with out own banned set
+			// get blocked members from all other member states
+			// and merge that without own blocked set
 			var topology ClusterTopology
-			if err := types.UnmarshalAny(t.Value, &topology); err != nil {
-				plog.Warn("could not unpack into ClusterToplogy proto.Message form Any", log.Error(err))
+			if err := t.Value.UnmarshalTo(&topology); err != nil {
+				plog.Warn("could not unpack into ClusterTopology proto.Message form Any", log.Error(err))
 				break
 			}
-			banned := topology.Banned
-			memberList.updateBannedMembers(banned)
+			blocked := topology.Blocked
+			memberList.cluster.Remote.BlockList().Block(blocked...)
 		}
 	})
 	return memberList
-}
-
-func (ml *MemberList) updateBannedMembers(members []*Member) {
-
-	ml.mutex.Lock()
-	defer ml.mutex.Unlock()
-
-	for _, member := range members {
-		ml.banned[member.Id] = struct{}{}
-	}
 }
 
 func (ml *MemberList) stopMemberList() {
@@ -84,14 +59,14 @@ func (ml *MemberList) stopMemberList() {
 
 func (ml *MemberList) InitializeTopologyConsensus() {
 
-	ml.topologyConsensus = ml.cluster.Gossip.RegisterConsensusCheck("topology", func(any *types.Any) interface{} {
+	ml.topologyConsensus = ml.cluster.Gossip.RegisterConsensusCheck("topology", func(any *anypb.Any) interface{} {
 
 		var topology ClusterTopology
-		if unpackErr := types.UnmarshalAny(any, &topology); unpackErr != nil {
+		if unpackErr := any.UnmarshalTo(&topology); unpackErr != nil {
 			plog.Error("could not unpack topology message", log.Error(unpackErr))
 			return nil
 		}
-		return topology.EventId
+		return topology.TopologyHash
 	})
 }
 
@@ -125,179 +100,155 @@ func (ml *MemberList) getPartitionMemberV2(clusterIdentity *ClusterIdentity) str
 	return ""
 }
 
-func (ml *MemberList) getActivatorMember(kind string) string {
+func (ml *MemberList) GetActivatorMember(kind string, requestSourceAddress string) string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()
 
 	var res string
 	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
-		res = memberStrategy.GetActivator()
+		res = memberStrategy.GetActivator(requestSourceAddress)
 	}
 	return res
 }
 
 func (ml *MemberList) Length() int {
-	ml.mutex.RLock()
-	defer ml.mutex.RUnlock()
-	return len(ml.members)
+	return ml.members.Len()
 }
 
-func (ml *MemberList) UpdateClusterTopology(members []*Member, eventId uint64) {
+func (ml *MemberList) Members() *MemberSet {
+	return ml.members
+}
+
+func (ml *MemberList) UpdateClusterTopology(members Members) {
+
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
-	if ml.lastEventId >= eventId {
-		plog.Debug("Skipped ClusterTopology", log.Uint64("eventId", eventId), log.Int("members", len(members)))
+
+	// TLDR:
+	// this method basically filters out any member status in the blocked list
+	// then makes a delta between new and old members
+	// notifying the cluster accordingly which members left or joined
+
+	topology, done, active, joined, left := ml.getTopologyChanges(members)
+	if done {
 		return
 	}
-	ml.lastEventId = eventId
-	tplg := ml._updateClusterTopoLogy(members, eventId)
 
-	ml.onMembersUpdated(tplg)
-	ml.cluster.ActorSystem.EventStream.Publish(&ClusterTopologyEventV2{
-		ClusterTopology: tplg,
-		chashByKind:     ml.chashByKind,
-	})
+	// include any new blocked members into the known set of blocked members
+	for _, m := range left.Members() {
+		ml.cluster.Remote.BlockList().Block(m.Id)
+	}
+
+	ml.members = active
+
+	// notify that these members left
+	for _, m := range left.Members() {
+		ml.memberLeave(m)
+		ml.TerminateMember(m)
+	}
+
+	// notify that these members joined
+	for _, m := range joined.Members() {
+		ml.memberJoin(m)
+	}
+
+	ml.cluster.ActorSystem.EventStream.Publish(topology)
+
 	plog.Info("Updated ClusterTopology",
-		log.Uint64("eventId", ml.lastEventId),
+		log.Uint64("topology-hash", topology.TopologyHash),
 		log.Int("members", len(members)),
-		log.Int("joined", len(tplg.Joined)),
-		log.Int("left", len(tplg.Left)),
-		log.Int("alives", len(tplg.Members)))
-
-	// TODO: uncomment this after Gossip is properly fixed
-	//ml.broadCastTopologyChanges(tplg)
+		log.Int("joined", len(topology.Joined)),
+		log.Int("left", len(topology.Left)),
+		log.Int("blocked", len(topology.Blocked)),
+		log.Int("members", len(topology.Members)))
 }
 
-func (ml *MemberList) broadCastTopologyChanges(topology *ClusterTopology) {
+func (ml *MemberList) memberJoin(joiningMember *Member) {
+	plog.Info("member joined", log.String("member", joiningMember.Id))
+	for _, kind := range joiningMember.Kinds {
+		if ml.memberStrategyByKind[kind] == nil {
+			ml.memberStrategyByKind[kind] = ml.getMemberStrategyByKind(kind)
+		}
 
-	plog.Debug("Memberlist sending state")
-	ml.cluster.Gossip.SetState(TopologyKey, topology)
-	ml.eventSteam.Publish(topology)
+		ml.memberStrategyByKind[kind].AddMember(joiningMember)
+	}
 }
 
-func (ml *MemberList) _updateClusterTopoLogy(members []*Member, eventId uint64) *ClusterTopology {
-	tplg := ClusterTopology{EventId: eventId}
-
-	alives := map[string]*Member{}
-	for _, member := range members {
-		if _, isBaned := ml.banned[member.Id]; isBaned {
+func (ml *MemberList) memberLeave(leavingMember *Member) {
+	for _, kind := range leavingMember.Kinds {
+		if ml.memberStrategyByKind[kind] != nil {
 			continue
 		}
-		addr := member.Address()
-		alives[addr] = member
-		if old, isOld := ml.members[addr]; isOld {
-			if len(old.Kinds) != len(member.Kinds) {
-				plog.Error("member.Kinds is different to the old one",
-					log.String("old", old.String()), log.String("new", member.String()))
-			}
-			continue
-		}
-		tplg.Joined = append(tplg.Joined, member)
-		ml.onMemberJoined(member)
-	}
 
-	for _, member := range ml.members {
-		addr := member.Address()
-		if _, isExist := alives[addr]; !isExist {
-			ml.onMemberLeft(member)
-			tplg.Left = append(tplg.Left, member)
-		}
+		ml.memberStrategyByKind[kind].RemoveMember(leavingMember)
 	}
-	tplg.Members = ml.buildSortedMembers(alives)
-	return &tplg
 }
 
-func (ml *MemberList) onMembersUpdated(tplg *ClusterTopology) {
-	groups := groupMembersByKind(tplg.Members)
-	strategies := map[string]MemberStrategy{}
-	chashes := map[string]chash.ConsistentHash{}
-	for kind, members := range groups {
-		strategies[kind] = newDefaultMemberStrategyV2(kind, members)
-		chashes[kind] = NewRendezvousV2(members)
+func (ml *MemberList) getTopologyChanges(members Members) (topology *ClusterTopology, unchanged bool, active *MemberSet, joined *MemberSet, left *MemberSet) {
+	memberSet := NewMemberSet(members)
+
+	// get active members
+	// (this bit means that we will never allow a member that failed a health check to join back in)
+	blocked := ml.cluster.GetBlockedMembers().ToSlice()
+
+	active = memberSet.ExceptIds(blocked)
+
+	// nothing changed? exit
+	if active.Equals(ml.members) {
+		return nil, true, nil, nil, nil
 	}
-	ml.memberStrategyByKind = strategies
-	ml.chashByKind = chashes
+
+	left = ml.members.Except(active)
+	joined = active.Except(ml.members)
+
+	topology = &ClusterTopology{
+		TopologyHash: active.TopologyHash(),
+		Members:      active.Members(),
+		Left:         left.Members(),
+		Joined:       joined.Members(),
+	}
+	return topology, false, active, joined, left
 }
 
-func (ml *MemberList) onMemberLeft(member *Member) {
-	// notify left
-	meta := MemberMeta{
-		Host:  member.Host,
-		Port:  int(member.Port),
-		Kinds: member.Kinds,
-	}
-	left := &MemberLeftEvent{MemberMeta: meta}
-	ml.cluster.ActorSystem.EventStream.Publish(left)
-
-	addr := member.Address()
-	delete(ml.members, addr)
-	rt := &remote.EndpointTerminatedEvent{Address: addr}
-	ml.cluster.ActorSystem.EventStream.Publish(rt)
-}
-
-func (ml *MemberList) onMemberJoined(member *Member) {
-	addr := member.Address()
-	ml.members[addr] = member
-	// notify joined
-	meta := MemberMeta{
-		Host:  member.Host,
-		Port:  int(member.Port),
-		Kinds: member.Kinds,
-	}
-	joined := &MemberJoinedEvent{MemberMeta: meta}
-	ml.cluster.ActorSystem.EventStream.Publish(joined)
-}
-
-func (ml *MemberList) buildSortedMembers(m map[string]*Member) []*Member {
-	list := make([]*Member, len(m))
-	i := 0
-	for _, member := range m {
-		list[i] = member
-		i++
-	}
-	sortMembers(list)
-	return list
-}
-
-func sortMembers(members []*Member) {
-	sort.Slice(members, func(i, j int) bool {
-		addrI := members[i].Address()
-		addrJ := members[j].Address()
-		return strings.Compare(addrI, addrJ) > 0
+func (ml *MemberList) TerminateMember(m *Member) {
+	// tell the world that this endpoint should is no longer relevant
+	ml.cluster.ActorSystem.EventStream.Publish(&remote.EndpointTerminatedEvent{
+		Address: m.Address(),
 	})
 }
 
-func groupMembersByKind(members []*Member) map[string][]*Member {
-	groups := map[string][]*Member{}
-	for _, member := range members {
-		for _, kind := range member.Kinds {
-			if list, ok := groups[kind]; ok {
-				groups[kind] = append(list, member)
-			} else {
-				groups[kind] = []*Member{member}
-			}
+func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
+	for _, m := range ml.members.members {
+		if !includeSelf && m.Id == ml.cluster.ActorSystem.Id {
+			continue
 		}
-	}
-	return groups
-}
 
-func (ml *MemberList) BroadcastEvent(message interface{}) {
-	ml.mutex.RLock()
-	defer ml.mutex.RUnlock()
-
-	for _, member := range ml.members {
-		pid := actor.NewPID(member.Address(), "eventstream")
+		pid := actor.NewPID(m.Address(), "eventstream")
 		ml.cluster.ActorSystem.Root.Send(pid, message)
 	}
 
 }
 
 func (ml *MemberList) ContainsMemberID(memberID string) bool {
+	return ml.members.ContainsId(memberID)
+}
 
-	// lock our mutex
-	ml.mutex.RLock()
-	defer ml.mutex.RUnlock()
+func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {
 
-	_, ok := ml.members[memberID]
-	return ok
+	plog.Info("creating member strategy", log.String("kind", kind))
+
+	clusterKind, ok := ml.cluster.TryGetClusterKind(kind)
+
+	if ok {
+		if clusterKind.Strategy != nil {
+			return clusterKind.Strategy
+		}
+	}
+
+	strategy := ml.cluster.Config.MemberStrategyBuilder(ml.cluster, kind)
+	if strategy != nil {
+		return strategy
+	}
+
+	return newDefaultMemberStrategy(ml.cluster, kind)
 }

@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 	"math/rand"
 )
 
@@ -35,12 +35,15 @@ func (state *randomRouterState) RouteMessage(message interface{}) {
 	state.sender.Send(pid, message)
 }
 
-func NewRandomPool(size int) *actor.Props {
-	return (&actor.Props{}).WithSpawnFunc(spawner(&randomPoolRouter{PoolRouter{PoolSize: size}}))
+func NewRandomPool(size int, opts ...actor.PropsOption) *actor.Props {
+	return (&actor.Props{}).
+		Configure(actor.WithSpawnFunc(spawner(&randomPoolRouter{PoolRouter{PoolSize: size}}))).
+		Configure(opts...)
+
 }
 
 func NewRandomGroup(routees ...*actor.PID) *actor.Props {
-	return (&actor.Props{}).WithSpawnFunc(spawner(&randomGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}}))
+	return (&actor.Props{}).Configure(actor.WithSpawnFunc(spawner(&randomGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}})))
 }
 
 func (config *randomPoolRouter) CreateRouterState() State {

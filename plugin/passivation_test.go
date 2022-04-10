@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,27 +28,27 @@ func TestPassivation(t *testing.T) {
 	PassivationDuration := 3 * UnitOfTime
 	rootContext := system.Root
 	props := actor.
-		PropsFromProducer(func() actor.Actor { return &SmartActor{} }).
-		WithReceiverMiddleware(Use(&PassivationPlugin{Duration: PassivationDuration}))
+		PropsFromProducer(func() actor.Actor { return &SmartActor{} },
+			actor.WithReceiverMiddleware(Use(&PassivationPlugin{Duration: PassivationDuration})))
 
 	pid := rootContext.Spawn(props)
 	time.Sleep(UnitOfTime)
 	time.Sleep(UnitOfTime)
 	{
-		_, found := system.ProcessRegistry.LocalPIDs.Get(pid.Id)
+		_, found := system.ProcessRegistry.GetLocal(pid.Id)
 		assert.True(t, found)
 	}
 	rootContext.Send(pid, "keepalive")
 	time.Sleep(UnitOfTime)
 	time.Sleep(UnitOfTime)
 	{
-		_, found := system.ProcessRegistry.LocalPIDs.Get(pid.Id)
+		_, found := system.ProcessRegistry.GetLocal(pid.Id)
 		assert.True(t, found)
 	}
 	time.Sleep(UnitOfTime)
 	time.Sleep(UnitOfTime)
 	{
-		_, found := system.ProcessRegistry.LocalPIDs.Get(pid.Id)
+		_, found := system.ProcessRegistry.GetLocal(pid.Id)
 		assert.False(t, found)
 	}
 }
