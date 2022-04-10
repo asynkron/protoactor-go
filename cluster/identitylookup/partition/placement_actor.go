@@ -98,9 +98,9 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 
 	clusterKind := p.cluster.GetClusterKind(msg.ClusterIdentity.Kind)
 
-	//TODO: wrap in WithClusterIdentity
+	props := clustering.WithClusterIdentity(clusterKind.Props, msg.ClusterIdentity)
 
-	pid := ctx.SpawnPrefix(clusterKind.Props, msg.ClusterIdentity.Identity)
+	pid := ctx.SpawnPrefix(props, msg.ClusterIdentity.Identity)
 
 	p.actors[key] = GrainMeta{
 		ID:  msg.ClusterIdentity,
