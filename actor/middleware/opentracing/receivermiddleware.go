@@ -14,7 +14,7 @@ func ReceiverMiddleware() actor.ReceiverMiddleware {
 			spanContext, err := opentracing.GlobalTracer().Extract(opentracing.TextMap, opentracing.TextMapReader(&messageHeaderReader{ReadOnlyMessageHeader: envelope.Header}))
 			if err == opentracing.ErrSpanContextNotFound {
 				logger.Debug("INBOUND No spanContext found", log.Stringer("PID", c.Self()), log.Error(err))
-				//next(c)
+				// next(c)
 			} else if err != nil {
 				logger.Debug("INBOUND Error", log.Stringer("PID", c.Self()), log.Error(err))
 				next(c, envelope)

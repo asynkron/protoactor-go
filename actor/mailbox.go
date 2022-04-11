@@ -53,8 +53,7 @@ type defaultMailbox struct {
 }
 
 func (m *defaultMailbox) PostUserMessage(message interface{}) {
-
-	//is it a raw batch message?
+	// is it a raw batch message?
 	if batch, ok := message.(MessageBatch); ok {
 		messages := batch.GetMessages()
 
@@ -63,7 +62,7 @@ func (m *defaultMailbox) PostUserMessage(message interface{}) {
 		}
 	}
 
-	//is it an envelope batch message?
+	// is it an envelope batch message?
 	if env, ok := message.(MessageEnvelope); ok {
 		if batch, ok := env.Message.(MessageBatch); ok {
 			messages := batch.GetMessages()
@@ -74,7 +73,7 @@ func (m *defaultMailbox) PostUserMessage(message interface{}) {
 		}
 	}
 
-	//normal messages
+	// normal messages
 	for _, ms := range m.middlewares {
 		ms.MessagePosted(message)
 	}
@@ -176,7 +175,6 @@ func (m *defaultMailbox) run() {
 			return
 		}
 	}
-
 }
 
 func (m *defaultMailbox) Start() {

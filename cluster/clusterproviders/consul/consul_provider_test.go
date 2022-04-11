@@ -2,11 +2,12 @@ package consul
 
 import (
 	"fmt"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"net"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"

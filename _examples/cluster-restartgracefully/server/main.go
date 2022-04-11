@@ -1,14 +1,16 @@
 package main
 
 import (
-	"cluster-restartgracefully/shared"
 	"flag"
 	"fmt"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"cluster-restartgracefully/shared"
+
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
@@ -24,9 +26,9 @@ var (
 )
 
 func main() {
-	var provider = flag.String("provider", "consul", "clients count.")
-	var actorTTL = flag.Duration("ttl", 10*time.Second, "time to live of actor.")
-	var port = flag.Int("port", 0, "listen port.")
+	provider := flag.String("provider", "consul", "clients count.")
+	actorTTL := flag.Duration("ttl", 10*time.Second, "time to live of actor.")
+	port := flag.Int("port", 0, "listen port.")
 
 	flag.Parse()
 	startNode(*port, *provider, *actorTTL)
@@ -59,7 +61,7 @@ func startNode(port int, provider string, timeout time.Duration) {
 	switch provider {
 	case "consul":
 		cp, err = consul.New()
-	//case "etcd":
+	// case "etcd":
 	//	cp, err = etcd.New()
 	default:
 		panic(fmt.Errorf("invalid provider:%s", provider))

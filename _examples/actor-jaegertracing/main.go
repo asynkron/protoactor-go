@@ -57,7 +57,7 @@ func initJaeger() io.Closer {
 		jaegercfg.Metrics(jMetricsFactory),
 	)
 	if err != nil {
-		//log.Printf("Could not initialize jaeger tracer: %s", err.Error())
+		// log.Printf("Could not initialize jaeger tracer: %s", err.Error())
 		panic(fmt.Sprintf("Could not initialize jaeger tracer: %s", err.Error()))
 	}
 	return closer

@@ -29,12 +29,14 @@ func (m *myMessage) Hash() string {
 
 var wait sync.WaitGroup
 
-type routerActor struct{}
-type tellerActor struct{}
-type managerActor struct {
-	set  []*actor.PID
-	rpid *actor.PID
-}
+type (
+	routerActor  struct{}
+	tellerActor  struct{}
+	managerActor struct {
+		set  []*actor.PID
+		rpid *actor.PID
+	}
+)
 
 func (state *routerActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
@@ -52,7 +54,6 @@ func (state *tellerActor) Receive(context actor.Context) {
 			context.Send(msg.pid, msg)
 			time.Sleep(10 * time.Millisecond)
 		}
-
 	}
 }
 
@@ -64,7 +65,6 @@ func (state *managerActor) Receive(context actor.Context) {
 			if i%2 == 0 {
 				context.Send(state.rpid, &router.RemoveRoutee{PID: v})
 				// log.Println(v)
-
 			} else {
 				props := actor.PropsFromProducer(func() actor.Actor { return &routerActor{} })
 				pid := context.Spawn(props)

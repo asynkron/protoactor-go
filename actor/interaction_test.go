@@ -7,8 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type DummyMessage struct{}
-type BlackHoleActor struct{}
+type (
+	DummyMessage   struct{}
+	BlackHoleActor struct{}
+)
 
 var testTimeout = 1 * time.Second
 

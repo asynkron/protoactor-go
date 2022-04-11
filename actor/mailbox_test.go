@@ -74,7 +74,6 @@ type sysDummy struct {
 }
 
 func (*sysDummy) SystemMessage() {
-
 }
 
 func TestUnboundedLockfreeMailboxSysMessageConsistency(t *testing.T) {

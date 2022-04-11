@@ -38,9 +38,7 @@ type JsonMessage struct {
 	Json     string
 }
 
-var (
-	stopMessage interface{} = &actor.Stop{}
-)
+var stopMessage interface{} = &actor.Stop{}
 
 var (
 	ActorPidRespErr         interface{} = &ActorPidResponse{StatusCode: ResponseStatusCodeERROR.ToInt32()}

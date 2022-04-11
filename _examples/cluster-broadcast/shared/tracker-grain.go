@@ -2,8 +2,9 @@ package shared
 
 import (
 	"fmt"
-	"github.com/asynkron/protoactor-go/cluster"
 	"strings"
+
+	"github.com/asynkron/protoactor-go/cluster"
 )
 
 type TrackGrain struct {
@@ -11,7 +12,6 @@ type TrackGrain struct {
 }
 
 func (t *TrackGrain) ReceiveDefault(ctx cluster.GrainContext) {
-
 }
 
 func (t *TrackGrain) Init(ctx cluster.GrainContext) {
@@ -34,9 +34,8 @@ func (t *TrackGrain) DeregisterGrain(n *RegisterMessage, ctx cluster.GrainContex
 }
 
 func (t *TrackGrain) BroadcastGetCounts(n *Noop, ctx cluster.GrainContext) (*TotalsResponse, error) {
-
 	totals := map[string]int64{}
-	for grainAddress, _ := range t.grainsMap {
+	for grainAddress := range t.grainsMap {
 		calcGrain := GetCalculatorGrainClient(ctx.Cluster(), grainAddress)
 		grainTotal, err := calcGrain.GetCurrent(&Noop{})
 		if err != nil {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"remoteadvertisedaddress/messages"
 
 	console "github.com/asynkron/goconsole"

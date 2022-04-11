@@ -4,8 +4,10 @@ import (
 	"testing"
 )
 
-type dummyRequest struct{}
-type dummyResponse struct{}
+type (
+	dummyRequest  struct{}
+	dummyResponse struct{}
+)
 
 func TestActorCanReplyOnStarting(t *testing.T) {
 	future := NewFuture(system, testTimeout)

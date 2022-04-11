@@ -1,7 +1,10 @@
 package actor
 
-import "testing"
-import "github.com/stretchr/testify/assert"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestNormalMessageGivesEmptyMessageHeaders(t *testing.T) {
 	props := PropsFromFunc(func(ctx Context) {

@@ -29,7 +29,6 @@ type gossipConsensusHandler struct {
 }
 
 func NewGossipConsensusHandler() *gossipConsensusHandler {
-
 	handler := gossipConsensusHandler{
 		ID: uuid.New().String(),
 		result: &consensusResult{
@@ -43,7 +42,6 @@ func NewGossipConsensusHandler() *gossipConsensusHandler {
 func (hdl *gossipConsensusHandler) GetID() string { return hdl.ID }
 
 func (hdl *gossipConsensusHandler) TryGetConsensus(ctx context.Context) (interface{}, bool) {
-
 	// wait until our result is available
 	hdl.result.Lock()
 	defer hdl.result.Unlock()
@@ -52,7 +50,6 @@ func (hdl *gossipConsensusHandler) TryGetConsensus(ctx context.Context) (interfa
 }
 
 func (hdl *gossipConsensusHandler) TrySetConsensus(consensus interface{}) {
-
 	hdl.result.Lock()
 	go func() {
 		defer hdl.result.Unlock()
@@ -63,7 +60,6 @@ func (hdl *gossipConsensusHandler) TrySetConsensus(consensus interface{}) {
 }
 
 func (hdl *gossipConsensusHandler) TryResetConsensus() {
-
 	// this is a noop for now need to discuss the right
 	// approach for check waiting in Go as might be another
 	// way of expressing this

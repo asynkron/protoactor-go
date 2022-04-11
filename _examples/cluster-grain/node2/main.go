@@ -1,8 +1,10 @@
 package main
 
 import (
-	"cluster-grain/shared"
 	"fmt"
+
+	"cluster-grain/shared"
+
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"

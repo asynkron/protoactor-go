@@ -5,9 +5,10 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/asynkron/gofun/set"
 	"google.golang.org/protobuf/proto"
-	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/log"
@@ -48,7 +49,6 @@ type Gossiper struct {
 
 // Creates a new Gossiper value and return it back
 func newGossiper(cl *Cluster, opts ...Option) (Gossiper, error) {
-
 	// create a new Gossiper value
 	gossiper := Gossiper{
 		GossipActorName: DefaultGossipActorName,
@@ -65,7 +65,6 @@ func newGossiper(cl *Cluster, opts ...Option) (Gossiper, error) {
 }
 
 func (g *Gossiper) GetState(key string) (map[string]*anypb.Any, error) {
-
 	plog.Debug(fmt.Sprintf("Gossiper getting state from %s", g.pid))
 
 	msg := NewGetGossipStateRequest(key)
@@ -98,7 +97,6 @@ func (g *Gossiper) GetState(key string) (map[string]*anypb.Any, error) {
 
 // Sends fire and forget message to update member state
 func (g *Gossiper) SetState(key string, value proto.Message) {
-
 	if g.throttler() == actor.Open {
 		plog.Debug(fmt.Sprintf("Gossiper setting state %s to %s", key, g.pid))
 	}
@@ -113,7 +111,6 @@ func (g *Gossiper) SetState(key string, value proto.Message) {
 
 // Sends a Request (that blocks) to update member state
 func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
-
 	if g.throttler() == actor.Open {
 		plog.Debug(fmt.Sprintf("Gossiper setting state %s to %s", key, g.pid))
 	}
@@ -144,7 +141,6 @@ func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
 }
 
 func (g *Gossiper) SendState() {
-
 	if g.pid == nil {
 		return
 	}
@@ -163,7 +159,6 @@ func (g *Gossiper) SendState() {
 // Builds a consensus handler and a consensus checker, send the checker to the
 // Gossip actor and returns the handler back to the caller
 func (g *Gossiper) RegisterConsensusCheck(key string, getValue func(*anypb.Any) interface{}) ConsensusHandler {
-
 	definition := NewConsensusCheckBuilder(key, getValue)
 	consensusHandle, check := definition.Build()
 	request := NewAddConsensusCheck(consensusHandle.GetID(), check)
@@ -172,14 +167,12 @@ func (g *Gossiper) RegisterConsensusCheck(key string, getValue func(*anypb.Any) 
 }
 
 func (g *Gossiper) StartGossiping() error {
-
 	var err error
 	g.pid, err = g.cluster.ActorSystem.Root.SpawnNamed(actor.PropsFromProducer(func() actor.Actor {
 		return NewGossipActor(
 			g.cluster.Config.GossipRequestTimeout,
 			g.cluster.ActorSystem.ID,
 			func() set.Set[string] {
-
 				return g.cluster.GetBlockedMembers()
 			},
 			g.cluster.Config.GossipFanOut,
@@ -215,7 +208,6 @@ func (g *Gossiper) Shutdown() {
 }
 
 func (g *Gossiper) gossipLoop() {
-
 	plog.Info("Starting gossip loop")
 
 	// create a ticker that will tick each GossipInterval milliseconds
@@ -236,6 +228,5 @@ breakLoop:
 }
 
 func (g *Gossiper) throttledLog(counter int32) {
-
 	plog.Debug(fmt.Sprintf("[Gossiper] Gossiper Setting State to %s", g.pid), log.Int("throttled", int(counter)))
 }

@@ -25,7 +25,6 @@ var _ Context = (*DefaultContext)(nil)
 // Creates a new DefaultContext value and returns
 // a pointer to its memory address as a Context
 func newDefaultClusterContext(cluster *Cluster) Context {
-
 	clusterContext := DefaultContext{
 		cluster: cluster,
 	}
@@ -33,7 +32,6 @@ func newDefaultClusterContext(cluster *Cluster) Context {
 }
 
 func (dcc *DefaultContext) Request(identity, kind string, message interface{}, timeout ...time.Duration) (interface{}, error) {
-
 	var err error
 	var resp interface{}
 	var counter int
@@ -100,14 +98,12 @@ selectloop:
 // gets the cached PID for the given identity
 // it can return nil if none is found
 func (dcc *DefaultContext) getCachedPid(identity, kind string) *actor.PID {
-
 	pid, _ := dcc.cluster.PidCache.Get(identity, kind)
 	return pid
 }
 
 // default retry action, it just sleeps incrementally
 func defaultRetryAction(i int) int {
-
 	i++
 	time.Sleep(time.Duration(i * i * 50))
 	return i

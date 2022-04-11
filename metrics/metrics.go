@@ -19,7 +19,6 @@ type ProtoMetrics struct {
 }
 
 func NewProtoMetrics(provider metric.MeterProvider) *ProtoMetrics {
-
 	protoMetrics := ProtoMetrics{
 		actorMetrics: NewActorMetrics(),
 		knownMetrics: make(map[string]*ActorMetrics),
@@ -32,7 +31,6 @@ func NewProtoMetrics(provider metric.MeterProvider) *ProtoMetrics {
 func (pm *ProtoMetrics) Instruments() *ActorMetrics { return pm.actorMetrics }
 
 func (pm *ProtoMetrics) Register(key string, instance *ActorMetrics) {
-
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -46,7 +44,6 @@ func (pm *ProtoMetrics) Register(key string, instance *ActorMetrics) {
 }
 
 func (pm *ProtoMetrics) Get(key string) *ActorMetrics {
-
 	metrics, ok := pm.knownMetrics[key]
 	if !ok {
 		err := fmt.Errorf("unknown metrics for the given %s key", key)

@@ -1,11 +1,12 @@
 package partition
 
 import (
+	"time"
+
 	"github.com/asynkron/protoactor-go/actor"
 	clustering "github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/eventstream"
 	"github.com/asynkron/protoactor-go/log"
-	"time"
 )
 
 const (
@@ -41,7 +42,7 @@ func (pm *Manager) Start() {
 
 	pm.topologySub = system.EventStream.
 		Subscribe(func(ev interface{}) {
-			//fmt.Printf("PM got event.... %v", ev)
+			// fmt.Printf("PM got event.... %v", ev)
 			if topology, ok := ev.(*clustering.ClusterTopology); ok {
 				pm.onClusterTopology(topology)
 			}

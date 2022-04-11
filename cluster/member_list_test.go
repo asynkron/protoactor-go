@@ -212,5 +212,4 @@ func TestMemberList_newMemberStrategies(t *testing.T) {
 		assert.Equal(v, len(obj.memberStrategyByKind["kind1"].GetAllMembers()))
 		assert.Equal(v, len(obj.memberStrategyByKind["kind2"].GetAllMembers()))
 	}
-
 }

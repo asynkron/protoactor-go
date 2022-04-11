@@ -9,7 +9,6 @@ import (
 type GossipMemberState = GossipState_GossipMemberState
 
 func ensureEntryExists(memberState *GossipMemberState, key string) *GossipKeyValue {
-
 	value, ok := memberState.Values[key]
 	if ok {
 		return value
@@ -23,7 +22,6 @@ func ensureEntryExists(memberState *GossipMemberState, key string) *GossipKeyVal
 // returns back the GossipMemberState registered in the given GossipState
 // under the given memberID key, if the key doesn't exists yet it is created
 func ensureMemberStateExists(state GossipState, memberID string) *GossipMemberState {
-
 	memberState, ok := state.Members[memberID]
 	if ok {
 		return memberState
@@ -36,7 +34,6 @@ func ensureMemberStateExists(state GossipState, memberID string) *GossipMemberSt
 
 // sets the given key with the given value in the given gossip state and returns sequenceNo + 1
 func setKey(state GossipState, key string, value proto.Message, memberID string, sequenceNo int64) int64 {
-
 	// if entry does not exists, add it
 	memberState := ensureMemberStateExists(state, memberID)
 	entry := ensureEntryExists(memberState, key)
@@ -51,7 +48,6 @@ func setKey(state GossipState, key string, value proto.Message, memberID string,
 
 // merges the local and the incoming remote states into a new states slice and return it
 func mergeState(localState *GossipState, remoteState *GossipState) ([]*GossipUpdate, *GossipState, map[string]empty) {
-
 	// make a copy of the localState (we do not want to modify localState just yet)
 	mergedState := &GossipState{Members: make(map[string]*GossipState_GossipMemberState)}
 	for id, member := range localState.Members {

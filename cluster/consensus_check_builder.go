@@ -32,7 +32,6 @@ type ConsensusCheckBuilder struct {
 }
 
 func NewConsensusCheckBuilder(key string, getValue func(*anypb.Any) interface{}) *ConsensusCheckBuilder {
-
 	builder := ConsensusCheckBuilder{
 		getConsensusValues: []*consensusValue{
 			{
@@ -47,18 +46,15 @@ func NewConsensusCheckBuilder(key string, getValue func(*anypb.Any) interface{})
 
 // Build builds a new ConsensusHandler and ConsensusCheck values and returns pointers to them
 func (ccb *ConsensusCheckBuilder) Build() (ConsensusHandler, *ConsensusCheck) {
-
 	handle := NewGossipConsensusHandler()
 	onConsensus := handle.TrySetConsensus
 	lostConsensus := handle.TryResetConsensus
 
 	check := func() *ConsensusCheck {
-
 		hasConsensus := ccb.Check()
 		hadConsensus := false
 
 		checkConsensus := func(state *GossipState, members map[string]empty) {
-
 			consensus, value := hasConsensus(state, members)
 			if consensus {
 				if hadConsensus {
@@ -83,7 +79,6 @@ func (ccb *ConsensusCheckBuilder) Build() (ConsensusHandler, *ConsensusCheck) {
 func (ccb *ConsensusCheckBuilder) Check() ConsensusChecker { return ccb.check }
 
 func (ccb *ConsensusCheckBuilder) AffectedKeys() []string {
-
 	var keys []string
 	for _, value := range ccb.getConsensusValues {
 		keys = append(keys, value.Key)
@@ -92,7 +87,6 @@ func (ccb *ConsensusCheckBuilder) AffectedKeys() []string {
 }
 
 func (ccb *ConsensusCheckBuilder) MapToValue(valueTuple *consensusValue) func(string, *GossipMemberState) (string, string, uint64) {
-
 	// REVISIT: in .NET implementation the ConsensusCheckBuilder can be of any given T type
 	//          so this method returns (string, string, T) in .NET, it just feels wrong to
 	//          return an interface{} from here as so far only checkers for uint64 are
@@ -105,7 +99,6 @@ func (ccb *ConsensusCheckBuilder) MapToValue(valueTuple *consensusValue) func(st
 	unpack := valueTuple.Value
 
 	return func(member string, state *GossipMemberState) (string, string, uint64) {
-
 		var value uint64
 
 		gossipKey, ok := state.Values[key]
@@ -126,9 +119,7 @@ func (ccb *ConsensusCheckBuilder) MapToValue(valueTuple *consensusValue) func(st
 }
 
 func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (bool, interface{}) {
-
 	getValidMemberStates := func(state *GossipState, ids map[string]empty, result []map[string]*GossipMemberState) {
-
 		for member, memberState := range state.Members {
 			if _, ok := ids[member]; ok {
 				result = append(result, map[string]*GossipMemberState{
@@ -139,7 +130,6 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 	}
 
 	showLog := func(hasConsensus bool, topologyHash uint64, valueTuples []*consensusMemberValue) {
-
 		if plog.Level() == log.DebugLevel {
 			groups := map[string]int{}
 			for _, memberValue := range valueTuples {
@@ -165,7 +155,6 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 		mapToValue := ccb.MapToValue(ccb.getConsensusValues[0])
 
 		return func(state *GossipState, ids map[string]empty) (bool, interface{}) {
-
 			var memberStates []map[string]*GossipMemberState
 			getValidMemberStates(state, ids, memberStates)
 
@@ -189,7 +178,6 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 	}
 
 	return func(state *GossipState, ids map[string]empty) (bool, interface{}) {
-
 		var memberStates []map[string]*GossipMemberState
 		getValidMemberStates(state, ids, memberStates)
 
@@ -216,7 +204,6 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 }
 
 func (ccb *ConsensusCheckBuilder) HasConsensus(memberValues []*consensusMemberValue) (bool, uint64) {
-
 	var hasConsensus bool
 	var topologyHash uint64
 

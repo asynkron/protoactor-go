@@ -8,8 +8,10 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 )
 
-type hello struct{ Who string }
-type helloActor struct{}
+type (
+	hello      struct{ Who string }
+	helloActor struct{}
+)
 
 func (state *helloActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {

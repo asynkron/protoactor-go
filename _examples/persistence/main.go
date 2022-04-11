@@ -45,8 +45,10 @@ func (p *protoMsg) Reset()         {}
 func (p *protoMsg) String() string { return p.state }
 func (p *protoMsg) ProtoMessage()  {}
 
-type Message struct{ protoMsg }
-type Snapshot struct{ protoMsg }
+type (
+	Message  struct{ protoMsg }
+	Snapshot struct{ protoMsg }
+)
 
 type Actor struct {
 	persistence.Mixin
@@ -77,7 +79,6 @@ func (a *Actor) Receive(ctx actor.Context) {
 }
 
 func main() {
-
 	system := actor.NewActorSystem()
 	provider := NewProvider(3)
 	provider.InitState("persistent", 4, 3)

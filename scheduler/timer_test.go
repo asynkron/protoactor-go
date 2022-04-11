@@ -21,7 +21,6 @@ func TestNewTimerScheduler(t *testing.T) {
 				default:
 					t.Errorf("exceeeded expected count %d", n)
 				}
-
 			}
 		})
 		return system.Root.Spawn(props), ch
@@ -113,5 +112,4 @@ func TestNewTimerScheduler(t *testing.T) {
 			check(t, ch, cancel, 0)
 		})
 	})
-
 }

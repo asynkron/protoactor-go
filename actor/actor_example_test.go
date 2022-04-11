@@ -10,8 +10,8 @@ import (
 
 // Demonstrates how to create an actor using a function literal and how to send a message asynchronously
 func Example() {
-	var context = system.Root
-	var props = actor.PropsFromFunc(func(c actor.Context) {
+	context := system.Root
+	props := actor.PropsFromFunc(func(c actor.Context) {
 		if msg, ok := c.Message().(string); ok {
 			fmt.Println(msg) // outputs "Hello World"
 		}

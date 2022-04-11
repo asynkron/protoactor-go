@@ -1,6 +1,6 @@
 package actor
 
-//props options
+// props options
 type PropsOption func(props *Props)
 
 func WithOnInit(init ...func(ctx Context)) PropsOption {
@@ -8,6 +8,7 @@ func WithOnInit(init ...func(ctx Context)) PropsOption {
 		props.onInit = append(props.onInit, init...)
 	}
 }
+
 func WithProducer(p Producer) PropsOption {
 	return func(props *Props) {
 		props.producer = p

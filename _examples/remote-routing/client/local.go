@@ -1,13 +1,12 @@
 package main
 
 import (
+	"log"
 	"sync"
 
 	"remoterouting/messages"
 
 	"github.com/asynkron/protoactor-go/actor"
-
-	"log"
 )
 
 type localActor struct {

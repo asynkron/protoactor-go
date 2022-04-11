@@ -23,7 +23,8 @@ type Rendezvous struct {
 func NewRendezvous() *Rendezvous {
 	return &Rendezvous{
 		hasher:  fnv.New32a(),
-		members: make([]*memberData, 0)}
+		members: make([]*memberData, 0),
+	}
 }
 
 func (r *Rendezvous) GetByClusterIdentity(ci *ClusterIdentity) string {
@@ -116,7 +117,7 @@ func (r *Rendezvous) UpdateMembers(members Members) {
 	r.members = make([]*memberData, 0)
 
 	for _, m := range tmp.Members() {
-		keyBytes := []byte(m.Address()) //TODO: should be utf8 to match .net
+		keyBytes := []byte(m.Address()) // TODO: should be utf8 to match .net
 		r.members = append(r.members, &memberData{
 			member:    m,
 			hashBytes: keyBytes,

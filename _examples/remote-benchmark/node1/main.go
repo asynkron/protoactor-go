@@ -2,20 +2,18 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
+	"runtime"
 	"runtime/pprof"
+	"sync"
+	"time"
 
 	"remotebenchmark/messages"
 
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
-
-	"log"
-	"sync"
-
-	"runtime"
-	"time"
 )
 
 type localActor struct {
@@ -46,8 +44,10 @@ func newLocalActor(stop *sync.WaitGroup, messageCount int) actor.Producer {
 	}
 }
 
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-var blockProfile = flag.String("blockprof", "", "execute contention profiling and save results here")
+var (
+	cpuprofile   = flag.String("cpuprofile", "", "write cpu profile to file")
+	blockProfile = flag.String("blockprof", "", "execute contention profiling and save results here")
+)
 
 func main() {
 	flag.Parse()
@@ -72,8 +72,8 @@ func main() {
 		}()
 	}
 
-	//runtime.GOMAXPROCS(runtime.NumCPU() * 1)
-	//runtime.GC()
+	// runtime.GOMAXPROCS(runtime.NumCPU() * 1)
+	// runtime.GC()
 
 	messageCount := 1000000
 	// remote.DefaultSerializerID = 1

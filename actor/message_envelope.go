@@ -57,9 +57,7 @@ func (envelope *MessageEnvelope) SetHeader(key string, value string) {
 	envelope.Header.Set(key, value)
 }
 
-var (
-	EmptyMessageHeader = make(messageHeader)
-)
+var EmptyMessageHeader = make(messageHeader)
 
 func WrapEnvelope(message interface{}) *MessageEnvelope {
 	if e, ok := message.(*MessageEnvelope); ok {

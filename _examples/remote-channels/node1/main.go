@@ -1,8 +1,9 @@
 package main
 
 import (
-	"distributedchannels/messages"
 	"fmt"
+
+	"distributedchannels/messages"
 
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"

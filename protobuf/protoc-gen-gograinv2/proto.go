@@ -72,7 +72,6 @@ type ProtoMethod struct {
 
 // ProtoAst transforms a FileDescriptor to an AST that can be used for code generation
 func ProtoAst(file *gogo.FileDescriptorProto) *ProtoFile {
-
 	pkg := &ProtoFile{}
 	pkg.Namespace = file.GetOptions().GetCsharpNamespace()
 
@@ -127,7 +126,6 @@ func goPkgLastElement(full string) string {
 
 // MakeFirstLowerCase makes the first character in a string lower case
 func MakeFirstLowerCase(s string) string {
-
 	if len(s) < 2 {
 		return strings.ToLower(s)
 	}

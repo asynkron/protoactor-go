@@ -16,7 +16,7 @@ type endpointReader struct {
 }
 
 func (s *endpointReader) mustEmbedUnimplementedRemotingServer() {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 

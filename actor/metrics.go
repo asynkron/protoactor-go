@@ -26,6 +26,7 @@ var _ extensions.Extension = &Metrics{}
 func (m *Metrics) Enabled() bool {
 	return m.enabled
 }
+
 func (m *Metrics) ExtensionID() extensions.ExtensionID {
 	return extensionId
 }
@@ -42,7 +43,6 @@ func NewMetrics(provider metric.MeterProvider) *Metrics {
 }
 
 func (m *Metrics) PrepareMailboxLengthGauge(cb metric.Int64ObserverFunc) {
-
 	meter := global.Meter(metrics.LibName)
 	gauge := metric.Must(meter).NewInt64GaugeObserver(
 		"protoactor_actor_mailbox_length",
@@ -54,7 +54,6 @@ func (m *Metrics) PrepareMailboxLengthGauge(cb metric.Int64ObserverFunc) {
 }
 
 func (m *Metrics) CommonLabels(ctx Context) []attribute.KeyValue {
-
 	labels := []attribute.KeyValue{
 		attribute.String("address", ctx.ActorSystem().Address()),
 		attribute.String("actortype", strings.Replace(fmt.Sprintf("%T", ctx.Actor()), "*", "", 1)),

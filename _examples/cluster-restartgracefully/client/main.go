@@ -1,12 +1,14 @@
 package main
 
 import (
-	"cluster-restartgracefully/shared"
 	"flag"
 	"fmt"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/partition"
 	"sync"
 	"time"
+
+	"cluster-restartgracefully/shared"
+
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/partition"
 
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
@@ -24,10 +26,10 @@ var (
 
 func main() {
 	cluster.SetLogLevel(log.InfoLevel)
-	var loops = flag.Int("loops", 10000, "request times.")
-	var interval = flag.Duration("interval", 0, "request interval miliseconds per client.")
-	var clients = flag.Int("clients", 1, "clients count.")
-	var provider = flag.String("provider", "consul", "clients count.")
+	loops := flag.Int("loops", 10000, "request times.")
+	interval := flag.Duration("interval", 0, "request interval miliseconds per client.")
+	clients := flag.Int("clients", 1, "clients count.")
+	provider := flag.String("provider", "consul", "clients count.")
 	flag.Parse()
 
 	// start server
@@ -56,7 +58,7 @@ func startNode(port int, provider string) {
 		ttl := consul.WithTTL(100 * time.Millisecond)
 		refreshTTL := consul.WithRefreshTTL(100 * time.Millisecond)
 		cp, err = consul.New(ttl, refreshTTL)
-	//case "etcd":
+	// case "etcd":
 	//	cp, err = etcd.New()
 	default:
 		panic(fmt.Errorf("invalid provider:%s", provider))
@@ -75,7 +77,7 @@ func startNode(port int, provider string) {
 
 func runClientsAll(clients int, loops int, interval time.Duration) {
 	var wg sync.WaitGroup
-	var now = time.Now()
+	now := time.Now()
 	for i := 0; i < clients; i++ {
 		wg.Add(1)
 		grainId := fmt.Sprintf("client-%d", i)
@@ -122,7 +124,6 @@ func runClient(grainId string, loops int, interval time.Duration) {
 }
 
 func calcAdd(grainId string, addNumber int64) int64 {
-
 	calcGrain := shared.GetCalculatorGrainClient(_cluster, grainId)
 	resp, err := calcGrain.Add(&shared.NumberRequest{Number: addNumber}, cluster.WithRetry(3), cluster.WithTimeout(6*time.Second))
 	if err != nil {

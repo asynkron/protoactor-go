@@ -1,11 +1,11 @@
 package partition
 
 import (
+	"time"
+
 	"github.com/asynkron/protoactor-go/actor"
 	clustering "github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/log"
-
-	"time"
 )
 
 // This actor is responsible to keep track of identities owned by this member

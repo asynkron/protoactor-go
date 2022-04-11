@@ -2,16 +2,19 @@ package actor
 
 import (
 	"fmt"
-	"github.com/asynkron/protoactor-go/ctxext"
 	"time"
+
+	"github.com/asynkron/protoactor-go/ctxext"
 
 	"github.com/stretchr/testify/mock"
 )
 
-var nullProducer Producer = func() Actor { return nullReceive }
-var nullReceive ReceiveFunc = func(Context) {}
-var system = NewActorSystem()
-var rootContext = system.Root
+var (
+	nullProducer Producer    = func() Actor { return nullReceive }
+	nullReceive  ReceiveFunc = func(Context) {}
+	system                   = NewActorSystem()
+	rootContext              = system.Root
+)
 
 // mockContext
 type mockContext struct {

@@ -24,7 +24,6 @@ func TestUint64ToId(t *testing.T) {
 			assert.Equal(t, tc.e, s)
 		})
 	}
-
 }
 
 var ss string

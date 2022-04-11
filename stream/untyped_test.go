@@ -8,7 +8,7 @@ import (
 )
 
 func TestReceiveFromStream(t *testing.T) {
-	var system = actor.NewActorSystem()
+	system := actor.NewActorSystem()
 	s := NewUntypedStream(system)
 	go func() {
 		rootContext := system.Root

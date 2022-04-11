@@ -9,10 +9,12 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-var _ fmt.Formatter
-var _ time.Time
+var (
+	_ fmt.Formatter
+	_ time.Time
+)
 
-//TODO fix this
+// TODO fix this
 func __TestRouterSendsUserMessageToChild(t *testing.T) {
 	child, p := spawnMockProcess("child")
 	defer removeMockProcess(child)

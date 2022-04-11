@@ -4,9 +4,7 @@ import (
 	"github.com/asynkron/protoactor-go/log"
 )
 
-var (
-	plog = log.New(log.DebugLevel, "[ACTOR]")
-)
+var plog = log.New(log.DebugLevel, "[ACTOR]")
 
 // SetLogLevel sets the log level for the logger.
 //

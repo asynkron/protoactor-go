@@ -7,7 +7,6 @@ import (
 type EsTestMsg struct{}
 
 func TestSendsMessagesToEventStream(t *testing.T) {
-
 	testCases := []struct {
 		name    string
 		message interface{}
@@ -36,5 +35,4 @@ func TestSendsMessagesToEventStream(t *testing.T) {
 			<-gotMessageChan
 		})
 	}
-
 }

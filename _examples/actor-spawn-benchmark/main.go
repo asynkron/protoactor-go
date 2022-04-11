@@ -17,9 +17,7 @@ type request struct {
 	div  int
 }
 
-var (
-	props = actor.PropsFromProducer(newState, actor.WithMailbox(actor.Unbounded()))
-)
+var props = actor.PropsFromProducer(newState, actor.WithMailbox(actor.Unbounded()))
 
 type state struct {
 	sum     int
@@ -58,8 +56,10 @@ func (s *state) Receive(ctx actor.Context) {
 	}
 }
 
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-var memprofile = flag.String("memprofile", "", "write mem profile to file")
+var (
+	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	memprofile = flag.String("memprofile", "", "write mem profile to file")
+)
 
 func main() {
 	flag.Parse()
@@ -71,8 +71,8 @@ func main() {
 		_ = pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-	//runtime.GOMAXPROCS(runtime.NumCPU())
-	//runtime.GC()
+	// runtime.GOMAXPROCS(runtime.NumCPU())
+	// runtime.GC()
 
 	for i := 0; i < 10; i++ {
 		system := actor.NewActorSystem()

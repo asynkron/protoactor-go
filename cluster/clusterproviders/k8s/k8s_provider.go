@@ -55,7 +55,6 @@ var _ cluster.ClusterProvider = (*Provider)(nil)
 
 // New crates a new k8s Provider in the heap and return back a reference to its memory address
 func New(opts ...Option) (*Provider, error) {
-
 	// create new default k8s config
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -68,7 +67,6 @@ func New(opts ...Option) (*Provider, error) {
 // NewWithConfig creates a new k8s Provider in the heap using the given configuration
 // and options, it returns a reference to its memory address or an error
 func NewWithConfig(config *rest.Config, opts ...Option) (*Provider, error) {
-
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -87,7 +85,6 @@ func NewWithConfig(config *rest.Config, opts ...Option) (*Provider, error) {
 
 // initializes the cluster provider
 func (p *Provider) init(c *cluster.Cluster) error {
-
 	host, port, err := c.ActorSystem.GetHostPort()
 	if err != nil {
 		return err
@@ -105,7 +102,6 @@ func (p *Provider) init(c *cluster.Cluster) error {
 
 // StartMember registers the member in the cluster and start it
 func (p *Provider) StartMember(c *cluster.Cluster) error {
-
 	if err := p.init(c); err != nil {
 		return err
 	}
@@ -122,7 +118,6 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 
 // StartClient starts the k8s client and monitor watch
 func (p *Provider) StartClient(c *cluster.Cluster) error {
-
 	if err := p.init(c); err != nil {
 		return err
 	}
@@ -136,7 +131,6 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 }
 
 func (p *Provider) Shutdown(graceful bool) error {
-
 	if p.shutdown {
 		// we are already shut down or shutting down
 		return nil
@@ -154,7 +148,6 @@ func (p *Provider) Shutdown(graceful bool) error {
 
 // starts the cluster monitor in its own goroutine
 func (p *Provider) startClusterMonitor(c *cluster.Cluster) error {
-
 	var err error
 	p.clusterMonitor, err = c.ActorSystem.Root.SpawnNamed(actor.PropsFromProducer(func() actor.Actor {
 		return newClusterMonitor(p)
@@ -171,14 +164,12 @@ func (p *Provider) startClusterMonitor(c *cluster.Cluster) error {
 
 // registers itself as a member asynchronously using an actor
 func (p *Provider) registerMemberAsync(c *cluster.Cluster) {
-
 	msg := RegisterMember{}
 	c.ActorSystem.Root.Send(p.clusterMonitor, &msg)
 }
 
 // registers itself as a member in k8s cluster
 func (p *Provider) registerMember(timeout time.Duration) error {
-
 	plog.Info(fmt.Sprintf("Registering service %s on %s", p.podName, p.address))
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -213,13 +204,11 @@ func (p *Provider) registerMember(timeout time.Duration) error {
 }
 
 func (p *Provider) startWatchingClusterAsync(c *cluster.Cluster) {
-
 	msg := StartWatchingCluster{p.clusterName}
 	c.ActorSystem.Root.Send(p.clusterMonitor, &msg)
 }
 
 func (p *Provider) startWatchingCluster(timeout time.Duration) error {
-
 	selector := fmt.Sprintf("%s=%s", LabelCluster, p.clusterName)
 	if p.watching {
 		plog.Info(fmt.Sprintf("Pods for %s are being watched already", selector))
@@ -237,7 +226,6 @@ func (p *Provider) startWatchingCluster(timeout time.Duration) error {
 
 	// start a new goroutine to monitor the cluster events
 	go func() {
-
 		for !p.shutdown {
 
 			event, ok := <-watcher.ResultChan()
@@ -323,7 +311,6 @@ func (p *Provider) startWatchingCluster(timeout time.Duration) error {
 
 // deregister itself as a member from a k8s cluster
 func (p *Provider) deregisterMember(timeout time.Duration) error {
-
 	plog.Info(fmt.Sprintf("Deregistering service %s from %s", p.podName, p.address))
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -347,7 +334,6 @@ func (p *Provider) deregisterMember(timeout time.Duration) error {
 
 // prepares a patching payload and sends it to kubernetes to replace labels
 func (p *Provider) replacePodLabels(ctx context.Context, pod *v1.Pod) error {
-
 	payload := struct {
 		Op    string `json:"op"`
 		Path  string `json:"path"`
@@ -369,7 +355,6 @@ func (p *Provider) replacePodLabels(ctx context.Context, pod *v1.Pod) error {
 
 // get the namespace of the current pod
 func (p *Provider) retrieveNamespace() string {
-
 	if (p.namespace) == "" {
 		filename := filepath.Join(string(filepath.Separator), "var", "run", "secrets", "kubernetes.io", "serviceaccount", "namespace")
 		content, err := os.ReadFile(filename)

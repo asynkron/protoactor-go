@@ -44,7 +44,6 @@ func (ms *MemberSet) GetMemberById(id string) *Member {
 }
 
 func (ms *MemberSet) Except(other *MemberSet) *MemberSet {
-
 	res := make(Members, 0)
 	for _, m := range ms.members {
 		if other.ContainsId(m.Id) {

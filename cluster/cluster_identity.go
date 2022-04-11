@@ -11,7 +11,7 @@ func (ci *ClusterIdentity) AsKey() string {
 
 var ciExtensionId = ctxext.NextContextExtensionID()
 
-//remove
+// remove
 func (ci *ClusterIdentity) ToShortString() string {
 	return ci.Kind + "/" + ci.Identity
 }

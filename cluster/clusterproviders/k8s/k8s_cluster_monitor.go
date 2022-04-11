@@ -16,7 +16,6 @@ type k8sClusterMonitorActor struct {
 func (kcm *k8sClusterMonitorActor) Receive(ctx actor.Context) { kcm.Behavior.Receive(ctx) }
 
 func (kcm *k8sClusterMonitorActor) init(ctx actor.Context) {
-
 	switch r := ctx.Message().(type) {
 	case *RegisterMember:
 		if err := kcm.registerMember(ctx.ReceiveTimeout()); err != nil {
@@ -48,7 +47,6 @@ func (kcm *k8sClusterMonitorActor) init(ctx actor.Context) {
 // creates and initializes a new k8sClusterMonitorActor in the heap and
 // returns a reference to its memory address
 func newClusterMonitor(provider *Provider) actor.Actor {
-
 	kcm := k8sClusterMonitorActor{
 		Behavior: actor.NewBehavior(),
 		Provider: provider,

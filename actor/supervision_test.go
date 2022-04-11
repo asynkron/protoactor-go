@@ -62,7 +62,6 @@ type Expector struct {
 func (e *Expector) ExpectMsg(expected interface{}, t *testing.T) {
 	actual := <-e.C
 	if actual == expected {
-
 	} else {
 
 		at := reflect.TypeOf(actual)

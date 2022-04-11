@@ -1,7 +1,9 @@
 package remote
 
-var DefaultSerializerID int32
-var serializers []Serializer
+var (
+	DefaultSerializerID int32
+	serializers         []Serializer
+)
 
 func init() {
 	RegisterSerializer(newProtoSerializer())

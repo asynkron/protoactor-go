@@ -16,7 +16,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-//TODO: needs to be attached to the provider instance
+// TODO: needs to be attached to the provider instance
 var (
 	clusterTTLErrorMutex       = new(sync.Mutex)
 	clusterMonitorErrorMutex   = new(sync.Mutex)
@@ -359,7 +359,6 @@ func (p *AutoManagedProvider) startActiveProvider() {
 
 func (p *AutoManagedProvider) stopActiveProvider() {
 	p.activeProvider.Close()
-
 }
 
 func (p *AutoManagedProvider) isShutdown() bool {

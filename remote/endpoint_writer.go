@@ -152,7 +152,6 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		Envelopes:   envelopes,
 	}
 	err := state.stream.Send(batch)
-
 	if err != nil {
 		ctx.Stash()
 		plog.Debug("gRPC Failed to send", log.String("address", state.address), log.Error(err))

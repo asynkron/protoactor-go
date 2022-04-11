@@ -2,10 +2,11 @@ package router
 
 import (
 	"fmt"
-	"github.com/asynkron/protoactor-go/ctxext"
 	"io/ioutil"
 	"log"
 	"time"
+
+	"github.com/asynkron/protoactor-go/ctxext"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/stretchr/testify/mock"

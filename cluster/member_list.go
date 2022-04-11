@@ -2,12 +2,13 @@ package cluster
 
 import (
 	"context"
+	"sync"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/eventstream"
 	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
 	"google.golang.org/protobuf/types/known/anypb"
-	"sync"
 )
 
 // MemberList is responsible to keep track of the current cluster topology
@@ -32,7 +33,6 @@ func NewMemberList(cluster *Cluster) *MemberList {
 		eventSteam:           cluster.ActorSystem.EventStream,
 	}
 	memberList.eventSteam.Subscribe(func(evt interface{}) {
-
 		switch t := evt.(type) {
 		case *GossipUpdate:
 			if t.Key != "topology" {
@@ -58,9 +58,7 @@ func (ml *MemberList) stopMemberList() {
 }
 
 func (ml *MemberList) InitializeTopologyConsensus() {
-
 	ml.topologyConsensus = ml.cluster.Gossip.RegisterConsensusCheck("topology", func(any *anypb.Any) interface{} {
-
 		var topology ClusterTopology
 		if unpackErr := any.UnmarshalTo(&topology); unpackErr != nil {
 			plog.Error("could not unpack topology message", log.Error(unpackErr))
@@ -71,7 +69,6 @@ func (ml *MemberList) InitializeTopologyConsensus() {
 }
 
 func (ml *MemberList) TopologyConsensus(ctx context.Context) (uint64, bool) {
-
 	result, ok := ml.topologyConsensus.TryGetConsensus(ctx)
 	if ok {
 		return result.(uint64), true
@@ -120,7 +117,6 @@ func (ml *MemberList) Members() *MemberSet {
 }
 
 func (ml *MemberList) UpdateClusterTopology(members Members) {
-
 	ml.mutex.Lock()
 	defer ml.mutex.Unlock()
 
@@ -226,7 +222,6 @@ func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 		pid := actor.NewPID(m.Address(), "eventstream")
 		ml.cluster.ActorSystem.Root.Send(pid, message)
 	}
-
 }
 
 func (ml *MemberList) ContainsMemberID(memberID string) bool {
@@ -234,7 +229,6 @@ func (ml *MemberList) ContainsMemberID(memberID string) bool {
 }
 
 func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {
-
 	plog.Info("creating member strategy", log.String("kind", kind))
 
 	clusterKind, ok := ml.cluster.TryGetClusterKind(kind)

@@ -11,21 +11,18 @@ import (
 	"github.com/asynkron/protoactor-go/scheduler"
 )
 
-var (
-	HelloMessages = []string{
-		"Hello",
-		"Bonjour",
-		"Hola",
-		"Zdravstvuyte",
-		"Nǐn hǎo",
-		"Salve",
-		"Konnichiwa",
-		"Olá",
-	}
-)
+var HelloMessages = []string{
+	"Hello",
+	"Bonjour",
+	"Hola",
+	"Zdravstvuyte",
+	"Nǐn hǎo",
+	"Salve",
+	"Konnichiwa",
+	"Olá",
+}
 
 func main() {
-
 	var wg sync.WaitGroup
 	wg.Add(5)
 

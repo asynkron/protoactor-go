@@ -4,11 +4,12 @@ package cluster
 
 import (
 	"fmt"
-	"github.com/asynkron/gofun/set"
-	"google.golang.org/protobuf/types/known/anypb"
 	"math/rand"
 	"reflect"
 	"time"
+
+	"github.com/asynkron/gofun/set"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/log"
@@ -44,7 +45,6 @@ var _ Gossip = (*Informer)(nil)
 // Creates a new Informer value with the given properties and returns
 // back a pointer to its memory location in the heap
 func newInformer(myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int) *Informer {
-
 	informer := Informer{
 		myID: myID,
 		state: GossipState{
@@ -64,7 +64,6 @@ func newInformer(myID string, getBlockedMembers func() set.Set[string], fanOut i
 
 // called when there is a cluster topology update
 func (inf *Informer) UpdateClusterTopology(topology *ClusterTopology) {
-
 	var others []*Member
 	for _, member := range topology.Members {
 		if member.Id != inf.myID {
@@ -83,7 +82,6 @@ func (inf *Informer) UpdateClusterTopology(topology *ClusterTopology) {
 
 // sets new update key state using the given proto message
 func (inf *Informer) SetState(key string, message proto.Message) {
-
 	inf.localSeqNumber = setKey(inf.state, key, message, inf.myID, inf.localSeqNumber)
 	if inf.throttler() == actor.Open {
 		sequenceNumbers := map[string]uint64{}
@@ -93,7 +91,7 @@ func (inf *Informer) SetState(key string, message proto.Message) {
 			}
 		}
 
-		//plog.Debug("Setting state", log.String("key", key), log.String("value", message.String()), log.Object("state", sequenceNumbers))
+		// plog.Debug("Setting state", log.String("key", key), log.String("value", message.String()), log.Object("state", sequenceNumbers))
 	}
 
 	if _, ok := inf.state.Members[inf.myID]; !ok {
@@ -107,7 +105,6 @@ func (inf *Informer) SetState(key string, message proto.Message) {
 // from the slice of other members known by this informer until gossipFanOut
 // number of sent has been reached
 func (inf *Informer) SendState(sendStateToMember LocalStateSender) {
-
 	// inf.purgeBannedMembers()  // TODO
 	for _, member := range inf.otherMembers {
 		ensureMemberStateExists(inf.state, member.Id)
@@ -142,7 +139,6 @@ func (inf *Informer) SendState(sendStateToMember LocalStateSender) {
 }
 
 func (inf *Informer) GetMemberStateDelta(targetMemberID string) MemberStateDelta {
-
 	var count int
 
 	// newState will old the final new state to be sent
@@ -226,7 +222,6 @@ func (inf *Informer) GetMemberStateDelta(targetMemberID string) MemberStateDelta
 
 // adds a new consensus checker to this informer
 func (inf *Informer) AddConsensusCheck(id string, check *ConsensusCheck) {
-
 	inf.consensusChecks.Add(id, check)
 
 	// check when adding, if we are already consistent
@@ -235,13 +230,11 @@ func (inf *Informer) AddConsensusCheck(id string, check *ConsensusCheck) {
 
 // removes a consensus checker from this informer
 func (inf *Informer) RemoveConsensusCheck(id string) {
-
 	inf.consensusChecks.Remove(id)
 }
 
 // retrieves this informer current state for the given key
 func (inf *Informer) GetState(key string) map[string]*anypb.Any {
-
 	entries := make(map[string]*anypb.Any)
 	for memberID, memberState := range inf.state.Members {
 		if value, ok := memberState.Values[memberID]; ok {
@@ -253,7 +246,6 @@ func (inf *Informer) GetState(key string) map[string]*anypb.Any {
 
 // receives a remote informer state
 func (inf *Informer) ReceiveState(remoteState *GossipState) []*GossipUpdate {
-
 	updates, newState, updatedKeys := mergeState(&inf.state, remoteState)
 	if len(updates) == 0 {
 		return nil
@@ -271,7 +263,6 @@ func (inf *Informer) ReceiveState(remoteState *GossipState) []*GossipUpdate {
 
 // check consensus for the given keys
 func (inf *Informer) CheckConsensus(updatedKeys ...string) {
-
 	for _, consensusCheck := range inf.consensusChecks.GetByUpdatedKeys(updatedKeys) {
 		consensusCheck.check(&inf.state, inf.activeMemberIDs)
 	}
@@ -279,14 +270,12 @@ func (inf *Informer) CheckConsensus(updatedKeys ...string) {
 
 // runs checkers on key updates
 func (inf *Informer) checkConsensusKey(updatedKey string) {
-
 	for _, consensusCheck := range inf.consensusChecks.GetByUpdatedKey(updatedKey) {
 		consensusCheck.check(&inf.state, inf.activeMemberIDs)
 	}
 }
 
 func (inf *Informer) commitPendingOffsets(offsets map[string]int64) {
-
 	for key, seqNumber := range offsets {
 		if offset, ok := inf.commitedOffsets[key]; !ok || offset < seqNumber {
 			inf.commitedOffsets[key] = seqNumber
@@ -295,6 +284,5 @@ func (inf *Informer) commitPendingOffsets(offsets map[string]int64) {
 }
 
 func (inf *Informer) throttledLog(counter int32) {
-
 	plog.Debug("[Gossip] Setting State", log.Int("throttled", int(counter)))
 }

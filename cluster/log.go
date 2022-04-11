@@ -4,9 +4,7 @@ import (
 	"github.com/asynkron/protoactor-go/log"
 )
 
-var (
-	plog = log.New(log.DefaultLevel, "[CLUSTER]")
-)
+var plog = log.New(log.DefaultLevel, "[CLUSTER]")
 
 // SetLogLevel sets the log level for the logger.
 //

@@ -27,7 +27,6 @@ type ClusterContextConfig struct {
 // NewDefaultClusterContextConfig creates a mew ClusterContextConfig with default
 // values and returns a pointer to its memory address
 func NewDefaultClusterContextConfig() *ClusterContextConfig {
-
 	config := ClusterContextConfig{
 		ActorRequestTimeout:                          defaultActorRequestTimeout,
 		RequestsLogThrottlePeriod:                    defaultRequestsLogThrottlePeriod,

@@ -15,7 +15,8 @@ type guardiansValue struct {
 func NewGuardians(actorSystem *ActorSystem) *guardiansValue {
 	return &guardiansValue{
 		actorSystem: actorSystem,
-		guardians:   &sync.Map{}}
+		guardians:   &sync.Map{},
+	}
 }
 
 func (gs *guardiansValue) getGuardianPid(s SupervisorStrategy) *PID {
@@ -31,7 +32,8 @@ func (gs *guardiansValue) getGuardianPid(s SupervisorStrategy) *PID {
 func (gs *guardiansValue) newGuardian(s SupervisorStrategy) *guardianProcess {
 	ref := &guardianProcess{
 		strategy:  s,
-		guardians: gs}
+		guardians: gs,
+	}
 	id := gs.actorSystem.ProcessRegistry.NextId()
 
 	pid, ok := gs.actorSystem.ProcessRegistry.Add(ref, "guardian"+id)

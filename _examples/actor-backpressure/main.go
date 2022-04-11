@@ -21,15 +21,17 @@ type requestWorkBehavior struct {
 func (m *requestWorkBehavior) MailboxStarted() {
 	m.requestMore()
 }
-func (m *requestWorkBehavior) MessagePosted(msg interface{}) {
 
+func (m *requestWorkBehavior) MessagePosted(msg interface{}) {
 }
+
 func (m *requestWorkBehavior) MessageReceived(msg interface{}) {
 	atomic.AddInt64(&m.tokens, -1)
 	if m.tokens == 0 {
 		m.requestMore()
 	}
 }
+
 func (m *requestWorkBehavior) MailboxEmpty() {
 }
 
@@ -75,8 +77,10 @@ func (p *producer) Receive(ctx actor.Context) {
 	}
 }
 
-type produce struct{}
-type worker struct{}
+type (
+	produce struct{}
+	worker  struct{}
+)
 
 func (w *worker) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {

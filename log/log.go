@@ -21,9 +21,7 @@ const (
 	DefaultLevel
 )
 
-var (
-	levelNames = [OffLevel + 1]string{"-    ", "DEBUG", "INFO ", "WARN", "ERROR", "-    "}
-)
+var levelNames = [OffLevel + 1]string{"-    ", "DEBUG", "INFO ", "WARN", "ERROR", "-    "}
 
 func (l Level) String() string {
 	return levelNames[int(l)]

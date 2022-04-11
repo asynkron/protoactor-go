@@ -14,7 +14,6 @@ func (d dummyMessageBatch) GetMessages() []interface{} {
 }
 
 func TestActorReceivesEachMessageInAMessageBatch(t *testing.T) {
-
 	// each message in the batch
 	seenMessagesWg := sync.WaitGroup{}
 	seenMessagesWg.Add(10)

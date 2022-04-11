@@ -12,9 +12,7 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-var (
-	ProviderShuttingDownError = fmt.Errorf("consul cluster provider is shutting down")
-)
+var ProviderShuttingDownError = fmt.Errorf("consul cluster provider is shutting down")
 
 type Provider struct {
 	cluster             *cluster.Cluster

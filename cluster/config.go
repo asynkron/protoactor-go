@@ -56,7 +56,6 @@ func Configure(clusterName string, clusterProvider ClusterProvider, identityLook
 // ToClusterContextConfig converts this cluster Config Context parameters
 // into a valid ClusterContextConfig value and returns a pointer to its memory
 func (c *Config) ToClusterContextConfig() *ClusterContextConfig {
-
 	clusterContextConfig := ClusterContextConfig{
 		ActorRequestTimeout:                          c.RequestTimeoutTime,
 		RequestsLogThrottlePeriod:                    c.RequestsLogThrottlePeriod,
@@ -66,7 +65,7 @@ func (c *Config) ToClusterContextConfig() *ClusterContextConfig {
 }
 
 func WithClusterIdentity(props *actor.Props, ci *ClusterIdentity) *actor.Props {
-	//inject the cluster identity into the actor context
+	// inject the cluster identity into the actor context
 	p := props.Clone(
 		actor.WithOnInit(func(ctx actor.Context) {
 			ctx.Set(ci)
@@ -77,8 +76,7 @@ func WithClusterIdentity(props *actor.Props, ci *ClusterIdentity) *actor.Props {
 func withClusterReceiveMiddleware() actor.PropsOption {
 	return actor.WithReceiverMiddleware(func(next actor.ReceiverFunc) actor.ReceiverFunc {
 		return func(c actor.ReceiverContext, envelope *actor.MessageEnvelope) {
-
-			//the above code as a type switch
+			// the above code as a type switch
 			switch envelope.Message.(type) {
 			case *actor.Started:
 				handleStarted(c, next, envelope)
@@ -94,7 +92,6 @@ func withClusterReceiveMiddleware() actor.PropsOption {
 }
 
 func handleStopped(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *actor.MessageEnvelope) {
-
 	/*
 	   clusterKind.Dec();
 	*/

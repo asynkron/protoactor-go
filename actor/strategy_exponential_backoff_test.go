@@ -30,7 +30,6 @@ func TestExponentialBackoffStrategy_setFailureCount(t *testing.T) {
 			assert.Equal(t, tc.expected, rs.FailureCount())
 		})
 	}
-
 }
 
 func TestExponentialBackoffStrategy_IncrementsFailureCount(t *testing.T) {

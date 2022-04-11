@@ -2,11 +2,10 @@ package main
 
 import (
 	"flag"
+	"log"
 	"net"
 	"runtime"
 	"strconv"
-
-	"log"
 
 	"remoterouting/messages"
 

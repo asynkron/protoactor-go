@@ -1,11 +1,12 @@
 package disthash
 
 import (
+	"time"
+
 	"github.com/asynkron/protoactor-go/actor"
 	clustering "github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/eventstream"
 	"github.com/asynkron/protoactor-go/log"
-	"time"
 )
 
 const (
@@ -68,7 +69,6 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 }
 
 func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
-
 	ownerAddress := pm.rdv.GetByClusterIdentity(identity)
 
 	if ownerAddress == "" {

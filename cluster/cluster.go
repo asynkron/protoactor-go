@@ -1,8 +1,9 @@
 package cluster
 
 import (
-	"github.com/asynkron/gofun/set"
 	"time"
+
+	"github.com/asynkron/gofun/set"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/extensions"

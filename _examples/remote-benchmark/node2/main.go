@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+
 	"remotebenchmark/messages"
 
 	console "github.com/asynkron/goconsole"
@@ -25,8 +26,8 @@ func (state *echoActor) Receive(context actor.Context) {
 }
 
 func main() {
-	//runtime.GOMAXPROCS(runtime.NumCPU() * 1)
-	//runtime.GC()
+	// runtime.GOMAXPROCS(runtime.NumCPU() * 1)
+	// runtime.GC()
 
 	props := actor.
 		PropsFromProducer(func() actor.Actor { return &echoActor{} },

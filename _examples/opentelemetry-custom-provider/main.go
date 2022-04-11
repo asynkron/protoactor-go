@@ -16,11 +16,12 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/selector/simple"
 )
 
-type hello struct{ Who string }
-type helloActor struct{}
+type (
+	hello      struct{ Who string }
+	helloActor struct{}
+)
 
 func (state *helloActor) Receive(context actor.Context) {
-
 	switch msg := context.Message().(type) {
 	case *hello:
 		fmt.Printf("Hello %s\n", msg.Who)
@@ -28,7 +29,6 @@ func (state *helloActor) Receive(context actor.Context) {
 }
 
 func main() {
-
 	ctx := context.Background()
 	provider := stdoutExporter(ctx)
 	defer func() {
@@ -50,7 +50,6 @@ func main() {
 }
 
 func stdoutExporter(ctx context.Context) metric.MeterProvider {
-
 	exporter, _ := stdout.New(stdout.WithPrettyPrint())
 	provider := controller.New(
 		processor.NewFactory(

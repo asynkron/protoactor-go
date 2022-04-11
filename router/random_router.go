@@ -1,8 +1,9 @@
 package router
 
 import (
-	"github.com/asynkron/protoactor-go/actor"
 	"math/rand"
+
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 type randomGroupRouter struct {
@@ -39,7 +40,6 @@ func NewRandomPool(size int, opts ...actor.PropsOption) *actor.Props {
 	return (&actor.Props{}).
 		Configure(actor.WithSpawnFunc(spawner(&randomPoolRouter{PoolRouter{PoolSize: size}}))).
 		Configure(opts...)
-
 }
 
 func NewRandomGroup(routees ...*actor.PID) *actor.Props {

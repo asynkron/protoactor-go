@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"log"
 	"time"
+
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 
 	"cluster-metrics/shared"
 
@@ -37,8 +38,7 @@ func newHelloActor() actor.Actor {
 }
 
 // a Go struct implementing the Hello interface
-type HelloGrain struct {
-}
+type HelloGrain struct{}
 
 func (h *HelloGrain) Init(ctx cluster.GrainContext) {
 	log.Printf("new grain id=%s", ctx.Identity)

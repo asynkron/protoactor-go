@@ -7,11 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type ShortLivingActor struct {
-}
+type ShortLivingActor struct{}
 
 func (sl *ShortLivingActor) Receive(Context) {
-
 }
 
 func TestStopFuture(t *testing.T) {

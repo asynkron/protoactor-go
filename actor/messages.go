@@ -17,7 +17,7 @@ type MailboxMessage interface {
 func (*SuspendMailbox) MailboxMessage() {}
 func (*ResumeMailbox) MailboxMessage()  {}
 
-//InfrastructureMessage is a marker for all built in Proto.Actor messages
+// InfrastructureMessage is a marker for all built in Proto.Actor messages
 type InfrastructureMessage interface {
 	InfrastructureMessage()
 }

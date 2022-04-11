@@ -3,8 +3,9 @@
 package cluster
 
 import (
-	"github.com/asynkron/gofun/set"
 	"time"
+
+	"github.com/asynkron/gofun/set"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/log"
@@ -22,7 +23,6 @@ type GossipActor struct {
 
 // Creates a new GossipActor and returns a pointer to its location in the heap
 func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int) *GossipActor {
-
 	informer := newInformer(myID, getBlockedMembers, fanOut, maxSend)
 	gossipActor := GossipActor{
 		gossipRequestTimeout: requestTimeout,
@@ -33,7 +33,6 @@ func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers
 
 // Receive method
 func (ga *GossipActor) Receive(ctx actor.Context) {
-
 	switch r := ctx.Message().(type) {
 	case *SetGossipStateKey:
 		ga.onSetGossipStateKey(r, ctx)
@@ -69,14 +68,12 @@ func (ga *GossipActor) onRemoveConsensusCheck(r *RemoveConsensusCheck, ctx actor
 }
 
 func (ga *GossipActor) onGetGossipStateKey(r *GetGossipStateRequest, ctx actor.Context) {
-
 	state := ga.gossip.GetState(r.Key)
 	res := NewGetGossipStateResponse(state)
 	ctx.Respond(&res)
 }
 
 func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
-
 	plog.Debug("Gossip request", log.PID("sender", ctx.Sender()))
 	ga.ReceiveState(r.State, ctx)
 
@@ -119,7 +116,6 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 }
 
 func (ga *GossipActor) onSetGossipStateKey(r *SetGossipStateKey, ctx actor.Context) {
-
 	key, message := r.Key, r.Value
 	ga.gossip.SetState(key, message)
 	if ctx.Sender() != nil {
@@ -128,7 +124,6 @@ func (ga *GossipActor) onSetGossipStateKey(r *SetGossipStateKey, ctx actor.Conte
 }
 
 func (ga *GossipActor) onSendGossipState(ctx actor.Context) {
-
 	ga.gossip.SendState(func(memberState *MemberStateDelta, member *Member) {
 		ga.sendGossipForMember(member, memberState, ctx)
 	})
@@ -136,7 +131,6 @@ func (ga *GossipActor) onSendGossipState(ctx actor.Context) {
 }
 
 func (ga *GossipActor) ReceiveState(remoteState *GossipState, ctx actor.Context) {
-
 	// stream our updates
 	updates := ga.gossip.ReceiveState(remoteState)
 	for _, update := range updates {
@@ -145,7 +139,6 @@ func (ga *GossipActor) ReceiveState(remoteState *GossipState, ctx actor.Context)
 }
 
 func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *MemberStateDelta, ctx actor.Context) {
-
 	pid := actor.NewPID(member.Address(), DefaultGossipActorName)
 	plog.Info("Sending GossipRequest", log.String("MemberId", member.Id))
 

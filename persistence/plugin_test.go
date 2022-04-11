@@ -52,9 +52,11 @@ func (p *protoMsg) Reset()         {}
 func (p *protoMsg) String() string { return p.state }
 func (p *protoMsg) ProtoMessage()  {}
 
-type Message struct{ protoMsg }
-type Snapshot struct{ protoMsg }
-type Query struct{ protoMsg }
+type (
+	Message  struct{ protoMsg }
+	Snapshot struct{ protoMsg }
+	Query    struct{ protoMsg }
+)
 
 func newMessage(state string) *Message {
 	return &Message{protoMsg: protoMsg{state: state}}
@@ -75,8 +77,10 @@ func makeActor() actor.Actor {
 	return &myActor{}
 }
 
-var queryWg sync.WaitGroup
-var queryState string
+var (
+	queryWg    sync.WaitGroup
+	queryState string
+)
 
 func (a *myActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {

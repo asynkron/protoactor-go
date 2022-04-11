@@ -69,7 +69,7 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 	if clusterKind == nil {
 		plog.Error("Unknown cluster kind", log.String("kind", msg.ClusterIdentity.Kind))
 
-		//TODO: what to do here?
+		// TODO: what to do here?
 		ctx.Respond(nil)
 		return
 	}

@@ -58,6 +58,7 @@ func (p *inmemoryProvider) StartMember(c *Cluster) error {
 	p.publishClusterTopologyEvent()
 	return nil
 }
+
 func (p *inmemoryProvider) StartClient(c *Cluster) error {
 	err := p.init(c)
 	if err != nil {
@@ -66,6 +67,7 @@ func (p *inmemoryProvider) StartClient(c *Cluster) error {
 	p.publishClusterTopologyEvent()
 	return nil
 }
+
 func (p *inmemoryProvider) Shutdown(graceful bool) error {
 	delete(p.members, p.self.Id)
 	return nil

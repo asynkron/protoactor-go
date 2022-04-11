@@ -25,7 +25,6 @@ var (
 // Disables Proto.Actor standard error logs if there is one
 // or more additional log subscribers registered
 func SetNoStdErrLogs() {
-
 	if len(es.subscriptions) >= 2 {
 		noStdErrLogs = true
 	}
@@ -125,7 +124,7 @@ func (l *ioLogger) formatCaller(buf *bytes.Buffer, caller *CallerInfo) {
 }
 
 func (l *ioLogger) writeEvent(e Event) {
-	var buf = bytes.Buffer{}
+	buf := bytes.Buffer{}
 	l.formatHeader(&buf, e.Prefix, e.Time, e.Level)
 	if e.Caller.line > 0 {
 		l.formatCaller(&buf, &e.Caller)

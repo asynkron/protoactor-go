@@ -14,9 +14,7 @@ import (
 	"github.com/go-zookeeper/zk"
 )
 
-var (
-	_ cluster.ClusterProvider = new(Provider)
-)
+var _ cluster.ClusterProvider = new(Provider)
 
 type RoleType int
 
@@ -312,7 +310,6 @@ func (p *Provider) clusterNotContainsSelfPath() bool {
 	return err == nil && !stringContains(mapString(children, func(s string) string {
 		return filepath.Join(clusterKey, s)
 	}), p.fullpath)
-
 }
 
 func (p *Provider) containSelf(ns []*Node) bool {

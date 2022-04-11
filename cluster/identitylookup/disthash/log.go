@@ -4,9 +4,7 @@ import (
 	"github.com/asynkron/protoactor-go/log"
 )
 
-var (
-	plog = log.New(log.DefaultLevel, "[DISTHASH]")
-)
+var plog = log.New(log.DefaultLevel, "[DISTHASH]")
 
 // SetLogLevel sets the log level for the logger.
 //

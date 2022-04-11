@@ -19,8 +19,10 @@ package actor
 // Likewise if you'd like to de-prioritize your message, have its GetPriority method
 // return an int8 less than 4.
 
-const priorityLevels = 8
-const DefaultPriority = int8(priorityLevels / 2)
+const (
+	priorityLevels  = 8
+	DefaultPriority = int8(priorityLevels / 2)
+)
 
 type PriorityMessage interface {
 	GetPriority() int8

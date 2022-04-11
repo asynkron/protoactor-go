@@ -2,13 +2,13 @@ package remote
 
 import (
 	"fmt"
+
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-type protoSerializer struct {
-}
+type protoSerializer struct{}
 
 func newProtoSerializer() *protoSerializer {
 	return &protoSerializer{}

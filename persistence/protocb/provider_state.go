@@ -14,7 +14,7 @@ type cbState struct {
 }
 
 func (state *cbState) Restart() {
-	//wait for any pending writes to complete
+	// wait for any pending writes to complete
 	state.wg.Wait()
 }
 
@@ -22,7 +22,7 @@ func (state *cbState) GetEvents(actorName string, eventIndexStart int, eventInde
 	q := gocb.NewN1qlQuery("SELECT b.* FROM `" + state.bucketName + "` b WHERE meta(b).id >= $1 and meta(b).id <= $2")
 	q.Consistency(gocb.RequestPlus)
 
-	//read all
+	// read all
 	if eventIndexEnd == 0 {
 		eventIndexEnd = 9999999999
 	}
@@ -56,7 +56,6 @@ func (state *cbState) GetEvents(actorName string, eventIndexStart int, eventInde
 }
 
 func (state *cbState) GetSnapshot(actorName string) (snapshot interface{}, eventIndex int, ok bool) {
-
 	q := gocb.NewN1qlQuery("SELECT b.* FROM `" + state.bucketName + "` b WHERE meta(b).id >= $1 and meta(b).id <= $2 order by b.eventIndex desc limit 1")
 	q.Consistency(gocb.RequestPlus)
 
@@ -81,6 +80,7 @@ func (state *cbState) GetSnapshot(actorName string) (snapshot interface{}, event
 	}
 	return nil, 0, false
 }
+
 func (provider *Provider) GetSnapshotInterval() int {
 	return provider.snapshotInterval
 }

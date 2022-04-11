@@ -17,7 +17,6 @@ type deadLetterProcess struct {
 var _ Process = &deadLetterProcess{}
 
 func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
-
 	dp := &deadLetterProcess{
 		actorSystem: actorSystem,
 	}
@@ -35,7 +34,7 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 				actorSystem.Root.Send(deadLetter.Sender, &DeadLetterResponse{})
 			}
 
-			//bail out if sender is set and deadletter request logging is false
+			// bail out if sender is set and deadletter request logging is false
 			if !actorSystem.Config.DeadLetterRequestLogging && deadLetter.Sender != nil {
 				return
 			}
@@ -74,7 +73,6 @@ type DeadLetterEvent struct {
 }
 
 func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
-
 	metricsSystem, ok := dp.actorSystem.Extensions.Get(extensionId).(*Metrics)
 	if ok && metricsSystem.enabled {
 		ctx := context.Background()

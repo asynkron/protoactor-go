@@ -64,7 +64,6 @@ func (provider *InMemoryProvider) PersistSnapshot(actorName string, eventIndex i
 }
 
 func (provider *InMemoryProvider) DeleteSnapshots(actorName string, inclusiveToIndex int) {
-
 }
 
 func (provider *InMemoryProvider) GetEvents(actorName string, eventIndexStart int, eventIndexEnd int, callback func(e interface{})) {
@@ -83,5 +82,4 @@ func (provider *InMemoryProvider) PersistEvent(actorName string, eventIndex int,
 }
 
 func (provider *InMemoryProvider) DeleteEvents(actorName string, inclusiveToIndex int) {
-
 }

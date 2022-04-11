@@ -12,7 +12,6 @@ type ConsensusCheck struct {
 
 // creates a new ConsensusCheck value with the given data and return it back
 func NewConsensusCheck(affectedKeys []string, check GossipUpdater) ConsensusCheck {
-
 	consensusCheck := ConsensusCheck{
 		affectedKeys: affectedKeys,
 		check:        check,
@@ -28,7 +27,6 @@ type ConsensusChecks struct {
 
 // creates a new ConsensusChecks value and returns a pointer to it
 func NewConsensusChecks() *ConsensusChecks {
-
 	checks := ConsensusChecks{
 		checks:                 make(map[string]*ConsensusCheck),
 		affectedKeysByStateKey: make(map[string]map[string]empty),
@@ -40,7 +38,6 @@ func NewConsensusChecks() *ConsensusChecks {
 // the given key map and populates a slice of pointers to ConsensusCheck values
 // that is returned as a set of ConsensusCheck updated by the given key
 func (cc *ConsensusChecks) GetByUpdatedKey(key string) []*ConsensusCheck {
-
 	var result []*ConsensusCheck
 	if _, ok := cc.affectedKeysByStateKey[key]; !ok {
 		return result
@@ -59,7 +56,6 @@ func (cc *ConsensusChecks) GetByUpdatedKey(key string) []*ConsensusCheck {
 // that is returned as a set of ConsensusCheck updated by the given keys
 // with removed duplicates on it (as it is a "set")
 func (cc *ConsensusChecks) GetByUpdatedKeys(keys []string) []*ConsensusCheck {
-
 	var result []*ConsensusCheck
 	temporaryIDs := make(map[string]empty)
 
@@ -83,7 +79,6 @@ func (cc *ConsensusChecks) GetByUpdatedKeys(keys []string) []*ConsensusCheck {
 // adds a new pointer to a ConsensusCheck value in the storage
 // and registers its affected by keys index
 func (cc *ConsensusChecks) Add(id string, check *ConsensusCheck) {
-
 	cc.checks[id] = check
 	cc.registerAffectedKeys(id, check.affectedKeys)
 }
@@ -91,7 +86,6 @@ func (cc *ConsensusChecks) Add(id string, check *ConsensusCheck) {
 // Remove removes the given ConsensusCheck identity from the storage and
 // removes its affected by keys index if needed after cleaning
 func (cc *ConsensusChecks) Remove(id string) {
-
 	if _, ok := cc.affectedKeysByStateKey[id]; ok {
 		delete(cc.affectedKeysByStateKey, id)
 		cc.unregisterAffectedKeys(id)
@@ -99,7 +93,6 @@ func (cc *ConsensusChecks) Remove(id string) {
 }
 
 func (cc *ConsensusChecks) registerAffectedKeys(id string, keys []string) {
-
 	for _, key := range keys {
 		if _, ok := cc.affectedKeysByStateKey[key]; ok {
 			cc.affectedKeysByStateKey[key][id] = empty{}
@@ -110,7 +103,6 @@ func (cc *ConsensusChecks) registerAffectedKeys(id string, keys []string) {
 }
 
 func (cc *ConsensusChecks) unregisterAffectedKeys(id string) {
-
 	var keysToDelete []string
 	for key, internal := range cc.affectedKeysByStateKey {
 		if _, ok := internal[id]; ok {

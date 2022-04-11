@@ -14,9 +14,7 @@ const (
 	ResponseStatusCodeMAX // just a boundary.
 )
 
-var (
-	responseNames [ResponseStatusCodeMAX]string
-)
+var responseNames [ResponseStatusCodeMAX]string
 
 func init() {
 	responseNames[ResponseStatusCodeOK] = "ResponseStatusCodeOK"

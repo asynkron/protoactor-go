@@ -20,8 +20,7 @@ const (
 // Throughput has been prioritized over exact re-opening
 // throttledCallBack, This will be called with the number of events what was throttled after the period
 func NewThrottle(maxEventsInPeriod int32, period time.Duration, throttledCallBack func(int32)) ShouldThrottle {
-
-	var currentEvents = int32(0)
+	currentEvents := int32(0)
 
 	startTimer := func(duration time.Duration, back func(int32)) {
 		go func() {
@@ -40,7 +39,6 @@ func NewThrottle(maxEventsInPeriod int32, period time.Duration, throttledCallBac
 	}
 
 	return func() Valve {
-
 		tries := atomic.AddInt32(&currentEvents, 1)
 		if tries == 1 {
 			startTimer(period, throttledCallBack)

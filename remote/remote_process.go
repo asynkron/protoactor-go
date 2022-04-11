@@ -24,7 +24,6 @@ func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
 }
 
 func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
-
 	// intercept any Watch messages and direct them to the endpoint manager
 	switch msg := message.(type) {
 	case *actor.Watch:

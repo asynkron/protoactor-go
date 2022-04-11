@@ -141,7 +141,6 @@ type futureProcess struct {
 var _ Process = &futureProcess{}
 
 func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}) {
-
 	defer ref.instrument()
 	_, msg, _ := UnwrapEnvelope(message)
 	if _, ok := msg.(*DeadLetterResponse); ok {
@@ -154,14 +153,12 @@ func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}) {
 }
 
 func (ref *futureProcess) SendSystemMessage(pid *PID, message interface{}) {
-
 	defer ref.instrument()
 	ref.result = message
 	ref.Stop(pid)
 }
 
 func (ref *futureProcess) instrument() {
-
 	sysMetrics, ok := ref.actorSystem.Extensions.Get(extensionId).(*Metrics)
 	if ok && sysMetrics.enabled {
 		ctx := context.Background()

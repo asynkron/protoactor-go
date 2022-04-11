@@ -8,10 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type CreateChildMessage struct{}
-type GetChildCountRequest struct{}
-type GetChildCountResponse struct{ ChildCount int }
-type CreateChildActor struct{}
+type (
+	CreateChildMessage    struct{}
+	GetChildCountRequest  struct{}
+	GetChildCountResponse struct{ ChildCount int }
+	CreateChildActor      struct{}
+)
 
 func (*CreateChildActor) Receive(context Context) {
 	switch context.Message().(type) {

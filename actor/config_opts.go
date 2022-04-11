@@ -1,8 +1,9 @@
 package actor
 
 import (
-	"go.opentelemetry.io/otel/metric"
 	"time"
+
+	"go.opentelemetry.io/otel/metric"
 )
 
 type ConfigOption func(config *Config)

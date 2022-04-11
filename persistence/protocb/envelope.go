@@ -9,10 +9,10 @@ import (
 )
 
 type envelope struct {
-	Type       string          `json:"type"`       //reflected message type so we can deserialize back
-	Message    json.RawMessage `json:"event"`      //this is still protobuf but the json form
-	EventIndex int             `json:"eventIndex"` //event index in the event stream
-	DocType    string          `json:"doctype"`    //type snapshot or event
+	Type       string          `json:"type"`       // reflected message type so we can deserialize back
+	Message    json.RawMessage `json:"event"`      // this is still protobuf but the json form
+	EventIndex int             `json:"eventIndex"` // event index in the event stream
+	DocType    string          `json:"doctype"`    // type snapshot or event
 }
 
 func newEnvelope(message proto.Message, doctype string, eventIndex int) *envelope {

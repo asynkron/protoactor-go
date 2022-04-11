@@ -4,9 +4,10 @@ package shared
 import (
 	"errors"
 	"fmt"
-	"google.golang.org/protobuf/proto"
 	"math"
 	"time"
+
+	"google.golang.org/protobuf/proto"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
@@ -116,7 +117,7 @@ type HelloActor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started: //pass
+	case *actor.Started: // pass
 	case *cluster.ClusterInit:
 		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = xHelloFactory()
@@ -158,7 +159,6 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			}
 			resp := &cluster.GrainResponse{MessageData: bytes}
 			ctx.Respond(resp)
-
 		}
 	default:
 		a.inner.ReceiveDefault(a.ctx)

@@ -7,13 +7,11 @@ import (
 	"github.com/go-redis/redis"
 )
 
-var (
-	rds *redis.Client
-)
+var rds *redis.Client
 
 func init() {
 	// var err error
-	var addr = "127.0.0.1:6379"
+	addr := "127.0.0.1:6379"
 	rds = redis.NewClient(&redis.Options{
 		Addr:        addr,
 		DialTimeout: 1 * time.Second,

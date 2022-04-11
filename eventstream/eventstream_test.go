@@ -78,7 +78,6 @@ type Event struct {
 }
 
 func BenchmarkEventStream(b *testing.B) {
-
 	es := eventstream.NewEventStream()
 	subs := make([]*eventstream.Subscription, 10)
 	for i := 0; i < b.N; i++ {

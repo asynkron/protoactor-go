@@ -9,7 +9,6 @@ type CalcGrain struct {
 }
 
 func (c *CalcGrain) ReceiveDefault(ctx cluster.GrainContext) {
-
 }
 
 func (c *CalcGrain) Init(ctx cluster.GrainContext) {
@@ -21,7 +20,6 @@ func (c *CalcGrain) Init(ctx cluster.GrainContext) {
 }
 
 func (c *CalcGrain) Terminate(ctx cluster.GrainContext) {
-
 	// deregister with the tracker
 	trackerGrain := GetTrackerGrainClient(ctx.Cluster(), "singleTrackerGrain")
 	trackerGrain.DeregisterGrain(&RegisterMessage{GrainId: ctx.Identity()})

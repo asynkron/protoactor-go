@@ -6,8 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type Increment struct {
-}
+type Increment struct{}
 
 type GorgeousActor struct {
 	Counter

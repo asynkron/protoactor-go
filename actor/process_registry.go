@@ -1,8 +1,9 @@
 package actor
 
 import (
-	murmur32 "github.com/spaolacci/murmur3"
 	"sync/atomic"
+
+	murmur32 "github.com/spaolacci/murmur3"
 
 	cmap "github.com/orcaman/concurrent-map"
 )

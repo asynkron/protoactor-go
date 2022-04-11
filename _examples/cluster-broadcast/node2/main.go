@@ -1,11 +1,13 @@
 package main
 
 import (
-	"cluster-broadcast/shared"
 	"fmt"
+	"time"
+
+	"cluster-broadcast/shared"
+
 	automanaged "github.com/asynkron/protoactor-go/cluster/clusterproviders/_automanaged"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"time"
 
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
@@ -44,7 +46,6 @@ func main() {
 }
 
 func startNode(port int64) *cluster.Cluster {
-
 	system := actor.NewActorSystem()
 
 	provider := automanaged.NewWithConfig(2*time.Second, 6330, "localhost:6330", "localhost:6331")

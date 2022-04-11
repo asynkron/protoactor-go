@@ -2,8 +2,7 @@ package protocb
 
 import "encoding/json"
 
-type transcoder struct {
-}
+type transcoder struct{}
 
 func (t transcoder) Decode(bytes []byte, flags uint32, out interface{}) error {
 	err := json.Unmarshal(bytes, &out)

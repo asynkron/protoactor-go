@@ -92,7 +92,7 @@ func TestStartMember_Multiple(t *testing.T) {
 		{"mycluster2", "127.0.0.1", 8003},
 	}
 
-	var p = make([]*Provider, len(members))
+	p := make([]*Provider, len(members))
 	var err error
 	t.Cleanup(func() {
 		for i := range p {

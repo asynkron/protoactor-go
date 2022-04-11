@@ -44,6 +44,7 @@ func (impl *zkConnImpl) AddAuth(scheme string, auth []byte) error {
 func (impl *zkConnImpl) Exists(path string) (bool, *zk.Stat, error) {
 	return impl.conn.Exists(path)
 }
+
 func (impl *zkConnImpl) Create(path string, data []byte, flags int32, acl []zk.ACL) (string, error) {
 	return impl.conn.Create(path, data, flags, acl)
 }

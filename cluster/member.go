@@ -1,10 +1,11 @@
 package cluster
 
 import (
-	murmur32 "github.com/spaolacci/murmur3"
 	"sort"
 	"strconv"
 	"strings"
+
+	murmur32 "github.com/spaolacci/murmur3"
 )
 
 type Members []*Member
@@ -29,11 +30,11 @@ func (m *Member) Address() string {
 }
 
 func TopologyHash(members Members) uint64 {
-	//C# version
-	//var x = membersByMemberId.Select(m => m.Id).OrderBy(i => i).ToArray();
-	//var key = string.Join("", x);
-	//var hashBytes = MurmurHash2.Hash(key);
-	//return hashBytes;
+	// C# version
+	// var x = membersByMemberId.Select(m => m.Id).OrderBy(i => i).ToArray();
+	// var key = string.Join("", x);
+	// var hashBytes = MurmurHash2.Hash(key);
+	// return hashBytes;
 
 	sort.Slice(members, func(i, j int) bool {
 		return members[i].Id < members[j].Id
@@ -45,7 +46,7 @@ func TopologyHash(members Members) uint64 {
 		s += m.Id
 	}
 
-	//TODO: this HAS to be compatible with the same hashBytes in .NET
+	// TODO: this HAS to be compatible with the same hashBytes in .NET
 	// add plenty of tests
 	hash := murmur32.Sum64([]byte(s))
 	return hash

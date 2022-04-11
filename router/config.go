@@ -67,7 +67,7 @@ func spawn(actorSystem *actor.ActorSystem, id string, config RouterConfig, props
 		return proxy, actor.ErrNameExists
 	}
 
-	var pc = *props
+	pc := *props
 	pc.Configure(actor.WithSpawnFunc(nil))
 	ref.state = config.CreateRouterState()
 

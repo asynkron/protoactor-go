@@ -43,7 +43,6 @@ type ActorMetrics struct {
 
 // NewActorMetrics creates a new ActorMetrics value and returns a pointer to it
 func NewActorMetrics() *ActorMetrics {
-
 	instruments := newInstruments()
 	return instruments
 }
@@ -51,7 +50,6 @@ func NewActorMetrics() *ActorMetrics {
 // newInstruments will create instruments using a meter from
 // the given provider p
 func newInstruments() *ActorMetrics {
-
 	meter := global.Meter(LibName)
 	instruments := ActorMetrics{mu: &sync.Mutex{}}
 
@@ -150,7 +148,6 @@ func newInstruments() *ActorMetrics {
 
 // SetActorMailboxLengthGauge makes sure access to ActorMailboxLength is sequenced
 func (am *ActorMetrics) SetActorMailboxLengthGauge(gauge metric.Int64GaugeObserver) {
-
 	// lock our mutex
 	am.mu.Lock()
 	defer am.mu.Unlock()

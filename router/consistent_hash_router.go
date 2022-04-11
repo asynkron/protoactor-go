@@ -1,9 +1,10 @@
 package router
 
 import (
+	"log"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/serialx/hashring"
-	"log"
 )
 
 type Hasher interface {
@@ -78,7 +79,6 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 }
 
 func (state *consistentHashRouterState) InvokeRouterManagementMessage(msg ManagementMessage, sender *actor.PID) {
-
 }
 
 func NewConsistentHashPool(size int, opts ...actor.PropsOption) *actor.Props {

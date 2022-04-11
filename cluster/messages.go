@@ -12,7 +12,6 @@ type GetGossipStateRequest struct {
 
 // Create a new GetGossipStateRequest value and return it back
 func NewGetGossipStateRequest(key string) GetGossipStateRequest {
-
 	request := GetGossipStateRequest{Key: key}
 	return request
 }
@@ -23,7 +22,6 @@ type GetGossipStateResponse struct {
 }
 
 func NewGetGossipStateResponse(state map[string]*anypb.Any) GetGossipStateResponse {
-
 	value := GetGossipStateResponse{
 		State: state,
 	}
@@ -38,7 +36,6 @@ type SetGossipStateKey struct {
 
 // Create a new SetGossipStateKey value with the given data and return it back
 func NewGossipStateKey(key string, value proto.Message) SetGossipStateKey {
-
 	statusKey := SetGossipStateKey{
 		Key:   key,
 		Value: value,
@@ -64,7 +61,6 @@ type RemoveConsensusCheck struct {
 }
 
 func NewAddConsensusCheck(id string, check *ConsensusCheck) AddConsensusCheck {
-
 	value := AddConsensusCheck{
 		ID:    id,
 		Check: check,
@@ -73,7 +69,6 @@ func NewAddConsensusCheck(id string, check *ConsensusCheck) AddConsensusCheck {
 }
 
 func NewRemoveConsensusCheck(id string) RemoveConsensusCheck {
-
 	value := RemoveConsensusCheck{
 		ID: id,
 	}

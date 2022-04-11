@@ -2,15 +2,18 @@ package main
 
 import (
 	"fmt"
+
 	console "github.com/asynkron/goconsole"
 
 	"github.com/asynkron/protoactor-go/actor"
 )
 
-type Hello struct{ Who string }
-type SetBehaviorActor struct {
-	behavior actor.Behavior
-}
+type (
+	Hello            struct{ Who string }
+	SetBehaviorActor struct {
+		behavior actor.Behavior
+	}
+)
 
 func (state *SetBehaviorActor) Receive(context actor.Context) {
 	state.behavior.Receive(context)

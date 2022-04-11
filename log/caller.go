@@ -23,7 +23,6 @@ func (ci *CallerInfo) ShortFileName() string {
 	fname := ci.fname
 	idx := strings.LastIndexByte(fname, '/')
 	if idx >= len(fname) {
-
 	} else {
 		fname = fname[idx+1:]
 	}

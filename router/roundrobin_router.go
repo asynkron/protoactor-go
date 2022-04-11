@@ -1,8 +1,9 @@
 package router
 
 import (
-	"github.com/asynkron/protoactor-go/actor"
 	"sync/atomic"
+
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 type roundRobinGroupRouter struct {

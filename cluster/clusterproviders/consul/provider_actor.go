@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/log"
@@ -16,12 +17,14 @@ type providerActor struct {
 	refreshCanceller scheduler.CancelFunc
 }
 
-type RegisterService struct{}
-type UpdateTTL struct{}
-type MemberListUpdated struct {
-	members []*cluster.Member
-	index   uint64
-}
+type (
+	RegisterService   struct{}
+	UpdateTTL         struct{}
+	MemberListUpdated struct {
+		members []*cluster.Member
+		index   uint64
+	}
+)
 
 func (pa *providerActor) Receive(ctx actor.Context) {
 	pa.Behavior.Receive(ctx)

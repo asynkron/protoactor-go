@@ -2,9 +2,7 @@ package k8s
 
 import "github.com/asynkron/protoactor-go/log"
 
-var (
-	plog = log.New(log.DebugLevel, "[CLUSTER] [KUBERNETES]")
-)
+var plog = log.New(log.DebugLevel, "[CLUSTER] [KUBERNETES]")
 
 // SetLogLevel sets the log level for the logger
 // SetLogLevel is safe to be called concurrently

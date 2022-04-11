@@ -2,16 +2,14 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
+	"runtime"
 	"runtime/pprof"
+	"sync"
+	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
-
-	"log"
-	"sync"
-
-	"runtime"
-	"time"
 )
 
 type Msg struct {
@@ -81,8 +79,10 @@ func newPingActor(stop *sync.WaitGroup, messageCount int, batchSize int) actor.P
 	}
 }
 
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-var blockProfile = flag.String("blockprof", "", "execute contention profiling and save results here")
+var (
+	cpuprofile   = flag.String("cpuprofile", "", "write cpu profile to file")
+	blockProfile = flag.String("blockprof", "", "execute contention profiling and save results here")
+)
 
 func main() {
 	flag.Parse()
@@ -107,8 +107,8 @@ func main() {
 		}()
 	}
 
-	//runtime.GOMAXPROCS(runtime.NumCPU())
-	//runtime.GC()
+	// runtime.GOMAXPROCS(runtime.NumCPU())
+	// runtime.GC()
 
 	system := actor.NewActorSystem()
 

@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	automanaged "github.com/asynkron/protoactor-go/cluster/clusterproviders/_automanaged"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"strings"
 	"time"
+
+	automanaged "github.com/asynkron/protoactor-go/cluster/clusterproviders/_automanaged"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
@@ -16,7 +17,6 @@ import (
 )
 
 func main() {
-
 	remotingPort, clusteringPort, clusterMembers := getArgs()
 
 	cluster := startNode(remotingPort, clusteringPort, clusterMembers)

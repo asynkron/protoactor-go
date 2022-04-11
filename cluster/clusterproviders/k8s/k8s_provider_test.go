@@ -3,11 +3,12 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"net"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
@@ -17,7 +18,6 @@ import (
 )
 
 func newClusterForTest(name string, addr string, cp cluster.ClusterProvider, id cluster.IdentityLookup) *cluster.Cluster {
-
 	host, _port, err := net.SplitHostPort(addr)
 	if err != nil {
 		panic(err)
@@ -36,7 +36,6 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider, id 
 }
 
 func TestStartMember(t *testing.T) {
-
 	if testing.Short() {
 		return
 	}
