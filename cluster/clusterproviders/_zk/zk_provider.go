@@ -466,8 +466,8 @@ func (p *Provider) updateNodesWithSelf(members []*Node, version int32) {
 	p.members[p.self.ID] = p.self
 }
 
-func (p *Provider) createClusterTopologyEvent() cluster.TopologyEvent {
-	res := make(cluster.TopologyEvent, len(p.members))
+func (p *Provider) createClusterTopologyEvent() []*cluster.Member {
+	res := make([]*cluster.Member, len(p.members))
 	i := 0
 	for _, m := range p.members {
 		res[i] = m.MemberStatus()
