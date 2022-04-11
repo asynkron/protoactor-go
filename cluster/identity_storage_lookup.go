@@ -62,5 +62,4 @@ func (id *IdentityStorageLookup) Setup(cluster *Cluster, kinds []string, isClien
 	// workerProps := actor.PropsFromProducer(func() actor.Actor { return newIdentityStorageWorker(identity) })
 
 	// routerProps := identity.system.Root.(workerProps, 50);
-
 }

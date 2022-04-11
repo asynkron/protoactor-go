@@ -119,6 +119,7 @@ func TestActorContext_Respond(t *testing.T) {
 
 	// Be prepared to catch a response that the responder will send to nil
 	var gotResponseToNil bool
+
 	deadLetterSubscriber := system.EventStream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			if deadLetter.PID == nil {
@@ -157,8 +158,7 @@ func TestActorContext_Forward(t *testing.T) {
 	// Defined a response actor
 	// It simply responds to the string message
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
-		switch m := ctx.Message().(type) {
-		case string:
+		if m, ok := ctx.Message().(string); ok {
 			ctx.Respond(fmt.Sprintf("Got a string: %v", m))
 		}
 	}))
@@ -166,8 +166,7 @@ func TestActorContext_Forward(t *testing.T) {
 	// Defined a forwarder actor
 	// It simply forward the string message to responder
 	forwarder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
-		switch ctx.Message().(type) {
-		case string:
+		if _, ok := ctx.Message().(string); ok {
 			ctx.Forward(responder)
 		}
 	}))
@@ -212,8 +211,10 @@ func benchmarkactorcontextSpawnwithmiddlewaren(n int, b *testing.B) {
 	for i := 0; i < n; i++ {
 		props = props.Configure(WithSenderMiddleware(middlewareFn))
 	}
+
 	system := NewActorSystem()
 	parent := &actorContext{self: NewPID(localAddress, "foo"), props: props, actorSystem: system}
+
 	for i := 0; i < b.N; i++ {
 		parent.Spawn(props)
 	}
