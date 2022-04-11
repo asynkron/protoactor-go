@@ -14,7 +14,7 @@ func TestNormalMessageGivesEmptyMessageHeaders(t *testing.T) {
 	a := rootContext.Spawn(props)
 
 	defer func() {
-		rootContext.StopFuture(a).Wait()
+		_ = rootContext.StopFuture(a).Wait()
 	}()
 
 	f := rootContext.RequestFuture(a, "hello", testTimeout)

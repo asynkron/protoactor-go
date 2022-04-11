@@ -8,7 +8,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
-// Props types
 type SpawnFunc func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (*PID, error)
 type ReceiverMiddleware func(next ReceiverFunc) ReceiverFunc
 type SenderMiddleware func(next SenderFunc) SenderFunc

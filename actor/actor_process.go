@@ -15,10 +15,10 @@ func NewActorProcess(mailbox Mailbox) *ActorProcess {
 	return &ActorProcess{mailbox: mailbox}
 }
 
-func (ref *ActorProcess) SendUserMessage(pid *PID, message interface{}) {
+func (ref *ActorProcess) SendUserMessage(_ *PID, message interface{}) {
 	ref.mailbox.PostUserMessage(message)
 }
-func (ref *ActorProcess) SendSystemMessage(pid *PID, message interface{}) {
+func (ref *ActorProcess) SendSystemMessage(_ *PID, message interface{}) {
 	ref.mailbox.PostSystemMessage(message)
 }
 

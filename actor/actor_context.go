@@ -15,8 +15,7 @@ import (
 )
 
 const (
-	stateNone int32 = iota
-	stateAlive
+	stateAlive int32 = iota
 	stateRestarting
 	stateStopping
 	stateStopped

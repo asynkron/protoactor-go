@@ -15,7 +15,7 @@ func TestActorCanReplyOnStarting(t *testing.T) {
 			context.Send(future.PID(), dummyResponse{})
 		}
 	}))
-	rootContext.StopFuture(a).Wait()
+	_ = rootContext.StopFuture(a).Wait()
 	assertFutureSuccess(future, t)
 }
 
@@ -27,7 +27,7 @@ func TestActorCanReplyOnStopping(t *testing.T) {
 			context.Send(future.PID(), dummyResponse{})
 		}
 	}))
-	rootContext.StopFuture(a).Wait()
+	_ = rootContext.StopFuture(a).Wait()
 	assertFutureSuccess(future, t)
 }
 
@@ -65,6 +65,6 @@ func TestActorReceivesStoppingMessage(t *testing.T) {
 			context.Send(future.PID(), dummyResponse{})
 		}
 	}))
-	rootContext.StopFuture(a).Wait()
+	_ = rootContext.StopFuture(a).Wait()
 	assertFutureSuccess(future, t)
 }

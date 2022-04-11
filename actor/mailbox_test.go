@@ -39,7 +39,7 @@ func (i *invoker) InvokeUserMessage(interface{}) {
 	}
 }
 
-func (*invoker) EscalateFailure(reason interface{}, message interface{}) {}
+func (*invoker) EscalateFailure(_ interface{}, _ interface{}) {}
 
 func TestUnboundedLockfreeMailboxUsermessageConsistency(t *testing.T) {
 	max := 1000000

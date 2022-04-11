@@ -12,7 +12,7 @@ type BlackHoleActor struct{}
 
 var testTimeout = 1 * time.Second
 
-func (state *BlackHoleActor) Receive(context Context) {}
+func (state *BlackHoleActor) Receive(Context) {}
 
 func NewBlackHoleActor() Actor {
 	return &BlackHoleActor{}

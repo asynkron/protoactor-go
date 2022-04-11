@@ -46,36 +46,12 @@ func TestActorCanSetBehavior(t *testing.T) {
 
 type PopBehaviorMessage struct{}
 
-type EchoPopBehaviorActor struct {
-	behavior Behavior
-}
-
 func NewEchoUnbecomeActor() Actor {
 	state := &EchoSetBehaviorActor{
 		behavior: NewBehavior(),
 	}
 	state.behavior.Become(state.one)
 	return state
-}
-
-func (state *EchoPopBehaviorActor) Receive(context Context) {
-	state.behavior.Receive(context)
-}
-
-func (state *EchoPopBehaviorActor) one(context Context) {
-	switch context.Message().(type) {
-	case BehaviorMessage:
-		state.behavior.BecomeStacked(state.other)
-	case EchoRequest:
-		context.Respond(EchoResponse{})
-	}
-}
-
-func (state *EchoPopBehaviorActor) other(context Context) {
-	switch context.Message().(type) {
-	case PopBehaviorMessage:
-		state.behavior.UnbecomeStacked()
-	}
 }
 
 func TestActorCanPopBehavior(t *testing.T) {

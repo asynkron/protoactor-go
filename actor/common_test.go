@@ -10,15 +10,8 @@ import (
 
 var nullProducer Producer = func() Actor { return nullReceive }
 var nullReceive ReceiveFunc = func(Context) {}
-var nilPID *PID
 var system = NewActorSystem()
 var rootContext = system.Root
-
-func matchPID(with *PID) interface{} {
-	return mock.MatchedBy(func(v *PID) bool {
-		return with.Address == v.Address && with.Id == v.Id
-	})
-}
 
 // mockContext
 type mockContext struct {
@@ -97,7 +90,7 @@ func (m *mockContext) CancelReceiveTimeout() {
 	m.Called()
 }
 
-func (m *mockContext) Forward(pid *PID) {
+func (m *mockContext) Forward(_ *PID) {
 	m.Called()
 }
 
@@ -119,7 +112,7 @@ func (m *mockContext) MessageHeader() ReadonlyMessageHeader {
 	return args.Get(0).(ReadonlyMessageHeader)
 }
 
-func (m *mockContext) Send(pid *PID, message interface{}) {
+func (m *mockContext) Send(_ *PID, _ interface{}) {
 	m.Called()
 }
 
@@ -145,7 +138,7 @@ func (m *mockContext) RequestWithCustomSender(pid *PID, message interface{}, sen
 	p.SendUserMessage(pid, env)
 }
 
-func (m *mockContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
+func (m *mockContext) RequestFuture(_ *PID, _ interface{}, _ time.Duration) *Future {
 	args := m.Called()
 	return args.Get(0).(*Future)
 }

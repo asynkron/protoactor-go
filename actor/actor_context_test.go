@@ -90,7 +90,7 @@ func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
 	// Send a message with RequestFuture
 	counter = 0 // Reset the counter
 	wg.Add(1)
-	ctx.RequestFuture(receiver, true, timeout).Wait()
+	_ = ctx.RequestFuture(receiver, true, timeout).Wait()
 	wg.Wait()
 	assert.Equal(t, 1, counter)
 }

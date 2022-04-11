@@ -9,10 +9,6 @@ import (
 type Increment struct {
 }
 
-type Incrementable interface {
-	Increment()
-}
-
 type GorgeousActor struct {
 	Counter
 }

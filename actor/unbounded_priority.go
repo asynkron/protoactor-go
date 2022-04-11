@@ -13,6 +13,7 @@ func NewPriorityGoringQueue() *priorityQueue {
 	})
 }
 
+//goland:noinspection ALL
 func UnboundedPriority(mailboxStats ...Middleware) MailboxProducer {
 	return func() Mailbox {
 		return &defaultMailbox{
