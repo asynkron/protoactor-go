@@ -38,7 +38,7 @@ func TestStartMember(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	p, _ := New()
 	defer p.Shutdown(true)
@@ -53,11 +53,11 @@ func TestStartMember(t *testing.T) {
 	})
 
 	err := p.StartMember(c)
-	assert.NoError(err)
+	a.NoError(err)
 
 	select {
 	case <-time.After(10 * time.Second):
-		assert.FailNow("no member joined yet")
+		a.FailNow("no member joined yet")
 
 	case m := <-ch:
 		msg := m.(*cluster.ClusterTopology)
@@ -76,7 +76,7 @@ func TestStartMember(t *testing.T) {
 			Joined:       members,
 			TopologyHash: msg.TopologyHash,
 		}
-		assert.Equal(expected, msg)
+		a.Equal(expected, msg)
 	}
 }
 
@@ -84,7 +84,7 @@ func TestRegisterMultipleMembers(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	members := []struct {
 		cluster string
@@ -103,14 +103,14 @@ func TestRegisterMultipleMembers(t *testing.T) {
 		_p, _ := New()
 		c := newClusterForTest(member.cluster, addr, _p)
 		err := p.StartMember(c)
-		assert.NoError(err)
+		a.NoError(err)
 		t.Cleanup(func() {
 			_p.Shutdown(true)
 		})
 	}
 
 	entries, _, err := p.client.Health().Service("mycluster2", "", true, nil)
-	assert.NoError(err)
+	a.NoError(err)
 
 	found := false
 	for _, entry := range entries {
@@ -120,7 +120,7 @@ func TestRegisterMultipleMembers(t *testing.T) {
 				found = true
 			}
 		}
-		assert.Truef(found, "Member port not found - ExtensionID:%v Address: %v:%v",
+		a.Truef(found, "Member port not found - ExtensionID:%v Address: %v:%v",
 			entry.Service.ID, entry.Service.Address, entry.Service.Port)
 	}
 }
@@ -129,7 +129,7 @@ func TestUpdateTTL_DoesNotReregisterAfterShutdown(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	p, _ := New()
 	c := newClusterForTest("mycluster5", "127.0.0.1:8001", p)
@@ -137,11 +137,11 @@ func TestUpdateTTL_DoesNotReregisterAfterShutdown(t *testing.T) {
 	shutdownShouldHaveResolved := make(chan bool, 1)
 
 	err := p.StartMember(c)
-	assert.NoError(err)
+	a.NoError(err)
 
 	time.Sleep(time.Second)
 	found, _ := findService(t, p)
-	assert.True(found, "service was not registered in consul")
+	a.True(found, "service was not registered in consul")
 
 	go func() {
 		// if after 5 seconds `Shutdown` did not resolve, assume that it will not resolve until `blockingUpdateTTL` resolves
@@ -150,13 +150,13 @@ func TestUpdateTTL_DoesNotReregisterAfterShutdown(t *testing.T) {
 	}()
 
 	err = p.Shutdown(true)
-	assert.NoError(err)
+	a.NoError(err)
 	shutdownShouldHaveResolved <- true
 
 	// since `UpdateTTL` runs in a separate goroutine we need to wait until it is actually finished before checking the member's clusterstatus
 	p.updateTTLWaitGroup.Wait()
 	found, status := findService(t, p)
-	assert.Falsef(found, "service was still registered in consul after shutdown (service status: %s)", status)
+	a.Falsef(found, "service was still registered in consul after shutdown (service status: %s)", status)
 }
 
 func findService(t *testing.T, p *Provider) (found bool, status string) {

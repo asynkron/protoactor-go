@@ -10,12 +10,12 @@ import (
 )
 
 const (
-	defaultActorRequestTimeout                         time.Duration = 5 * time.Second
-	defaultRequestsLogThrottlePeriod                   time.Duration = 2 * time.Second
-	defaultMaxNumberOfEvetsInRequestLogThrottledPeriod int           = 3
+	defaultActorRequestTimeout                             = 5 * time.Second
+	defaultRequestsLogThrottlePeriod                       = 2 * time.Second
+	defaultMaxNumberOfEvetsInRequestLogThrottledPeriod int = 3
 )
 
-// Data structure used to configure cluster context parameters
+// ClusterContextConfig is used to configure cluster context parameters
 type ClusterContextConfig struct {
 	ActorRequestTimeout                          time.Duration
 	RequestsLogThrottlePeriod                    time.Duration
@@ -24,7 +24,7 @@ type ClusterContextConfig struct {
 	requestLogThrottle                           actor.ShouldThrottle
 }
 
-// Creates a mew ClusterContextConfig with default
+// NewDefaultClusterContextConfig creates a mew ClusterContextConfig with default
 // values and returns a pointer to its memory address
 func NewDefaultClusterContextConfig() *ClusterContextConfig {
 

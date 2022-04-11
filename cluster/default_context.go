@@ -58,7 +58,7 @@ selectloop:
 		select {
 		case <-ctx.Done():
 			// TODO: handler throttling and messaging here
-			err = fmt.Errorf("Request failed: %w", ctx.Err())
+			err = fmt.Errorf("request failed: %w", ctx.Err())
 			break selectloop
 		default:
 			pid := dcc.getCachedPid(identity, kind)

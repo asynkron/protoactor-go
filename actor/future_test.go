@@ -92,35 +92,35 @@ func assertFutureSuccess(future *Future, t *testing.T) interface{} {
 }
 
 func TestFuture_Result_DeadLetterResponse(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	plog.SetLevel(log.OffLevel)
 
 	future := NewFuture(system, 1*time.Second)
 	rootContext.Send(future.PID(), &DeadLetterResponse{})
 	resp, err := future.Result()
-	assert.Equal(ErrDeadLetter, err)
-	assert.Nil(resp)
+	a.Equal(ErrDeadLetter, err)
+	a.Nil(resp)
 }
 
 func TestFuture_Result_Timeout(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	plog.SetLevel(log.OffLevel)
 
 	future := NewFuture(system, 1*time.Second)
 	resp, err := future.Result()
-	assert.Equal(ErrTimeout, err)
-	assert.Nil(resp)
+	a.Equal(ErrTimeout, err)
+	a.Nil(resp)
 }
 
 func TestFuture_Result_Success(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	plog.SetLevel(log.OffLevel)
 
 	future := NewFuture(system, 1*time.Second)
 	rootContext.Send(future.PID(), EchoResponse{})
 	resp := assertFutureSuccess(future, t)
-	assert.Equal(EchoResponse{}, resp)
+	a.Equal(EchoResponse{}, resp)
 }

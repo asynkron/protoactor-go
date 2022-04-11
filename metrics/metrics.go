@@ -37,7 +37,7 @@ func (pm *ProtoMetrics) Register(key string, instance *ActorMetrics) {
 	defer pm.mu.Unlock()
 
 	if _, ok := pm.knownMetrics[key]; ok {
-		err := fmt.Errorf("Could not register instance %#v of metrics, %s already registered", instance, key)
+		err := fmt.Errorf("could not register instance %#v of metrics, %s already registered", instance, key)
 		plog.Error(err.Error(), log.Error(err))
 		return
 	}
@@ -49,7 +49,7 @@ func (pm *ProtoMetrics) Get(key string) *ActorMetrics {
 
 	metrics, ok := pm.knownMetrics[key]
 	if !ok {
-		err := fmt.Errorf("Unknown metrics for the given %s key", key)
+		err := fmt.Errorf("unknown metrics for the given %s key", key)
 		plog.Error(err.Error(), log.Error(err))
 		return nil
 	}

@@ -72,7 +72,7 @@ func (p *inmemoryProvider) Shutdown(graceful bool) error {
 }
 
 func TestCluster_Call(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	system := actor.NewActorSystem()
 
@@ -94,8 +94,8 @@ func TestCluster_Call(t *testing.T) {
 	t.Run("invalid kind", func(t *testing.T) {
 		msg := struct{}{}
 		resp, err := c.Request("name", "nonkind", &msg)
-		assert.Equal(remote.ErrUnAvailable, err)
-		assert.Nil(resp)
+		a.Equal(remote.ErrUnAvailable, err)
+		a.Nil(resp)
 	})
 
 	// FIXME: testcase
@@ -103,8 +103,8 @@ func TestCluster_Call(t *testing.T) {
 	// 	msg := struct{}{}
 	// 	callopts := NewGrainCallOptions(c).WithRetry(2).WithRequestTimeout(1 * time.Second)
 	// 	resp, err := c.Call("name", "kind", &msg, callopts)
-	// 	assert.Equalf(Remote.ErrUnknownError, err, "%v", err)
-	// 	assert.Nil(resp)
+	// 	a.Equalf(Remote.ErrUnknownError, err, "%v", err)
+	// 	a.Nil(resp)
 	// })
 
 	testProps := actor.PropsFromFunc(
@@ -116,13 +116,13 @@ func TestCluster_Call(t *testing.T) {
 			}
 		})
 	pid := system.Root.Spawn(testProps)
-	assert.NotNil(pid)
+	a.NotNil(pid)
 	c.PidCache.Set("name", "kind", pid)
 	t.Run("normal", func(t *testing.T) {
 		msg := struct{ Code int }{9527}
 		resp, err := c.Request("name", "kind", &msg)
-		assert.NoError(err)
-		assert.Equal(&struct{ Code int }{9528}, resp)
+		a.NoError(err)
+		a.Equal(&struct{ Code int }{9528}, resp)
 	})
 	// t.Fatalf("need more testcases for cluster.Call")
 }
@@ -140,15 +140,15 @@ func TestCluster_Get(t *testing.T) {
 	c.StartMember()
 	cp.publishClusterTopologyEvent()
 	t.Run("invalid kind", func(t *testing.T) {
-		assert := assert.New(t)
-		assert.Equal(1, c.MemberList.Length())
+		a := assert.New(t)
+		a.Equal(1, c.MemberList.Length())
 		pid := c.Get("name", "nonkind")
-		assert.Nil(pid)
+		a.Nil(pid)
 	})
 
 	t.Run("ok", func(t *testing.T) {
-		assert := assert.New(t)
+		a := assert.New(t)
 		pid := c.Get("name", "kind")
-		assert.NotNil(pid)
+		a.NotNil(pid)
 	})
 }

@@ -40,7 +40,7 @@ func TestStartMember(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	p, _ := New()
 	p, newErr := New()
@@ -60,11 +60,11 @@ func TestStartMember(t *testing.T) {
 	})
 
 	err := p.StartMember(c)
-	assert.NoError(err)
+	a.NoError(err)
 
 	select {
 	case <-time.After(10 * time.Second):
-		assert.FailNow("no member joined yet")
+		a.FailNow("no member joined yet")
 
 	case m := <-ch:
 		msg := m.(*cluster.ClusterTopology)
@@ -82,7 +82,7 @@ func TestStartMember(t *testing.T) {
 			Members: members,
 			Joined:  members,
 		}
-		assert.Equal(expected, msg)
+		a.Equal(expected, msg)
 	}
 }
 
@@ -90,7 +90,7 @@ func TestRegisterMultipleMembers(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	members := []struct {
 		cluster string
@@ -110,7 +110,7 @@ func TestRegisterMultipleMembers(t *testing.T) {
 		_id := disthash.New()
 		c := newClusterForTest(member.cluster, addr, _p, _id)
 		err := p.StartMember(c)
-		assert.NoError(err)
+		a.NoError(err)
 		t.Cleanup(func() {
 			_p.Shutdown(true)
 		})
@@ -120,15 +120,15 @@ func TestRegisterMultipleMembers(t *testing.T) {
 	defer cancel()
 
 	pods, err := p.client.CoreV1().Pods(p.retrieveNamespace()).List(ctx, metav1.ListOptions{})
-	assert.NoError(err)
-	assert.Equal(pods.Size(), len(members))
+	a.NoError(err)
+	a.Equal(pods.Size(), len(members))
 }
 
 func TestUpdateMemberState(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	p, _ := New()
 	id := disthash.New()
@@ -136,26 +136,26 @@ func TestUpdateMemberState(t *testing.T) {
 
 	c := newClusterForTest("k8scluster3", "127.0.0.1:8000", p, id)
 	err := p.StartMember(c)
-	assert.NoError(err)
+	a.NoError(err)
 }
 
 func TestUpdateMemberState_DoesNotReregisterAfterShutdown(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	p, _ := New()
 	id := disthash.New()
 	c := newClusterForTest("k8scluster4", "127.0.0.1:8001", p, id)
 	err := p.StartMember(c)
-	assert.NoError(err)
+	a.NoError(err)
 	t.Cleanup(func() {
 		p.Shutdown(true)
 	})
 
 	err = p.Shutdown(true)
-	assert.NoError(err)
+	a.NoError(err)
 
-	assert.Equal(ProviderShuttingDownError, err)
+	a.Equal(ProviderShuttingDownError, err)
 }

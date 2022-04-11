@@ -164,7 +164,7 @@ func Message(val interface{}) Field {
 
 // CallerInfo is constructs with runtime.Caller
 
-// Caller constructs a field with function name and number of line
+// CallerSkip constructs a field with function name and number of line
 func CallerSkip(skip int) Field {
 	_, file, no, ok := runtime.Caller(skip)
 	if !ok {

@@ -34,7 +34,7 @@ func TestStartMember(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	assert := assert.New(t)
+	a := assert.New(t)
 
 	p, _ := New()
 	defer p.Shutdown(true)
@@ -49,11 +49,11 @@ func TestStartMember(t *testing.T) {
 	})
 
 	err := p.StartMember(c)
-	assert.NoError(err)
+	a.NoError(err)
 
 	select {
 	case <-time.After(5 * time.Second):
-		assert.FailNow("no member joined yet")
+		a.FailNow("no member joined yet")
 
 	case m := <-ch:
 		// member joined
@@ -72,7 +72,7 @@ func TestStartMember(t *testing.T) {
 			Joined:       members,
 			TopologyHash: msg.TopologyHash,
 		}
-		assert.Equal(expected, msg)
+		a.Equal(expected, msg)
 
 	}
 }
@@ -81,7 +81,7 @@ func TestStartMember_Multiple(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	assert := assert.New(t)
+	a := assert.New(t)
 	members := []struct {
 		cluster string
 		host    string
@@ -102,10 +102,10 @@ func TestStartMember_Multiple(t *testing.T) {
 	for i, member := range members {
 		addr := fmt.Sprintf("%s:%d", member.host, member.port)
 		p[i], err = New()
-		assert.NoError(err)
+		a.NoError(err)
 		c := newClusterForTest(member.cluster, addr, p[i])
 		err := p[i].StartMember(c)
-		assert.NoError(err)
+		a.NoError(err)
 	}
 	isNodesEqual := func(nodes []*Node) bool {
 		for _, node := range nodes {
@@ -119,10 +119,10 @@ func TestStartMember_Multiple(t *testing.T) {
 	}
 	for i := range p {
 		nodes, err := p[i].fetchNodes()
-		assert.NoError(err)
-		assert.Equal(len(members), len(nodes))
+		a.NoError(err)
+		a.Equal(len(members), len(nodes))
 		flag := isNodesEqual(nodes)
-		assert.Truef(flag, "Member not found - %+v", p[i].self)
+		a.Truef(flag, "Member not found - %+v", p[i].self)
 	}
 }
 

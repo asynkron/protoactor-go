@@ -29,12 +29,12 @@ func newIdentityStorageLookup(storage StorageLookup) *IdentityStorageLookup {
 	return this
 }
 
-// RemoveMember
+// RemoveMember from identity storage
 func (i *IdentityStorageLookup) RemoveMember(memberID string) {
 	i.Storage.RemoveMemberId(memberID)
 }
 
-// RemotePlacementActor
+// RemotePlacementActor returns the PID of the remote placement actor
 func RemotePlacementActor(address string) *actor.PID {
 	return actor.NewPID(address, placementActorName)
 }
@@ -43,7 +43,7 @@ func RemotePlacementActor(address string) *actor.PID {
 // Interface: IdentityLookup
 //
 
-// Get
+// Get returns a PID for a given ClusterIdentity
 func (id *IdentityStorageLookup) Get(clusterIdentity *ClusterIdentity) *actor.PID {
 	msg := newGetPid(clusterIdentity)
 	timeout := 5 * time.Second

@@ -61,7 +61,7 @@ type basePart interface {
 	// ReceiveTimeout returns the current timeout
 	ReceiveTimeout() time.Duration
 
-	// Returns a slice of the actors children
+	// Children returns a slice of the actors children
 	Children() []*PID
 
 	// Respond sends a response to the current `Sender`

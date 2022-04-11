@@ -119,7 +119,7 @@ func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
 	}
 
 	if g.pid == nil {
-		return errors.New("Gossiper Actor PID is nil")
+		return errors.New("gossiper Actor PID is nil")
 	}
 
 	msg := NewGossipStateKey(key, value)

@@ -186,7 +186,7 @@ func (p *Provider) registerMember(timeout time.Duration) error {
 
 	pod, err := p.client.CoreV1().Pods(p.retrieveNamespace()).Get(ctx, p.podName, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("Unable to get own pod information for %s: %w", p.podName, err)
+		return fmt.Errorf("unable to get own pod information for %s: %w", p.podName, err)
 	}
 
 	plog.Info(fmt.Sprintf("Using Kubernetes namespace: %s\nUsing Kubernetes port: %d", pod.Namespace, p.port))
@@ -232,7 +232,7 @@ func (p *Provider) startWatchingCluster(timeout time.Duration) error {
 
 	watcher, err := p.client.CoreV1().Pods(p.retrieveNamespace()).Watch(ctx, metav1.ListOptions{LabelSelector: selector, Watch: true, TimeoutSeconds: &watchTimeoutSeconds})
 	if err != nil {
-		return fmt.Errorf("Unable to watch the cluster status: %w", err)
+		return fmt.Errorf("unable to watch the cluster status: %w", err)
 	}
 
 	// start a new goroutine to monitor the cluster events
@@ -331,7 +331,7 @@ func (p *Provider) deregisterMember(timeout time.Duration) error {
 
 	pod, err := p.client.CoreV1().Pods(p.retrieveNamespace()).Get(ctx, p.podName, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("Unable to get own pod information for %s: %w", p.podName, err)
+		return fmt.Errorf("unable to get own pod information for %s: %w", p.podName, err)
 	}
 
 	labels := pod.GetLabels()
@@ -360,7 +360,7 @@ func (p *Provider) replacePodLabels(ctx context.Context, pod *v1.Pod) error {
 
 	payloadData, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("Unable to update pod labels, operation failed: %w", err)
+		return fmt.Errorf("unable to update pod labels, operation failed: %w", err)
 	}
 
 	_, patcherr := p.client.CoreV1().Pods(pod.GetNamespace()).Patch(ctx, pod.GetName(), types.JSONPatchType, payloadData, metav1.PatchOptions{})

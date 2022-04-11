@@ -132,7 +132,7 @@ func (p *Provider) Shutdown(graceful bool) error {
 
 func (p *Provider) keepAliveForever(ctx context.Context) error {
 	if p.self == nil {
-		return fmt.Errorf("keepalive must be after initialize.")
+		return fmt.Errorf("keepalive must be after initialize")
 	}
 
 	data, err := p.self.Serialize()
@@ -264,7 +264,7 @@ func (p *Provider) handleWatchResponse(resp clientv3.WatchResponse) map[string]*
 				continue
 			}
 			plog.Debug("Delete member.", log.String("key", key))
-			cloned := (*node)
+			cloned := *node
 			cloned.SetAlive(false)
 			changes[nodeId] = &cloned
 		default:

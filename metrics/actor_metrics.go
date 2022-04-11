@@ -61,7 +61,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithDescription("Number of actor failures"),
 		metric.WithUnit(unit.Dimensionless),
 	); err != nil {
-		err = fmt.Errorf("Failed to create ActorFailureCount instrument, %w", err)
+		err = fmt.Errorf("failed to create ActorFailureCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
@@ -69,7 +69,7 @@ func newInstruments() *ActorMetrics {
 		"protoactor_actor_messagereceive_duration_seconds",
 		metric.WithDescription("Actor's messages received duration in seconds"),
 	); err != nil {
-		err = fmt.Errorf("Failed to create ActorMessageReceiveHistogram instrument, %w", err)
+		err = fmt.Errorf("failed to create ActorMessageReceiveHistogram instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
@@ -78,7 +78,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithDescription("Number of actors retarts"),
 		metric.WithUnit(unit.Dimensionless),
 	); err != nil {
-		err = fmt.Errorf("Failed to create ActorRestartedCount instrument, %w", err)
+		err = fmt.Errorf("failed to create ActorRestartedCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
@@ -87,7 +87,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithDescription("Number of actors stopped"),
 		metric.WithUnit(unit.Dimensionless),
 	); err != nil {
-		err = fmt.Errorf("Failed to create ActorStoppedCount instrument, %w", err)
+		err = fmt.Errorf("failed to create ActorStoppedCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
@@ -96,7 +96,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithDescription("Number of actors spawn"),
 		metric.WithUnit(unit.Dimensionless),
 	); err != nil {
-		err = fmt.Errorf("Failed to create ActorSpawnCount instrument, %w", err)
+		err = fmt.Errorf("failed to create ActorSpawnCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
@@ -105,7 +105,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithDescription("Number of deadletters"),
 		metric.WithUnit(unit.Dimensionless),
 	); err != nil {
-		err = fmt.Errorf("Failed to create DeadLetterCount instrument, %w", err)
+		err = fmt.Errorf("failed to create DeadLetterCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
@@ -114,7 +114,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithDescription("Number of futures completed"),
 		metric.WithUnit(unit.Dimensionless),
 	); err != nil {
-		err = fmt.Errorf("Failed to create FuturesCompletedCount instrument, %w", err)
+		err = fmt.Errorf("failed to create FuturesCompletedCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
@@ -123,7 +123,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithDescription("Number of futures started"),
 		metric.WithUnit(unit.Dimensionless),
 	); err != nil {
-		err = fmt.Errorf("Failed to create FuturesStartedCount instrument, %w", err)
+		err = fmt.Errorf("failed to create FuturesStartedCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
@@ -132,7 +132,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithDescription("Number of futures timed out"),
 		metric.WithUnit(unit.Dimensionless),
 	); err != nil {
-		err = fmt.Errorf("Failed to create FuturesTimedOutCount instrument, %w", err)
+		err = fmt.Errorf("failed to create FuturesTimedOutCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
@@ -141,14 +141,14 @@ func newInstruments() *ActorMetrics {
 		metric.WithDescription("History of latency in second"),
 		metric.WithUnit(unit.Milliseconds),
 	); err != nil {
-		err = fmt.Errorf("Failed to create ThreadPoolLatency instrument, %w", err)
+		err = fmt.Errorf("failed to create ThreadPoolLatency instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
 	return &instruments
 }
 
-// Makes sure access to ActorMailboxLength is sequenced
+// SetActorMailboxLengthGauge makes sure access to ActorMailboxLength is sequenced
 func (am *ActorMetrics) SetActorMailboxLengthGauge(gauge metric.Int64GaugeObserver) {
 
 	// lock our mutex

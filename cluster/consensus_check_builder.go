@@ -45,7 +45,7 @@ func NewConsensusCheckBuilder(key string, getValue func(*anypb.Any) interface{})
 	return &builder
 }
 
-// Builds a new ConsensusHandler and ConsensusCheck values and returns pointers to them
+// Build builds a new ConsensusHandler and ConsensusCheck values and returns pointers to them
 func (ccb *ConsensusCheckBuilder) Build() (ConsensusHandler, *ConsensusCheck) {
 
 	handle := NewGossipConsensusHandler()
