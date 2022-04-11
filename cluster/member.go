@@ -20,6 +20,7 @@ func (m *Member) HasKind(kind string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -49,6 +50,7 @@ func TopologyHash(members Members) uint64 {
 	// TODO: this HAS to be compatible with the same hashBytes in .NET
 	// add plenty of tests
 	hash := murmur32.Sum64([]byte(s))
+
 	return hash
 }
 
@@ -57,6 +59,7 @@ func MembersToMap(members Members) map[string]*Member {
 	for _, m := range members {
 		mapp[m.Id] = m
 	}
+
 	return mapp
 }
 
@@ -64,6 +67,7 @@ func SortMembers(members Members) {
 	sort.Slice(members, func(i, j int) bool {
 		addrI := members[i].Id
 		addrJ := members[j].Id
+
 		return strings.Compare(addrI, addrJ) > 0
 	})
 }
@@ -71,5 +75,6 @@ func SortMembers(members Members) {
 func CopySortMembers(members Members) Members {
 	tmp := append(make(Members, 0, len(members)), members...)
 	SortMembers(tmp)
+
 	return tmp
 }

@@ -77,7 +77,7 @@ func WithClusterIdentity(props *actor.Props, ci *ClusterIdentity) *actor.Props {
 	// inject the cluster identity into the actor context
 	p := props.Clone(
 		actor.WithOnInit(func(ctx actor.Context) {
-			ctx.Set(ci)
+			SetClusterIdentity(ctx, ci)
 		}))
 	return p
 }

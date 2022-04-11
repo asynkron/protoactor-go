@@ -18,7 +18,7 @@ type Cluster struct {
 	Config         *Config
 	Gossip         Gossiper
 	Remote         *remote.Remote
-	PidCache       *pidCacheValue
+	PidCache       *PidCacheValue
 	MemberList     *MemberList
 	IdentityLookup IdentityLookup
 	kinds          map[string]*ActivatedKind

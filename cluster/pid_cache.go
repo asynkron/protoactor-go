@@ -5,12 +5,12 @@ import (
 	cmap "github.com/orcaman/concurrent-map"
 )
 
-type pidCacheValue struct {
+type PidCacheValue struct {
 	cache cmap.ConcurrentMap
 }
 
-func NewPidCache() *pidCacheValue {
-	pidCache := &pidCacheValue{
+func NewPidCache() *PidCacheValue {
+	pidCache := &PidCacheValue{
 		cache: cmap.New(),
 	}
 
@@ -21,21 +21,23 @@ func key(identity string, kind string) string {
 	return identity + "." + kind
 }
 
-func (c *pidCacheValue) Get(identity string, kind string) (*actor.PID, bool) {
+func (c *PidCacheValue) Get(identity string, kind string) (*actor.PID, bool) {
 	k := key(identity, kind)
 	v, ok := c.cache.Get(k)
+
 	if !ok {
 		return nil, false
 	}
+
 	return v.(*actor.PID), true
 }
 
-func (c *pidCacheValue) Set(identity string, kind string, pid *actor.PID) {
+func (c *PidCacheValue) Set(identity string, kind string, pid *actor.PID) {
 	k := key(identity, kind)
 	c.cache.Set(k, pid)
 }
 
-func (c *pidCacheValue) RemoveByValue(identity string, kind string, pid *actor.PID) {
+func (c *PidCacheValue) RemoveByValue(identity string, kind string, pid *actor.PID) {
 	k := key(identity, kind)
 
 	c.cache.RemoveCb(k, func(key string, v interface{}, exists bool) bool {
@@ -48,12 +50,12 @@ func (c *pidCacheValue) RemoveByValue(identity string, kind string, pid *actor.P
 	})
 }
 
-func (c *pidCacheValue) Remove(identity string, kind string) {
+func (c *PidCacheValue) Remove(identity string, kind string) {
 	k := key(identity, kind)
 	c.cache.Remove(k)
 }
 
-func (c *pidCacheValue) RemoveByMember(member *Member) {
+func (c *PidCacheValue) RemoveByMember(member *Member) {
 	addr := member.Address()
 	for item := range c.cache.IterBuffered() {
 		pid := item.Val.(*actor.PID)
