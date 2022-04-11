@@ -33,7 +33,7 @@ protoclean:
 
 # {{{ test
 
-PACKAGES := $(shell go list ./... | grep -v "/_examples/" | grep -v "/etcd" | grep -v "/k8s" | grep -v "/persistence" | grep -v "/cluster")
+PACKAGES := $(shell go list ./... | grep -v "/_examples/" | grep -v "/etcd" | grep -v "/k8s" | grep -v "/persistence" | grep -v "/cluster" | grep -v "/scheduler")
 
 test:
 	@go test $(PACKAGES) -timeout=30s

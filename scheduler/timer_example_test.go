@@ -14,12 +14,12 @@ var system = actor.NewActorSystem()
 // Use the timer scheduler to repeatedly send messages to an actor.
 func ExampleTimerScheduler_sendRepeatedly() {
 	var wg sync.WaitGroup
+
 	wg.Add(2)
 
 	count := 0
 	props := actor.PropsFromFunc(func(c actor.Context) {
-		switch v := c.Message().(type) {
-		case string:
+		if v, ok := c.Message().(string); ok {
 			count++
 			fmt.Println(count, v)
 			wg.Done()
@@ -30,6 +30,7 @@ func ExampleTimerScheduler_sendRepeatedly() {
 
 	s := scheduler.NewTimerScheduler(system.Root)
 	cancel := s.SendRepeatedly(1*time.Millisecond, 1*time.Millisecond, pid, "Hello")
+
 	wg.Wait()
 	cancel()
 
