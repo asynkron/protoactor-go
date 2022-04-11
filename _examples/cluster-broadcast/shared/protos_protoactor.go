@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"time"
-
 	"google.golang.org/protobuf/proto"
+	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
@@ -56,7 +55,7 @@ func GetCalculatorKind(opts ...actor.PropsOption) *cluster.Kind {
 }
 
 // GetCalculatorKind instantiates a new cluster.Kind for Calculator
-func NewCalculatorKind(factory func() Calculator, timeout time.Duration, opts ...actor.PropsOption) *cluster.Kind {
+func NewCalculatorKind(factory func() Calculator, timeout time.Duration ,opts ...actor.PropsOption) *cluster.Kind {
 	xCalculatorFactory = factory
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return &CalculatorActor{
@@ -75,12 +74,13 @@ type Calculator interface {
 	Add(*NumberRequest, cluster.GrainContext) (*CountResponse, error)
 	Subtract(*NumberRequest, cluster.GrainContext) (*CountResponse, error)
 	GetCurrent(*Noop, cluster.GrainContext) (*CountResponse, error)
+	
 }
 
 // CalculatorGrainClient holds the base data for the CalculatorGrain
 type CalculatorGrainClient struct {
-	Identity string
-	cluster  *cluster.Cluster
+	Identity      string
+	cluster *cluster.Cluster
 }
 
 // Add requests the execution on to the cluster with CallOptions
@@ -161,6 +161,7 @@ func (g *CalculatorGrainClient) GetCurrent(r *Noop, opts ...cluster.GrainCallOpt
 	}
 }
 
+
 // CalculatorActor represents the actor structure
 type CalculatorActor struct {
 	ctx     cluster.GrainContext
@@ -171,7 +172,7 @@ type CalculatorActor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *CalculatorActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started: // pass
+	case *actor.Started: //pass
 	case *cluster.ClusterInit:
 		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = xCalculatorFactory()
@@ -180,7 +181,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
-	case *actor.ReceiveTimeout:
+	case *actor.ReceiveTimeout:		
 		ctx.Poison(ctx.Self())
 	case *actor.Stopped:
 		a.inner.Terminate(a.ctx)
@@ -261,13 +262,12 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 			}
 			resp := &cluster.GrainResponse{MessageData: bytes}
 			ctx.Respond(resp)
-
+		
 		}
 	default:
 		a.inner.ReceiveDefault(a.ctx)
 	}
 }
-
 var xTrackerFactory func() Tracker
 
 // TrackerFactory produces a Tracker
@@ -298,7 +298,7 @@ func GetTrackerKind(opts ...actor.PropsOption) *cluster.Kind {
 }
 
 // GetTrackerKind instantiates a new cluster.Kind for Tracker
-func NewTrackerKind(factory func() Tracker, timeout time.Duration, opts ...actor.PropsOption) *cluster.Kind {
+func NewTrackerKind(factory func() Tracker, timeout time.Duration ,opts ...actor.PropsOption) *cluster.Kind {
 	xTrackerFactory = factory
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return &TrackerActor{
@@ -317,12 +317,13 @@ type Tracker interface {
 	RegisterGrain(*RegisterMessage, cluster.GrainContext) (*Noop, error)
 	DeregisterGrain(*RegisterMessage, cluster.GrainContext) (*Noop, error)
 	BroadcastGetCounts(*Noop, cluster.GrainContext) (*TotalsResponse, error)
+	
 }
 
 // TrackerGrainClient holds the base data for the TrackerGrain
 type TrackerGrainClient struct {
-	Identity string
-	cluster  *cluster.Cluster
+	Identity      string
+	cluster *cluster.Cluster
 }
 
 // RegisterGrain requests the execution on to the cluster with CallOptions
@@ -403,6 +404,7 @@ func (g *TrackerGrainClient) BroadcastGetCounts(r *Noop, opts ...cluster.GrainCa
 	}
 }
 
+
 // TrackerActor represents the actor structure
 type TrackerActor struct {
 	ctx     cluster.GrainContext
@@ -413,7 +415,7 @@ type TrackerActor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *TrackerActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started: // pass
+	case *actor.Started: //pass
 	case *cluster.ClusterInit:
 		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = xTrackerFactory()
@@ -422,7 +424,7 @@ func (a *TrackerActor) Receive(ctx actor.Context) {
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
-	case *actor.ReceiveTimeout:
+	case *actor.ReceiveTimeout:		
 		ctx.Poison(ctx.Self())
 	case *actor.Stopped:
 		a.inner.Terminate(a.ctx)
@@ -503,7 +505,7 @@ func (a *TrackerActor) Receive(ctx actor.Context) {
 			}
 			resp := &cluster.GrainResponse{MessageData: bytes}
 			ctx.Respond(resp)
-
+		
 		}
 	default:
 		a.inner.ReceiveDefault(a.ctx)
