@@ -67,7 +67,7 @@ func TestStartMember(t *testing.T) {
 		members := []*cluster.Member{
 			{
 				// Id:    "mycluster@127.0.0.1:8000",
-				Id:    fmt.Sprintf("%s", c.ActorSystem.Id),
+				Id:    fmt.Sprintf("%s", c.ActorSystem.ID),
 				Host:  "127.0.0.1",
 				Port:  8000,
 				Kinds: []string{},

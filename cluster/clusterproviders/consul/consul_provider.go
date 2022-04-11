@@ -61,7 +61,7 @@ func NewWithConfig(consulConfig *api.Config, opts ...Option) (*Provider, error) 
 func (p *Provider) init(c *cluster.Cluster) error {
 	knownKinds := c.GetClusterKinds()
 	clusterName := c.Config.Name
-	memberId := c.ActorSystem.Id
+	memberId := c.ActorSystem.ID
 
 	host, port, err := c.ActorSystem.GetHostPort()
 	if err != nil {
