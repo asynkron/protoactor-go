@@ -38,15 +38,16 @@ func (b *Behavior) clear() {
 	for i := range *b {
 		(*b)[i] = nil
 	}
+
 	*b = (*b)[:0]
 }
 
 func (b *Behavior) peek() (v ReceiveFunc, ok bool) {
-	l := b.len()
-	if l > 0 {
+	if l := b.len(); l > 0 {
 		ok = true
 		v = (*b)[l-1]
 	}
+
 	return
 }
 
@@ -55,14 +56,15 @@ func (b *Behavior) push(v ReceiveFunc) {
 }
 
 func (b *Behavior) pop() (v ReceiveFunc, ok bool) {
-	l := b.len()
-	if l > 0 {
+	if l := b.len(); l > 0 {
 		l--
+
 		ok = true
 		v = (*b)[l]
 		(*b)[l] = nil
 		*b = (*b)[:l]
 	}
+
 	return
 }
 

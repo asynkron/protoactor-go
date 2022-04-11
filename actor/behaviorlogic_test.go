@@ -9,6 +9,7 @@ import (
 
 func TestBehavior_Len(t *testing.T) {
 	var bs Behavior
+
 	assert.Len(t, bs, 0)
 	bs.push(func(Context) {})
 	bs.push(func(Context) {})
@@ -17,6 +18,7 @@ func TestBehavior_Len(t *testing.T) {
 
 func TestBehavior_Push(t *testing.T) {
 	var bs Behavior
+
 	assert.Len(t, bs, 0)
 	bs.push(func(Context) {})
 	assert.Len(t, bs, 1)
@@ -26,6 +28,7 @@ func TestBehavior_Push(t *testing.T) {
 
 func TestBehavior_Clear(t *testing.T) {
 	var bs Behavior
+
 	bs.push(func(Context) {})
 	bs.push(func(Context) {})
 	assert.Len(t, bs, 2)

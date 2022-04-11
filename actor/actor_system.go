@@ -38,21 +38,23 @@ func (as *ActorSystem) GetHostPort() (host string, port int, err error) {
 		if addr != localAddress {
 			err = e
 		}
+
 		host = localAddress
 		port = -1
 	} else {
 		host = h
 		port, err = strconv.Atoi(p)
 	}
+
 	return
 }
 
 func (as *ActorSystem) Shutdown() {
-
 }
 
 func NewActorSystem(options ...ConfigOption) *ActorSystem {
 	config := Configure(options...)
+
 	return NewActorSystemWithConfig(config)
 }
 
@@ -71,7 +73,7 @@ func NewActorSystemWithConfig(config *Config) *ActorSystem {
 
 	system.ProcessRegistry.Add(NewEventStreamProcess(system), "eventstream")
 
-	system.ID = strings.Replace(uuid.New().String(), "-", "", -1)
+	system.ID = strings.ReplaceAll(uuid.New().String(), "-", "")
 
 	return system
 }

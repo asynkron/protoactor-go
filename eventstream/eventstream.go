@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 )
 
-// Handler defines a callback function that must be pass when subscribing
+// Handler defines a callback function that must be pass when subscribing.
 type Handler func(interface{})
 
 // Predicate is a function used to filter messages before being forwarded to a subscriber
@@ -14,25 +14,24 @@ type Predicate func(evt interface{}) bool
 type EventStream struct {
 	sync.RWMutex
 
-	// slice containing our subscriptors
+	// slice containing our subscriptions
 	subscriptions []*Subscription
 
 	// Atomically maintained elements counter
 	counter int32
 }
 
-// Create a new EventStream value and returns it back
+// Create a new EventStream value and returns it back.
 func NewEventStream() *EventStream {
-	es := EventStream{
+	es := &EventStream{
 		subscriptions: []*Subscription{},
 	}
 
-	return &es
+	return es
 }
 
 // Subscribe the given handler to the EventStream
 func (es *EventStream) Subscribe(handler Handler) *Subscription {
-
 	sub := &Subscription{
 		handler: handler,
 		active:  1,
@@ -44,21 +43,21 @@ func (es *EventStream) Subscribe(handler Handler) *Subscription {
 	sub.id = es.counter
 	es.counter++
 	es.subscriptions = append(es.subscriptions, sub)
+
 	return sub
 }
 
 // SubscribeWithPredicate creates a new Subscription value and sets a predicate to filter messages passed to
 // the subscriber, it returns a pointer to the Subscription value
 func (es *EventStream) SubscribeWithPredicate(handler Handler, p Predicate) *Subscription {
-
 	sub := es.Subscribe(handler)
 	sub.p = p
+
 	return sub
 }
 
 // Unsubscribes the given subscription from the EventStream
 func (es *EventStream) Unsubscribe(sub *Subscription) {
-
 	if sub == nil {
 		return
 	}
@@ -70,6 +69,7 @@ func (es *EventStream) Unsubscribe(sub *Subscription) {
 		if sub.Deactivate() {
 			if es.counter == 0 {
 				es.subscriptions = nil
+
 				return
 			}
 
@@ -89,7 +89,6 @@ func (es *EventStream) Unsubscribe(sub *Subscription) {
 
 // Publishes the given event to all the subscribers in the stream
 func (es *EventStream) Publish(evt interface{}) {
-
 	es.RLock()
 	defer es.RUnlock()
 
@@ -106,7 +105,6 @@ func (es *EventStream) Publish(evt interface{}) {
 
 // Returns an integer that represents the current number of subscribers to the stream
 func (es *EventStream) Length() int32 {
-
 	return atomic.LoadInt32(&es.counter)
 }
 
@@ -123,20 +121,17 @@ type Subscription struct {
 // Activates the Subscription setting its active flag as 1, if the subscription
 // was already active it returns false, true otherwise
 func (s *Subscription) Activate() bool {
-
 	return atomic.CompareAndSwapUint32(&s.active, 0, 1)
 }
 
 // Deactivates the Subscription setting its active flag as 0, if the subscription
 // was already inactive it returns false, true otherwise
 func (s *Subscription) Deactivate() bool {
-
 	return atomic.CompareAndSwapUint32(&s.active, 1, 0)
 }
 
 // Returns true if the active flag of the Subscription is set as 1
 // otherwise it returns false
 func (s *Subscription) IsActive() bool {
-
 	return atomic.LoadUint32(&s.active) == 1
 }

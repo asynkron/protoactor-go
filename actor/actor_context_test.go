@@ -252,8 +252,7 @@ func TestActorContinueFutureInActor(t *testing.T) {
 	assert.Equal(t, "done", res)
 }
 
-type dummyAutoRespond struct {
-}
+type dummyAutoRespond struct{}
 
 func (*dummyAutoRespond) GetAutoResponse(_ Context) interface{} {
 	return &dummyResponse{}

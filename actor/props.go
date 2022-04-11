@@ -8,11 +8,13 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
-type SpawnFunc func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (*PID, error)
-type ReceiverMiddleware func(next ReceiverFunc) ReceiverFunc
-type SenderMiddleware func(next SenderFunc) SenderFunc
-type ContextDecorator func(next ContextDecoratorFunc) ContextDecoratorFunc
-type SpawnMiddleware func(next SpawnFunc) SpawnFunc
+type (
+	SpawnFunc          func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (*PID, error)
+	ReceiverMiddleware func(next ReceiverFunc) ReceiverFunc
+	SenderMiddleware   func(next SenderFunc) SenderFunc
+	ContextDecorator   func(next ContextDecoratorFunc) ContextDecoratorFunc
+	SpawnMiddleware    func(next SpawnFunc) SpawnFunc
+)
 
 // Default values
 var (
@@ -29,7 +31,6 @@ var (
 				if instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
 					sysMetrics.PrepareMailboxLengthGauge(
 						func(_ context.Context, result metric.Int64ObserverResult) {
-
 							messageCount := int64(mb.UserMessageCount())
 							result.Observe(messageCount, sysMetrics.CommonLabels(ctx)...)
 						},
@@ -98,6 +99,7 @@ func (props *Props) getSpawner() SpawnFunc {
 	if props.spawner == nil {
 		return defaultSpawner
 	}
+
 	return props.spawner
 }
 
@@ -105,6 +107,7 @@ func (props *Props) getDispatcher() Dispatcher {
 	if props.dispatcher == nil {
 		return defaultDispatcher
 	}
+
 	return props.dispatcher
 }
 
@@ -112,6 +115,7 @@ func (props *Props) getSupervisor() SupervisorStrategy {
 	if props.supervisionStrategy == nil {
 		return defaultSupervisionStrategy
 	}
+
 	return props.supervisionStrategy
 }
 
@@ -119,6 +123,7 @@ func (props *Props) getContextDecoratorChain() ContextDecoratorFunc {
 	if props.contextDecoratorChain == nil {
 		return defaultContextDecorator
 	}
+
 	return props.contextDecoratorChain
 }
 
@@ -126,6 +131,7 @@ func (props *Props) produceMailbox() Mailbox {
 	if props.mailboxProducer == nil {
 		return defaultMailboxProducer()
 	}
+
 	return props.mailboxProducer()
 }
 
@@ -137,5 +143,6 @@ func (props *Props) Configure(opts ...PropsOption) *Props {
 	for _, opt := range opts {
 		opt(props)
 	}
+
 	return props
 }

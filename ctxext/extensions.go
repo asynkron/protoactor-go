@@ -18,6 +18,7 @@ func NewContextExtensions() *ContextExtensions {
 	ex := &ContextExtensions{
 		extensions: make([]ContextExtension, 3),
 	}
+
 	return ex
 }
 

@@ -4,7 +4,7 @@ import "sync/atomic"
 
 type ExtensionID int32
 
-var currentID int32
+var currentID int32 //nolint:gochecknoglobals
 
 type Extension interface {
 	ExtensionID() ExtensionID
@@ -18,11 +18,13 @@ func NewExtensions() *Extensions {
 	ex := &Extensions{
 		extensions: make([]Extension, 100),
 	}
+
 	return ex
 }
 
 func NextExtensionID() ExtensionID {
 	id := atomic.AddInt32(&currentID, 1)
+
 	return ExtensionID(id)
 }
 

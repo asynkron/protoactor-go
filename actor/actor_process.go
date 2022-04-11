@@ -12,12 +12,15 @@ type ActorProcess struct {
 var _ Process = &ActorProcess{}
 
 func NewActorProcess(mailbox Mailbox) *ActorProcess {
-	return &ActorProcess{mailbox: mailbox}
+	return &ActorProcess{
+		mailbox: mailbox,
+	}
 }
 
 func (ref *ActorProcess) SendUserMessage(_ *PID, message interface{}) {
 	ref.mailbox.PostUserMessage(message)
 }
+
 func (ref *ActorProcess) SendSystemMessage(_ *PID, message interface{}) {
 	ref.mailbox.PostSystemMessage(message)
 }

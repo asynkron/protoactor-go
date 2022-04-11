@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/asynkron/protoactor-go/ctxext"
-	"go.opentelemetry.io/otel/attribute"
 	"sync/atomic"
 	"time"
+
+	"github.com/asynkron/protoactor-go/ctxext"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/metrics"
@@ -36,6 +37,7 @@ func newActorContextExtras(context Context) *actorContextExtras {
 		context:    context,
 		extensions: ctxext.NewContextExtensions(),
 	}
+
 	return this
 }
 
@@ -45,6 +47,7 @@ func (ctxExt *actorContextExtras) restartStats() *RestartStatistics {
 	if ctxExt.rs == nil {
 		ctxExt.rs = NewRestartStatistics()
 	}
+
 	return ctxExt.rs
 }
 
@@ -56,6 +59,7 @@ func (ctxExt *actorContextExtras) resetReceiveTimeoutTimer(time time.Duration) {
 	if ctxExt.receiveTimeoutTimer == nil {
 		return
 	}
+
 	ctxExt.receiveTimeoutTimer.Reset(time)
 }
 
@@ -63,6 +67,7 @@ func (ctxExt *actorContextExtras) stopReceiveTimeoutTimer() {
 	if ctxExt.receiveTimeoutTimer == nil {
 		return
 	}
+
 	ctxExt.receiveTimeoutTimer.Stop()
 }
 
@@ -70,6 +75,7 @@ func (ctxExt *actorContextExtras) killReceiveTimeoutTimer() {
 	if ctxExt.receiveTimeoutTimer == nil {
 		return
 	}
+
 	ctxExt.receiveTimeoutTimer.Stop()
 	ctxExt.receiveTimeoutTimer = nil
 }
@@ -119,6 +125,7 @@ func newActorContext(actorSystem *ActorSystem, props *Props, parent *PID) *actor
 	}
 
 	this.incarnateActor()
+
 	return this
 }
 
@@ -128,8 +135,10 @@ func (ctx *actorContext) ensureExtras() *actorContextExtras {
 		if ctx.props != nil && ctx.props.contextDecoratorChain != nil {
 			ctxd = ctx.props.contextDecoratorChain(ctxd)
 		}
+
 		ctx.extras = newActorContextExtras(ctxd)
 	}
+
 	return ctx.extras
 }
 
@@ -173,6 +182,7 @@ func (ctx *actorContext) Respond(response interface{}) {
 	// If the message is addressed to nil forward it to the dead letter channel
 	if ctx.Sender() == nil {
 		ctx.actorSystem.DeadLetter.SendUserMessage(nil, response)
+
 		return
 	}
 
@@ -184,6 +194,7 @@ func (ctx *actorContext) Stash() {
 	if extra.stash == nil {
 		extra.stash = linkedliststack.New()
 	}
+
 	extra.stash.Push(ctx.Message())
 }
 
@@ -217,6 +228,7 @@ func (ctx *actorContext) SetReceiveTimeout(d time.Duration) {
 
 	ctx.ensureExtras()
 	ctx.extras.stopReceiveTimeoutTimer()
+
 	if d > 0 {
 		if ctx.extras.receiveTimeoutTimer == nil {
 			ctx.extras.initReceiveTimeoutTimer(time.AfterFunc(d, ctx.receiveTimeoutHandler))
@@ -248,6 +260,7 @@ func (ctx *actorContext) Forward(pid *PID) {
 		plog.Error("SystemMessage cannot be forwarded", log.Message(msg))
 		return
 	}
+
 	ctx.sendUserMessage(pid, ctx.messageOrEnvelope)
 }
 
@@ -683,6 +696,7 @@ func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}
 
 	failure := &Failure{Reason: reason, Who: ctx.self, RestartStats: ctx.ensureExtras().restartStats(), Message: message}
 	ctx.self.sendSystemMessage(ctx.actorSystem, suspendMailboxMessage)
+
 	if ctx.parent == nil {
 		ctx.handleRootFailure(failure)
 	} else {
@@ -723,6 +737,7 @@ func (ctx *actorContext) String() string {
 func (ctx *actorContext) Get(id ctxext.ContextExtensionID) ctxext.ContextExtension {
 	extras := ctx.ensureExtras()
 	ext := extras.extensions.Get(id)
+
 	return ext
 }
 

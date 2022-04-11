@@ -16,14 +16,17 @@ func (q *boundedMailboxQueue) Push(m interface{}) {
 			_, _ = q.userMailbox.Get()
 		}
 	}
+
 	_ = q.userMailbox.Put(m)
 }
 
 func (q *boundedMailboxQueue) Pop() interface{} {
 	if q.userMailbox.Len() > 0 {
 		m, _ := q.userMailbox.Get()
+
 		return m
 	}
+
 	return nil
 }
 
@@ -43,6 +46,7 @@ func bounded(size int, dropping bool, mailboxStats ...Middleware) MailboxProduce
 			userMailbox: rbqueue.NewRingBuffer(uint64(size)),
 			dropping:    dropping,
 		}
+
 		return &defaultMailbox{
 			systemMailbox: mpsc.New(),
 			userMailbox:   q,
