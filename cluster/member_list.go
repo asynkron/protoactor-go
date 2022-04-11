@@ -19,7 +19,6 @@ type MemberList struct {
 	mutex                sync.RWMutex
 	members              *MemberSet
 	memberStrategyByKind map[string]MemberStrategy
-	lastEventId          uint64
 
 	eventSteam        *eventstream.EventStream
 	topologyConsensus ConsensusHandler
@@ -44,12 +43,14 @@ func NewMemberList(cluster *Cluster) *MemberList {
 			var topology ClusterTopology
 			if err := t.Value.UnmarshalTo(&topology); err != nil {
 				plog.Warn("could not unpack into ClusterTopology proto.Message form Any", log.Error(err))
+
 				break
 			}
 			blocked := topology.Blocked
 			memberList.cluster.Remote.BlockList().Block(blocked...)
 		}
 	})
+
 	return memberList
 }
 
@@ -62,8 +63,10 @@ func (ml *MemberList) InitializeTopologyConsensus() {
 		var topology ClusterTopology
 		if unpackErr := any.UnmarshalTo(&topology); unpackErr != nil {
 			plog.Error("could not unpack topology message", log.Error(unpackErr))
+
 			return nil
 		}
+
 		return topology.TopologyHash
 	})
 }
@@ -71,7 +74,9 @@ func (ml *MemberList) InitializeTopologyConsensus() {
 func (ml *MemberList) TopologyConsensus(ctx context.Context) (uint64, bool) {
 	result, ok := ml.topologyConsensus.TryGetConsensus(ctx)
 	if ok {
-		return result.(uint64), true
+		res, _ := result.(uint64)
+
+		return res, true
 	}
 
 	return 0, false
@@ -85,15 +90,18 @@ func (ml *MemberList) getPartitionMember(name, kind string) string {
 	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
 		res = memberStrategy.GetPartition(name)
 	}
+
 	return res
 }
 
 func (ml *MemberList) getPartitionMemberV2(clusterIdentity *ClusterIdentity) string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()
+
 	if ms, ok := ml.memberStrategyByKind[clusterIdentity.Kind]; ok {
 		return ms.GetPartition(clusterIdentity.Identity)
 	}
+
 	return ""
 }
 
@@ -105,6 +113,7 @@ func (ml *MemberList) GetActivatorMember(kind string, requestSourceAddress strin
 	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
 		res = memberStrategy.GetActivator(requestSourceAddress)
 	}
+
 	return res
 }
 
@@ -161,6 +170,7 @@ func (ml *MemberList) UpdateClusterTopology(members Members) {
 
 func (ml *MemberList) memberJoin(joiningMember *Member) {
 	plog.Info("member joined", log.String("member", joiningMember.Id))
+
 	for _, kind := range joiningMember.Kinds {
 		if ml.memberStrategyByKind[kind] == nil {
 			ml.memberStrategyByKind[kind] = ml.getMemberStrategyByKind(kind)
@@ -203,6 +213,7 @@ func (ml *MemberList) getTopologyChanges(members Members) (topology *ClusterTopo
 		Left:         left.Members(),
 		Joined:       joined.Members(),
 	}
+
 	return topology, false, active, joined, left
 }
 
