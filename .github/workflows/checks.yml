@@ -1,0 +1,36 @@
+name: checks 
+on: [
+  pull_request,
+  workflow_dispatch,
+]
+
+jobs:
+  test:
+    name: run-testcases
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go_version: ['1.18']
+    # services:
+    #   redis:
+    #     image: redis:5.0-alpine
+    #     ports: 
+    #       - 6379:6379
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go_version }}
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: start services
+        run: docker compose up -d
+      - name: run testcases
+        run: make test
+

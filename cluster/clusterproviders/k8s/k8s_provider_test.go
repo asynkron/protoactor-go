@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -32,6 +33,7 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider, id 
 	// use for test without start remote
 	c.ActorSystem.ProcessRegistry.Address = addr
 	c.MemberList = cluster.NewMemberList(c)
+	c.Remote = remote.NewRemote(system, config.RemoteConfig)
 	return c
 }
 
@@ -39,7 +41,10 @@ func TestStartMember(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	a := assert.New(t)
+	if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+		t.Skipf("Skipped k8s testcases")
+	}
+	assert := assert.New(t)
 
 	p, _ := New()
 	p, newErr := New()
@@ -59,11 +64,11 @@ func TestStartMember(t *testing.T) {
 	})
 
 	err := p.StartMember(c)
-	a.NoError(err)
+	assert.NoError(err)
 
 	select {
 	case <-time.After(10 * time.Second):
-		a.FailNow("no member joined yet")
+		assert.FailNow("no member joined yet")
 
 	case m := <-ch:
 		msg := m.(*cluster.ClusterTopology)
@@ -81,7 +86,7 @@ func TestStartMember(t *testing.T) {
 			Members: members,
 			Joined:  members,
 		}
-		a.Equal(expected, msg)
+		assert.Equal(expected, msg)
 	}
 }
 
@@ -89,7 +94,10 @@ func TestRegisterMultipleMembers(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	a := assert.New(t)
+	if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+		t.Skipf("Skipped k8s testcases")
+	}
+	assert := assert.New(t)
 
 	members := []struct {
 		cluster string
@@ -109,7 +117,7 @@ func TestRegisterMultipleMembers(t *testing.T) {
 		_id := disthash.New()
 		c := newClusterForTest(member.cluster, addr, _p, _id)
 		err := p.StartMember(c)
-		a.NoError(err)
+		assert.NoError(err)
 		t.Cleanup(func() {
 			_p.Shutdown(true)
 		})
@@ -119,15 +127,18 @@ func TestRegisterMultipleMembers(t *testing.T) {
 	defer cancel()
 
 	pods, err := p.client.CoreV1().Pods(p.retrieveNamespace()).List(ctx, metav1.ListOptions{})
-	a.NoError(err)
-	a.Equal(pods.Size(), len(members))
+	assert.NoError(err)
+	assert.Equal(pods.Size(), len(members))
 }
 
 func TestUpdateMemberState(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	a := assert.New(t)
+	if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+		t.Skipf("Skipped k8s testcases")
+	}
+	assert := assert.New(t)
 
 	p, _ := New()
 	id := disthash.New()
@@ -135,26 +146,29 @@ func TestUpdateMemberState(t *testing.T) {
 
 	c := newClusterForTest("k8scluster3", "127.0.0.1:8000", p, id)
 	err := p.StartMember(c)
-	a.NoError(err)
+	assert.NoError(err)
 }
 
 func TestUpdateMemberState_DoesNotReregisterAfterShutdown(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	a := assert.New(t)
+	if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+		t.Skipf("Skipped k8s testcases")
+	}
+	assert := assert.New(t)
 
 	p, _ := New()
 	id := disthash.New()
 	c := newClusterForTest("k8scluster4", "127.0.0.1:8001", p, id)
 	err := p.StartMember(c)
-	a.NoError(err)
+	assert.NoError(err)
 	t.Cleanup(func() {
 		p.Shutdown(true)
 	})
 
 	err = p.Shutdown(true)
-	a.NoError(err)
+	assert.NoError(err)
 
-	a.Equal(ProviderShuttingDownError, err)
+	assert.Equal(ProviderShuttingDownError, err)
 }
