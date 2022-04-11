@@ -34,6 +34,7 @@ func (p *inmemoryProvider) init(c *Cluster) error {
 		Id:    fmt.Sprintf("%s@%s:%d", name, host, port),
 		Kinds: c.GetClusterKinds(),
 	}
+
 	return nil
 }
 
