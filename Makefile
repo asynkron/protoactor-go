@@ -16,6 +16,9 @@ PACKAGES := $(shell go list ./... | grep -v "/_examples/" | grep -v "/persistenc
 test:
 	@go test $(PACKAGES) -timeout=30s
 
+test-report:
+	@(go test $(PACKAGES) -timeout=30s  -json | go-test-report)
+
 test-short:
 	@go test $(PACKAGES) -timeout=30s -short
 

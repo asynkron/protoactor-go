@@ -233,3 +233,4 @@ FakesAssemblies/
 _examples/**/go.sum
 .vscode/
 
+/test_report.html
