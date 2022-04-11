@@ -3,11 +3,13 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"net"
+	"os"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
@@ -17,7 +19,6 @@ import (
 )
 
 func newClusterForTest(name string, addr string, cp cluster.ClusterProvider, id cluster.IdentityLookup) *cluster.Cluster {
-
 	host, _port, err := net.SplitHostPort(addr)
 	if err != nil {
 		panic(err)
@@ -32,13 +33,16 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider, id 
 	// use for test without start remote
 	c.ActorSystem.ProcessRegistry.Address = addr
 	c.MemberList = cluster.NewMemberList(c)
+	c.Remote = remote.NewRemote(system, config.RemoteConfig)
 	return c
 }
 
 func TestStartMember(t *testing.T) {
-
 	if testing.Short() {
 		return
+	}
+	if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+		t.Skipf("Skipped k8s testcases")
 	}
 	assert := assert.New(t)
 
@@ -90,6 +94,9 @@ func TestRegisterMultipleMembers(t *testing.T) {
 	if testing.Short() {
 		return
 	}
+	if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+		t.Skipf("Skipped k8s testcases")
+	}
 	assert := assert.New(t)
 
 	members := []struct {
@@ -128,6 +135,9 @@ func TestUpdateMemberState(t *testing.T) {
 	if testing.Short() {
 		return
 	}
+	if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+		t.Skipf("Skipped k8s testcases")
+	}
 	assert := assert.New(t)
 
 	p, _ := New()
@@ -142,6 +152,9 @@ func TestUpdateMemberState(t *testing.T) {
 func TestUpdateMemberState_DoesNotReregisterAfterShutdown(t *testing.T) {
 	if testing.Short() {
 		return
+	}
+	if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+		t.Skipf("Skipped k8s testcases")
 	}
 	assert := assert.New(t)
 
