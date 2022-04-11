@@ -56,7 +56,7 @@ func New() *AutoManagedProvider {
 	)
 }
 
-// NewWithConfig creates an Automanaged Provider that connects to a all the hosts
+// NewWithConfig creates an Automanaged Provider that connects to an all the hosts
 func NewWithConfig(refreshTTL time.Duration, autoManPort int, hosts ...string) *AutoManagedProvider {
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
@@ -129,7 +129,7 @@ func (p *AutoManagedProvider) StartClient(cluster *cluster.Cluster) error {
 	return nil
 }
 
-// DeregisterMember set the shutdown to true preventing any more TTL updates
+// DeregisterMember set the shutdown to true preventing anymore TTL updates
 func (p *AutoManagedProvider) DeregisterMember() error {
 	deregisteredMutex.Lock()
 	defer deregisteredMutex.Unlock()
@@ -138,7 +138,7 @@ func (p *AutoManagedProvider) DeregisterMember() error {
 	return nil
 }
 
-// Shutdown set the shutdown to true preventing any more TTL updates
+// Shutdown set the shutdown to true preventing anymore TTL updates
 func (p *AutoManagedProvider) Shutdown(graceful bool) error {
 	shutdownMutex.Lock()
 	defer shutdownMutex.Unlock()
@@ -163,8 +163,8 @@ func (p *AutoManagedProvider) UpdateTTL() {
 		return
 	}
 
-	// its not running and its not shutdown or deregistered
-	// its also not a test (this should be refactored)
+	// it's not running, and it's not shutdown or de-registered
+	// it's also not a test (this should be refactored)
 
 	if !p.activeProviderTesting {
 		p.activeProvider = echo.New()
@@ -238,7 +238,7 @@ func (p *AutoManagedProvider) monitorStatuses() {
 		time.Sleep(p.refreshTTL)
 		return
 	}
-	// we should probably check if the cluster needs to be updated..
+	// we should probably check if the cluster needs to be updated.
 	var members []*cluster.Member
 	var newNodes []*NodeModel
 	for _, node := range autoManagedNodes {

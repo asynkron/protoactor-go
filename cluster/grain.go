@@ -5,13 +5,6 @@ import (
 	"time"
 )
 
-//type Grain struct {
-//}
-//
-//func (g *Grain) Init(ctx GrainContext) {
-//
-//}
-
 type GrainCallConfig struct {
 	RetryCount  int
 	Timeout     time.Duration

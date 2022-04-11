@@ -3,7 +3,7 @@
 package cluster
 
 import (
-	fmt "fmt"
+	"fmt"
 	"strings"
 
 	"github.com/asynkron/protoactor-go/log"
@@ -35,7 +35,7 @@ func NewConsensusCheckBuilder(key string, getValue func(*anypb.Any) interface{})
 
 	builder := ConsensusCheckBuilder{
 		getConsensusValues: []*consensusValue{
-			&consensusValue{
+			{
 				Key:   key,
 				Value: getValue,
 			},
@@ -96,7 +96,7 @@ func (ccb *ConsensusCheckBuilder) MapToValue(valueTuple *consensusValue) func(st
 	// REVISIT: in .NET implementation the ConsensusCheckBuilder can be of any given T type
 	//          so this method returns (string, string, T) in .NET, it just feels wrong to
 	//          return an interface{} from here as so far only checkers for uint64 are
-	//          being used but this is not acceptable and we shall put this implementation
+	//          being used but this is not acceptable, and we shall put this implementation
 	//          on par with .NET version, so maybe with new go1.18 generics or making the
 	//          ConsensusCheckBuilder struct to store an additional field of type empty
 	//          interface to operate with internally and then provide of a custom callback
@@ -117,7 +117,7 @@ func (ccb *ConsensusCheckBuilder) MapToValue(valueTuple *consensusValue) func(st
 			//          into the right value, this is true in the .NET version
 			//          as ConsensusCheckBuilder is defined as a generic type
 			//          ConsensusCheckBuilder<T> so the unpacker can unpack from
-			//          Any into T but we can not do that (for now) so we have
+			//          Any into T, but we can not do that (for now) so we have
 			//          to stick to unpack to the concrete uint64 type here
 			value = unpack(gossipKey.Value).(uint64)
 		}

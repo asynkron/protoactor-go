@@ -154,8 +154,8 @@ func TestActorContext_Respond(t *testing.T) {
 }
 
 func TestActorContext_Forward(t *testing.T) {
-	// Defined a respond actor
-	// It simply respond the string message
+	// Defined a response actor
+	// It simply responds to the string message
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		switch m := ctx.Message().(type) {
 		case string:

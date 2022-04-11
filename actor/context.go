@@ -64,7 +64,7 @@ type basePart interface {
 	// Returns a slice of the actors children
 	Children() []*PID
 
-	// Respond sends a response to the to the current `Sender`
+	// Respond sends a response to the current `Sender`
 	// If the Sender is nil, the actor will panic
 	Respond(response interface{})
 

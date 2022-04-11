@@ -20,7 +20,7 @@ func NewConsensusCheck(affectedKeys []string, check GossipUpdater) ConsensusChec
 	return consensusCheck
 }
 
-// acts as an storage of pointers to ConsensusCheck stored by key
+// acts as a storage of pointers to ConsensusCheck stored by key
 type ConsensusChecks struct {
 	checks                 map[string]*ConsensusCheck
 	affectedKeysByStateKey map[string]map[string]empty
@@ -38,7 +38,7 @@ func NewConsensusChecks() *ConsensusChecks {
 
 // iterates over all the keys stored in the set (map[string]empty) found in
 // the given key map and populates a slice of pointers to ConsensusCheck values
-// that is returned back as a set of ConsensusCheck updated by the given key
+// that is returned as a set of ConsensusCheck updated by the given key
 func (cc *ConsensusChecks) GetByUpdatedKey(key string) []*ConsensusCheck {
 
 	result := []*ConsensusCheck{}
@@ -54,9 +54,9 @@ func (cc *ConsensusChecks) GetByUpdatedKey(key string) []*ConsensusCheck {
 	return result
 }
 
-// iterate over all of the keys stored in the set (map[string]empty) found in
+// iterate over all the keys stored in the set (map[string]empty) found in
 // the given key maps and populates a slice of pointers to ConsensusCheck values
-// that is returned back as a set of ConsensusCheck updated by the given keys
+// that is returned as a set of ConsensusCheck updated by the given keys
 // with removed duplicates on it (as it is a "set")
 func (cc *ConsensusChecks) GetByUpdatedKeys(keys []string) []*ConsensusCheck {
 
@@ -88,7 +88,7 @@ func (cc *ConsensusChecks) Add(id string, check *ConsensusCheck) {
 	cc.registerAffectedKeys(id, check.affectedKeys)
 }
 
-// removed the given ConsensusCheck identity from the storage and
+// Remove removes the given ConsensusCheck identity from the storage and
 // removes its affected by keys index if needed after cleaning
 func (cc *ConsensusChecks) Remove(id string) {
 

@@ -19,12 +19,12 @@ func (rs *RestartStatistics) FailureCount() int {
 	return len(rs.failureTimes)
 }
 
-// Fail increases the associated actors failure count
+// Fail increases the associated actors' failure count
 func (rs *RestartStatistics) Fail() {
 	rs.failureTimes = append(rs.failureTimes, time.Now())
 }
 
-// Reset the associated actors failure count
+// Reset the associated actors' failure count
 func (rs *RestartStatistics) Reset() {
 	rs.failureTimes = []time.Time{}
 }

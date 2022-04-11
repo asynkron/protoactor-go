@@ -21,7 +21,8 @@ But be aware that the API might change over time until 1.0.
 
 This is the Go repository for Proto Actor.
 
-The C# implementation can be found here [https://github.com/asynkron/protoactor-dotnet](https://github.com/asynkron/protoactor-dotnet)
+The C# implementation can be found
+here [https://github.com/asynkron/protoactor-dotnet](https://github.com/asynkron/protoactor-dotnet)
 
 ## Design principles:
 
@@ -29,7 +30,8 @@ The C# implementation can be found here [https://github.com/asynkron/protoactor-
 The API should be small and easy to use.
 Avoid enterprisey JVM like containers and configurations.
 
-**Build on existing technologies** - There are already a lot of great tech for e.g. networking and clustering, build on those.
+**Build on existing technologies** - There are already a lot of great tech for e.g. networking and clustering, build on
+those.
 e.g. gRPC streams for networking, Consul.IO for clustering.
 
 **Pass data, not objects** - Serialization is an explicit concern, don't try to hide it.
@@ -37,8 +39,10 @@ Protobuf all the way.
 
 **Be fast** - Do not trade performance for magic API trickery.
 
-Ultra fast remoting, Proto Actor currently manages to pass over **two million messages per second** between nodes using only two actors, while still preserving message order!
-This is six times more the new super advanced UDP based Artery transport for Scala Akka, and 30 times faster than Akka.NET.
+Ultra fast remoting, Proto Actor currently manages to pass over **two million messages per second** between nodes using
+only two actors, while still preserving message order!
+This is six times more the new super advanced UDP based Artery transport for Scala Akka, and 30 times faster than
+Akka.NET.
 
 ```text
 :> node1.exe
@@ -65,17 +69,20 @@ EndpointWriter connected address="127.0.0.1:8080"
 ## History
 
 As the creator of the Akka.NET project, I have come to some distinct conclusions while being involved in that project.
-In Akka.NET we created our own thread pool, our own networking layer, our own serialization support, our own configuration support etc. etc.
+In Akka.NET we created our own thread pool, our own networking layer, our own serialization support, our own
+configuration support etc. etc.
 This was all fun and challenging, it is however now my firm opinion that this is the wrong way to go about things.
 
 **If possible, software should be composed, not built**, only add code to glue existing pieces together.
-This yields a much better time to market, and allows us to focus on solving the actual problem at hand, in this case concurrency and distributed programming.
+This yields a much better time to market, and allows us to focus on solving the actual problem at hand, in this case
+concurrency and distributed programming.
 
 Proto Actor builds on existing technologies, Protobuf for serialization, gRPC streams for network transport.
 This ensures cross platform compatibility, network protocol version tolerance and battle proven stability.
 
 Another extremely important factor here is business agility and having an exit strategy.
-By being cross platform, your organization is no longer tied into a specific platform, if you are migrating from .NET to Go,
+By being cross platform, your organization is no longer tied into a specific platform, if you are migrating from .NET to
+Go,
 This can be done while still allowing actor based services to communicate between platforms.
 
 Reinvent by not reinventing.
@@ -90,13 +97,15 @@ Reinvent by not reinventing.
 - Distributed by default
 - Fault tolerance
 
-For a more indepth description of the differences, see this thread [Actors vs. CSP](https://www.quora.com/Go-programming-language-How-are-Akka-actors-are-different-than-Goroutines-and-Channels)
+For a more indepth description of the differences, see this
+thread [Actors vs. CSP](https://www.quora.com/Go-programming-language-How-are-Akka-actors-are-different-than-Goroutines-and-Channels)
 
 ## Building
 
 You need to ensure that your `$GOPATH` variable is properly set.
 
-Next, install the [standard protocol buffer implementation](https://github.com/google/protobuf) and run the following commands to get all the necessary tooling:
+Next, install the [standard protocol buffer implementation](https://github.com/google/protobuf) and run the following
+commands to get all the necessary tooling:
 
 ```
 go get github.com/asynkron/protoactor-go/...
@@ -111,7 +120,8 @@ Windows users can use Cygwin to run make: [www.cygwin.com](https://www.cygwin.co
 
 ## Testing
 
-This command exectutes all tests in the repository except for consul integration tests (you need consul for running those tests). We also skip directories that don't contain any tests.
+This command exectutes all tests in the repository except for consul integration tests (you need consul for running
+those tests). We also skip directories that don't contain any tests.
 
 ```
 go test `go list ./... | grep -v consul` | grep -v 'no test files'
@@ -239,7 +249,8 @@ func main() {
 
 ## Supervision
 
-Root actors are supervised by the `actor.DefaultSupervisionStrategy()`, which always issues a `actor.RestartDirective` for failing actors
+Root actors are supervised by the `actor.DefaultSupervisionStrategy()`, which always issues a `actor.RestartDirective`
+for failing actors
 Child actors are supervised by their parents.
 Parents can customize their child supervisor strategy using `Proto Actor.Props`
 
@@ -305,7 +316,8 @@ func main() {
 
 ## Networking / Remoting
 
-Proto Actor's networking layer is built as a thin wrapper ontop of gRPC and message serialization is built on Protocol Buffers<br/>
+Proto Actor's networking layer is built as a thin wrapper ontop of gRPC and message serialization is built on Protocol
+Buffers<br/>
 
 ### Example
 
@@ -387,7 +399,8 @@ message Response {
 }
 ```
 
-Notice: always use "gogoslick_out" instead of "go_out" when generating proto code. "gogoslick_out" will create type names which will be used during serialization.
+Notice: always use "gogoslick_out" instead of "go_out" when generating proto code. "gogoslick_out" will create type
+names which will be used during serialization.
 
 For more examples, see the example folder in this repository.
 

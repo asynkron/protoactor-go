@@ -1,6 +1,6 @@
 syntax = "proto3";
 package cluster;
-option go_package="/github.com/asynkron/protoactor-go/cluster";
+option go_package = "/github.com/asynkron/protoactor-go/cluster";
 
 message GrainRequest {
   int32 method_index = 1;

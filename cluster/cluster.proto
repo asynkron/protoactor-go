@@ -1,6 +1,6 @@
 syntax = "proto3";
 package cluster;
-option go_package="/github.com/asynkron/protoactor-go/cluster";
+option go_package = "/github.com/asynkron/protoactor-go/cluster";
 import "actor.proto";
 
 //request response call from Identity actor sent to each member
@@ -126,11 +126,11 @@ message ClusterTopologyNotification {
 }
 
 message MemberHeartbeat {
-  ActorStatistics actor_statistics=1;
+  ActorStatistics actor_statistics = 1;
 }
 
 message ActorStatistics {
-  map<string,int64> actor_count=1;
+  map<string, int64> actor_count = 1;
 }
 
 

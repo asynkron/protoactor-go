@@ -2,7 +2,7 @@
 # @see https://docs.docker.com/compose/compose-file/
 version: '3.4'
 services:
- consul:
+  consul:
     container_name: dev-consul
     image: consul:1.10
     restart: unless-stopped
@@ -12,7 +12,7 @@ services:
     command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
 
 
- etcd:
+  etcd:
     container_name: dev-etcd
     image: quay.io/coreos/etcd:v3.5.0
     restart: unless-stopped
@@ -20,18 +20,18 @@ services:
       - 2379:2379
       - 2380:2380
     command: >
-        /usr/local/bin/etcd
-          --name node1
-          --data-dir=/etcd-data
-          --listen-client-urls    http://0.0.0.0:2379
-          --listen-peer-urls      http://0.0.0.0:2380
-          --advertise-client-urls http://127.0.0.1:2379
-          --initial-advertise-peer-urls http://127.0.0.1:2380
-          --initial-cluster node1=http://127.0.0.1:2380
-          --auto-compaction-mode=periodic 
-          --auto-compaction-retention=30m
+      /usr/local/bin/etcd
+        --name node1
+        --data-dir=/etcd-data
+        --listen-client-urls    http://0.0.0.0:2379
+        --listen-peer-urls      http://0.0.0.0:2380
+        --advertise-client-urls http://127.0.0.1:2379
+        --initial-advertise-peer-urls http://127.0.0.1:2380
+        --initial-cluster node1=http://127.0.0.1:2380
+        --auto-compaction-mode=periodic 
+        --auto-compaction-retention=30m
 
- zookeeper:
+  zookeeper:
     container_name: dev-zookeeper
     image: zookeeper:3.7
     restart: unless-stopped

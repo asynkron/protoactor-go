@@ -10,10 +10,12 @@ There is no lifecycle as in the classic actor model.
 You get a reference to the actor by asking for it's ID.
 
 e.g.
+
 ```go
 hello := shared.GetHelloGrain("abc")
 res := hello.SayHello(&shared.HelloRequest{Name: "Proto.Actor"})
 ```
+
 This will ask the cluster where the 'abc' actor is located.
 If it does not yet exist, it will be created for you.
 
@@ -59,6 +61,7 @@ service Hello {
 Once you have this, you can generate your code using the protobuf `protoc` compiler.
 
 **Windows**
+
 ```batch
 #generate messages
 protoc -I=. -I=%GOPATH%\src --gogoslick_out=. protos.proto

@@ -1,6 +1,6 @@
 syntax = "proto3";
 package cluster;
-option go_package="/github.com/asynkron/protoactor-go/cluster";
+option go_package = "/github.com/asynkron/protoactor-go/cluster";
 import "google/protobuf/any.proto";
 
 
@@ -14,14 +14,14 @@ message GossipResponse {
   GossipState state = 1;
 }
 
-message GossipResponseAck { // Or just use empty GossipResponse?
+message GossipResponseAck {// Or just use empty GossipResponse?
 }
 
 //two GossipState objects can be merged
 //key + member_id gets it's own entry, if collision, highest version is selected
 message GossipState {
   message GossipMemberState {
-    map<string,GossipKeyValue> values = 1;
+    map<string, GossipKeyValue> values = 1;
   }
 
   map<string, GossipMemberState>  members = 1;

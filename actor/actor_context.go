@@ -210,7 +210,7 @@ func (ctx *actorContext) SetReceiveTimeout(d time.Duration) {
 	}
 
 	if d < time.Millisecond {
-		// anything less than than 1 millisecond is set to zero
+		// anything less than 1 millisecond is set to zero
 		d = 0
 	}
 
@@ -516,6 +516,7 @@ func (ctx *actorContext) incarnateActor() {
 }
 
 func (ctx *actorContext) InvokeSystemMessage(message interface{}) {
+	//goland:noinspection GrazieInspection
 	switch msg := message.(type) {
 	case *continuation:
 		ctx.messageOrEnvelope = msg.message // apply the message that was present when we started the await

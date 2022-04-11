@@ -3,5 +3,5 @@ package messages;
 import "github.com/asynkron/protoactor-go/actor/protos.proto";
 
 message EncryptedMessage {
-	string Message = 1;
+  string Message = 1;
 }
