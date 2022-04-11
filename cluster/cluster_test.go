@@ -70,6 +70,7 @@ func (p *inmemoryProvider) StartClient(c *Cluster) error {
 
 func (p *inmemoryProvider) Shutdown(graceful bool) error {
 	delete(p.members, p.self.Id)
+
 	return nil
 }
 
