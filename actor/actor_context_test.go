@@ -10,6 +10,8 @@ import (
 )
 
 func TestActorContext_SpawnNamed(t *testing.T) {
+	t.Parallel()
+
 	pid, _ := spawnMockProcess("foo/bar")
 
 	defer removeMockProcess(pid)
@@ -30,6 +32,7 @@ func TestActorContext_SpawnNamed(t *testing.T) {
 // TestActorContext_Stop verifies if context is stopping and receives a Watch message, it should
 // immediately respond with a Terminated message
 func TestActorContext_Stop(t *testing.T) {
+	t.Parallel()
 	pid, p := spawnMockProcess("foo")
 	defer removeMockProcess(pid)
 
@@ -49,7 +52,10 @@ func TestActorContext_Stop(t *testing.T) {
 }
 
 func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
+	t.Parallel()
+
 	var wg sync.WaitGroup
+
 	wg.Add(1)
 
 	// Define a local context with no-op sender middleware
@@ -64,9 +70,9 @@ func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
 
 	// Define a receiver to which the local context will send a message
 	var counter int
+
 	receiver := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
-		switch ctx.Message().(type) {
-		case bool:
+		if _, ok := ctx.Message().(bool); ok {
 			counter++
 			wg.Done()
 		}
@@ -76,12 +82,14 @@ func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
 	// Then wait a little to allow the receiver to process the message
 	// TODO: There should be a better way to wait.
 	timeout := 3 * time.Millisecond
+
 	ctx.Send(receiver, true)
 	wg.Wait()
 	assert.Equal(t, 1, counter)
 
 	// Send a message with Request
 	counter = 0 // Reset the counter
+
 	wg.Add(1)
 	ctx.Request(receiver, true)
 	wg.Wait()
@@ -89,7 +97,9 @@ func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
 
 	// Send a message with RequestFuture
 	counter = 0 // Reset the counter
+
 	wg.Add(1)
+
 	_ = ctx.RequestFuture(receiver, true, timeout).Wait()
 	wg.Wait()
 	assert.Equal(t, 1, counter)
@@ -105,14 +115,15 @@ func BenchmarkActorContext_ProcessMessageNoMiddleware(b *testing.B) {
 }
 
 func TestActorContext_Respond(t *testing.T) {
+	t.Parallel()
 	var wg sync.WaitGroup
+
 	wg.Add(1)
 
 	// Defined a responder actor
 	// It simply echoes a received string.
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
-		switch m := ctx.Message().(type) {
-		case string:
+		if m, ok := ctx.Message().(string); ok {
 			ctx.Respond(fmt.Sprintf("Got a string: %v", m))
 		}
 	}))
@@ -261,6 +272,7 @@ func (*dummyAutoRespond) GetAutoResponse(_ Context) interface{} {
 
 func TestActorContextAutoRespondMessage(t *testing.T) {
 	pid := rootContext.Spawn(PropsFromFunc(func(ctx Context) {}))
+
 	var msg AutoRespond = &dummyAutoRespond{}
 
 	res, err := rootContext.RequestFuture(pid, msg, 1*time.Second).Result()
@@ -270,6 +282,7 @@ func TestActorContextAutoRespondMessage(t *testing.T) {
 
 func TestActorContextAutoRespondTouchedMessage(t *testing.T) {
 	pid := rootContext.Spawn(PropsFromFunc(func(ctx Context) {}))
+
 	var msg AutoRespond = &Touch{}
 
 	res, err := rootContext.RequestFuture(pid, msg, 1*time.Second).Result()
