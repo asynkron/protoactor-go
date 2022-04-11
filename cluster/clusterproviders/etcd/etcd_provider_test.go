@@ -27,6 +27,7 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 	// use for test without start remote
 	c.ActorSystem.ProcessRegistry.Address = addr
 	c.MemberList = cluster.NewMemberList(c)
+	c.Remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
 	return c
 }
 
@@ -34,9 +35,10 @@ func TestStartMember(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	a := assert.New(t)
+	assert := assert.New(t)
 
-	p, _ := New()
+	p, err := New()
+	assert.NoError(err)
 	defer p.Shutdown(true)
 
 	c := newClusterForTest("test_etcd_provider", "127.0.0.1:8000", p)
@@ -48,19 +50,20 @@ func TestStartMember(t *testing.T) {
 		}
 	})
 
-	err := p.StartMember(c)
-	a.NoError(err)
+	err = p.StartMember(c)
+	assert.NoError(err)
 
 	select {
 	case <-time.After(5 * time.Second):
-		a.FailNow("no member joined yet")
+		assert.FailNow("no member joined yet")
 
 	case m := <-ch:
 		// member joined
 		msg := m.(*cluster.ClusterTopology)
 		members := []*cluster.Member{
 			{
-				Id:    "test_etcd_provider@127.0.0.1:8000",
+				// Id:    "test_etcd_provider@127.0.0.1:8000",
+				Id:    fmt.Sprintf("test_etcd_provider@%s", c.ActorSystem.Id),
 				Host:  "127.0.0.1",
 				Port:  8000,
 				Kinds: []string{},
@@ -70,9 +73,10 @@ func TestStartMember(t *testing.T) {
 		expected := &cluster.ClusterTopology{
 			Members:      members,
 			Joined:       members,
+			Left:         []*cluster.Member{},
 			TopologyHash: msg.TopologyHash,
 		}
-		a.Equal(expected, msg)
+		assert.Equal(expected, msg)
 
 	}
 }
@@ -81,7 +85,7 @@ func TestStartMember_Multiple(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	a := assert.New(t)
+	assert := assert.New(t)
 	members := []struct {
 		cluster string
 		host    string
@@ -92,7 +96,7 @@ func TestStartMember_Multiple(t *testing.T) {
 		{"mycluster2", "127.0.0.1", 8003},
 	}
 
-	p := make([]*Provider, len(members))
+	var p = make([]*Provider, len(members))
 	var err error
 	t.Cleanup(func() {
 		for i := range p {
@@ -102,10 +106,10 @@ func TestStartMember_Multiple(t *testing.T) {
 	for i, member := range members {
 		addr := fmt.Sprintf("%s:%d", member.host, member.port)
 		p[i], err = New()
-		a.NoError(err)
+		assert.NoError(err)
 		c := newClusterForTest(member.cluster, addr, p[i])
 		err := p[i].StartMember(c)
-		a.NoError(err)
+		assert.NoError(err)
 	}
 	isNodesEqual := func(nodes []*Node) bool {
 		for _, node := range nodes {
@@ -119,10 +123,10 @@ func TestStartMember_Multiple(t *testing.T) {
 	}
 	for i := range p {
 		nodes, err := p[i].fetchNodes()
-		a.NoError(err)
-		a.Equal(len(members), len(nodes))
+		assert.NoError(err)
+		assert.Equal(len(members), len(nodes))
 		flag := isNodesEqual(nodes)
-		a.Truef(flag, "Member not found - %+v", p[i].self)
+		assert.Truef(flag, "Member not found - %+v", p[i].self)
 	}
 }
 

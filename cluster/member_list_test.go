@@ -7,9 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/remote"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,33 +39,6 @@ import (
 //		t.Error("Should not run into a timeout")
 //	}
 //}
-
-type fakeIdentityLookup struct {
-	m sync.Map
-}
-
-func (l fakeIdentityLookup) Get(identity *ClusterIdentity) *actor.PID {
-	if val, ok := l.m.Load(identity.Identity); ok {
-		return val.(*actor.PID)
-	} else {
-		// pid := actor.NewPID("127.0.0.1", fmt.Sprintf("%s/%s", identity.Kind, identity.Identity))
-		// l.m.Store(identity.Identity, pid)
-		// return pid
-	}
-	return nil
-}
-
-func (l fakeIdentityLookup) RemovePid(identity *ClusterIdentity, pid *actor.PID) {
-	if existPid := l.Get(identity); existPid.Equal(pid) {
-		l.m.Delete(identity.Identity)
-	}
-}
-
-func (lu fakeIdentityLookup) Setup(cluster *Cluster, kinds []string, isClient bool) {
-}
-
-func (lu fakeIdentityLookup) Shutdown() {
-}
 
 // https://stackoverflow.com/questions/32840687/timeout-for-waitgroup-wait
 func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
@@ -235,16 +205,4 @@ func TestMemberList_newMemberStrategies(t *testing.T) {
 		assert.Equal(v, len(obj.memberStrategyByKind["kind1"].GetAllMembers()))
 		assert.Equal(v, len(obj.memberStrategyByKind["kind2"].GetAllMembers()))
 	}
-}
-
-func newClusterForTest(name string, cp ClusterProvider, opts ...ConfigOption) *Cluster {
-	system := actor.NewActorSystem()
-	lookup := fakeIdentityLookup{}
-	cfg := Configure(name, cp, &lookup, remote.Configure("127.0.0.1", 0), opts...)
-	c := New(system, cfg)
-
-	c.MemberList = NewMemberList(c)
-	c.Config.RequestTimeoutTime = 1 * time.Second
-	c.Remote = remote.NewRemote(system, c.Config.RemoteConfig)
-	return c
 }
