@@ -21,6 +21,7 @@ func Example() {
 
 	context.Send(pid, "Hello World")
 	time.Sleep(time.Millisecond * 100)
+
 	_ = context.StopFuture(pid).Wait() // wait for the actor to stop
 
 	// Output: Hello World
@@ -30,6 +31,7 @@ func Example() {
 // proceeding
 func Example_synchronous() {
 	var wg sync.WaitGroup
+
 	wg.Add(1)
 
 	// callee will wait for the PING message

@@ -19,6 +19,7 @@ func TestActorContext_SpawnNamed(t *testing.T) {
 	props := &Props{
 		spawner: func(actorSystem *ActorSystem, id string, _ *Props, _ SpawnerContext) (*PID, error) {
 			assert.Equal(t, "foo/bar", id)
+
 			return NewPID(actorSystem.Address(), id), nil
 		},
 	}
@@ -33,6 +34,7 @@ func TestActorContext_SpawnNamed(t *testing.T) {
 // immediately respond with a Terminated message
 func TestActorContext_Stop(t *testing.T) {
 	t.Parallel()
+
 	pid, p := spawnMockProcess("foo")
 	defer removeMockProcess(pid)
 
@@ -248,6 +250,8 @@ func BenchmarkActorContext_SpawnWithMiddleware5(b *testing.B) {
 }
 
 func TestActorContinueFutureInActor(t *testing.T) {
+	t.Parallel()
+
 	pid := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
 		if ctx.Message() == "request" {
 			ctx.Respond("done")
@@ -271,6 +275,8 @@ func (*dummyAutoRespond) GetAutoResponse(_ Context) interface{} {
 }
 
 func TestActorContextAutoRespondMessage(t *testing.T) {
+	t.Parallel()
+
 	pid := rootContext.Spawn(PropsFromFunc(func(ctx Context) {}))
 
 	var msg AutoRespond = &dummyAutoRespond{}
@@ -281,12 +287,16 @@ func TestActorContextAutoRespondMessage(t *testing.T) {
 }
 
 func TestActorContextAutoRespondTouchedMessage(t *testing.T) {
+	t.Parallel()
+
 	pid := rootContext.Spawn(PropsFromFunc(func(ctx Context) {}))
 
 	var msg AutoRespond = &Touch{}
 
 	res, err := rootContext.RequestFuture(pid, msg, 1*time.Second).Result()
-	res2 := res.(*Touched)
+
+	res2, _ := res.(*Touched)
+
 	assert.NoError(t, err)
 	assert.IsType(t, &Touched{}, res)
 	assert.True(t, res2.Who.Equal(pid))

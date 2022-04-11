@@ -57,7 +57,7 @@ func (id *IdentityStorageLookup) Get(clusterIdentity *ClusterIdentity) *actor.PI
 func (id *IdentityStorageLookup) Setup(cluster *Cluster, kinds []string, isClient bool) {
 	id.cluster = cluster
 	id.system = cluster.ActorSystem
-	id.memberID = cluster.ActorSystem.Id
+	id.memberID = cluster.ActorSystem.ID
 
 	// workerProps := actor.PropsFromProducer(func() actor.Actor { return newIdentityStorageWorker(identity) })
 

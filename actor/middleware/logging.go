@@ -7,7 +7,7 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 )
 
-// Logger is message middleware which logs messages before continuing to the next middleware
+// Logger is message middleware which logs messages before continuing to the next middleware.
 func Logger(next actor.ReceiverFunc) actor.ReceiverFunc {
 	fn := func(c actor.ReceiverContext, env *actor.MessageEnvelope) {
 		message := env.Message

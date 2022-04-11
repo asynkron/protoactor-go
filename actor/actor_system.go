@@ -1,19 +1,15 @@
 package actor
 
 import (
-	"net"
-	"strconv"
-	"strings"
-
 	"github.com/asynkron/protoactor-go/eventstream"
 	"github.com/asynkron/protoactor-go/extensions"
-	"github.com/google/uuid"
 	"github.com/lithammer/shortuuid/v4"
+	"net"
+	"strconv"
 )
 
 //goland:noinspection GoNameStartsWithPackageName
 type ActorSystem struct {
-	Id              string
 	ProcessRegistry *ProcessRegistryValue
 	Root            *RootContext
 	EventStream     *eventstream.EventStream
@@ -60,7 +56,7 @@ func NewActorSystem(options ...ConfigOption) *ActorSystem {
 
 func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system := &ActorSystem{}
-	system.Id = shortuuid.New()
+	system.ID = shortuuid.New()
 	system.Config = config
 	system.ProcessRegistry = NewProcessRegistry(system)
 	system.Root = NewRootContext(system, EmptyMessageHeader)
@@ -72,8 +68,6 @@ func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system.Extensions.Register(NewMetrics(config.MetricsProvider))
 
 	system.ProcessRegistry.Add(NewEventStreamProcess(system), "eventstream")
-
-	system.ID = strings.ReplaceAll(uuid.New().String(), "-", "")
 
 	return system
 }

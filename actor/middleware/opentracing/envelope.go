@@ -13,12 +13,14 @@ func (reader *messageHeaderReader) ForeachKey(handler func(key, val string) erro
 	if reader.ReadOnlyMessageHeader == nil {
 		return nil
 	}
+
 	for _, key := range reader.ReadOnlyMessageHeader.Keys() {
 		err := handler(key, reader.ReadOnlyMessageHeader.Get(key))
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

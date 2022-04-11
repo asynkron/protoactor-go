@@ -15,7 +15,10 @@ func getActiveSpan(pid *actor.PID) opentracing.Span {
 	if !ok {
 		return nil
 	}
-	return value.(opentracing.Span)
+
+	span, _ := value.(opentracing.Span)
+
+	return span
 }
 
 func clearActiveSpan(pid *actor.PID) {
@@ -32,5 +35,6 @@ func GetActiveSpan(context actor.Context) opentracing.Span {
 		// TODO: Fix finding the real span always or handle no-span better on receiving side
 		span = opentracing.StartSpan(fmt.Sprintf("%T/%T", context.Actor(), context.Message()))
 	}
+
 	return span
 }

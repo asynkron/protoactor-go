@@ -14,8 +14,12 @@ func getAndClearParentSpan(pid *actor.PID) opentracing.Span {
 	if !ok {
 		return nil
 	}
+
 	parentSpans.Delete(pid)
-	return value.(opentracing.Span)
+
+	span, _ := value.(opentracing.Span)
+
+	return span
 }
 
 func setParentSpan(pid *actor.PID, span opentracing.Span) {

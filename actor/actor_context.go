@@ -380,6 +380,7 @@ func (ctx *actorContext) Spawn(props *Props) *PID {
 	if err != nil {
 		panic(err)
 	}
+
 	return pid
 }
 
@@ -388,6 +389,7 @@ func (ctx *actorContext) SpawnPrefix(props *Props, prefix string) *PID {
 	if err != nil {
 		panic(err)
 	}
+
 	return pid
 }
 
@@ -397,7 +399,9 @@ func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	}
 
 	var pid *PID
+
 	var err error
+
 	if ctx.props.spawnMiddlewareChain != nil {
 		pid, err = ctx.props.spawnMiddlewareChain(ctx.actorSystem, ctx.self.Id+"/"+name, props, ctx)
 	} else {
@@ -428,6 +432,7 @@ func (ctx *actorContext) Stop(pid *PID) {
 			}
 		}
 	}
+
 	pid.ref(ctx.actorSystem).Stop(pid)
 }
 
@@ -470,6 +475,7 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 	if ctx.receiveTimeout > 0 {
 		_, influenceTimeout = md.(NotInfluenceReceiveTimeout)
 		influenceTimeout = !influenceTimeout
+
 		if influenceTimeout {
 			ctx.extras.stopReceiveTimeoutTimer()
 		}
@@ -478,16 +484,20 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 	systemMetrics, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
 	if ok && systemMetrics.enabled {
 		t := time.Now()
+
 		ctx.processMessage(md)
+
 		delta := time.Since(t)
 		_ctx := context.Background()
+
 		if instruments := systemMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-			histoGram := instruments.ActorMessageReceiveHistogram
+			histogram := instruments.ActorMessageReceiveHistogram
+
 			labels := append(
 				systemMetrics.CommonLabels(ctx),
 				attribute.String("messagetype", fmt.Sprintf("%T", md)),
 			)
-			histoGram.Record(_ctx, delta.Seconds(), labels...)
+			histogram.Record(_ctx, delta.Seconds(), labels...)
 		}
 	} else {
 		ctx.processMessage(md)
@@ -501,11 +511,13 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 func (ctx *actorContext) processMessage(m interface{}) {
 	if ctx.props.receiverMiddlewareChain != nil {
 		ctx.props.receiverMiddlewareChain(ctx.ensureExtras().context, WrapEnvelope(m))
+
 		return
 	}
 
 	if ctx.props.contextDecoratorChain != nil {
 		ctx.ensureExtras().context.Receive(WrapEnvelope(m))
+
 		return
 	}
 
@@ -533,7 +545,8 @@ func (ctx *actorContext) InvokeSystemMessage(message interface{}) {
 	case *continuation:
 		ctx.messageOrEnvelope = msg.message // apply the message that was present when we started the await
 		msg.f()                             // invoke the continuation in the current actor context
-		ctx.messageOrEnvelope = nil         // release the message
+
+		ctx.messageOrEnvelope = nil // release the message
 	case *Started:
 		ctx.InvokeUserMessage(msg) // forward
 	case *Watch:
@@ -571,6 +584,7 @@ func (ctx *actorContext) handleUnwatch(msg *Unwatch) {
 	if ctx.extras == nil {
 		return
 	}
+
 	ctx.extras.unwatch(msg.Watcher)
 }
 
@@ -617,8 +631,10 @@ func (ctx *actorContext) handleTerminated(msg *Terminated) {
 func (ctx *actorContext) handleFailure(msg *Failure) {
 	if strategy, ok := ctx.actor.(SupervisorStrategy); ok {
 		strategy.HandleFailure(ctx.actorSystem, ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
+
 		return
 	}
+
 	ctx.props.getSupervisor().HandleFailure(ctx.actorSystem, ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
 }
 
@@ -626,6 +642,7 @@ func (ctx *actorContext) stopAllChildren() {
 	if ctx.extras == nil {
 		return
 	}
+
 	ctx.extras.children.ForEach(func(_ int, pid *PID) {
 		ctx.Stop(pid)
 	})
@@ -650,6 +667,7 @@ func (ctx *actorContext) restart() {
 	ctx.incarnateActor()
 	ctx.self.sendSystemMessage(ctx.actorSystem, resumeMailboxMessage)
 	ctx.InvokeUserMessage(startedMessage)
+
 	if ctx.extras != nil && ctx.extras.stash != nil {
 		for !ctx.extras.stash.Empty() {
 			msg, _ := ctx.extras.stash.Pop()
@@ -661,6 +679,7 @@ func (ctx *actorContext) restart() {
 func (ctx *actorContext) finalizeStop() {
 	ctx.actorSystem.ProcessRegistry.Remove(ctx.self)
 	ctx.InvokeUserMessage(stoppedMessage)
+
 	otherStopped := &Terminated{Who: ctx.self}
 	// Notify watchers
 	if ctx.extras != nil {
@@ -672,6 +691,7 @@ func (ctx *actorContext) finalizeStop() {
 	if ctx.parent != nil {
 		ctx.parent.sendSystemMessage(ctx.actorSystem, otherStopped)
 	}
+
 	atomic.StoreInt32(&ctx.state, stateStopped)
 }
 
@@ -695,6 +715,7 @@ func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}
 	}
 
 	failure := &Failure{Reason: reason, Who: ctx.self, RestartStats: ctx.ensureExtras().restartStats(), Message: message}
+
 	ctx.self.sendSystemMessage(ctx.actorSystem, suspendMailboxMessage)
 
 	if ctx.parent == nil {

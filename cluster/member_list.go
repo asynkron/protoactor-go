@@ -215,7 +215,7 @@ func (ml *MemberList) TerminateMember(m *Member) {
 
 func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 	for _, m := range ml.members.members {
-		if !includeSelf && m.Id == ml.cluster.ActorSystem.Id {
+		if !includeSelf && m.Id == ml.cluster.ActorSystem.ID {
 			continue
 		}
 
