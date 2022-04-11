@@ -84,7 +84,7 @@ func (ccb *ConsensusCheckBuilder) Check() ConsensusChecker { return ccb.check }
 
 func (ccb *ConsensusCheckBuilder) AffectedKeys() []string {
 
-	keys := []string{}
+	var keys []string
 	for _, value := range ccb.getConsensusValues {
 		keys = append(keys, value.Key)
 	}
@@ -166,14 +166,14 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 
 		return func(state *GossipState, ids map[string]empty) (bool, interface{}) {
 
-			memberStates := []map[string]*GossipMemberState{}
+			var memberStates []map[string]*GossipMemberState
 			getValidMemberStates(state, ids, memberStates)
 
 			if len(memberStates) < len(ids) { // Not all members have state...
 				return false, nil
 			}
 
-			valueTuples := []*consensusMemberValue{}
+			var valueTuples []*consensusMemberValue
 			for _, memberState := range memberStates {
 				for id, state := range memberState {
 					member, key, value := mapToValue(id, state)
@@ -190,14 +190,14 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 
 	return func(state *GossipState, ids map[string]empty) (bool, interface{}) {
 
-		memberStates := []map[string]*GossipMemberState{}
+		var memberStates []map[string]*GossipMemberState
 		getValidMemberStates(state, ids, memberStates)
 
 		if len(memberStates) < len(ids) { // Not all members have state...
 			return false, nil
 		}
 
-		valueTuples := []*consensusMemberValue{}
+		var valueTuples []*consensusMemberValue
 		for _, consensusValues := range ccb.getConsensusValues {
 			mapToValue := ccb.MapToValue(consensusValues)
 			for _, memberState := range memberStates {

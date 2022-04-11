@@ -14,8 +14,8 @@ func (suite *MiscTestSuite) TestIntToStr() {
 }
 
 func (suite *MiscTestSuite) TestStrToInt() {
-	suite.Equal(int(100), strToInt("100"))
-	suite.Equal(int(0), strToInt("str0"))
+	suite.Equal(100, strToInt("100"))
+	suite.Equal(0, strToInt("str0"))
 }
 
 func (suite *MiscTestSuite) TestIsStrBlank() {

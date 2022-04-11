@@ -332,7 +332,7 @@ func (p *Provider) fetchNodes() ([]*Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	nodes := []*Node{}
+	var nodes []*Node
 	for _, v := range resp.Kvs {
 		n := Node{}
 		if err := n.Deserialize(v.Value); err != nil {

@@ -6,7 +6,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	google_protobuf "github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
+	gogo "github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 )
 
 // code lifted from gogo proto
@@ -71,7 +71,7 @@ type ProtoMethod struct {
 }
 
 // ProtoAst transforms a FileDescriptor to an AST that can be used for code generation
-func ProtoAst(file *google_protobuf.FileDescriptorProto) *ProtoFile {
+func ProtoAst(file *gogo.FileDescriptorProto) *ProtoFile {
 
 	pkg := &ProtoFile{}
 	pkg.Namespace = file.GetOptions().GetCsharpNamespace()

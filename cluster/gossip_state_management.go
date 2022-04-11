@@ -58,7 +58,7 @@ func mergeState(localState *GossipState, remoteState *GossipState) ([]*GossipUpd
 		mergedState.Members[id] = member
 	}
 
-	updates := []*GossipUpdate{}
+	var updates []*GossipUpdate
 	updatedKeys := make(map[string]empty)
 
 	for memberID, remoteMemberState := range remoteState.Members {

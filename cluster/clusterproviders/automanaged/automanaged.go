@@ -308,7 +308,7 @@ func (p *AutoManagedProvider) checkNodes() ([]*NodeModel, error) {
 
 	// waits until all functions have returned
 	err := g.Wait()
-	retNodes := []*NodeModel{}
+	var retNodes []*NodeModel
 
 	// clear out the nil ones
 	for _, node := range allNodes {

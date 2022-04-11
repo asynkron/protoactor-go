@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	HelloMessages []string = []string{
+	HelloMessages = []string{
 		"Hello",
 		"Bonjour",
 		"Hola",

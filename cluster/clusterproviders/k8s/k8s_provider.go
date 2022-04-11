@@ -276,7 +276,7 @@ func (p *Provider) startWatchingCluster(timeout time.Duration) error {
 			for _, clusterPod := range p.clusterPods {
 				if clusterPod.Status.Phase == "Running" && len(clusterPod.Status.PodIPs) > 0 {
 
-					kinds := []string{}
+					var kinds []string
 					for key, value := range clusterPod.ObjectMeta.Labels {
 						if strings.HasPrefix(key, LabelKind) && value == "true" {
 							kinds = append(kinds, strings.Replace(key, fmt.Sprintf("%s-", LabelKind), "", 1))

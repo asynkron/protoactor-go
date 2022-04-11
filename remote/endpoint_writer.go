@@ -1,7 +1,7 @@
 package remote
 
 import (
-	io "io"
+	"io"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"

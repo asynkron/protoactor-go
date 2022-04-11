@@ -41,7 +41,7 @@ func NewConsensusChecks() *ConsensusChecks {
 // that is returned as a set of ConsensusCheck updated by the given key
 func (cc *ConsensusChecks) GetByUpdatedKey(key string) []*ConsensusCheck {
 
-	result := []*ConsensusCheck{}
+	var result []*ConsensusCheck
 	if _, ok := cc.affectedKeysByStateKey[key]; !ok {
 		return result
 	}
@@ -60,7 +60,7 @@ func (cc *ConsensusChecks) GetByUpdatedKey(key string) []*ConsensusCheck {
 // with removed duplicates on it (as it is a "set")
 func (cc *ConsensusChecks) GetByUpdatedKeys(keys []string) []*ConsensusCheck {
 
-	result := []*ConsensusCheck{}
+	var result []*ConsensusCheck
 	temporaryIDs := make(map[string]empty)
 
 	for _, key := range keys {
@@ -111,7 +111,7 @@ func (cc *ConsensusChecks) registerAffectedKeys(id string, keys []string) {
 
 func (cc *ConsensusChecks) unregisterAffectedKeys(id string) {
 
-	keysToDelete := []string{}
+	var keysToDelete []string
 	for key, internal := range cc.affectedKeysByStateKey {
 		if _, ok := internal[id]; ok {
 			delete(cc.affectedKeysByStateKey[key], id)

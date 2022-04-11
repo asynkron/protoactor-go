@@ -3,7 +3,7 @@
 package cluster
 
 import (
-	fmt "fmt"
+	"fmt"
 	"github.com/asynkron/gofun/set"
 	"google.golang.org/protobuf/types/known/anypb"
 	"math/rand"
@@ -65,7 +65,7 @@ func newInformer(myID string, getBlockedMembers func() set.Set[string], fanOut i
 // called when there is a cluster topology update
 func (inf *Informer) UpdateClusterTopology(topology *ClusterTopology) {
 
-	others := []*Member{}
+	var others []*Member
 	for _, member := range topology.Members {
 		if member.Id != inf.myID {
 			others = append(others, member)
