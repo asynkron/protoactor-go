@@ -2,11 +2,12 @@ package consul
 
 import (
 	"fmt"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"net"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
@@ -31,6 +32,7 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 	// use for test without start remote
 	c.ActorSystem.ProcessRegistry.Address = addr
 	c.MemberList = cluster.NewMemberList(c)
+	c.Remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
 	return c
 }
 
@@ -64,7 +66,8 @@ func TestStartMember(t *testing.T) {
 		// member joined
 		members := []*cluster.Member{
 			{
-				Id:    "mycluster@127.0.0.1:8000",
+				// Id:    "mycluster@127.0.0.1:8000",
+				Id:    fmt.Sprintf("%s", c.ActorSystem.Id),
 				Host:  "127.0.0.1",
 				Port:  8000,
 				Kinds: []string{},
@@ -74,6 +77,7 @@ func TestStartMember(t *testing.T) {
 		expected := &cluster.ClusterTopology{
 			Members:      members,
 			Joined:       members,
+			Left:         []*cluster.Member{},
 			TopologyHash: msg.TopologyHash,
 		}
 		assert.Equal(expected, msg)

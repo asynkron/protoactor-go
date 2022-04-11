@@ -27,6 +27,7 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 	// use for test without start remote
 	c.ActorSystem.ProcessRegistry.Address = addr
 	c.MemberList = cluster.NewMemberList(c)
+	c.Remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
 	return c
 }
 
@@ -36,7 +37,8 @@ func TestStartMember(t *testing.T) {
 	}
 	assert := assert.New(t)
 
-	p, _ := New()
+	p, err := New()
+	assert.NoError(err)
 	defer p.Shutdown(true)
 
 	c := newClusterForTest("test_etcd_provider", "127.0.0.1:8000", p)
@@ -48,7 +50,7 @@ func TestStartMember(t *testing.T) {
 		}
 	})
 
-	err := p.StartMember(c)
+	err = p.StartMember(c)
 	assert.NoError(err)
 
 	select {
@@ -60,7 +62,8 @@ func TestStartMember(t *testing.T) {
 		msg := m.(*cluster.ClusterTopology)
 		members := []*cluster.Member{
 			{
-				Id:    "test_etcd_provider@127.0.0.1:8000",
+				// Id:    "test_etcd_provider@127.0.0.1:8000",
+				Id:    fmt.Sprintf("test_etcd_provider@%s", c.ActorSystem.Id),
 				Host:  "127.0.0.1",
 				Port:  8000,
 				Kinds: []string{},
@@ -70,6 +73,7 @@ func TestStartMember(t *testing.T) {
 		expected := &cluster.ClusterTopology{
 			Members:      members,
 			Joined:       members,
+			Left:         []*cluster.Member{},
 			TopologyHash: msg.TopologyHash,
 		}
 		assert.Equal(expected, msg)

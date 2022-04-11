@@ -86,7 +86,7 @@ selectloop:
 		}
 	}
 
-	totalTime := time.Now().Sub(start)
+	totalTime := time.Since(start)
 	// TODO: add metrics ot set histogram for total request time
 
 	if contextError := ctx.Err(); contextError != nil && cfg.requestLogThrottle() == actor.Open {

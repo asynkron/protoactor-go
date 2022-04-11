@@ -80,6 +80,8 @@ func TestCluster_Call(t *testing.T) {
 
 	c.MemberList = NewMemberList(c)
 	c.Config.RequestTimeoutTime = 1 * time.Second
+	c.Config.ToClusterContextConfig()
+	c.Remote = remote.NewRemote(system, c.Config.RemoteConfig)
 
 	members := Members{
 		{
