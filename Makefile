@@ -8,6 +8,7 @@ proto:
 build:
 	@go build ./...
 
+
 # {{{ test
 
 PACKAGES := $(shell go list ./... | grep -v "/_examples/" | grep -v "/persistence" | grep -v "/scheduler")
