@@ -236,6 +236,7 @@ func (inf *Informer) RemoveConsensusCheck(id string) {
 }
 
 // retrieves this informer current state for the given key
+// returns map containing each known member id and their value
 func (inf *Informer) GetState(key string) map[string]*anypb.Any {
 	entries := make(map[string]*anypb.Any)
 
