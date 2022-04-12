@@ -30,7 +30,7 @@ type GossipCore interface {
 	UpdateClusterTopology(topology *ClusterTopology)
 	ReceiveState(remoteState *GossipState) []*GossipUpdate
 	SendState(sendStateToMember LocalStateSender)
-	GetMemberStateDelta(targetMemberID string) MemberStateDelta
+	GetMemberStateDelta(targetMemberID string) *MemberStateDelta
 }
 
 // The Gossip interface must be implemented by any value

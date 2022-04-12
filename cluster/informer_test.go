@@ -138,3 +138,55 @@ func TestInformer_SendState(t *testing.T) {
 	i.SendState(sendState)
 	wg.Wait()
 }
+
+func TestInformer_UpdateClusterTopology(t *testing.T) {
+	t.Parallel()
+
+	a := func() set.Set[string] {
+		return set.New[string]()
+	}
+
+	s := &MemberHeartbeat{
+		ActorStatistics: &ActorStatistics{},
+	}
+	i := newInformer("member1", a, 3, 3)
+	i.SetState("heartbeat", s)
+	// the cluster sees two nodes. itself and member2
+	i.UpdateClusterTopology(&ClusterTopology{
+		Members: []*Member{
+			{
+				Id:   "member2",
+				Host: "member2",
+				Port: 123,
+			},
+			{
+				Id:   "member1",
+				Host: "member1",
+				Port: 333,
+			},
+		},
+	})
+
+	// TODO: how do we check that the cluster topology was updated?
+}
+
+func TestInformer_GetMemberStateDelta(t *testing.T) {
+	t.Parallel()
+
+	a := func() set.Set[string] {
+		return set.New[string]()
+	}
+
+	s := &MemberHeartbeat{
+		ActorStatistics: &ActorStatistics{},
+	}
+
+	i := newInformer("member1", a, 3, 3)
+	i.SetState("heartbeat", s)
+
+	m := i.GetMemberStateDelta("member1")
+
+	if m == nil {
+		t.Error("member state delta is nil")
+	}
+}
