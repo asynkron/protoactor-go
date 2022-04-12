@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"google.golang.org/protobuf/proto"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	logmod "github.com/asynkron/protoactor-go/log"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -55,7 +55,7 @@ func GetHelloKind(opts ...actor.PropsOption) *cluster.Kind {
 }
 
 // GetHelloKind instantiates a new cluster.Kind for Hello
-func NewHelloKind(factory func() Hello, timeout time.Duration ,opts ...actor.PropsOption) *cluster.Kind {
+func NewHelloKind(factory func() Hello, timeout time.Duration, opts ...actor.PropsOption) *cluster.Kind {
 	xHelloFactory = factory
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return &HelloActor{
@@ -72,13 +72,12 @@ type Hello interface {
 	Terminate(ctx cluster.GrainContext)
 	ReceiveDefault(ctx cluster.GrainContext)
 	SayHello(*HelloRequest, cluster.GrainContext) (*HelloResponse, error)
-	
 }
 
 // HelloGrainClient holds the base data for the HelloGrain
 type HelloGrainClient struct {
-	Identity      string
-	cluster *cluster.Cluster
+	Identity string
+	cluster  *cluster.Cluster
 }
 
 // SayHello requests the execution on to the cluster with CallOptions
@@ -107,7 +106,6 @@ func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...cluster.GrainCallOp
 	}
 }
 
-
 // HelloActor represents the actor structure
 type HelloActor struct {
 	ctx     cluster.GrainContext
@@ -118,7 +116,7 @@ type HelloActor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started: //pass
+	case *actor.Started: // pass
 	case *cluster.ClusterInit:
 		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = xHelloFactory()
@@ -127,7 +125,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
-	case *actor.ReceiveTimeout:		
+	case *actor.ReceiveTimeout:
 		ctx.Poison(ctx.Self())
 	case *actor.Stopped:
 		a.inner.Terminate(a.ctx)
@@ -160,7 +158,6 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			}
 			resp := &cluster.GrainResponse{MessageData: bytes}
 			ctx.Respond(resp)
-		
 		}
 	default:
 		a.inner.ReceiveDefault(a.ctx)

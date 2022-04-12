@@ -45,7 +45,8 @@ func (c *PidCacheValue) RemoveByValue(identity string, kind string, pid *actor.P
 			return false
 		}
 
-		existing := v.(*actor.PID)
+		existing, _ := v.(*actor.PID)
+
 		return existing.Equal(pid)
 	})
 }
@@ -57,8 +58,9 @@ func (c *PidCacheValue) Remove(identity string, kind string) {
 
 func (c *PidCacheValue) RemoveByMember(member *Member) {
 	addr := member.Address()
+
 	for item := range c.cache.IterBuffered() {
-		pid := item.Val.(*actor.PID)
+		pid, _ := item.Val.(*actor.PID)
 		if pid.Address == addr {
 			c.cache.Remove(item.Key)
 		}

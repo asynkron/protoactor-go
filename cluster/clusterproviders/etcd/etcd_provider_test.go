@@ -28,6 +28,7 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 	c.ActorSystem.ProcessRegistry.Address = addr
 	c.MemberList = cluster.NewMemberList(c)
 	c.Remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
+
 	return c
 }
 
@@ -35,15 +36,17 @@ func TestStartMember(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	assert := assert.New(t)
+
+	a := assert.New(t)
 
 	p, err := New()
-	assert.NoError(err)
+	a.NoError(err)
 	defer p.Shutdown(true)
 
 	c := newClusterForTest("test_etcd_provider", "127.0.0.1:8000", p)
 	eventstream := c.ActorSystem.EventStream
 	ch := make(chan interface{}, 16)
+
 	eventstream.Subscribe(func(m interface{}) {
 		if _, ok := m.(*cluster.ClusterTopology); ok {
 			ch <- m
@@ -51,15 +54,16 @@ func TestStartMember(t *testing.T) {
 	})
 
 	err = p.StartMember(c)
-	assert.NoError(err)
+	a.NoError(err)
 
 	select {
 	case <-time.After(5 * time.Second):
-		assert.FailNow("no member joined yet")
+		a.FailNow("no member joined yet")
 
 	case m := <-ch:
 		// member joined
-		msg := m.(*cluster.ClusterTopology)
+		msg, _ := m.(*cluster.ClusterTopology)
+
 		members := []*cluster.Member{
 			{
 				// Id:    "test_etcd_provider@127.0.0.1:8000",
@@ -76,7 +80,7 @@ func TestStartMember(t *testing.T) {
 			Left:         []*cluster.Member{},
 			TopologyHash: msg.TopologyHash,
 		}
-		assert.Equal(expected, msg)
+		a.Equal(expected, msg)
 
 	}
 }
@@ -85,6 +89,7 @@ func TestStartMember_Multiple(t *testing.T) {
 	if testing.Short() {
 		return
 	}
+
 	a := assert.New(t)
 	members := []struct {
 		cluster string
@@ -97,20 +102,25 @@ func TestStartMember_Multiple(t *testing.T) {
 	}
 
 	p := make([]*Provider, len(members))
+
 	var err error
+
 	t.Cleanup(func() {
 		for i := range p {
-			p[i].Shutdown(true)
+			_ = p[i].Shutdown(true)
 		}
 	})
+
 	for i, member := range members {
 		addr := fmt.Sprintf("%s:%d", member.host, member.port)
 		p[i], err = New()
 		a.NoError(err)
+
 		c := newClusterForTest(member.cluster, addr, p[i])
 		err := p[i].StartMember(c)
 		a.NoError(err)
 	}
+
 	isNodesEqual := func(nodes []*Node) bool {
 		for _, node := range nodes {
 			for _, member := range members {
@@ -119,8 +129,10 @@ func TestStartMember_Multiple(t *testing.T) {
 				}
 			}
 		}
+
 		return false
 	}
+
 	for i := range p {
 		nodes, err := p[i].fetchNodes()
 		a.NoError(err)

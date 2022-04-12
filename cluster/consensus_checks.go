@@ -4,39 +4,41 @@ package cluster
 
 type GossipUpdater func(*GossipState, map[string]empty)
 
-// data structure helpful to store consensus check information and behavior
+// data structure helpful to store consensus check information and behavior.
 type ConsensusCheck struct {
 	affectedKeys []string
 	check        GossipUpdater
 }
 
-// creates a new ConsensusCheck value with the given data and return it back
+// creates a new ConsensusCheck value with the given data and return it back.
 func NewConsensusCheck(affectedKeys []string, check GossipUpdater) ConsensusCheck {
 	consensusCheck := ConsensusCheck{
 		affectedKeys: affectedKeys,
 		check:        check,
 	}
+
 	return consensusCheck
 }
 
-// acts as a storage of pointers to ConsensusCheck stored by key
+// acts as a storage of pointers to ConsensusCheck stored by key.
 type ConsensusChecks struct {
 	checks                 map[string]*ConsensusCheck
 	affectedKeysByStateKey map[string]map[string]empty
 }
 
-// creates a new ConsensusChecks value and returns a pointer to it
+// creates a new ConsensusChecks value and returns a pointer to it.
 func NewConsensusChecks() *ConsensusChecks {
 	checks := ConsensusChecks{
 		checks:                 make(map[string]*ConsensusCheck),
 		affectedKeysByStateKey: make(map[string]map[string]empty),
 	}
+
 	return &checks
 }
 
 // iterates over all the keys stored in the set (map[string]empty) found in
 // the given key map and populates a slice of pointers to ConsensusCheck values
-// that is returned as a set of ConsensusCheck updated by the given key
+// that is returned as a set of ConsensusCheck updated by the given key.
 func (cc *ConsensusChecks) GetByUpdatedKey(key string) []*ConsensusCheck {
 	var result []*ConsensusCheck
 	if _, ok := cc.affectedKeysByStateKey[key]; !ok {
@@ -48,15 +50,17 @@ func (cc *ConsensusChecks) GetByUpdatedKey(key string) []*ConsensusCheck {
 			result = append(result, ConsensusCheck)
 		}
 	}
+
 	return result
 }
 
 // iterate over all the keys stored in the set (map[string]empty) found in
 // the given key maps and populates a slice of pointers to ConsensusCheck values
 // that is returned as a set of ConsensusCheck updated by the given keys
-// with removed duplicates on it (as it is a "set")
+// with removed duplicates on it (as it is a "set").
 func (cc *ConsensusChecks) GetByUpdatedKeys(keys []string) []*ConsensusCheck {
 	var result []*ConsensusCheck
+
 	temporaryIDs := make(map[string]empty)
 
 	for _, key := range keys {
@@ -68,23 +72,25 @@ func (cc *ConsensusChecks) GetByUpdatedKeys(keys []string) []*ConsensusCheck {
 			if ConsensusCheck, ok := cc.checks[id]; ok {
 				if _, ok := temporaryIDs[id]; !ok {
 					temporaryIDs[id] = empty{}
+
 					result = append(result, ConsensusCheck)
 				}
 			}
 		}
 	}
+
 	return result
 }
 
 // adds a new pointer to a ConsensusCheck value in the storage
-// and registers its affected by keys index
+// and registers its affected by keys index.
 func (cc *ConsensusChecks) Add(id string, check *ConsensusCheck) {
 	cc.checks[id] = check
 	cc.registerAffectedKeys(id, check.affectedKeys)
 }
 
 // Remove removes the given ConsensusCheck identity from the storage and
-// removes its affected by keys index if needed after cleaning
+// removes its affected by keys index if needed after cleaning.
 func (cc *ConsensusChecks) Remove(id string) {
 	if _, ok := cc.affectedKeysByStateKey[id]; ok {
 		delete(cc.affectedKeysByStateKey, id)
@@ -104,9 +110,11 @@ func (cc *ConsensusChecks) registerAffectedKeys(id string, keys []string) {
 
 func (cc *ConsensusChecks) unregisterAffectedKeys(id string) {
 	var keysToDelete []string
+
 	for key, internal := range cc.affectedKeysByStateKey {
 		if _, ok := internal[id]; ok {
 			delete(cc.affectedKeysByStateKey[key], id)
+
 			if len(cc.affectedKeysByStateKey[key]) == 0 {
 				keysToDelete = append(keysToDelete, key)
 			}
