@@ -236,7 +236,7 @@ func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
 }
 
 func (ml *MemberList) ContainsMemberID(memberID string) bool {
-	return ml.members.ContainsId(memberID)
+	return ml.members.ContainsID(memberID)
 }
 
 func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {

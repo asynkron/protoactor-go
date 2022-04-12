@@ -90,7 +90,20 @@ func TestMemberList_UpdateClusterTopology(t *testing.T) {
 		changes, _, _, _, _ := obj.getTopologyChanges(members)
 		_sorted(changes)
 		expected := &ClusterTopology{TopologyHash: TopologyHash(members), Members: members, Joined: members, Left: empty}
-		a.Equalf(expected, changes, "%s\n%s", expected, changes)
+		a.Equal(expected.TopologyHash, changes.TopologyHash)
+
+		var m1, m2 *MemberSet
+		m1 = NewMemberSet(expected.Members)
+		m2 = NewMemberSet(changes.Members)
+		a.Equal(m1, m2)
+
+		m1 = NewMemberSet(expected.Joined)
+		m2 = NewMemberSet(changes.Joined)
+		a.Equal(m1, m2)
+
+		m1 = NewMemberSet(expected.Left)
+		m2 = NewMemberSet(changes.Left)
+		a.Equal(m1, m2)
 	})
 
 	t.Run("join", func(t *testing.T) {
@@ -100,7 +113,20 @@ func TestMemberList_UpdateClusterTopology(t *testing.T) {
 		changes, _, _, _, _ := obj.getTopologyChanges(members)
 		_sorted(changes)
 		expected := &ClusterTopology{TopologyHash: TopologyHash(members), Members: members, Joined: members[2:4], Left: empty}
-		a.Equalf(expected, changes, "%s\n%s", expected, changes)
+		a.Equal(expected.TopologyHash, changes.TopologyHash)
+
+		var m1, m2 *MemberSet
+		m1 = NewMemberSet(expected.Members)
+		m2 = NewMemberSet(changes.Members)
+		a.Equal(m1, m2)
+
+		m1 = NewMemberSet(expected.Joined)
+		m2 = NewMemberSet(changes.Joined)
+		a.Equal(m1, m2)
+
+		m1 = NewMemberSet(expected.Left)
+		m2 = NewMemberSet(changes.Left)
+		a.Equal(m1, m2)
 	})
 
 	t.Run("left", func(t *testing.T) {
@@ -110,7 +136,20 @@ func TestMemberList_UpdateClusterTopology(t *testing.T) {
 		changes, _, _, _, _ := obj.getTopologyChanges(members[2:4])
 		_sorted(changes)
 		expected := &ClusterTopology{TopologyHash: TopologyHash(members), Members: members[2:4], Joined: empty, Left: members[0:2]}
-		a.Equal(expected, changes)
+		a.Equal(expected.TopologyHash, changes.TopologyHash)
+
+		var m1, m2 *MemberSet
+		m1 = NewMemberSet(expected.Members)
+		m2 = NewMemberSet(changes.Members)
+		a.Equal(m1, m2)
+
+		m1 = NewMemberSet(expected.Joined)
+		m2 = NewMemberSet(changes.Joined)
+		a.Equal(m1, m2)
+
+		m1 = NewMemberSet(expected.Left)
+		m2 = NewMemberSet(changes.Left)
+		a.Equal(m1, m2)
 	})
 }
 
@@ -132,6 +171,56 @@ func _newTopologyEventForTest(membersCount int, kinds ...string) Members {
 	}
 
 	return members
+}
+
+func TestMemberList_UpdateClusterTopology2(t *testing.T) {
+	c := newClusterForTest("test-UpdateClusterTopology", nil)
+
+	obj := NewMemberList(c)
+	dumpMembers := func(list Members) {
+		t.Logf("membersByMemberId=%d", len(list))
+
+		for _, m := range list {
+			t.Logf("\t%s", m.Address())
+		}
+	}
+
+	empty := make([]*Member, 0)
+
+	_ = dumpMembers
+	_sorted := func(tpl *ClusterTopology) {
+		_sortMembers := func(list Members) {
+			sort.Slice(list, func(i, j int) bool {
+				return (list)[i].Port < (list)[j].Port
+			})
+		}
+		_sortMembers(tpl.Members)
+		_sortMembers(tpl.Left)
+		_sortMembers(tpl.Joined)
+	}
+
+	a := assert.New(t)
+	members := _newTopologyEventForTest(2)
+	changes, _, _, _, _ := obj.getTopologyChanges(members) //nolint:dogsled
+	_sorted(changes)
+
+	expected := &ClusterTopology{TopologyHash: TopologyHash(members), Members: members, Joined: members, Left: empty}
+
+	a.Equal(expected.TopologyHash, changes.TopologyHash)
+
+	var m1, m2 *MemberSet
+	m1 = NewMemberSet(expected.Members)
+	m2 = NewMemberSet(changes.Members)
+	a.Equal(m1, m2)
+
+	m1 = NewMemberSet(expected.Joined)
+	m2 = NewMemberSet(changes.Joined)
+	a.Equal(m1, m2)
+
+	m1 = NewMemberSet(expected.Left)
+	m2 = NewMemberSet(changes.Left)
+	a.Equal(m1, m2)
+
 }
 
 func TestMemberList_getPartitionMember(t *testing.T) {
