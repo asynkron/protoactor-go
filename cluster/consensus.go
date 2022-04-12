@@ -10,7 +10,7 @@ import (
 )
 
 // this data structure is used to host consensus check results, the
-// contents are protected from data races as it embeds RWMutex
+// contents are protected from data races as it embeds RWMutex.
 type consensusResult struct {
 	sync.Mutex
 
@@ -36,12 +36,13 @@ func NewGossipConsensusHandler() *gossipConsensusHandler {
 			value:     nil,
 		},
 	}
+
 	return &handler
 }
 
 func (hdl *gossipConsensusHandler) GetID() string { return hdl.ID }
 
-func (hdl *gossipConsensusHandler) TryGetConsensus(ctx context.Context) (interface{}, bool) {
+func (hdl *gossipConsensusHandler) TryGetConsensus(context.Context) (interface{}, bool) {
 	// wait until our result is available
 	hdl.result.Lock()
 	defer hdl.result.Unlock()

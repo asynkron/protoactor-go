@@ -12,10 +12,10 @@ import (
 	"github.com/asynkron/protoactor-go/remote"
 )
 
-// Defines a type to provide DefaultContext configurations / implementations
+// Defines a type to provide DefaultContext configurations / implementations.
 type ContextProducer func(*Cluster) Context
 
-// Defines a default cluster context hashBytes structure
+// Defines a default cluster context hashBytes structure.
 type DefaultContext struct {
 	cluster *Cluster
 }
@@ -23,7 +23,7 @@ type DefaultContext struct {
 var _ Context = (*DefaultContext)(nil)
 
 // Creates a new DefaultContext value and returns
-// a pointer to its memory address as a Context
+// a pointer to its memory address as a Context.
 func newDefaultClusterContext(cluster *Cluster) Context {
 	clusterContext := DefaultContext{
 		cluster: cluster,
@@ -104,14 +104,14 @@ selectloop:
 }
 
 // gets the cached PID for the given identity
-// it can return nil if none is found
+// it can return nil if none is found.
 func (dcc *DefaultContext) getCachedPid(identity, kind string) *actor.PID {
 	pid, _ := dcc.cluster.PidCache.Get(identity, kind)
 
 	return pid
 }
 
-// default retry action, it just sleeps incrementally
+// default retry action, it just sleeps incrementally.
 func defaultRetryAction(i int) int {
 	i++
 	time.Sleep(time.Duration(i * i * 50))

@@ -7,10 +7,10 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-// customary type that defines a states sender callback
+// customary type that defines a states sender callback.
 type LocalStateSender func(memberStateDelta *MemberStateDelta, member *Member)
 
-// This interface must be implemented by any value that
+// This interface must be implemented by any value that.
 // wants to be used as a gossip state storage
 type GossipStateStorer interface {
 	GetState(key string) map[string]*anypb.Any
