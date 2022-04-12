@@ -77,6 +77,7 @@ func TestInformer_ReceiveState(t *testing.T) {
 		t.Error("member1 is missing")
 	}
 
+	//ensure we see member2 after receiving state
 	_, ok = m["member2"]
 
 	if !ok {
