@@ -41,7 +41,8 @@ func setKey(state GossipState, key string, value proto.Message, memberID string,
 	sequenceNo++
 	entry.SequenceNumber = sequenceNo
 
-	anypb.MarshalFrom(entry.Value, value, proto.MarshalOptions{})
+	a, _ := anypb.New(entry.Value)
+	entry.Value = a
 
 	return sequenceNo
 }
