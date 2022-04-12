@@ -7,7 +7,7 @@ require (
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2
 	github.com/couchbase/gocb v1.6.7
-	github.com/emirpasic/gods v1.12.0
+	github.com/emirpasic/gods v1.15.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/consul/api v1.12.0
@@ -27,8 +27,6 @@ require (
 )
 
 require (
-	github.com/go-zookeeper/zk v1.0.2
-	github.com/golang/mock v1.5.0
 	github.com/golang/protobuf v1.5.2
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/lithammer/shortuuid/v4 v4.0.0
