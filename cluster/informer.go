@@ -28,7 +28,7 @@ var rnd = rand.New(rand.NewSource(time.Now().UnixMicro()))
 type Informer struct {
 	myID              string
 	localSeqNumber    int64
-	state             GossipState
+	state             *GossipState
 	commitedOffsets   map[string]int64
 	activeMemberIDs   map[string]empty
 	otherMembers      []*Member
@@ -47,7 +47,7 @@ var _ Gossip = (*Informer)(nil)
 func newInformer(myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int) *Informer {
 	informer := Informer{
 		myID: myID,
-		state: GossipState{
+		state: &GossipState{
 			Members: map[string]*GossipState_GossipMemberState{},
 		},
 		commitedOffsets:   map[string]int64{},
@@ -83,16 +83,18 @@ func (inf *Informer) UpdateClusterTopology(topology *ClusterTopology) {
 // sets new update key state using the given proto message
 func (inf *Informer) SetState(key string, message proto.Message) {
 	inf.localSeqNumber = setKey(inf.state, key, message, inf.myID, inf.localSeqNumber)
-	if inf.throttler() == actor.Open {
-		sequenceNumbers := map[string]uint64{}
-		for _, memberState := range inf.state.Members {
-			for key, value := range memberState.Values {
-				sequenceNumbers[key] = uint64(value.SequenceNumber)
-			}
-		}
 
-		// plog.Debug("Setting state", log.String("key", key), log.String("value", message.String()), log.Object("state", sequenceNumbers))
-	}
+	//if inf.throttler() == actor.Open {
+	//	sequenceNumbers := map[string]uint64{}
+	//
+	//	for _, memberState := range inf.state.Members {
+	//		for key, value := range memberState.Values {
+	//			sequenceNumbers[key] = uint64(value.SequenceNumber)
+	//		}
+	//	}
+	//
+	//	// plog.Debug("Setting state", log.String("key", key), log.String("value", message.String()), log.Object("state", sequenceNumbers))
+	//}
 
 	if _, ok := inf.state.Members[inf.myID]; !ok {
 		plog.Error("State corrupt")
@@ -225,7 +227,7 @@ func (inf *Informer) AddConsensusCheck(id string, check *ConsensusCheck) {
 	inf.consensusChecks.Add(id, check)
 
 	// check when adding, if we are already consistent
-	check.check(&inf.state, inf.activeMemberIDs)
+	check.check(inf.state, inf.activeMemberIDs)
 }
 
 // removes a consensus checker from this informer
@@ -236,22 +238,24 @@ func (inf *Informer) RemoveConsensusCheck(id string) {
 // retrieves this informer current state for the given key
 func (inf *Informer) GetState(key string) map[string]*anypb.Any {
 	entries := make(map[string]*anypb.Any)
+
 	for memberID, memberState := range inf.state.Members {
-		if value, ok := memberState.Values[memberID]; ok {
+		if value, ok := memberState.Values[key]; ok {
 			entries[memberID] = value.Value
 		}
 	}
+
 	return entries
 }
 
 // receives a remote informer state
 func (inf *Informer) ReceiveState(remoteState *GossipState) []*GossipUpdate {
-	updates, newState, updatedKeys := mergeState(&inf.state, remoteState)
+	updates, newState, updatedKeys := mergeState(inf.state, remoteState)
 	if len(updates) == 0 {
 		return nil
 	}
 
-	inf.state = *newState
+	inf.state = newState
 	keys := make([]string, 0, len(updatedKeys))
 	for k := range updatedKeys {
 		keys = append(keys, k)
@@ -264,14 +268,14 @@ func (inf *Informer) ReceiveState(remoteState *GossipState) []*GossipUpdate {
 // check consensus for the given keys
 func (inf *Informer) CheckConsensus(updatedKeys ...string) {
 	for _, consensusCheck := range inf.consensusChecks.GetByUpdatedKeys(updatedKeys) {
-		consensusCheck.check(&inf.state, inf.activeMemberIDs)
+		consensusCheck.check(inf.state, inf.activeMemberIDs)
 	}
 }
 
 // runs checkers on key updates
 func (inf *Informer) checkConsensusKey(updatedKey string) {
 	for _, consensusCheck := range inf.consensusChecks.GetByUpdatedKey(updatedKey) {
-		consensusCheck.check(&inf.state, inf.activeMemberIDs)
+		consensusCheck.check(inf.state, inf.activeMemberIDs)
 	}
 }
 

@@ -16,12 +16,13 @@ func ensureEntryExists(memberState *GossipMemberState, key string) *GossipKeyVal
 
 	value = &GossipKeyValue{}
 	memberState.Values[key] = value
+
 	return value
 }
 
 // returns back the GossipMemberState registered in the given GossipState
 // under the given memberID key, if the key doesn't exists yet it is created
-func ensureMemberStateExists(state GossipState, memberID string) *GossipMemberState {
+func ensureMemberStateExists(state *GossipState, memberID string) *GossipMemberState {
 	memberState, ok := state.Members[memberID]
 	if ok {
 		return memberState
@@ -29,11 +30,12 @@ func ensureMemberStateExists(state GossipState, memberID string) *GossipMemberSt
 
 	memberState = &GossipMemberState{Values: make(map[string]*GossipKeyValue)}
 	state.Members[memberID] = memberState
+
 	return memberState
 }
 
 // sets the given key with the given value in the given gossip state and returns sequenceNo + 1
-func setKey(state GossipState, key string, value proto.Message, memberID string, sequenceNo int64) int64 {
+func setKey(state *GossipState, key string, value proto.Message, memberID string, sequenceNo int64) int64 {
 	// if entry does not exists, add it
 	memberState := ensureMemberStateExists(state, memberID)
 	entry := ensureEntryExists(memberState, key)
@@ -77,7 +79,7 @@ func mergeState(localState *GossipState, remoteState *GossipState) ([]*GossipUpd
 		// this entry exists in both mergedState and remoteState, we should merge them
 		newMemberState := mergedState.Members[memberID]
 		for key, remoteValue := range remoteMemberState.Values {
-			// this entry does not exists in newMemberState, just copy all of it
+			// this entry does not exist in newMemberState, just copy all of it
 			if _, ok := newMemberState.Values[key]; !ok {
 				newMemberState.Values[key] = remoteValue
 				update := GossipUpdate{
