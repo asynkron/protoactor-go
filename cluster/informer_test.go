@@ -1,18 +1,20 @@
 package cluster
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/asynkron/gofun/set"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-func a() set.Set[string] {
-	return set.New[string]()
-}
-
 func TestInformer_SetState(t *testing.T) {
 	t.Parallel()
+
+	a := func() set.Set[string] {
+		return set.New[string]()
+	}
 
 	s := &MemberHeartbeat{
 		ActorStatistics: &ActorStatistics{},
@@ -24,6 +26,10 @@ func TestInformer_SetState(t *testing.T) {
 
 func TestInformer_GetState(t *testing.T) {
 	t.Parallel()
+
+	a := func() set.Set[string] {
+		return set.New[string]()
+	}
 
 	s := &MemberHeartbeat{
 		ActorStatistics: &ActorStatistics{},
@@ -46,6 +52,10 @@ func TestInformer_GetState(t *testing.T) {
 
 func TestInformer_ReceiveState(t *testing.T) {
 	t.Parallel()
+
+	a := func() set.Set[string] {
+		return set.New[string]()
+	}
 
 	s := &MemberHeartbeat{
 		ActorStatistics: &ActorStatistics{},
@@ -86,4 +96,44 @@ func TestInformer_ReceiveState(t *testing.T) {
 	if !ok {
 		t.Error("member2 is missing")
 	}
+}
+
+func TestInformer_SendState(t *testing.T) {
+	t.Parallel()
+
+	a := func() set.Set[string] {
+		return set.New[string]()
+	}
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	sendState := func(memberStateDelta *MemberStateDelta, member *Member) {
+		fmt.Printf("%+v\n", memberStateDelta) //nolint:forbidigo
+		wg.Done()
+	}
+
+	s := &MemberHeartbeat{
+		ActorStatistics: &ActorStatistics{},
+	}
+
+	i := newInformer("member1", a, 3, 3)
+	i.SetState("heartbeat", s)
+	i.UpdateClusterTopology(&ClusterTopology{
+		Members: []*Member{
+			{
+				Id:   "member2",
+				Host: "member2",
+				Port: 123,
+			},
+			{
+				Id:   "member1",
+				Host: "member1",
+				Port: 333,
+			},
+		},
+	})
+
+	i.SendState(sendState)
+	wg.Wait()
+
 }
