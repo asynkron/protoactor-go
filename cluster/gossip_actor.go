@@ -6,13 +6,12 @@ import (
 	"time"
 
 	"github.com/asynkron/gofun/set"
-
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/log"
 )
 
 // convenience customary type to represent an empty value
-// that takes no space in memory
+// that takes no space in memory.
 type empty struct{}
 
 // Actor used to send gossip messages around
@@ -28,10 +27,11 @@ func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers
 		gossipRequestTimeout: requestTimeout,
 		gossip:               informer,
 	}
+
 	return &gossipActor
 }
 
-// Receive method
+// Receive method.
 func (ga *GossipActor) Receive(ctx actor.Context) {
 	switch r := ctx.Message().(type) {
 	case *SetGossipStateKey:
@@ -43,9 +43,9 @@ func (ga *GossipActor) Receive(ctx actor.Context) {
 	case *SendGossipStateRequest:
 		ga.onSendGossipState(ctx)
 	case *AddConsensusCheck:
-		ga.onAddConsensusCheck(r, ctx)
+		ga.onAddConsensusCheck(r)
 	case *RemoveConsensusCheck:
-		ga.onRemoveConsensusCheck(r, ctx)
+		ga.onRemoveConsensusCheck(r)
 	case *ClusterTopology:
 		ga.onClusterTopology(r)
 	case *GossipResponse:
@@ -59,11 +59,11 @@ func (ga *GossipActor) onClusterTopology(topology *ClusterTopology) {
 	ga.gossip.UpdateClusterTopology(topology)
 }
 
-func (ga *GossipActor) onAddConsensusCheck(r *AddConsensusCheck, ctx actor.Context) {
+func (ga *GossipActor) onAddConsensusCheck(r *AddConsensusCheck) {
 	ga.gossip.AddConsensusCheck(r.ID, r.Check)
 }
 
-func (ga *GossipActor) onRemoveConsensusCheck(r *RemoveConsensusCheck, ctx actor.Context) {
+func (ga *GossipActor) onRemoveConsensusCheck(r *RemoveConsensusCheck) {
 	ga.gossip.RemoveConsensusCheck(r.ID)
 }
 
@@ -83,6 +83,7 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 		// nothing to send, do not provide sender or state payload
 		// ctx.Respond(&GossipResponse{State: &GossipState{Members: make(map[string]*GossipState_GossipMemberState)}})
 		ctx.Respond(&GossipResponse{})
+
 		return
 	}
 
@@ -92,6 +93,7 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 
 		// nothing to send, do not provide sender or state payload
 		ctx.Respond(&GossipResponse{})
+
 		return
 	}
 
@@ -104,11 +106,13 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 	resp, err := future.Result()
 	if err != nil {
 		plog.Error("onSendGossipState failed", log.Error(err))
+
 		return
 	}
 
 	if _, ok := resp.(*GossipResponseAck); ok {
 		memberState.CommitOffsets()
+
 		return
 	}
 
@@ -118,6 +122,7 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 func (ga *GossipActor) onSetGossipStateKey(r *SetGossipStateKey, ctx actor.Context) {
 	key, message := r.Key, r.Value
 	ga.gossip.SetState(key, message)
+
 	if ctx.Sender() != nil {
 		ctx.Respond(&SetGossipStateResponse{})
 	}
@@ -159,18 +164,22 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 	r, err := future.Result()
 	if err != nil {
 		plog.Error("onSendGossipState failed", log.Error(err))
+
 		return
 	}
 
 	resp, ok := r.(*GossipResponse)
 	if !ok {
 		plog.Error("onSendGossipState received unknown response message", log.Message(r))
+
 		return
 	}
 
 	memberStateDelta.CommitOffsets()
+
 	if resp.State != nil {
 		ga.ReceiveState(resp.State, ctx)
+
 		if ctx.Sender() != nil {
 			ctx.Send(ctx.Sender(), &GossipResponseAck{})
 		}
