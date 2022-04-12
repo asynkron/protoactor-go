@@ -8,12 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"google.golang.org/protobuf/proto"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	logmod "github.com/asynkron/protoactor-go/log"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
