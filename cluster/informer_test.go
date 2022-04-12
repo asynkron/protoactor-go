@@ -118,6 +118,7 @@ func TestInformer_SendState(t *testing.T) {
 
 	i := newInformer("member1", a, 3, 3)
 	i.SetState("heartbeat", s)
+	// the cluster sees two nodes. itself and member2
 	i.UpdateClusterTopology(&ClusterTopology{
 		Members: []*Member{
 			{
@@ -133,7 +134,7 @@ func TestInformer_SendState(t *testing.T) {
 		},
 	})
 
+	// gossip never sends to self, so the only member we can send to is member2
 	i.SendState(sendState)
 	wg.Wait()
-
 }
