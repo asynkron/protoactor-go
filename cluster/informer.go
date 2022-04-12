@@ -29,7 +29,7 @@ type Informer struct {
 	myID              string
 	localSeqNumber    int64
 	state             *GossipState
-	commitedOffsets   map[string]int64
+	committedOffsets  map[string]int64
 	activeMemberIDs   map[string]empty
 	otherMembers      []*Member
 	consensusChecks   *ConsensusChecks
@@ -50,7 +50,7 @@ func newInformer(myID string, getBlockedMembers func() set.Set[string], fanOut i
 		state: &GossipState{
 			Members: map[string]*GossipState_GossipMemberState{},
 		},
-		commitedOffsets:   map[string]int64{},
+		committedOffsets:  map[string]int64{},
 		activeMemberIDs:   map[string]empty{},
 		otherMembers:      []*Member{},
 		consensusChecks:   NewConsensusChecks(),
@@ -147,7 +147,7 @@ func (inf *Informer) GetMemberStateDelta(targetMemberID string) MemberStateDelta
 	newState := GossipState{Members: make(map[string]*GossipState_GossipMemberState)}
 
 	// hashmaps in Go are random by nature so no need to randomize state.Members
-	pendingOffsets := inf.commitedOffsets
+	pendingOffsets := inf.committedOffsets
 
 	// create a new map with gossipMaxSend entries max
 	members := make(map[string]*GossipState_GossipMemberState)
@@ -185,7 +185,7 @@ func (inf *Informer) GetMemberStateDelta(targetMemberID string) MemberStateDelta
 		watermarkKey := fmt.Sprintf("%s.%s", targetMemberID, memberID)
 
 		// get the water mark
-		watermark := inf.commitedOffsets[watermarkKey]
+		watermark := inf.committedOffsets[watermarkKey]
 		newWatermark := watermark
 
 		// for each value in member state
@@ -209,7 +209,7 @@ func (inf *Informer) GetMemberStateDelta(targetMemberID string) MemberStateDelta
 		}
 	}
 
-	hasState := reflect.DeepEqual(inf.commitedOffsets, pendingOffsets)
+	hasState := reflect.DeepEqual(inf.committedOffsets, pendingOffsets)
 	memberState := MemberStateDelta{
 		TargetMemberID: targetMemberID,
 		HasState:       hasState,
@@ -282,8 +282,8 @@ func (inf *Informer) checkConsensusKey(updatedKey string) {
 
 func (inf *Informer) commitPendingOffsets(offsets map[string]int64) {
 	for key, seqNumber := range offsets {
-		if offset, ok := inf.commitedOffsets[key]; !ok || offset < seqNumber {
-			inf.commitedOffsets[key] = seqNumber
+		if offset, ok := inf.committedOffsets[key]; !ok || offset < seqNumber {
+			inf.committedOffsets[key] = seqNumber
 		}
 	}
 }

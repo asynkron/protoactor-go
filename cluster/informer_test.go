@@ -1,10 +1,10 @@
 package cluster
 
 import (
-	"google.golang.org/protobuf/types/known/anypb"
 	"testing"
 
 	"github.com/asynkron/gofun/set"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 func a() set.Set[string] {
@@ -56,11 +56,12 @@ func TestInformer_ReceiveState(t *testing.T) {
 	i.SetState("heartbeat", s)
 
 	remoteState := &GossipState{
-		Members: map[string]*GossipMemberState{
+		Members: GossipMemberStates{
 			"member2": {
-				Values: map[string]*GossipKeyValue{
+				Values: GossipKeyValues{
 					"heartbeat": {
-						Value: dummyValue,
+						Value:          dummyValue,
+						SequenceNumber: 1,
 					},
 				},
 			},
@@ -71,7 +72,9 @@ func TestInformer_ReceiveState(t *testing.T) {
 
 	m := i.GetState("heartbeat")
 
-	_, ok := m["member1"]
+	var ok bool
+
+	_, ok = m["member1"]
 
 	if !ok {
 		t.Error("member1 is missing")
