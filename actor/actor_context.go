@@ -8,11 +8,10 @@ import (
 	"time"
 
 	"github.com/asynkron/protoactor-go/ctxext"
-	"go.opentelemetry.io/otel/attribute"
-
 	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/metrics"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 const (
@@ -258,6 +257,7 @@ func (ctx *actorContext) Forward(pid *PID) {
 	if msg, ok := ctx.messageOrEnvelope.(SystemMessage); ok {
 		// SystemMessage cannot be forwarded
 		plog.Error("SystemMessage cannot be forwarded", log.Message(msg))
+
 		return
 	}
 
@@ -364,10 +364,11 @@ func (ctx *actorContext) defaultReceive() {
 		// are we using decorators, if so, ensure it has been created
 		if ctx.props.contextDecoratorChain != nil {
 			ctx.actor.Receive(ctx.ensureExtras().context)
+
 			return
-		} else {
-			ctx.actor.Receive(ctx)
 		}
+
+		ctx.actor.Receive(ctx)
 	}
 }
 
@@ -603,7 +604,7 @@ func (ctx *actorContext) handleRestart() {
 	}
 }
 
-// I am stopping
+// I am stopping.
 func (ctx *actorContext) handleStop() {
 	if atomic.LoadInt32(&ctx.state) >= stateStopping {
 		// already stopping or stopped
@@ -617,7 +618,7 @@ func (ctx *actorContext) handleStop() {
 	ctx.tryRestartOrTerminate()
 }
 
-// child stopped, check if we can stop or restart (if needed)
+// child stopped, check if we can stop or restart (if needed).
 func (ctx *actorContext) handleTerminated(msg *Terminated) {
 	if ctx.extras != nil {
 		ctx.extras.removeChild(msg.Who)
@@ -627,7 +628,7 @@ func (ctx *actorContext) handleTerminated(msg *Terminated) {
 	ctx.tryRestartOrTerminate()
 }
 
-// offload the supervision completely to the supervisor strategy
+// offload the supervision completely to the supervisor strategy.
 func (ctx *actorContext) handleFailure(msg *Failure) {
 	if strategy, ok := ctx.actor.(SupervisorStrategy); ok {
 		strategy.HandleFailure(ctx.actorSystem, ctx, msg.Who, msg.RestartStats, msg.Reason, msg.Message)

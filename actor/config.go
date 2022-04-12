@@ -51,6 +51,7 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 	if err != nil {
 		err = fmt.Errorf("failed to initialize prometheus exporter: %w", err)
 		plog.Error(err.Error(), log.Error(err))
+
 		return nil
 	}
 
@@ -60,11 +61,13 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 	http.HandleFunc("/", exporter.ServeHTTP)
 
 	_port := fmt.Sprintf(":%d", port)
+
 	go func() {
 		_ = http.ListenAndServe(_port, nil)
 	}()
 
 	plog.Debug(fmt.Sprintf("Prometheus server running on %s", _port))
+
 	return provider
 }
 

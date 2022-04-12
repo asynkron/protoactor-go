@@ -37,10 +37,12 @@ func (rs *RestartStatistics) NumberOfFailures(withinDuration time.Duration) int 
 
 	num := 0
 	currTime := time.Now()
+
 	for _, t := range rs.failureTimes {
 		if currTime.Sub(t) < withinDuration {
 			num++
 		}
 	}
+
 	return num
 }

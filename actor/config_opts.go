@@ -13,6 +13,7 @@ func Configure(options ...ConfigOption) *Config {
 	for _, option := range options {
 		option(config)
 	}
+
 	return config
 }
 
@@ -57,5 +58,6 @@ func WithDefaultPrometheusProvider(port ...int) ConfigOption {
 	if len(port) > 0 {
 		_port = port[0]
 	}
+
 	return WithMetricProviders(defaultPrometheusProvider(_port))
 }

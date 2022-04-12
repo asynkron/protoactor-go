@@ -23,6 +23,7 @@ type PID struct {
 }
 */
 
+//goland:noinspection GoReceiverNames
 func (pid *PID) ref(actorSystem *ActorSystem) Process {
 	p := (*Process)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&pid.p))))
 	if p != nil {
@@ -42,14 +43,17 @@ func (pid *PID) ref(actorSystem *ActorSystem) Process {
 }
 
 // sendUserMessage sends a messages asynchronously to the PID
+//goland:noinspection GoReceiverNames
 func (pid *PID) sendUserMessage(actorSystem *ActorSystem, message interface{}) {
 	pid.ref(actorSystem).SendUserMessage(pid, message)
 }
 
+//goland:noinspection GoReceiverNames
 func (pid *PID) sendSystemMessage(actorSystem *ActorSystem, message interface{}) {
 	pid.ref(actorSystem).SendSystemMessage(pid, message)
 }
 
+//goland:noinspection GoReceiverNames
 func (pid *PID) Equal(other *PID) bool {
 	if pid != nil && other == nil {
 		return false

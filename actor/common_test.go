@@ -107,11 +107,13 @@ func (m *mockContext) ReenterAfter(f *Future, cont func(res interface{}, err err
 
 func (m *mockContext) Message() interface{} {
 	args := m.Called()
+
 	return args.Get(0)
 }
 
 func (m *mockContext) MessageHeader() ReadonlyMessageHeader {
 	args := m.Called()
+
 	return args.Get(0).(ReadonlyMessageHeader)
 }
 
@@ -121,6 +123,7 @@ func (m *mockContext) Send(_ *PID, _ interface{}) {
 
 func (m *mockContext) Request(pid *PID, message interface{}) {
 	args := m.Called()
+
 	p, _ := system.ProcessRegistry.Get(pid)
 	env := &MessageEnvelope{
 		Header:  nil,
@@ -132,6 +135,7 @@ func (m *mockContext) Request(pid *PID, message interface{}) {
 
 func (m *mockContext) RequestWithCustomSender(pid *PID, message interface{}, sender *PID) {
 	m.Called()
+
 	p, _ := system.ProcessRegistry.Get(pid)
 	env := &MessageEnvelope{
 		Header:  nil,
@@ -143,6 +147,7 @@ func (m *mockContext) RequestWithCustomSender(pid *PID, message interface{}, sen
 
 func (m *mockContext) RequestFuture(_ *PID, _ interface{}, _ time.Duration) *Future {
 	args := m.Called()
+
 	return args.Get(0).(*Future)
 }
 
@@ -165,11 +170,13 @@ func (m *mockContext) Spawn(p *Props) *PID {
 
 func (m *mockContext) SpawnPrefix(p *Props, prefix string) *PID {
 	args := m.Called(p, prefix)
+
 	return args.Get(0).(*PID)
 }
 
 func (m *mockContext) SpawnNamed(p *Props, name string) (*PID, error) {
 	args := m.Called(p, name)
+
 	return args.Get(0).(*PID), args.Get(1).(error)
 }
 
@@ -180,6 +187,7 @@ type mockProcess struct {
 
 func spawnMockProcess(name string) (*PID, *mockProcess) {
 	p := &mockProcess{}
+
 	pid, ok := system.ProcessRegistry.Add(p, name)
 	if !ok {
 		panic(fmt.Errorf("did not spawn named process '%vids'", name))

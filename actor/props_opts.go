@@ -1,6 +1,5 @@
 package actor
 
-// props options
 type PropsOption func(props *Props)
 
 func WithOnInit(init ...func(ctx Context)) PropsOption {

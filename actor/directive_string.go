@@ -4,8 +4,10 @@ package actor
 
 import "fmt"
 
+//goland:noinspection GoSnakeCaseUsage
 const _Directive_name = "ResumeDirectiveRestartDirectiveStopDirectiveEscalateDirective"
 
+//goland:noinspection GoSnakeCaseUsage
 var _Directive_index = [...]uint8{0, 15, 31, 44, 61}
 
 func (i Directive) String() string {
