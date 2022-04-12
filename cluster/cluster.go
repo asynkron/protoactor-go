@@ -28,25 +28,28 @@ type Cluster struct {
 var _ extensions.Extension = &Cluster{}
 
 func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
-	c := Cluster{
+	c := &Cluster{
 		ActorSystem: actorSystem,
 		Config:      config,
 		kinds:       map[string]*ActivatedKind{},
 	}
-	actorSystem.Extensions.Register(&c)
+	actorSystem.Extensions.Register(c)
 
-	c.context = config.ClusterContextProducer(&c)
+	c.context = config.ClusterContextProducer(c)
 	c.PidCache = NewPidCache()
-	c.MemberList = NewMemberList(&c)
+	c.MemberList = NewMemberList(c)
 	c.subscribeToTopologyEvents()
 
-	actorSystem.Extensions.Register(&c)
+	actorSystem.Extensions.Register(c)
+
 	var err error
-	c.Gossip, err = newGossiper(&c)
+	c.Gossip, err = newGossiper(c)
+
 	if err != nil {
 		panic(err)
 	}
-	return &c
+
+	return c
 }
 
 func (c *Cluster) subscribeToTopologyEvents() {
@@ -66,6 +69,7 @@ func (c *Cluster) ExtensionID() extensions.ExtensionID {
 //goland:noinspection GoUnusedExportedFunction
 func GetCluster(actorSystem *actor.ActorSystem) *Cluster {
 	c := actorSystem.Extensions.Get(extensionId)
+
 	return c.(*Cluster)
 }
 
@@ -98,6 +102,7 @@ func (c *Cluster) StartMember() {
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
 		panic(err)
 	}
+
 	time.Sleep(1 * time.Second)
 }
 
@@ -106,6 +111,7 @@ func (c *Cluster) GetClusterKinds() []string {
 	for k := range c.kinds {
 		keys = append(keys, k)
 	}
+
 	return keys
 }
 
@@ -128,6 +134,7 @@ func (c *Cluster) StartClient() {
 
 func (c *Cluster) Shutdown(graceful bool) {
 	c.ActorSystem.Shutdown()
+
 	if graceful {
 		_ = c.Config.ClusterProvider.Shutdown(graceful)
 		c.IdentityLookup.Shutdown()
@@ -156,13 +163,16 @@ func (c *Cluster) GetClusterKind(kind string) *ActivatedKind {
 	k, ok := c.kinds[kind]
 	if !ok {
 		plog.Error("Invalid kind", log.String("kind", kind))
+
 		return nil
 	}
+
 	return k
 }
 
 func (c *Cluster) TryGetClusterKind(kind string) (*ActivatedKind, bool) {
 	k, ok := c.kinds[kind]
+
 	return k, ok
 }
 
@@ -185,6 +195,7 @@ func (c *Cluster) Call(name string, kind string, msg interface{}, opts ...GrainC
 	}
 
 	var lastError error
+
 	for i := 0; i < callConfig.RetryCount; i++ {
 		pid := c.Get(name, kind)
 
@@ -197,22 +208,29 @@ func (c *Cluster) Call(name string, kind string, msg interface{}, opts ...GrainC
 		if err != nil {
 			plog.Error("cluster.RequestFuture failed", log.Error(err), log.PID("pid", pid))
 			lastError = err
+
 			switch err {
 			case actor.ErrTimeout, remote.ErrTimeout:
 				callConfig.RetryAction(i)
+
 				id := ClusterIdentity{Kind: kind, Identity: name}
 				c.PidCache.Remove(id.Identity, id.Kind)
+
 				continue
 			case actor.ErrDeadLetter, remote.ErrDeadLetter:
 				callConfig.RetryAction(i)
+
 				id := ClusterIdentity{Kind: kind, Identity: name}
 				c.PidCache.Remove(id.Identity, id.Kind)
+
 				continue
 			default:
 				return nil, err
 			}
 		}
+
 		return _resp, nil
 	}
+
 	return nil, lastError
 }
