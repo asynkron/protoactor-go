@@ -55,7 +55,7 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	}
 }
 
-func TestMemberList_UpdateClusterToplogy(t *testing.T) {
+func TestMemberList_UpdateClusterTopology(t *testing.T) {
 	c := newClusterForTest("test-UpdateClusterTopology", nil)
 
 	obj := NewMemberList(c)
