@@ -130,7 +130,7 @@ func (inf *Informer) SendState(sendStateToMember LocalStateSender) {
 		}
 
 		// fire and forget, we handle results in ReenterAfter
-		sendStateToMember(&memberState, member)
+		sendStateToMember(memberState, member)
 		fanOutCount++
 
 		// we reached our limit, break
@@ -140,7 +140,7 @@ func (inf *Informer) SendState(sendStateToMember LocalStateSender) {
 	}
 }
 
-func (inf *Informer) GetMemberStateDelta(targetMemberID string) MemberStateDelta {
+func (inf *Informer) GetMemberStateDelta(targetMemberID string) *MemberStateDelta {
 	var count int
 
 	// newState will old the final new state to be sent
@@ -210,7 +210,7 @@ func (inf *Informer) GetMemberStateDelta(targetMemberID string) MemberStateDelta
 	}
 
 	hasState := reflect.DeepEqual(inf.committedOffsets, pendingOffsets)
-	memberState := MemberStateDelta{
+	memberState := &MemberStateDelta{
 		TargetMemberID: targetMemberID,
 		HasState:       hasState,
 		State:          &newState,
