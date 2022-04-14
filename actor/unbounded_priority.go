@@ -14,7 +14,7 @@ func NewPriorityGoringQueue() *priorityQueue {
 }
 
 //goland:noinspection ALL
-func UnboundedPriority(mailboxStats ...Middleware) MailboxProducer {
+func UnboundedPriority(mailboxStats ...MailboxMiddleware) MailboxProducer {
 	return func() Mailbox {
 		return &defaultMailbox{
 			systemMailbox: mpsc.New(),
@@ -30,7 +30,7 @@ func NewPriorityMpscQueue() *priorityQueue {
 	})
 }
 
-func UnboundedPriorityMpsc(mailboxStats ...Middleware) MailboxProducer {
+func UnboundedPriorityMpsc(mailboxStats ...MailboxMiddleware) MailboxProducer {
 	return func() Mailbox {
 		return &defaultMailbox{
 			systemMailbox: mpsc.New(),
