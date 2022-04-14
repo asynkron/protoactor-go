@@ -205,6 +205,7 @@ func (c *Cluster) Call(name string, kind string, msg interface{}, opts ...GrainC
 
 		timeout := callConfig.Timeout
 		_resp, err := _context.RequestFuture(pid, msg, timeout).Result()
+
 		if err != nil {
 			plog.Error("cluster.RequestFuture failed", log.Error(err), log.PID("pid", pid))
 			lastError = err
