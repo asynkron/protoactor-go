@@ -21,6 +21,7 @@ func Use(plugin plugin) func(next actor.ReceiverFunc) actor.ReceiverFunc {
 
 			next(context, env)
 		}
+
 		return fn
 	}
 }
