@@ -16,7 +16,7 @@ type (
 	SpawnMiddleware    func(next SpawnFunc) SpawnFunc
 )
 
-// Default values
+// Default values.
 var (
 	defaultDispatcher      = NewDefaultDispatcher(300)
 	defaultMailboxProducer = Unbounded()
@@ -70,13 +70,13 @@ func initialize(props *Props, ctx *actorContext) {
 	}
 }
 
-// DefaultSpawner this is a hacking way to allow Proto.Router access default spawner func
+// DefaultSpawner this is a hacking way to allow Proto.Router access default spawner func.
 var DefaultSpawner SpawnFunc = defaultSpawner
 
 // ErrNameExists is the error used when an existing name is used for spawning an actor.
 var ErrNameExists = errors.New("spawn: name exists")
 
-// Props represents configuration to define how an actor should be created
+// Props represents configuration to define how an actor should be created.
 type Props struct {
 	spawner                 SpawnFunc
 	producer                Producer

@@ -23,15 +23,18 @@ type SliceMap struct {
 func newSliceMap() *SliceMap {
 	sm := &SliceMap{}
 	sm.LocalPIDs = make([]cmap.ConcurrentMap, 1024)
+
 	for i := 0; i < len(sm.LocalPIDs); i++ {
 		sm.LocalPIDs[i] = cmap.New()
 	}
+
 	return sm
 }
 
 func (s *SliceMap) GetBucket(key string) cmap.ConcurrentMap {
 	hash := murmur32.Sum32([]byte(key))
 	index := int(hash) % len(s.LocalPIDs)
+
 	return s.LocalPIDs[index]
 }
 
@@ -78,6 +81,7 @@ func uint64ToId(u uint64) string {
 
 func (pr *ProcessRegistryValue) NextId() string {
 	counter := atomic.AddUint64(&pr.SequenceID, 1)
+
 	return uint64ToId(counter)
 }
 
@@ -103,6 +107,7 @@ func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {
 	if pid == nil {
 		return pr.ActorSystem.DeadLetter, false
 	}
+
 	if pid.Address != localAddress && pid.Address != pr.Address {
 		for _, handler := range pr.RemoteHandlers {
 			ref, ok := handler(pid)
@@ -110,21 +115,27 @@ func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {
 				return ref, true
 			}
 		}
+
 		return pr.ActorSystem.DeadLetter, false
 	}
+
 	bucket := pr.LocalPIDs.GetBucket(pid.Id)
 	ref, ok := bucket.Get(pid.Id)
+
 	if !ok {
 		return pr.ActorSystem.DeadLetter, false
 	}
+
 	return ref.(Process), true
 }
 
 func (pr *ProcessRegistryValue) GetLocal(id string) (Process, bool) {
 	bucket := pr.LocalPIDs.GetBucket(id)
 	ref, ok := bucket.Get(id)
+
 	if !ok {
 		return pr.ActorSystem.DeadLetter, false
 	}
+
 	return ref.(Process), true
 }

@@ -91,24 +91,27 @@ func WithSpawnMiddleware(middleware ...SpawnMiddleware) PropsOption {
 			if props.spawner == nil {
 				return defaultSpawner(actorSystem, id, props, parentContext)
 			}
+
 			return props.spawner(actorSystem, id, props, parentContext)
 		})
 	}
 }
 
-// PropsFromProducer creates a props with the given actor producer assigned
+// PropsFromProducer creates a props with the given actor producer assigned.
 func PropsFromProducer(producer Producer, opts ...PropsOption) *Props {
 	p := &Props{
 		producer:         producer,
 		contextDecorator: make([]ContextDecorator, 0),
 	}
 	p.Configure(opts...)
+
 	return p
 }
 
-// PropsFromFunc creates a props with the given receive func assigned as the actor producer
+// PropsFromFunc creates a props with the given receive func assigned as the actor producer.
 func PropsFromFunc(f ReceiveFunc, opts ...PropsOption) *Props {
 	p := PropsFromProducer(func() Actor { return f }, opts...)
+
 	return p
 }
 
@@ -125,5 +128,6 @@ func (props *Props) Clone(opts ...PropsOption) *Props {
 		WithSpawnMiddleware(props.spawnMiddleware...))
 
 	cp.Configure(opts...)
+
 	return cp
 }
