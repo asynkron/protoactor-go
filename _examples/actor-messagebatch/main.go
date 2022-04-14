@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"strconv"
+
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
-	"strconv"
 )
 
 // MessageBatch is a message that is sent to the actor and unpacks its payload in the mailbox

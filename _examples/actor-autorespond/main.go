@@ -2,26 +2,26 @@ package main
 
 import (
 	"fmt"
-	"github.com/asynkron/protoactor-go/actor"
 	"time"
+
+	"github.com/asynkron/protoactor-go/actor"
 )
 
-//Auto Response in Proto.Actor is a special kind of message that can create its own response message
-//it is received just like any other message by the actor
-//but the actor context sees the AutoResponse interface and calls GetAutoReplyMessage() to get the response message
-//this is useful if you want to guarantee some form of Ack from an actor. without forcing the developer of the actor to
-//use context.Respond manually
+// Auto Response in Proto.Actor is a special kind of message that can create its own response message
+// it is received just like any other message by the actor
+// but the actor context sees the AutoResponse interface and calls GetAutoReplyMessage() to get the response message
+// this is useful if you want to guarantee some form of Ack from an actor. without forcing the developer of the actor to
+// use context.Respond manually
 
-//e.g. ClusterPubSub feature uses this to Ack back to the Topic actor to let it know the message has been received
+// e.g. ClusterPubSub feature uses this to Ack back to the Topic actor to let it know the message has been received
 
 type myAutoResponder struct {
 	name string
 }
 
 func (m myAutoResponder) GetAutoResponse(context actor.Context) interface{} {
-
-	//return some response-message
-	//you have full access to the actor context
+	// return some response-message
+	// you have full access to the actor context
 
 	return &myAutoResponse{
 		name: m.name + " " + context.Self().Id,

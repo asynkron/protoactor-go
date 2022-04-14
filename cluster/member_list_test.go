@@ -197,7 +197,6 @@ func TestMemberList_UpdateClusterTopology2(t *testing.T) {
 	m1 = NewMemberSet(expected.Left)
 	m2 = NewMemberSet(changes.Left)
 	a.Equal(m1, m2)
-
 }
 
 func TestMemberList_getPartitionMember(t *testing.T) {
