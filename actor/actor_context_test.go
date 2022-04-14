@@ -9,25 +9,29 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestActorContext_SpawnNamed(t *testing.T) {
-	t.Parallel()
+func FuzzSpawnNamed(f *testing.F) {
+	f.Add("parent", "child")
 
-	pid, _ := spawnMockProcess("foo/bar")
+	f.Fuzz(func(t *testing.T, parentName string, childName string) {
+		combined := parentName + "/" + childName
 
-	defer removeMockProcess(pid)
+		pid, _ := spawnMockProcess(parentName)
 
-	props := &Props{
-		spawner: func(actorSystem *ActorSystem, id string, _ *Props, _ SpawnerContext) (*PID, error) {
-			assert.Equal(t, "foo/bar", id)
+		defer removeMockProcess(pid)
 
-			return NewPID(actorSystem.Address(), id), nil
-		},
-	}
+		props := &Props{
+			spawner: func(actorSystem *ActorSystem, id string, _ *Props, _ SpawnerContext) (*PID, error) {
+				assert.Equal(t, combined, id)
 
-	parent := &actorContext{self: NewPID(localAddress, "foo"), props: props, actorSystem: system}
-	child, err := parent.SpawnNamed(props, "bar")
-	assert.NoError(t, err)
-	assert.Equal(t, parent.Children()[0], child)
+				return NewPID(actorSystem.Address(), id), nil
+			},
+		}
+
+		parent := &actorContext{self: NewPID(localAddress, parentName), props: props, actorSystem: system}
+		child, err := parent.SpawnNamed(props, childName)
+		assert.NoError(t, err)
+		assert.Equal(t, parent.Children()[0], child)
+	})
 }
 
 // TestActorContext_Stop verifies if context is stopping and receives a Watch message, it should
