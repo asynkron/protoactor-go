@@ -33,4 +33,7 @@ jobs:
         run: docker compose up -d
       - name: run testcases
         run: make test2
+      - name: linter
+        run: make lint
+
 
