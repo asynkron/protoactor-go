@@ -8,8 +8,8 @@ import (
 	"github.com/asynkron/protoactor-go/log"
 )
 
-// Middleware is an interface for intercepting messages and events in the mailbox
-type Middleware interface {
+// MailboxMiddleware is an interface for intercepting messages and events in the mailbox
+type MailboxMiddleware interface {
 	MailboxStarted()
 	MessagePosted(message interface{})
 	MessageReceived(message interface{})
@@ -49,7 +49,7 @@ type defaultMailbox struct {
 	suspended       int32
 	invoker         MessageInvoker
 	dispatcher      Dispatcher
-	middlewares     []Middleware
+	middlewares     []MailboxMiddleware
 }
 
 func (m *defaultMailbox) PostUserMessage(message interface{}) {

@@ -71,6 +71,7 @@ func newGetPid(clusterIdentity *ClusterIdentity) *GetPid {
 	this := &GetPid{
 		ClusterIdentity: clusterIdentity,
 	}
+
 	return this
 }
 
@@ -83,5 +84,6 @@ func newPidResult(p *actor.PID) *PidResult {
 	this := &PidResult{
 		Pid: p,
 	}
+
 	return this
 }
