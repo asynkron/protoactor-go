@@ -104,4 +104,5 @@ var (
 	stopMessage           SystemMessage      = &Stop{}
 	resumeMailboxMessage  MailboxMessage     = &ResumeMailbox{}
 	suspendMailboxMessage MailboxMessage     = &SuspendMailbox{}
+	_                     AutoRespond        = &Touch{}
 )

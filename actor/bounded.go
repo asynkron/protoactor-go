@@ -30,12 +30,12 @@ func (q *boundedMailboxQueue) Pop() interface{} {
 	return nil
 }
 
-// Bounded returns a producer which creates a bounded mailbox of the specified size
+// Bounded returns a producer which creates a bounded mailbox of the specified size.
 func Bounded(size int, mailboxStats ...MailboxMiddleware) MailboxProducer {
 	return bounded(size, false, mailboxStats...)
 }
 
-// BoundedDropping returns a producer which creates a bounded mailbox of the specified size that drops front element on push
+// BoundedDropping returns a producer which creates a bounded mailbox of the specified size that drops front element on push.
 func BoundedDropping(size int, mailboxStats ...MailboxMiddleware) MailboxProducer {
 	return bounded(size, true, mailboxStats...)
 }

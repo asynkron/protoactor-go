@@ -34,7 +34,7 @@ func (tm *TestMessage) GetMessage() string {
 	return tm.message
 }
 
-func NewTestGoringPriorityQueue() *priorityQueue {
+func newTestGoringPriorityQueue() *priorityQueue {
 	return NewPriorityQueue(func() queue {
 		return &unboundedMailboxQueue{
 			userMailbox: goring.New(1),
@@ -42,21 +42,21 @@ func NewTestGoringPriorityQueue() *priorityQueue {
 	})
 }
 
-func NewTestMpscPriorityQueue() *priorityQueue {
+func newTestMpscPriorityQueue() *priorityQueue {
 	return NewPriorityQueue(func() queue {
 		return mpsc.New()
 	})
 }
 
 func TestPushPopGoring(t *testing.T) {
-	q := NewTestGoringPriorityQueue()
+	q := newTestGoringPriorityQueue()
 	q.Push("hello")
 	res := q.Pop()
 	assert.Equal(t, "hello", res)
 }
 
 func TestPushPopGoringPriority(t *testing.T) {
-	q := NewTestGoringPriorityQueue()
+	q := newTestGoringPriorityQueue()
 
 	// pushes
 
@@ -121,14 +121,14 @@ func TestPushPopGoringPriority(t *testing.T) {
 }
 
 func TestPushPopMpsc(t *testing.T) {
-	q := NewTestMpscPriorityQueue()
+	q := newTestMpscPriorityQueue()
 	q.Push("hello")
 	res := q.Pop()
 	assert.Equal(t, "hello", res)
 }
 
 func TestPushPopMpscPriority(t *testing.T) {
-	q := NewTestMpscPriorityQueue()
+	q := newTestMpscPriorityQueue()
 
 	// pushes
 

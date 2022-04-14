@@ -9,6 +9,7 @@ func makeReceiverMiddlewareChain(receiverMiddleware []ReceiverMiddleware, lastRe
 	for i := len(receiverMiddleware) - 2; i >= 0; i-- {
 		h = receiverMiddleware[i](h)
 	}
+
 	return h
 }
 
@@ -21,6 +22,7 @@ func makeSenderMiddlewareChain(senderMiddleware []SenderMiddleware, lastSender S
 	for i := len(senderMiddleware) - 2; i >= 0; i-- {
 		h = senderMiddleware[i](h)
 	}
+
 	return h
 }
 
@@ -33,6 +35,7 @@ func makeContextDecoratorChain(decorator []ContextDecorator, lastDecorator Conte
 	for i := len(decorator) - 2; i >= 0; i-- {
 		h = decorator[i](h)
 	}
+
 	return h
 }
 
@@ -45,5 +48,6 @@ func makeSpawnMiddlewareChain(spawnMiddleware []SpawnMiddleware, lastSpawn Spawn
 	for i := len(spawnMiddleware) - 2; i >= 0; i-- {
 		h = spawnMiddleware[i](h)
 	}
+
 	return h
 }

@@ -42,33 +42,27 @@ func (pid *PID) ref(actorSystem *ActorSystem) Process {
 	return ref
 }
 
-// sendUserMessage sends a messages asynchronously to the PID
+// sendUserMessage sends a messages asynchronously to the PID.
 //goland:noinspection GoReceiverNames
 func (pid *PID) sendUserMessage(actorSystem *ActorSystem, message interface{}) {
 	pid.ref(actorSystem).SendUserMessage(pid, message)
 }
 
-//goland:noinspection GoReceiverNames
+//goland:noinspection GoReceiverNames.
 func (pid *PID) sendSystemMessage(actorSystem *ActorSystem, message interface{}) {
 	pid.ref(actorSystem).SendSystemMessage(pid, message)
 }
 
-//goland:noinspection GoReceiverNames
+//goland:noinspection GoReceiverNames.
 func (pid *PID) Equal(other *PID) bool {
 	if pid != nil && other == nil {
 		return false
 	}
+
 	return pid.Id == other.Id && pid.Address == other.Address && pid.RequestId == other.RequestId
 }
 
-//func (pid *PID) String() string {
-//	if pid == nil {
-//		return "nil"
-//	}
-//	return pid.Address + "/" + pid.Id
-//}
-
-// NewPID returns a new instance of the PID struct
+// NewPID returns a new instance of the PID struct.
 func NewPID(address, id string) *PID {
 	return &PID{
 		Address: address,

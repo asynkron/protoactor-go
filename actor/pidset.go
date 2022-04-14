@@ -39,7 +39,7 @@ func (p *PIDSet) Contains(v *PID) bool {
 	return p.lookup[p.key(v)] != nil
 }
 
-// Add adds the element v to the set
+// Add adds the element v to the set.
 func (p *PIDSet) Add(v *PID) {
 	p.ensureInit()
 	if p.Contains(v) {
@@ -49,7 +49,7 @@ func (p *PIDSet) Add(v *PID) {
 	p.pids = append(p.pids, v)
 }
 
-// Remove removes v from the set and returns true if them element existed
+// Remove removes v from the set and returns true if them element existed.
 func (p *PIDSet) Remove(v *PID) bool {
 	p.ensureInit()
 	i := p.indexOf(v)
@@ -64,28 +64,28 @@ func (p *PIDSet) Remove(v *PID) bool {
 	return true
 }
 
-// Len returns the number of elements in the set
+// Len returns the number of elements in the set.
 func (p *PIDSet) Len() int {
 	return len(p.pids)
 }
 
-// Clear removes all the elements in the set
+// Clear removes all the elements in the set.
 func (p *PIDSet) Clear() {
 	p.pids = p.pids[:0]
 	p.lookup = make(map[string]*PID)
 }
 
-// Empty reports whether the set is empty
+// Empty reports whether the set is empty.
 func (p *PIDSet) Empty() bool {
 	return p.Len() == 0
 }
 
-// Values returns all the elements of the set as a slice
+// Values returns all the elements of the set as a slice.
 func (p *PIDSet) Values() []*PID {
 	return p.pids
 }
 
-// ForEach invokes f for every element of the set
+// ForEach invokes f for every element of the set.
 func (p *PIDSet) ForEach(f func(i int, pid *PID)) {
 	for i, pid := range p.pids {
 		f(i, pid)

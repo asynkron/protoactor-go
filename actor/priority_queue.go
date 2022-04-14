@@ -16,7 +16,7 @@ package actor
 // The default priority level is 4 for messages that don't implement PriorityMessage.
 // If you want your message processed sooner than un-prioritized messages, have its
 // GetPriority method return a larger int8 value.
-// Likewise if you'd like to de-prioritize your message, have its GetPriority method
+// Likewise, if you'd like to de-prioritize your message, have its GetPriority method
 // return an int8 less than 4.
 
 const (

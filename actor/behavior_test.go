@@ -15,6 +15,7 @@ func NewEchoBehaviorActor() Actor {
 		behavior: NewBehavior(),
 	}
 	state.behavior.Become(state.one)
+
 	return state
 }
 
@@ -23,15 +24,13 @@ func (state *EchoSetBehaviorActor) Receive(context Context) {
 }
 
 func (state *EchoSetBehaviorActor) one(context Context) {
-	switch context.Message().(type) {
-	case BehaviorMessage:
+	if _, ok := context.Message().(BehaviorMessage); ok {
 		state.behavior.Become(state.other)
 	}
 }
 
 func (EchoSetBehaviorActor) other(context Context) {
-	switch context.Message().(type) {
-	case EchoRequest:
+	if _, ok := context.Message().(EchoRequest); ok {
 		context.Respond(EchoResponse{})
 	}
 }
@@ -51,6 +50,7 @@ func NewEchoUnbecomeActor() Actor {
 		behavior: NewBehavior(),
 	}
 	state.behavior.Become(state.one)
+
 	return state
 }
 
