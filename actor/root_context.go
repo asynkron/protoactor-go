@@ -22,6 +22,7 @@ func NewRootContext(actorSystem *ActorSystem, header map[string]string, middlewa
 	if header == nil {
 		header = make(map[string]string)
 	}
+
 	return &RootContext{
 		actorSystem: actorSystem,
 		senderMiddleware: makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
@@ -41,6 +42,7 @@ func (rc *RootContext) ActorSystem() *ActorSystem {
 
 func (rc *RootContext) WithHeaders(headers map[string]string) *RootContext {
 	rc.headers = headers
+
 	return rc
 }
 
@@ -48,6 +50,7 @@ func (rc *RootContext) WithSenderMiddleware(middleware ...SenderMiddleware) *Roo
 	rc.senderMiddleware = makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
 		target.sendUserMessage(rc.actorSystem, envelope)
 	})
+
 	return rc
 }
 
@@ -55,11 +58,13 @@ func (rc *RootContext) WithSpawnMiddleware(middleware ...SpawnMiddleware) *RootC
 	rc.spawnMiddleware = makeSpawnMiddlewareChain(middleware, func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
 		return props.spawn(actorSystem, id, rc)
 	})
+
 	return rc
 }
 
 func (rc *RootContext) WithGuardian(guardian SupervisorStrategy) *RootContext {
 	rc.guardianStrategy = guardian
+
 	return rc
 }
 
@@ -75,6 +80,7 @@ func (rc *RootContext) Self() *PID {
 	if rc.guardianStrategy != nil {
 		return rc.actorSystem.Guardians.getGuardianPid(rc.guardianStrategy)
 	}
+
 	return nil
 }
 
@@ -115,7 +121,7 @@ func (rc *RootContext) RequestWithCustomSender(pid *PID, message interface{}, se
 	rc.sendUserMessage(pid, env)
 }
 
-// RequestFuture sends a message to a given PID and returns a Future
+// RequestFuture sends a message to a given PID and returns a Future.
 func (rc *RootContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
 	future := NewFuture(rc.actorSystem, timeout)
 	env := &MessageEnvelope{
@@ -142,7 +148,7 @@ func (rc *RootContext) sendUserMessage(pid *PID, message interface{}) {
 // Interface: spawner
 //
 
-// Spawn starts a new actor based on props and named with a unique id
+// Spawn starts a new actor based on props and named with a unique id.
 func (rc *RootContext) Spawn(props *Props) *PID {
 	pid, err := rc.SpawnNamed(props, rc.actorSystem.ProcessRegistry.NextId())
 	if err != nil {
@@ -152,7 +158,7 @@ func (rc *RootContext) Spawn(props *Props) *PID {
 	return pid
 }
 
-// SpawnPrefix starts a new actor based on props and named using a prefix followed by a unique id
+// SpawnPrefix starts a new actor based on props and named using a prefix followed by a unique id.
 func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
 	pid, err := rc.SpawnNamed(props, prefix+rc.actorSystem.ProcessRegistry.NextId())
 	if err != nil {
@@ -166,7 +172,7 @@ func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
 //
 // ErrNameExists will be returned if id already exists
 //
-// Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1"
+// Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1".
 func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	rootContext := rc
 	if props.guardianStrategy != nil {

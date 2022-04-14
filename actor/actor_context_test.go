@@ -122,6 +122,7 @@ func BenchmarkActorContext_ProcessMessageNoMiddleware(b *testing.B) {
 
 func TestActorContext_Respond(t *testing.T) {
 	t.Parallel()
+
 	var wg sync.WaitGroup
 
 	wg.Add(1)
