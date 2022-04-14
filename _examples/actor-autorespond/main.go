@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
 	"time"
 )
@@ -41,6 +40,4 @@ func main() {
 	res, _ := system.Root.RequestFuture(pid, &myAutoResponder{name: "hello"}, 10*time.Second).Result()
 
 	fmt.Printf("%v", res)
-
-	console.ReadLine()
 }
