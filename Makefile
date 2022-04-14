@@ -28,7 +28,7 @@ test-race:
 
 lint:
 	@go install github.com/mgechev/revive@latest
-	@revive -formatter friendly $(PACKAGES)
+	@revive -formatter stylish $(PACKAGES)
 
 
 # }}} test
