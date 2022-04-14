@@ -124,6 +124,7 @@ func (rc *RootContext) RequestFuture(pid *PID, message interface{}, timeout time
 		Sender:  future.PID(),
 	}
 	rc.sendUserMessage(pid, env)
+
 	return future
 }
 
@@ -147,6 +148,7 @@ func (rc *RootContext) Spawn(props *Props) *PID {
 	if err != nil {
 		panic(err)
 	}
+
 	return pid
 }
 
@@ -156,6 +158,7 @@ func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
 	if err != nil {
 		panic(err)
 	}
+
 	return pid
 }
 
@@ -169,9 +172,11 @@ func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	if props.guardianStrategy != nil {
 		rootContext = rc.Copy().WithGuardian(props.guardianStrategy)
 	}
+
 	if rootContext.spawnMiddleware != nil {
 		return rc.spawnMiddleware(rc.actorSystem, name, props, rootContext)
 	}
+
 	return props.spawn(rc.actorSystem, name, rootContext)
 }
 
