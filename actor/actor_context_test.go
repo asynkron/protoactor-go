@@ -35,7 +35,7 @@ func FuzzSpawnNamed(f *testing.F) {
 }
 
 // TestActorContext_Stop verifies if context is stopping and receives a Watch message, it should
-// immediately respond with a Terminated message
+// immediately respond with a Terminated message.
 func TestActorContext_Stop(t *testing.T) {
 	t.Parallel()
 
@@ -173,6 +173,7 @@ func TestActorContext_Respond(t *testing.T) {
 }
 
 func TestActorContext_Forward(t *testing.T) {
+	t.Parallel()
 	// Defined a response actor
 	// It simply responds to the string message
 	responder := rootContext.Spawn(PropsFromFunc(func(ctx Context) {

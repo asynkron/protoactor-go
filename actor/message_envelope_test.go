@@ -7,9 +7,10 @@ import (
 )
 
 func TestNormalMessageGivesEmptyMessageHeaders(t *testing.T) {
+	t.Parallel()
+
 	props := PropsFromFunc(func(ctx Context) {
-		switch ctx.Message().(type) {
-		case string:
+		if _, ok := ctx.Message().(string); ok {
 			l := len(ctx.MessageHeader().Keys())
 			ctx.Respond(l)
 		}
@@ -21,6 +22,7 @@ func TestNormalMessageGivesEmptyMessageHeaders(t *testing.T) {
 	}()
 
 	f := rootContext.RequestFuture(a, "hello", testTimeout)
-	res := assertFutureSuccess(f, t).(int)
+
+	res, _ := assertFutureSuccess(f, t).(int)
 	assert.Equal(t, 0, res)
 }

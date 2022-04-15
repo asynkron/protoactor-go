@@ -20,14 +20,16 @@ test2:
 	@go install gotest.tools/gotestsum@latest
 	@gotestsum --format testname $(PACKAGES)
 
-test-report:
-	@(go test $(PACKAGES) -timeout=30s  -json | go-test-report)
-
 test-short:
 	@go test $(PACKAGES) -timeout=30s -short
 
 test-race:
 	@go test $(PACKAGES) -timeout=30s -race
+
+lint:
+	@go install github.com/mgechev/revive@latest
+	@revive -formatter stylish $(PACKAGES)
+
 
 # }}} test
 
