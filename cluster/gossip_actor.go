@@ -3,7 +3,6 @@
 package cluster
 
 import (
-	"google.golang.org/protobuf/proto"
 	"time"
 
 	"github.com/asynkron/gofun/set"
@@ -77,7 +76,7 @@ func (ga *GossipActor) onGetGossipStateKey(r *GetGossipStateRequest, ctx actor.C
 }
 
 func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
-	plog.Debug("Gossip request", log.PID("sender", ctx.Sender()))
+	plog.Debug("OnGossipRequest", log.PID("sender", ctx.Sender()))
 	ga.ReceiveState(r.State, ctx)
 
 	if !GetCluster(ctx.ActorSystem()).MemberList.ContainsMemberID(r.MemberId) {
@@ -100,31 +99,36 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 		return
 	}
 
-	msg := GossipResponse{
-		State: memberState.State,
-	}
-	future := ctx.RequestFuture(ctx.Sender(), &msg, GetCluster(ctx.ActorSystem()).Config.GossipRequestTimeout)
+	ctx.Respond(&GossipResponse{})
+	return
 
-	ctx.ReenterAfter(future, func(res interface{}, err error) {
-		if err != nil {
-			plog.Warn("onGossipRequest failed", log.String("MemberId", r.MemberId), log.Error(err))
-			return
-		}
+	//turn off acking for now
 
-		if _, ok := res.(*GossipResponseAck); ok {
-			memberState.CommitOffsets()
-			return
-		}
-
-		m, ok := res.(proto.Message)
-		if !ok {
-			plog.Warn("onGossipRequest failed", log.String("MemberId", r.MemberId), log.Error(err))
-			return
-		}
-		n := string(proto.MessageName(m).Name())
-
-		plog.Error("onGossipRequest received unknown response message", log.String("type", n), log.Message(r))
-	})
+	//msg := GossipResponse{
+	//	State: memberState.State,
+	//}
+	//future := ctx.RequestFuture(ctx.Sender(), &msg, GetCluster(ctx.ActorSystem()).Config.GossipRequestTimeout)
+	//
+	//ctx.ReenterAfter(future, func(res interface{}, err error) {
+	//	if err != nil {
+	//		plog.Warn("onGossipRequest failed", log.String("MemberId", r.MemberId), log.Error(err))
+	//		return
+	//	}
+	//
+	//	if _, ok := res.(*GossipResponseAck); ok {
+	//		memberState.CommitOffsets()
+	//		return
+	//	}
+	//
+	//	m, ok := res.(proto.Message)
+	//	if !ok {
+	//		plog.Warn("onGossipRequest failed", log.String("MemberId", r.MemberId), log.Error(err))
+	//		return
+	//	}
+	//	n := string(proto.MessageName(m).Name())
+	//
+	//	plog.Error("onGossipRequest received unknown response message", log.String("type", n), log.Message(r))
+	//})
 }
 
 func (ga *GossipActor) onSetGossipStateKey(r *SetGossipStateKey, ctx actor.Context) {
@@ -153,7 +157,7 @@ func (ga *GossipActor) ReceiveState(remoteState *GossipState, ctx actor.Context)
 
 func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *MemberStateDelta, ctx actor.Context) {
 	pid := actor.NewPID(member.Address(), DefaultGossipActorName)
-	plog.Info("Sending GossipRequest", log.String("MemberId", member.Id))
+	plog.Debug("Sending GossipRequest", log.String("MemberId", member.Id))
 
 	// a short timeout is massively important, we cannot afford hanging around waiting
 	// for timeout, blocking other gossips from getting through
