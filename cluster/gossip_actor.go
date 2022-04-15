@@ -52,7 +52,7 @@ func (ga *GossipActor) Receive(ctx actor.Context) {
 	case *ClusterTopology:
 		ga.onClusterTopology(r)
 	case *GossipResponse:
-		// noop: review after roger's work is done
+		plog.Error("GossipResponse should not be received by GossipActor") //it should be a response to a request
 	default:
 		plog.Warn("Gossip received unknown message request", log.Message(r))
 	}
@@ -165,6 +165,10 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 	future := ctx.RequestFuture(pid, &msg, ga.gossipRequestTimeout)
 
 	ctx.ReenterAfter(future, func(res interface{}, err error) {
+		if ctx.Sender() != nil {
+			ctx.Send(ctx.Sender(), &GossipResponseAck{})
+		}
+
 		if err != nil {
 			plog.Warn("sendGossipForMember failed", log.String("MemberId", member.Id), log.Error(err))
 			return
@@ -182,9 +186,6 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 		if resp.State != nil {
 			ga.ReceiveState(resp.State, ctx)
 
-		}
-		if ctx.Sender() != nil {
-			ctx.Send(ctx.Sender(), &GossipResponseAck{})
 		}
 	})
 }
