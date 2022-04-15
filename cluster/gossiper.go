@@ -221,8 +221,17 @@ breakLoop:
 			plog.Info("Stopping Gossip Loop")
 			break breakLoop
 		case <-ticker.C:
-			g.SetState(HearthbeatKey, &MemberHeartbeat{})
+			g.SetState(HearthbeatKey, &MemberHeartbeat{
+				// todo collect the actor statistics
+				ActorStatistics: &ActorStatistics{},
+			})
 			g.SendState()
+
+			/*
+			 await BlockExpiredHeartbeats();
+
+			 await BlockGracefullyLeft();
+			*/
 		}
 	}
 }
