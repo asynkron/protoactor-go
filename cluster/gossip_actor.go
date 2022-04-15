@@ -3,6 +3,7 @@
 package cluster
 
 import (
+	"google.golang.org/protobuf/proto"
 	"time"
 
 	"github.com/asynkron/gofun/set"
@@ -34,6 +35,8 @@ func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers
 // Receive method.
 func (ga *GossipActor) Receive(ctx actor.Context) {
 	switch r := ctx.Message().(type) {
+	case *actor.Started:
+		//pass
 	case *SetGossipStateKey:
 		ga.onSetGossipStateKey(r, ctx)
 	case *GetGossipStateRequest:
@@ -105,15 +108,22 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 	ctx.ReenterAfter(future, func(res interface{}, err error) {
 		if err != nil {
 			plog.Warn("onGossipRequest failed", log.String("MemberId", r.MemberId), log.Error(err))
+			return
 		}
 
 		if _, ok := res.(*GossipResponseAck); ok {
 			memberState.CommitOffsets()
-
 			return
 		}
 
-		plog.Error("onGossipRequest received unknown response message", log.Message(r))
+		m, ok := res.(proto.Message)
+		if !ok {
+			plog.Warn("onGossipRequest failed", log.String("MemberId", r.MemberId), log.Error(err))
+			return
+		}
+		n := string(proto.MessageName(m).Name())
+
+		plog.Error("onGossipRequest received unknown response message", log.String("type", n), log.Message(r))
 	})
 }
 
@@ -157,6 +167,7 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 	ctx.ReenterAfter(future, func(res interface{}, err error) {
 		if err != nil {
 			plog.Warn("sendGossipForMember failed", log.String("MemberId", member.Id), log.Error(err))
+			return
 		}
 
 		resp, ok := res.(*GossipResponse)
@@ -171,9 +182,9 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 		if resp.State != nil {
 			ga.ReceiveState(resp.State, ctx)
 
-			if ctx.Sender() != nil {
-				ctx.Send(ctx.Sender(), &GossipResponseAck{})
-			}
+		}
+		if ctx.Sender() != nil {
+			ctx.Send(ctx.Sender(), &GossipResponseAck{})
 		}
 	})
 }
