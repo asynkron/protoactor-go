@@ -6,7 +6,7 @@ import (
 
 	"cluster-broadcast/shared"
 
-	automanaged "github.com/asynkron/protoactor-go/cluster/clusterproviders/_automanaged"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/automanaged"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 
 	console "github.com/asynkron/goconsole"

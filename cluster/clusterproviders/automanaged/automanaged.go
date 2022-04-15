@@ -380,5 +380,6 @@ func (p *AutoManagedProvider) isActiveProviderRunning() bool {
 }
 
 func (p *AutoManagedProvider) getCurrentNode() *NodeModel {
-	return NewNode(p.clusterName, p.address, p.memberPort, p.autoManagePort, p.knownKinds)
+
+	return NewNode(p.clusterName, p.cluster.ActorSystem.ID, p.address, p.memberPort, p.autoManagePort, p.knownKinds)
 }

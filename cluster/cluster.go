@@ -11,7 +11,7 @@ import (
 	"github.com/asynkron/protoactor-go/remote"
 )
 
-var extensionId = extensions.NextExtensionID()
+var extensionID = extensions.NextExtensionID()
 
 type Cluster struct {
 	ActorSystem    *actor.ActorSystem
@@ -63,12 +63,12 @@ func (c *Cluster) subscribeToTopologyEvents() {
 }
 
 func (c *Cluster) ExtensionID() extensions.ExtensionID {
-	return extensionId
+	return extensionID
 }
 
 //goland:noinspection GoUnusedExportedFunction
 func GetCluster(actorSystem *actor.ActorSystem) *Cluster {
-	c := actorSystem.Extensions.Get(extensionId)
+	c := actorSystem.Extensions.Get(extensionID)
 
 	return c.(*Cluster)
 }
@@ -87,17 +87,17 @@ func (c *Cluster) StartMember() {
 	c.Remote.Start()
 
 	address := c.ActorSystem.Address()
-	plog.Info("Starting Proto.Actor cluster member", log.String("address", address))
+	plog.Info("Starting Proto.Actor cluster member", log.String("id", c.ActorSystem.ID), log.String("address", address))
 
 	c.IdentityLookup = cfg.IdentityLookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)
 
 	// TODO: Disable Gossip for now until API changes are done
-	// gossiper must be started whenever any topology events starts flowing
-	// if err := c.Gossip.StartGossiping(); err != nil {
-	// 	panic(err)
-	// }
-	// c.MemberList.InitializeTopologyConsensus()
+	//gossiper must be started whenever any topology events starts flowing
+	if err := c.Gossip.StartGossiping(); err != nil {
+		panic(err)
+	}
+	c.MemberList.InitializeTopologyConsensus()
 
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
 		panic(err)

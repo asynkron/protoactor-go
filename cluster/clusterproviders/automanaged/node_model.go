@@ -1,7 +1,5 @@
 package automanaged
 
-import "fmt"
-
 // NodeModel represents a node in the cluster
 type NodeModel struct {
 	ID             string   `json:"id"`
@@ -13,17 +11,13 @@ type NodeModel struct {
 }
 
 // NewNode returns a new node for the cluster
-func NewNode(clusterName string, address string, port int, autoManPort int, kind []string) *NodeModel {
+func NewNode(clusterName string, id string, address string, port int, autoManPort int, kind []string) *NodeModel {
 	return &NodeModel{
-		ID:             createNodeID(clusterName, address, port),
+		ID:             id,
 		ClusterName:    clusterName,
 		Address:        address,
 		Port:           port,
 		AutoManagePort: autoManPort,
 		Kinds:          kind,
 	}
-}
-
-func createNodeID(clusterName string, address string, port int) string {
-	return fmt.Sprintf("%v@%v:%v", clusterName, address, port)
 }

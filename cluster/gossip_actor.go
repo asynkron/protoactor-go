@@ -34,6 +34,8 @@ func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers
 // Receive method.
 func (ga *GossipActor) Receive(ctx actor.Context) {
 	switch r := ctx.Message().(type) {
+	case *actor.Started:
+		//pass
 	case *SetGossipStateKey:
 		ga.onSetGossipStateKey(r, ctx)
 	case *GetGossipStateRequest:
@@ -49,7 +51,7 @@ func (ga *GossipActor) Receive(ctx actor.Context) {
 	case *ClusterTopology:
 		ga.onClusterTopology(r)
 	case *GossipResponse:
-		// noop: review after roger's work is done
+		plog.Error("GossipResponse should not be received by GossipActor") //it should be a response to a request
 	default:
 		plog.Warn("Gossip received unknown message request", log.Message(r))
 	}
@@ -74,7 +76,7 @@ func (ga *GossipActor) onGetGossipStateKey(r *GetGossipStateRequest, ctx actor.C
 }
 
 func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
-	plog.Debug("Gossip request", log.PID("sender", ctx.Sender()))
+	plog.Debug("OnGossipRequest", log.PID("sender", ctx.Sender()))
 	ga.ReceiveState(r.State, ctx)
 
 	if !GetCluster(ctx.ActorSystem()).MemberList.ContainsMemberID(r.MemberId) {
@@ -97,26 +99,36 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 		return
 	}
 
-	msg := GossipResponse{
-		State: memberState.State,
-	}
-	future := ctx.RequestFuture(ctx.Sender(), &msg, GetCluster(ctx.ActorSystem()).Config.GossipRequestTimeout)
+	ctx.Respond(&GossipResponse{})
+	return
 
-	// wait until we get a response or an error from the future
-	resp, err := future.Result()
-	if err != nil {
-		plog.Error("onSendGossipState failed", log.Error(err))
+	//turn off acking for now
 
-		return
-	}
-
-	if _, ok := resp.(*GossipResponseAck); ok {
-		memberState.CommitOffsets()
-
-		return
-	}
-
-	plog.Error("onSendGossipState received unknown response message", log.Message(r))
+	//msg := GossipResponse{
+	//	State: memberState.State,
+	//}
+	//future := ctx.RequestFuture(ctx.Sender(), &msg, GetCluster(ctx.ActorSystem()).Config.GossipRequestTimeout)
+	//
+	//ctx.ReenterAfter(future, func(res interface{}, err error) {
+	//	if err != nil {
+	//		plog.Warn("onGossipRequest failed", log.String("MemberId", r.MemberId), log.Error(err))
+	//		return
+	//	}
+	//
+	//	if _, ok := res.(*GossipResponseAck); ok {
+	//		memberState.CommitOffsets()
+	//		return
+	//	}
+	//
+	//	m, ok := res.(proto.Message)
+	//	if !ok {
+	//		plog.Warn("onGossipRequest failed", log.String("MemberId", r.MemberId), log.Error(err))
+	//		return
+	//	}
+	//	n := string(proto.MessageName(m).Name())
+	//
+	//	plog.Error("onGossipRequest received unknown response message", log.String("type", n), log.Message(r))
+	//})
 }
 
 func (ga *GossipActor) onSetGossipStateKey(r *SetGossipStateKey, ctx actor.Context) {
@@ -145,43 +157,39 @@ func (ga *GossipActor) ReceiveState(remoteState *GossipState, ctx actor.Context)
 
 func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *MemberStateDelta, ctx actor.Context) {
 	pid := actor.NewPID(member.Address(), DefaultGossipActorName)
-	plog.Info("Sending GossipRequest", log.String("MemberId", member.Id))
+	plog.Debug("Sending GossipRequest", log.String("MemberId", member.Id))
 
 	// a short timeout is massively important, we cannot afford hanging around waiting
 	// for timeout, blocking other gossips from getting through
 
 	msg := GossipRequest{
-		// TODO: Uncomment this line when we replace the current "address:port" as ID
-		// with the proper ActorSystem.ID after new API refactor changes
-		// Oscar Campos: 2022-04-09
-		// MemberId: ctx.ActorSystem().ID,
-		MemberId: member.Address(),
+		MemberId: member.Id,
 		State:    memberStateDelta.State,
 	}
 	future := ctx.RequestFuture(pid, &msg, ga.gossipRequestTimeout)
 
-	// wait until we get a response or an error from the future
-	r, err := future.Result()
-	if err != nil {
-		plog.Error("onSendGossipState failed", log.Error(err))
-
-		return
-	}
-
-	resp, ok := r.(*GossipResponse)
-	if !ok {
-		plog.Error("onSendGossipState received unknown response message", log.Message(r))
-
-		return
-	}
-
-	memberStateDelta.CommitOffsets()
-
-	if resp.State != nil {
-		ga.ReceiveState(resp.State, ctx)
-
+	ctx.ReenterAfter(future, func(res interface{}, err error) {
 		if ctx.Sender() != nil {
 			ctx.Send(ctx.Sender(), &GossipResponseAck{})
 		}
-	}
+
+		if err != nil {
+			plog.Warn("sendGossipForMember failed", log.String("MemberId", member.Id), log.Error(err))
+			return
+		}
+
+		resp, ok := res.(*GossipResponse)
+		if !ok {
+			plog.Error("sendGossipForMember received unknown response message", log.Message(resp))
+
+			return
+		}
+
+		memberStateDelta.CommitOffsets()
+
+		if resp.State != nil {
+			ga.ReceiveState(resp.State, ctx)
+
+		}
+	})
 }
