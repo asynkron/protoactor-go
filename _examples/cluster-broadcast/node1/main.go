@@ -9,7 +9,7 @@ import (
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
-	automanaged "github.com/asynkron/protoactor-go/cluster/clusterproviders/_automanaged"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/automanaged"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
 )
