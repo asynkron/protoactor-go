@@ -102,21 +102,19 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 	}
 	future := ctx.RequestFuture(ctx.Sender(), &msg, GetCluster(ctx.ActorSystem()).Config.GossipRequestTimeout)
 
-	// wait until we get a response or an error from the future
-	resp, err := future.Result()
-	if err != nil {
-		plog.Error("onSendGossipState failed", log.Error(err))
+	ctx.ReenterAfter(future, func(res interface{}, err error) {
+		if err != nil {
+			plog.Warn("onGossipRequest failed", log.String("MemberId", r.MemberId), log.Error(err))
+		}
 
-		return
-	}
+		if _, ok := res.(*GossipResponseAck); ok {
+			memberState.CommitOffsets()
 
-	if _, ok := resp.(*GossipResponseAck); ok {
-		memberState.CommitOffsets()
+			return
+		}
 
-		return
-	}
-
-	plog.Error("onSendGossipState received unknown response message", log.Message(r))
+		plog.Error("onGossipRequest received unknown response message", log.Message(r))
+	})
 }
 
 func (ga *GossipActor) onSetGossipStateKey(r *SetGossipStateKey, ctx actor.Context) {
@@ -156,28 +154,26 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 	}
 	future := ctx.RequestFuture(pid, &msg, ga.gossipRequestTimeout)
 
-	// wait until we get a response or an error from the future
-	r, err := future.Result()
-	if err != nil {
-		plog.Error("onSendGossipState failed", log.Error(err))
-
-		return
-	}
-
-	resp, ok := r.(*GossipResponse)
-	if !ok {
-		plog.Error("onSendGossipState received unknown response message", log.Message(r))
-
-		return
-	}
-
-	memberStateDelta.CommitOffsets()
-
-	if resp.State != nil {
-		ga.ReceiveState(resp.State, ctx)
-
-		if ctx.Sender() != nil {
-			ctx.Send(ctx.Sender(), &GossipResponseAck{})
+	ctx.ReenterAfter(future, func(res interface{}, err error) {
+		if err != nil {
+			plog.Warn("sendGossipForMember failed", log.String("MemberId", member.Id), log.Error(err))
 		}
-	}
+
+		resp, ok := res.(*GossipResponse)
+		if !ok {
+			plog.Error("sendGossipForMember received unknown response message", log.Message(resp))
+
+			return
+		}
+
+		memberStateDelta.CommitOffsets()
+
+		if resp.State != nil {
+			ga.ReceiveState(resp.State, ctx)
+
+			if ctx.Sender() != nil {
+				ctx.Send(ctx.Sender(), &GossipResponseAck{})
+			}
+		}
+	})
 }
