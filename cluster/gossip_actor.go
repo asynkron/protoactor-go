@@ -151,11 +151,7 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 	// for timeout, blocking other gossips from getting through
 
 	msg := GossipRequest{
-		// TODO: Uncomment this line when we replace the current "address:port" as ID
-		// with the proper ActorSystem.ID after new API refactor changes
-		// Oscar Campos: 2022-04-09
-		// MemberId: ctx.ActorSystem().ID,
-		MemberId: member.Address(),
+		MemberId: member.Id,
 		State:    memberStateDelta.State,
 	}
 	future := ctx.RequestFuture(pid, &msg, ga.gossipRequestTimeout)
