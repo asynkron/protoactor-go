@@ -43,7 +43,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		// endpointReader sends false
 		if <-disconnectChan {
 			plog.Debug("EndpointReader is telling to remote that it's leaving")
-			err := stream.SendMsg(&Unit{})
+			err := stream.SendMsg(&DisconnectRequest{})
 			if err != nil {
 				plog.Error("EndpointReader failed to send disconnection message", log.Error(err))
 			}
@@ -68,6 +68,49 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		}
 
 		switch t := msg.MessageType.(type) {
+		case *RemoteMessage_ConnectRequest:
+			plog.Debug("EndpointReader received connect request")
+			c := t.ConnectRequest
+			switch tt := c.ConnectionType.(type) {
+			case *ConnectRequest_ServerConnection:
+				{
+					sc := tt.ServerConnection
+					if s.remote.BlockList().IsBlocked(sc.SystemId) {
+						plog.Debug("EndpointReader is blocked", log.String("systemId", sc.SystemId))
+
+						err := stream.SendMsg(&ConnectResponse{
+							Blocked:  true,
+							MemberId: s.remote.actorSystem.ID,
+						})
+						if err != nil {
+							plog.Error("EndpointReader failed to send ConnectResponse message", log.Error(err))
+						}
+
+						address := sc.Address
+						systemID := sc.SystemId
+
+						//TODO
+						_ = address
+						_ = systemID
+						continue
+					}
+
+					err := stream.SendMsg(&ConnectResponse{
+						Blocked:  false,
+						MemberId: s.remote.actorSystem.ID,
+					})
+					if err != nil {
+						plog.Error("EndpointReader failed to send ConnectResponse message", log.Error(err))
+					}
+				}
+			case *ConnectRequest_ClientConnection:
+				{
+					//TODO implement me
+				}
+			default:
+				plog.Error("EndpointReader received unknown connection type")
+				return nil
+			}
 		case *RemoteMessage_MessageBatch:
 			m := t.MessageBatch
 			for _, envelope := range m.Envelopes {
