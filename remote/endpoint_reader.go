@@ -71,93 +71,112 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		case *RemoteMessage_ConnectRequest:
 			plog.Debug("EndpointReader received connect request")
 			c := t.ConnectRequest
-			switch tt := c.ConnectionType.(type) {
-			case *ConnectRequest_ServerConnection:
-				{
-					sc := tt.ServerConnection
-					if s.remote.BlockList().IsBlocked(sc.SystemId) {
-						plog.Debug("EndpointReader is blocked", log.String("systemId", sc.SystemId))
-
-						err := stream.SendMsg(&ConnectResponse{
-							Blocked:  true,
-							MemberId: s.remote.actorSystem.ID,
-						})
-						if err != nil {
-							plog.Error("EndpointReader failed to send ConnectResponse message", log.Error(err))
-						}
-
-						address := sc.Address
-						systemID := sc.SystemId
-
-						//TODO
-						_ = address
-						_ = systemID
-						continue
-					}
-
-					err := stream.SendMsg(&ConnectResponse{
-						Blocked:  false,
-						MemberId: s.remote.actorSystem.ID,
-					})
-					if err != nil {
-						plog.Error("EndpointReader failed to send ConnectResponse message", log.Error(err))
-					}
-				}
-			case *ConnectRequest_ClientConnection:
-				{
-					//TODO implement me
-				}
-			default:
-				plog.Error("EndpointReader received unknown connection type")
-				return nil
+			err, done := s.OnConnectRequest(stream, c)
+			if done {
+				return err
 			}
 		case *RemoteMessage_MessageBatch:
 			m := t.MessageBatch
-			for _, envelope := range m.Envelopes {
-				data := envelope.MessageData
-				sender := m.Senders[envelope.Sender]
-				target := m.Targets[envelope.Target]
-				message, err := Deserialize(data, m.TypeNames[envelope.TypeId], envelope.SerializerId)
-				if err != nil {
-					plog.Error("EndpointReader failed to deserialize", log.Error(err))
-					return err
-				}
-
-				switch msg := message.(type) {
-				case *actor.Terminated:
-					rt := &remoteTerminate{
-						Watchee: msg.Who,
-						Watcher: target,
-					}
-					s.remote.edpManager.remoteTerminate(rt)
-				case actor.SystemMessage:
-					ref, _ := s.remote.actorSystem.ProcessRegistry.GetLocal(target.Id)
-					ref.SendSystemMessage(target, msg)
-				default:
-					var header map[string]string
-
-					//fast path
-					if sender == nil && envelope.MessageHeader == nil {
-						s.remote.actorSystem.Root.Send(target, message)
-						continue
-					}
-
-					//slow path
-					if envelope.MessageHeader != nil {
-						header = envelope.MessageHeader.HeaderData
-					}
-					localEnvelope := &actor.MessageEnvelope{
-						Header:  header,
-						Message: message,
-						Sender:  sender,
-					}
-					s.remote.actorSystem.Root.Send(target, localEnvelope)
-				}
+			err := s.OnMessageBatch(m)
+			if err != nil {
+				return err
 			}
 		default:
 			{
 
 			}
+		}
+	}
+}
+
+func (s *endpointReader) OnConnectRequest(stream Remoting_ReceiveServer, c *ConnectRequest) (error, bool) {
+	switch tt := c.ConnectionType.(type) {
+	case *ConnectRequest_ServerConnection:
+		{
+			sc := tt.ServerConnection
+			s.onServerConnection(stream, sc)
+		}
+	case *ConnectRequest_ClientConnection:
+		{
+			//TODO implement me
+		}
+	default:
+		plog.Error("EndpointReader received unknown connection type")
+		return nil, true
+	}
+	return nil, false
+}
+
+func (s *endpointReader) OnMessageBatch(m *MessageBatch) error {
+	for _, envelope := range m.Envelopes {
+		data := envelope.MessageData
+		sender := m.Senders[envelope.Sender]
+		target := m.Targets[envelope.Target]
+		message, err := Deserialize(data, m.TypeNames[envelope.TypeId], envelope.SerializerId)
+		if err != nil {
+			plog.Error("EndpointReader failed to deserialize", log.Error(err))
+			return err
+		}
+
+		switch msg := message.(type) {
+		case *actor.Terminated:
+			rt := &remoteTerminate{
+				Watchee: msg.Who,
+				Watcher: target,
+			}
+			s.remote.edpManager.remoteTerminate(rt)
+		case actor.SystemMessage:
+			ref, _ := s.remote.actorSystem.ProcessRegistry.GetLocal(target.Id)
+			ref.SendSystemMessage(target, msg)
+		default:
+			var header map[string]string
+
+			//fast path
+			if sender == nil && envelope.MessageHeader == nil {
+				s.remote.actorSystem.Root.Send(target, message)
+				continue
+			}
+
+			//slow path
+			if envelope.MessageHeader != nil {
+				header = envelope.MessageHeader.HeaderData
+			}
+			localEnvelope := &actor.MessageEnvelope{
+				Header:  header,
+				Message: message,
+				Sender:  sender,
+			}
+			s.remote.actorSystem.Root.Send(target, localEnvelope)
+		}
+	}
+	return nil
+}
+
+func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *ServerConnection) {
+	if s.remote.BlockList().IsBlocked(sc.SystemId) {
+		plog.Debug("EndpointReader is blocked", log.String("systemId", sc.SystemId))
+
+		err := stream.SendMsg(&ConnectResponse{
+			Blocked:  true,
+			MemberId: s.remote.actorSystem.ID,
+		})
+		if err != nil {
+			plog.Error("EndpointReader failed to send ConnectResponse message", log.Error(err))
+		}
+
+		address := sc.Address
+		systemID := sc.SystemId
+
+		//TODO
+		_ = address
+		_ = systemID
+	} else {
+		err := stream.SendMsg(&ConnectResponse{
+			Blocked:  false,
+			MemberId: s.remote.actorSystem.ID,
+		})
+		if err != nil {
+			plog.Error("EndpointReader failed to send ConnectResponse message", log.Error(err))
 		}
 	}
 }
