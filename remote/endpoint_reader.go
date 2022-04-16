@@ -53,31 +53,8 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		}
 	}()
 
-	targets := make([]*actor.PID, 100)
 	for {
 		msg, err := stream.Recv()
-
-		switch t := msg.MessageType.(type) {
-		case *RemoteMessage_MessageBatch:
-			m := t.MessageBatch
-			for _, envelope := range m.Envelopes {
-				data := envelope.MessageData
-				header := envelope.MessageHeader
-				sender := m.Senders[envelope.Sender]
-				target := m.Targets[envelope.Target]
-				message, err := Deserialize(data, m.TypeNames[envelope.TypeId], envelope.SerializerId)
-				if err != nil {
-					plog.Error("EndpointReader failed to deserialize", log.Error(err))
-					return err
-				}
-
-			}
-		default:
-			{
-
-			}
-		}
-
 		if err == io.EOF {
 			plog.Debug("EndpointReader stream closed")
 			disconnectChan <- false
@@ -90,47 +67,53 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 			continue
 		}
 
-		// only grow pid lookup if needed
-		if len(batch.TargetNames) > len(targets) {
-			targets = make([]*actor.PID, len(batch.TargetNames))
-		}
+		switch t := msg.MessageType.(type) {
+		case *RemoteMessage_MessageBatch:
+			m := t.MessageBatch
+			for _, envelope := range m.Envelopes {
+				data := envelope.MessageData
+				sender := m.Senders[envelope.Sender]
+				target := m.Targets[envelope.Target]
+				message, err := Deserialize(data, m.TypeNames[envelope.TypeId], envelope.SerializerId)
+				if err != nil {
+					plog.Error("EndpointReader failed to deserialize", log.Error(err))
+					return err
+				}
 
-		for i := 0; i < len(batch.TargetNames); i++ {
-			targets[i] = s.remote.actorSystem.NewLocalPID(batch.TargetNames[i])
-		}
+				switch msg := message.(type) {
+				case *actor.Terminated:
+					rt := &remoteTerminate{
+						Watchee: msg.Who,
+						Watcher: target,
+					}
+					s.remote.edpManager.remoteTerminate(rt)
+				case actor.SystemMessage:
+					ref, _ := s.remote.actorSystem.ProcessRegistry.GetLocal(target.Id)
+					ref.SendSystemMessage(target, msg)
+				default:
+					var header map[string]string
 
-		for _, envelope := range batch.Envelopes {
-			pid := targets[envelope.Target]
-			message, err := Deserialize(envelope.MessageData, batch.TypeNames[envelope.TypeId], envelope.SerializerId)
-			if err != nil {
-				plog.Debug("EndpointReader failed to deserialize", log.Error(err))
-				return err
+					//fast path
+					if sender == nil && envelope.MessageHeader == nil {
+						s.remote.actorSystem.Root.Send(target, message)
+						continue
+					}
+
+					//slow path
+					if envelope.MessageHeader != nil {
+						header = envelope.MessageHeader.HeaderData
+					}
+					localEnvelope := &actor.MessageEnvelope{
+						Header:  header,
+						Message: message,
+						Sender:  sender,
+					}
+					s.remote.actorSystem.Root.Send(target, localEnvelope)
+				}
 			}
-			// if message is system message send it as sysmsg instead of usermsg
+		default:
+			{
 
-			sender := envelope.Sender
-
-			switch msg := message.(type) {
-			case *actor.Terminated:
-				rt := &remoteTerminate{
-					Watchee: msg.Who,
-					Watcher: pid,
-				}
-				s.remote.edpManager.remoteTerminate(rt)
-			case actor.SystemMessage:
-				ref, _ := s.remote.actorSystem.ProcessRegistry.GetLocal(pid.Id)
-				ref.SendSystemMessage(pid, msg)
-			default:
-				var header map[string]string
-				if envelope.MessageHeader != nil {
-					header = envelope.MessageHeader.HeaderData
-				}
-				localEnvelope := &actor.MessageEnvelope{
-					Header:  header,
-					Message: message,
-					Sender:  sender,
-				}
-				s.remote.actorSystem.Root.Send(pid, localEnvelope)
 			}
 		}
 	}
