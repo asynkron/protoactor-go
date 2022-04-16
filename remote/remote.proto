@@ -3,19 +3,32 @@ package remote;
 option go_package = "/github.com/asynkron/protoactor-go/remote";
 import "actor.proto";
 
+
+message RemoteMessage {
+  oneof message_type {
+    MessageBatch message_batch = 1;
+    ConnectRequest connect_request = 2;
+    ConnectResponse connect_response = 3;
+    DisconnectRequest disconnect_request = 4;
+  }
+}
+
 message MessageBatch {
   repeated string type_names = 1;
-  repeated string target_names = 2;
+  repeated actor.PID targets = 2;
   repeated MessageEnvelope envelopes = 3;
+  repeated actor.PID senders = 4;
 }
 
 message MessageEnvelope {
   int32 type_id = 1;
   bytes message_data = 2;
   int32 target = 3;
-  actor.PID sender = 4;
+  int32 sender = 4;
   int32 serializer_id = 5;
   MessageHeader message_header = 6;
+  uint32 target_request_id = 7;
+  uint32 sender_request_id = 8;
 }
 
 message MessageHeader {
@@ -32,23 +45,46 @@ message ActorPidResponse {
   int32 status_code = 2;
 }
 
-message Unit {}
+message ConnectRequest {
+  oneof connection_type {
+    ClientConnection client_connection = 1;
+    ServerConnection server_connection = 2;
+  }
+}
 
-message ConnectRequest {}
+message DisconnectRequest {
+
+}
+
+message ClientConnection {
+  string SystemId = 1;
+}
+
+message ServerConnection {
+  string SystemId = 1;
+  string Address = 2;
+}
 
 message ConnectResponse {
-  int32 default_serializer_id = 1;
+  string member_id = 2;
+  bool blocked = 3;
 }
 
 service Remoting {
-  rpc Connect(ConnectRequest) returns (ConnectResponse) {}
-  rpc Receive (stream MessageBatch) returns (stream Unit) {}
+  rpc Receive (stream RemoteMessage) returns (stream RemoteMessage) {}
   rpc ListProcesses(ListProcessesRequest) returns (ListProcessesResponse) {}
   rpc GetProcessDiagnostics(GetProcessDiagnosticsRequest) returns (GetProcessDiagnosticsResponse) {}
 }
 
 message ListProcessesRequest {
-  string name = 1;
+  string pattern = 1;
+  ListProcessesMatchType type = 2;
+}
+
+enum ListProcessesMatchType {
+  MatchPartOfString = 0;
+  MatchExactString = 1;
+  MatchRegex = 2;
 }
 
 message ListProcessesResponse {
@@ -60,5 +96,5 @@ message GetProcessDiagnosticsRequest {
 }
 
 message GetProcessDiagnosticsResponse {
-  string diagnostics_string = 1;
+  string diagnostics_string= 1;
 }

@@ -6,8 +6,6 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/log"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type endpointReader struct {
@@ -34,14 +32,6 @@ func newEndpointReader(r *Remote) *endpointReader {
 	}
 }
 
-func (s *endpointReader) Connect(ctx context.Context, req *ConnectRequest) (*ConnectResponse, error) {
-	if s.suspended {
-		return nil, status.Error(codes.Canceled, "Suspended")
-	}
-
-	return &ConnectResponse{DefaultSerializerId: 0}, nil
-}
-
 func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 	disconnectChan := make(chan bool, 1)
 	s.remote.edpManager.endpointReaderConnections.Store(stream, disconnectChan)
@@ -65,7 +55,29 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 
 	targets := make([]*actor.PID, 100)
 	for {
-		batch, err := stream.Recv()
+		msg, err := stream.Recv()
+
+		switch t := msg.MessageType.(type) {
+		case *RemoteMessage_MessageBatch:
+			m := t.MessageBatch
+			for _, envelope := range m.Envelopes {
+				data := envelope.MessageData
+				header := envelope.MessageHeader
+				sender := m.Senders[envelope.Sender]
+				target := m.Targets[envelope.Target]
+				message, err := Deserialize(data, m.TypeNames[envelope.TypeId], envelope.SerializerId)
+				if err != nil {
+					plog.Error("EndpointReader failed to deserialize", log.Error(err))
+					return err
+				}
+
+			}
+		default:
+			{
+
+			}
+		}
+
 		if err == io.EOF {
 			plog.Debug("EndpointReader stream closed")
 			disconnectChan <- false

@@ -128,8 +128,8 @@ func (state *endpointWatcher) terminated(ctx actor.Context) {
 	case *remoteWatch:
 		// try to find the watcher ExtensionID in the local actor registry
 		ref, ok := state.remote.actorSystem.ProcessRegistry.GetLocal(msg.Watcher.Id)
-		if ok {
 
+		if ok {
 			// create a terminated event for the Watched actor
 			terminated := &actor.Terminated{
 				Who: msg.Watchee,
