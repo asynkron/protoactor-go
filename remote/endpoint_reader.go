@@ -1,6 +1,8 @@
 package remote
 
 import (
+	"errors"
+	"google.golang.org/protobuf/proto"
 	"io"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -36,7 +38,6 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 	disconnectChan := make(chan bool, 1)
 	s.remote.edpManager.endpointReaderConnections.Store(stream, disconnectChan)
 	defer func() {
-		plog.Error("EXIT")
 		close(disconnectChan)
 	}()
 
@@ -62,7 +63,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 	for {
 		msg, err := stream.Recv()
 		switch {
-		case err == io.EOF:
+		case errors.Is(err, io.EOF):
 			plog.Info("EndpointReader stream closed")
 			disconnectChan <- false
 			return nil
@@ -77,14 +78,14 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		case *RemoteMessage_ConnectRequest:
 			plog.Debug("EndpointReader received connect request")
 			c := t.ConnectRequest
-			err, _ := s.OnConnectRequest(stream, c)
+			_, err := s.OnConnectRequest(stream, c)
 			if err != nil {
 				plog.Error("EndpointReader failed to handle connect request", log.Error(err))
 				return err
 			}
 		case *RemoteMessage_MessageBatch:
 			m := t.MessageBatch
-			err := s.OnMessageBatch(m)
+			err := s.onMessageBatch(m)
 			if err != nil {
 				return err
 			}
@@ -96,7 +97,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 	}
 }
 
-func (s *endpointReader) OnConnectRequest(stream Remoting_ReceiveServer, c *ConnectRequest) (error, bool) {
+func (s *endpointReader) OnConnectRequest(stream Remoting_ReceiveServer, c *ConnectRequest) (bool, error) {
 	switch tt := c.ConnectionType.(type) {
 	case *ConnectRequest_ServerConnection:
 		{
@@ -109,12 +110,12 @@ func (s *endpointReader) OnConnectRequest(stream Remoting_ReceiveServer, c *Conn
 		}
 	default:
 		plog.Error("EndpointReader received unknown connection type")
-		return nil, true
+		return true, nil
 	}
-	return nil, false
+	return false, nil
 }
 
-func (s *endpointReader) OnMessageBatch(m *MessageBatch) error {
+func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 	var (
 		sender *actor.PID
 		target *actor.PID
@@ -123,18 +124,8 @@ func (s *endpointReader) OnMessageBatch(m *MessageBatch) error {
 	for _, envelope := range m.Envelopes {
 		data := envelope.MessageData
 
-		// sender and target use 0 for nil, meaning 1 is first element
-		if envelope.Sender == 0 {
-			sender = nil
-		} else {
-			sender = m.Senders[envelope.Sender-1]
-		}
-
-		if envelope.Target == 0 {
-			target = nil
-		} else {
-			target = m.Targets[envelope.Target-1]
-		}
+		sender = deserializePid(sender, envelope.Sender, envelope.SenderRequestId, m.Senders)
+		target = deserializePid(target, envelope.Target, envelope.TargetRequestId, m.Targets)
 
 		message, err := Deserialize(data, m.TypeNames[envelope.TypeId], envelope.SerializerId)
 		if err != nil {
@@ -174,6 +165,21 @@ func (s *endpointReader) OnMessageBatch(m *MessageBatch) error {
 		}
 	}
 	return nil
+}
+
+func deserializePid(pid *actor.PID, index int32, requestId uint32, arr []*actor.PID) *actor.PID {
+	if index == 0 {
+		pid = nil
+	} else {
+		pid = arr[index-1]
+
+		// if request id is used. make sure to clone the PID first, so we don't corrupt the lookup
+		if requestId > 0 {
+			pid, _ = proto.Clone(pid).(*actor.PID)
+			pid.RequestId = requestId
+		}
+	}
+	return pid
 }
 
 func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *ServerConnection) {
