@@ -56,10 +56,22 @@ func (state *endpointWriter) initializeInternal() error {
 	}
 	state.stream = stream
 
-	stream.SendMsg(&ServerConnection{
-		SystemId: state.remote.actorSystem.ID,
-		Address:  state.remote.actorSystem.Address(),
+	err = stream.Send(&RemoteMessage{
+		MessageType: &RemoteMessage_ConnectRequest{
+			ConnectRequest: &ConnectRequest{
+				ConnectionType: &ConnectRequest_ServerConnection{
+					ServerConnection: &ServerConnection{
+						SystemId: state.remote.actorSystem.ID,
+						Address:  state.remote.actorSystem.Address(),
+					},
+				},
+			},
+		},
 	})
+
+	if err != nil {
+		return err
+	}
 
 	go func() {
 		for {

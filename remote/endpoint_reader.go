@@ -43,7 +43,12 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		// endpointReader sends false
 		if <-disconnectChan {
 			plog.Debug("EndpointReader is telling to remote that it's leaving")
-			err := stream.SendMsg(&DisconnectRequest{})
+			err := stream.Send(&RemoteMessage{
+				MessageType: &RemoteMessage_DisconnectRequest{
+					DisconnectRequest: &DisconnectRequest{},
+				},
+			})
+
 			if err != nil {
 				plog.Error("EndpointReader failed to send disconnection message", log.Error(err))
 			}
@@ -156,10 +161,16 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 	if s.remote.BlockList().IsBlocked(sc.SystemId) {
 		plog.Debug("EndpointReader is blocked", log.String("systemId", sc.SystemId))
 
-		err := stream.SendMsg(&ConnectResponse{
-			Blocked:  true,
-			MemberId: s.remote.actorSystem.ID,
-		})
+		err := stream.Send(
+			&RemoteMessage{
+				MessageType: &RemoteMessage_ConnectResponse{
+					ConnectResponse: &ConnectResponse{
+						Blocked:  true,
+						MemberId: s.remote.actorSystem.ID,
+					},
+				},
+			})
+
 		if err != nil {
 			plog.Error("EndpointReader failed to send ConnectResponse message", log.Error(err))
 		}
@@ -171,10 +182,16 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 		_ = address
 		_ = systemID
 	} else {
-		err := stream.SendMsg(&ConnectResponse{
-			Blocked:  false,
-			MemberId: s.remote.actorSystem.ID,
-		})
+		err := stream.Send(
+			&RemoteMessage{
+				MessageType: &RemoteMessage_ConnectResponse{
+					ConnectResponse: &ConnectResponse{
+						Blocked:  false,
+						MemberId: s.remote.actorSystem.ID,
+					},
+				},
+			})
+
 		if err != nil {
 			plog.Error("EndpointReader failed to send ConnectResponse message", log.Error(err))
 		}
