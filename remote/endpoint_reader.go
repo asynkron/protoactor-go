@@ -50,7 +50,6 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 					DisconnectRequest: &DisconnectRequest{},
 				},
 			})
-
 			if err != nil {
 				plog.Error("EndpointReader failed to send disconnection message", log.Error(err))
 			}
@@ -106,7 +105,7 @@ func (s *endpointReader) OnConnectRequest(stream Remoting_ReceiveServer, c *Conn
 		}
 	case *ConnectRequest_ClientConnection:
 		{
-			//TODO implement me
+			// TODO implement me
 		}
 	default:
 		plog.Error("EndpointReader received unknown connection type")
@@ -190,7 +189,6 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 					},
 				},
 			})
-
 		if err != nil {
 			plog.Error("EndpointReader failed to send ConnectResponse message", log.Error(err))
 		}
@@ -198,7 +196,7 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 		address := sc.Address
 		systemID := sc.SystemId
 
-		//TODO
+		// TODO
 		_ = address
 		_ = systemID
 	} else {
@@ -211,7 +209,6 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 					},
 				},
 			})
-
 		if err != nil {
 			plog.Error("EndpointReader failed to send ConnectResponse message", log.Error(err))
 		}

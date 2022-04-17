@@ -35,7 +35,7 @@ func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers
 func (ga *GossipActor) Receive(ctx actor.Context) {
 	switch r := ctx.Message().(type) {
 	case *actor.Started:
-		//pass
+		// pass
 	case *SetGossipStateKey:
 		ga.onSetGossipStateKey(r, ctx)
 	case *GetGossipStateRequest:
@@ -51,7 +51,7 @@ func (ga *GossipActor) Receive(ctx actor.Context) {
 	case *ClusterTopology:
 		ga.onClusterTopology(r)
 	case *GossipResponse:
-		plog.Error("GossipResponse should not be received by GossipActor") //it should be a response to a request
+		plog.Error("GossipResponse should not be received by GossipActor") // it should be a response to a request
 	default:
 		plog.Warn("Gossip received unknown message request", log.Message(r))
 	}
@@ -102,7 +102,7 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 	ctx.Respond(&GossipResponse{})
 	return
 
-	//turn off acking for now
+	// turn off acking for now
 
 	//msg := GossipResponse{
 	//	State: memberState.State,
@@ -189,7 +189,6 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 
 		if resp.State != nil {
 			ga.ReceiveState(resp.State, ctx)
-
 		}
 	})
 }

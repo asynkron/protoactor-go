@@ -74,7 +74,6 @@ func (state *endpointWriter) initializeInternal() error {
 	})
 
 	connection, err := stream.Recv()
-
 	if err != nil {
 		plog.Error("EndpointWriter failed to send connect request", log.String("address", state.address), log.Error(err))
 		return err
@@ -197,7 +196,6 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			},
 		},
 	})
-
 	if err != nil {
 		ctx.Stash()
 		plog.Debug("gRPC Failed to send", log.String("address", state.address), log.Error(err))
