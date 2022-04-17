@@ -60,15 +60,15 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 
 	for {
 		msg, err := stream.Recv()
-		if err == io.EOF {
+		switch {
+		case err == io.EOF:
 			plog.Debug("EndpointReader stream closed")
 			disconnectChan <- false
 			return nil
-		} else if err != nil {
+		case err != nil:
 			plog.Info("EndpointReader failed to read", log.Error(err))
 			return err
-		} else if s.suspended {
-			// We read all messages ignoring them to gracefully end the request
+		case s.suspended:
 			continue
 		}
 
@@ -113,18 +113,24 @@ func (s *endpointReader) OnConnectRequest(stream Remoting_ReceiveServer, c *Conn
 }
 
 func (s *endpointReader) OnMessageBatch(m *MessageBatch) error {
+	var (
+		sender *actor.PID
+		target *actor.PID
+	)
+
 	for _, envelope := range m.Envelopes {
 		data := envelope.MessageData
-		var (
-			sender *actor.PID = nil
-			target *actor.PID = nil
-		)
 
-		if envelope.Sender > 0 {
+		// sender and target use 0 for nil, meaning 1 is first element
+		if envelope.Sender == 0 {
+			sender = nil
+		} else {
 			sender = m.Senders[envelope.Sender-1]
 		}
 
-		if envelope.Target > 0 {
+		if envelope.Target == 0 {
+			target = nil
+		} else {
 			target = m.Targets[envelope.Target-1]
 		}
 
