@@ -50,17 +50,17 @@ func (state *endpointWriter) initializeInternal() error {
 	}
 	state.conn = conn
 	c := NewRemotingClient(conn)
-	resp, err := c.Connect(context.Background(), &ConnectRequest{})
-	if err != nil {
-		return err
-	}
-	state.defaultSerializerId = resp.DefaultSerializerId
-
-	//	log.Printf("Getting stream from address %v", state.address)
 	stream, err := c.Receive(context.Background(), state.config.CallOptions...)
 	if err != nil {
 		return err
 	}
+	state.stream = stream
+
+	stream.SendMsg(&ServerConnection{
+		SystemId: state.remote.actorSystem.ID,
+		Address:  state.remote.actorSystem.Address(),
+	})
+
 	go func() {
 		for {
 			_, err := stream.Recv()
