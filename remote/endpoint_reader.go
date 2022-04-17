@@ -124,8 +124,12 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 	for _, envelope := range m.Envelopes {
 		data := envelope.MessageData
 
-		sender = deserializePid(sender, envelope.Sender, envelope.SenderRequestId, m.Senders)
-		target = deserializePid(target, envelope.Target, envelope.TargetRequestId, m.Targets)
+		sender = deserializeSender(sender, envelope.Sender, envelope.SenderRequestId, m.Senders)
+		target = deserializeTarget(target, envelope.Target, envelope.TargetRequestId, m.Targets)
+		if target == nil {
+			plog.Error("EndpointReader received message with unknown target", log.Int("target", int(envelope.Target)), log.Int("targetRequestId", int(envelope.TargetRequestId)))
+			return errors.New("unknown target")
+		}
 
 		message, err := Deserialize(data, m.TypeNames[envelope.TypeId], envelope.SerializerId)
 		if err != nil {
@@ -167,7 +171,7 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 	return nil
 }
 
-func deserializePid(pid *actor.PID, index int32, requestId uint32, arr []*actor.PID) *actor.PID {
+func deserializeSender(pid *actor.PID, index int32, requestId uint32, arr []*actor.PID) *actor.PID {
 	if index == 0 {
 		pid = nil
 	} else {
@@ -179,6 +183,18 @@ func deserializePid(pid *actor.PID, index int32, requestId uint32, arr []*actor.
 			pid.RequestId = requestId
 		}
 	}
+	return pid
+}
+
+func deserializeTarget(pid *actor.PID, index int32, requestId uint32, arr []*actor.PID) *actor.PID {
+	pid = arr[index]
+
+	// if request id is used. make sure to clone the PID first, so we don't corrupt the lookup
+	if requestId > 0 {
+		pid, _ = proto.Clone(pid).(*actor.PID)
+		pid.RequestId = requestId
+	}
+
 	return pid
 }
 

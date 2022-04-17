@@ -163,14 +163,10 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			panic(err)
 		}
 		typeID, typeNamesArr = addToLookup(typeNames, typeName, typeNamesArr)
-		targetID, targetNamesArr = addToPidLookup(targetNames, rd.target, targetNamesArr)
-		senderID, senderNamesArr = addToPidLookup(senderNames, rd.sender, senderNamesArr)
+		targetID, targetNamesArr = addToTargetLookup(targetNames, rd.target, targetNamesArr)
+		targetRequestID := rd.target.RequestId
 
-		targetRequestID := uint32(0)
-		if rd.target != nil {
-			targetRequestID = rd.target.RequestId
-		}
-
+		senderID, senderNamesArr = addToSenderLookup(senderNames, rd.sender, senderNamesArr)
 		senderRequestID := uint32(0)
 		if rd.sender != nil {
 			senderRequestID = rd.sender.RequestId
@@ -216,7 +212,21 @@ func addToLookup(m map[string]int32, name string, a []string) (int32, []string) 
 	return id, a
 }
 
-func addToPidLookup(m map[string]int32, pid *actor.PID, arr []*actor.PID) (int32, []*actor.PID) {
+func addToTargetLookup(m map[string]int32, pid *actor.PID, arr []*actor.PID) (int32, []*actor.PID) {
+	max := int32(len(m))
+	key := pid.Address + "/" + pid.Id
+	id, ok := m[key]
+	if !ok {
+		c, _ := proto.Clone(pid).(*actor.PID)
+		c.RequestId = 0
+		m[key] = max
+		id = max
+		arr = append(arr, c)
+	}
+	return id, arr
+}
+
+func addToSenderLookup(m map[string]int32, pid *actor.PID, arr []*actor.PID) (int32, []*actor.PID) {
 	if pid == nil {
 		return 0, arr
 	}

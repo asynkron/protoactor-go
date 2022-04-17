@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/encoding/gzip"
 	"log"
 	"os"
 	"runtime"
@@ -78,7 +80,7 @@ func main() {
 	messageCount := 1000000
 	// remote.DefaultSerializerID = 1
 	system := actor.NewActorSystem()
-	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 8081 /*, remote.WithCallOptions(grpc.UseCompressor(gzip.Name))*/))
+	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 8081, remote.WithCallOptions(grpc.UseCompressor(gzip.Name))))
 	r.Start()
 
 	rootContext := system.Root

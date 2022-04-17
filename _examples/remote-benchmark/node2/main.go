@@ -1,6 +1,8 @@
 package main
 
 import (
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/encoding/gzip"
 	"log"
 
 	"remotebenchmark/messages"
@@ -34,7 +36,7 @@ func main() {
 			actor.WithMailbox(actor.Bounded(1000000)))
 
 	system := actor.NewActorSystem()
-	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 12000 /*, remote.WithCallOptions(grpc.UseCompressor(gzip.Name))*/))
+	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 12000, remote.WithCallOptions(grpc.UseCompressor(gzip.Name))))
 	r.Register("echo", props)
 	r.Start()
 
