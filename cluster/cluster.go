@@ -93,7 +93,7 @@ func (c *Cluster) StartMember() {
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)
 
 	// TODO: Disable Gossip for now until API changes are done
-	//gossiper must be started whenever any topology events starts flowing
+	// gossiper must be started whenever any topology events starts flowing
 	if err := c.Gossip.StartGossiping(); err != nil {
 		panic(err)
 	}

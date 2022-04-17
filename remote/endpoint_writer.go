@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"errors"
 	"io"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/asynkron/protoactor-go/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 func endpointWriterProducer(remote *Remote, address string, config *Config) actor.Producer {
@@ -21,12 +23,11 @@ func endpointWriterProducer(remote *Remote, address string, config *Config) acto
 }
 
 type endpointWriter struct {
-	config              *Config
-	address             string
-	conn                *grpc.ClientConn
-	stream              Remoting_ReceiveClient
-	defaultSerializerId int32
-	remote              *Remote
+	config  *Config
+	address string
+	conn    *grpc.ClientConn
+	stream  Remoting_ReceiveClient
+	remote  *Remote
 }
 
 func (state *endpointWriter) initialize() {
@@ -50,35 +51,60 @@ func (state *endpointWriter) initializeInternal() error {
 	}
 	state.conn = conn
 	c := NewRemotingClient(conn)
-	resp, err := c.Connect(context.Background(), &ConnectRequest{})
-	if err != nil {
-		return err
-	}
-	state.defaultSerializerId = resp.DefaultSerializerId
-
-	//	log.Printf("Getting stream from address %v", state.address)
 	stream, err := c.Receive(context.Background(), state.config.CallOptions...)
 	if err != nil {
+		plog.Error("EndpointWriter failed to create receive stream", log.String("address", state.address), log.Error(err))
 		return err
 	}
+	state.stream = stream
+
+	err = stream.Send(&RemoteMessage{
+		MessageType: &RemoteMessage_ConnectRequest{
+			ConnectRequest: &ConnectRequest{
+				ConnectionType: &ConnectRequest_ServerConnection{
+					ServerConnection: &ServerConnection{
+						SystemId: state.remote.actorSystem.ID,
+						Address:  state.remote.actorSystem.Address(),
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		plog.Error("EndpointWriter failed to send connect request", log.String("address", state.address), log.Error(err))
+		return err
+	}
+
+	connection, err := stream.Recv()
+	if err != nil {
+		plog.Error("EndpointWriter failed to send connect request", log.String("address", state.address), log.Error(err))
+		return err
+	}
+
+	switch connection.MessageType.(type) {
+	case *RemoteMessage_ConnectResponse:
+		break
+	default:
+		plog.Error("EndpointWriter failed to receive connect response", log.String("address", state.address), log.TypeOf("type", connection.MessageType))
+		return errors.New("invalid connect response")
+	}
+
 	go func() {
 		for {
 			_, err := stream.Recv()
-			if err == io.EOF {
+			switch {
+			case errors.Is(err, io.EOF):
 				plog.Debug("EndpointWriter stream completed", log.String("address", state.address))
 				break
-			} else if err != nil {
+			case err != nil:
 				plog.Error("EndpointWriter lost connection", log.String("address", state.address), log.Error(err))
-
-				// notify that the endpoint terminated
 				terminated := &EndpointTerminatedEvent{
 					Address: state.address,
 				}
 				state.remote.actorSystem.EventStream.Publish(terminated)
-				break
-			} else {
+				return
+			default:
 				plog.Info("EndpointWriter remote disconnected", log.String("address", state.address))
-				// notify that the endpoint terminated
 				terminated := &EndpointTerminatedEvent{
 					Address: state.address,
 				}
@@ -99,27 +125,30 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	// type name uniqueness map name string to type index
 	typeNames := make(map[string]int32)
 	typeNamesArr := make([]string, 0)
-	targetNames := make(map[string]int32)
-	targetNamesArr := make([]string, 0)
-	var header *MessageHeader
-	var typeID int32
-	var targetID int32
-	var serializerID int32
-	for i, tmp := range msg {
 
+	targetNames := make(map[string]int32)
+	targetNamesArr := make([]*actor.PID, 0)
+
+	senderNames := make(map[string]int32)
+	senderNamesArr := make([]*actor.PID, 0)
+
+	var (
+		header       *MessageHeader
+		typeID       int32
+		targetID     int32
+		senderID     int32
+		serializerID int32
+	)
+
+	for i, tmp := range msg {
 		switch unwrapped := tmp.(type) {
 		case *EndpointTerminatedEvent, EndpointTerminatedEvent:
 			plog.Debug("Handling array wrapped terminate event", log.String("address", state.address), log.Object("msg", unwrapped))
 			ctx.Stop(ctx.Self())
 			return
 		}
-		rd := tmp.(*remoteDeliver)
 
-		if rd.serializerID == -1 {
-			serializerID = state.defaultSerializerId
-		} else {
-			serializerID = rd.serializerID
-		}
+		rd, _ := tmp.(*remoteDeliver)
 
 		if rd.header == nil || rd.header.Length() == 0 {
 			header = nil
@@ -134,24 +163,41 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			panic(err)
 		}
 		typeID, typeNamesArr = addToLookup(typeNames, typeName, typeNamesArr)
-		targetID, targetNamesArr = addToLookup(targetNames, rd.target.Id, targetNamesArr)
+		targetID, targetNamesArr = addToPidLookup(targetNames, rd.target, targetNamesArr)
+		senderID, senderNamesArr = addToPidLookup(senderNames, rd.sender, senderNamesArr)
+
+		targetRequestID := uint32(0)
+		if rd.target != nil {
+			targetRequestID = rd.target.RequestId
+		}
+
+		senderRequestID := uint32(0)
+		if rd.sender != nil {
+			senderRequestID = rd.sender.RequestId
+		}
 
 		envelopes[i] = &MessageEnvelope{
-			MessageHeader: header,
-			MessageData:   bytes,
-			Sender:        rd.sender,
-			Target:        targetID,
-			TypeId:        typeID,
-			SerializerId:  serializerID,
+			MessageHeader:   header,
+			MessageData:     bytes,
+			Sender:          senderID,
+			Target:          targetID,
+			TypeId:          typeID,
+			SerializerId:    serializerID,
+			TargetRequestId: targetRequestID,
+			SenderRequestId: senderRequestID,
 		}
 	}
 
-	batch := &MessageBatch{
-		TypeNames:   typeNamesArr,
-		TargetNames: targetNamesArr,
-		Envelopes:   envelopes,
-	}
-	err := state.stream.Send(batch)
+	err := state.stream.Send(&RemoteMessage{
+		MessageType: &RemoteMessage_MessageBatch{
+			MessageBatch: &MessageBatch{
+				TypeNames: typeNamesArr,
+				Targets:   targetNamesArr,
+				Senders:   senderNamesArr,
+				Envelopes: envelopes,
+			},
+		},
+	})
 	if err != nil {
 		ctx.Stash()
 		plog.Debug("gRPC Failed to send", log.String("address", state.address), log.Error(err))
@@ -168,6 +214,24 @@ func addToLookup(m map[string]int32, name string, a []string) (int32, []string) 
 		a = append(a, name)
 	}
 	return id, a
+}
+
+func addToPidLookup(m map[string]int32, pid *actor.PID, arr []*actor.PID) (int32, []*actor.PID) {
+	if pid == nil {
+		return 0, arr
+	}
+
+	max := int32(len(m))
+	key := pid.Address + "/" + pid.Id
+	id, ok := m[key]
+	if !ok {
+		c, _ := proto.Clone(pid).(*actor.PID)
+		c.RequestId = 0
+		m[key] = max
+		id = max
+		arr = append(arr, c)
+	}
+	return id + 1, arr
 }
 
 func (state *endpointWriter) Receive(ctx actor.Context) {

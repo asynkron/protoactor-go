@@ -22,7 +22,6 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RemotingClient interface {
-	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error)
 	Receive(ctx context.Context, opts ...grpc.CallOption) (Remoting_ReceiveClient, error)
 	ListProcesses(ctx context.Context, in *ListProcessesRequest, opts ...grpc.CallOption) (*ListProcessesResponse, error)
 	GetProcessDiagnostics(ctx context.Context, in *GetProcessDiagnosticsRequest, opts ...grpc.CallOption) (*GetProcessDiagnosticsResponse, error)
@@ -36,15 +35,6 @@ func NewRemotingClient(cc grpc.ClientConnInterface) RemotingClient {
 	return &remotingClient{cc}
 }
 
-func (c *remotingClient) Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error) {
-	out := new(ConnectResponse)
-	err := c.cc.Invoke(ctx, "/remote.Remoting/Connect", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *remotingClient) Receive(ctx context.Context, opts ...grpc.CallOption) (Remoting_ReceiveClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Remoting_ServiceDesc.Streams[0], "/remote.Remoting/Receive", opts...)
 	if err != nil {
@@ -55,8 +45,8 @@ func (c *remotingClient) Receive(ctx context.Context, opts ...grpc.CallOption) (
 }
 
 type Remoting_ReceiveClient interface {
-	Send(*MessageBatch) error
-	Recv() (*Unit, error)
+	Send(*RemoteMessage) error
+	Recv() (*RemoteMessage, error)
 	grpc.ClientStream
 }
 
@@ -64,12 +54,12 @@ type remotingReceiveClient struct {
 	grpc.ClientStream
 }
 
-func (x *remotingReceiveClient) Send(m *MessageBatch) error {
+func (x *remotingReceiveClient) Send(m *RemoteMessage) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *remotingReceiveClient) Recv() (*Unit, error) {
-	m := new(Unit)
+func (x *remotingReceiveClient) Recv() (*RemoteMessage, error) {
+	m := new(RemoteMessage)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -98,7 +88,6 @@ func (c *remotingClient) GetProcessDiagnostics(ctx context.Context, in *GetProce
 // All implementations must embed UnimplementedRemotingServer
 // for forward compatibility
 type RemotingServer interface {
-	Connect(context.Context, *ConnectRequest) (*ConnectResponse, error)
 	Receive(Remoting_ReceiveServer) error
 	ListProcesses(context.Context, *ListProcessesRequest) (*ListProcessesResponse, error)
 	GetProcessDiagnostics(context.Context, *GetProcessDiagnosticsRequest) (*GetProcessDiagnosticsResponse, error)
@@ -109,9 +98,6 @@ type RemotingServer interface {
 type UnimplementedRemotingServer struct {
 }
 
-func (UnimplementedRemotingServer) Connect(context.Context, *ConnectRequest) (*ConnectResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Connect not implemented")
-}
 func (UnimplementedRemotingServer) Receive(Remoting_ReceiveServer) error {
 	return status.Errorf(codes.Unimplemented, "method Receive not implemented")
 }
@@ -134,31 +120,13 @@ func RegisterRemotingServer(s grpc.ServiceRegistrar, srv RemotingServer) {
 	s.RegisterService(&Remoting_ServiceDesc, srv)
 }
 
-func _Remoting_Connect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ConnectRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RemotingServer).Connect(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/remote.Remoting/Connect",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RemotingServer).Connect(ctx, req.(*ConnectRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Remoting_Receive_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(RemotingServer).Receive(&remotingReceiveServer{stream})
 }
 
 type Remoting_ReceiveServer interface {
-	Send(*Unit) error
-	Recv() (*MessageBatch, error)
+	Send(*RemoteMessage) error
+	Recv() (*RemoteMessage, error)
 	grpc.ServerStream
 }
 
@@ -166,12 +134,12 @@ type remotingReceiveServer struct {
 	grpc.ServerStream
 }
 
-func (x *remotingReceiveServer) Send(m *Unit) error {
+func (x *remotingReceiveServer) Send(m *RemoteMessage) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *remotingReceiveServer) Recv() (*MessageBatch, error) {
-	m := new(MessageBatch)
+func (x *remotingReceiveServer) Recv() (*RemoteMessage, error) {
+	m := new(RemoteMessage)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -221,10 +189,6 @@ var Remoting_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "remote.Remoting",
 	HandlerType: (*RemotingServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "Connect",
-			Handler:    _Remoting_Connect_Handler,
-		},
 		{
 			MethodName: "ListProcesses",
 			Handler:    _Remoting_ListProcesses_Handler,
