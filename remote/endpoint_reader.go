@@ -115,8 +115,19 @@ func (s *endpointReader) OnConnectRequest(stream Remoting_ReceiveServer, c *Conn
 func (s *endpointReader) OnMessageBatch(m *MessageBatch) error {
 	for _, envelope := range m.Envelopes {
 		data := envelope.MessageData
-		sender := m.Senders[envelope.Sender]
-		target := m.Targets[envelope.Target]
+		var (
+			sender *actor.PID = nil
+			target *actor.PID = nil
+		)
+
+		if envelope.Sender > 0 {
+			sender = m.Senders[envelope.Sender-1]
+		}
+
+		if envelope.Target > 0 {
+			target = m.Targets[envelope.Target-1]
+		}
+
 		message, err := Deserialize(data, m.TypeNames[envelope.TypeId], envelope.SerializerId)
 		if err != nil {
 			plog.Error("EndpointReader failed to deserialize", log.Error(err))
@@ -136,13 +147,13 @@ func (s *endpointReader) OnMessageBatch(m *MessageBatch) error {
 		default:
 			var header map[string]string
 
-			//fast path
+			// fast path
 			if sender == nil && envelope.MessageHeader == nil {
 				s.remote.actorSystem.Root.Send(target, message)
 				continue
 			}
 
-			//slow path
+			// slow path
 			if envelope.MessageHeader != nil {
 				header = envelope.MessageHeader.HeaderData
 			}

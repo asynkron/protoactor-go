@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"google.golang.org/protobuf/proto"
 	"io"
 	"time"
 
@@ -152,17 +153,25 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		targetID, targetNamesArr = addToPidLookup(targetNames, rd.target, targetNamesArr)
 		senderID, senderNamesArr = addToPidLookup(senderNames, rd.sender, senderNamesArr)
 
-		envelopes[i] = &MessageEnvelope{
-			MessageHeader: header,
-			MessageData:   bytes,
-			Sender:        senderID,
-			Target:        targetID,
-			TypeId:        typeID,
-			SerializerId:  serializerID,
+		targetRequestID := uint32(0)
+		if rd.target != nil {
+			targetRequestID = rd.target.RequestId
+		}
 
-			//check for nil
-			TargetRequestId: rd.target.RequestId,
-			SenderRequestId: rd.sender.RequestId,
+		senderRequestID := uint32(0)
+		if rd.sender != nil {
+			senderRequestID = rd.sender.RequestId
+		}
+
+		envelopes[i] = &MessageEnvelope{
+			MessageHeader:   header,
+			MessageData:     bytes,
+			Sender:          senderID,
+			Target:          targetID,
+			TypeId:          typeID,
+			SerializerId:    serializerID,
+			TargetRequestId: targetRequestID,
+			SenderRequestId: senderRequestID,
 		}
 	}
 
@@ -193,6 +202,24 @@ func addToLookup(m map[string]int32, name string, a []string) (int32, []string) 
 		a = append(a, name)
 	}
 	return id, a
+}
+
+func addToPidLookup(m map[string]int32, pid *actor.PID, arr []*actor.PID) (int32, []*actor.PID) {
+	if pid == nil {
+		return 0, arr
+	}
+
+	max := int32(len(m))
+	key := pid.Address + "/" + pid.Id
+	id, ok := m[key]
+	if !ok {
+		c, _ := proto.Clone(pid).(*actor.PID)
+		c.RequestId = 0
+		m[key] = max
+		id = max
+		arr = append(arr, c)
+	}
+	return id + 1, arr
 }
 
 func (state *endpointWriter) Receive(ctx actor.Context) {
