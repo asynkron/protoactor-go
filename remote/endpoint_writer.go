@@ -53,6 +53,7 @@ func (state *endpointWriter) initializeInternal() error {
 	c := NewRemotingClient(conn)
 	stream, err := c.Receive(context.Background(), state.config.CallOptions...)
 	if err != nil {
+		plog.Error("EndpointWriter failed to create receive stream", log.String("address", state.address), log.Error(err))
 		return err
 	}
 	state.stream = stream
@@ -71,27 +72,26 @@ func (state *endpointWriter) initializeInternal() error {
 	})
 
 	if err != nil {
+		plog.Error("EndpointWriter failed to send connect request", log.String("address", state.address), log.Error(err))
 		return err
 	}
 
 	go func() {
 		for {
 			_, err := stream.Recv()
-			if err == io.EOF {
+			switch {
+			case err == io.EOF:
 				plog.Debug("EndpointWriter stream completed", log.String("address", state.address))
 				break
-			} else if err != nil {
+			case err != nil:
 				plog.Error("EndpointWriter lost connection", log.String("address", state.address), log.Error(err))
-
-				// notify that the endpoint terminated
 				terminated := &EndpointTerminatedEvent{
 					Address: state.address,
 				}
 				state.remote.actorSystem.EventStream.Publish(terminated)
 				break
-			} else {
+			default:
 				plog.Info("EndpointWriter remote disconnected", log.String("address", state.address))
-				// notify that the endpoint terminated
 				terminated := &EndpointTerminatedEvent{
 					Address: state.address,
 				}

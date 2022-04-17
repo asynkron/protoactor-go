@@ -36,8 +36,10 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 	disconnectChan := make(chan bool, 1)
 	s.remote.edpManager.endpointReaderConnections.Store(stream, disconnectChan)
 	defer func() {
+		plog.Error("EXIT")
 		close(disconnectChan)
 	}()
+
 	go func() {
 		// endpointManager sends true
 		// endpointReader sends false
@@ -62,7 +64,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		msg, err := stream.Recv()
 		switch {
 		case err == io.EOF:
-			plog.Debug("EndpointReader stream closed")
+			plog.Info("EndpointReader stream closed")
 			disconnectChan <- false
 			return nil
 		case err != nil:
@@ -76,8 +78,9 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		case *RemoteMessage_ConnectRequest:
 			plog.Debug("EndpointReader received connect request")
 			c := t.ConnectRequest
-			err, done := s.OnConnectRequest(stream, c)
-			if done {
+			err, _ := s.OnConnectRequest(stream, c)
+			if err != nil {
+				plog.Error("EndpointReader failed to handle connect request", log.Error(err))
 				return err
 			}
 		case *RemoteMessage_MessageBatch:
@@ -88,7 +91,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 			}
 		default:
 			{
-
+				plog.Warn("EndpointReader received unknown message type")
 			}
 		}
 	}
