@@ -5,12 +5,11 @@ import (
 	"io"
 	"time"
 
-	"google.golang.org/protobuf/proto"
-
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 func endpointWriterProducer(remote *Remote, address string, config *Config) actor.Producer {
@@ -24,12 +23,11 @@ func endpointWriterProducer(remote *Remote, address string, config *Config) acto
 }
 
 type endpointWriter struct {
-	config              *Config
-	address             string
-	conn                *grpc.ClientConn
-	stream              Remoting_ReceiveClient
-	defaultSerializerId int32
-	remote              *Remote
+	config  *Config
+	address string
+	conn    *grpc.ClientConn
+	stream  Remoting_ReceiveClient
+	remote  *Remote
 }
 
 func (state *endpointWriter) initialize() {
@@ -72,6 +70,10 @@ func (state *endpointWriter) initializeInternal() error {
 			},
 		},
 	})
+	if err != nil {
+		plog.Error("EndpointWriter failed to send connect request", log.String("address", state.address), log.Error(err))
+		return err
+	}
 
 	connection, err := stream.Recv()
 	if err != nil {
@@ -91,7 +93,7 @@ func (state *endpointWriter) initializeInternal() error {
 		for {
 			_, err := stream.Recv()
 			switch {
-			case err == io.EOF:
+			case errors.Is(err, io.EOF):
 				plog.Debug("EndpointWriter stream completed", log.String("address", state.address))
 				break
 			case err != nil:
@@ -139,14 +141,14 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	)
 
 	for i, tmp := range msg {
-
 		switch unwrapped := tmp.(type) {
 		case *EndpointTerminatedEvent, EndpointTerminatedEvent:
 			plog.Debug("Handling array wrapped terminate event", log.String("address", state.address), log.Object("msg", unwrapped))
 			ctx.Stop(ctx.Self())
 			return
 		}
-		rd := tmp.(*remoteDeliver)
+
+		rd, _ := tmp.(*remoteDeliver)
 
 		if rd.header == nil || rd.header.Length() == 0 {
 			header = nil
