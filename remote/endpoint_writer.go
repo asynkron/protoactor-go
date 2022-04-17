@@ -111,12 +111,21 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	// type name uniqueness map name string to type index
 	typeNames := make(map[string]int32)
 	typeNamesArr := make([]string, 0)
+
 	targetNames := make(map[string]int32)
-	targetNamesArr := make([]string, 0)
-	var header *MessageHeader
-	var typeID int32
-	var targetID int32
-	var serializerID int32
+	targetNamesArr := make([]*actor.PID, 0)
+
+	senderNames := make(map[string]int32)
+	senderNamesArr := make([]*actor.PID, 0)
+
+	var (
+		header       *MessageHeader
+		typeID       int32
+		targetID     int32
+		senderID     int32
+		serializerID int32
+	)
+
 	for i, tmp := range msg {
 
 		switch unwrapped := tmp.(type) {
@@ -126,12 +135,6 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			return
 		}
 		rd := tmp.(*remoteDeliver)
-
-		if rd.serializerID == -1 {
-			serializerID = state.defaultSerializerId
-		} else {
-			serializerID = rd.serializerID
-		}
 
 		if rd.header == nil || rd.header.Length() == 0 {
 			header = nil
@@ -146,24 +149,34 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			panic(err)
 		}
 		typeID, typeNamesArr = addToLookup(typeNames, typeName, typeNamesArr)
-		targetID, targetNamesArr = addToLookup(targetNames, rd.target.Id, targetNamesArr)
+		targetID, targetNamesArr = addToPidLookup(targetNames, rd.target, targetNamesArr)
+		senderID, senderNamesArr = addToPidLookup(senderNames, rd.sender, senderNamesArr)
 
 		envelopes[i] = &MessageEnvelope{
 			MessageHeader: header,
 			MessageData:   bytes,
-			Sender:        rd.sender,
+			Sender:        senderID,
 			Target:        targetID,
 			TypeId:        typeID,
 			SerializerId:  serializerID,
+
+			//check for nil
+			TargetRequestId: rd.target.RequestId,
+			SenderRequestId: rd.sender.RequestId,
 		}
 	}
 
-	batch := &MessageBatch{
-		TypeNames:   typeNamesArr,
-		TargetNames: targetNamesArr,
-		Envelopes:   envelopes,
-	}
-	err := state.stream.Send(batch)
+	err := state.stream.Send(&RemoteMessage{
+		MessageType: &RemoteMessage_MessageBatch{
+			MessageBatch: &MessageBatch{
+				TypeNames: typeNamesArr,
+				Targets:   targetNamesArr,
+				Senders:   senderNamesArr,
+				Envelopes: envelopes,
+			},
+		},
+	})
+
 	if err != nil {
 		ctx.Stash()
 		plog.Debug("gRPC Failed to send", log.String("address", state.address), log.Error(err))
