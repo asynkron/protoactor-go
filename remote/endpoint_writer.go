@@ -1,9 +1,11 @@
 package remote
 
 import (
-	"google.golang.org/protobuf/proto"
+	"errors"
 	"io"
 	"time"
+
+	"google.golang.org/protobuf/proto"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/log"
@@ -71,9 +73,19 @@ func (state *endpointWriter) initializeInternal() error {
 		},
 	})
 
+	connection, err := stream.Recv()
+
 	if err != nil {
 		plog.Error("EndpointWriter failed to send connect request", log.String("address", state.address), log.Error(err))
 		return err
+	}
+
+	switch connection.MessageType.(type) {
+	case *RemoteMessage_ConnectResponse:
+		break
+	default:
+		plog.Error("EndpointWriter failed to receive connect response", log.String("address", state.address), log.TypeOf("type", connection.MessageType))
+		return errors.New("invalid connect response")
 	}
 
 	go func() {
@@ -89,7 +101,7 @@ func (state *endpointWriter) initializeInternal() error {
 					Address: state.address,
 				}
 				state.remote.actorSystem.EventStream.Publish(terminated)
-				break
+				return
 			default:
 				plog.Info("EndpointWriter remote disconnected", log.String("address", state.address))
 				terminated := &EndpointTerminatedEvent{
