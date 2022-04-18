@@ -1,7 +1,4 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/asynkron/protoactor-go)](https://goreportcard.com/report/github.com/asynkron/protoactor-go)
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
 [![GoDoc](https://godoc.org/github.com/asynkron/protoactor-go?status.svg)](https://godoc.org/github.com/asynkron/protoactor-go)
 [![Build Status](https://travis-ci.org/asynkron/protoactor-go.svg?branch=dev)](https://travis-ci.org/asynkron/protoactor-go)
 [![Coverage Status](https://coveralls.io/repos/github/asynkron/protoactor-go/badge.svg?branch=dev)](https://coveralls.io/github/asynkron/protoactor-go?branch=dev)
@@ -413,21 +410,6 @@ Our awesome sponsors:
 ## Contributors
 
 <a href="https://github.com/asynkron/protoactor-go/graphs/contributors">
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<table>
-  <tr>
-    <td align="center"><a href="https://github.com/umitkavala"><img src="https://avatars.githubusercontent.com/u/3861934?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Umit Kavala</b></sub></a><br /><a href="https://github.com/asynkron/protoactor-go/commits?author=umitkavala" title="Code">💻</a></td>
-    <td align="center"><a href="http://asynkron.se"><img src="https://avatars.githubusercontent.com/u/647031?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Roger Johansson</b></sub></a><br /><a href="https://github.com/asynkron/protoactor-go/commits?author=rogeralsing" title="Code">💻</a></td>
-    <td align="center"><a href="https://crm.fsf.org/civicrm/pcp/info?reset=1&id=25"><img src="https://avatars.githubusercontent.com/u/329766?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Oscar Campos</b></sub></a><br /><a href="https://github.com/asynkron/protoactor-go/commits?author=DamnWidget" title="Code">💻</a></td>
-  </tr>
-</table>
-
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-
-<!-- ALL-CONTRIBUTORS-LIST:END -->
   <img src="https://contributors-img.web.app/image?repo=asynkron/protoactor-go" />
 </a>
 
