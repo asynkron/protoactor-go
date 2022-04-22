@@ -7,7 +7,7 @@ require (
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2
 	github.com/couchbase/gocb v1.6.7
-	github.com/emirpasic/gods v1.18.1
+	github.com/emirpasic/gods v1.18.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/consul/api v1.12.0
@@ -33,7 +33,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.3
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	k8s.io/api v0.23.5
-	k8s.io/apimachinery v0.23.5
+	k8s.io/apimachinery v0.23.6
 	k8s.io/client-go v0.23.5
 )
 
