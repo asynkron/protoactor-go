@@ -31,8 +31,7 @@ test-race:
 
 lint:
 	@go install github.com/mgechev/revive@latest
-	@export TERM=xterm
-	@revive -formatter stylish $(PACKAGES)
+	@export TERM=xterm && revive -formatter stylish $(PACKAGES)
 
 
 # }}} test
