@@ -23,7 +23,7 @@ func removePackagePrefix(name string, pname string) string {
 func generateCode(req *plugin.CodeGeneratorRequest, filenameSuffix string, goFmt bool) *plugin.CodeGeneratorResponse {
 	response := &plugin.CodeGeneratorResponse{}
 	for _, f := range req.GetProtoFile() {
-		if inStringSlice(f.GetName(), req.FileToGenerate) {
+		if !inStringSlice(f.GetName(), req.FileToGenerate) {
 			continue
 		}
 
