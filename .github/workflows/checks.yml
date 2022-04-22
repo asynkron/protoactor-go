@@ -6,7 +6,7 @@ on: [
 env:
 
   TERM: dumb
-  REVIVE_FORCE_COLOR: 1
+  REVIVE_FORCE_COLOR: 3
 
 jobs:
   test:
