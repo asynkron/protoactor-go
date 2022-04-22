@@ -4,7 +4,9 @@ on: [
   workflow_dispatch,
 ]
 env:
-  TERM: xterm-256color
+
+  TERM: dumb
+  REVIVE_FORCE_COLOR: 1
 
 jobs:
   test:
