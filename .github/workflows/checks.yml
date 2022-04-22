@@ -4,7 +4,7 @@ on: [
   workflow_dispatch,
 ]
 env:
-  TERM: xterm
+  TERM: xterm-256color
 
 jobs:
   test:
