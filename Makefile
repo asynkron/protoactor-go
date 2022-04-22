@@ -32,7 +32,7 @@ test-race:
 lint:
 	@go install github.com/mgechev/revive@latest
 	@echo -e "\033[31;1;4mHello\033[0m"
-	@revive -formatter stylish $(PACKAGES)
+	@revive -formatter friendly $(PACKAGES)
 
 
 # }}} test
