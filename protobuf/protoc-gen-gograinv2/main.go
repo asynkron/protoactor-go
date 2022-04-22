@@ -23,6 +23,10 @@ func removePackagePrefix(name string, pname string) string {
 func generateCode(req *plugin.CodeGeneratorRequest, filenameSuffix string, goFmt bool) *plugin.CodeGeneratorResponse {
 	response := &plugin.CodeGeneratorResponse{}
 	for _, f := range req.GetProtoFile() {
+		if inStringSlice(f.GetName(), req.FileToGenerate) {
+			continue
+		}
+
 		s := generate(f)
 
 		// we only generate grains for proto files containing valid service definition
@@ -38,6 +42,15 @@ func generateCode(req *plugin.CodeGeneratorRequest, filenameSuffix string, goFmt
 	}
 
 	return response
+}
+
+func inStringSlice(val string, ss []string) bool {
+	for _, s := range ss {
+		if val == s {
+			return true
+		}
+	}
+	return false
 }
 
 func generate(file *google_protobuf.FileDescriptorProto) string {
