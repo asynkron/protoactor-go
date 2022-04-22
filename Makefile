@@ -31,7 +31,8 @@ test-race:
 
 lint:
 	@go install github.com/mgechev/revive@latest
-	@export TERM=xterm && revive -formatter stylish $(PACKAGES)
+	@echo -e "\033[31;1;4mHello\033[0m"
+	@export TERM=xterm-256color && revive -formatter stylish $(PACKAGES)
 
 
 # }}} test
