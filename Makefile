@@ -13,6 +13,9 @@ build:
 
 PACKAGES := $(shell go list ./... | grep -v "/_examples/" | grep -v "/persistence" | grep -v "/scheduler")
 
+
+
+
 test:
 	@go test $(PACKAGES) -timeout=30s
 
@@ -28,6 +31,7 @@ test-race:
 
 lint:
 	@go install github.com/mgechev/revive@latest
+	@export TERM=xterm
 	@revive -formatter stylish $(PACKAGES)
 
 
