@@ -37,7 +37,11 @@ jobs:
         run: docker compose up -d
       - name: run testcases
         run: make test2
+      - name: benchmark
+        run: make bench
       - name: linter
         run: make lint
+      - name: vet
+        run: make vet
 
 

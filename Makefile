@@ -34,6 +34,11 @@ lint:
 	@echo -e "\033[31;1;4mHello\033[0m"
 	@revive -formatter friendly $(PACKAGES)
 
+vet:
+	@go vet $(PACKAGES)
+
+bench:
+	@go test $(PACKAGES) -bench=.
 
 # }}} test
 
