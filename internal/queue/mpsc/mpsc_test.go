@@ -67,7 +67,9 @@ func TestMpscQueueConsistency(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	q := New()
-	go func() {
+
+	t.Run("abc", func(t *testing.T) {
+		t.Parallel()
 		i := 0
 		seen := make(map[string]string)
 		for {
@@ -78,7 +80,7 @@ func TestMpscQueueConsistency(t *testing.T) {
 				continue
 			}
 			i++
-			s := r.(string)
+			s, _ := r.(string)
 			_, present := seen[s]
 			if present {
 				log.Printf("item have already been seen %v", s)
@@ -90,7 +92,7 @@ func TestMpscQueueConsistency(t *testing.T) {
 				return
 			}
 		}
-	}()
+	})
 
 	for j := 0; j < c; j++ {
 		jj := j

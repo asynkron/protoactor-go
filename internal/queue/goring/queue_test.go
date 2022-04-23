@@ -61,35 +61,37 @@ func TestLfQueueConsistency(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	q := New(2)
-	go func() {
-		i := 0
-		seen := make(map[string]string)
-		for {
-			r, ok := q.Pop()
-			if !ok {
-				runtime.Gosched()
+	t.Run("x",
+		func(t *testing.T) {
+			t.Parallel()
+			i := 0
+			seen := make(map[string]string)
+			for {
+				r, ok := q.Pop()
+				if !ok {
+					runtime.Gosched()
 
-				continue
-			}
-			i++
-			if r == nil {
-				log.Printf("%#v, %#v", q, q.content)
-				panic("consistency failure")
-			}
-			s := r.(string)
-			_, present := seen[s]
-			if present {
-				log.Printf("item have already been seen %v", s)
-				t.FailNow()
-			}
-			seen[s] = s
+					continue
+				}
+				i++
+				if r == nil {
+					log.Printf("%#v, %#v", q, q.content)
+					panic("consistency failure")
+				}
+				s := r.(string)
+				_, present := seen[s]
+				if present {
+					log.Printf("item have already been seen %v", s)
+					t.FailNow()
+				}
+				seen[s] = s
 
-			if i == max {
-				wg.Done()
-				return
+				if i == max {
+					wg.Done()
+					return
+				}
 			}
-		}
-	}()
+		})
 
 	for j := 0; j < c; j++ {
 		jj := j
