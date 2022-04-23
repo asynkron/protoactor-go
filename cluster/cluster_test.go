@@ -80,7 +80,7 @@ type fakeIdentityLookup struct {
 	m sync.Map
 }
 
-func (l fakeIdentityLookup) Get(identity *ClusterIdentity) *actor.PID {
+func (l *fakeIdentityLookup) Get(identity *ClusterIdentity) *actor.PID {
 	if val, ok := l.m.Load(identity.Identity); ok {
 		return val.(*actor.PID)
 	} else {
@@ -91,16 +91,16 @@ func (l fakeIdentityLookup) Get(identity *ClusterIdentity) *actor.PID {
 	return nil
 }
 
-func (l fakeIdentityLookup) RemovePid(identity *ClusterIdentity, pid *actor.PID) {
+func (l *fakeIdentityLookup) RemovePid(identity *ClusterIdentity, pid *actor.PID) {
 	if existPid := l.Get(identity); existPid.Equal(pid) {
 		l.m.Delete(identity.Identity)
 	}
 }
 
-func (lu fakeIdentityLookup) Setup(cluster *Cluster, kinds []string, isClient bool) {
+func (lu *fakeIdentityLookup) Setup(cluster *Cluster, kinds []string, isClient bool) {
 }
 
-func (lu fakeIdentityLookup) Shutdown() {
+func (lu *fakeIdentityLookup) Shutdown() {
 }
 
 func newClusterForTest(name string, cp ClusterProvider, opts ...ConfigOption) *Cluster {

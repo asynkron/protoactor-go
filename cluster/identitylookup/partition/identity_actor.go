@@ -55,7 +55,7 @@ func (p *identityActor) onStart(ctx actor.Context) {
 	plog.Debug("Started PartitionIdentity")
 	self := ctx.Self()
 	ctx.ActorSystem().EventStream.Subscribe(func(evt interface{}) {
-		if at, ok := evt.(clustering.ActivationTerminated); ok {
+		if at, ok := evt.(*clustering.ActivationTerminated); ok {
 			p.cluster.ActorSystem.Root.Send(self, at)
 		}
 	})
@@ -185,7 +185,7 @@ func (p *identityActor) onClusterTopology(msg *clustering.ClusterTopology, ctx a
 
 	for _, f := range futures {
 		res, _ := f.Result()
-		if response, ok := res.(clustering.IdentityHandover); ok {
+		if response, ok := res.(*clustering.IdentityHandover); ok {
 			for _, activation := range response.Actors {
 				p.takeOwnership(activation)
 			}
