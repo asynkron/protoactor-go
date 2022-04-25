@@ -16,11 +16,11 @@ require (
 	github.com/serialx/hashring v0.0.0-20180504054112-49a4782e9908
 	github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72
 	github.com/stretchr/testify v1.7.1
-	go.opentelemetry.io/otel v1.5.0
+	go.opentelemetry.io/otel v1.6.3
 	go.opentelemetry.io/otel/exporters/prometheus v0.27.0
-	go.opentelemetry.io/otel/metric v0.27.0
+	go.opentelemetry.io/otel/metric v0.29.0
 	go.opentelemetry.io/otel/sdk/export/metric v0.27.0
-	go.opentelemetry.io/otel/sdk/metric v0.27.0
+	go.opentelemetry.io/otel/sdk/metric v0.29.0
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63
 	google.golang.org/grpc v1.46.0
 	google.golang.org/protobuf v1.27.1
@@ -45,7 +45,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.9.0 // indirect
-	github.com/go-logr/logr v1.2.2 // indirect
+	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/snappy v0.0.2 // indirect
 	github.com/google/go-cmp v0.5.7 // indirect
@@ -78,9 +78,8 @@ require (
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.4 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.4 // indirect
-	go.opentelemetry.io/otel/internal/metric v0.27.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.4.0 // indirect
-	go.opentelemetry.io/otel/trace v1.5.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.6.3 // indirect
+	go.opentelemetry.io/otel/trace v1.6.3 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.17.0 // indirect
