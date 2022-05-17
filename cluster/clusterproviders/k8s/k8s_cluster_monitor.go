@@ -1,6 +1,8 @@
 package k8s
 
 import (
+	"time"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/scheduler"
@@ -18,7 +20,16 @@ func (kcm *k8sClusterMonitorActor) Receive(ctx actor.Context) { kcm.Behavior.Rec
 func (kcm *k8sClusterMonitorActor) init(ctx actor.Context) {
 	switch r := ctx.Message().(type) {
 	case *RegisterMember:
-		if err := kcm.registerMember(ctx.ReceiveTimeout()); err != nil {
+		// make sure timeout is set to some meaningful value
+		timeout := ctx.ReceiveTimeout()
+		if timeout.Microseconds() == 0 {
+			timeout = kcm.Provider.cluster.Config.RequestTimeoutTime
+			if timeout.Microseconds() == 0 {
+				timeout = time.Second * 5 // default to 5 seconds
+			}
+		}
+
+		if err := kcm.registerMember(timeout); err != nil {
 			plog.Error("Failed to register service to k8s, will retry", log.Error(err))
 			ctx.Send(ctx.Self(), r)
 			return

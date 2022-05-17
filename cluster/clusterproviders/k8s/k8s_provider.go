@@ -216,16 +216,20 @@ func (p *Provider) startWatchingCluster(timeout time.Duration) error {
 
 	plog.Debug(fmt.Sprintf("Starting to watch pods with %s", selector), log.String("selector", selector))
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	watcher, err := p.client.CoreV1().Pods(p.retrieveNamespace()).Watch(ctx, metav1.ListOptions{LabelSelector: selector, Watch: true, TimeoutSeconds: &watchTimeoutSeconds})
-	if err != nil {
-		return fmt.Errorf("unable to watch the cluster status: %w", err)
-	}
+	// error placeholder
+	var watcherr error
 
 	// start a new goroutine to monitor the cluster events
 	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		watcher, err := p.client.CoreV1().Pods(p.retrieveNamespace()).Watch(ctx, metav1.ListOptions{LabelSelector: selector, Watch: true, TimeoutSeconds: &watchTimeoutSeconds})
+		if err != nil {
+			watcherr = fmt.Errorf("unable to watch the cluster status: %w", err)
+			return
+		}
+
 		for !p.shutdown {
 
 			event, ok := <-watcher.ResultChan()
@@ -306,7 +310,7 @@ func (p *Provider) startWatchingCluster(timeout time.Duration) error {
 		}
 	}()
 
-	return nil
+	return watcherr
 }
 
 // deregister itself as a member from a k8s cluster
@@ -334,14 +338,16 @@ func (p *Provider) deregisterMember(timeout time.Duration) error {
 
 // prepares a patching payload and sends it to kubernetes to replace labels
 func (p *Provider) replacePodLabels(ctx context.Context, pod *v1.Pod) error {
-	payload := struct {
+	payload := []struct {
 		Op    string `json:"op"`
 		Path  string `json:"path"`
 		Value Labels `json:"value"`
 	}{
-		Op:    "replace",
-		Path:  "/metadata/labels",
-		Value: pod.GetLabels(),
+		{
+			Op:    "replace",
+			Path:  "/metadata/labels",
+			Value: pod.GetLabels(),
+		},
 	}
 
 	payloadData, err := json.Marshal(payload)
