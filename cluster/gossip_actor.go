@@ -18,6 +18,9 @@ type empty struct{}
 type GossipActor struct {
 	gossipRequestTimeout time.Duration
 	gossip               Gossip
+
+	/// Message throttler
+	throttler actor.ShouldThrottle
 }
 
 // Creates a new GossipActor and returns a pointer to its location in the heap
@@ -27,6 +30,7 @@ func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers
 		gossipRequestTimeout: requestTimeout,
 		gossip:               informer,
 	}
+	gossipActor.throttler = actor.NewThrottle(3, 60*time.Second, gossipActor.throttledLog)
 
 	return &gossipActor
 }
@@ -76,7 +80,9 @@ func (ga *GossipActor) onGetGossipStateKey(r *GetGossipStateRequest, ctx actor.C
 }
 
 func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
-	plog.Debug("OnGossipRequest", log.PID("sender", ctx.Sender()))
+	if ga.throttler() == actor.Open {
+		plog.Debug("OnGossipRequest", log.PID("sender", ctx.Sender()))
+	}
 	ga.ReceiveState(r.State, ctx)
 
 	if !GetCluster(ctx.ActorSystem()).MemberList.ContainsMemberID(r.MemberId) {
@@ -157,7 +163,9 @@ func (ga *GossipActor) ReceiveState(remoteState *GossipState, ctx actor.Context)
 
 func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *MemberStateDelta, ctx actor.Context) {
 	pid := actor.NewPID(member.Address(), DefaultGossipActorName)
-	plog.Debug("Sending GossipRequest", log.String("MemberId", member.Id))
+	if ga.throttler() == actor.Open {
+		plog.Debug("Sending GossipRequest", log.String("MemberId", member.Id))
+	}
 
 	// a short timeout is massively important, we cannot afford hanging around waiting
 	// for timeout, blocking other gossips from getting through
@@ -191,4 +199,8 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 			ga.ReceiveState(resp.State, ctx)
 		}
 	})
+}
+
+func (ga *GossipActor) throttledLog(counter int32) {
+	plog.Debug("[Gossip] Sending GossipRequest", log.Int("throttled", int(counter)))
 }
