@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/asynkron/protoactor-go/log"
+
 	"github.com/asynkron/protoactor-go/extensions"
 	"github.com/asynkron/protoactor-go/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/instrument"
 	"go.opentelemetry.io/otel/metric/unit"
 )
 
@@ -42,14 +45,16 @@ func NewMetrics(provider metric.MeterProvider) *Metrics {
 	}
 }
 
-func (m *Metrics) PrepareMailboxLengthGauge(cb metric.Int64ObserverFunc) {
+func (m *Metrics) PrepareMailboxLengthGauge() {
 	meter := global.Meter(metrics.LibName)
-	gauge := metric.Must(meter).NewInt64GaugeObserver(
-		"protoactor_actor_mailbox_length",
-		cb,
-		metric.WithDescription("Actor's Mailbox Length"),
-		metric.WithUnit(unit.Dimensionless),
-	)
+	gauge, err := meter.AsyncInt64().Gauge("protoactor_actor_mailbox_length",
+		instrument.WithDescription("Actor's Mailbox Length"),
+		instrument.WithUnit(unit.Dimensionless))
+
+	if err != nil {
+		err = fmt.Errorf("failed to create ActorMailBoxLength instrument, %w", err)
+		plog.Error(err.Error(), log.Error(err))
+	}
 	m.metrics.Instruments().SetActorMailboxLengthGauge(gauge)
 }
 

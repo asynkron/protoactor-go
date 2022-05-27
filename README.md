@@ -1,7 +1,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/asynkron/protoactor-go)](https://goreportcard.com/report/github.com/asynkron/protoactor-go)
 [![GoDoc](https://godoc.org/github.com/asynkron/protoactor-go?status.svg)](https://godoc.org/github.com/asynkron/protoactor-go)
-[![Build Status](https://travis-ci.org/asynkron/protoactor-go.svg?branch=dev)](https://travis-ci.org/asynkron/protoactor-go)
-[![Coverage Status](https://coveralls.io/repos/github/asynkron/protoactor-go/badge.svg?branch=dev)](https://coveralls.io/github/asynkron/protoactor-go?branch=dev)
+[![checks](https://github.com/asynkron/protoactor-go/actions/workflows/checks.yml/badge.svg)](https://github.com/asynkron/protoactor-go/actions/workflows/checks.yml)
 [![Sourcegraph](https://sourcegraph.com/github.com/asynkron/protoactor-go/-/badge.svg)](https://sourcegraph.com/github.com/asynkron/protoactor-go?badge)
 
 ### [Join our Slack channel](https://join.slack.com/t/asynkron/shared_invite/zt-ko824601-yGN1d3GHF9jzZX2VtONodQ)

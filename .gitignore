@@ -234,3 +234,4 @@ _examples/**/go.sum
 .vscode/
 
 /test_report.html
+vendor

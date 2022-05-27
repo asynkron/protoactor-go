@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,7 +48,10 @@ func (p *dataStore) GetState() ProviderState {
 	return p.providerState
 }
 
-type protoMsg struct{ state string }
+type protoMsg struct {
+	proto.Message
+	state string
+}
 
 func (p *protoMsg) Reset()         {}
 func (p *protoMsg) String() string { return p.state }
