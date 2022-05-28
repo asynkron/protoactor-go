@@ -69,3 +69,15 @@ func getRunTimeStack() []byte {
 	buf := make([]byte, size)
 	return buf[:runtime.Stack(buf, false)]
 }
+
+func getParentDir(path string) string {
+	parent := path[:strings.LastIndex(path, "/")]
+	if parent == "" {
+		return "/"
+	}
+	return parent
+}
+
+func joinPath(paths ...string) string {
+	return strings.Join(paths, "/")
+}
