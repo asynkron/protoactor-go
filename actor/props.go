@@ -3,9 +3,12 @@ package actor
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/metrics"
-	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/instrument"
 )
 
 type (
@@ -29,12 +32,14 @@ var (
 			sysMetrics, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
 			if ok && sysMetrics.enabled {
 				if instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-					sysMetrics.PrepareMailboxLengthGauge(
-						func(_ context.Context, result metric.Int64ObserverResult) {
-							messageCount := int64(mb.UserMessageCount())
-							result.Observe(messageCount, sysMetrics.CommonLabels(ctx)...)
-						},
-					)
+					sysMetrics.PrepareMailboxLengthGauge()
+					meter := global.Meter(metrics.LibName)
+					if err := meter.RegisterCallback([]instrument.Asynchronous{instruments.ActorMailboxLength}, func(goCtx context.Context) {
+						instruments.ActorMailboxLength.Observe(goCtx, int64(mb.UserMessageCount()), sysMetrics.CommonLabels(ctx)...)
+					}); err != nil {
+						err = fmt.Errorf("failed to instrument Actor Mailbox, %w", err)
+						plog.Error(err.Error(), log.Error(err))
+					}
 				}
 			}
 		}

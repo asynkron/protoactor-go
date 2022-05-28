@@ -429,7 +429,7 @@ func (ctx *actorContext) Stop(pid *PID) {
 		if ok && metricsSystem.enabled {
 			_ctx := context.Background()
 			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-				instruments.ActorStoppedCount.Add(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
+				instruments.ActorStoppedCount.Observe(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
 			}
 		}
 	}
@@ -535,7 +535,7 @@ func (ctx *actorContext) incarnateActor() {
 	if ok && metricsSystem.enabled {
 		_ctx := context.Background()
 		if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-			instruments.ActorSpawnCount.Add(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
+			instruments.ActorSpawnCount.Observe(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
 		}
 	}
 }
@@ -599,7 +599,7 @@ func (ctx *actorContext) handleRestart() {
 	if ok && metricsSystem.enabled {
 		_ctx := context.Background()
 		if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-			instruments.ActorRestartedCount.Add(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
+			instruments.ActorRestartedCount.Observe(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
 		}
 	}
 }
@@ -711,7 +711,7 @@ func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}
 	if ok && metricsSystem.enabled {
 		_ctx := context.Background()
 		if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-			instruments.ActorFailureCount.Add(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
+			instruments.ActorFailureCount.Observe(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
 		}
 	}
 

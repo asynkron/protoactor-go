@@ -7,8 +7,11 @@ import (
 	"sync"
 
 	"github.com/asynkron/protoactor-go/log"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/instrument"
+	"go.opentelemetry.io/otel/metric/instrument/asyncint64"
+	"go.opentelemetry.io/otel/metric/instrument/syncfloat64"
+	"go.opentelemetry.io/otel/metric/instrument/syncint64"
 	"go.opentelemetry.io/otel/metric/unit"
 )
 
@@ -22,23 +25,23 @@ type ActorMetrics struct {
 	ID string
 
 	// Actors
-	ActorFailureCount            metric.Int64Counter
-	ActorMailboxLength           metric.Int64GaugeObserver
-	ActorMessageReceiveHistogram metric.Float64Histogram
-	ActorRestartedCount          metric.Int64Counter
-	ActorSpawnCount              metric.Int64Counter
-	ActorStoppedCount            metric.Int64Counter
+	ActorFailureCount            asyncint64.Counter
+	ActorMailboxLength           asyncint64.Gauge
+	ActorMessageReceiveHistogram syncfloat64.Histogram
+	ActorRestartedCount          asyncint64.Counter
+	ActorSpawnCount              asyncint64.Counter
+	ActorStoppedCount            asyncint64.Counter
 
 	// Deadletters
-	DeadLetterCount       metric.Int64Counter
-	FuturesCompletedCount metric.Int64Counter
+	DeadLetterCount       asyncint64.Counter
+	FuturesCompletedCount asyncint64.Counter
 
 	// Futures
-	FuturesStartedCount  metric.Int64Counter
-	FuturesTimedOutCount metric.Int64Counter
+	FuturesStartedCount  asyncint64.Counter
+	FuturesTimedOutCount asyncint64.Counter
 
 	// Threadpool
-	ThreadPoolLatency metric.Int64Histogram
+	ThreadPoolLatency syncint64.Histogram
 }
 
 // NewActorMetrics creates a new ActorMetrics value and returns a pointer to it
@@ -54,90 +57,90 @@ func newInstruments() *ActorMetrics {
 	instruments := ActorMetrics{mu: &sync.Mutex{}}
 
 	var err error
-	if instruments.ActorFailureCount, err = meter.NewInt64Counter(
+	if instruments.ActorFailureCount, err = meter.AsyncInt64().Counter(
 		"protoactor_actor_failure_count",
-		metric.WithDescription("Number of actor failures"),
-		metric.WithUnit(unit.Dimensionless),
+		instrument.WithDescription("Number of actor failures"),
+		instrument.WithUnit(unit.Dimensionless),
 	); err != nil {
 		err = fmt.Errorf("failed to create ActorFailureCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.ActorMessageReceiveHistogram, err = meter.NewFloat64Histogram(
-		"protoactor_actor_messagereceive_duration_seconds",
-		metric.WithDescription("Actor's messages received duration in seconds"),
+	if instruments.ActorMessageReceiveHistogram, err = meter.SyncFloat64().Histogram(
+		"protoactor_actor_message_receive_duration_seconds",
+		instrument.WithDescription("Actor's messages received duration in seconds"),
 	); err != nil {
 		err = fmt.Errorf("failed to create ActorMessageReceiveHistogram instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.ActorRestartedCount, err = meter.NewInt64Counter(
+	if instruments.ActorRestartedCount, err = meter.AsyncInt64().Counter(
 		"protoactor_actor_restarted_count",
-		metric.WithDescription("Number of actors retarts"),
-		metric.WithUnit(unit.Dimensionless),
+		instrument.WithDescription("Number of actors restarts"),
+		instrument.WithUnit(unit.Dimensionless),
 	); err != nil {
 		err = fmt.Errorf("failed to create ActorRestartedCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.ActorStoppedCount, err = meter.NewInt64Counter(
+	if instruments.ActorStoppedCount, err = meter.AsyncInt64().Counter(
 		"protoactor_actor_stopped_count",
-		metric.WithDescription("Number of actors stopped"),
-		metric.WithUnit(unit.Dimensionless),
+		instrument.WithDescription("Number of actors stopped"),
+		instrument.WithUnit(unit.Dimensionless),
 	); err != nil {
 		err = fmt.Errorf("failed to create ActorStoppedCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.ActorSpawnCount, err = meter.NewInt64Counter(
+	if instruments.ActorSpawnCount, err = meter.AsyncInt64().Counter(
 		"protoactor_actor_spawn_count",
-		metric.WithDescription("Number of actors spawn"),
-		metric.WithUnit(unit.Dimensionless),
+		instrument.WithDescription("Number of actors spawn"),
+		instrument.WithUnit(unit.Dimensionless),
 	); err != nil {
 		err = fmt.Errorf("failed to create ActorSpawnCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.DeadLetterCount, err = meter.NewInt64Counter(
+	if instruments.DeadLetterCount, err = meter.AsyncInt64().Counter(
 		"protoactor_deadletter_count",
-		metric.WithDescription("Number of deadletters"),
-		metric.WithUnit(unit.Dimensionless),
+		instrument.WithDescription("Number of deadletters"),
+		instrument.WithUnit(unit.Dimensionless),
 	); err != nil {
 		err = fmt.Errorf("failed to create DeadLetterCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.FuturesCompletedCount, err = meter.NewInt64Counter(
+	if instruments.FuturesCompletedCount, err = meter.AsyncInt64().Counter(
 		"protoactor_futures_completed_count",
-		metric.WithDescription("Number of futures completed"),
-		metric.WithUnit(unit.Dimensionless),
+		instrument.WithDescription("Number of futures completed"),
+		instrument.WithUnit(unit.Dimensionless),
 	); err != nil {
 		err = fmt.Errorf("failed to create FuturesCompletedCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.FuturesStartedCount, err = meter.NewInt64Counter(
+	if instruments.FuturesStartedCount, err = meter.AsyncInt64().Counter(
 		"protoactor_futures_started_count",
-		metric.WithDescription("Number of futures started"),
-		metric.WithUnit(unit.Dimensionless),
+		instrument.WithDescription("Number of futures started"),
+		instrument.WithUnit(unit.Dimensionless),
 	); err != nil {
 		err = fmt.Errorf("failed to create FuturesStartedCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.FuturesTimedOutCount, err = meter.NewInt64Counter(
-		"protoactor_futures_timedout_count",
-		metric.WithDescription("Number of futures timed out"),
-		metric.WithUnit(unit.Dimensionless),
+	if instruments.FuturesTimedOutCount, err = meter.AsyncInt64().Counter(
+		"protoactor_futures_timed_out_count",
+		instrument.WithDescription("Number of futures timed out"),
+		instrument.WithUnit(unit.Dimensionless),
 	); err != nil {
 		err = fmt.Errorf("failed to create FuturesTimedOutCount instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.ThreadPoolLatency, err = meter.NewInt64Histogram(
-		"protoactor_threadpool_latency_duraton_seconds",
-		metric.WithDescription("History of latency in second"),
-		metric.WithUnit(unit.Milliseconds),
+	if instruments.ThreadPoolLatency, err = meter.SyncInt64().Histogram(
+		"protoactor_thread_pool_latency_duration_seconds",
+		instrument.WithDescription("History of latency in second"),
+		instrument.WithUnit(unit.Milliseconds),
 	); err != nil {
 		err = fmt.Errorf("failed to create ThreadPoolLatency instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))
@@ -147,7 +150,7 @@ func newInstruments() *ActorMetrics {
 }
 
 // SetActorMailboxLengthGauge makes sure access to ActorMailboxLength is sequenced
-func (am *ActorMetrics) SetActorMailboxLengthGauge(gauge metric.Int64GaugeObserver) {
+func (am *ActorMetrics) SetActorMailboxLengthGauge(gauge asyncint64.Gauge) {
 	// lock our mutex
 	am.mu.Lock()
 	defer am.mu.Unlock()
