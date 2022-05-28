@@ -63,16 +63,13 @@ func (suite *ZookeeperTestSuite) TestMultiNodes() {
 	helloKind := cluster.NewKind("hello", props)
 
 	name := `cluster1`
+	c := suite.start(name, cluster.WithKinds(helloKind))
+	defer c.Shutdown()
 	c1 := suite.start(name, cluster.WithKinds(helloKind))
 	defer c1.Shutdown()
-	c2 := suite.start(name, cluster.WithKinds(helloKind))
-	defer c2.Shutdown()
-	c1.Cluster.Get(`a1`, `hello`)
-	c2.Cluster.Get(`a2`, `hello`)
+	c.Cluster.Get(`a1`, `hello`)
+	c1.Cluster.Get(`a2`, `hello`)
 	for actorCount != 2 {
 		time.Sleep(time.Microsecond * 5)
 	}
-	suite.Assert().Equal(2, c1.Cluster.MemberList.Members().Len(), "Expected 2 members in the cluster")
-	suite.Assert().Equal(2, c2.Cluster.MemberList.Members().Len(), "Expected 2 members in the cluster")
-
 }

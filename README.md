@@ -120,8 +120,23 @@ This command exectutes all tests in the repository except for consul integration
 those tests). We also skip directories that don't contain any tests.
 
 ```
-go test `go list ./... | grep -v "/_examples/" | grep -v "/persistence" | grep -v "/scheduler"`
+go test `go list ./... | grep -v consul` | grep -v 'no test files'
 ```
+
+If everything is ok, you will get the output:
+
+```
+ok  	github.com/asynkron/protoactor-go/actor	0.115s
+ok  	github.com/asynkron/protoactor-go/eventstream	0.020s
+ok  	github.com/asynkron/protoactor-go/internal/queue/goring	2.524s
+ok  	github.com/asynkron/protoactor-go/internal/queue/mpsc	2.385s
+ok  	github.com/asynkron/protoactor-go/log	0.017s
+ok  	github.com/asynkron/protoactor-go/mailbox	2.742s
+ok  	github.com/asynkron/protoactor-go/plugin	1.227s
+ok  	github.com/asynkron/protoactor-go/router	1.836s
+ok  	github.com/asynkron/protoactor-go/stream	0.017s
+```
+
 ## Hello world
 
 ```go
@@ -397,4 +412,4 @@ Our awesome sponsors:
   <img src="https://contributors-img.web.app/image?repo=asynkron/protoactor-go" />
 </a>
 
-Made with [contributors-img](https://contributors-img.web.app). 
+Made with [contributors-img](https://contributors-img.web.app).
