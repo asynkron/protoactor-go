@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -34,6 +33,7 @@ type Provider struct {
 	cluster             *cluster.Cluster
 	baseKey             string
 	clusterName         string
+	clusterKey          string
 	deregistered        bool
 	shutdown            bool
 	self                *Node
@@ -57,6 +57,7 @@ func New(endpoints []string, opts ...Option) (*Provider, error) {
 	p := &Provider{
 		cluster:             &cluster.Cluster{},
 		baseKey:             zkCfg.BaseKey,
+		clusterKey:          "",
 		clusterName:         "",
 		deregistered:        false,
 		shutdown:            false,
@@ -98,12 +99,13 @@ func (p *Provider) init(c *cluster.Cluster) error {
 
 	p.cluster = c
 	p.clusterName = p.cluster.Config.Name
+	p.clusterKey = joinPath(p.baseKey, p.clusterName)
 	knownKinds := c.GetClusterKinds()
 	nodeName := fmt.Sprintf("%v@%v:%v", p.clusterName, host, port)
 	p.self = NewNode(nodeName, host, port, knownKinds)
 	p.self.SetMeta(metaKeyID, p.getID())
 
-	if err = p.createClusterNode(p.getClusterKey()); err != nil {
+	if err = p.createClusterNode(p.clusterKey); err != nil {
 		return err
 	}
 	return nil
@@ -173,10 +175,6 @@ func (p *Provider) getID() string {
 	return p.self.ID
 }
 
-func (p *Provider) getClusterKey() string {
-	return p.buildKey(p.clusterName)
-}
-
 func (p *Provider) registerService() error {
 	data, err := p.self.Serialize()
 	if err != nil {
@@ -184,9 +182,9 @@ func (p *Provider) registerService() error {
 		return err
 	}
 
-	path, err := p.createEphemeralChildNode(p.getClusterKey(), data)
+	path, err := p.createEphemeralChildNode(data)
 	if err != nil {
-		plog.Error("createEphemeralChildNode fail.", log.String("node", p.getClusterKey()), log.Error(err))
+		plog.Error("createEphemeralChildNode fail.", log.String("node", p.clusterKey), log.Error(err))
 		return err
 	}
 	p.fullpath = path
@@ -209,7 +207,7 @@ func (p *Provider) createClusterNode(dir string) error {
 	if exist {
 		return nil
 	}
-	if err = p.createClusterNode(filepath.Dir(dir)); err != nil {
+	if err = p.createClusterNode(getParentDir(dir)); err != nil {
 		return err
 	}
 	if _, err = p.conn.Create(dir, []byte{}, 0, zk.WorldACL(zk.PermAll)); err != nil {
@@ -229,10 +227,9 @@ func (p *Provider) deregisterService() error {
 }
 
 func (p *Provider) keepWatching(ctx context.Context, registerSelf bool) error {
-	clusterKey := p.buildKey(p.clusterName)
-	evtChan, err := p.addWatcher(ctx, clusterKey)
+	evtChan, err := p.addWatcher(ctx, p.clusterKey)
 	if err != nil {
-		plog.Error("list children fail", log.String("node", clusterKey), log.Error(err))
+		plog.Error("list children fail", log.String("node", p.clusterKey), log.Error(err))
 		return err
 	}
 
@@ -305,10 +302,9 @@ func (p *Provider) _keepWatching(registerSelf bool, stream <-chan zk.Event) erro
 }
 
 func (p *Provider) clusterNotContainsSelfPath() bool {
-	clusterKey := p.buildKey(p.clusterName)
-	children, _, err := p.conn.Children(clusterKey)
+	children, _, err := p.conn.Children(p.clusterKey)
 	return err == nil && !stringContains(mapString(children, func(s string) string {
-		return filepath.Join(clusterKey, s)
+		return joinPath(p.clusterKey, s)
 	}), p.fullpath)
 }
 
@@ -395,21 +391,16 @@ func (p *Provider) GetHealthStatus() error {
 	return p.clusterError
 }
 
-func (p *Provider) buildKey(names ...string) string {
-	return filepath.Join(append([]string{p.baseKey}, names...)...)
-}
-
 func (p *Provider) fetchNodes() ([]*Node, int32, error) {
-	key := p.buildKey(p.clusterName)
-	children, stat, err := p.conn.Children(key)
+	children, stat, err := p.conn.Children(p.clusterKey)
 	if err != nil {
-		plog.Error("FetchNodes fail.", log.String("node", key), log.Error(err))
+		plog.Error("FetchNodes fail.", log.String("node", p.clusterKey), log.Error(err))
 		return nil, 0, err
 	}
 
 	var nodes []*Node
 	for _, short := range children {
-		long := filepath.Join(key, short)
+		long := joinPath(p.clusterKey, short)
 		value, _, err := p.conn.Get(long)
 		if err != nil {
 			plog.Error("FetchNodes fail.", log.String("node", long), log.Error(err))
@@ -496,16 +487,16 @@ func splitHostPort(addr string) (host string, port int, err error) {
 	return
 }
 
-func (pro *Provider) createEphemeralChildNode(baseKey string, data []byte) (string, error) {
+func (pro *Provider) createEphemeralChildNode(data []byte) (string, error) {
 	acl := zk.WorldACL(zk.PermAll)
-	prefix := fmt.Sprintf("%s/actor-", baseKey)
+	prefix := joinPath(pro.clusterKey, "actor-")
 	path := ""
 	var err error
 	for i := 0; i < 3; i++ {
 		path, err = pro.conn.CreateProtectedEphemeralSequential(prefix, data, acl)
 		if err == zk.ErrNoNode {
 			// Create parent node.
-			parts := strings.Split(baseKey, "/")
+			parts := strings.Split(pro.clusterKey, "/")
 			pth := ""
 			for _, p := range parts[1:] {
 				var exists bool
