@@ -46,8 +46,11 @@ func TestInformer_GetState(t *testing.T) {
 		t.Error("not ok")
 	}
 
-	var s2 *MemberHeartbeat
-	_ = x.UnmarshalTo(s2)
+	var s2 MemberHeartbeat
+	err := x.UnmarshalTo(&s2)
+	if err != nil {
+		t.Error("unmarshal state error")
+	}
 }
 
 func TestInformer_ReceiveState(t *testing.T) {
@@ -84,18 +87,35 @@ func TestInformer_ReceiveState(t *testing.T) {
 
 	var ok bool
 
-	_, ok = m["member1"]
+	m1, ok := m["member1"]
 
 	if !ok {
 		t.Error("member1 is missing")
 	}
 
+	var s1 MemberHeartbeat
+
+	err := m1.UnmarshalTo(&s1)
+
+	if err != nil {
+		t.Error("unmarshal member1 state error")
+	}
+
 	// ensure we see member2 after receiving state
-	_, ok = m["member2"]
+	m2, ok := m["member2"]
 
 	if !ok {
 		t.Error("member2 is missing")
 	}
+
+	var s2 MemberHeartbeat
+
+	err = m2.UnmarshalTo(&s2)
+
+	if err != nil {
+		t.Error("unmarshal member2 state error")
+	}
+
 }
 
 func TestInformer_SendState(t *testing.T) {

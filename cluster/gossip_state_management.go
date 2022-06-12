@@ -43,7 +43,7 @@ func setKey(state *GossipState, key string, value proto.Message, memberID string
 	sequenceNo++
 	entry.SequenceNumber = sequenceNo
 
-	a, _ := anypb.New(entry.Value)
+	a, _ := anypb.New(value)
 	entry.Value = a
 
 	return sequenceNo
