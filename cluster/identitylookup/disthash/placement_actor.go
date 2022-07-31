@@ -29,6 +29,11 @@ func (p *placementActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
 		plog.Info("Placement actor started")
+	case *actor.Stopping:
+		plog.Info("Placement actor stopping")
+		p.onStopping(ctx)
+	case *actor.Stopped:
+		plog.Info("Placement actor stopped")
 	case *actor.Terminated:
 		p.onTerminated(msg, ctx)
 	case *clustering.ActivationRequest:
@@ -51,6 +56,15 @@ func (p *placementActor) onTerminated(msg *actor.Terminated, ctx actor.Context) 
 
 	if found {
 		delete(p.actors, *key)
+	}
+}
+
+func (p *placementActor) onStopping(ctx actor.Context) {
+	for _, meta := range p.actors {
+		err := ctx.PoisonFuture(meta.PID).Wait()
+		if err != nil {
+			plog.Error("Failed to poison actor", log.String("identity", meta.ID.Identity), log.Error(err))
+		}
 	}
 }
 

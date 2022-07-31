@@ -46,6 +46,12 @@ func (pm *Manager) Start() {
 func (pm *Manager) Stop() {
 	system := pm.cluster.ActorSystem
 	system.EventStream.Unsubscribe(pm.topologySub)
+
+	err := system.Root.PoisonFuture(pm.placementActor).Wait()
+	if err != nil {
+		plog.Error("Failed to shutdown partition placement actor", log.Error(err))
+	}
+
 	plog.Info("Stopped PartitionManager")
 }
 
