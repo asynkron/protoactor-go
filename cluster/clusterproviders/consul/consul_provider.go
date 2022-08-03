@@ -33,6 +33,7 @@ type Provider struct {
 	clusterError        error
 	consulServerAddress string
 	pid                 *actor.PID
+	consulConfig        *api.Config
 }
 
 func New(opts ...Option) (*Provider, error) {
@@ -51,6 +52,7 @@ func NewWithConfig(consulConfig *api.Config, opts ...Option) (*Provider, error) 
 		deregisterCritical:  60 * time.Second,
 		blockingWaitTime:    20 * time.Second,
 		consulServerAddress: consulConfig.Address,
+		consulConfig:        consulConfig,
 	}
 	for _, opt := range opts {
 		opt(p)
