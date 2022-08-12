@@ -33,14 +33,31 @@ type endpointWriter struct {
 func (state *endpointWriter) initialize() {
 	now := time.Now()
 	plog.Info("Started EndpointWriter. connecting", log.String("address", state.address))
-	err := state.initializeInternal()
-	if err != nil {
-		plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
-		// Wait 2 seconds to restart and retry
-		// Replace with Exponential Backoff
-		time.Sleep(2 * time.Second)
-		panic(err)
+
+	var err error
+
+	for i := 0; i < state.remote.config.MaxRetryCount; i++ {
+		err = state.initializeInternal()
+		if err != nil {
+			plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err), log.Int("retry", i))
+			// Wait 2 seconds to restart and retry
+			// Replace with Exponential Backoff
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		break
 	}
+
+	if err != nil {
+		terminated := &EndpointTerminatedEvent{
+			Address: state.address,
+		}
+		state.remote.actorSystem.EventStream.Publish(terminated)
+
+		return
+	}
+
 	plog.Info("EndpointWriter connected", log.String("address", state.address), log.Duration("cost", time.Since(now)))
 }
 
