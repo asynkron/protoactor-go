@@ -7,6 +7,7 @@ package cluster
 import (
 	"hash"
 	"hash/fnv"
+	"strings"
 	"sync"
 )
 
@@ -65,38 +66,12 @@ func (r *Rendezvous) GetByClusterIdentity(ci *ClusterIdentity) string {
 }
 
 func (r *Rendezvous) GetByIdentity(identity string) string {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
+	parts := strings.SplitN(identity, "/", 2)
 
-	m := r.members
-	l := len(m)
-
-	if l == 0 {
-		return ""
-	}
-
-	if l == 1 {
-		return m[0].member.Address()
-	}
-
-	keyBytes := []byte(identity)
-
-	var maxScore uint32
-	var maxMember *memberData
-	var score uint32
-
-	for _, node := range m {
-		score = r.hash(node.hashBytes, keyBytes)
-		if score > maxScore {
-			maxScore = score
-			maxMember = node
-		}
-	}
-
-	if maxMember == nil {
-		return ""
-	}
-	return maxMember.member.Address()
+	return r.GetByClusterIdentity(&ClusterIdentity{
+		Kind:     parts[0],
+		Identity: parts[1],
+	})
 }
 
 func (r *Rendezvous) memberDataByKind(kind string) []*memberData {
