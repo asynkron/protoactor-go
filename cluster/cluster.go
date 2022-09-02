@@ -16,7 +16,7 @@ var extensionID = extensions.NextExtensionID()
 type Cluster struct {
 	ActorSystem    *actor.ActorSystem
 	Config         *Config
-	Gossip         Gossiper
+	Gossip         *Gossiper
 	Remote         *remote.Remote
 	PidCache       *PidCacheValue
 	MemberList     *MemberList
