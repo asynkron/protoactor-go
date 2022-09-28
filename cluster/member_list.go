@@ -161,11 +161,11 @@ func (ml *MemberList) UpdateClusterTopology(members Members) {
 
 	plog.Info("Updated ClusterTopology",
 		log.Uint64("topology-hash", topology.TopologyHash),
-		log.Int("members", len(members)),
+		log.Int("members", len(topology.Members)),
 		log.Int("joined", len(topology.Joined)),
 		log.Int("left", len(topology.Left)),
 		log.Int("blocked", len(topology.Blocked)),
-		log.Int("members", len(topology.Members)))
+		log.Int("membersFromProvider", len(members)))
 }
 
 func (ml *MemberList) memberJoin(joiningMember *Member) {

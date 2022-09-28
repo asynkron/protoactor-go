@@ -73,6 +73,7 @@ func (r *Remote) Start() {
 
 	r.actorSystem.ProcessRegistry.RegisterAddressResolver(r.remoteHandler)
 	r.actorSystem.ProcessRegistry.Address = address
+	plog.Info("Starting remote with address", log.String("address", address))
 
 	r.edpManager = newEndpointManager(r)
 	r.edpManager.start()

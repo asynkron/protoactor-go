@@ -77,15 +77,17 @@ func (state *endpointWriter) initializeInternal() error {
 
 	connection, err := stream.Recv()
 	if err != nil {
-		plog.Error("EndpointWriter failed to send connect request", log.String("address", state.address), log.Error(err))
+		plog.Error("EndpointWriter failed to receive connect response", log.String("address", state.address), log.Error(err))
 		return err
 	}
 
 	switch connection.MessageType.(type) {
 	case *RemoteMessage_ConnectResponse:
+		plog.Debug("Received connect response", log.String("fromAddress", state.address))
+		// TODO: handle blocked status received from remote server
 		break
 	default:
-		plog.Error("EndpointWriter failed to receive connect response", log.String("address", state.address), log.TypeOf("type", connection.MessageType))
+		plog.Error("EndpointWriter got invalid connect response", log.String("address", state.address), log.TypeOf("type", connection.MessageType))
 		return errors.New("invalid connect response")
 	}
 
@@ -95,7 +97,7 @@ func (state *endpointWriter) initializeInternal() error {
 			switch {
 			case errors.Is(err, io.EOF):
 				plog.Debug("EndpointWriter stream completed", log.String("address", state.address))
-				break
+				return
 			case err != nil:
 				plog.Error("EndpointWriter lost connection", log.String("address", state.address), log.Error(err))
 				terminated := &EndpointTerminatedEvent{

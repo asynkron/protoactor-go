@@ -21,13 +21,7 @@ func (kcm *k8sClusterMonitorActor) init(ctx actor.Context) {
 	switch r := ctx.Message().(type) {
 	case *RegisterMember:
 		// make sure timeout is set to some meaningful value
-		timeout := ctx.ReceiveTimeout()
-		if timeout.Microseconds() == 0 {
-			timeout = kcm.Provider.cluster.Config.RequestTimeoutTime
-			if timeout.Microseconds() == 0 {
-				timeout = time.Second * 5 // default to 5 seconds
-			}
-		}
+		timeout := getTimeout(ctx, kcm)
 
 		if err := kcm.registerMember(timeout); err != nil {
 			plog.Error("Failed to register service to k8s, will retry", log.Error(err))
@@ -37,7 +31,9 @@ func (kcm *k8sClusterMonitorActor) init(ctx actor.Context) {
 		plog.Info("Registered service to k8s")
 	case *DeregisterMember:
 		if kcm.watching {
-			if err := kcm.deregisterMember(ctx.ReceiveTimeout()); err != nil {
+			timeout := getTimeout(ctx, kcm)
+
+			if err := kcm.deregisterMember(timeout); err != nil {
 				plog.Error("Failed to deregister service from k8s, will retry", log.Error(err))
 				ctx.Send(ctx.Self(), r)
 				return
@@ -46,13 +42,27 @@ func (kcm *k8sClusterMonitorActor) init(ctx actor.Context) {
 			plog.Info("Deregistered service from k8s")
 		}
 	case *StartWatchingCluster:
-		if err := kcm.startWatchingCluster(ctx.ReceiveTimeout()); err != nil {
+		timeout := getTimeout(ctx, kcm)
+
+		if err := kcm.startWatchingCluster(timeout); err != nil {
 			plog.Error("Failed to start watching k8s cluster, will retry", log.Error(err))
 			ctx.Send(ctx.Self(), r)
 			return
 		}
 		plog.Info("k8s cluster started to being watched")
 	}
+}
+
+func getTimeout(ctx actor.Context, kcm *k8sClusterMonitorActor) time.Duration {
+	timeout := ctx.ReceiveTimeout()
+	if timeout.Microseconds() == 0 {
+		timeout = kcm.Provider.cluster.Config.RequestTimeoutTime
+		if timeout.Microseconds() == 0 {
+			timeout = time.Second * 5 // default to 5 seconds
+		}
+	}
+
+	return timeout
 }
 
 // creates and initializes a new k8sClusterMonitorActor in the heap and

@@ -76,7 +76,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 
 		switch t := msg.MessageType.(type) {
 		case *RemoteMessage_ConnectRequest:
-			plog.Debug("EndpointReader received connect request")
+			plog.Debug("EndpointReader received connect request", log.Message(t.ConnectRequest))
 			c := t.ConnectRequest
 			_, err := s.OnConnectRequest(stream, c)
 			if err != nil {
@@ -107,6 +107,7 @@ func (s *endpointReader) OnConnectRequest(stream Remoting_ReceiveServer, c *Conn
 	case *ConnectRequest_ClientConnection:
 		{
 			// TODO implement me
+			plog.Error("ClientConnection not implemented")
 		}
 	default:
 		plog.Error("EndpointReader received unknown connection type")
