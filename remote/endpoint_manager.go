@@ -160,6 +160,7 @@ func (em *endpointManager) stopSupervisor() error {
 func (em *endpointManager) endpointEvent(evn interface{}) {
 	switch msg := evn.(type) {
 	case *EndpointTerminatedEvent:
+		plog.Debug("EndpointManager received endpoint terminated event, removing endpoint", log.Message(evn))
 		em.removeEndpoint(msg)
 	case *EndpointConnectedEvent:
 		endpoint := em.ensureConnected(msg.Address)
@@ -248,6 +249,7 @@ func (em *endpointManager) removeEndpoint(msg *EndpointTerminatedEvent) {
 		if atomic.CompareAndSwapUint32(&le.unloaded, 0, 1) {
 			em.connections.Delete(msg.Address)
 			ep := le.Get()
+			plog.Debug("Sending EndpointTerminatedEvent to EndpointWatcher ans EndpointWriter", log.String("address", msg.Address))
 			em.remote.actorSystem.Root.Send(ep.watcher, msg)
 			em.remote.actorSystem.Root.Send(ep.writer, msg)
 		}
@@ -266,6 +268,7 @@ func newEndpointSupervisor(remote *Remote) actor.Actor {
 
 func (state *endpointSupervisor) Receive(ctx actor.Context) {
 	if address, ok := ctx.Message().(string); ok {
+		plog.Debug("EndpointSupervisor spawning EndpointWriter and EndpointWatcher", log.String("address", address))
 		e := &endpoint{
 			writer:  state.spawnEndpointWriter(state.remote, address, ctx),
 			watcher: state.spawnEndpointWatcher(state.remote, address, ctx),
@@ -275,6 +278,7 @@ func (state *endpointSupervisor) Receive(ctx actor.Context) {
 }
 
 func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, supervisor actor.Supervisor, child *actor.PID, rs *actor.RestartStatistics, reason interface{}, message interface{}) {
+	plog.Debug("EndpointSupervisor handling failure", log.Object("reason", reason), log.Message(message))
 	supervisor.RestartChildren(child)
 }
 

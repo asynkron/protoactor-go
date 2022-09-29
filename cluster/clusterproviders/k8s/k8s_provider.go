@@ -272,7 +272,7 @@ func (p *Provider) startWatchingCluster(timeout time.Duration) error {
 			for _, pod := range p.clusterPods {
 				podNames = append(podNames, pod.ObjectMeta.Name)
 			}
-			plog.Debug("Cluster pods are now", log.Int("numberOfPods", len(p.clusterPods)), log.Object("podNames", podNames))
+			plog.Debug("Detected cluster pods are now", log.Int("numberOfPods", len(p.clusterPods)), log.Object("podNames", podNames))
 
 			members := make([]*cluster.Member, 0, len(p.clusterPods))
 			for _, clusterPod := range p.clusterPods {
@@ -316,7 +316,7 @@ func (p *Provider) startWatchingCluster(timeout time.Duration) error {
 						Kinds: kinds,
 					})
 				} else {
-					plog.Debug("Pod is not running yet", log.String("podName", clusterPod.ObjectMeta.Name), log.Object("podIPs", clusterPod.Status.PodIPs), log.String("podPhase", string(clusterPod.Status.Phase)))
+					plog.Debug("Pod is not in Running state", log.String("podName", clusterPod.ObjectMeta.Name), log.Object("podIPs", clusterPod.Status.PodIPs), log.String("podPhase", string(clusterPod.Status.Phase)))
 				}
 			}
 

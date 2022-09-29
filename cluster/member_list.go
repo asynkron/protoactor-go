@@ -182,7 +182,7 @@ func (ml *MemberList) memberJoin(joiningMember *Member) {
 
 func (ml *MemberList) memberLeave(leavingMember *Member) {
 	for _, kind := range leavingMember.Kinds {
-		if ml.memberStrategyByKind[kind] != nil {
+		if ml.memberStrategyByKind[kind] == nil {
 			continue
 		}
 
