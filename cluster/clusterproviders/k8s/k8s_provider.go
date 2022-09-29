@@ -249,11 +249,13 @@ func (p *Provider) startWatchingCluster(timeout time.Duration) error {
 
 			podClusterName, ok := pod.ObjectMeta.Labels[LabelCluster]
 			if !ok {
-				plog.Info("The pod %s is not a Proto.Cluster node", log.Object("podName", pod.ObjectMeta.Name))
+				plog.Info("The pod is not a Proto.Cluster node", log.Object("podName", pod.ObjectMeta.Name))
+				continue
 			}
 
 			if podClusterName != p.clusterName {
 				plog.Info("The pod is from another cluster", log.Object("podName", pod.ObjectMeta.Name), log.String("otherClusterName", podClusterName))
+				continue
 			}
 
 			switch event.Type {
