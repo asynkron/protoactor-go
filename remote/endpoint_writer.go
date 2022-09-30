@@ -126,7 +126,6 @@ func (state *endpointWriter) initializeInternal() error {
 
 	connected := &EndpointConnectedEvent{Address: state.address}
 	state.remote.actorSystem.EventStream.Publish(connected)
-	state.stream = stream
 	return nil
 }
 
@@ -160,6 +159,15 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		}
 
 		rd, _ := tmp.(*remoteDeliver)
+
+		if state.stream == nil { // not connected yet since first connection attempt failed and we are waiting for the retry
+			if rd.sender != nil {
+				state.remote.actorSystem.Root.Send(rd.sender, &actor.DeadLetterResponse{Target: rd.target})
+			} else {
+				state.remote.actorSystem.EventStream.Publish(&actor.DeadLetterEvent{Message: rd.message, Sender: rd.sender, PID: rd.target})
+			}
+			continue
+		}
 
 		if rd.header == nil || rd.header.Length() == 0 {
 			header = nil
@@ -287,11 +295,13 @@ func (state *endpointWriter) closeClientConn() {
 		if err != nil {
 			plog.Error("EndpointWriter error when closing the stream", log.Error(err))
 		}
+		state.stream = nil
 	}
 	if state.conn != nil {
 		err := state.conn.Close()
 		if err != nil {
 			plog.Error("EndpointWriter error when closing the client conn", log.Error(err))
 		}
+		state.conn = nil
 	}
 }

@@ -24,8 +24,7 @@ import (
 )
 
 var (
-	watchTimeoutSeconds       int64 = 30
-	ProviderShuttingDownError       = fmt.Errorf("kubernetes cluster provider is being shut down")
+	ProviderShuttingDownError = fmt.Errorf("kubernetes cluster provider is being shut down")
 )
 
 // Convenience type to store cluster labels
@@ -47,7 +46,7 @@ type Provider struct {
 	clusterMonitor *actor.PID
 	deregistered   bool
 	shutdown       bool
-	watching       bool
+	cancelWatch    context.CancelFunc
 }
 
 // make sure our Provider complies with the ClusterProvider interface
@@ -138,12 +137,21 @@ func (p *Provider) Shutdown(graceful bool) error {
 	}
 
 	p.shutdown = true
+
+	plog.Info("Shutting down k8s cluster provider")
 	if p.clusterMonitor != nil {
-		if err := p.cluster.ActorSystem.Root.StopFuture(p.clusterMonitor).Wait(); err != nil {
-			plog.Error("Failed to stop kubernetes-provider actor", log.Error(err))
+		if err := p.cluster.ActorSystem.Root.RequestFuture(p.clusterMonitor, &DeregisterMember{}, 5*time.Second).Wait(); err != nil {
+			plog.Error("Failed to deregister member - cluster monitor did not respond, proceeding with shutdown", log.Error(err))
 		}
+
+		if err := p.cluster.ActorSystem.Root.RequestFuture(p.clusterMonitor, &StopWatchingCluster{}, 5*time.Second).Wait(); err != nil {
+			plog.Error("Failed to deregister member - cluster monitor did not respond, proceeding with shutdown", log.Error(err))
+		}
+
+		_ = p.cluster.ActorSystem.Root.StopFuture(p.clusterMonitor).Wait()
 		p.clusterMonitor = nil
 	}
+
 	return nil
 }
 
@@ -209,35 +217,53 @@ func (p *Provider) startWatchingClusterAsync(c *cluster.Cluster) {
 	c.ActorSystem.Root.Send(p.clusterMonitor, &msg)
 }
 
-func (p *Provider) startWatchingCluster(timeout time.Duration) error {
+func (p *Provider) startWatchingCluster() error {
 	selector := fmt.Sprintf("%s=%s", LabelCluster, p.clusterName)
-	if p.watching {
-		plog.Info(fmt.Sprintf("Pods for %s are being watched already", selector))
-	}
 
 	plog.Debug(fmt.Sprintf("Starting to watch pods with %s", selector), log.String("selector", selector))
 
-	// TODO: figure out the timeout on watch operation
-	//ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	//defer cancel()
-
-	watcher, err := p.client.CoreV1().Pods(p.retrieveNamespace()).Watch(context.Background(), metav1.ListOptions{LabelSelector: selector, Watch: true})
-	//watcher, err := p.client.CoreV1().Pods(p.retrieveNamespace()).Watch(ctx, metav1.ListOptions{LabelSelector: selector, Watch: true, TimeoutSeconds: &watchTimeoutSeconds})
-
-	if err != nil {
-		return fmt.Errorf("unable to watch the cluster status: %w", err)
-	}
-	plog.Debug("Pod watcher started")
+	ctx, cancel := context.WithCancel(context.Background())
+	p.cancelWatch = cancel
 
 	// start a new goroutine to monitor the cluster events
 	go func() {
 
-		for !p.shutdown {
+		for {
+			select {
+			case <-ctx.Done():
+				plog.Debug("Stopping watch on pods")
+				return
+			default:
+				if err := p.watchPods(ctx, selector); err != nil {
+					plog.Error("Error watching pods, will retry", log.Error(err))
+					time.Sleep(5 * time.Second)
+				}
+			}
+		}
+	}()
 
-			event, ok := <-watcher.ResultChan()
+	return nil
+}
+
+func (p *Provider) watchPods(ctx context.Context, selector string) error {
+	watcher, err := p.client.CoreV1().Pods(p.retrieveNamespace()).Watch(context.Background(), metav1.ListOptions{LabelSelector: selector, Watch: true})
+
+	if err != nil {
+		err = fmt.Errorf("unable to watch pods: %w", err)
+		plog.Error(err.Error(), log.Error(err))
+		return err
+	}
+
+	plog.Info("Pod watcher started")
+
+	for {
+		select {
+		case <-ctx.Done():
+			watcher.Stop()
+			return nil
+		case event, ok := <-watcher.ResultChan():
 			if !ok {
-				plog.Error("watcher result channel closed abruptly")
-				break
+				return fmt.Errorf("pod watcher channel closed abruptly")
 			}
 			pod, ok := event.Object.(*v1.Pod)
 			if !ok {
@@ -245,87 +271,100 @@ func (p *Provider) startWatchingCluster(timeout time.Duration) error {
 				plog.Error(err.Error(), log.Error(err))
 				continue
 			}
-			plog.Debug("Watcher reported event for pod", log.Object("eventType", event.Type), log.String("podName", pod.ObjectMeta.Name))
 
-			podClusterName, ok := pod.ObjectMeta.Labels[LabelCluster]
-			if !ok {
-				plog.Info("The pod is not a Proto.Cluster node", log.Object("podName", pod.ObjectMeta.Name))
-				continue
-			}
+			p.processPodEvent(event, pod)
+		}
+	}
+}
 
-			if podClusterName != p.clusterName {
-				plog.Info("The pod is from another cluster", log.Object("podName", pod.ObjectMeta.Name), log.String("otherClusterName", podClusterName))
-				continue
-			}
+func (p *Provider) processPodEvent(event watch.Event, pod *v1.Pod) {
+	plog.Debug("Watcher reported event for pod", log.Object("eventType", event.Type), log.String("podName", pod.ObjectMeta.Name))
 
-			switch event.Type {
-			case watch.Deleted:
-				delete(p.clusterPods, pod.UID)
-			case watch.Error:
-				err := apierrors.FromObject(event.Object)
-				plog.Error(err.Error(), log.Error(err))
-			default:
-				p.clusterPods[pod.UID] = pod
-			}
+	podClusterName, hasClusterName := pod.ObjectMeta.Labels[LabelCluster]
+	if !hasClusterName {
+		plog.Info("The pod is not a cluster member", log.Object("podName", pod.ObjectMeta.Name))
+		delete(p.clusterPods, pod.UID) // pod could have been in the cluster, but then it was deregistered
+	} else if podClusterName != p.clusterName {
+		plog.Info("The pod is a member of another cluster", log.Object("podName", pod.ObjectMeta.Name), log.String("otherCluster", podClusterName))
+		return
+	} else {
+		switch event.Type {
+		case watch.Deleted:
+			delete(p.clusterPods, pod.UID)
+		case watch.Error:
+			err := apierrors.FromObject(event.Object)
+			plog.Error(err.Error(), log.Error(err))
+		default:
+			p.clusterPods[pod.UID] = pod
+		}
+	}
 
-			podNames := make([]string, 0, len(p.clusterPods))
-			for _, pod := range p.clusterPods {
-				podNames = append(podNames, pod.ObjectMeta.Name)
-			}
-			plog.Debug("Detected cluster pods are now", log.Int("numberOfPods", len(p.clusterPods)), log.Object("podNames", podNames))
+	if plog.Level() == log.DebugLevel {
+		logCurrentPods(p.clusterPods)
+	}
 
-			members := make([]*cluster.Member, 0, len(p.clusterPods))
-			for _, clusterPod := range p.clusterPods {
-				if clusterPod.Status.Phase == "Running" && len(clusterPod.Status.PodIPs) > 0 {
+	members := mapPodsToMembers(p.clusterPods)
 
-					var kinds []string
-					for key, value := range clusterPod.ObjectMeta.Labels {
-						if strings.HasPrefix(key, LabelKind) && value == "true" {
-							kinds = append(kinds, strings.Replace(key, fmt.Sprintf("%s-", LabelKind), "", 1))
-						}
-					}
+	plog.Info("Topology received from Kubernetes", log.Object("members", members))
+	p.cluster.MemberList.UpdateClusterTopology(members)
+}
 
-					host := clusterPod.Status.PodIP
-					port, err := strconv.Atoi(clusterPod.ObjectMeta.Labels[LabelPort])
-					if err != nil {
-						err = fmt.Errorf("can not convert pod meta %s into integer: %w", LabelPort, err)
-						plog.Error(err.Error(), log.Error(err))
-						continue
-					}
+func logCurrentPods(clusterPods map[types.UID]*v1.Pod) {
+	podNames := make([]string, 0, len(clusterPods))
+	for _, pod := range clusterPods {
+		podNames = append(podNames, pod.ObjectMeta.Name)
+	}
+	plog.Debug("Detected cluster pods are now", log.Int("numberOfPods", len(clusterPods)), log.Object("podNames", podNames))
+}
 
-					mid := clusterPod.ObjectMeta.Labels[LabelMemberID]
-					alive := true
-					for _, status := range clusterPod.Status.ContainerStatuses {
-						if !status.Ready {
-							plog.Debug("Pod container is not ready", log.String("podName", clusterPod.ObjectMeta.Name), log.String("containerName", status.Name))
-							alive = false
-							break
-						}
-					}
+func mapPodsToMembers(clusterPods map[types.UID]*v1.Pod) []*cluster.Member {
+	members := make([]*cluster.Member, 0, len(clusterPods))
+	for _, clusterPod := range clusterPods {
+		if clusterPod.Status.Phase == "Running" && len(clusterPod.Status.PodIPs) > 0 {
 
-					if !alive {
-						continue
-					}
-
-					plog.Debug("Pod is a member", log.String("podName", clusterPod.ObjectMeta.Name), log.Object("podIPs", clusterPod.Status.PodIPs), log.String("podPhase", string(clusterPod.Status.Phase)))
-
-					members = append(members, &cluster.Member{
-						Id:    mid,
-						Host:  host,
-						Port:  int32(port),
-						Kinds: kinds,
-					})
-				} else {
-					plog.Debug("Pod is not in Running state", log.String("podName", clusterPod.ObjectMeta.Name), log.Object("podIPs", clusterPod.Status.PodIPs), log.String("podPhase", string(clusterPod.Status.Phase)))
+			var kinds []string
+			for key, value := range clusterPod.ObjectMeta.Labels {
+				if strings.HasPrefix(key, LabelKind) && value == "true" {
+					kinds = append(kinds, strings.Replace(key, fmt.Sprintf("%s-", LabelKind), "", 1))
 				}
 			}
 
-			plog.Info("Topology received from Kubernetes", log.Object("members", members))
-			p.cluster.MemberList.UpdateClusterTopology(members)
-		}
-	}()
+			host := clusterPod.Status.PodIP
+			port, err := strconv.Atoi(clusterPod.ObjectMeta.Labels[LabelPort])
+			if err != nil {
+				err = fmt.Errorf("can not convert pod meta %s into integer: %w", LabelPort, err)
+				plog.Error(err.Error(), log.Error(err))
+				continue
+			}
 
-	return nil
+			mid := clusterPod.ObjectMeta.Labels[LabelMemberID]
+			alive := true
+			for _, status := range clusterPod.Status.ContainerStatuses {
+				if !status.Ready {
+					plog.Debug("Pod container is not ready", log.String("podName", clusterPod.ObjectMeta.Name), log.String("containerName", status.Name))
+					alive = false
+					break
+				}
+			}
+
+			if !alive {
+				continue
+			}
+
+			plog.Debug("Pod is running and all containers are ready", log.String("podName", clusterPod.ObjectMeta.Name), log.Object("podIPs", clusterPod.Status.PodIPs), log.String("podPhase", string(clusterPod.Status.Phase)))
+
+			members = append(members, &cluster.Member{
+				Id:    mid,
+				Host:  host,
+				Port:  int32(port),
+				Kinds: kinds,
+			})
+		} else {
+			plog.Debug("Pod is not in Running state", log.String("podName", clusterPod.ObjectMeta.Name), log.Object("podIPs", clusterPod.Status.PodIPs), log.String("podPhase", string(clusterPod.Status.Phase)))
+		}
+	}
+
+	return members
 }
 
 // deregister itself as a member from a k8s cluster
@@ -341,11 +380,13 @@ func (p *Provider) deregisterMember(timeout time.Duration) error {
 	}
 
 	labels := pod.GetLabels()
-	for _, kind := range p.knownKinds {
-		delete(labels, fmt.Sprintf("%s-%s", LabelKind, kind))
+
+	for labelKey := range labels {
+		if strings.HasPrefix(labelKey, LabelPrefix) {
+			delete(labels, labelKey)
+		}
 	}
 
-	delete(labels, LabelCluster)
 	pod.SetLabels(labels)
 
 	return p.replacePodLabels(ctx, pod)
@@ -353,6 +394,8 @@ func (p *Provider) deregisterMember(timeout time.Duration) error {
 
 // prepares a patching payload and sends it to kubernetes to replace labels
 func (p *Provider) replacePodLabels(ctx context.Context, pod *v1.Pod) error {
+	plog.Debug("Setting pod labels to ", log.Object("labels", pod.GetLabels()))
+
 	payload := []struct {
 		Op    string `json:"op"`
 		Path  string `json:"path"`

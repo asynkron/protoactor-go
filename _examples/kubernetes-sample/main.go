@@ -51,7 +51,7 @@ func sendMessages(ctx context.Context, c *cluster.Cluster) {
 func helloGrainReceive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *HelloRequest:
-		fmt.Printf("Got hello %v\n", msg)
+		log.Printf("Got hello %v\n", msg)
 		ctx.Respond(&HelloResponse{})
 	}
 }
