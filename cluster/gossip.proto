@@ -14,9 +14,6 @@ message GossipResponse {
   GossipState state = 1;
 }
 
-message GossipResponseAck {// Or just use empty GossipResponse?
-}
-
 //two GossipState objects can be merged
 //key + member_id gets it's own entry, if collision, highest version is selected
 message GossipState {
