@@ -15,24 +15,24 @@ import (
 var ProviderShuttingDownError = fmt.Errorf("consul cluster provider is shutting down")
 
 type Provider struct {
-	cluster             *cluster.Cluster
-	deregistered        bool
-	shutdown            bool
-	id                  string
-	clusterName         string
-	address             string
-	port                int
-	knownKinds          []string
-	index               uint64 // consul blocking index
-	client              *api.Client
-	ttl                 time.Duration
-	refreshTTL          time.Duration
-	updateTTLWaitGroup  sync.WaitGroup
-	deregisterCritical  time.Duration
-	blockingWaitTime    time.Duration
-	clusterError        error
-	consulServerAddress string
-	pid                 *actor.PID
+	cluster            *cluster.Cluster
+	deregistered       bool
+	shutdown           bool
+	id                 string
+	clusterName        string
+	address            string
+	port               int
+	knownKinds         []string
+	index              uint64 // consul blocking index
+	client             *api.Client
+	ttl                time.Duration
+	refreshTTL         time.Duration
+	updateTTLWaitGroup sync.WaitGroup
+	deregisterCritical time.Duration
+	blockingWaitTime   time.Duration
+	clusterError       error
+	pid                *actor.PID
+	consulConfig       *api.Config
 }
 
 func New(opts ...Option) (*Provider, error) {
@@ -45,12 +45,12 @@ func NewWithConfig(consulConfig *api.Config, opts ...Option) (*Provider, error) 
 		return nil, err
 	}
 	p := &Provider{
-		client:              client,
-		ttl:                 3 * time.Second,
-		refreshTTL:          1 * time.Second,
-		deregisterCritical:  60 * time.Second,
-		blockingWaitTime:    20 * time.Second,
-		consulServerAddress: consulConfig.Address,
+		client:             client,
+		ttl:                3 * time.Second,
+		refreshTTL:         1 * time.Second,
+		deregisterCritical: 60 * time.Second,
+		blockingWaitTime:   20 * time.Second,
+		consulConfig:       consulConfig,
 	}
 	for _, opt := range opts {
 		opt(p)
