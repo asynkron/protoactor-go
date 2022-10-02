@@ -37,19 +37,43 @@ type restartAfterConnectFailure struct {
 func (state *endpointWriter) initialize(ctx actor.Context) {
 	now := time.Now()
 	plog.Info("Started EndpointWriter. connecting", log.String("address", state.address))
-	err := state.initializeInternal()
+
+	var err error
+
+	for i := 0; i < state.remote.config.MaxRetryCount; i++ {
+		err = state.initializeInternal()
+		if err != nil {
+			plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err), log.Int("retry", i))
+			// Wait 2 seconds to restart and retry
+			// Replace with Exponential Backoff
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		break
+	}
+
 	if err != nil {
-		plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
+		terminated := &EndpointTerminatedEvent{
+			Address: state.address,
+		}
+		state.remote.actorSystem.EventStream.Publish(terminated)
+
+		return
+
+	//	plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
 
 		// Wait 2 seconds to restart and retry
 		// TODO: Replace with Exponential Backoff
 		// send this as a message to self - do not block the mailbox processing
 		// if in the meantime the actor is stopped (EndpointTerminated event), the message will be ignored (deadlettered)
 		// TODO: would it be a better idea to just publish EndpointTerminatedEvent here? to use the same path as when the connection is lost?
-		time.AfterFunc(2*time.Second, func() {
-			ctx.Send(ctx.Self(), &restartAfterConnectFailure{err})
-		})
+	//	time.AfterFunc(2*time.Second, func() {
+	//		ctx.Send(ctx.Self(), &restartAfterConnectFailure{err})
+	//	})
+
 	}
+
 	plog.Info("EndpointWriter connected", log.String("address", state.address), log.Duration("cost", time.Since(now)))
 }
 

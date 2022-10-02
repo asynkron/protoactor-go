@@ -16,6 +16,7 @@ func defaultConfig() *Config {
 		EndpointWriterQueueSize:  1000000,
 		EndpointManagerQueueSize: 1000000,
 		Kinds:                    make(map[string]*actor.Props),
+		MaxRetryCount:            5,
 	}
 }
 
@@ -54,4 +55,5 @@ type Config struct {
 	EndpointManagerBatchSize int
 	EndpointManagerQueueSize int
 	Kinds                    map[string]*actor.Props
+	MaxRetryCount            int
 }
