@@ -1,0 +1,72 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: kubernetes-sample
+  labels:
+    name: kubernetes-sample
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubernetes-sample
+  namespace: kubernetes-sample
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kubernetes-sample
+  namespace: kubernetes-sample
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubernetes-sample
+  namespace: kubernetes-sample
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubernetes-sample
+subjects:
+  - kind: ServiceAccount
+    name: kubernetes-sample
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubernetes-sample
+  namespace: kubernetes-sample
+  labels:
+    app: kubernetes-sample
+spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: kubernetes-sample
+    template:
+      metadata:
+        namespace: kubernetes-sample
+        labels:
+          app: kubernetes-sample
+      spec:
+        serviceAccountName: kubernetes-sample
+        containers:
+          - name: kubernetes-sample
+            image: kubernetes-sample:latest
+            imagePullPolicy: Never # docker desktop
+            env:
+              - name: PROTOHOST
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+              - name: PROTOPORT
+                value: "50051"

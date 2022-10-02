@@ -177,10 +177,6 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 	future := ctx.RequestFuture(pid, &msg, ga.gossipRequestTimeout)
 
 	ctx.ReenterAfter(future, func(res interface{}, err error) {
-		if ctx.Sender() != nil {
-			ctx.Send(ctx.Sender(), &GossipResponseAck{})
-		}
-
 		if err != nil {
 			plog.Warn("sendGossipForMember failed", log.String("MemberId", member.Id), log.Error(err))
 			return
@@ -188,7 +184,7 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 
 		resp, ok := res.(*GossipResponse)
 		if !ok {
-			plog.Error("sendGossipForMember received unknown response message", log.Message(resp))
+			plog.Error("sendGossipForMember received unknown response message", log.TypeOf("messageType", res), log.Message(resp))
 
 			return
 		}
