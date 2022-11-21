@@ -3,7 +3,7 @@ package actor
 import (
 	"sync/atomic"
 
-	murmur32 "github.com/spaolacci/murmur3"
+	murmur32 "github.com/twmb/murmur3"
 
 	cmap "github.com/orcaman/concurrent-map"
 )
