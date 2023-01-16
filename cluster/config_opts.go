@@ -39,3 +39,11 @@ func WithKinds(kinds ...*Kind) ConfigOption {
 		}
 	}
 }
+
+// WithPubSubSubscriberTimeout sets a timeout used when delivering a message batch to a subscriber.
+// Default is 5s.
+func WithPubSubSubscriberTimeout(timeout time.Duration) ConfigOption {
+	return func(c *Config) {
+		c.PubSubConfig.SubscriberTimeout = timeout
+	}
+}

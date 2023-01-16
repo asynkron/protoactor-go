@@ -61,16 +61,16 @@ func (state *endpointWriter) initialize(ctx actor.Context) {
 
 		return
 
-	//	plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
+		//	plog.Error("EndpointWriter failed to connect", log.String("address", state.address), log.Error(err))
 
 		// Wait 2 seconds to restart and retry
 		// TODO: Replace with Exponential Backoff
 		// send this as a message to self - do not block the mailbox processing
 		// if in the meantime the actor is stopped (EndpointTerminated event), the message will be ignored (deadlettered)
 		// TODO: would it be a better idea to just publish EndpointTerminatedEvent here? to use the same path as when the connection is lost?
-	//	time.AfterFunc(2*time.Second, func() {
-	//		ctx.Send(ctx.Self(), &restartAfterConnectFailure{err})
-	//	})
+		//	time.AfterFunc(2*time.Second, func() {
+		//		ctx.Send(ctx.Self(), &restartAfterConnectFailure{err})
+		//	})
 
 	}
 
@@ -201,7 +201,14 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			}
 		}
 
-		bytes, typeName, err := Serialize(rd.message, serializerID)
+		// if the message can be translated to a serialization representation, we do this here
+		// this only apply to root level messages and never to nested child objects inside the message
+		message := rd.message
+		if v, ok := message.(RootSerializable); ok {
+			message = v.Serialize()
+		}
+
+		bytes, typeName, err := Serialize(message, serializerID)
 		if err != nil {
 			panic(err)
 		}

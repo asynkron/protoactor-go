@@ -26,6 +26,7 @@ type Config struct {
 	GossipRequestTimeout                         time.Duration
 	GossipFanOut                                 int
 	GossipMaxSend                                int
+	PubSubConfig                                 *PubSubConfig
 }
 
 func Configure(clusterName string, clusterProvider ClusterProvider, identityLookup IdentityLookup, remoteConfig *remote.Config, options ...ConfigOption) *Config {
@@ -45,6 +46,7 @@ func Configure(clusterName string, clusterProvider ClusterProvider, identityLook
 		GossipRequestTimeout: time.Millisecond * 500,
 		GossipFanOut:         3,
 		GossipMaxSend:        50,
+		PubSubConfig:         newPubSubConfig(),
 	}
 
 	for _, option := range options {

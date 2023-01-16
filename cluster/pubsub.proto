@@ -1,0 +1,115 @@
+syntax = "proto3";
+package cluster;
+option go_package = "/github.com/asynkron/protoactor-go/cluster";
+
+import "cluster.proto";
+import "google/protobuf/duration.proto";
+import "actor.proto";
+
+// Identifies a subscriber by either ClusterIdentity or PID
+message SubscriberIdentity {
+  oneof Identity {
+    actor.PID pid = 1;
+    cluster.ClusterIdentity cluster_identity = 2;
+  }
+}
+
+// First request to initialize the actor.
+message Initialize {
+  google.protobuf.Duration idleTimeout = 1;
+}
+
+message Acknowledge {}
+
+// A list of subscribers
+message Subscribers {
+  repeated SubscriberIdentity subscribers = 1;
+}
+
+// Sent to topic actor to add a subscriber
+message SubscribeRequest {
+  SubscriberIdentity subscriber = 1;
+}
+
+// Subscribe acknowledgement
+message SubscribeResponse {}
+
+// Sent to topic actor to remove a subscriber
+message UnsubscribeRequest {
+  SubscriberIdentity subscriber = 1;
+}
+
+// Unsubscribe acknowledgement
+message UnsubscribeResponse {}
+
+// Message sent from publisher to topic actor
+// See also PubSubBatch
+message PubSubBatchTransport {
+  repeated string type_names = 1;
+  repeated PubSubEnvelope envelopes = 2;
+}
+
+// Contains message byte representation and type reference
+message PubSubEnvelope {
+  int32 type_id = 1;
+  bytes message_data = 2;
+  int32 serializer_id = 3;
+}
+
+// Message sent from topic to delivery actor
+message DeliverBatchRequestTransport {
+  Subscribers subscribers = 1;
+  PubSubBatchTransport batch = 2;
+  string topic = 3;
+}
+
+// Message sent from delivery actor to topic to notify of subscribers that fail to process the messages
+message NotifyAboutFailingSubscribersRequest {
+  repeated SubscriberDeliveryReport invalid_deliveries = 1;
+}
+
+// Ack to the delivery actor after notification of subscribers that fail to process the messages
+message NotifyAboutFailingSubscribersResponse {}
+
+// Contains information about a failed delivery
+message SubscriberDeliveryReport {
+  SubscriberIdentity subscriber = 1;
+  DeliveryStatus status = 2;
+}
+
+// Delivery status as seen by the delivery actor
+enum DeliveryStatus {
+  // Message was put in the queue of the subscriber
+  Delivered = 0;
+
+  // Message did not reach subscriber, because it was dead
+  SubscriberNoLongerReachable = 1;
+
+  // Delivery timed out
+  Timeout = 2;
+
+  // Some other problem happened
+  OtherError = 127;
+}
+
+// Message posted to subscriber's mailbox, that is then unrolled to single messages, and has ability to auto respond
+// See also PubSubAutoRespondBatch
+message PubSubAutoRespondBatchTransport {
+  repeated string type_names = 1;
+  repeated PubSubEnvelope envelopes = 2;
+}
+
+// Status of the whole published batch or single message
+enum PublishStatus {
+  // Batch or message was successfully published according to the delivery guarantees
+  Ok = 0;
+
+  // Topic failed to forward the message
+  Failed = 1;
+}
+
+// Publish ack/nack response
+message PublishResponse {
+  // Status of the whole published batch or single message
+  PublishStatus status = 1;
+}

@@ -17,6 +17,7 @@ type Cluster struct {
 	ActorSystem    *actor.ActorSystem
 	Config         *Config
 	Gossip         *Gossiper
+	PubSub         *PubSub
 	Remote         *remote.Remote
 	PidCache       *PidCacheValue
 	MemberList     *MemberList
@@ -44,6 +45,7 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 
 	var err error
 	c.Gossip, err = newGossiper(c)
+	c.PubSub = NewPubSub(c)
 
 	if err != nil {
 		panic(err)
@@ -97,6 +99,7 @@ func (c *Cluster) StartMember() {
 	if err := c.Gossip.StartGossiping(); err != nil {
 		panic(err)
 	}
+	c.PubSub.Start()
 	c.MemberList.InitializeTopologyConsensus()
 
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
@@ -130,6 +133,7 @@ func (c *Cluster) StartClient() {
 	if err := cfg.ClusterProvider.StartClient(c); err != nil {
 		panic(err)
 	}
+	c.PubSub.Start()
 }
 
 func (c *Cluster) Shutdown(graceful bool) {
