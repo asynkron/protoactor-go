@@ -60,10 +60,16 @@ func (p *placementActor) onTerminated(msg *actor.Terminated, ctx actor.Context) 
 }
 
 func (p *placementActor) onStopping(ctx actor.Context) {
-	for _, meta := range p.actors {
-		err := ctx.PoisonFuture(meta.PID).Wait()
+	futures := make(map[string]*actor.Future, len(p.actors))
+
+	for key, meta := range p.actors {
+		futures[key] = ctx.PoisonFuture(meta.PID)
+	}
+
+	for key, future := range futures {
+		err := future.Wait()
 		if err != nil {
-			plog.Error("Failed to poison actor", log.String("identity", meta.ID.Identity), log.Error(err))
+			plog.Error("Failed to poison actor", log.String("identity", key), log.Error(err))
 		}
 	}
 }
