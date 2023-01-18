@@ -15,15 +15,15 @@ type memberData struct {
 	hashBytes []byte
 }
 type Rendezvous struct {
-	mutex   sync.RWMutex
-	hasher  hash.Hash32
-	members []*memberData
+	mutex      sync.RWMutex
+	makeHasher func() hash.Hash32
+	members    []*memberData
 }
 
 func NewRendezvous() *Rendezvous {
 	return &Rendezvous{
-		hasher:  fnv.New32a(),
-		members: make([]*memberData, 0),
+		makeHasher: func() hash.Hash32 { return fnv.New32a() },
+		members:    make([]*memberData, 0),
 	}
 }
 
@@ -126,8 +126,9 @@ func (r *Rendezvous) UpdateMembers(members Members) {
 }
 
 func (r *Rendezvous) hash(node, key []byte) uint32 {
-	r.hasher.Reset()
-	r.hasher.Write(key)
-	r.hasher.Write(node)
-	return r.hasher.Sum32()
+	h := r.makeHasher()
+	h.Reset()
+	h.Write(key)
+	h.Write(node)
+	return h.Sum32()
 }
