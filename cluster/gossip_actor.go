@@ -57,7 +57,7 @@ func (ga *GossipActor) Receive(ctx actor.Context) {
 	case *GossipResponse:
 		plog.Error("GossipResponse should not be received by GossipActor") // it should be a response to a request
 	default:
-		plog.Warn("Gossip received unknown message request", log.Message(r))
+		plog.Warn("Gossip received unknown message request", log.Message(r), log.TypeOf("msg_type", r))
 	}
 }
 

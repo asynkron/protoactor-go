@@ -48,9 +48,9 @@ type Gossiper struct {
 }
 
 // Creates a new Gossiper value and return it back
-func newGossiper(cl *Cluster, opts ...Option) (Gossiper, error) {
+func newGossiper(cl *Cluster, opts ...Option) (*Gossiper, error) {
 	// create a new Gossiper value
-	gossiper := Gossiper{
+	gossiper := &Gossiper{
 		GossipActorName: DefaultGossipActorName,
 		cluster:         cl,
 		close:           make(chan struct{}),
@@ -58,7 +58,7 @@ func newGossiper(cl *Cluster, opts ...Option) (Gossiper, error) {
 
 	// apply any given options
 	for _, opt := range opts {
-		opt(&gossiper)
+		opt(gossiper)
 	}
 
 	return gossiper, nil
@@ -203,7 +203,14 @@ func (g *Gossiper) Shutdown() {
 	}
 
 	plog.Info("Shutting down gossip")
-	g.cluster.ActorSystem.Root.Stop(g.pid)
+
+	close(g.close)
+
+	err := g.cluster.ActorSystem.Root.StopFuture(g.pid).Wait()
+	if err != nil {
+		plog.Error("failed to stop gossip actor", log.Error(err))
+	}
+
 	plog.Info("Shut down gossip")
 }
 
