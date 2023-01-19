@@ -17,15 +17,16 @@ import (
 
 const DefaultGossipActorName string = "gossip"
 
-// Used to update gossip data when a Clustertopology event occurs
+// GossipUpdate Used to update gossip data when a ClusterTopology event occurs
 type GossipUpdate struct {
 	MemberID, Key string
 	Value         *anypb.Any
 	SeqNumber     int64
 }
 
-// Customary type used to provide consensus check callbacks of any type
+// ConsensusChecker Customary type used to provide consensus check callbacks of any type
 // note: this is equivalent to (for future go v1.18):
+//
 //	type ConsensusChecker[T] func(GossipState, map[string]empty) (bool, T)
 type ConsensusChecker func(*GossipState, map[string]empty) (bool, interface{})
 
@@ -95,7 +96,7 @@ func (g *Gossiper) GetState(key string) (map[string]*anypb.Any, error) {
 	return response.State, nil
 }
 
-// Sends fire and forget message to update member state
+// SetState Sends fire and forget message to update member state
 func (g *Gossiper) SetState(key string, value proto.Message) {
 	if g.throttler() == actor.Open {
 		plog.Debug(fmt.Sprintf("Gossiper setting state %s to %s", key, g.pid))
@@ -109,7 +110,7 @@ func (g *Gossiper) SetState(key string, value proto.Message) {
 	g.cluster.ActorSystem.Root.Send(g.pid, &msg)
 }
 
-// Sends a Request (that blocks) to update member state
+// SetStateRequest Sends a Request (that blocks) to update member state
 func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
 	if g.throttler() == actor.Open {
 		plog.Debug(fmt.Sprintf("Gossiper setting state %s to %s", key, g.pid))
@@ -156,7 +157,7 @@ func (g *Gossiper) SendState() {
 	}
 }
 
-// Builds a consensus handler and a consensus checker, send the checker to the
+// RegisterConsensusCheck Builds a consensus handler and a consensus checker, send the checker to the
 // Gossip actor and returns the handler back to the caller
 func (g *Gossiper) RegisterConsensusCheck(key string, getValue func(*anypb.Any) interface{}) ConsensusHandler {
 	definition := NewConsensusCheckBuilder(key, getValue)
@@ -219,7 +220,7 @@ func (g *Gossiper) gossipLoop() {
 
 	// create a ticker that will tick each GossipInterval milliseconds
 	// we do not use sleep as sleep puts the goroutine out of the scheduler
-	// P and we do not want our Gs to be scheduled out from the running Ms
+	// P, and we do not want our Gs to be scheduled out from the running Ms
 	ticker := time.NewTicker(g.cluster.Config.GossipInterval)
 breakLoop:
 	for {
