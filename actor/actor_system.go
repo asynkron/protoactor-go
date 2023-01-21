@@ -19,6 +19,7 @@ type ActorSystem struct {
 	Extensions      *extensions.Extensions
 	Config          *Config
 	ID              string
+	stopper         chan struct{}
 }
 
 func (as *ActorSystem) NewLocalPID(id string) *PID {
@@ -47,6 +48,16 @@ func (as *ActorSystem) GetHostPort() (host string, port int, err error) {
 }
 
 func (as *ActorSystem) Shutdown() {
+	close(as.stopper)
+}
+
+func (as *ActorSystem) IsStopped() bool {
+	select {
+	case <-as.stopper:
+		return true
+	default:
+		return false
+	}
 }
 
 func NewActorSystem(options ...ConfigOption) *ActorSystem {
@@ -69,6 +80,7 @@ func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system.Extensions.Register(NewMetrics(config.MetricsProvider))
 
 	system.ProcessRegistry.Add(NewEventStreamProcess(system), "eventstream")
+	system.stopper = make(chan struct{})
 
 	return system
 }
