@@ -34,7 +34,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.4
 	golang.org/x/exp v0.0.0-20220518171630-0b5c67f07fdf
 	golang.org/x/sync v0.0.0-20220513210516-0976fa681c29
-	k8s.io/api v0.24.1
+	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
 	k8s.io/client-go v0.24.1
 )
