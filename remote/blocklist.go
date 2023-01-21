@@ -43,3 +43,10 @@ func (bl *BlockList) IsBlocked(memberID string) bool {
 	// acquire our mutual exclusion primitive for reading
 	return bl.blockedMembers.Contains(memberID)
 }
+
+// Len returns the number of blocked members
+func (bl *BlockList) Len() int {
+	bl.mu.RLock()
+	defer bl.mu.RUnlock()
+	return bl.blockedMembers.Size()
+}
