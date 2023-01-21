@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"google.golang.org/protobuf/types/known/emptypb"
 	"time"
 
 	"github.com/asynkron/gofun/set"
@@ -137,8 +138,8 @@ func (c *Cluster) StartClient() {
 }
 
 func (c *Cluster) Shutdown(graceful bool) {
+	c.Gossip.SetState(GracefullyLeftKey, &emptypb.Empty{})
 	c.ActorSystem.Shutdown()
-
 	if graceful {
 		_ = c.Config.ClusterProvider.Shutdown(graceful)
 		c.IdentityLookup.Shutdown()
@@ -183,6 +184,26 @@ func (c *Cluster) TryGetClusterKind(kind string) (*ActivatedKind, bool) {
 func (c *Cluster) initKinds() {
 	for name, kind := range c.Config.Kinds {
 		c.kinds[name] = kind.Build(c)
+	}
+	c.ensureTopicKindRegistered()
+}
+
+// ensureTopicKindRegistered ensures that the topic kind is registered in the cluster
+// if topic kind is not registered, it will be registered automatically
+func (c *Cluster) ensureTopicKindRegistered() {
+	hasTopicKind := false
+	for name := range c.kinds {
+		if name == TopicActorKind {
+			hasTopicKind = true
+			break
+		}
+	}
+	if !hasTopicKind {
+		store := &EmptyKeyValueStore[*Subscribers]{}
+
+		c.kinds[TopicActorKind] = NewKind(TopicActorKind, actor.PropsFromProducer(func() actor.Actor {
+			return NewTopicActor(store)
+		})).Build(c)
 	}
 }
 
