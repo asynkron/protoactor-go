@@ -63,7 +63,17 @@ func (m *defaultMailbox) PostUserMessage(message interface{}) {
 	}
 
 	// is it an envelope batch message?
+	// FIXME: check if this is still needed, maybe MessageEnvelope can only exist as a pointer
 	if env, ok := message.(MessageEnvelope); ok {
+		if batch, ok := env.Message.(MessageBatch); ok {
+			messages := batch.GetMessages()
+
+			for _, msg := range messages {
+				m.PostUserMessage(msg)
+			}
+		}
+	}
+	if env, ok := message.(*MessageEnvelope); ok {
 		if batch, ok := env.Message.(MessageBatch); ok {
 			messages := batch.GetMessages()
 
