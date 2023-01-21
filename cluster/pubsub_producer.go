@@ -6,6 +6,7 @@ import (
 	"github.com/asynkron/protoactor-go/log"
 	"golang.org/x/net/context"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -438,7 +439,7 @@ type boundedChannel[T any] struct {
 	quit     chan struct{}
 	once     *sync.Once
 	cond     *sync.Cond
-	left     bool
+	left     *atomic.Bool
 }
 
 func (b *boundedChannel[T]) tryWrite(msg T) bool {
@@ -485,14 +486,14 @@ func (b *boundedChannel[T]) empty() bool {
 func (b *boundedChannel[T]) waitToRead() {
 	b.cond.L.Lock()
 	defer b.cond.L.Unlock()
-	for b.empty() && !b.left {
+	for b.empty() && !b.left.Load() {
 		b.cond.Wait()
 	}
-	b.left = false
+	b.left.Store(false)
 }
 
 func (b *boundedChannel[T]) broadcast() {
-	b.left = true
+	b.left.Store(true)
 	b.cond.Broadcast()
 }
 
@@ -504,6 +505,7 @@ func newBoundedChannel[T any](capacity int) channel[T] {
 		quit:     make(chan struct{}),
 		cond:     sync.NewCond(&sync.Mutex{}),
 		once:     &sync.Once{},
+		left:     &atomic.Bool{},
 	}
 }
 
@@ -513,7 +515,7 @@ type unboundedChannel[T any] struct {
 	quit  chan struct{}
 	once  *sync.Once
 	cond  *sync.Cond
-	left  bool
+	left  *atomic.Bool
 }
 
 func (u *unboundedChannel[T]) tryWrite(msg T) bool {
@@ -560,14 +562,14 @@ func (u *unboundedChannel[T]) empty() bool {
 func (u *unboundedChannel[T]) waitToRead() {
 	u.cond.L.Lock()
 	defer u.cond.L.Unlock()
-	for u.empty() && !u.left {
+	for u.empty() && !u.left.Load() {
 		u.cond.Wait()
 	}
-	u.left = false
+	u.left.Store(false)
 }
 
 func (u *unboundedChannel[T]) broadcast() {
-	u.left = true
+	u.left.Store(true)
 	u.cond.Broadcast()
 }
 
@@ -578,5 +580,6 @@ func newUnboundedChannel[T any]() channel[T] {
 		quit:  make(chan struct{}),
 		cond:  sync.NewCond(&sync.Mutex{}),
 		once:  &sync.Once{},
+		left:  &atomic.Bool{},
 	}
 }

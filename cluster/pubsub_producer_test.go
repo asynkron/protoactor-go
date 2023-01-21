@@ -3,7 +3,6 @@ package cluster
 import (
 	"context"
 	"github.com/stretchr/testify/suite"
-	"sync"
 	"testing"
 	"time"
 )
@@ -37,6 +36,7 @@ func (suite *PubSubBatchingProducerTestSuite) iter(from, to int) []int {
 func (suite *PubSubBatchingProducerTestSuite) record(batch *PubSubBatch) (*PublishResponse, error) {
 	b := &PubSubBatch{Envelopes: make([]interface{}, 0, len(batch.Envelopes))}
 	b.Envelopes = append(b.Envelopes, batch.Envelopes...)
+
 	suite.batchesSent = append(suite.batchesSent, b)
 	return &PublishResponse{Status: PublishStatus_Ok}, nil
 }
@@ -74,16 +74,16 @@ func (suite *PubSubBatchingProducerTestSuite) TestProducerSendsMessagesInBatches
 	producer := NewBatchingProducer(newMockPublisher(suite.record), "topic", WithBatchingProducerBatchSize(10))
 	defer producer.Dispose()
 
-	wg := sync.WaitGroup{}
+	infos := make([]*ProduceProcessInfo, 0, 10000)
 	for i := 0; i < 10000; i++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			_, err := producer.Produce(context.Background(), &TestMessage{Number: int32(i)})
-			suite.Assert().NoError(err)
-		}(i)
+		info, err := producer.Produce(context.Background(), &TestMessage{Number: int32(i)})
+		suite.Assert().NoError(err)
+		infos = append(infos, info)
 	}
-	wg.Wait()
+	for _, info := range infos {
+		<-info.Finished
+		suite.Assert().Nil(info.Err)
+	}
 
 	anyBatchesEnvelopesCountIsGreaterThanOne := false
 	for _, batch := range suite.batchesSent {
@@ -117,21 +117,12 @@ func (suite *PubSubBatchingProducerTestSuite) TestPublishingThroughStoppedProduc
 func (suite *PubSubBatchingProducerTestSuite) TestAllPendingTasksCompleteWhenProducerIsStopped() {
 	provider := NewBatchingProducer(newMockPublisher(suite.wait), "topic", WithBatchingProducerBatchSize(5))
 
-	wg := sync.WaitGroup{}
 	infoList := make([]*ProduceProcessInfo, 0, 100)
-	lock := sync.Mutex{}
 	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			info, err := provider.Produce(context.Background(), &TestMessage{Number: int32(i)})
-			suite.Assert().NoError(err)
-			lock.Lock()
-			defer lock.Unlock()
-			infoList = append(infoList, info)
-		}(i)
+		info, err := provider.Produce(context.Background(), &TestMessage{Number: int32(i)})
+		suite.Assert().NoError(err)
+		infoList = append(infoList, info)
 	}
-	wg.Wait()
 
 	provider.Dispose()
 
@@ -145,21 +136,12 @@ func (suite *PubSubBatchingProducerTestSuite) TestAllPendingTasksCompleteWhenPro
 	producer := NewBatchingProducer(newMockPublisher(suite.waitThenFail), "topic", WithBatchingProducerBatchSize(5))
 	defer producer.Dispose()
 
-	wg := sync.WaitGroup{}
 	infoList := make([]*ProduceProcessInfo, 0, 100)
-	lock := sync.Mutex{}
 	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			info, err := producer.Produce(context.Background(), &TestMessage{Number: int32(i)})
-			suite.Assert().NoError(err)
-			lock.Lock()
-			defer lock.Unlock()
-			infoList = append(infoList, info)
-		}(i)
+		info, err := producer.Produce(context.Background(), &TestMessage{Number: int32(i)})
+		suite.Assert().NoError(err)
+		infoList = append(infoList, info)
 	}
-	wg.Wait()
 
 	for _, info := range infoList {
 		<-info.Finished
