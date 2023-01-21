@@ -9,16 +9,15 @@ import (
 	"time"
 
 	"github.com/asynkron/gofun/set"
-	"google.golang.org/protobuf/types/known/anypb"
-
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/log"
 	"google.golang.org/protobuf/proto"
 )
 
 const (
-	TopologyKey   string = "topology"
-	HearthbeatKey string = "heathbeat"
+	TopologyKey       string = "topology"
+	HearthbeatKey     string = "heathbeat"
+	GracefullyLeftKey string = "left"
 )
 
 // create and seed a pseudo random numbers generator
@@ -237,12 +236,12 @@ func (inf *Informer) RemoveConsensusCheck(id string) {
 
 // retrieves this informer current state for the given key
 // returns map containing each known member id and their value
-func (inf *Informer) GetState(key string) map[string]*anypb.Any {
-	entries := make(map[string]*anypb.Any)
+func (inf *Informer) GetState(key string) map[string]*GossipKeyValue {
+	entries := make(map[string]*GossipKeyValue)
 
 	for memberID, memberState := range inf.state.Members {
 		if value, ok := memberState.Values[key]; ok {
-			entries[memberID] = value.Value
+			entries[memberID] = value
 		}
 	}
 

@@ -5,6 +5,8 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"github.com/asynkron/protoactor-go/remote"
+	"strings"
 	"time"
 
 	"github.com/asynkron/gofun/set"
@@ -65,7 +67,7 @@ func newGossiper(cl *Cluster, opts ...Option) (*Gossiper, error) {
 	return gossiper, nil
 }
 
-func (g *Gossiper) GetState(key string) (map[string]*anypb.Any, error) {
+func (g *Gossiper) GetState(key string) (map[string]*GossipKeyValue, error) {
 	plog.Debug(fmt.Sprintf("Gossiper getting state from %s", g.pid))
 
 	msg := NewGetGossipStateRequest(key)
@@ -223,24 +225,73 @@ func (g *Gossiper) gossipLoop() {
 	// P, and we do not want our Gs to be scheduled out from the running Ms
 	ticker := time.NewTicker(g.cluster.Config.GossipInterval)
 breakLoop:
-	for {
+	for !g.cluster.ActorSystem.IsStopped() {
 		select {
 		case <-g.close:
 			plog.Info("Stopping Gossip Loop")
 			break breakLoop
 		case <-ticker.C:
+
+			g.blockExpiredHeartbeats()
+			g.blockGracefullyLeft()
+
 			g.SetState(HearthbeatKey, &MemberHeartbeat{
 				// todo collect the actor statistics
 				ActorStatistics: &ActorStatistics{},
 			})
 			g.SendState()
-
-			/*
-			 await BlockExpiredHeartbeats();
-
-			 await BlockGracefullyLeft();
-			*/
 		}
+	}
+}
+
+// blockExpiredHeartbeats blocks members that have not sent a heartbeat for a long time
+func (g *Gossiper) blockExpiredHeartbeats() {
+	if g.cluster.Config.GossipInterval == 0 {
+		return
+	}
+	t, err := g.GetState(HearthbeatKey)
+	if err != nil {
+		plog.Error("Could not get heartbeat state", log.Error(err))
+		return
+	}
+
+	blockList := remote.GetRemote(g.cluster.ActorSystem).BlockList()
+
+	blocked := make([]string, 0)
+
+	for k, v := range t {
+		if k != g.cluster.ActorSystem.ID &&
+			!blockList.IsBlocked(k) &&
+			time.Now().Sub(time.UnixMilli(v.LocalTimestampUnixMilliseconds)) > g.cluster.Config.HeartbeatExpiration {
+			blocked = append(blocked, k)
+		}
+	}
+
+	if len(blocked) > 0 {
+		plog.Info("Blocking members due to expired heartbeat", log.String("members", strings.Join(blocked, ",")))
+		blockList.Block(blocked...)
+	}
+}
+
+// blockGracefullyLeft blocking members due to gracefully leaving
+func (g *Gossiper) blockGracefullyLeft() {
+	t, err := g.GetState(GracefullyLeftKey)
+	if err != nil {
+		plog.Error("Could not get gracefully left members", log.Error(err))
+		return
+	}
+
+	blockList := remote.GetRemote(g.cluster.ActorSystem).BlockList()
+
+	gracefullyLeft := make([]string, 0)
+	for k := range t {
+		if !blockList.IsBlocked(k) && k != g.cluster.ActorSystem.ID {
+			gracefullyLeft = append(gracefullyLeft, k)
+		}
+	}
+	if len(gracefullyLeft) > 0 {
+		plog.Info("Blocking members due to gracefully leaving", log.String("members", strings.Join(gracefullyLeft, ",")))
+		blockList.Block(gracefullyLeft...)
 	}
 }
 

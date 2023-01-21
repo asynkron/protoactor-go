@@ -47,3 +47,10 @@ func WithPubSubSubscriberTimeout(timeout time.Duration) ConfigOption {
 		c.PubSubConfig.SubscriberTimeout = timeout
 	}
 }
+
+// WithHeartbeatExpiration sets the gossip heartbeat expiration.
+func WithHeartbeatExpiration(t time.Duration) ConfigOption {
+	return func(c *Config) {
+		c.HeartbeatExpiration = t
+	}
+}
