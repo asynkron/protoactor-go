@@ -26,6 +26,8 @@ type Config struct {
 	GossipRequestTimeout                         time.Duration
 	GossipFanOut                                 int
 	GossipMaxSend                                int
+	HeartbeatExpiration                          time.Duration // Gossip heartbeat timeout. If the member does not update its heartbeat within this period, it will be added to the BlockList
+	PubSubConfig                                 *PubSubConfig
 }
 
 func Configure(clusterName string, clusterProvider ClusterProvider, identityLookup IdentityLookup, remoteConfig *remote.Config, options ...ConfigOption) *Config {
@@ -45,6 +47,8 @@ func Configure(clusterName string, clusterProvider ClusterProvider, identityLook
 		GossipRequestTimeout: time.Millisecond * 500,
 		GossipFanOut:         3,
 		GossipMaxSend:        50,
+		HeartbeatExpiration:  time.Second * 20,
+		PubSubConfig:         newPubSubConfig(),
 	}
 
 	for _, option := range options {

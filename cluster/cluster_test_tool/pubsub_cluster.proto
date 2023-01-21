@@ -1,0 +1,9 @@
+syntax = "proto3";
+package cluster_test_tool;
+option go_package = "/github.com/asynkron/protoactor-go/cluster/cluster_test_tool";
+
+message DataPublished {
+    int32 data = 1;
+}
+
+message Response {}

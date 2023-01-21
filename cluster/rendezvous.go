@@ -15,9 +15,10 @@ type memberData struct {
 	hashBytes []byte
 }
 type Rendezvous struct {
-	mutex   sync.RWMutex
-	hasher  hash.Hash32
-	members []*memberData
+	mutex      sync.RWMutex
+	hasher     hash.Hash32
+	hasherLock sync.Mutex
+	members    []*memberData
 }
 
 func NewRendezvous() *Rendezvous {
@@ -126,6 +127,9 @@ func (r *Rendezvous) UpdateMembers(members Members) {
 }
 
 func (r *Rendezvous) hash(node, key []byte) uint32 {
+	r.hasherLock.Lock()
+	defer r.hasherLock.Unlock()
+
 	r.hasher.Reset()
 	r.hasher.Write(key)
 	r.hasher.Write(node)

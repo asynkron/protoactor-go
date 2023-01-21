@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"google.golang.org/protobuf/types/known/emptypb"
 	"time"
 
 	"github.com/asynkron/gofun/set"
@@ -17,6 +18,7 @@ type Cluster struct {
 	ActorSystem    *actor.ActorSystem
 	Config         *Config
 	Gossip         *Gossiper
+	PubSub         *PubSub
 	Remote         *remote.Remote
 	PidCache       *PidCacheValue
 	MemberList     *MemberList
@@ -44,6 +46,7 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 
 	var err error
 	c.Gossip, err = newGossiper(c)
+	c.PubSub = NewPubSub(c)
 
 	if err != nil {
 		panic(err)
@@ -97,6 +100,7 @@ func (c *Cluster) StartMember() {
 	if err := c.Gossip.StartGossiping(); err != nil {
 		panic(err)
 	}
+	c.PubSub.Start()
 	c.MemberList.InitializeTopologyConsensus()
 
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
@@ -130,11 +134,12 @@ func (c *Cluster) StartClient() {
 	if err := cfg.ClusterProvider.StartClient(c); err != nil {
 		panic(err)
 	}
+	c.PubSub.Start()
 }
 
 func (c *Cluster) Shutdown(graceful bool) {
+	c.Gossip.SetState(GracefullyLeftKey, &emptypb.Empty{})
 	c.ActorSystem.Shutdown()
-
 	if graceful {
 		_ = c.Config.ClusterProvider.Shutdown(graceful)
 		c.IdentityLookup.Shutdown()
@@ -179,6 +184,26 @@ func (c *Cluster) TryGetClusterKind(kind string) (*ActivatedKind, bool) {
 func (c *Cluster) initKinds() {
 	for name, kind := range c.Config.Kinds {
 		c.kinds[name] = kind.Build(c)
+	}
+	c.ensureTopicKindRegistered()
+}
+
+// ensureTopicKindRegistered ensures that the topic kind is registered in the cluster
+// if topic kind is not registered, it will be registered automatically
+func (c *Cluster) ensureTopicKindRegistered() {
+	hasTopicKind := false
+	for name := range c.kinds {
+		if name == TopicActorKind {
+			hasTopicKind = true
+			break
+		}
+	}
+	if !hasTopicKind {
+		store := &EmptyKeyValueStore[*Subscribers]{}
+
+		c.kinds[TopicActorKind] = NewKind(TopicActorKind, actor.PropsFromProducer(func() actor.Actor {
+			return NewTopicActor(store)
+		})).Build(c)
 	}
 }
 

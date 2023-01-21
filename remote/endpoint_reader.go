@@ -138,6 +138,12 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 			return err
 		}
 
+		// translate from on-the-wire representation to in-process representation
+		// this only applies to root level messages, and never on nested child messages
+		if v, ok := message.(RootSerialized); ok {
+			message = v.Deserialize()
+		}
+
 		switch msg := message.(type) {
 		case *actor.Terminated:
 			rt := &remoteTerminate{

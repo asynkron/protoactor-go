@@ -1,0 +1,14 @@
+syntax = "proto3";
+option go_package = "github.com/asynkron/protoactor-go/_examples/cluster-pubsub/main";
+package main;
+
+message ChatMessage {
+  string sender = 1;
+  string message = 2;
+}
+
+message Empty {}
+
+service UserActor {
+  rpc Connect(Empty) returns (Empty);
+}

@@ -147,6 +147,34 @@ func benchmarkPushPop(count, c int) {
 	wg.Wait()
 }
 
+func benchmarkChannelPushPop(count, c int) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	ch := make(chan interface{}, 100)
+	go func() {
+		i := 0
+		for {
+			<-ch
+			i++
+			if i == count {
+				wg.Done()
+				return
+			}
+		}
+	}()
+
+	var val interface{} = "foo"
+
+	for i := 0; i < c; i++ {
+		go func(n int) {
+			for n > 0 {
+				ch <- val
+				n--
+			}
+		}(count / c)
+	}
+}
+
 func BenchmarkPushPop(b *testing.B) {
 	benchmarks := []struct {
 		count       int
@@ -164,11 +192,46 @@ func BenchmarkPushPop(b *testing.B) {
 			count:       10000,
 			concurrency: 4,
 		},
+		{
+			count:       10000,
+			concurrency: 8,
+		},
 	}
 	for _, bm := range benchmarks {
 		b.Run(fmt.Sprintf("%d_%d", bm.count, bm.concurrency), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				benchmarkPushPop(bm.count, bm.concurrency)
+			}
+		})
+	}
+}
+
+func BenchmarkChannelPushPop(b *testing.B) {
+	benchmarks := []struct {
+		count       int
+		concurrency int
+	}{
+		{
+			count:       10000,
+			concurrency: 1,
+		},
+		{
+			count:       10000,
+			concurrency: 2,
+		},
+		{
+			count:       10000,
+			concurrency: 4,
+		},
+		{
+			count:       10000,
+			concurrency: 8,
+		},
+	}
+	for _, bm := range benchmarks {
+		b.Run(fmt.Sprintf("%d_%d", bm.count, bm.concurrency), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				benchmarkChannelPushPop(bm.count, bm.concurrency)
 			}
 		})
 	}
