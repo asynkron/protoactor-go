@@ -1,8 +1,9 @@
 package cluster
 
 import (
-	"github.com/asynkron/protoactor-go/actor"
 	"time"
+
+	"github.com/asynkron/protoactor-go/actor"
 )
 
 type BatchingProducerConfigOption func(config *BatchingProducerConfig)

@@ -1,9 +1,10 @@
 package cluster_test_tool
 
 import (
-	"github.com/stretchr/testify/suite"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type PubSubDefaultRegistrationTestSuite struct {

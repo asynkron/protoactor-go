@@ -1,11 +1,12 @@
 package test
 
 import (
+	"sync"
+	"time"
+
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/log"
 	"golang.org/x/exp/maps"
-	"sync"
-	"time"
 )
 
 type ProviderConfig struct {

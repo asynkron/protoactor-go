@@ -1,8 +1,9 @@
 package cluster
 
 import (
-	"google.golang.org/protobuf/types/known/emptypb"
 	"time"
+
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/asynkron/gofun/set"
 

@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/scheduler"
 	"math/rand"
 	"time"
+
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/scheduler"
 )
 
 const Topic = "chat"
@@ -22,8 +23,7 @@ func randomMessage() string {
 	return messages[rand.Intn(len(messages))]
 }
 
-type Tick struct {
-}
+type Tick struct{}
 
 type User struct {
 	cancelTick scheduler.CancelFunc

@@ -10,7 +10,8 @@ var (
 
 // ResponseError is an error type.
 // e.g.:
-//    var err = &ResponseError{1}
+//
+//	var err = &ResponseError{1}
 type ResponseError struct {
 	Code ResponseStatusCode
 }

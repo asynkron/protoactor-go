@@ -1,9 +1,10 @@
 package cluster_test_tool
 
 import (
+	"testing"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 type PubSubMemberTestSuite struct {

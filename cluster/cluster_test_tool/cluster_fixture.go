@@ -2,6 +2,8 @@ package cluster_test_tool
 
 import (
 	"context"
+	"time"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/test"
@@ -10,7 +12,6 @@ import (
 	"github.com/asynkron/protoactor-go/remote"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
-	"time"
 )
 
 type ClusterFixture interface {

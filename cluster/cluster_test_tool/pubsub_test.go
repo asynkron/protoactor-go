@@ -2,14 +2,15 @@ package cluster_test_tool
 
 import (
 	"context"
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/stretchr/testify/suite"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/stretchr/testify/suite"
 )
 
 type PubSubTestSuite struct {

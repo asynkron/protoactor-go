@@ -170,7 +170,7 @@ func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
 
 // SpawnNamed starts a new actor based on props and named using the specified name
 //
-// ErrNameExists will be returned if id already exists
+// # ErrNameExists will be returned if id already exists
 //
 // Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1".
 func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {

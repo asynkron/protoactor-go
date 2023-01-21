@@ -43,6 +43,7 @@ func (pid *PID) ref(actorSystem *ActorSystem) Process {
 }
 
 // sendUserMessage sends a messages asynchronously to the PID.
+//
 //goland:noinspection GoReceiverNames
 func (pid *PID) sendUserMessage(actorSystem *ActorSystem, message interface{}) {
 	pid.ref(actorSystem).SendUserMessage(pid, message)

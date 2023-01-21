@@ -1,9 +1,10 @@
 package cluster
 
 import (
+	"time"
+
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
-	"time"
 )
 
 // convenience type alias

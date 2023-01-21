@@ -39,7 +39,7 @@ type RootSerializable interface {
 
 // RootSerialized is the root level on-the-wire representation of a message
 type RootSerialized interface {
-	//Deserialize returns the in-process representation of a message
+	// Deserialize returns the in-process representation of a message
 	//   ByteString -> IRootSerialized -> Message
 	Deserialize() RootSerializable
 }

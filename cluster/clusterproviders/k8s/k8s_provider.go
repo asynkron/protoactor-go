@@ -23,9 +23,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-var (
-	ProviderShuttingDownError = fmt.Errorf("kubernetes cluster provider is being shut down")
-)
+var ProviderShuttingDownError = fmt.Errorf("kubernetes cluster provider is being shut down")
 
 // Convenience type to store cluster labels
 type Labels map[string]string
@@ -227,7 +225,6 @@ func (p *Provider) startWatchingCluster() error {
 
 	// start a new goroutine to monitor the cluster events
 	go func() {
-
 		for {
 			select {
 			case <-ctx.Done():
@@ -247,7 +244,6 @@ func (p *Provider) startWatchingCluster() error {
 
 func (p *Provider) watchPods(ctx context.Context, selector string) error {
 	watcher, err := p.client.CoreV1().Pods(p.retrieveNamespace()).Watch(context.Background(), metav1.ListOptions{LabelSelector: selector, Watch: true})
-
 	if err != nil {
 		err = fmt.Errorf("unable to watch pods: %w", err)
 		plog.Error(err.Error(), log.Error(err))

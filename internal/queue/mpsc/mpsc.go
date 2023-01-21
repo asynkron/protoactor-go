@@ -2,7 +2,6 @@
 //
 // The Push function is safe to call from multiple goroutines. The Pop and Empty APIs must only be
 // called from a single, consumer goroutine.
-//
 package mpsc
 
 // This implementation is based on http://www.1024cores.net/home/lock-free-algorithms/queues/non-intrusive-mpsc-node-based-queue

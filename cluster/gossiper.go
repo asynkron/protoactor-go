@@ -5,9 +5,10 @@ package cluster
 import (
 	"errors"
 	"fmt"
-	"github.com/asynkron/protoactor-go/remote"
 	"strings"
 	"time"
+
+	"github.com/asynkron/protoactor-go/remote"
 
 	"github.com/asynkron/gofun/set"
 	"google.golang.org/protobuf/proto"

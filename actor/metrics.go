@@ -50,7 +50,6 @@ func (m *Metrics) PrepareMailboxLengthGauge() {
 	gauge, err := meter.AsyncInt64().Gauge("protoactor_actor_mailbox_length",
 		instrument.WithDescription("Actor's Mailbox Length"),
 		instrument.WithUnit(unit.Dimensionless))
-
 	if err != nil {
 		err = fmt.Errorf("failed to create ActorMailBoxLength instrument, %w", err)
 		plog.Error(err.Error(), log.Error(err))

@@ -74,5 +74,4 @@ func (suite *ZookeeperTestSuite) TestMultiNodes() {
 	}
 	suite.Assert().Equal(2, c1.Cluster.MemberList.Members().Len(), "Expected 2 members in the cluster")
 	suite.Assert().Equal(2, c2.Cluster.MemberList.Members().Len(), "Expected 2 members in the cluster")
-
 }

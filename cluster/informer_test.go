@@ -96,7 +96,6 @@ func TestInformer_ReceiveState(t *testing.T) {
 	var s1 MemberHeartbeat
 
 	err := m1.Value.UnmarshalTo(&s1)
-
 	if err != nil {
 		t.Error("unmarshal member1 state error")
 	}
@@ -115,7 +114,6 @@ func TestInformer_ReceiveState(t *testing.T) {
 	if err != nil {
 		t.Error("unmarshal member2 state error")
 	}
-
 }
 
 func TestInformer_SendState(t *testing.T) {

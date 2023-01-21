@@ -1,9 +1,10 @@
 package cluster
 
 import (
+	"time"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/extensions"
-	"time"
 )
 
 const PubSubDeliveryName = "$pubsub-delivery"

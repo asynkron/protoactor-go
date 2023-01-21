@@ -135,7 +135,7 @@ func (x *PID) GetRequestId() uint32 {
 	return 0
 }
 
-//user messages
+// user messages
 type PoisonPill struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -221,7 +221,7 @@ func (x *DeadLetterResponse) GetTarget() *PID {
 	return nil
 }
 
-//system messages
+// system messages
 type Watch struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

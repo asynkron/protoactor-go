@@ -2,9 +2,10 @@ package cluster
 
 import (
 	"context"
-	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type PubSubBatchingProducerTestSuite struct {
@@ -25,6 +26,7 @@ func (suite *PubSubBatchingProducerTestSuite) allSentNumbersShouldEqual(batchesS
 	}
 	suite.Assert().ElementsMatch(nums, allNumbers)
 }
+
 func (suite *PubSubBatchingProducerTestSuite) iter(from, to int) []int {
 	nums := make([]int, 0, to-from)
 	for i := from; i < to; i++ {
@@ -281,7 +283,6 @@ func (suite *PubSubBatchingProducerTestSuite) TestIfMessageIsCancelledMeanwhileR
 }
 
 func (suite *PubSubBatchingProducerTestSuite) TestCanHandlePublishTimeouts() {
-
 }
 
 // In order for 'go test' to run this suite, we need to create

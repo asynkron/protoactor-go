@@ -1,13 +1,14 @@
 package cluster
 
 import (
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/internal/queue/mpsc"
 	"github.com/asynkron/protoactor-go/log"
 	"golang.org/x/net/context"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 // PublishingErrorHandler decides what to do with a publishing error in BatchingProducer

@@ -2,19 +2,22 @@ package cluster_test_tool
 
 import (
 	"errors"
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 	"math/rand"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
-const PubSubSubscriberKind = "Subscriber"
-const PubSubTimeoutSubscriberKind = "TimeoutSubscriber"
+const (
+	PubSubSubscriberKind        = "Subscriber"
+	PubSubTimeoutSubscriberKind = "TimeoutSubscriber"
+)
 
 type PubSubClusterFixture struct {
 	*BaseClusterFixture

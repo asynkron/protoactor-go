@@ -2,10 +2,11 @@ package mpsc
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"runtime"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestQueue_PushPop(t *testing.T) {

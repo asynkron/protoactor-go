@@ -2,12 +2,13 @@ package cluster
 
 import (
 	"context"
+	"strings"
+	"time"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/eventstream"
 	"github.com/asynkron/protoactor-go/log"
 	"golang.org/x/exp/maps"
-	"strings"
-	"time"
 )
 
 const TopicActorKind = "prototopic"
@@ -51,7 +52,6 @@ func (t *TopicActor) Receive(c actor.Context) {
 	case *ClusterTopology:
 		t.onClusterTopologyChanged(c, msg)
 	}
-
 }
 
 func (t *TopicActor) onStarted(c actor.Context) {
@@ -235,7 +235,7 @@ func (t *TopicActor) removeSubscribers(subscribersThatLeft []subscribeIdentitySt
 
 // loadSubscriptions loads the subscriptions for the topic from the subscription store
 func (t *TopicActor) loadSubscriptions(topic string) *Subscribers {
-	//TODO: cancellation logic config?
+	// TODO: cancellation logic config?
 	state, err := t.subscriptionStore.Get(context.Background(), topic)
 	if err != nil {
 		if topicLogThrottle() == actor.Open {
@@ -257,7 +257,7 @@ func (t *TopicActor) saveSubscriptionsInTopicActor() {
 
 // saveSubscriptions saves the subscribers for the topic to the subscription store
 func (t *TopicActor) saveSubscriptions(topic string, subscribers *Subscribers) {
-	//TODO: cancellation logic config?
+	// TODO: cancellation logic config?
 	plog.Debug("Saving subscriptions for topic", log.String("topic", topic), log.Object("subscriptions", subscribers))
 	err := t.subscriptionStore.Set(context.Background(), topic, subscribers)
 	if err != nil && topicLogThrottle() == actor.Open {

@@ -1,10 +1,11 @@
 package cluster
 
 import (
+	"time"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
-	"time"
 )
 
 var pubsubMemberDeliveryLogThrottle = actor.NewThrottle(10, time.Second, func(i int32) {
@@ -81,7 +82,6 @@ func (p *PubSubMemberDeliveryActor) Receive(c actor.Context) {
 
 // DeliverBatch delivers PubSubAutoRespondBatch to SubscriberIdentity.
 func (p *PubSubMemberDeliveryActor) DeliverBatch(c actor.Context, batch *PubSubAutoRespondBatch, s *SubscriberIdentity) *actor.Future {
-
 	if pid := s.GetPid(); pid != nil {
 		return p.DeliverToPid(c, batch, pid)
 	}

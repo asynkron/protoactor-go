@@ -2,8 +2,9 @@ package cluster
 
 import (
 	"context"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"time"
+
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 type PublisherConfig struct {
