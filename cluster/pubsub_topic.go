@@ -23,8 +23,8 @@ type TopicActor struct {
 	topologySubscription *eventstream.Subscription
 }
 
-func NewTopicActor(store KeyValueStore[*Subscribers]) TopicActor {
-	return TopicActor{
+func NewTopicActor(store KeyValueStore[*Subscribers]) *TopicActor {
+	return &TopicActor{
 		subscriptionStore: store,
 		subscribers:       make(map[subscribeIdentityStruct]*SubscriberIdentity),
 	}
@@ -86,7 +86,10 @@ func (t *TopicActor) onReceiveTimeout(c actor.Context) {
 
 func (t *TopicActor) onInitialize(c actor.Context, msg *Initialize) {
 	if msg.IdleTimeout != nil {
-		c.SetReceiveTimeout(msg.IdleTimeout.AsDuration())
+		duration := msg.IdleTimeout.AsDuration()
+		if duration > 0 {
+			c.SetReceiveTimeout(duration)
+		}
 	}
 	c.Respond(&Acknowledge{})
 }
@@ -240,6 +243,9 @@ func (t *TopicActor) loadSubscriptions(topic string) *Subscribers {
 		}
 		return &Subscribers{}
 	}
+	if state == nil {
+		return &Subscribers{}
+	}
 	plog.Debug("Loaded subscriptions for topic", log.String("topic", topic), log.Object("subscriptions", state))
 	return state
 }
@@ -262,7 +268,7 @@ func (t *TopicActor) saveSubscriptions(topic string, subscribers *Subscribers) {
 func (t *TopicActor) onUnsubscribe(c actor.Context, msg *UnsubscribeRequest) {
 	delete(t.subscribers, newSubscribeIdentityStruct(msg.Subscriber))
 	t.saveSubscriptionsInTopicActor()
-	c.Respond(&Acknowledge{})
+	c.Respond(&UnsubscribeResponse{})
 }
 
 func (t *TopicActor) onSubscribe(c actor.Context, msg *SubscribeRequest) {

@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"errors"
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/internal/queue/mpsc"
 	"github.com/asynkron/protoactor-go/log"
@@ -11,7 +10,7 @@ import (
 )
 
 // PublishingErrorHandler decides what to do with a publishing error in BatchingProducer
-type PublishingErrorHandler func(retries int, e error, batch PubSubBatch) PublishingErrorDecision
+type PublishingErrorHandler func(retries int, e error, batch *PubSubBatch) *PublishingErrorDecision
 
 type BatchingProducerConfig struct {
 	// Maximum size of the published batch. Default: 2000.
@@ -43,11 +42,11 @@ var defaultBatchingProducerLogThrottle = actor.NewThrottle(10, time.Second, func
 	plog.Info("[BatchingProducer] Throttled logs", log.Int("count", int(i)))
 })
 
-func newBatchingProducerConfig(opts ...BatchProducerConfigOption) *BatchingProducerConfig {
+func newBatchingProducerConfig(opts ...BatchingProducerConfigOption) *BatchingProducerConfig {
 	config := &BatchingProducerConfig{
 		BatchSize:      2000,
 		PublishTimeout: 5 * time.Second,
-		OnPublishingError: func(retries int, e error, batch PubSubBatch) PublishingErrorDecision {
+		OnPublishingError: func(retries int, e error, batch *PubSubBatch) *PublishingErrorDecision {
 			return FailBatchAndStop
 		},
 		LogThrottle: defaultBatchingProducerLogThrottle,
@@ -66,16 +65,18 @@ type BatchingProducer struct {
 	publisher        Publisher
 	publisherChannel channel[produceMessage]
 	loopCancel       context.CancelFunc
+	loopDone         chan struct{}
 	msgLeft          uint32
 }
 
-func NewBatchingProducer(publisher Publisher, topic string, opts ...BatchProducerConfigOption) *BatchingProducer {
+func NewBatchingProducer(publisher Publisher, topic string, opts ...BatchingProducerConfigOption) *BatchingProducer {
 	config := newBatchingProducerConfig(opts...)
 	p := &BatchingProducer{
 		config:    config,
 		topic:     topic,
 		publisher: publisher,
 		msgLeft:   0,
+		loopDone:  make(chan struct{}),
 	}
 	if config.MaxQueueSize > 0 {
 		p.publisherChannel = newBoundedChannel[produceMessage](config.MaxQueueSize)
@@ -90,14 +91,14 @@ func NewBatchingProducer(publisher Publisher, topic string, opts ...BatchProduce
 }
 
 type pubsubBatchWithReceipts struct {
-	batch  PubSubBatch
+	batch  *PubSubBatch
 	ctxArr []context.Context
 }
 
 // newPubSubBatchWithReceipts creates a new pubsubBatchWithReceipts
 func newPubSubBatchWithReceipts() *pubsubBatchWithReceipts {
 	return &pubsubBatchWithReceipts{
-		batch:  PubSubBatch{Envelopes: make([]interface{}, 0, 10)},
+		batch:  &PubSubBatch{Envelopes: make([]interface{}, 0, 10)},
 		ctxArr: make([]context.Context, 0, 10),
 	}
 }
@@ -110,6 +111,8 @@ type produceMessage struct {
 // Dispose stops the producer and releases all resources.
 func (p *BatchingProducer) Dispose() {
 	p.loopCancel()
+	p.publisherChannel.broadcast()
+	<-p.loopDone
 }
 
 // ProduceProcessInfo is the context for a Produce call
@@ -117,14 +120,24 @@ type ProduceProcessInfo struct {
 	Finished   chan struct{}
 	Err        error
 	cancelFunc context.CancelFunc
-	ctx        context.Context
+	cancelled  chan struct{}
 }
 
 // IsCancelled returns true if the context has been cancelled
 func (p *ProduceProcessInfo) IsCancelled() bool {
 	select {
-	case <-p.ctx.Done():
-		return p.ctx.Err() == context.Canceled
+	case <-p.cancelled:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsFinished returns true if the context has been finished
+func (p *ProduceProcessInfo) IsFinished() bool {
+	select {
+	case <-p.Finished:
+		return true
 	default:
 		return false
 	}
@@ -133,17 +146,20 @@ func (p *ProduceProcessInfo) IsCancelled() bool {
 // setErr sets the error for the ProduceProcessInfo
 func (p *ProduceProcessInfo) setErr(err error) {
 	p.Err = err
+	p.cancelFunc()
 	close(p.Finished)
 }
 
 // cancel the ProduceProcessInfo context
 func (p *ProduceProcessInfo) cancel() {
-	p.cancel()
+	p.cancelFunc()
 	close(p.Finished)
+	close(p.cancelled)
 }
 
 // success closes the ProduceProcessInfo Finished channel
 func (p *ProduceProcessInfo) success() {
+	p.cancelFunc()
 	close(p.Finished)
 }
 
@@ -154,13 +170,13 @@ func (p *BatchingProducer) getProduceProcessInfo(ctx context.Context) *ProducePr
 	return ctx.Value(produceProcessInfoKey{}).(*ProduceProcessInfo)
 }
 
-// Produce a message to producer queue. The returned context will be done when the message is actually published.
+// Produce a message to producer queue. The return info can be used to wait for the message to be published.
 func (p *BatchingProducer) Produce(ctx context.Context, message interface{}) (*ProduceProcessInfo, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	info := &ProduceProcessInfo{
 		Finished:   make(chan struct{}),
+		cancelled:  make(chan struct{}),
 		cancelFunc: cancel,
-		ctx:        ctx,
 	}
 	ctx = context.WithValue(ctx, produceProcessInfoKey{}, info)
 	if !p.publisherChannel.tryWrite(produceMessage{
@@ -168,7 +184,7 @@ func (p *BatchingProducer) Produce(ctx context.Context, message interface{}) (*P
 		ctx:     ctx,
 	}) {
 		if p.publisherChannel.isComplete() {
-			return info, &InvalidOperationException{topic: p.topic}
+			return info, &InvalidOperationException{Topic: p.topic}
 		}
 		return info, &ProducerQueueFullException{topic: p.topic}
 	}
@@ -177,6 +193,8 @@ func (p *BatchingProducer) Produce(ctx context.Context, message interface{}) (*P
 
 // publishLoop is the main loop of the producer. It reads messages from the queue and publishes them in batches.
 func (p *BatchingProducer) publishLoop(ctx context.Context) {
+	defer close(p.loopDone)
+
 	plog.Debug("Producer is starting the publisher loop for topic", log.String("topic", p.topic))
 	batchWrapper := newPubSubBatchWithReceipts()
 
@@ -204,10 +222,14 @@ loop:
 			if msg, ok := p.publisherChannel.tryRead(); ok {
 
 				// if msg ctx not done
-				if _, done := <-msg.ctx.Done(); !done {
+				select {
+				case <-msg.ctx.Done():
+					p.getProduceProcessInfo(msg.ctx).cancel()
+				default:
 					batchWrapper.batch.Envelopes = append(batchWrapper.batch.Envelopes, msg.message)
 					batchWrapper.ctxArr = append(batchWrapper.ctxArr, msg.ctx)
 				}
+
 				if len(batchWrapper.batch.Envelopes) < p.config.BatchSize {
 					continue
 				}
@@ -279,7 +301,7 @@ func (p *BatchingProducer) failBatch(batchWrapper *pubsubBatchWithReceipts, err 
 
 // clearBatch clears the batch wrapper
 func (p *BatchingProducer) clearBatch(batchWrapper *pubsubBatchWithReceipts) {
-	batchWrapper.batch = PubSubBatch{Envelopes: make([]interface{}, 0, 10)}
+	batchWrapper.batch = &PubSubBatch{Envelopes: make([]interface{}, 0, 10)}
 	batchWrapper.ctxArr = batchWrapper.ctxArr[:0]
 }
 
@@ -295,11 +317,21 @@ func (p *BatchingProducer) completeBatch(batchWrapper *pubsubBatchWithReceipts) 
 
 // removeCancelledFromBatch removes all cancelled contexts from the batch wrapper
 func (p *BatchingProducer) removeCancelledFromBatch(batchWrapper *pubsubBatchWithReceipts) {
-	for i := 0; i < len(batchWrapper.ctxArr); i++ {
-		if _, done := <-batchWrapper.ctxArr[i].Done(); done {
+	for i := len(batchWrapper.ctxArr) - 1; i >= 0; i-- {
+		select {
+		case <-batchWrapper.ctxArr[i].Done():
+			info := p.getProduceProcessInfo(batchWrapper.ctxArr[i])
+			select {
+			case <-info.Finished:
+				// if the message is already finished, we don't need to do anything
+			default:
+				info.cancel()
+			}
+
 			batchWrapper.batch.Envelopes = append(batchWrapper.batch.Envelopes[:i], batchWrapper.batch.Envelopes[i+1:]...)
 			batchWrapper.ctxArr = append(batchWrapper.ctxArr[:i], batchWrapper.ctxArr[i+1:]...)
-			i--
+		default:
+			continue
 		}
 	}
 }
@@ -314,16 +346,15 @@ func (p *BatchingProducer) publishBatch(ctx context.Context, batchWrapper *pubsu
 	retries := 0
 	retry := true
 
+loop:
 	for retry {
 		select {
 		case <-ctx.Done():
 			p.cancelBatch(batchWrapper)
-			break
+			break loop
 		default:
 			retries++
-
-			timeoutCtx, _ := context.WithTimeout(ctx, p.config.PublishTimeout)
-			resp, err := p.publisher.PublishBatch(timeoutCtx, p.topic, &batchWrapper.batch)
+			_, err := p.publisher.PublishBatch(ctx, p.topic, batchWrapper.batch, WithTimeout(p.config.PublishTimeout))
 			if err != nil {
 				decision := p.config.OnPublishingError(retries, err, batchWrapper.batch)
 				if decision == FailBatchAndStop {
@@ -354,10 +385,6 @@ func (p *BatchingProducer) publishBatch(ctx context.Context, batchWrapper *pubsu
 				continue
 			}
 
-			if resp == nil {
-				return errors.New("timeout when publishing message batch")
-			}
-
 			retry = false
 			p.completeBatch(batchWrapper)
 		}
@@ -374,12 +401,22 @@ func (p *ProducerQueueFullException) Error() string {
 	return "Producer for topic " + p.topic + " has full queue"
 }
 
+func (p *ProducerQueueFullException) Is(target error) bool {
+	_, ok := target.(*ProducerQueueFullException)
+	return ok
+}
+
 type InvalidOperationException struct {
-	topic string
+	Topic string
+}
+
+func (i *InvalidOperationException) Is(err error) bool {
+	_, ok := err.(*InvalidOperationException)
+	return ok
 }
 
 func (i *InvalidOperationException) Error() string {
-	return "Producer for topic " + i.topic + " is stopped, cannot produce more messages."
+	return "Producer for topic " + i.Topic + " is stopped, cannot produce more messages."
 }
 
 // channel is a wrapper around a channel that can be used to read and write messages.
@@ -391,6 +428,7 @@ type channel[T any] interface {
 	complete()
 	empty() bool
 	waitToRead()
+	broadcast()
 }
 
 // BoundedChannel is a bounded channel with the given capacity.
@@ -400,9 +438,10 @@ type boundedChannel[T any] struct {
 	quit     chan struct{}
 	once     *sync.Once
 	cond     *sync.Cond
+	left     bool
 }
 
-func (b boundedChannel[T]) tryWrite(msg T) bool {
+func (b *boundedChannel[T]) tryWrite(msg T) bool {
 	select {
 	case b.c <- msg:
 		b.cond.Broadcast()
@@ -414,15 +453,17 @@ func (b boundedChannel[T]) tryWrite(msg T) bool {
 	}
 }
 
-func (b boundedChannel[T]) tryRead() (msg T, ok bool) {
-	msg, ok = <-b.c
-	if ok {
-		b.cond.Broadcast()
+func (b *boundedChannel[T]) tryRead() (msg T, ok bool) {
+	var msgDefault T
+	select {
+	case msg, ok = <-b.c:
+		return
+	default:
+		return msgDefault, false
 	}
-	return
 }
 
-func (b boundedChannel[T]) isComplete() bool {
+func (b *boundedChannel[T]) isComplete() bool {
 	select {
 	case <-b.quit:
 		return true
@@ -431,22 +472,28 @@ func (b boundedChannel[T]) isComplete() bool {
 	}
 }
 
-func (b boundedChannel[T]) complete() {
+func (b *boundedChannel[T]) complete() {
 	b.once.Do(func() {
 		close(b.quit)
 	})
 }
 
-func (b boundedChannel[T]) empty() bool {
+func (b *boundedChannel[T]) empty() bool {
 	return len(b.c) == 0
 }
 
-func (b boundedChannel[T]) waitToRead() {
+func (b *boundedChannel[T]) waitToRead() {
 	b.cond.L.Lock()
 	defer b.cond.L.Unlock()
-	for b.empty() {
+	for b.empty() && !b.left {
 		b.cond.Wait()
 	}
+	b.left = false
+}
+
+func (b *boundedChannel[T]) broadcast() {
+	b.left = true
+	b.cond.Broadcast()
 }
 
 // newBoundedChannel creates a new bounded channel with the given capacity.
@@ -466,9 +513,10 @@ type unboundedChannel[T any] struct {
 	quit  chan struct{}
 	once  *sync.Once
 	cond  *sync.Cond
+	left  bool
 }
 
-func (u unboundedChannel[T]) tryWrite(msg T) bool {
+func (u *unboundedChannel[T]) tryWrite(msg T) bool {
 	select {
 	case <-u.quit:
 		return false
@@ -479,23 +527,24 @@ func (u unboundedChannel[T]) tryWrite(msg T) bool {
 	}
 }
 
-func (u unboundedChannel[T]) tryRead() (T, bool) {
-	msg := u.queue.Pop()
-	if msg == nil {
+func (u *unboundedChannel[T]) tryRead() (T, bool) {
+	var msg T
+	tmp := u.queue.Pop()
+	if tmp == nil {
 		return msg, false
 	} else {
 		u.cond.Broadcast()
-		return msg.(T), true
+		return tmp.(T), true
 	}
 }
 
-func (u unboundedChannel[T]) complete() {
+func (u *unboundedChannel[T]) complete() {
 	u.once.Do(func() {
 		close(u.quit)
 	})
 }
 
-func (u unboundedChannel[T]) isComplete() bool {
+func (u *unboundedChannel[T]) isComplete() bool {
 	select {
 	case <-u.quit:
 		return true
@@ -504,21 +553,27 @@ func (u unboundedChannel[T]) isComplete() bool {
 	}
 }
 
-func (u unboundedChannel[T]) empty() bool {
+func (u *unboundedChannel[T]) empty() bool {
 	return u.queue.Empty()
 }
 
-func (u unboundedChannel[T]) waitToRead() {
+func (u *unboundedChannel[T]) waitToRead() {
 	u.cond.L.Lock()
 	defer u.cond.L.Unlock()
-	for u.empty() {
+	for u.empty() && !u.left {
 		u.cond.Wait()
 	}
+	u.left = false
+}
+
+func (u *unboundedChannel[T]) broadcast() {
+	u.left = true
+	u.cond.Broadcast()
 }
 
 // newUnboundedChannel creates a new unbounded channel.
 func newUnboundedChannel[T any]() channel[T] {
-	return unboundedChannel[T]{
+	return &unboundedChannel[T]{
 		queue: mpsc.New(),
 		quit:  make(chan struct{}),
 		cond:  sync.NewCond(&sync.Mutex{}),

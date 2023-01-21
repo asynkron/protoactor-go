@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
 )
 
@@ -95,7 +96,7 @@ func (b *PubSubAutoRespondBatch) Serialize() remote.RootSerialized {
 }
 
 // GetAutoResponse returns a PublishResponse.
-func (b *PubSubAutoRespondBatch) GetAutoResponse() *PublishResponse {
+func (b *PubSubAutoRespondBatch) GetAutoResponse(_ actor.Context) interface{} {
 	return &PublishResponse{
 		Status: PublishStatus_Ok,
 	}

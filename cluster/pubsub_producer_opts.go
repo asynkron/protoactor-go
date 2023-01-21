@@ -5,52 +5,52 @@ import (
 	"time"
 )
 
-type BatchProducerConfigOption func(config *BatchingProducerConfig)
+type BatchingProducerConfigOption func(config *BatchingProducerConfig)
 
-// WithBatchProducerBatchSize sets maximum size of the published batch. Default: 2000.
-func WithBatchProducerBatchSize(batchSize int) BatchProducerConfigOption {
+// WithBatchingProducerBatchSize sets maximum size of the published batch. Default: 2000.
+func WithBatchingProducerBatchSize(batchSize int) BatchingProducerConfigOption {
 	return func(config *BatchingProducerConfig) {
 		config.BatchSize = batchSize
 	}
 }
 
-// WithBatchProducerMaxQueueSize set max size of the requests waiting in queue. If value is provided, the producer will throw
+// WithBatchingProducerMaxQueueSize set max size of the requests waiting in queue. If value is provided, the producer will throw
 // ProducerQueueFullException when queue size is exceeded. If 0 or unset, the queue is unbounded
 // Note that bounded queue has better performance than unbounded queue.
 // Default: 0 (unbounded)
-func WithBatchProducerMaxQueueSize(maxQueueSize int) BatchProducerConfigOption {
+func WithBatchingProducerMaxQueueSize(maxQueueSize int) BatchingProducerConfigOption {
 	return func(config *BatchingProducerConfig) {
 		config.MaxQueueSize = maxQueueSize
 	}
 }
 
-// WithBatchProducerPublishTimeout sets how long to wait for the publishing to complete.
+// WithBatchingProducerPublishTimeout sets how long to wait for the publishing to complete.
 // Default: 5s
-func WithBatchProducerPublishTimeout(publishTimeout time.Duration) BatchProducerConfigOption {
+func WithBatchingProducerPublishTimeout(publishTimeout time.Duration) BatchingProducerConfigOption {
 	return func(config *BatchingProducerConfig) {
 		config.PublishTimeout = publishTimeout
 	}
 }
 
-// WithBatchProducerOnPublishingError sets error handler that can decide what to do with an error when publishing a batch.
+// WithBatchingProducerOnPublishingError sets error handler that can decide what to do with an error when publishing a batch.
 // Default: Fail and stop the BatchingProducer
-func WithBatchProducerOnPublishingError(onPublishingError PublishingErrorHandler) BatchProducerConfigOption {
+func WithBatchingProducerOnPublishingError(onPublishingError PublishingErrorHandler) BatchingProducerConfigOption {
 	return func(config *BatchingProducerConfig) {
 		config.OnPublishingError = onPublishingError
 	}
 }
 
-// WithBatchProducerLogThrottle sets a throttle for logging from this producer. By default, a throttle shared between all instances of
+// WithBatchingProducerLogThrottle sets a throttle for logging from this producer. By default, a throttle shared between all instances of
 // BatchingProducer is used, that allows for 10 events in 10 seconds.
-func WithBatchProducerLogThrottle(logThrottle actor.ShouldThrottle) BatchProducerConfigOption {
+func WithBatchingProducerLogThrottle(logThrottle actor.ShouldThrottle) BatchingProducerConfigOption {
 	return func(config *BatchingProducerConfig) {
 		config.LogThrottle = logThrottle
 	}
 }
 
-// WithBatchProducerPublisherIdleTimeout sets an optional idle timeout which will specify to the `IPublisher` how long it should wait before invoking clean
+// WithBatchingProducerPublisherIdleTimeout sets an optional idle timeout which will specify to the `IPublisher` how long it should wait before invoking clean
 // up code to recover resources.
-func WithBatchProducerPublisherIdleTimeout(publisherIdleTimeout time.Duration) BatchProducerConfigOption {
+func WithBatchingProducerPublisherIdleTimeout(publisherIdleTimeout time.Duration) BatchingProducerConfigOption {
 	return func(config *BatchingProducerConfig) {
 		config.PublisherIdleTimeout = publisherIdleTimeout
 	}
@@ -61,12 +61,12 @@ type PublishingErrorDecision struct {
 }
 
 // NewPublishingErrorDecision creates a new PublishingErrorDecision
-func NewPublishingErrorDecision(delay time.Duration) PublishingErrorDecision {
-	return PublishingErrorDecision{Delay: delay}
+func NewPublishingErrorDecision(delay time.Duration) *PublishingErrorDecision {
+	return &PublishingErrorDecision{Delay: delay}
 }
 
 // RetryBatchAfter returns a new PublishingErrorDecision with the Delay set to the given duration
-func RetryBatchAfter(delay time.Duration) PublishingErrorDecision {
+func RetryBatchAfter(delay time.Duration) *PublishingErrorDecision {
 	return NewPublishingErrorDecision(delay)
 }
 

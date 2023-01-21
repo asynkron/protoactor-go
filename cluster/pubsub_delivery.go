@@ -4,7 +4,6 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
-	"sync"
 	"time"
 )
 
@@ -28,20 +27,48 @@ func (p *PubSubMemberDeliveryActor) Receive(c actor.Context) {
 		siList := batch.Subscribers.Subscribers
 
 		invalidDeliveries := make([]*SubscriberDeliveryReport, 0, len(siList))
-		var lock sync.Mutex
 
-		var wg sync.WaitGroup
+		type futureWithIdentity struct {
+			future   *actor.Future
+			identity *SubscriberIdentity
+		}
+		futureList := make([]futureWithIdentity, 0, len(siList))
 		for _, identity := range siList {
-			wg.Add(1)
-			go func(identity *SubscriberIdentity) {
-				defer wg.Done()
-				report := p.DeliverBatch(c, topicBatch, identity) // generally concurrent safe, depends on the implementation of cluster.Call and actor.RequestFuture
-				if report.Status != DeliveryStatus_Delivered {
-					lock.Lock()
-					invalidDeliveries = append(invalidDeliveries, report)
-					lock.Unlock()
+			f := p.DeliverBatch(c, topicBatch, identity)
+			if f != nil {
+				futureList = append(futureList, futureWithIdentity{future: f, identity: identity})
+			}
+		}
+
+		for _, fWithIdentity := range futureList {
+			_, err := fWithIdentity.future.Result()
+			identityLog := func(err error) {
+				if pubsubMemberDeliveryLogThrottle() == actor.Open {
+					if fWithIdentity.identity.GetPid() != nil {
+						plog.Info("Pub-sub message delivered to PID", log.String("pid", fWithIdentity.identity.GetPid().String()))
+					} else if fWithIdentity.identity.GetClusterIdentity() != nil {
+						plog.Info("Pub-sub message delivered to cluster identity", log.String("cluster identity", fWithIdentity.identity.GetClusterIdentity().String()))
+					}
 				}
-			}(identity)
+			}
+
+			status := DeliveryStatus_Delivered
+			if err != nil {
+				switch err {
+				case actor.ErrTimeout, remote.ErrTimeout:
+					identityLog(err)
+					status = DeliveryStatus_Timeout
+				case actor.ErrDeadLetter, remote.ErrDeadLetter:
+					identityLog(err)
+					status = DeliveryStatus_SubscriberNoLongerReachable
+				default:
+					identityLog(err)
+					status = DeliveryStatus_OtherError
+				}
+			}
+			if status != DeliveryStatus_Delivered {
+				invalidDeliveries = append(invalidDeliveries, &SubscriberDeliveryReport{Status: status, Subscriber: fWithIdentity.identity})
+			}
 		}
 
 		if len(invalidDeliveries) > 0 {
@@ -49,80 +76,31 @@ func (p *PubSubMemberDeliveryActor) Receive(c actor.Context) {
 			// we use cluster.Call to locate the topic actor in the cluster
 			_, _ = cluster.Call(batch.Topic, TopicActorKind, &NotifyAboutFailingSubscribersRequest{InvalidDeliveries: invalidDeliveries})
 		}
-
 	}
 }
 
 // DeliverBatch delivers PubSubAutoRespondBatch to SubscriberIdentity.
-func (p *PubSubMemberDeliveryActor) DeliverBatch(c actor.Context, batch *PubSubAutoRespondBatch, s *SubscriberIdentity) *SubscriberDeliveryReport {
-	status := DeliveryStatus_OtherError
+func (p *PubSubMemberDeliveryActor) DeliverBatch(c actor.Context, batch *PubSubAutoRespondBatch, s *SubscriberIdentity) *actor.Future {
+
 	if pid := s.GetPid(); pid != nil {
-		status = p.DeliverToPid(c, batch, pid)
+		return p.DeliverToPid(c, batch, pid)
 	}
 	if ci := s.GetClusterIdentity(); ci != nil {
-		status = p.DeliverToClusterIdentity(c, batch, ci)
+		return p.DeliverToClusterIdentity(c, batch, ci)
 	}
-	return &SubscriberDeliveryReport{
-		Subscriber: s,
-		Status:     status,
-	}
+	return nil
 }
 
 // DeliverToPid delivers PubSubAutoRespondBatch to PID.
-func (p *PubSubMemberDeliveryActor) DeliverToPid(c actor.Context, batch *PubSubAutoRespondBatch, pid *actor.PID) DeliveryStatus {
-	_, err := c.RequestFuture(pid, batch, p.subscriberTimeout).Result()
-	if err != nil {
-		switch err {
-		case actor.ErrTimeout, remote.ErrTimeout:
-			if pubsubMemberDeliveryLogThrottle() == actor.Open {
-				plog.Warn("Pub-sub message delivered to pid timed out", log.String("pid", pid.String()))
-			}
-			return DeliveryStatus_Timeout
-		case actor.ErrDeadLetter, remote.ErrDeadLetter:
-			if pubsubMemberDeliveryLogThrottle() == actor.Open {
-				plog.Warn("Pub-sub message cannot be delivered to pid as it is no longer available", log.String("pid", pid.String()))
-			}
-			return DeliveryStatus_SubscriberNoLongerReachable
-		default:
-			if pubsubMemberDeliveryLogThrottle() == actor.Open {
-				plog.Warn("Error while delivering pub-sub message to pid", log.String("pid", pid.String()), log.Error(err))
-			}
-			return DeliveryStatus_OtherError
-		}
-	}
-	return DeliveryStatus_Delivered
+func (p *PubSubMemberDeliveryActor) DeliverToPid(c actor.Context, batch *PubSubAutoRespondBatch, pid *actor.PID) *actor.Future {
+	return c.RequestFuture(pid, batch, p.subscriberTimeout)
 }
 
 // DeliverToClusterIdentity delivers PubSubAutoRespondBatch to ClusterIdentity.
-func (p *PubSubMemberDeliveryActor) DeliverToClusterIdentity(c actor.Context, batch *PubSubAutoRespondBatch, ci *ClusterIdentity) DeliveryStatus {
+func (p *PubSubMemberDeliveryActor) DeliverToClusterIdentity(c actor.Context, batch *PubSubAutoRespondBatch, ci *ClusterIdentity) *actor.Future {
 	cluster := GetCluster(c.ActorSystem())
 	// deliver to virtual actor
 	// delivery should always be possible, since a virtual actor always exists
-	response, err := cluster.Call(ci.Identity, ci.Kind, batch, WithTimeout(p.subscriberTimeout))
-	if err != nil {
-		switch err {
-		case actor.ErrTimeout, remote.ErrTimeout:
-			if pubsubMemberDeliveryLogThrottle() == actor.Open {
-				plog.Warn("Pub-sub message delivered to cluster identity timed out", log.String("cluster identity", ci.String()))
-			}
-			return DeliveryStatus_Timeout
-		case actor.ErrDeadLetter, remote.ErrDeadLetter:
-			if pubsubMemberDeliveryLogThrottle() == actor.Open {
-				plog.Warn("Pub-sub message cannot be delivered to cluster identity as it is no longer available", log.String("cluster identity", ci.String()))
-			}
-			return DeliveryStatus_SubscriberNoLongerReachable
-		default:
-			if pubsubMemberDeliveryLogThrottle() == actor.Open {
-				plog.Warn("Error while delivering pub-sub message to cluster identity", log.String("cluster identity", ci.String()), log.Error(err))
-			}
-			return DeliveryStatus_OtherError
-		}
-	}
-	if response == nil {
-		if pubsubMemberDeliveryLogThrottle() == actor.Open {
-			plog.Warn("Pub-sub message delivered to cluster identity timed out", log.String("cluster identity", ci.String()))
-		}
-		return DeliveryStatus_Timeout
-	}
-	return DeliveryStatus_Delivered
+	pid := cluster.Get(ci.Identity, ci.Kind)
+	return c.RequestFuture(pid, batch, p.subscriberTimeout)
 }
