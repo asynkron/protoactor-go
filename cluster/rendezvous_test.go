@@ -22,7 +22,7 @@ func Benchmark_Rendezvous_Get(b *testing.B) {
 		runtime.GC()
 		b.Run(testName, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				address := obj.GetByIdentity("0123456789abcdefghijklmnopqrstuvwxyz")
+				address := obj.GetByIdentity("kind/0123456789abcdefghijklmnopqrstuvwxyz")
 				if address == "" {
 					b.Fatalf("empty address res=%d", len(members))
 				}
