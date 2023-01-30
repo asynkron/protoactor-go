@@ -36,7 +36,8 @@ func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
 			labels := []attribute.KeyValue{
 				attribute.String("address", ref.actorSystem.Address()),
 			}
-			instruments.FuturesStartedCount.Observe(ctx, 1, labels...)
+
+			instruments.FuturesStartedCount.Add(ctx, 1, labels...)
 		}
 	}
 
@@ -179,9 +180,9 @@ func (ref *futureProcess) instrument() {
 		instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics)
 		if instruments != nil {
 			if ref.err == nil {
-				instruments.FuturesCompletedCount.Observe(ctx, 1, labels...)
+				instruments.FuturesCompletedCount.Add(ctx, 1, labels...)
 			} else {
-				instruments.FuturesTimedOutCount.Observe(ctx, 1, labels...)
+				instruments.FuturesTimedOutCount.Add(ctx, 1, labels...)
 			}
 		}
 	}

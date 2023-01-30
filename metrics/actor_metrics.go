@@ -9,9 +9,6 @@ import (
 	"github.com/asynkron/protoactor-go/log"
 	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/metric/instrument"
-	"go.opentelemetry.io/otel/metric/instrument/asyncint64"
-	"go.opentelemetry.io/otel/metric/instrument/syncfloat64"
-	"go.opentelemetry.io/otel/metric/instrument/syncint64"
 	"go.opentelemetry.io/otel/metric/unit"
 )
 
@@ -25,23 +22,23 @@ type ActorMetrics struct {
 	ID string
 
 	// Actors
-	ActorFailureCount            asyncint64.Counter
-	ActorMailboxLength           asyncint64.Gauge
-	ActorMessageReceiveHistogram syncfloat64.Histogram
-	ActorRestartedCount          asyncint64.Counter
-	ActorSpawnCount              asyncint64.Counter
-	ActorStoppedCount            asyncint64.Counter
+	ActorFailureCount            instrument.Int64Counter
+	ActorMailboxLength           instrument.Int64ObservableGauge
+	ActorMessageReceiveHistogram instrument.Float64Histogram
+	ActorRestartedCount          instrument.Int64Counter
+	ActorSpawnCount              instrument.Int64Counter
+	ActorStoppedCount            instrument.Int64Counter
 
 	// Deadletters
-	DeadLetterCount       asyncint64.Counter
-	FuturesCompletedCount asyncint64.Counter
-
+	DeadLetterCount       instrument.Int64Counter
+	
 	// Futures
-	FuturesStartedCount  asyncint64.Counter
-	FuturesTimedOutCount asyncint64.Counter
+	FuturesStartedCount  instrument.Int64Counter
+	FuturesCompletedCount instrument.Int64Counter
+	FuturesTimedOutCount instrument.Int64Counter
 
 	// Threadpool
-	ThreadPoolLatency syncint64.Histogram
+	ThreadPoolLatency instrument.Int64Histogram
 }
 
 // NewActorMetrics creates a new ActorMetrics value and returns a pointer to it
@@ -57,7 +54,8 @@ func newInstruments() *ActorMetrics {
 	instruments := ActorMetrics{mu: &sync.Mutex{}}
 
 	var err error
-	if instruments.ActorFailureCount, err = meter.AsyncInt64().Counter(
+
+	if instruments.ActorFailureCount, err = meter.Int64Counter(
 		"protoactor_actor_failure_count",
 		instrument.WithDescription("Number of actor failures"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -66,7 +64,7 @@ func newInstruments() *ActorMetrics {
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.ActorMessageReceiveHistogram, err = meter.SyncFloat64().Histogram(
+	if instruments.ActorMessageReceiveHistogram, err = meter.Float64Histogram(
 		"protoactor_actor_message_receive_duration_seconds",
 		instrument.WithDescription("Actor's messages received duration in seconds"),
 	); err != nil {
@@ -74,7 +72,7 @@ func newInstruments() *ActorMetrics {
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.ActorRestartedCount, err = meter.AsyncInt64().Counter(
+	if instruments.ActorRestartedCount, err = meter.Int64Counter(
 		"protoactor_actor_restarted_count",
 		instrument.WithDescription("Number of actors restarts"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -83,7 +81,7 @@ func newInstruments() *ActorMetrics {
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.ActorStoppedCount, err = meter.AsyncInt64().Counter(
+	if instruments.ActorStoppedCount, err = meter.Int64Counter(
 		"protoactor_actor_stopped_count",
 		instrument.WithDescription("Number of actors stopped"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -92,7 +90,7 @@ func newInstruments() *ActorMetrics {
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.ActorSpawnCount, err = meter.AsyncInt64().Counter(
+	if instruments.ActorSpawnCount, err = meter.Int64Counter(
 		"protoactor_actor_spawn_count",
 		instrument.WithDescription("Number of actors spawn"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -101,7 +99,7 @@ func newInstruments() *ActorMetrics {
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.DeadLetterCount, err = meter.AsyncInt64().Counter(
+	if instruments.DeadLetterCount, err = meter.Int64Counter(
 		"protoactor_deadletter_count",
 		instrument.WithDescription("Number of deadletters"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -110,7 +108,7 @@ func newInstruments() *ActorMetrics {
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.FuturesCompletedCount, err = meter.AsyncInt64().Counter(
+	if instruments.FuturesCompletedCount, err = meter.Int64Counter(
 		"protoactor_futures_completed_count",
 		instrument.WithDescription("Number of futures completed"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -119,7 +117,7 @@ func newInstruments() *ActorMetrics {
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.FuturesStartedCount, err = meter.AsyncInt64().Counter(
+	if instruments.FuturesStartedCount, err = meter.Int64Counter(
 		"protoactor_futures_started_count",
 		instrument.WithDescription("Number of futures started"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -128,7 +126,7 @@ func newInstruments() *ActorMetrics {
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.FuturesTimedOutCount, err = meter.AsyncInt64().Counter(
+	if instruments.FuturesTimedOutCount, err = meter.Int64Counter(
 		"protoactor_futures_timed_out_count",
 		instrument.WithDescription("Number of futures timed out"),
 		instrument.WithUnit(unit.Dimensionless),
@@ -137,7 +135,7 @@ func newInstruments() *ActorMetrics {
 		plog.Error(err.Error(), log.Error(err))
 	}
 
-	if instruments.ThreadPoolLatency, err = meter.SyncInt64().Histogram(
+	if instruments.ThreadPoolLatency, err = meter.Int64Histogram(
 		"protoactor_thread_pool_latency_duration_seconds",
 		instrument.WithDescription("History of latency in second"),
 		instrument.WithUnit(unit.Milliseconds),
@@ -150,7 +148,7 @@ func newInstruments() *ActorMetrics {
 }
 
 // SetActorMailboxLengthGauge makes sure access to ActorMailboxLength is sequenced
-func (am *ActorMetrics) SetActorMailboxLengthGauge(gauge asyncint64.Gauge) {
+func (am *ActorMetrics) SetActorMailboxLengthGauge(gauge instrument.Int64ObservableGauge) {
 	// lock our mutex
 	am.mu.Lock()
 	defer am.mu.Unlock()

@@ -47,7 +47,7 @@ func NewMetrics(provider metric.MeterProvider) *Metrics {
 
 func (m *Metrics) PrepareMailboxLengthGauge() {
 	meter := global.Meter(metrics.LibName)
-	gauge, err := meter.AsyncInt64().Gauge("protoactor_actor_mailbox_length",
+	gauge, err := meter.Int64ObservableGauge("protoactor_actor_mailbox_length",
 		instrument.WithDescription("Actor's Mailbox Length"),
 		instrument.WithUnit(unit.Dimensionless))
 	if err != nil {
