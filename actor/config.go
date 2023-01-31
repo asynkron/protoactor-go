@@ -37,16 +37,6 @@ func defaultConfig() *Config {
 }
 
 func defaultPrometheusProvider(port int) metric.MeterProvider {
-	// config := prometheus.Config{}
-	// c := controller.New(
-	// 	processor.NewFactory(
-	// 		selector.NewWithInexpensiveDistribution(),
-	// 		aggregation.CumulativeTemporalitySelector(),
-	// 		processor.WithMemory(true),
-	// 	),
-	// )
-
-	// exporter, err := prometheus.New(config, c)
 	exporter, err := prometheus.New()
 	if err != nil {
 		err = fmt.Errorf("failed to initialize prometheus exporter: %w", err)

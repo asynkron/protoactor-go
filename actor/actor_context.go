@@ -103,7 +103,6 @@ type actorContext struct {
 	parent            *PID
 	self              *PID
 	receiveTimeout    time.Duration
-	// producer          Producer
 	messageOrEnvelope interface{}
 	state             int32
 }
@@ -430,13 +429,6 @@ func (ctx *actorContext) Stop(pid *PID) {
 			_ctx := context.Background()
 			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
 				instruments.ActorStoppedCount.Add(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
-				// if _, err := meter.RegisterCallback(func(_ context.Context, o metric.Observer) error {
-				// 	o.ObserveInt64(instruments.ActorStoppedCount, 1, metricsSystem.CommonLabels(ctx)...)
-				// 	return nil
-				// }); err != nil {
-				// 	err = fmt.Errorf("failed to instrument Actor stops, %w", err)
-				// 	plog.Error(err.Error(), log.Error(err))
-				// }
 			}
 		}
 	}
