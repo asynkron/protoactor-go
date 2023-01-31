@@ -7,8 +7,8 @@ import (
 
 	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/metrics"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
-	"go.opentelemetry.io/otel/metric/instrument"
 )
 
 type (
@@ -34,8 +34,10 @@ var (
 				if instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
 					sysMetrics.PrepareMailboxLengthGauge()
 					meter := global.Meter(metrics.LibName)
-					if err := meter.RegisterCallback([]instrument.Asynchronous{instruments.ActorMailboxLength}, func(goCtx context.Context) {
-						instruments.ActorMailboxLength.Observe(goCtx, int64(mb.UserMessageCount()), sysMetrics.CommonLabels(ctx)...)
+
+					if _, err := meter.RegisterCallback(func(_ context.Context, o metric.Observer) error {
+						o.ObserveInt64(instruments.ActorMailboxLength,int64(mb.UserMessageCount()), sysMetrics.CommonLabels(ctx)... )
+						return nil
 					}); err != nil {
 						err = fmt.Errorf("failed to instrument Actor Mailbox, %w", err)
 						plog.Error(err.Error(), log.Error(err))
@@ -60,9 +62,9 @@ var (
 
 		return pid, nil
 	}
-	defaultContextDecorator = func(ctx Context) Context {
-		return ctx
-	}
+	// defaultContextDecorator = func(ctx Context) Context {
+	// 	return ctx
+	// }
 )
 
 func initialize(props *Props, ctx *actorContext) {
@@ -124,13 +126,13 @@ func (props *Props) getSupervisor() SupervisorStrategy {
 	return props.supervisionStrategy
 }
 
-func (props *Props) getContextDecoratorChain() ContextDecoratorFunc {
-	if props.contextDecoratorChain == nil {
-		return defaultContextDecorator
-	}
+// func (props *Props) getContextDecoratorChain() ContextDecoratorFunc {
+// 	if props.contextDecoratorChain == nil {
+// 		return defaultContextDecorator
+// 	}
 
-	return props.contextDecoratorChain
-}
+// 	return props.contextDecoratorChain
+// }
 
 func (props *Props) produceMailbox() Mailbox {
 	if props.mailboxProducer == nil {

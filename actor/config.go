@@ -9,10 +9,9 @@ import (
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
-	"go.opentelemetry.io/otel/sdk/export/metric/aggregation"
-	controller "go.opentelemetry.io/otel/sdk/metric/controller/basic"
-	processor "go.opentelemetry.io/otel/sdk/metric/processor/basic"
-	selector "go.opentelemetry.io/otel/sdk/metric/selector/simple"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Config struct {
@@ -38,16 +37,17 @@ func defaultConfig() *Config {
 }
 
 func defaultPrometheusProvider(port int) metric.MeterProvider {
-	config := prometheus.Config{}
-	c := controller.New(
-		processor.NewFactory(
-			selector.NewWithInexpensiveDistribution(),
-			aggregation.CumulativeTemporalitySelector(),
-			processor.WithMemory(true),
-		),
-	)
+	// config := prometheus.Config{}
+	// c := controller.New(
+	// 	processor.NewFactory(
+	// 		selector.NewWithInexpensiveDistribution(),
+	// 		aggregation.CumulativeTemporalitySelector(),
+	// 		processor.WithMemory(true),
+	// 	),
+	// )
 
-	exporter, err := prometheus.New(config, c)
+	// exporter, err := prometheus.New(config, c)
+	exporter, err := prometheus.New()
 	if err != nil {
 		err = fmt.Errorf("failed to initialize prometheus exporter: %w", err)
 		plog.Error(err.Error(), log.Error(err))
@@ -55,11 +55,10 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 		return nil
 	}
 
-	provider := exporter.MeterProvider()
+	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(exporter.Reader))
 	global.SetMeterProvider(provider)
 
-	http.HandleFunc("/", exporter.ServeHTTP)
-
+	http.Handle("/", promhttp.Handler())
 	_port := fmt.Sprintf(":%d", port)
 
 	go func() {

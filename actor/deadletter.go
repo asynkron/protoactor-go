@@ -81,7 +81,8 @@ func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
 				attribute.String("address", dp.actorSystem.Address()),
 				attribute.String("messagetype", strings.Replace(fmt.Sprintf("%T", message), "*", "", 1)),
 			}
-			instruments.DeadLetterCount.Observe(ctx, 1, labels...)
+
+			instruments.DeadLetterCount.Add(ctx, 1, labels...)
 		}
 	}
 	_, msg, sender := UnwrapEnvelope(message)
