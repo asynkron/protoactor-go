@@ -15,9 +15,9 @@ require (
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/serialx/hashring v0.0.0-20200727003509-22c0c7ab6b1b
 	github.com/stretchr/testify v1.8.1
-	go.opentelemetry.io/otel v1.12.0
+	go.opentelemetry.io/otel v1.13.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.35.0
-	go.opentelemetry.io/otel/metric v0.35.0
+	go.opentelemetry.io/otel/metric v0.36.0
 	golang.org/x/net v0.5.0
 	google.golang.org/grpc v1.52.3
 	google.golang.org/protobuf v1.28.1
@@ -30,7 +30,7 @@ require (
 	github.com/lithammer/shortuuid/v4 v4.0.0
 	github.com/twmb/murmur3 v1.1.6
 	go.etcd.io/etcd/client/v3 v3.5.7
-	go.opentelemetry.io/otel/sdk/metric v0.35.0
+	go.opentelemetry.io/otel/sdk/metric v0.36.0
 	golang.org/x/exp v0.0.0-20220518171630-0b5c67f07fdf
 	golang.org/x/sync v0.1.0
 	k8s.io/api v0.26.1
@@ -86,8 +86,8 @@ require (
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.7 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.7 // indirect
-	go.opentelemetry.io/otel/sdk v1.12.0 // indirect
-	go.opentelemetry.io/otel/trace v1.12.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.13.0 // indirect
+	go.opentelemetry.io/otel/trace v1.13.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
