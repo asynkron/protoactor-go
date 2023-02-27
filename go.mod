@@ -14,7 +14,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/serialx/hashring v0.0.0-20200727003509-22c0c7ab6b1b
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	go.opentelemetry.io/otel v1.12.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.35.0
 	go.opentelemetry.io/otel/metric v0.35.0
