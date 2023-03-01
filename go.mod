@@ -18,7 +18,7 @@ require (
 	go.opentelemetry.io/otel v1.12.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.35.0
 	go.opentelemetry.io/otel/metric v0.35.0
-	golang.org/x/net v0.5.0
+	golang.org/x/net v0.7.0
 	google.golang.org/grpc v1.52.3
 	google.golang.org/protobuf v1.28.1
 )
@@ -34,7 +34,7 @@ require (
 	golang.org/x/exp v0.0.0-20220518171630-0b5c67f07fdf
 	golang.org/x/sync v0.1.0
 	k8s.io/api v0.26.1
-	k8s.io/apimachinery v0.26.1
+	k8s.io/apimachinery v0.26.2
 	k8s.io/client-go v0.26.1
 )
 
@@ -93,9 +93,9 @@ require (
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/oauth2 v0.3.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
-	golang.org/x/term v0.4.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/term v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221118155620-16455021b5e6 // indirect
