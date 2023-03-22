@@ -125,7 +125,9 @@ func (props *Props) Clone(opts ...PropsOption) *Props {
 		WithReceiverMiddleware(props.receiverMiddleware...),
 		WithSenderMiddleware(props.senderMiddleware...),
 		WithSpawnFunc(props.spawner),
-		WithSpawnMiddleware(props.spawnMiddleware...))
+		WithSpawnMiddleware(props.spawnMiddleware...),
+		WithOnInit(props.onInit...),
+	)
 
 	cp.Configure(opts...)
 
