@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -27,6 +28,11 @@ type mockContext struct {
 //
 // Interface: Context
 //
+
+func (m *mockContext) Ctx() context.Context {
+	args := m.Called()
+	return args.Get(0).(context.Context)
+}
 
 func (m *mockContext) Get(id ctxext.ContextExtensionID) ctxext.ContextExtension {
 	args := m.Called(id)

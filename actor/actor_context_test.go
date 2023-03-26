@@ -307,3 +307,34 @@ func TestActorContextAutoRespondTouchedMessage(t *testing.T) {
 	assert.IsType(t, &Touched{}, res)
 	assert.True(t, res2.Who.Equal(pid))
 }
+
+func TestContextIsCancelledWhenStopping(t *testing.T) {
+	t.Parallel()
+
+	pid := rootContext.Spawn(PropsFromFunc(func(ctx Context) {
+		if ctx.Message() == "test" {
+			select {
+			case <-ctx.Ctx().Done():
+				ctx.Respond("done")
+				break
+			case <-time.After(1 * time.Second):
+				ctx.Respond("timeout")
+				break
+			}
+		}
+	}))
+	future := NewFuture(rootContext.actorSystem, 2*time.Second)
+	rootContext.RequestWithCustomSender(pid, "test", future.PID())
+	<-time.After(50 * time.Millisecond)
+
+	// Stops the actor.
+	// This should cancel the context, and the actor should respond with "done"
+	// If the context is not cancelled, the actor will time out and respond with "timeout"
+	rootContext.Stop(pid)
+
+	res, err := future.Result()
+
+	assert.NoError(t, err)
+	assert.Equal(t, "done", res)
+
+}

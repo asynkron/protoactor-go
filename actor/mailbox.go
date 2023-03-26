@@ -21,6 +21,7 @@ type MessageInvoker interface {
 	InvokeSystemMessage(interface{})
 	InvokeUserMessage(interface{})
 	EscalateFailure(reason interface{}, message interface{})
+	cancelContext()
 }
 
 // Mailbox interface is used to enqueue messages to the mailbox
@@ -98,6 +99,11 @@ func (m *defaultMailbox) PostSystemMessage(message interface{}) {
 	}
 	m.systemMailbox.Push(message)
 	atomic.AddInt32(&m.sysMessages, 1)
+	// check if message is stop
+	if _, ok := message.(*Stop); ok {
+		m.invoker.cancelContext()
+	}
+
 	m.schedule()
 }
 
