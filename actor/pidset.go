@@ -1,14 +1,18 @@
 package actor
 
-import "fmt"
-
 type PIDSet struct {
 	pids   []*PID
-	lookup map[string]*PID
+	lookup map[pidKey]int
 }
 
-func (p *PIDSet) key(pid *PID) string {
-	return fmt.Sprintf("%v:%v", pid.Address, pid.Id)
+// pidKey is used as a key in the lookup map to avoid allocations.
+type pidKey struct {
+	address string
+	id      string
+}
+
+func (p *PIDSet) key(pid *PID) pidKey {
+	return pidKey{address: pid.Address, id: pid.Id}
 }
 
 // NewPIDSet returns a new PIDSet with the given pids.
@@ -22,21 +26,21 @@ func NewPIDSet(pids ...*PID) *PIDSet {
 
 func (p *PIDSet) ensureInit() {
 	if p.lookup == nil {
-		p.lookup = make(map[string]*PID)
+		p.lookup = make(map[pidKey]int)
 	}
 }
 
 func (p *PIDSet) indexOf(v *PID) int {
-	for i, pid := range p.pids {
-		if v.Equal(pid) {
-			return i
-		}
+	if idx, ok := p.lookup[p.key(v)]; ok {
+		return idx
 	}
+
 	return -1
 }
 
 func (p *PIDSet) Contains(v *PID) bool {
-	return p.lookup[p.key(v)] != nil
+	_, ok := p.lookup[p.key(v)]
+	return ok
 }
 
 // Add adds the element v to the set.
@@ -45,8 +49,9 @@ func (p *PIDSet) Add(v *PID) {
 	if p.Contains(v) {
 		return
 	}
-	p.lookup[p.key(v)] = v
+
 	p.pids = append(p.pids, v)
+	p.lookup[p.key(v)] = len(p.pids) - 1
 }
 
 // Remove removes v from the set and returns true if them element existed.
@@ -58,8 +63,14 @@ func (p *PIDSet) Remove(v *PID) bool {
 	}
 
 	delete(p.lookup, p.key(v))
+	if i < len(p.pids)-1 {
+		lastPID := p.pids[len(p.pids)-1]
 
-	p.pids = append(p.pids[:i], p.pids[i+1:]...)
+		p.pids[i] = lastPID
+		p.lookup[p.key(lastPID)] = i
+	}
+
+	p.pids = p.pids[:len(p.pids)-1]
 
 	return true
 }
@@ -72,7 +83,7 @@ func (p *PIDSet) Len() int {
 // Clear removes all the elements in the set.
 func (p *PIDSet) Clear() {
 	p.pids = p.pids[:0]
-	p.lookup = make(map[string]*PID)
+	p.lookup = make(map[pidKey]int)
 }
 
 // Empty reports whether the set is empty.
