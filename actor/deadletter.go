@@ -8,6 +8,7 @@ import (
 	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/metrics"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type deadLetterProcess struct {
@@ -82,7 +83,7 @@ func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
 				attribute.String("messagetype", strings.Replace(fmt.Sprintf("%T", message), "*", "", 1)),
 			}
 
-			instruments.DeadLetterCount.Add(ctx, 1, labels...)
+			instruments.DeadLetterCount.Add(ctx, 1, metric.WithAttributes(labels...))
 		}
 	}
 	_, msg, sender := UnwrapEnvelope(message)

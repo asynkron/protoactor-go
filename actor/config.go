@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/asynkron/protoactor-go/log"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/metric/global"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -46,7 +46,7 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 	}
 
 	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(exporter.Reader))
-	global.SetMeterProvider(provider)
+	otel.SetMeterProvider(provider)
 
 	http.Handle("/", promhttp.Handler())
 	_port := fmt.Sprintf(":%d", port)
