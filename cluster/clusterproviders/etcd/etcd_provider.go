@@ -151,6 +151,7 @@ func (p *Provider) keepAliveForever(ctx context.Context) error {
 			return err
 		}
 		leaseId = _leaseId
+		p.setLeaseID(leaseId)
 	}
 
 	if leaseId <= 0 {
@@ -187,8 +188,8 @@ func (p *Provider) startKeepAlive(ctx context.Context) {
 
 			if err := p.keepAliveForever(ctx); err != nil {
 				plog.Info("Failure refreshing service TTL. ReTrying...", log.Duration("after", p.retryInterval))
-				time.Sleep(p.retryInterval)
 			}
+			time.Sleep(p.retryInterval)
 		}
 	}()
 }
@@ -217,6 +218,7 @@ func (p *Provider) registerService() error {
 			return err
 		}
 		leaseId = _leaseId
+		p.setLeaseID(leaseId)
 	}
 	_, err = p.client.Put(context.TODO(), fullKey, string(data), clientv3.WithLease(leaseId))
 	if err != nil {
@@ -388,13 +390,11 @@ func (p *Provider) publishClusterTopologyEvent() {
 }
 
 func (p *Provider) getLeaseID() clientv3.LeaseID {
-	val := (int64)(p.leaseID)
-	return (clientv3.LeaseID)(atomic.LoadInt64(&val))
+	return (clientv3.LeaseID)(atomic.LoadInt64((*int64)(&p.leaseID)))
 }
 
 func (p *Provider) setLeaseID(leaseID clientv3.LeaseID) {
-	val := (int64)(p.leaseID)
-	atomic.StoreInt64(&val, (int64)(leaseID))
+	atomic.StoreInt64((*int64)(&p.leaseID), (int64)(leaseID))
 }
 
 func (p *Provider) newLeaseID() (clientv3.LeaseID, error) {
