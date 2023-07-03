@@ -105,6 +105,16 @@ type actorContext struct {
 	receiveTimeout    time.Duration
 	messageOrEnvelope interface{}
 	state             int32
+	context           context.Context
+	contextCancel     context.CancelFunc
+}
+
+func (ctx *actorContext) cancelContext() {
+	ctx.contextCancel()
+}
+
+func (ctx *actorContext) Ctx() context.Context {
+	return ctx.context
 }
 
 var (
@@ -116,10 +126,13 @@ var (
 )
 
 func newActorContext(actorSystem *ActorSystem, props *Props, parent *PID) *actorContext {
+	ctx, cancel := context.WithCancel(context.Background())
 	this := &actorContext{
-		parent:      parent,
-		props:       props,
-		actorSystem: actorSystem,
+		parent:        parent,
+		props:         props,
+		actorSystem:   actorSystem,
+		context:       ctx,
+		contextCancel: cancel,
 	}
 
 	this.incarnateActor()
@@ -534,7 +547,8 @@ func (ctx *actorContext) incarnateActor() {
 	if ok && metricsSystem.enabled {
 		_ctx := context.Background()
 		if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-			instruments.ActorSpawnCount.Add(_ctx, 1, metricsSystem.CommonLabels(ctx)...)		}
+			instruments.ActorSpawnCount.Add(_ctx, 1, metricsSystem.CommonLabels(ctx)...)
+		}
 	}
 }
 

@@ -1,6 +1,7 @@
 package actor
 
 import (
+	"context"
 	"time"
 
 	"github.com/asynkron/protoactor-go/ctxext"
@@ -91,6 +92,9 @@ type basePart interface {
 	Forward(pid *PID)
 
 	ReenterAfter(f *Future, continuation func(res interface{}, err error))
+
+	// Ctx Pass this to long-running tasks to stop them when the actor is about to stop
+	Ctx() context.Context
 }
 
 type messagePart interface {

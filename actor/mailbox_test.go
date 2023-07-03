@@ -19,6 +19,9 @@ type invoker struct {
 	wg    *sync.WaitGroup
 }
 
+func (i *invoker) cancelContext() {
+}
+
 func (i *invoker) InvokeSystemMessage(interface{}) {
 	i.count++
 	if i.count == i.max {
