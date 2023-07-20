@@ -11,6 +11,7 @@ import (
 	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/metrics"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // ErrTimeout is the error used when a future times out before receiving a result.
@@ -37,7 +38,7 @@ func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
 				attribute.String("address", ref.actorSystem.Address()),
 			}
 
-			instruments.FuturesStartedCount.Add(ctx, 1, labels...)
+			instruments.FuturesStartedCount.Add(ctx, 1, metric.WithAttributes(labels...))
 		}
 	}
 
@@ -180,9 +181,9 @@ func (ref *futureProcess) instrument() {
 		instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics)
 		if instruments != nil {
 			if ref.err == nil {
-				instruments.FuturesCompletedCount.Add(ctx, 1, labels...)
+				instruments.FuturesCompletedCount.Add(ctx, 1, metric.WithAttributes(labels...))
 			} else {
-				instruments.FuturesTimedOutCount.Add(ctx, 1, labels...)
+				instruments.FuturesTimedOutCount.Add(ctx, 1, metric.WithAttributes(labels...))
 			}
 		}
 	}

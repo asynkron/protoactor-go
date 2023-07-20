@@ -8,9 +8,9 @@ import (
 
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
+	"go.opentelemetry.io/otel"
 	stdout "go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/metric/global"
 	controller "go.opentelemetry.io/otel/sdk/metric/controller/basic"
 	processor "go.opentelemetry.io/otel/sdk/metric/processor/basic"
 	"go.opentelemetry.io/otel/sdk/metric/selector/simple"
@@ -62,7 +62,7 @@ func stdoutExporter(ctx context.Context) metric.MeterProvider {
 	if err := provider.Start(ctx); err != nil {
 		log.Fatalf("could not start push controller: %v", err)
 	}
-	global.SetMeterProvider(provider)
+	otel.SetMeterProvider(provider)
 
 	return provider
 }
