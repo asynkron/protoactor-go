@@ -29,7 +29,7 @@ require (
 	github.com/golang/mock v1.5.0
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/lithammer/shortuuid/v4 v4.0.0
-	github.com/twmb/murmur3 v1.1.6
+	github.com/twmb/murmur3 v1.1.8
 	go.etcd.io/etcd/client/v3 v3.5.7
 	golang.org/x/exp v0.0.0-20220518171630-0b5c67f07fdf
 	golang.org/x/sync v0.2.0
