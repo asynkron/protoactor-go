@@ -2,7 +2,7 @@
 services:
 
   consul-agent-1: &consul-agent
-    image: consul:latest
+    image: hashicorp/consul:latest
     networks:
       - consul
     command: "agent -retry-join consul-server-bootstrap -client 0.0.0.0"
