@@ -4,7 +4,7 @@ module github.com/asynkron/protoactor-go
 go 1.18
 
 require (
-	github.com/Workiva/go-datastructures v1.0.53
+	github.com/Workiva/go-datastructures v1.1.1
 	github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2
 	github.com/couchbase/gocb v1.6.7
 	github.com/emirpasic/gods v1.18.1
