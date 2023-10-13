@@ -1,7 +1,6 @@
 package remote
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,9 +10,9 @@ func TestStatusCode_String(t *testing.T) {
 	assert := assert.New(t)
 	for i := 0; i < int(ResponseStatusCodeMAX); i++ {
 		code := ResponseStatusCode(i)
-		assert.NotEmpty(fmt.Sprintf("%s", code))
+		assert.NotEmpty(code.String())
 	}
-	s := fmt.Sprintf("%s", ResponseStatusCode(100))
+	s := ResponseStatusCode(100).String()
 	assert.Equal(s, "ResponseStatusCode-100")
 }
 
