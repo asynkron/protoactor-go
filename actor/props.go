@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/metrics"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
@@ -40,7 +40,7 @@ var (
 						return nil
 					}); err != nil {
 						err = fmt.Errorf("failed to instrument Actor Mailbox, %w", err)
-						plog.Error(err.Error(), log.Error(err))
+						actorSystem.Logger.Error(err.Error(), slog.Any("error", err))
 					}
 				}
 			}

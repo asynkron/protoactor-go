@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync/atomic"
 	"time"
 
 	"github.com/asynkron/protoactor-go/ctxext"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/metrics"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 	"go.opentelemetry.io/otel/attribute"
@@ -256,7 +256,7 @@ func (ctx *actorContext) receiveTimeoutHandler() {
 func (ctx *actorContext) Forward(pid *PID) {
 	if msg, ok := ctx.messageOrEnvelope.(SystemMessage); ok {
 		// SystemMessage cannot be forwarded
-		plog.Error("SystemMessage cannot be forwarded", log.Message(msg))
+		ctx.actorSystem.Logger.Error("SystemMessage cannot be forwarded", slog.Any("message", msg))
 
 		return
 	}
@@ -563,7 +563,7 @@ func (ctx *actorContext) InvokeSystemMessage(message interface{}) {
 	case *Restart:
 		ctx.handleRestart()
 	default:
-		plog.Error("unknown system message", log.Message(msg))
+		ctx.actorSystem.Logger.Error("unknown system message", slog.Any("message", msg))
 	}
 }
 
@@ -701,10 +701,12 @@ func (ctx *actorContext) finalizeStop() {
 //
 
 func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {
+	//TODO: add callstack to log?
+	ctx.actorSystem.Logger.Info("[ACTOR] Recovering", slog.Any("self", ctx.self), slog.Any("reason", reason))
 	// debug setting, allows to output supervision failures in console/error level
 	if ctx.actorSystem.Config.DeveloperSupervisionLogging {
 		fmt.Println("[Supervision] Actor:", ctx.self, " failed with message:", message, " exception:", reason)
-		plog.Error("[Supervision]", log.Stringer("actor", ctx.self), log.Object("message", message), log.Object("exception", reason))
+		ctx.actorSystem.Logger.Error("[Supervision]", slog.Any("actor", ctx.self), slog.Any("message", message), slog.Any("exception", reason))
 	}
 
 	metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)

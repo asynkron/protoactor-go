@@ -2,9 +2,8 @@ package actor
 
 import (
 	"errors"
+	"log/slog"
 	"sync"
-
-	"github.com/asynkron/protoactor-go/log"
 )
 
 type guardiansValue struct {
@@ -38,7 +37,7 @@ func (gs *guardiansValue) newGuardian(s SupervisorStrategy) *guardianProcess {
 
 	pid, ok := gs.actorSystem.ProcessRegistry.Add(ref, "guardian"+id)
 	if !ok {
-		plog.Error("failed to register guardian process", log.Stringer("pid", pid))
+		gs.actorSystem.Logger.Error("failed to register guardian process", slog.Any("pid", pid))
 	}
 
 	ref.pid = pid

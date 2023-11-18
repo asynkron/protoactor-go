@@ -4,9 +4,9 @@ package metrics
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 
-	"github.com/asynkron/protoactor-go/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -41,14 +41,14 @@ type ActorMetrics struct {
 }
 
 // NewActorMetrics creates a new ActorMetrics value and returns a pointer to it
-func NewActorMetrics() *ActorMetrics {
-	instruments := newInstruments()
+func NewActorMetrics(logger *slog.Logger) *ActorMetrics {
+	instruments := newInstruments(logger)
 	return instruments
 }
 
 // newInstruments will create instruments using a meter from
 // the given provider p
-func newInstruments() *ActorMetrics {
+func newInstruments(logger *slog.Logger) *ActorMetrics {
 	meter := otel.Meter(LibName)
 	instruments := ActorMetrics{mu: &sync.Mutex{}}
 
@@ -60,7 +60,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithUnit("1"),
 	); err != nil {
 		err = fmt.Errorf("failed to create ActorFailureCount instrument, %w", err)
-		plog.Error(err.Error(), log.Error(err))
+		logger.Error(err.Error(), slog.Any("error", err))
 	}
 
 	if instruments.ActorMessageReceiveHistogram, err = meter.Float64Histogram(
@@ -68,7 +68,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithDescription("Actor's messages received duration in seconds"),
 	); err != nil {
 		err = fmt.Errorf("failed to create ActorMessageReceiveHistogram instrument, %w", err)
-		plog.Error(err.Error(), log.Error(err))
+		logger.Error(err.Error(), slog.Any("error", err))
 	}
 
 	if instruments.ActorRestartedCount, err = meter.Int64Counter(
@@ -77,7 +77,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithUnit("1"),
 	); err != nil {
 		err = fmt.Errorf("failed to create ActorRestartedCount instrument, %w", err)
-		plog.Error(err.Error(), log.Error(err))
+		logger.Error(err.Error(), slog.Any("error", err))
 	}
 
 	if instruments.ActorStoppedCount, err = meter.Int64Counter(
@@ -86,7 +86,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithUnit("1"),
 	); err != nil {
 		err = fmt.Errorf("failed to create ActorStoppedCount instrument, %w", err)
-		plog.Error(err.Error(), log.Error(err))
+		logger.Error(err.Error(), slog.Any("error", err))
 	}
 
 	if instruments.ActorSpawnCount, err = meter.Int64Counter(
@@ -95,7 +95,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithUnit("1"),
 	); err != nil {
 		err = fmt.Errorf("failed to create ActorSpawnCount instrument, %w", err)
-		plog.Error(err.Error(), log.Error(err))
+		logger.Error(err.Error(), slog.Any("error", err))
 	}
 
 	if instruments.DeadLetterCount, err = meter.Int64Counter(
@@ -104,7 +104,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithUnit("1"),
 	); err != nil {
 		err = fmt.Errorf("failed to create DeadLetterCount instrument, %w", err)
-		plog.Error(err.Error(), log.Error(err))
+		logger.Error(err.Error(), slog.Any("error", err))
 	}
 
 	if instruments.FuturesCompletedCount, err = meter.Int64Counter(
@@ -113,7 +113,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithUnit("1"),
 	); err != nil {
 		err = fmt.Errorf("failed to create FuturesCompletedCount instrument, %w", err)
-		plog.Error(err.Error(), log.Error(err))
+		logger.Error(err.Error(), slog.Any("error", err))
 	}
 
 	if instruments.FuturesStartedCount, err = meter.Int64Counter(
@@ -122,7 +122,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithUnit("1"),
 	); err != nil {
 		err = fmt.Errorf("failed to create FuturesStartedCount instrument, %w", err)
-		plog.Error(err.Error(), log.Error(err))
+		logger.Error(err.Error(), slog.Any("error", err))
 	}
 
 	if instruments.FuturesTimedOutCount, err = meter.Int64Counter(
@@ -131,7 +131,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithUnit("1"),
 	); err != nil {
 		err = fmt.Errorf("failed to create FuturesTimedOutCount instrument, %w", err)
-		plog.Error(err.Error(), log.Error(err))
+		logger.Error(err.Error(), slog.Any("error", err))
 	}
 
 	if instruments.ThreadPoolLatency, err = meter.Int64Histogram(
@@ -140,7 +140,7 @@ func newInstruments() *ActorMetrics {
 		metric.WithUnit("ms"),
 	); err != nil {
 		err = fmt.Errorf("failed to create ThreadPoolLatency instrument, %w", err)
-		plog.Error(err.Error(), log.Error(err))
+		logger.Error(err.Error(), slog.Any("error", err))
 	}
 
 	return &instruments

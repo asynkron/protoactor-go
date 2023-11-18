@@ -48,6 +48,7 @@ func WithDiagnosticsSerializer(serializer func(Actor) string) ConfigOption {
 }
 
 func WithMetricProviders(provider metric.MeterProvider) ConfigOption {
+
 	return func(config *Config) {
 		config.MetricsProvider = provider
 	}

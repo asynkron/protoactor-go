@@ -1,6 +1,7 @@
 package actor
 
 import (
+	"log/slog"
 	"net"
 	"strconv"
 
@@ -20,6 +21,7 @@ type ActorSystem struct {
 	Config          *Config
 	ID              string
 	stopper         chan struct{}
+	Logger          *slog.Logger
 }
 
 func (as *ActorSystem) NewLocalPID(id string) *PID {
@@ -69,6 +71,7 @@ func NewActorSystem(options ...ConfigOption) *ActorSystem {
 func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system := &ActorSystem{}
 	system.ID = shortuuid.New()
+	system.Logger = config.LoggerFactory()
 	system.Config = config
 	system.ProcessRegistry = NewProcessRegistry(system)
 	system.Root = NewRootContext(system, EmptyMessageHeader)
@@ -77,7 +80,7 @@ func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system.DeadLetter = NewDeadLetter(system)
 	system.Extensions = extensions.NewExtensions()
 	SubscribeSupervision(system)
-	system.Extensions.Register(NewMetrics(config.MetricsProvider))
+	system.Extensions.Register(NewMetrics(system, config.MetricsProvider))
 
 	system.ProcessRegistry.Add(NewEventStreamProcess(system), "eventstream")
 	system.stopper = make(chan struct{})

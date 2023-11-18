@@ -2,10 +2,10 @@ package actor
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
-	"github.com/asynkron/protoactor-go/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/metric"
@@ -21,6 +21,7 @@ type Config struct {
 	DeveloperSupervisionLogging bool               // console log and promote supervision logs to Warning level
 	DiagnosticsSerializer       func(Actor) string // extract diagnostics from actor and return as string
 	MetricsProvider             metric.MeterProvider
+	LoggerFactory               func() *slog.Logger
 }
 
 func defaultConfig() *Config {
@@ -33,6 +34,9 @@ func defaultConfig() *Config {
 		DiagnosticsSerializer: func(actor Actor) string {
 			return ""
 		},
+		LoggerFactory: func() *slog.Logger {
+			return slog.Default().With("lib", "Proto.Actor")
+		},
 	}
 }
 
@@ -40,7 +44,8 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 	exporter, err := prometheus.New()
 	if err != nil {
 		err = fmt.Errorf("failed to initialize prometheus exporter: %w", err)
-		plog.Error(err.Error(), log.Error(err))
+		//TODO: fix
+		//plog.Error(err.Error(), log.Error(err))
 
 		return nil
 	}
@@ -55,7 +60,8 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 		_ = http.ListenAndServe(_port, nil)
 	}()
 
-	plog.Debug(fmt.Sprintf("Prometheus server running on %s", _port))
+	//TODO: fix
+	//plog.Debug(fmt.Sprintf("Prometheus server running on %s", _port))
 
 	return provider
 }
