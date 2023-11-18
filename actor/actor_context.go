@@ -149,6 +149,10 @@ func (ctx *actorContext) ActorSystem() *ActorSystem {
 	return ctx.actorSystem
 }
 
+func (ctx *actorContext) Logger() *slog.Logger {
+	return ctx.actorSystem.Logger
+}
+
 func (ctx *actorContext) Parent() *PID {
 	return ctx.parent
 }

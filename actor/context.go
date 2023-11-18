@@ -1,6 +1,7 @@
 package actor
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/protoactor-go/ctxext"
@@ -56,6 +57,8 @@ type infoPart interface {
 	Actor() Actor
 
 	ActorSystem() *ActorSystem
+
+	Logger() *slog.Logger
 }
 
 type basePart interface {

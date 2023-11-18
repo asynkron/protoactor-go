@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log/slog"
 	"time"
 
 	console "github.com/asynkron/goconsole"
@@ -16,15 +16,15 @@ type (
 func (state *helloActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		fmt.Println("Started, initialize actor here")
+		context.Logger().Info("Started, initialize actor here")
 	case *actor.Stopping:
-		fmt.Println("Stopping, actor is about shut down")
+		context.Logger().Info("Stopping, actor is about shut down")
 	case *actor.Stopped:
-		fmt.Println("Stopped, actor and its children are stopped")
+		context.Logger().Info("Stopped, actor and its children are stopped")
 	case *actor.Restarting:
-		fmt.Println("Restarting, actor is about restart")
+		context.Logger().Info("Restarting, actor is about restart")
 	case *hello:
-		fmt.Printf("Hello %v\n", msg.Who)
+		context.Logger().Info("Hello", slog.String("Who", msg.Who))
 	}
 }
 
