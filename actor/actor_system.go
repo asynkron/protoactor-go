@@ -85,5 +85,7 @@ func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system.ProcessRegistry.Add(NewEventStreamProcess(system), "eventstream")
 	system.stopper = make(chan struct{})
 
+	system.Logger.Info("actor system started", slog.String("id", system.ID))
+
 	return system
 }
