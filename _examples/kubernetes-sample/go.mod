@@ -1,6 +1,6 @@
 module kubernetes-sample
 
-go 1.18
+go 1.21
 
 replace github.com/asynkron/protoactor-go => ../..
 

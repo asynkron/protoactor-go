@@ -1,7 +1,7 @@
 module github.com/asynkron/protoactor-go
 
-// because etcd/v3 need go 1.16 version
-go 1.18
+// because etcd/v3 need go 1.21 version
+go 1.21
 
 require (
 	github.com/Workiva/go-datastructures v1.1.1

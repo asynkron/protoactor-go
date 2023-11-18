@@ -1,6 +1,6 @@
 module inprocessbenchmark
 
-go 1.16
+go 1.21
 
 replace github.com/asynkron/protoactor-go => ../..
 

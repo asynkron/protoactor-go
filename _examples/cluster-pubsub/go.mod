@@ -1,6 +1,6 @@
 module cluster-pubsub
 
-go 1.18
+go 1.21
 
 require (
 	github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716
