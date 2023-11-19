@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"log/slog"
 	"time"
 
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/extensions"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
 )
 
@@ -91,7 +91,7 @@ func (c *Cluster) StartMember() {
 	c.Remote.Start()
 
 	address := c.ActorSystem.Address()
-	plog.Info("Starting Proto.Actor cluster member", log.String("id", c.ActorSystem.ID), log.String("address", address))
+	c.ActorSystem.Logger.Info("Starting Proto.Actor cluster member", slog.String("address", address))
 
 	c.IdentityLookup = cfg.IdentityLookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)
@@ -127,7 +127,7 @@ func (c *Cluster) StartClient() {
 	c.Remote.Start()
 
 	address := c.ActorSystem.Address()
-	plog.Info("Starting Proto.Actor cluster-client", log.String("address", address))
+	c.ActorSystem.Logger.Info("Starting Proto.Actor cluster-client", slog.String("address", address))
 
 	c.IdentityLookup = cfg.IdentityLookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), true)
@@ -154,7 +154,7 @@ func (c *Cluster) Shutdown(graceful bool) {
 	c.Remote.Shutdown(graceful)
 
 	address := c.ActorSystem.Address()
-	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))
+	c.ActorSystem.Logger.Info("Stopped Proto.Actor cluster", slog.String("address", address))
 }
 
 func (c *Cluster) Get(identity string, kind string) *actor.PID {
@@ -168,7 +168,7 @@ func (c *Cluster) Request(identity string, kind string, message interface{}) (in
 func (c *Cluster) GetClusterKind(kind string) *ActivatedKind {
 	k, ok := c.kinds[kind]
 	if !ok {
-		plog.Error("Invalid kind", log.String("kind", kind))
+		c.ActorSystem.Logger.Error("Invalid kind", slog.String("kind", kind))
 
 		return nil
 	}
@@ -232,7 +232,7 @@ func (c *Cluster) Call(name string, kind string, msg interface{}, opts ...GrainC
 		timeout := callConfig.Timeout
 		_resp, err := _context.RequestFuture(pid, msg, timeout).Result()
 		if err != nil {
-			plog.Error("cluster.RequestFuture failed", log.Error(err), log.PID("pid", pid))
+			c.ActorSystem.Logger.Error("cluster.RequestFuture failed", slog.Any("error", err), slog.Any("pid", pid))
 			lastError = err
 
 			switch err {

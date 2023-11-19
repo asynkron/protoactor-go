@@ -5,10 +5,10 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
 )
 
@@ -44,7 +44,7 @@ func (dcc *DefaultContext) Request(identity, kind string, message interface{}, t
 
 	start := time.Now()
 
-	plog.Debug(fmt.Sprintf("Requesting %s:%s Message %#v", identity, kind, message))
+	dcc.cluster.ActorSystem.Logger.Debug(fmt.Sprintf("Requesting %s:%s Message %#v", identity, kind, message))
 
 	// crate a new Timeout Context
 	ttl := cfg.ActorRequestTimeout
@@ -67,7 +67,7 @@ selectloop:
 		default:
 			pid := dcc.getCachedPid(identity, kind)
 			if pid == nil {
-				plog.Debug(fmt.Sprintf("Requesting %s:%s did not get PID from IdentityLookup", identity, kind))
+				dcc.cluster.ActorSystem.Logger.Debug(fmt.Sprintf("Requesting %s:%s did not get PID from IdentityLookup", identity, kind))
 				counter = cfg.RetryAction(counter)
 
 				continue
@@ -75,7 +75,7 @@ selectloop:
 
 			resp, err = _context.RequestFuture(pid, message, ttl).Result()
 			if err != nil {
-				plog.Error("cluster.RequestFuture failed", log.Error(err), log.PID("pid", pid))
+				dcc.cluster.ActorSystem.Logger.Error("cluster.RequestFuture failed", slog.Any("error", err), slog.Any("pid", pid))
 				switch err {
 				case actor.ErrTimeout, remote.ErrTimeout, actor.ErrDeadLetter, remote.ErrDeadLetter:
 					counter = cfg.RetryAction(counter)
@@ -97,7 +97,7 @@ selectloop:
 
 	if contextError := ctx.Err(); contextError != nil && cfg.requestLogThrottle() == actor.Open {
 		// context timeout exceeded, report and return
-		plog.Warn(fmt.Sprintf("Request retried but failed for %s:%s, elapsed %v", identity, kind, totalTime))
+		dcc.cluster.ActorSystem.Logger.Warn("Request retried but failed", slog.String("identity", identity), slog.String("kind", kind), slog.Duration("duration", totalTime))
 	}
 
 	return resp, err
