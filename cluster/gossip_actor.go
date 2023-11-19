@@ -31,8 +31,9 @@ func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers
 		gossipRequestTimeout: requestTimeout,
 		gossip:               informer,
 	}
-	gossipActor.throttler = actor.NewThrottle(3, 60*time.Second, func(counter int32) {
-		plog.Debug("[Gossip] Sending GossipRequest", log.Int("throttled", int(counter)))
+	//TODO: fix this
+	gossipActor.throttler = actor.NewThrottleWithLogger(nil, 3, 60*time.Second, func(logger *slog.Logger, counter int32) {
+		logger.Debug("[Gossip] Sending GossipRequest", log.Int("throttled", int(counter)))
 	})
 
 	return &gossipActor
