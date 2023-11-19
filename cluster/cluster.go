@@ -208,6 +208,10 @@ func (c *Cluster) ensureTopicKindRegistered() {
 	}
 }
 
+func (c *Cluster) Logger() *slog.Logger {
+	return c.ActorSystem.Logger
+}
+
 // Call is a wrap of context.RequestFuture with retries.
 func (c *Cluster) Call(name string, kind string, msg interface{}, opts ...GrainCallOption) (interface{}, error) {
 	callConfig := DefaultGrainCallConfig(c)

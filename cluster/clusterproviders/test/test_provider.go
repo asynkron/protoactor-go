@@ -92,7 +92,7 @@ func (t *Provider) StartClient(cluster *cluster.Cluster) error {
 }
 
 func (t *Provider) Shutdown(_ bool) error {
-	t.cluster.ActorSystem.Logger.Debug("Unregistering service", slog.String("service", t.id))
+	t.cluster.Logger().Debug("Unregistering service", slog.String("service", t.id))
 	if t.ttlReportTicker != nil {
 		t.ttlReportTicker.Stop()
 	}
@@ -104,7 +104,7 @@ func (t *Provider) Shutdown(_ bool) error {
 func (t *Provider) notifyStatuses() {
 	statuses := t.agent.GetStatusHealth()
 
-	t.cluster.ActorSystem.Logger.Debug("TestAgent response", slog.Any("statuses", statuses))
+	t.cluster.Logger().Debug("TestAgent response", slog.Any("statuses", statuses))
 	members := make([]*cluster.Member, 0, len(statuses))
 	for _, status := range statuses {
 		copiedKinds := make([]string, 0, len(status.Kinds))

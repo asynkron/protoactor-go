@@ -46,18 +46,18 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		// endpointManager sends true
 		// endpointReader sends false
 		if <-disconnectChan {
-			s.remote.actorSystem.Logger.Debug("EndpointReader is telling to remote that it's leaving")
+			s.remote.Logger().Debug("EndpointReader is telling to remote that it's leaving")
 			err := stream.Send(&RemoteMessage{
 				MessageType: &RemoteMessage_DisconnectRequest{
 					DisconnectRequest: &DisconnectRequest{},
 				},
 			})
 			if err != nil {
-				s.remote.actorSystem.Logger.Error("EndpointReader failed to send disconnection message", slog.Any("error", err))
+				s.remote.Logger().Error("EndpointReader failed to send disconnection message", slog.Any("error", err))
 			}
 		} else {
 			s.remote.edpManager.endpointReaderConnections.Delete(stream)
-			s.remote.actorSystem.Logger.Debug("EndpointReader removed active endpoint from endpointManager")
+			s.remote.Logger().Debug("EndpointReader removed active endpoint from endpointManager")
 		}
 	}()
 
@@ -65,11 +65,11 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		msg, err := stream.Recv()
 		switch {
 		case errors.Is(err, io.EOF):
-			s.remote.actorSystem.Logger.Info("EndpointReader stream closed")
+			s.remote.Logger().Info("EndpointReader stream closed")
 			disconnectChan <- false
 			return nil
 		case err != nil:
-			s.remote.actorSystem.Logger.Info("EndpointReader failed to read", slog.Any("error", err))
+			s.remote.Logger().Info("EndpointReader failed to read", slog.Any("error", err))
 			return err
 		case s.suspended:
 			continue
@@ -77,11 +77,11 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 
 		switch t := msg.MessageType.(type) {
 		case *RemoteMessage_ConnectRequest:
-			s.remote.actorSystem.Logger.Debug("EndpointReader received connect request", slog.Any("message", t.ConnectRequest))
+			s.remote.Logger().Debug("EndpointReader received connect request", slog.Any("message", t.ConnectRequest))
 			c := t.ConnectRequest
 			_, err := s.OnConnectRequest(stream, c)
 			if err != nil {
-				s.remote.actorSystem.Logger.Error("EndpointReader failed to handle connect request", slog.Any("error", err))
+				s.remote.Logger().Error("EndpointReader failed to handle connect request", slog.Any("error", err))
 				return err
 			}
 		case *RemoteMessage_MessageBatch:
@@ -92,7 +92,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 			}
 		default:
 			{
-				s.remote.actorSystem.Logger.Warn("EndpointReader received unknown message type")
+				s.remote.Logger().Warn("EndpointReader received unknown message type")
 			}
 		}
 	}
@@ -108,10 +108,10 @@ func (s *endpointReader) OnConnectRequest(stream Remoting_ReceiveServer, c *Conn
 	case *ConnectRequest_ClientConnection:
 		{
 			// TODO implement me
-			s.remote.actorSystem.Logger.Error("ClientConnection not implemented")
+			s.remote.Logger().Error("ClientConnection not implemented")
 		}
 	default:
-		s.remote.actorSystem.Logger.Error("EndpointReader received unknown connection type")
+		s.remote.Logger().Error("EndpointReader received unknown connection type")
 		return true, nil
 	}
 	return false, nil
@@ -129,13 +129,13 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 		sender = deserializeSender(sender, envelope.Sender, envelope.SenderRequestId, m.Senders)
 		target = deserializeTarget(target, envelope.Target, envelope.TargetRequestId, m.Targets)
 		if target == nil {
-			s.remote.actorSystem.Logger.Error("EndpointReader received message with unknown target", slog.Int("target", int(envelope.Target)), slog.Int("targetRequestId", int(envelope.TargetRequestId)))
+			s.remote.Logger().Error("EndpointReader received message with unknown target", slog.Int("target", int(envelope.Target)), slog.Int("targetRequestId", int(envelope.TargetRequestId)))
 			return errors.New("unknown target")
 		}
 
 		message, err := Deserialize(data, m.TypeNames[envelope.TypeId], envelope.SerializerId)
 		if err != nil {
-			s.remote.actorSystem.Logger.Error("EndpointReader failed to deserialize", slog.Any("error", err))
+			s.remote.Logger().Error("EndpointReader failed to deserialize", slog.Any("error", err))
 			return err
 		}
 
@@ -208,7 +208,7 @@ func deserializeTarget(pid *actor.PID, index int32, requestId uint32, arr []*act
 
 func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *ServerConnection) {
 	if s.remote.BlockList().IsBlocked(sc.SystemId) {
-		s.remote.actorSystem.Logger.Debug("EndpointReader is blocked")
+		s.remote.Logger().Debug("EndpointReader is blocked")
 
 		err := stream.Send(
 			&RemoteMessage{
@@ -220,7 +220,7 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 				},
 			})
 		if err != nil {
-			s.remote.actorSystem.Logger.Error("EndpointReader failed to send ConnectResponse message", slog.Any("error", err))
+			s.remote.Logger().Error("EndpointReader failed to send ConnectResponse message", slog.Any("error", err))
 		}
 
 		address := sc.Address
@@ -240,7 +240,7 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 				},
 			})
 		if err != nil {
-			s.remote.actorSystem.Logger.Error("EndpointReader failed to send ConnectResponse message", slog.Any("error", err))
+			s.remote.Logger().Error("EndpointReader failed to send ConnectResponse message", slog.Any("error", err))
 		}
 	}
 }
@@ -248,6 +248,6 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 func (s *endpointReader) suspend(toSuspend bool) {
 	s.suspended = toSuspend
 	if toSuspend {
-		s.remote.actorSystem.Logger.Debug("Suspended EndpointReader")
+		s.remote.Logger().Debug("Suspended EndpointReader")
 	}
 }

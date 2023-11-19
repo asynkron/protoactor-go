@@ -123,3 +123,7 @@ func (r *Remote) SendMessage(pid *actor.PID, header actor.ReadonlyMessageHeader,
 	}
 	r.edpManager.remoteDeliver(rd)
 }
+
+func (r *Remote) Logger() *slog.Logger {
+	return r.actorSystem.Logger
+}

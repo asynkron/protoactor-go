@@ -40,11 +40,11 @@ func (dcc *DefaultContext) Request(identity, kind string, message interface{}, t
 	var counter int
 
 	// get the configuration from the composed Cluster value
-	cfg := dcc.cluster.Config.ToClusterContextConfig(dcc.cluster.ActorSystem.Logger)
+	cfg := dcc.cluster.Config.ToClusterContextConfig(dcc.cluster.Logger())
 
 	start := time.Now()
 
-	dcc.cluster.ActorSystem.Logger.Debug(fmt.Sprintf("Requesting %s:%s Message %#v", identity, kind, message))
+	dcc.cluster.Logger().Debug(fmt.Sprintf("Requesting %s:%s Message %#v", identity, kind, message))
 
 	// crate a new Timeout Context
 	ttl := cfg.ActorRequestTimeout
@@ -67,7 +67,7 @@ selectloop:
 		default:
 			pid := dcc.getCachedPid(identity, kind)
 			if pid == nil {
-				dcc.cluster.ActorSystem.Logger.Debug(fmt.Sprintf("Requesting %s:%s did not get PID from IdentityLookup", identity, kind))
+				dcc.cluster.Logger().Debug(fmt.Sprintf("Requesting %s:%s did not get PID from IdentityLookup", identity, kind))
 				counter = cfg.RetryAction(counter)
 
 				continue
@@ -75,7 +75,7 @@ selectloop:
 
 			resp, err = _context.RequestFuture(pid, message, ttl).Result()
 			if err != nil {
-				dcc.cluster.ActorSystem.Logger.Error("cluster.RequestFuture failed", slog.Any("error", err), slog.Any("pid", pid))
+				dcc.cluster.Logger().Error("cluster.RequestFuture failed", slog.Any("error", err), slog.Any("pid", pid))
 				switch err {
 				case actor.ErrTimeout, remote.ErrTimeout, actor.ErrDeadLetter, remote.ErrDeadLetter:
 					counter = cfg.RetryAction(counter)
@@ -97,7 +97,7 @@ selectloop:
 
 	if contextError := ctx.Err(); contextError != nil && cfg.requestLogThrottle() == actor.Open {
 		// context timeout exceeded, report and return
-		dcc.cluster.ActorSystem.Logger.Warn("Request retried but failed", slog.String("identity", identity), slog.String("kind", kind), slog.Duration("duration", totalTime))
+		dcc.cluster.Logger().Warn("Request retried but failed", slog.String("identity", identity), slog.String("kind", kind), slog.Duration("duration", totalTime))
 	}
 
 	return resp, err

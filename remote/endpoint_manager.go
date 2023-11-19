@@ -89,7 +89,7 @@ func (em *endpointManager) start() {
 		panic(err)
 	}
 
-	em.remote.actorSystem.Logger.Info("Started EndpointManager")
+	em.remote.Logger().Info("Started EndpointManager")
 }
 
 func (em *endpointManager) waiting(timeout time.Duration) error {
@@ -105,10 +105,10 @@ func (em *endpointManager) stop() {
 	r := em.remote
 	r.actorSystem.EventStream.Unsubscribe(em.endpointSub)
 	if err := em.stopActivator(); err != nil {
-		em.remote.actorSystem.Logger.Error("stop endpoint activator failed", slog.Any("error", err))
+		em.remote.Logger().Error("stop endpoint activator failed", slog.Any("error", err))
 	}
 	if err := em.stopSupervisor(); err != nil {
-		em.remote.actorSystem.Logger.Error("stop endpoint supervisor failed", slog.Any("error", err))
+		em.remote.Logger().Error("stop endpoint supervisor failed", slog.Any("error", err))
 	}
 	em.endpointSub = nil
 	em.connections = nil
@@ -120,7 +120,7 @@ func (em *endpointManager) stop() {
 			return true
 		})
 	}
-	em.remote.actorSystem.Logger.Info("Stopped EndpointManager")
+	em.remote.Logger().Info("Stopped EndpointManager")
 }
 
 func (em *endpointManager) startActivator() {
@@ -161,7 +161,7 @@ func (em *endpointManager) stopSupervisor() error {
 func (em *endpointManager) endpointEvent(evn interface{}) {
 	switch msg := evn.(type) {
 	case *EndpointTerminatedEvent:
-		em.remote.actorSystem.Logger.Debug("EndpointManager received endpoint terminated event, removing endpoint", slog.Any("message", evn))
+		em.remote.Logger().Debug("EndpointManager received endpoint terminated event, removing endpoint", slog.Any("message", evn))
 		em.removeEndpoint(msg)
 	case *EndpointConnectedEvent:
 		endpoint := em.ensureConnected(msg.Address)
@@ -250,7 +250,7 @@ func (em *endpointManager) removeEndpoint(msg *EndpointTerminatedEvent) {
 		if atomic.CompareAndSwapUint32(&le.unloaded, 0, 1) {
 			em.connections.Delete(msg.Address)
 			ep := le.Get()
-			em.remote.actorSystem.Logger.Debug("Sending EndpointTerminatedEvent to EndpointWatcher ans EndpointWriter", slog.String("address", msg.Address))
+			em.remote.Logger().Debug("Sending EndpointTerminatedEvent to EndpointWatcher ans EndpointWriter", slog.String("address", msg.Address))
 			em.remote.actorSystem.Root.Send(ep.watcher, msg)
 			em.remote.actorSystem.Root.Send(ep.writer, msg)
 		}

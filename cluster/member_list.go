@@ -62,7 +62,7 @@ func (ml *MemberList) InitializeTopologyConsensus() {
 	ml.topologyConsensus = ml.cluster.Gossip.RegisterConsensusCheck("topology", func(any *anypb.Any) interface{} {
 		var topology ClusterTopology
 		if unpackErr := any.UnmarshalTo(&topology); unpackErr != nil {
-			ml.cluster.ActorSystem.Logger.Error("could not unpack topology message", slog.Any("error", unpackErr))
+			ml.cluster.Logger().Error("could not unpack topology message", slog.Any("error", unpackErr))
 
 			return nil
 		}
@@ -159,7 +159,7 @@ func (ml *MemberList) UpdateClusterTopology(members Members) {
 
 	ml.cluster.ActorSystem.EventStream.Publish(topology)
 
-	ml.cluster.ActorSystem.Logger.Info("Updated ClusterTopology",
+	ml.cluster.Logger().Info("Updated ClusterTopology",
 		slog.Uint64("topology-hash", topology.TopologyHash),
 		slog.Int("members", len(topology.Members)),
 		slog.Int("joined", len(topology.Joined)),
@@ -169,7 +169,7 @@ func (ml *MemberList) UpdateClusterTopology(members Members) {
 }
 
 func (ml *MemberList) memberJoin(joiningMember *Member) {
-	ml.cluster.ActorSystem.Logger.Info("member joined", slog.String("member", joiningMember.Id))
+	ml.cluster.Logger().Info("member joined", slog.String("member", joiningMember.Id))
 
 	for _, kind := range joiningMember.Kinds {
 		if ml.memberStrategyByKind[kind] == nil {
@@ -240,7 +240,7 @@ func (ml *MemberList) ContainsMemberID(memberID string) bool {
 }
 
 func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {
-	ml.cluster.ActorSystem.Logger.Info("creating member strategy", slog.String("kind", kind))
+	ml.cluster.Logger().Info("creating member strategy", slog.String("kind", kind))
 
 	clusterKind, ok := ml.cluster.TryGetClusterKind(kind)
 

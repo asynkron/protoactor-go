@@ -37,14 +37,14 @@ type restartAfterConnectFailure struct {
 func (state *endpointWriter) initialize(ctx actor.Context) {
 	now := time.Now()
 
-	state.remote.actorSystem.Logger.Info("Started EndpointWriter. connecting", slog.String("address", state.address))
+	state.remote.Logger().Info("Started EndpointWriter. connecting", slog.String("address", state.address))
 
 	var err error
 
 	for i := 0; i < state.remote.config.MaxRetryCount; i++ {
 		err = state.initializeInternal()
 		if err != nil {
-			state.remote.actorSystem.Logger.Error("EndpointWriter failed to connect", slog.String("address", state.address), slog.Any("error", err), slog.Int("retry", i))
+			state.remote.Logger().Error("EndpointWriter failed to connect", slog.String("address", state.address), slog.Any("error", err), slog.Int("retry", i))
 			// Wait 2 seconds to restart and retry
 			// Replace with Exponential Backoff
 			time.Sleep(2 * time.Second)
@@ -75,7 +75,7 @@ func (state *endpointWriter) initialize(ctx actor.Context) {
 
 	}
 
-	state.remote.actorSystem.Logger.Info("EndpointWriter connected", slog.String("address", state.address), slog.Duration("cost", time.Since(now)))
+	state.remote.Logger().Info("EndpointWriter connected", slog.String("address", state.address), slog.Duration("cost", time.Since(now)))
 }
 
 func (state *endpointWriter) initializeInternal() error {
@@ -87,7 +87,7 @@ func (state *endpointWriter) initializeInternal() error {
 	c := NewRemotingClient(conn)
 	stream, err := c.Receive(context.Background(), state.config.CallOptions...)
 	if err != nil {
-		state.remote.actorSystem.Logger.Error("EndpointWriter failed to create receive stream", slog.String("address", state.address), slog.Any("error", err))
+		state.remote.Logger().Error("EndpointWriter failed to create receive stream", slog.String("address", state.address), slog.Any("error", err))
 		return err
 	}
 	state.stream = stream
@@ -105,23 +105,23 @@ func (state *endpointWriter) initializeInternal() error {
 		},
 	})
 	if err != nil {
-		state.remote.actorSystem.Logger.Error("EndpointWriter failed to send connect request", slog.String("address", state.address), slog.Any("error", err))
+		state.remote.Logger().Error("EndpointWriter failed to send connect request", slog.String("address", state.address), slog.Any("error", err))
 		return err
 	}
 
 	connection, err := stream.Recv()
 	if err != nil {
-		state.remote.actorSystem.Logger.Error("EndpointWriter failed to receive connect response", slog.String("address", state.address), slog.Any("error", err))
+		state.remote.Logger().Error("EndpointWriter failed to receive connect response", slog.String("address", state.address), slog.Any("error", err))
 		return err
 	}
 
 	switch connection.MessageType.(type) {
 	case *RemoteMessage_ConnectResponse:
-		state.remote.actorSystem.Logger.Debug("Received connect response", slog.String("fromAddress", state.address))
+		state.remote.Logger().Debug("Received connect response", slog.String("fromAddress", state.address))
 		// TODO: handle blocked status received from remote server
 		break
 	default:
-		state.remote.actorSystem.Logger.Error("EndpointWriter got invalid connect response", slog.String("address", state.address), slog.Any("type", connection.MessageType))
+		state.remote.Logger().Error("EndpointWriter got invalid connect response", slog.String("address", state.address), slog.Any("type", connection.MessageType))
 		return errors.New("invalid connect response")
 	}
 
@@ -130,17 +130,17 @@ func (state *endpointWriter) initializeInternal() error {
 			_, err := stream.Recv()
 			switch {
 			case errors.Is(err, io.EOF):
-				state.remote.actorSystem.Logger.Debug("EndpointWriter stream completed", slog.String("address", state.address))
+				state.remote.Logger().Debug("EndpointWriter stream completed", slog.String("address", state.address))
 				return
 			case err != nil:
-				state.remote.actorSystem.Logger.Error("EndpointWriter lost connection", slog.String("address", state.address), slog.Any("error", err))
+				state.remote.Logger().Error("EndpointWriter lost connection", slog.String("address", state.address), slog.Any("error", err))
 				terminated := &EndpointTerminatedEvent{
 					Address: state.address,
 				}
 				state.remote.actorSystem.EventStream.Publish(terminated)
 				return
 			default: // DisconnectRequest
-				state.remote.actorSystem.Logger.Info("EndpointWriter got DisconnectRequest form remote", slog.String("address", state.address))
+				state.remote.Logger().Info("EndpointWriter got DisconnectRequest form remote", slog.String("address", state.address))
 				terminated := &EndpointTerminatedEvent{
 					Address: state.address,
 				}
@@ -178,7 +178,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	for i, tmp := range msg {
 		switch unwrapped := tmp.(type) {
 		case *EndpointTerminatedEvent, EndpointTerminatedEvent:
-			state.remote.actorSystem.Logger.Debug("Handling array wrapped terminate event", slog.String("address", state.address), slog.Any("message", unwrapped))
+			state.remote.Logger().Debug("Handling array wrapped terminate event", slog.String("address", state.address), slog.Any("message", unwrapped))
 			ctx.Stop(ctx.Self())
 			return
 		}
@@ -247,7 +247,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	})
 	if err != nil {
 		ctx.Stash()
-		state.remote.actorSystem.Logger.Debug("gRPC Failed to send", slog.String("address", state.address), slog.Any("error", err))
+		state.remote.Logger().Debug("gRPC Failed to send", slog.String("address", state.address), slog.Any("error", err))
 		panic("restart it")
 	}
 }
@@ -300,39 +300,39 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 	case *actor.Started:
 		state.initialize(ctx)
 	case *actor.Stopped:
-		state.remote.actorSystem.Logger.Debug("EndpointWriter stopped", slog.String("address", state.address))
+		state.remote.Logger().Debug("EndpointWriter stopped", slog.String("address", state.address))
 		state.closeClientConn()
 	case *actor.Restarting:
-		state.remote.actorSystem.Logger.Debug("EndpointWriter restarting", slog.String("address", state.address))
+		state.remote.Logger().Debug("EndpointWriter restarting", slog.String("address", state.address))
 		state.closeClientConn()
 	case *EndpointTerminatedEvent:
-		state.remote.actorSystem.Logger.Info("EndpointWriter received EndpointTerminatedEvent, stopping", slog.String("address", state.address))
+		state.remote.Logger().Info("EndpointWriter received EndpointTerminatedEvent, stopping", slog.String("address", state.address))
 		ctx.Stop(ctx.Self())
 	case *restartAfterConnectFailure:
-		state.remote.actorSystem.Logger.Debug("EndpointWriter initiating self-restart after failing to connect and a delay", slog.String("address", state.address))
+		state.remote.Logger().Debug("EndpointWriter initiating self-restart after failing to connect and a delay", slog.String("address", state.address))
 		panic(msg.err)
 	case []interface{}:
 		state.sendEnvelopes(msg, ctx)
 	case actor.SystemMessage, actor.AutoReceiveMessage:
 		// ignore
 	default:
-		state.remote.actorSystem.Logger.Error("EndpointWriter received unknown message", slog.String("address", state.address), slog.Any("message", msg))
+		state.remote.Logger().Error("EndpointWriter received unknown message", slog.String("address", state.address), slog.Any("message", msg))
 	}
 }
 
 func (state *endpointWriter) closeClientConn() {
-	state.remote.actorSystem.Logger.Info("EndpointWriter closing client connection", slog.String("address", state.address))
+	state.remote.Logger().Info("EndpointWriter closing client connection", slog.String("address", state.address))
 	if state.stream != nil {
 		err := state.stream.CloseSend()
 		if err != nil {
-			state.remote.actorSystem.Logger.Error("EndpointWriter error when closing the stream", slog.Any("error", err))
+			state.remote.Logger().Error("EndpointWriter error when closing the stream", slog.Any("error", err))
 		}
 		state.stream = nil
 	}
 	if state.conn != nil {
 		err := state.conn.Close()
 		if err != nil {
-			state.remote.actorSystem.Logger.Error("EndpointWriter error when closing the client conn", slog.Any("error", err))
+			state.remote.Logger().Error("EndpointWriter error when closing the client conn", slog.Any("error", err))
 		}
 		state.conn = nil
 	}

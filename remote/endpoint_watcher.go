@@ -25,7 +25,7 @@ type endpointWatcher struct {
 }
 
 func (state *endpointWatcher) initialize() {
-	state.remote.actorSystem.Logger.Info("Started EndpointWatcher", slog.String("address", state.address))
+	state.remote.Logger().Info("Started EndpointWatcher", slog.String("address", state.address))
 	state.watched = make(map[string]*actor.PIDSet)
 }
 
@@ -58,7 +58,7 @@ func (state *endpointWatcher) connected(ctx actor.Context) {
 	case *EndpointConnectedEvent:
 		// Already connected, pass
 	case *EndpointTerminatedEvent:
-		state.remote.actorSystem.Logger.Info("EndpointWatcher handling terminated",
+		state.remote.Logger().Info("EndpointWatcher handling terminated",
 			slog.String("address", state.address), slog.Int("watched", len(state.watched)))
 
 		for id, pidSet := range state.watched {
@@ -119,7 +119,7 @@ func (state *endpointWatcher) connected(ctx actor.Context) {
 	case actor.SystemMessage, actor.AutoReceiveMessage:
 		// ignore
 	default:
-		state.remote.actorSystem.Logger.Error("EndpointWatcher received unknown message", slog.String("address", state.address), slog.Any("message", msg))
+		state.remote.Logger().Error("EndpointWatcher received unknown message", slog.String("address", state.address), slog.Any("message", msg))
 	}
 }
 
@@ -139,14 +139,14 @@ func (state *endpointWatcher) terminated(ctx actor.Context) {
 			ref.SendSystemMessage(msg.Watcher, terminated)
 		}
 	case *EndpointConnectedEvent:
-		state.remote.actorSystem.Logger.Info("EndpointWatcher handling restart", slog.String("address", state.address))
+		state.remote.Logger().Info("EndpointWatcher handling restart", slog.String("address", state.address))
 		state.behavior.Become(state.connected)
 	case *remoteTerminate, *EndpointTerminatedEvent, *remoteUnwatch:
 		// pass
-		state.remote.actorSystem.Logger.Error("EndpointWatcher receive message for already terminated endpoint", slog.String("address", state.address), slog.Any("message", msg))
+		state.remote.Logger().Error("EndpointWatcher receive message for already terminated endpoint", slog.String("address", state.address), slog.Any("message", msg))
 	case actor.SystemMessage, actor.AutoReceiveMessage:
 		// ignore
 	default:
-		state.remote.actorSystem.Logger.Error("EndpointWatcher received unknown message", slog.String("address", state.address), slog.Any("message", msg))
+		state.remote.Logger().Error("EndpointWatcher received unknown message", slog.String("address", state.address), slog.Any("message", msg))
 	}
 }

@@ -28,12 +28,12 @@ func newPartitionManager(c *clustering.Cluster) *Manager {
 }
 
 func (pm *Manager) Start() {
-	pm.cluster.ActorSystem.Logger.Info("Started partition manager")
+	pm.cluster.Logger().Info("Started partition manager")
 	system := pm.cluster.ActorSystem
 
 	activatorProps := actor.PropsFromProducer(func() actor.Actor { return newPlacementActor(pm.cluster, pm) })
 	pm.placementActor, _ = system.Root.SpawnNamed(activatorProps, PartitionActivatorActorName)
-	pm.cluster.ActorSystem.Logger.Info("Started partition placement actor")
+	pm.cluster.Logger().Info("Started partition placement actor")
 
 	pm.topologySub = system.EventStream.
 		Subscribe(func(ev interface{}) {
@@ -49,10 +49,10 @@ func (pm *Manager) Stop() {
 
 	err := system.Root.PoisonFuture(pm.placementActor).Wait()
 	if err != nil {
-		pm.cluster.ActorSystem.Logger.Error("Failed to shutdown partition placement actor", slog.Any("error", err))
+		pm.cluster.Logger().Error("Failed to shutdown partition placement actor", slog.Any("error", err))
 	}
 
-	pm.cluster.ActorSystem.Logger.Info("Stopped PartitionManager")
+	pm.cluster.Logger().Info("Stopped PartitionManager")
 }
 
 func (pm *Manager) PidOfActivatorActor(addr string) *actor.PID {
@@ -60,12 +60,12 @@ func (pm *Manager) PidOfActivatorActor(addr string) *actor.PID {
 }
 
 func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
-	pm.cluster.ActorSystem.Logger.Info("onClusterTopology", slog.Uint64("topology-hash", tplg.TopologyHash))
+	pm.cluster.Logger().Info("onClusterTopology", slog.Uint64("topology-hash", tplg.TopologyHash))
 
 	for _, m := range tplg.Members {
-		pm.cluster.ActorSystem.Logger.Info("Got member ", slog.String("MemberId", m.Id))
+		pm.cluster.Logger().Info("Got member ", slog.String("MemberId", m.Id))
 		for _, k := range m.Kinds {
-			pm.cluster.ActorSystem.Logger.Info("" + m.Id + " - " + k)
+			pm.cluster.Logger().Info("" + m.Id + " - " + k)
 		}
 	}
 

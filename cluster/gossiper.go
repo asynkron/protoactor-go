@@ -69,7 +69,7 @@ func newGossiper(cl *Cluster, opts ...Option) (*Gossiper, error) {
 }
 
 func (g *Gossiper) GetState(key string) (map[string]*GossipKeyValue, error) {
-	g.cluster.ActorSystem.Logger.Debug(fmt.Sprintf("Gossiper getting state from %s", g.pid))
+	g.cluster.Logger().Debug(fmt.Sprintf("Gossiper getting state from %s", g.pid))
 
 	msg := NewGetGossipStateRequest(key)
 	timeout := g.cluster.Config.TimeoutTime
@@ -77,13 +77,13 @@ func (g *Gossiper) GetState(key string) (map[string]*GossipKeyValue, error) {
 	if err != nil {
 		switch err {
 		case actor.ErrTimeout:
-			g.cluster.ActorSystem.Logger.Error("Could not get a response from GossipActor: request timeout", slog.Any("error", err), slog.String("remote", g.pid.String()))
+			g.cluster.Logger().Error("Could not get a response from GossipActor: request timeout", slog.Any("error", err), slog.String("remote", g.pid.String()))
 			return nil, err
 		case actor.ErrDeadLetter:
-			g.cluster.ActorSystem.Logger.Error("remote no longer exists", slog.Any("error", err), slog.String("remote", g.pid.String()))
+			g.cluster.Logger().Error("remote no longer exists", slog.Any("error", err), slog.String("remote", g.pid.String()))
 			return nil, err
 		default:
-			g.cluster.ActorSystem.Logger.Error("Could not get a response from GossipActor", slog.Any("error", err), slog.String("remote", g.pid.String()))
+			g.cluster.Logger().Error("Could not get a response from GossipActor", slog.Any("error", err), slog.String("remote", g.pid.String()))
 			return nil, err
 		}
 	}
@@ -92,7 +92,7 @@ func (g *Gossiper) GetState(key string) (map[string]*GossipKeyValue, error) {
 	response, ok := r.(*GetGossipStateResponse)
 	if !ok {
 		err := fmt.Errorf("could not promote %T interface to GetGossipStateResponse", r)
-		g.cluster.ActorSystem.Logger.Error("Could not get a response from GossipActor", slog.Any("error", err), slog.String("remote", g.pid.String()))
+		g.cluster.Logger().Error("Could not get a response from GossipActor", slog.Any("error", err), slog.String("remote", g.pid.String()))
 		return nil, err
 	}
 
@@ -102,7 +102,7 @@ func (g *Gossiper) GetState(key string) (map[string]*GossipKeyValue, error) {
 // SetState Sends fire and forget message to update member state
 func (g *Gossiper) SetState(key string, value proto.Message) {
 	if g.throttler() == actor.Open {
-		g.cluster.ActorSystem.Logger.Debug(fmt.Sprintf("Gossiper setting state %s to %s", key, g.pid))
+		g.cluster.Logger().Debug(fmt.Sprintf("Gossiper setting state %s to %s", key, g.pid))
 	}
 
 	if g.pid == nil {
@@ -116,7 +116,7 @@ func (g *Gossiper) SetState(key string, value proto.Message) {
 // SetStateRequest Sends a Request (that blocks) to update member state
 func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
 	if g.throttler() == actor.Open {
-		g.cluster.ActorSystem.Logger.Debug(fmt.Sprintf("Gossiper setting state %s to %s", key, g.pid))
+		g.cluster.Logger().Debug(fmt.Sprintf("Gossiper setting state %s to %s", key, g.pid))
 	}
 
 	if g.pid == nil {
@@ -127,10 +127,10 @@ func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
 	r, err := g.cluster.ActorSystem.Root.RequestFuture(g.pid, &msg, g.cluster.Config.TimeoutTime).Result()
 	if err != nil {
 		if err == actor.ErrTimeout {
-			g.cluster.ActorSystem.Logger.Error("Could not get a response from Gossiper Actor: request timeout", slog.String("remote", g.pid.String()))
+			g.cluster.Logger().Error("Could not get a response from Gossiper Actor: request timeout", slog.String("remote", g.pid.String()))
 			return err
 		}
-		g.cluster.ActorSystem.Logger.Error("Could not get a response from Gossiper Actor", slog.Any("error", err), slog.String("remote", g.pid.String()))
+		g.cluster.Logger().Error("Could not get a response from Gossiper Actor", slog.Any("error", err), slog.String("remote", g.pid.String()))
 		return err
 	}
 
@@ -138,7 +138,7 @@ func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
 	_, ok := r.(*SetGossipStateResponse)
 	if !ok {
 		err := fmt.Errorf("could not promote %T interface to SetGossipStateResponse", r)
-		g.cluster.ActorSystem.Logger.Error("Could not get a response from Gossip Actor", slog.Any("error", err), slog.String("remote", g.pid.String()))
+		g.cluster.Logger().Error("Could not get a response from Gossip Actor", slog.Any("error", err), slog.String("remote", g.pid.String()))
 		return err
 	}
 	return nil
@@ -151,19 +151,19 @@ func (g *Gossiper) SendState() {
 
 	r, err := g.cluster.ActorSystem.Root.RequestFuture(g.pid, &SendGossipStateRequest{}, 5*time.Second).Result()
 	if err != nil {
-		g.cluster.ActorSystem.Logger.Warn("Gossip could not send gossip request", slog.Any("PID", g.pid), slog.Any("error", err))
+		g.cluster.Logger().Warn("Gossip could not send gossip request", slog.Any("PID", g.pid), slog.Any("error", err))
 		return
 	}
 
 	if _, ok := r.(*SendGossipStateResponse); !ok {
-		g.cluster.ActorSystem.Logger.Error("Gossip SendState received unknown response", slog.Any("message", r))
+		g.cluster.Logger().Error("Gossip SendState received unknown response", slog.Any("message", r))
 	}
 }
 
 // RegisterConsensusCheck Builds a consensus handler and a consensus checker, send the checker to the
 // Gossip actor and returns the handler back to the caller
 func (g *Gossiper) RegisterConsensusCheck(key string, getValue func(*anypb.Any) interface{}) ConsensusHandler {
-	definition := NewConsensusCheckBuilder(g.cluster.ActorSystem.Logger, key, getValue)
+	definition := NewConsensusCheckBuilder(g.cluster.Logger(), key, getValue)
 	consensusHandle, check := definition.Build()
 	request := NewAddConsensusCheck(consensusHandle.GetID(), check)
 	g.cluster.ActorSystem.Root.Send(g.pid, &request)
@@ -186,7 +186,7 @@ func (g *Gossiper) StartGossiping() error {
 	}), g.GossipActorName)
 
 	if err != nil {
-		g.cluster.ActorSystem.Logger.Error("Failed to start gossip actor", slog.Any("error", err))
+		g.cluster.Logger().Error("Failed to start gossip actor", slog.Any("error", err))
 		return err
 	}
 
@@ -195,7 +195,7 @@ func (g *Gossiper) StartGossiping() error {
 			g.cluster.ActorSystem.Root.Send(g.pid, topology)
 		}
 	})
-	g.cluster.ActorSystem.Logger.Info("Started Cluster Gossip")
+	g.cluster.Logger().Info("Started Cluster Gossip")
 	g.throttler = actor.NewThrottle(3, 60*time.Second, g.throttledLog)
 	go g.gossipLoop()
 
@@ -207,20 +207,20 @@ func (g *Gossiper) Shutdown() {
 		return
 	}
 
-	g.cluster.ActorSystem.Logger.Info("Shutting down gossip")
+	g.cluster.Logger().Info("Shutting down gossip")
 
 	close(g.close)
 
 	err := g.cluster.ActorSystem.Root.StopFuture(g.pid).Wait()
 	if err != nil {
-		g.cluster.ActorSystem.Logger.Error("failed to stop gossip actor", slog.Any("error", err))
+		g.cluster.Logger().Error("failed to stop gossip actor", slog.Any("error", err))
 	}
 
-	g.cluster.ActorSystem.Logger.Info("Shut down gossip")
+	g.cluster.Logger().Info("Shut down gossip")
 }
 
 func (g *Gossiper) gossipLoop() {
-	g.cluster.ActorSystem.Logger.Info("Starting gossip loop")
+	g.cluster.Logger().Info("Starting gossip loop")
 
 	// create a ticker that will tick each GossipInterval milliseconds
 	// we do not use sleep as sleep puts the goroutine out of the scheduler
@@ -230,7 +230,7 @@ breakLoop:
 	for !g.cluster.ActorSystem.IsStopped() {
 		select {
 		case <-g.close:
-			g.cluster.ActorSystem.Logger.Info("Stopping Gossip Loop")
+			g.cluster.Logger().Info("Stopping Gossip Loop")
 			break breakLoop
 		case <-ticker.C:
 
@@ -253,7 +253,7 @@ func (g *Gossiper) blockExpiredHeartbeats() {
 	}
 	t, err := g.GetState(HearthbeatKey)
 	if err != nil {
-		g.cluster.ActorSystem.Logger.Error("Could not get heartbeat state", slog.Any("error", err))
+		g.cluster.Logger().Error("Could not get heartbeat state", slog.Any("error", err))
 		return
 	}
 
@@ -270,7 +270,7 @@ func (g *Gossiper) blockExpiredHeartbeats() {
 	}
 
 	if len(blocked) > 0 {
-		g.cluster.ActorSystem.Logger.Info("Blocking members due to expired heartbeat", slog.String("members", strings.Join(blocked, ",")))
+		g.cluster.Logger().Info("Blocking members due to expired heartbeat", slog.String("members", strings.Join(blocked, ",")))
 		blockList.Block(blocked...)
 	}
 }
@@ -279,7 +279,7 @@ func (g *Gossiper) blockExpiredHeartbeats() {
 func (g *Gossiper) blockGracefullyLeft() {
 	t, err := g.GetState(GracefullyLeftKey)
 	if err != nil {
-		g.cluster.ActorSystem.Logger.Error("Could not get gracefully left members", slog.Any("error", err))
+		g.cluster.Logger().Error("Could not get gracefully left members", slog.Any("error", err))
 		return
 	}
 
@@ -292,11 +292,11 @@ func (g *Gossiper) blockGracefullyLeft() {
 		}
 	}
 	if len(gracefullyLeft) > 0 {
-		g.cluster.ActorSystem.Logger.Info("Blocking members due to gracefully leaving", slog.String("members", strings.Join(gracefullyLeft, ",")))
+		g.cluster.Logger().Info("Blocking members due to gracefully leaving", slog.String("members", strings.Join(gracefullyLeft, ",")))
 		blockList.Block(gracefullyLeft...)
 	}
 }
 
 func (g *Gossiper) throttledLog(counter int32) {
-	g.cluster.ActorSystem.Logger.Debug(fmt.Sprintf("[Gossiper] Gossiper Setting State to %s", g.pid), slog.Int("throttled", int(counter)))
+	g.cluster.Logger().Debug(fmt.Sprintf("[Gossiper] Gossiper Setting State to %s", g.pid), slog.Int("throttled", int(counter)))
 }

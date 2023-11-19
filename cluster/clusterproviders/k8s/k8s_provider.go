@@ -136,14 +136,14 @@ func (p *Provider) Shutdown(graceful bool) error {
 
 	p.shutdown = true
 
-	p.cluster.ActorSystem.Logger.Info("Shutting down k8s cluster provider")
+	p.cluster.Logger().Info("Shutting down k8s cluster provider")
 	if p.clusterMonitor != nil {
 		if err := p.cluster.ActorSystem.Root.RequestFuture(p.clusterMonitor, &DeregisterMember{}, 5*time.Second).Wait(); err != nil {
-			p.cluster.ActorSystem.Logger.Error("Failed to deregister member - cluster monitor did not respond, proceeding with shutdown", slog.Any("error", err))
+			p.cluster.Logger().Error("Failed to deregister member - cluster monitor did not respond, proceeding with shutdown", slog.Any("error", err))
 		}
 
 		if err := p.cluster.ActorSystem.Root.RequestFuture(p.clusterMonitor, &StopWatchingCluster{}, 5*time.Second).Wait(); err != nil {
-			p.cluster.ActorSystem.Logger.Error("Failed to deregister member - cluster monitor did not respond, proceeding with shutdown", slog.Any("error", err))
+			p.cluster.Logger().Error("Failed to deregister member - cluster monitor did not respond, proceeding with shutdown", slog.Any("error", err))
 		}
 
 		_ = p.cluster.ActorSystem.Root.StopFuture(p.clusterMonitor).Wait()
@@ -161,7 +161,7 @@ func (p *Provider) startClusterMonitor(c *cluster.Cluster) error {
 	}), "k8s-cluster-monitor")
 
 	if err != nil {
-		p.cluster.ActorSystem.Logger.Error("Failed to start k8s-cluster-monitor actor", slog.Any("error", err))
+		p.cluster.Logger().Error("Failed to start k8s-cluster-monitor actor", slog.Any("error", err))
 		return err
 	}
 
@@ -177,7 +177,7 @@ func (p *Provider) registerMemberAsync(c *cluster.Cluster) {
 
 // registers itself as a member in k8s cluster
 func (p *Provider) registerMember(timeout time.Duration) error {
-	p.cluster.ActorSystem.Logger.Info(fmt.Sprintf("Registering service %s on %s", p.podName, p.address))
+	p.cluster.Logger().Info(fmt.Sprintf("Registering service %s on %s", p.podName, p.address))
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -187,7 +187,7 @@ func (p *Provider) registerMember(timeout time.Duration) error {
 		return fmt.Errorf("unable to get own pod information for %s: %w", p.podName, err)
 	}
 
-	p.cluster.ActorSystem.Logger.Info(fmt.Sprintf("Using Kubernetes namespace: %s\nUsing Kubernetes port: %d", pod.Namespace, p.port))
+	p.cluster.Logger().Info(fmt.Sprintf("Using Kubernetes namespace: %s\nUsing Kubernetes port: %d", pod.Namespace, p.port))
 
 	labels := Labels{
 		LabelCluster:  p.clusterName,
@@ -218,7 +218,7 @@ func (p *Provider) startWatchingClusterAsync(c *cluster.Cluster) {
 func (p *Provider) startWatchingCluster() error {
 	selector := fmt.Sprintf("%s=%s", LabelCluster, p.clusterName)
 
-	p.cluster.ActorSystem.Logger.Debug(fmt.Sprintf("Starting to watch pods with %s", selector), slog.String("selector", selector))
+	p.cluster.Logger().Debug(fmt.Sprintf("Starting to watch pods with %s", selector), slog.String("selector", selector))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancelWatch = cancel
@@ -228,11 +228,11 @@ func (p *Provider) startWatchingCluster() error {
 		for {
 			select {
 			case <-ctx.Done():
-				p.cluster.ActorSystem.Logger.Debug("Stopping watch on pods")
+				p.cluster.Logger().Debug("Stopping watch on pods")
 				return
 			default:
 				if err := p.watchPods(ctx, selector); err != nil {
-					p.cluster.ActorSystem.Logger.Error("Error watching pods, will retry", slog.Any("error", err))
+					p.cluster.Logger().Error("Error watching pods, will retry", slog.Any("error", err))
 					time.Sleep(5 * time.Second)
 				}
 			}
@@ -246,11 +246,11 @@ func (p *Provider) watchPods(ctx context.Context, selector string) error {
 	watcher, err := p.client.CoreV1().Pods(p.retrieveNamespace()).Watch(context.Background(), metav1.ListOptions{LabelSelector: selector, Watch: true})
 	if err != nil {
 		err = fmt.Errorf("unable to watch pods: %w", err)
-		p.cluster.ActorSystem.Logger.Error(err.Error(), slog.Any("error", err))
+		p.cluster.Logger().Error(err.Error(), slog.Any("error", err))
 		return err
 	}
 
-	p.cluster.ActorSystem.Logger.Info("Pod watcher started")
+	p.cluster.Logger().Info("Pod watcher started")
 
 	for {
 		select {
@@ -264,7 +264,7 @@ func (p *Provider) watchPods(ctx context.Context, selector string) error {
 			pod, ok := event.Object.(*v1.Pod)
 			if !ok {
 				err := fmt.Errorf("could not cast %#v[%T] into v1.Pod", event.Object, event.Object)
-				p.cluster.ActorSystem.Logger.Error(err.Error(), slog.Any("error", err))
+				p.cluster.Logger().Error(err.Error(), slog.Any("error", err))
 				continue
 			}
 
@@ -274,14 +274,14 @@ func (p *Provider) watchPods(ctx context.Context, selector string) error {
 }
 
 func (p *Provider) processPodEvent(event watch.Event, pod *v1.Pod) {
-	p.cluster.ActorSystem.Logger.Debug("Watcher reported event for pod", slog.Any("eventType", event.Type), slog.String("podName", pod.ObjectMeta.Name))
+	p.cluster.Logger().Debug("Watcher reported event for pod", slog.Any("eventType", event.Type), slog.String("podName", pod.ObjectMeta.Name))
 
 	podClusterName, hasClusterName := pod.ObjectMeta.Labels[LabelCluster]
 	if !hasClusterName {
-		p.cluster.ActorSystem.Logger.Info("The pod is not a cluster member", slog.Any("podName", pod.ObjectMeta.Name))
+		p.cluster.Logger().Info("The pod is not a cluster member", slog.Any("podName", pod.ObjectMeta.Name))
 		delete(p.clusterPods, pod.UID) // pod could have been in the cluster, but then it was deregistered
 	} else if podClusterName != p.clusterName {
-		p.cluster.ActorSystem.Logger.Info("The pod is a member of another cluster", slog.Any("podName", pod.ObjectMeta.Name), slog.String("otherCluster", podClusterName))
+		p.cluster.Logger().Info("The pod is a member of another cluster", slog.Any("podName", pod.ObjectMeta.Name), slog.String("otherCluster", podClusterName))
 		return
 	} else {
 		switch event.Type {
@@ -289,19 +289,19 @@ func (p *Provider) processPodEvent(event watch.Event, pod *v1.Pod) {
 			delete(p.clusterPods, pod.UID)
 		case watch.Error:
 			err := apierrors.FromObject(event.Object)
-			p.cluster.ActorSystem.Logger.Error(err.Error(), slog.Any("error", err))
+			p.cluster.Logger().Error(err.Error(), slog.Any("error", err))
 		default:
 			p.clusterPods[pod.UID] = pod
 		}
 	}
 
-	if p.cluster.ActorSystem.Logger.Enabled(nil, slog.LevelDebug) {
-		logCurrentPods(p.clusterPods, p.cluster.ActorSystem.Logger)
+	if p.cluster.Logger().Enabled(nil, slog.LevelDebug) {
+		logCurrentPods(p.clusterPods, p.cluster.Logger())
 	}
 
-	members := mapPodsToMembers(p.clusterPods, p.cluster.ActorSystem.Logger)
+	members := mapPodsToMembers(p.clusterPods, p.cluster.Logger())
 
-	p.cluster.ActorSystem.Logger.Info("Topology received from Kubernetes", slog.Any("members", members))
+	p.cluster.Logger().Info("Topology received from Kubernetes", slog.Any("members", members))
 	p.cluster.MemberList.UpdateClusterTopology(members)
 }
 
@@ -365,7 +365,7 @@ func mapPodsToMembers(clusterPods map[types.UID]*v1.Pod, logger *slog.Logger) []
 
 // deregister itself as a member from a k8s cluster
 func (p *Provider) deregisterMember(timeout time.Duration) error {
-	p.cluster.ActorSystem.Logger.Info(fmt.Sprintf("Deregistering service %s from %s", p.podName, p.address))
+	p.cluster.Logger().Info(fmt.Sprintf("Deregistering service %s from %s", p.podName, p.address))
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -390,7 +390,7 @@ func (p *Provider) deregisterMember(timeout time.Duration) error {
 
 // prepares a patching payload and sends it to kubernetes to replace labels
 func (p *Provider) replacePodLabels(ctx context.Context, pod *v1.Pod) error {
-	p.cluster.ActorSystem.Logger.Debug("Setting pod labels to ", slog.Any("labels", pod.GetLabels()))
+	p.cluster.Logger().Debug("Setting pod labels to ", slog.Any("labels", pod.GetLabels()))
 
 	payload := []struct {
 		Op    string `json:"op"`
@@ -419,7 +419,7 @@ func (p *Provider) retrieveNamespace() string {
 		filename := filepath.Join(string(filepath.Separator), "var", "run", "secrets", "kubernetes.io", "serviceaccount", "namespace")
 		content, err := os.ReadFile(filename)
 		if err != nil {
-			p.cluster.ActorSystem.Logger.Warn(fmt.Sprintf("Could not read %s contents defaulting to empty namespace: %s", filename, err.Error()))
+			p.cluster.Logger().Warn(fmt.Sprintf("Could not read %s contents defaulting to empty namespace: %s", filename, err.Error()))
 			return p.namespace
 		}
 		p.namespace = string(content)
