@@ -8,18 +8,17 @@ import (
 	"github.com/asynkron/protoactor-go/remote"
 )
 
-// TODO: fix this
-var pubsubMemberDeliveryLogThrottle = actor.NewThrottleWithLogger(nil, 10, time.Second, func(logger *slog.Logger, i int32) {
-	logger.Warn("[PubSubMemberDeliveryActor] Throttled logs", slog.Int("count", int(i)))
-})
-
 type PubSubMemberDeliveryActor struct {
 	subscriberTimeout time.Duration
+	shouldThrottle    actor.ShouldThrottle
 }
 
-func NewPubSubMemberDeliveryActor(subscriberTimeout time.Duration) *PubSubMemberDeliveryActor {
+func NewPubSubMemberDeliveryActor(subscriberTimeout time.Duration, logger *slog.Logger) *PubSubMemberDeliveryActor {
 	return &PubSubMemberDeliveryActor{
 		subscriberTimeout: subscriberTimeout,
+		shouldThrottle: actor.NewThrottleWithLogger(logger, 10, time.Second, func(logger *slog.Logger, i int32) {
+			logger.Warn("[PubSubMemberDeliveryActor] Throttled logs", slog.Int("count", int(i)))
+		}),
 	}
 }
 
@@ -45,7 +44,7 @@ func (p *PubSubMemberDeliveryActor) Receive(c actor.Context) {
 		for _, fWithIdentity := range futureList {
 			_, err := fWithIdentity.future.Result()
 			identityLog := func(err error) {
-				if pubsubMemberDeliveryLogThrottle() == actor.Open {
+				if p.shouldThrottle() == actor.Open {
 					if fWithIdentity.identity.GetPid() != nil {
 						c.Logger().Info("Pub-sub message delivered to PID", slog.String("pid", fWithIdentity.identity.GetPid().String()))
 					} else if fWithIdentity.identity.GetClusterIdentity() != nil {

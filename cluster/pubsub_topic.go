@@ -13,22 +13,21 @@ import (
 
 const TopicActorKind = "prototopic"
 
-// TODO: fix this
-var topicLogThrottle = actor.NewThrottleWithLogger(nil, 10, time.Second, func(logger *slog.Logger, count int32) {
-	logger.Info("[TopicActor] Throttled logs", slog.Int("count", int(count)))
-})
-
 type TopicActor struct {
 	topic                string
 	subscribers          map[subscribeIdentityStruct]*SubscriberIdentity
 	subscriptionStore    KeyValueStore[*Subscribers]
 	topologySubscription *eventstream.Subscription
+	shouldThrottle       actor.ShouldThrottle
 }
 
-func NewTopicActor(store KeyValueStore[*Subscribers]) *TopicActor {
+func NewTopicActor(store KeyValueStore[*Subscribers], logger *slog.Logger) *TopicActor {
 	return &TopicActor{
 		subscriptionStore: store,
 		subscribers:       make(map[subscribeIdentityStruct]*SubscriberIdentity),
+		shouldThrottle: actor.NewThrottleWithLogger(logger, 10, time.Second, func(logger *slog.Logger, count int32) {
+			logger.Info("[TopicActor] Throttled logs", slog.Int("count", int(count)))
+		}),
 	}
 }
 
@@ -161,7 +160,7 @@ func (t *TopicActor) onNotifyAboutFailingSubscribers(c actor.Context, msg *Notif
 
 // logDeliveryErrors logs the delivery errors in one log line
 func (t *TopicActor) logDeliveryErrors(reports []*SubscriberDeliveryReport, logger *slog.Logger) {
-	if len(reports) > 0 || topicLogThrottle() == actor.Open {
+	if len(reports) > 0 || t.shouldThrottle() == actor.Open {
 		subscribers := make([]string, len(reports))
 		for i, report := range reports {
 			subscribers[i] = report.Subscriber.String()
@@ -227,7 +226,7 @@ func (t *TopicActor) removeSubscribers(subscribersThatLeft []subscribeIdentitySt
 		for _, subscriber := range subscribersThatLeft {
 			delete(t.subscribers, subscriber)
 		}
-		if topicLogThrottle() == actor.Open {
+		if t.shouldThrottle() == actor.Open {
 			logger.Warn("Topic removed subscribers, because they are dead or they are on members that left the clusterIdentity:", slog.String("topic", t.topic), slog.Any("subscribers", subscribersThatLeft))
 		}
 		t.saveSubscriptionsInTopicActor(logger)
@@ -239,7 +238,7 @@ func (t *TopicActor) loadSubscriptions(topic string, logger *slog.Logger) *Subsc
 	// TODO: cancellation logic config?
 	state, err := t.subscriptionStore.Get(context.Background(), topic)
 	if err != nil {
-		if topicLogThrottle() == actor.Open {
+		if t.shouldThrottle() == actor.Open {
 			logger.Error("Error when loading subscriptions", slog.String("topic", topic), slog.Any("error", err))
 		}
 		return &Subscribers{}
@@ -258,7 +257,7 @@ func (t *TopicActor) saveSubscriptionsInTopicActor(logger *slog.Logger) {
 	// TODO: cancellation logic config?
 	logger.Debug("Saving subscriptions for topic", slog.String("topic", t.topic), slog.Any("subscriptions", subscribers))
 	err := t.subscriptionStore.Set(context.Background(), t.topic, subscribers)
-	if err != nil && topicLogThrottle() == actor.Open {
+	if err != nil && t.shouldThrottle() == actor.Open {
 		logger.Error("Error when saving subscriptions", slog.String("topic", t.topic), slog.Any("error", err))
 	}
 }

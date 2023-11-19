@@ -51,7 +51,6 @@ func (m *Metrics) PrepareMailboxLengthGauge() {
 		metric.WithUnit("1"))
 	if err != nil {
 		err = fmt.Errorf("failed to create ActorMailBoxLength instrument, %w", err)
-		//TODO: fix
 		m.actorSystem.Logger.Error(err.Error(), slog.Any("error", err))
 	}
 	m.metrics.Instruments().SetActorMailboxLengthGauge(gauge)

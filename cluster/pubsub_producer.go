@@ -40,19 +40,16 @@ type BatchingProducerConfig struct {
 	PublisherIdleTimeout time.Duration
 }
 
-// TODO: fix this
-var defaultBatchingProducerLogThrottle = actor.NewThrottleWithLogger(nil, 10, time.Second, func(logger *slog.Logger, i int32) {
-	logger.Info("[BatchingProducer] Throttled logs", slog.Int("count", int(i)))
-})
-
-func newBatchingProducerConfig(opts ...BatchingProducerConfigOption) *BatchingProducerConfig {
+func newBatchingProducerConfig(logger *slog.Logger, opts ...BatchingProducerConfigOption) *BatchingProducerConfig {
 	config := &BatchingProducerConfig{
 		BatchSize:      2000,
 		PublishTimeout: 5 * time.Second,
 		OnPublishingError: func(retries int, e error, batch *PubSubBatch) *PublishingErrorDecision {
 			return FailBatchAndStop
 		},
-		LogThrottle: defaultBatchingProducerLogThrottle,
+		LogThrottle: actor.NewThrottleWithLogger(logger, 10, time.Second, func(logger *slog.Logger, i int32) {
+			logger.Info("[BatchingProducer] Throttled logs", slog.Int("count", int(i)))
+		}),
 	}
 
 	for _, opt := range opts {
@@ -73,7 +70,7 @@ type BatchingProducer struct {
 }
 
 func NewBatchingProducer(publisher Publisher, topic string, opts ...BatchingProducerConfigOption) *BatchingProducer {
-	config := newBatchingProducerConfig(opts...)
+	config := newBatchingProducerConfig(publisher.Cluster.Logger(), opts...)
 	p := &BatchingProducer{
 		config:    config,
 		topic:     topic,
