@@ -1,12 +1,12 @@
 package disthash
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	clustering "github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/eventstream"
-	"github.com/asynkron/protoactor-go/log"
 )
 
 const (
@@ -28,12 +28,12 @@ func newPartitionManager(c *clustering.Cluster) *Manager {
 }
 
 func (pm *Manager) Start() {
-	plog.Info("Started partition manager")
+	pm.cluster.ActorSystem.Logger.Info("Started partition manager")
 	system := pm.cluster.ActorSystem
 
 	activatorProps := actor.PropsFromProducer(func() actor.Actor { return newPlacementActor(pm.cluster, pm) })
 	pm.placementActor, _ = system.Root.SpawnNamed(activatorProps, PartitionActivatorActorName)
-	plog.Info("Started partition placement actor")
+	pm.cluster.ActorSystem.Logger.Info("Started partition placement actor")
 
 	pm.topologySub = system.EventStream.
 		Subscribe(func(ev interface{}) {
@@ -49,10 +49,10 @@ func (pm *Manager) Stop() {
 
 	err := system.Root.PoisonFuture(pm.placementActor).Wait()
 	if err != nil {
-		plog.Error("Failed to shutdown partition placement actor", log.Error(err))
+		pm.cluster.ActorSystem.Logger.Error("Failed to shutdown partition placement actor", slog.Any("error", err))
 	}
 
-	plog.Info("Stopped PartitionManager")
+	pm.cluster.ActorSystem.Logger.Info("Stopped PartitionManager")
 }
 
 func (pm *Manager) PidOfActivatorActor(addr string) *actor.PID {
@@ -60,12 +60,12 @@ func (pm *Manager) PidOfActivatorActor(addr string) *actor.PID {
 }
 
 func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
-	plog.Info("onClusterTopology", log.Uint64("topology-hash", tplg.TopologyHash))
+	pm.cluster.ActorSystem.Logger.Info("onClusterTopology", slog.Uint64("topology-hash", tplg.TopologyHash))
 
 	for _, m := range tplg.Members {
-		plog.Info("Got member ", log.String("MemberId", m.Id))
+		pm.cluster.ActorSystem.Logger.Info("Got member ", slog.String("MemberId", m.Id))
 		for _, k := range m.Kinds {
-			plog.Info("" + m.Id + " - " + k)
+			pm.cluster.ActorSystem.Logger.Info("" + m.Id + " - " + k)
 		}
 	}
 
