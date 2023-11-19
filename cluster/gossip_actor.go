@@ -3,7 +3,6 @@
 package cluster
 
 import (
-	"github.com/opentracing/opentracing-go/log"
 	"log/slog"
 	"time"
 
@@ -35,7 +34,7 @@ func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers
 	}
 
 	gossipActor.throttler = actor.NewThrottleWithLogger(logger, 3, 60*time.Second, func(logger *slog.Logger, counter int32) {
-		logger.Debug("[Gossip] Sending GossipRequest", log.Int("throttled", int(counter)))
+		logger.Debug("[Gossip] Sending GossipRequest", slog.Int("throttled", int(counter)))
 	})
 
 	return &gossipActor

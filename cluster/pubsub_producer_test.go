@@ -295,6 +295,11 @@ type mockPublisher struct {
 	publish func(*PubSubBatch) (*PublishResponse, error)
 }
 
+func (m *mockPublisher) Cluster() *Cluster {
+	//TODO implement me
+	panic("implement me")
+}
+
 func newMockPublisher(publish func(*PubSubBatch) (*PublishResponse, error)) *mockPublisher {
 	return &mockPublisher{publish: publish}
 }
@@ -314,6 +319,11 @@ func (m *mockPublisher) Publish(_ context.Context, topic string, message interfa
 type optionalFailureMockPublisher struct {
 	sentBatches []*PubSubBatch
 	shouldFail  bool
+}
+
+func (o *optionalFailureMockPublisher) Cluster() *Cluster {
+	//TODO implement me
+	panic("implement me")
 }
 
 // newOptionalFailureMockPublisher creates a mock publisher that can be configured to fail or not

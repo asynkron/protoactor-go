@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,7 +72,7 @@ func TestFuture_PipeTo_TimeoutSendsError(t *testing.T) {
 }
 
 func TestNewFuture_TimeoutNoRace(t *testing.T) {
-	plog.SetLevel(log.OffLevel)
+
 	future := NewFuture(system, 1*time.Microsecond)
 	a := rootContext.Spawn(PropsFromFunc(func(context Context) {
 		switch context.Message().(type) {
@@ -94,8 +93,6 @@ func assertFutureSuccess(future *Future, t *testing.T) interface{} {
 func TestFuture_Result_DeadLetterResponse(t *testing.T) {
 	a := assert.New(t)
 
-	plog.SetLevel(log.OffLevel)
-
 	future := NewFuture(system, 1*time.Second)
 	rootContext.Send(future.PID(), &DeadLetterResponse{})
 	resp, err := future.Result()
@@ -106,8 +103,6 @@ func TestFuture_Result_DeadLetterResponse(t *testing.T) {
 func TestFuture_Result_Timeout(t *testing.T) {
 	a := assert.New(t)
 
-	plog.SetLevel(log.OffLevel)
-
 	future := NewFuture(system, 1*time.Second)
 	resp, err := future.Result()
 	a.Equal(ErrTimeout, err)
@@ -116,8 +111,6 @@ func TestFuture_Result_Timeout(t *testing.T) {
 
 func TestFuture_Result_Success(t *testing.T) {
 	a := assert.New(t)
-
-	plog.SetLevel(log.OffLevel)
 
 	future := NewFuture(system, 1*time.Second)
 	rootContext.Send(future.PID(), EchoResponse{})

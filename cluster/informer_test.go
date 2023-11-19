@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 	"testing"
 
@@ -20,7 +21,7 @@ func TestInformer_SetState(t *testing.T) {
 		ActorStatistics: &ActorStatistics{},
 	}
 
-	i := newInformer("member1", a, 3, 3)
+	i := newInformer("member1", a, 3, 3, slog.Default())
 	i.SetState("heartbeat", s)
 }
 
@@ -35,7 +36,7 @@ func TestInformer_GetState(t *testing.T) {
 		ActorStatistics: &ActorStatistics{},
 	}
 
-	i := newInformer("member1", a, 3, 3)
+	i := newInformer("member1", a, 3, 3, slog.Default())
 	i.SetState("heartbeat", s)
 
 	m := i.GetState("heartbeat")
@@ -65,7 +66,7 @@ func TestInformer_ReceiveState(t *testing.T) {
 	}
 	dummyValue, _ := anypb.New(s)
 
-	i := newInformer("member1", a, 3, 3)
+	i := newInformer("member1", a, 3, 3, slog.Default())
 	i.SetState("heartbeat", s)
 
 	remoteState := &GossipState{
@@ -134,7 +135,7 @@ func TestInformer_SendState(t *testing.T) {
 		ActorStatistics: &ActorStatistics{},
 	}
 
-	i := newInformer("member1", a, 3, 3)
+	i := newInformer("member1", a, 3, 3, slog.Default())
 	i.SetState("heartbeat", s)
 	// the cluster sees two nodes. itself and member2
 	i.UpdateClusterTopology(&ClusterTopology{
@@ -167,7 +168,7 @@ func TestInformer_UpdateClusterTopology(t *testing.T) {
 	s := &MemberHeartbeat{
 		ActorStatistics: &ActorStatistics{},
 	}
-	i := newInformer("member1", a, 3, 3)
+	i := newInformer("member1", a, 3, 3, slog.Default())
 	i.SetState("heartbeat", s)
 	// the cluster sees two nodes. itself and member2
 	i.UpdateClusterTopology(&ClusterTopology{
@@ -199,7 +200,7 @@ func TestInformer_GetMemberStateDelta(t *testing.T) {
 		ActorStatistics: &ActorStatistics{},
 	}
 
-	i := newInformer("member1", a, 3, 3)
+	i := newInformer("member1", a, 3, 3, slog.Default())
 	i.SetState("heartbeat", s)
 
 	m := i.GetMemberStateDelta("member1")
