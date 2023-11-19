@@ -21,7 +21,7 @@ type Config struct {
 	DeveloperSupervisionLogging bool               // console log and promote supervision logs to Warning level
 	DiagnosticsSerializer       func(Actor) string // extract diagnostics from actor and return as string
 	MetricsProvider             metric.MeterProvider
-	LoggerFactory               func() *slog.Logger
+	LoggerFactory               func(system *ActorSystem) *slog.Logger
 }
 
 func defaultConfig() *Config {
@@ -34,8 +34,11 @@ func defaultConfig() *Config {
 		DiagnosticsSerializer: func(actor Actor) string {
 			return ""
 		},
-		LoggerFactory: func() *slog.Logger {
-			return slog.Default().With("lib", "Proto.Actor")
+		LoggerFactory: func(system *ActorSystem) *slog.Logger {
+			return slog.
+				Default().
+				With("lib", "Proto.Actor").
+				With("system", system.ID)
 		},
 	}
 }
