@@ -1,13 +1,13 @@
 package remote
 
 import (
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/eventstream"
-	"github.com/asynkron/protoactor-go/log"
 )
 
 type endpointLazy struct {
@@ -88,7 +88,8 @@ func (em *endpointManager) start() {
 	if err := em.waiting(3 * time.Second); err != nil {
 		panic(err)
 	}
-	plog.Info("Started EndpointManager")
+
+	em.remote.actorSystem.Logger.Info("Started EndpointManager")
 }
 
 func (em *endpointManager) waiting(timeout time.Duration) error {
@@ -104,10 +105,10 @@ func (em *endpointManager) stop() {
 	r := em.remote
 	r.actorSystem.EventStream.Unsubscribe(em.endpointSub)
 	if err := em.stopActivator(); err != nil {
-		plog.Error("stop endpoint activator failed", log.Error(err))
+		em.remote.actorSystem.Logger.Error("stop endpoint activator failed", slog.Any("error", err))
 	}
 	if err := em.stopSupervisor(); err != nil {
-		plog.Error("stop endpoint supervisor failed", log.Error(err))
+		em.remote.actorSystem.Logger.Error("stop endpoint supervisor failed", slog.Any("error", err))
 	}
 	em.endpointSub = nil
 	em.connections = nil
@@ -119,7 +120,7 @@ func (em *endpointManager) stop() {
 			return true
 		})
 	}
-	plog.Info("Stopped EndpointManager")
+	em.remote.actorSystem.Logger.Info("Stopped EndpointManager")
 }
 
 func (em *endpointManager) startActivator() {
@@ -160,7 +161,7 @@ func (em *endpointManager) stopSupervisor() error {
 func (em *endpointManager) endpointEvent(evn interface{}) {
 	switch msg := evn.(type) {
 	case *EndpointTerminatedEvent:
-		plog.Debug("EndpointManager received endpoint terminated event, removing endpoint", log.Message(evn))
+		em.remote.actorSystem.Logger.Debug("EndpointManager received endpoint terminated event, removing endpoint", slog.Any("message", evn))
 		em.removeEndpoint(msg)
 	case *EndpointConnectedEvent:
 		endpoint := em.ensureConnected(msg.Address)
@@ -249,7 +250,7 @@ func (em *endpointManager) removeEndpoint(msg *EndpointTerminatedEvent) {
 		if atomic.CompareAndSwapUint32(&le.unloaded, 0, 1) {
 			em.connections.Delete(msg.Address)
 			ep := le.Get()
-			plog.Debug("Sending EndpointTerminatedEvent to EndpointWatcher ans EndpointWriter", log.String("address", msg.Address))
+			em.remote.actorSystem.Logger.Debug("Sending EndpointTerminatedEvent to EndpointWatcher ans EndpointWriter", slog.String("address", msg.Address))
 			em.remote.actorSystem.Root.Send(ep.watcher, msg)
 			em.remote.actorSystem.Root.Send(ep.writer, msg)
 		}
@@ -268,7 +269,7 @@ func newEndpointSupervisor(remote *Remote) actor.Actor {
 
 func (state *endpointSupervisor) Receive(ctx actor.Context) {
 	if address, ok := ctx.Message().(string); ok {
-		plog.Debug("EndpointSupervisor spawning EndpointWriter and EndpointWatcher", log.String("address", address))
+		ctx.Logger().Debug("EndpointSupervisor spawning EndpointWriter and EndpointWatcher", slog.String("address", address))
 		e := &endpoint{
 			writer:  state.spawnEndpointWriter(state.remote, address, ctx),
 			watcher: state.spawnEndpointWatcher(state.remote, address, ctx),
@@ -278,7 +279,7 @@ func (state *endpointSupervisor) Receive(ctx actor.Context) {
 }
 
 func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, supervisor actor.Supervisor, child *actor.PID, rs *actor.RestartStatistics, reason interface{}, message interface{}) {
-	plog.Debug("EndpointSupervisor handling failure", log.Object("reason", reason), log.Message(message))
+	actorSystem.Logger.Debug("EndpointSupervisor handling failure", slog.Any("reason", reason), slog.Any("message", message))
 	supervisor.RestartChildren(child)
 }
 

@@ -3,13 +3,13 @@ package remote
 import (
 	"fmt"
 	"io/ioutil"
+	"log/slog"
 	"net"
 	"time"
 
 	"github.com/asynkron/protoactor-go/extensions"
 
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )
@@ -73,7 +73,7 @@ func (r *Remote) Start() {
 
 	r.actorSystem.ProcessRegistry.RegisterAddressResolver(r.remoteHandler)
 	r.actorSystem.ProcessRegistry.Address = address
-	plog.Info("Starting remote with address", log.String("address", address))
+	r.actorSystem.Logger.Info("Starting remote with address", slog.String("address", address))
 
 	r.edpManager = newEndpointManager(r)
 	r.edpManager.start()
@@ -81,7 +81,7 @@ func (r *Remote) Start() {
 	r.s = grpc.NewServer(r.config.ServerOptions...)
 	r.edpReader = newEndpointReader(r)
 	RegisterRemotingServer(r.s, r.edpReader)
-	plog.Info("Starting Proto.Actor server", log.String("address", address))
+	r.actorSystem.Logger.Info("Starting Proto.Actor server", slog.String("address", address))
 	go r.s.Serve(lis)
 }
 
@@ -102,14 +102,14 @@ func (r *Remote) Shutdown(graceful bool) {
 
 		select {
 		case <-c:
-			plog.Info("Stopped Proto.Actor server")
+			r.actorSystem.Logger.Info("Stopped Proto.Actor server")
 		case <-time.After(time.Second * 10):
 			r.s.Stop()
-			plog.Info("Stopped Proto.Actor server", log.String("err", "timeout"))
+			r.actorSystem.Logger.Info("Stopped Proto.Actor server", slog.String("err", "timeout"))
 		}
 	} else {
 		r.s.Stop()
-		plog.Info("Killed Proto.Actor server")
+		r.actorSystem.Logger.Info("Killed Proto.Actor server")
 	}
 }
 
