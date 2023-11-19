@@ -32,7 +32,7 @@ func (p *PubSub) Start() {
 	if err != nil {
 		panic(err) // let it crash
 	}
-	plog.Info("Started Cluster PubSub")
+	p.cluster.ActorSystem.Logger.Info("Started Cluster PubSub")
 }
 
 func (p *PubSub) ExtensionID() extensions.ExtensionID {

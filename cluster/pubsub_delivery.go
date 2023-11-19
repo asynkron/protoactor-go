@@ -1,15 +1,16 @@
 package cluster
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
 )
 
-var pubsubMemberDeliveryLogThrottle = actor.NewThrottle(10, time.Second, func(i int32) {
-	plog.Warn("[PubSubMemberDeliveryActor] Throttled logs", log.Int("count", int(i)))
+// TODO: fix this
+var pubsubMemberDeliveryLogThrottle = actor.NewThrottleWithLogger(nil, 10, time.Second, func(logger *slog.Logger, i int32) {
+	logger.Warn("[PubSubMemberDeliveryActor] Throttled logs", slog.Int("count", int(i)))
 })
 
 type PubSubMemberDeliveryActor struct {
@@ -46,9 +47,9 @@ func (p *PubSubMemberDeliveryActor) Receive(c actor.Context) {
 			identityLog := func(err error) {
 				if pubsubMemberDeliveryLogThrottle() == actor.Open {
 					if fWithIdentity.identity.GetPid() != nil {
-						plog.Info("Pub-sub message delivered to PID", log.String("pid", fWithIdentity.identity.GetPid().String()))
+						c.Logger().Info("Pub-sub message delivered to PID", slog.String("pid", fWithIdentity.identity.GetPid().String()))
 					} else if fWithIdentity.identity.GetClusterIdentity() != nil {
-						plog.Info("Pub-sub message delivered to cluster identity", log.String("cluster identity", fWithIdentity.identity.GetClusterIdentity().String()))
+						c.Logger().Info("Pub-sub message delivered to cluster identity", slog.String("cluster identity", fWithIdentity.identity.GetClusterIdentity().String()))
 					}
 				}
 			}

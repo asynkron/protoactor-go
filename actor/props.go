@@ -86,7 +86,7 @@ var ErrNameExists = errors.New("spawn: name exists")
 // Props represents configuration to define how an actor should be created.
 type Props struct {
 	spawner                 SpawnFunc
-	producer                Producer
+	producer                ProducerWithActorSystem
 	mailboxProducer         MailboxProducer
 	guardianStrategy        SupervisorStrategy
 	supervisionStrategy     SupervisorStrategy

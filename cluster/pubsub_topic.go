@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -13,8 +14,9 @@ import (
 
 const TopicActorKind = "prototopic"
 
-var topicLogThrottle = actor.NewThrottle(10, time.Second, func(count int32) {
-	plog.Info("[TopicActor] Throttled logs", log.Int("count", int(count)))
+// TODO: fix this
+var topicLogThrottle = actor.NewThrottleWithLogger(nil, 10, time.Second, func(logger *slog.Logger, count int32) {
+	logger.Info("[TopicActor] Throttled logs", slog.Int("count", int(count)))
 })
 
 type TopicActor struct {

@@ -533,7 +533,7 @@ func (ctx *actorContext) processMessage(m interface{}) {
 
 func (ctx *actorContext) incarnateActor() {
 	atomic.StoreInt32(&ctx.state, stateAlive)
-	ctx.actor = ctx.props.producer()
+	ctx.actor = ctx.props.producer(ctx.actorSystem)
 
 	metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
 	if ok && metricsSystem.enabled {

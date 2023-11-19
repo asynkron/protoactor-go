@@ -20,6 +20,8 @@ type Publisher interface {
 
 	// Publish publishes a single message to the topic.
 	Publish(ctx context.Context, topic string, message interface{}, opts ...GrainCallOption) (*PublishResponse, error)
+
+	Cluster() *Cluster
 }
 
 type defaultPublisher struct {
@@ -30,6 +32,10 @@ func NewPublisher(cluster *Cluster) Publisher {
 	return &defaultPublisher{
 		cluster: cluster,
 	}
+}
+
+func (p *defaultPublisher) Cluster() *Cluster {
+	return p.cluster
 }
 
 func (p *defaultPublisher) Initialize(ctx context.Context, topic string, config PublisherConfig) (*Acknowledge, error) {

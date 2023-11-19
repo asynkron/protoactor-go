@@ -4,6 +4,7 @@ package cluster
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -32,11 +33,12 @@ func NewDefaultClusterContextConfig() *ClusterContextConfig {
 		RequestsLogThrottlePeriod:                    defaultRequestsLogThrottlePeriod,
 		MaxNumberOfEventsInRequestLogThrottledPeriod: defaultMaxNumberOfEvetsInRequestLogThrottledPeriod,
 		RetryAction: defaultRetryAction,
-		requestLogThrottle: actor.NewThrottle(
+		//TODO: fix this
+		requestLogThrottle: actor.NewThrottleWithLogger(nil,
 			int32(defaultMaxNumberOfEvetsInRequestLogThrottledPeriod),
 			defaultRequestsLogThrottlePeriod,
-			func(i int32) {
-				plog.Info(fmt.Sprintf("Throttled %d Request logs", i))
+			func(logger *slog.Logger, i int32) {
+				logger.Info(fmt.Sprintf("Throttled %d Request logs", i))
 			},
 		),
 	}
