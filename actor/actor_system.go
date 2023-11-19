@@ -71,8 +71,8 @@ func NewActorSystem(options ...ConfigOption) *ActorSystem {
 func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system := &ActorSystem{}
 	system.ID = shortuuid.New()
-	system.Logger = config.LoggerFactory()
 	system.Config = config
+	system.Logger = config.LoggerFactory(system)
 	system.ProcessRegistry = NewProcessRegistry(system)
 	system.Root = NewRootContext(system, EmptyMessageHeader)
 	system.Guardians = NewGuardians(system)
