@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	console "github.com/asynkron/goconsole"
 	"io"
 	"math/rand"
 	"time"
@@ -66,7 +67,8 @@ func initJaeger() io.Closer {
 func createProps(routerFunc func(size int) *actor.Props, levels int) *actor.Props {
 	if levels == 1 {
 		sleep := time.Duration(rand.Intn(5000))
-		return routerFunc(3).WithFunc(func(c actor.Context) {
+
+		return routerFunc(3).Configure(actor.WithFunc(func(c actor.Context) {
 			switch msg := c.Message().(type) {
 			case *request:
 				time.Sleep(sleep * time.Millisecond)
@@ -74,17 +76,17 @@ func createProps(routerFunc func(size int) *actor.Props, levels int) *actor.Prop
 					c.Respond(&response{i: msg.i})
 				}
 			}
-		})
+		}))
 	}
 	var childPID *actor.PID
-	return routerFunc(5).WithFunc(func(c actor.Context) {
+	return routerFunc(5).Configure(actor.WithFunc(func(c actor.Context) {
 		switch c.Message().(type) {
 		case *actor.Started:
 			childPID = c.Spawn(createProps(routerFunc, levels-1))
 		case *request:
 			c.Forward(childPID)
 		}
-	})
+	}))
 }
 
 type request struct {
