@@ -2,8 +2,8 @@ package opentracing
 
 import (
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/log"
 	olog "github.com/opentracing/opentracing-go/log"
+	"log/slog"
 )
 
 func SpawnMiddleware() actor.SpawnMiddleware {
@@ -12,7 +12,7 @@ func SpawnMiddleware() actor.SpawnMiddleware {
 			self := parentContext.Self()
 			pid, err := next(actorSystem, id, props, parentContext)
 			if err != nil {
-				logger.Debug("SPAWN got error trying to spawn", log.Stringer("PID", self), log.TypeOf("ActorType", parentContext.Actor()), log.Error(err))
+				actorSystem.Logger.Debug("SPAWN got error trying to spawn", slog.Any("self", self), slog.Any("actor", parentContext.Actor()), slog.Any("error", err))
 				return pid, err
 			}
 			if self != nil {
@@ -20,12 +20,12 @@ func SpawnMiddleware() actor.SpawnMiddleware {
 				if span != nil {
 					setParentSpan(pid, span)
 					span.LogFields(olog.String("SpawnPID", pid.String()))
-					logger.Debug("SPAWN found active span", log.Stringer("PID", self), log.TypeOf("ActorType", parentContext.Actor()), log.Stringer("SpawnedPID", pid))
+					actorSystem.Logger.Debug("SPAWN found active span", slog.Any("self", self), slog.Any("actor", parentContext.Actor()), slog.Any("spawned-pid", pid))
 				} else {
-					logger.Debug("SPAWN no active span on parent", log.Stringer("PID", self), log.TypeOf("ActorType", parentContext.Actor()), log.Stringer("SpawnedPID", pid))
+					actorSystem.Logger.Debug("SPAWN no active span on parent", slog.Any("self", self), slog.Any("actor", parentContext.Actor()), slog.Any("spawned-pid", pid))
 				}
 			} else {
-				logger.Debug("SPAWN no parent pid", log.Stringer("SpawnedPID", pid))
+				actorSystem.Logger.Debug("SPAWN no parent pid", slog.Any("self", self))
 			}
 			return pid, err
 		}
