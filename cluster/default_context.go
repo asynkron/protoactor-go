@@ -40,7 +40,7 @@ func (dcc *DefaultContext) Request(identity, kind string, message interface{}, t
 	var counter int
 
 	// get the configuration from the composed Cluster value
-	cfg := dcc.cluster.Config.ToClusterContextConfig()
+	cfg := dcc.cluster.Config.ToClusterContextConfig(dcc.cluster.ActorSystem.Logger)
 
 	start := time.Now()
 

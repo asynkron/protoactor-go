@@ -25,14 +25,16 @@ type GossipActor struct {
 }
 
 // Creates a new GossipActor and returns a pointer to its location in the heap
-func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int) *GossipActor {
-	informer := newInformer(myID, getBlockedMembers, fanOut, maxSend)
+func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int, system *actor.ActorSystem) *GossipActor {
+
+	logger := system.Logger
+	informer := newInformer(myID, getBlockedMembers, fanOut, maxSend, logger)
 	gossipActor := GossipActor{
 		gossipRequestTimeout: requestTimeout,
 		gossip:               informer,
 	}
-	//TODO: fix this
-	gossipActor.throttler = actor.NewThrottleWithLogger(nil, 3, 60*time.Second, func(logger *slog.Logger, counter int32) {
+
+	gossipActor.throttler = actor.NewThrottleWithLogger(logger, 3, 60*time.Second, func(logger *slog.Logger, counter int32) {
 		logger.Debug("[Gossip] Sending GossipRequest", log.Int("throttled", int(counter)))
 	})
 

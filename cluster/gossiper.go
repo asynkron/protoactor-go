@@ -172,7 +172,7 @@ func (g *Gossiper) RegisterConsensusCheck(key string, getValue func(*anypb.Any) 
 
 func (g *Gossiper) StartGossiping() error {
 	var err error
-	g.pid, err = g.cluster.ActorSystem.Root.SpawnNamed(actor.PropsFromProducer(func() actor.Actor {
+	g.pid, err = g.cluster.ActorSystem.Root.SpawnNamed(actor.PropsFromProducerWithActorSystem(func(system *actor.ActorSystem) actor.Actor {
 		return NewGossipActor(
 			g.cluster.Config.GossipRequestTimeout,
 			g.cluster.ActorSystem.ID,
@@ -181,6 +181,7 @@ func (g *Gossiper) StartGossiping() error {
 			},
 			g.cluster.Config.GossipFanOut,
 			g.cluster.Config.GossipMaxSend,
+			system,
 		)
 	}), g.GossipActorName)
 

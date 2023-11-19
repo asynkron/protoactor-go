@@ -108,6 +108,17 @@ func PropsFromProducer(producer Producer, opts ...PropsOption) *Props {
 	return p
 }
 
+// PropsFromProducer creates a props with the given actor producer assigned.
+func PropsFromProducerWithActorSystem(producer ProducerWithActorSystem, opts ...PropsOption) *Props {
+	p := &Props{
+		producer:         producer,
+		contextDecorator: make([]ContextDecorator, 0),
+	}
+	p.Configure(opts...)
+
+	return p
+}
+
 // PropsFromFunc creates a props with the given receive func assigned as the actor producer.
 func PropsFromFunc(f ReceiveFunc, opts ...PropsOption) *Props {
 	p := PropsFromProducer(func() Actor { return f }, opts...)
