@@ -2,8 +2,10 @@ package actor
 
 import (
 	"fmt"
+	"github.com/lmittmann/tint"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -35,9 +37,13 @@ func defaultConfig() *Config {
 			return ""
 		},
 		LoggerFactory: func(system *ActorSystem) *slog.Logger {
-			return slog.
-				Default().
-				With("lib", "Proto.Actor").
+			w := os.Stderr
+
+			// create a new logger
+			return slog.New(tint.NewHandler(w, &tint.Options{
+				Level:      slog.LevelDebug,
+				TimeFormat: time.Kitchen,
+			})).With("lib", "Proto.Actor").
 				With("system", system.ID)
 		},
 	}
