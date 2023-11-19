@@ -4,9 +4,9 @@ package cluster
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
-	"github.com/asynkron/protoactor-go/log"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -29,9 +29,10 @@ type consensusMemberValue struct {
 type ConsensusCheckBuilder struct {
 	getConsensusValues []*consensusValue
 	check              ConsensusChecker
+	logger             *slog.Logger
 }
 
-func NewConsensusCheckBuilder(key string, getValue func(*anypb.Any) interface{}) *ConsensusCheckBuilder {
+func NewConsensusCheckBuilder(logger *slog.Logger, key string, getValue func(*anypb.Any) interface{}) *ConsensusCheckBuilder {
 	builder := ConsensusCheckBuilder{
 		getConsensusValues: []*consensusValue{
 			{
@@ -39,6 +40,7 @@ func NewConsensusCheckBuilder(key string, getValue func(*anypb.Any) interface{})
 				Value: getValue,
 			},
 		},
+		logger: logger,
 	}
 	builder.check = builder.build()
 	return &builder
@@ -130,7 +132,7 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 	}
 
 	showLog := func(hasConsensus bool, topologyHash uint64, valueTuples []*consensusMemberValue) {
-		if plog.Level() == log.DebugLevel {
+		if ccb.logger.Enabled(nil, slog.LevelDebug) {
 			groups := map[string]int{}
 			for _, memberValue := range valueTuples {
 				key := fmt.Sprintf("%s:%d", memberValue.key, memberValue.value)
@@ -146,7 +148,7 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 				if value > 1 {
 					suffix = fmt.Sprintf("%s, %d nodes", k, value)
 				}
-				plog.Debug("consensus", log.Bool("consensus", hasConsensus), log.String("values", suffix))
+				ccb.logger.Debug("consensus", slog.Bool("consensus", hasConsensus), slog.String("values", suffix))
 			}
 		}
 	}
