@@ -25,7 +25,8 @@ func main() {
 		NewRootContext(actorSystem, nil).
 		WithSpawnMiddleware(opentracing.TracingMiddleware())
 
-	pid := rootContext.SpawnPrefix(createProps(router.NewRoundRobinPool, 3), "root")
+	f := router.NewRoundRobinPool
+	pid := rootContext.SpawnPrefix(createProps(f, 3), "root")
 	for i := 0; i < 3; i++ {
 		_ = rootContext.RequestFuture(pid, &request{i}, 10*time.Second).Wait()
 	}
