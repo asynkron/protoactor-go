@@ -2,6 +2,7 @@ package cluster_test_tool
 
 import (
 	"errors"
+	"log/slog"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -50,7 +51,7 @@ func NewPubSubClusterFixture(t testing.TB, clusterSize int, useDefaultTopicRegis
 			}
 			if !fixture.useDefaultTopicRegistration {
 				kinds = append(kinds, cluster.NewKind(cluster.TopicActorKind, actor.PropsFromProducer(func() actor.Actor {
-					return cluster.NewTopicActor(store)
+					return cluster.NewTopicActor(store, slog.Default())
 				})))
 			}
 			return kinds

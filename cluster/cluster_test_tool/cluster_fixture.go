@@ -2,13 +2,13 @@ package cluster_test_tool
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/test"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
@@ -128,7 +128,7 @@ func (b *BaseClusterFixture) RemoveNode(node *cluster.Cluster, graceful bool) {
 		}
 	}
 	if !has {
-		plog.Error("node not found", log.Object("node", node))
+		slog.Default().Error("node not found", slog.Any("node", node))
 	}
 }
 
@@ -192,7 +192,7 @@ func (b *BaseClusterFixture) spawnClusterMember() *cluster.Cluster {
 // waitForMembersToShutdown waits for the members to shutdown
 func (b *BaseClusterFixture) waitForMembersToShutdown() {
 	for _, member := range b.members {
-		plog.Info("Preparing shutdown for cluster member", log.String("member", member.ActorSystem.ID))
+		slog.Default().Info("Preparing shutdown for cluster member", slog.String("member", member.ActorSystem.ID))
 	}
 
 	group := new(errgroup.Group)
@@ -204,7 +204,7 @@ func (b *BaseClusterFixture) waitForMembersToShutdown() {
 		group.Go(func() error {
 			done := make(chan struct{})
 			go func() {
-				plog.Info("Shutting down cluster member", log.String("member", member.ActorSystem.ID))
+				slog.Default().Info("Shutting down cluster member", slog.String("member", member.ActorSystem.ID))
 				member.Shutdown(true)
 				close(done)
 			}()
