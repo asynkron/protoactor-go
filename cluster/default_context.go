@@ -74,6 +74,7 @@ selectloop:
 				continue
 			}
 
+			//TODO: why is err != nil when res != nil?
 			resp, err = _context.RequestFuture(pid, message, ttl).Result()
 			if resp != nil {
 				break selectloop
