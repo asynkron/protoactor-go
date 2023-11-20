@@ -85,8 +85,6 @@ selectloop:
 				case actor.ErrTimeout, remote.ErrTimeout, actor.ErrDeadLetter, remote.ErrDeadLetter:
 					counter = callConfig.RetryAction(counter)
 					dcc.cluster.PidCache.Remove(identity, kind)
-					err = nil // reset our error variable as we can succeed still
-
 					continue
 				default:
 					break selectloop
