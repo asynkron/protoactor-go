@@ -3,6 +3,7 @@ package automanaged
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"sync"
@@ -11,7 +12,6 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/labstack/echo"
 	"golang.org/x/sync/errgroup"
 )
@@ -179,7 +179,7 @@ func (p *AutoManagedProvider) UpdateTTL() {
 		activeProviderRunningMutex.Unlock()
 
 		appURI := fmt.Sprintf("0.0.0.0:%d", p.autoManagePort)
-		plog.Error("Automanaged server stopping..!", log.Error(p.activeProvider.Start(appURI)))
+		p.cluster.Logger().Error("Automanaged server stopping..!", slog.Any("error", p.activeProvider.Start(appURI)))
 
 		activeProviderRunningMutex.Lock()
 		p.activeProviderRunning = false
@@ -233,7 +233,7 @@ func (p *AutoManagedProvider) monitorStatuses() {
 
 	autoManagedNodes, err := p.checkNodes()
 	if err != nil && len(autoManagedNodes) == 0 {
-		plog.Error("Failure reaching nodes", log.Error(err))
+		p.cluster.Logger().Error("Failure reaching nodes", slog.Any("error", err))
 		p.clusterMonitorError = err
 		time.Sleep(p.refreshTTL)
 		return
@@ -275,13 +275,13 @@ func (p *AutoManagedProvider) checkNodes() ([]*NodeModel, error) {
 			url := fmt.Sprintf("http://%s/_health", el)
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
-				plog.Error("Couldn't request node health status", log.Error(err), log.String("autoManMemberUrl", url))
+				p.cluster.Logger().Error("Couldn't request node health status", slog.Any("error", err), slog.String("autoManMemberUrl", url))
 				return err
 			}
 
 			resp, err := p.httpClient.Do(req)
 			if err != nil {
-				plog.Error("Bad connection to the node health status", log.Error(err), log.String("autoManMemberUrl", url))
+				p.cluster.Logger().Error("Bad connection to the node health status", slog.Any("error", err), slog.String("autoManMemberUrl", url))
 				return err
 			}
 
@@ -289,7 +289,7 @@ func (p *AutoManagedProvider) checkNodes() ([]*NodeModel, error) {
 
 			if resp.StatusCode != http.StatusOK {
 				err = fmt.Errorf("non 200 status returned: %d - from node: %s", resp.StatusCode, el)
-				plog.Error("Bad response from the node health status", log.Error(err), log.String("autoManMemberUrl", url))
+				p.cluster.Logger().Error("Bad response from the node health status", slog.Any("error", err), slog.String("autoManMemberUrl", url))
 				return err
 			}
 
@@ -297,7 +297,7 @@ func (p *AutoManagedProvider) checkNodes() ([]*NodeModel, error) {
 			err = json.NewDecoder(resp.Body).Decode(&node)
 			if err != nil {
 				err = fmt.Errorf("could not deserialize response: %v - from node: %s", resp, el)
-				plog.Error("Bad data from the node health status", log.Error(err), log.String("autoManMemberUrl", url))
+				p.cluster.Logger().Error("Bad data from the node health status", slog.Any("error", err), slog.String("autoManMemberUrl", url))
 				return err
 			}
 
@@ -347,8 +347,8 @@ func (p *AutoManagedProvider) startActiveProvider() {
 			activeProviderRunningMutex.Lock()
 			p.activeProviderRunning = true
 			activeProviderRunningMutex.Unlock()
-
-			plog.Error("Automanaged server stopping..!", log.Error(p.activeProvider.Start(appURI)))
+			err := p.activeProvider.Start(appURI)
+			p.cluster.Logger().Error("Automanaged server stopping..!", slog.Any("error", err))
 
 			activeProviderRunningMutex.Lock()
 			p.activeProviderRunning = false
