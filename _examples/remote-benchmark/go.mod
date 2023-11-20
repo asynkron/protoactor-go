@@ -22,6 +22,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/lithammer/shortuuid/v4 v4.0.0 // indirect
+	github.com/lmittmann/tint v1.0.3 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/orcaman/concurrent-map v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.16.0 // indirect

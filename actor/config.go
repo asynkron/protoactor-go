@@ -41,7 +41,7 @@ func defaultConfig() *Config {
 
 			// create a new logger
 			return slog.New(tint.NewHandler(w, &tint.Options{
-				Level:      slog.LevelDebug,
+				Level:      slog.LevelInfo,
 				TimeFormat: time.Kitchen,
 			})).With("lib", "Proto.Actor").
 				With("system", system.ID)

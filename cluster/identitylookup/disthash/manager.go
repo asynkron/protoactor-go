@@ -84,7 +84,7 @@ func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
 	identityOwnerPid := pm.PidOfActivatorActor(ownerAddress)
 	request := &clustering.ActivationRequest{
 		ClusterIdentity: identity,
-		RequestId:       "aaaa",
+		RequestId:       "",
 	}
 	future := pm.cluster.ActorSystem.Root.RequestFuture(identityOwnerPid, request, 5*time.Second)
 	res, err := future.Result()
