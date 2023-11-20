@@ -4,6 +4,8 @@ import (
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/lmittmann/tint"
+	slogzap "github.com/samber/slog-zap/v2"
+	"go.uber.org/zap"
 	"log/slog"
 	"os"
 	"time"
@@ -41,9 +43,18 @@ func coloredConsoleLogging(system *actor.ActorSystem) *slog.Logger {
 		With("system", system.ID)
 }
 
+func zapAdapterLogging(system *actor.ActorSystem) *slog.Logger {
+	zapLogger, _ := zap.NewProduction()
+
+	logger := slog.New(slogzap.Option{Level: slog.LevelDebug, Logger: zapLogger}.NewZapHandler())
+	return logger.
+		With("lib", "Proto.Actor").
+		With("system", system.ID)
+}
+
 func main() {
 
-	system := actor.NewActorSystem(actor.WithLoggerFactory(jsonLogging))
+	system := actor.NewActorSystem(actor.WithLoggerFactory(zapAdapterLogging))
 
 	props := actor.PropsFromProducer(func() actor.Actor { return &helloActor{} })
 
