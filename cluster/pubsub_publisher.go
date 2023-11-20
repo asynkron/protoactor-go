@@ -43,7 +43,7 @@ func (p *defaultPublisher) Initialize(ctx context.Context, topic string, config 
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
-		res, err := p.cluster.Call(topic, TopicActorKind, &Initialize{
+		res, err := p.cluster.Request(topic, TopicActorKind, &Initialize{
 			IdleTimeout: durationpb.New(config.IdleTimeout),
 		})
 		if err != nil {
@@ -58,7 +58,7 @@ func (p *defaultPublisher) PublishBatch(ctx context.Context, topic string, batch
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
-		res, err := p.cluster.Call(topic, TopicActorKind, batch, opts...)
+		res, err := p.cluster.Request(topic, TopicActorKind, batch, opts...)
 		if err != nil {
 			return nil, err
 		}

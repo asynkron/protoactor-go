@@ -70,7 +70,7 @@ type BatchingProducer struct {
 }
 
 func NewBatchingProducer(publisher Publisher, topic string, opts ...BatchingProducerConfigOption) *BatchingProducer {
-	config := newBatchingProducerConfig(publisher.Cluster.Logger(), opts...)
+	config := newBatchingProducerConfig(publisher.Cluster().Logger(), opts...)
 	p := &BatchingProducer{
 		config:    config,
 		topic:     topic,
