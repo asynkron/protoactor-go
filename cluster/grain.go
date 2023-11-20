@@ -9,7 +9,7 @@ import (
 type GrainCallConfig struct {
 	RetryCount  int
 	Timeout     time.Duration
-	RetryAction func(n int)
+	RetryAction func(n int) int
 	Context     actor.SenderContext
 }
 
@@ -26,11 +26,14 @@ func DefaultGrainCallConfig(cluster *Cluster) *GrainCallConfig {
 
 func NewGrainCallOptions(cluster *Cluster) *GrainCallConfig {
 	return &GrainCallConfig{
+		//TODO: set default in config
 		RetryCount: 10,
+		Context:    cluster.ActorSystem.Root,
 		Timeout:    cluster.Config.RequestTimeoutTime,
-		RetryAction: func(i int) {
+		RetryAction: func(i int) int {
 			i++
 			time.Sleep(time.Duration(i * i * 50))
+			return i
 		},
 	}
 }
@@ -41,13 +44,13 @@ func WithTimeout(timeout time.Duration) GrainCallOption {
 	}
 }
 
-func WithRetry(count int) GrainCallOption {
+func WithRetryCount(count int) GrainCallOption {
 	return func(config *GrainCallConfig) {
 		config.RetryCount = count
 	}
 }
 
-func WithRetryAction(act func(i int)) GrainCallOption {
+func WithRetryAction(act func(i int) int) GrainCallOption {
 	return func(config *GrainCallConfig) {
 		config.RetryAction = act
 	}

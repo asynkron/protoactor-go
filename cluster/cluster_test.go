@@ -139,7 +139,7 @@ func TestCluster_Call(t *testing.T) {
 	// FIXME: testcase
 	// t.Run("timeout", func(t *testing.T) {
 	// 	msg := struct{}{}
-	// 	callopts := NewGrainCallOptions(c).WithRetry(2).WithRequestTimeout(1 * time.Second)
+	// 	callopts := NewGrainCallOptions(c).WithRetryCount(2).WithRequestTimeout(1 * time.Second)
 	// 	resp, err := c.Call("name", "kind", &msg, callopts)
 	// 	assert.Equalf(Remote.ErrUnknownError, err, "%v", err)
 	// 	assert.Nil(resp)

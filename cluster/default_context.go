@@ -32,12 +32,18 @@ func newDefaultClusterContext(cluster *Cluster) Context {
 	return &clusterContext
 }
 
-func (dcc *DefaultContext) Request(identity, kind string, message interface{}, timeout ...time.Duration) (interface{}, error) {
+func (dcc *DefaultContext) Request(identity, kind string, message interface{}, opts ...GrainCallOption) (interface{}, error) {
 	var err error
 
 	var resp interface{}
 
 	var counter int
+	callConfig := DefaultGrainCallConfig(dcc.cluster)
+	for _, o := range opts {
+		o(callConfig)
+	}
+
+	_context := callConfig.Context
 
 	// get the configuration from the composed Cluster value
 	cfg := dcc.cluster.Config.ToClusterContextConfig(dcc.cluster.Logger())
@@ -47,15 +53,11 @@ func (dcc *DefaultContext) Request(identity, kind string, message interface{}, t
 	dcc.cluster.Logger().Debug(fmt.Sprintf("Requesting %s:%s Message %#v", identity, kind, message))
 
 	// crate a new Timeout Context
-	ttl := cfg.ActorRequestTimeout
-	if len(timeout) > 0 {
-		ttl = timeout[0]
-	}
+	ttl := callConfig.Timeout
 
 	ctx, cancel := context.WithTimeout(context.Background(), ttl)
 	defer cancel()
 
-	_context := dcc.cluster.ActorSystem.Root
 selectloop:
 	for {
 		select {
@@ -68,8 +70,7 @@ selectloop:
 			pid := dcc.getCachedPid(identity, kind)
 			if pid == nil {
 				dcc.cluster.Logger().Debug(fmt.Sprintf("Requesting %s:%s did not get PID from IdentityLookup", identity, kind))
-				counter = cfg.RetryAction(counter)
-
+				counter = callConfig.RetryAction(counter)
 				continue
 			}
 
@@ -78,7 +79,7 @@ selectloop:
 				dcc.cluster.Logger().Error("cluster.RequestFuture failed", slog.Any("error", err), slog.Any("pid", pid))
 				switch err {
 				case actor.ErrTimeout, remote.ErrTimeout, actor.ErrDeadLetter, remote.ErrDeadLetter:
-					counter = cfg.RetryAction(counter)
+					counter = callConfig.RetryAction(counter)
 					dcc.cluster.PidCache.Remove(identity, kind)
 					err = nil // reset our error variable as we can succeed still
 
@@ -109,12 +110,4 @@ func (dcc *DefaultContext) getCachedPid(identity, kind string) *actor.PID {
 	pid, _ := dcc.cluster.PidCache.Get(identity, kind)
 
 	return pid
-}
-
-// default retry action, it just sleeps incrementally.
-func defaultRetryAction(i int) int {
-	i++
-	time.Sleep(time.Duration(i * i * 50))
-
-	return i
 }

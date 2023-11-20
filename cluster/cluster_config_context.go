@@ -16,9 +16,7 @@ const (
 
 // ClusterContextConfig is used to configure cluster context parameters
 type ClusterContextConfig struct {
-	ActorRequestTimeout                          time.Duration
 	RequestsLogThrottlePeriod                    time.Duration
 	MaxNumberOfEventsInRequestLogThrottledPeriod int
-	RetryAction                                  func(int) int
 	requestLogThrottle                           actor.ShouldThrottle
 }

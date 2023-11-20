@@ -62,10 +62,10 @@ func Configure(clusterName string, clusterProvider ClusterProvider, identityLook
 // into a valid ClusterContextConfig value and returns a pointer to its memory
 func (c *Config) ToClusterContextConfig(logger *slog.Logger) *ClusterContextConfig {
 	clusterContextConfig := ClusterContextConfig{
-		ActorRequestTimeout:                          c.RequestTimeoutTime,
+
 		RequestsLogThrottlePeriod:                    c.RequestsLogThrottlePeriod,
 		MaxNumberOfEventsInRequestLogThrottledPeriod: c.MaxNumberOfEventsInRequestLogThrottledPeriod,
-		RetryAction: defaultRetryAction,
+
 		requestLogThrottle: actor.NewThrottleWithLogger(logger,
 			int32(defaultMaxNumberOfEvetsInRequestLogThrottledPeriod),
 			defaultRequestsLogThrottlePeriod,

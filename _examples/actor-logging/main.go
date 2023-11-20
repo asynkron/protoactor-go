@@ -38,7 +38,8 @@ func consoleLogging(system *actor.ActorSystem) *slog.Logger {
 func coloredConsoleLogging(system *actor.ActorSystem) *slog.Logger {
 	return slog.New(tint.NewHandler(os.Stdout, &tint.Options{
 		Level:      slog.LevelDebug,
-		TimeFormat: time.Kitchen,
+		TimeFormat: time.RFC3339,
+		AddSource:  true,
 	})).With("lib", "Proto.Actor").
 		With("system", system.ID)
 }
@@ -54,7 +55,7 @@ func zapAdapterLogging(system *actor.ActorSystem) *slog.Logger {
 
 func main() {
 
-	system := actor.NewActorSystem(actor.WithLoggerFactory(zapAdapterLogging))
+	system := actor.NewActorSystem(actor.WithLoggerFactory(coloredConsoleLogging))
 
 	props := actor.PropsFromProducer(func() actor.Actor { return &helloActor{} })
 

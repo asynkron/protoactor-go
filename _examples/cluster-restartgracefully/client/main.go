@@ -103,7 +103,7 @@ func runClientsAll(clients int, loops int, interval time.Duration) {
 func runClient(grainId string, loops int, interval time.Duration) {
 	now := time.Now()
 	calcGrain := shared.GetCalculatorGrainClient(_cluster, grainId)
-	resp, err := calcGrain.GetCurrent(&shared.Void{}, cluster.WithRetry(3), cluster.WithTimeout(6*time.Second))
+	resp, err := calcGrain.GetCurrent(&shared.Void{}, cluster.WithRetryCount(3), cluster.WithTimeout(6*time.Second))
 	if err != nil {
 		_cluster.Shutdown(true)
 		panic(err)
@@ -125,7 +125,7 @@ func runClient(grainId string, loops int, interval time.Duration) {
 
 func calcAdd(grainId string, addNumber int64) int64 {
 	calcGrain := shared.GetCalculatorGrainClient(_cluster, grainId)
-	resp, err := calcGrain.Add(&shared.NumberRequest{Number: addNumber}, cluster.WithRetry(3), cluster.WithTimeout(6*time.Second))
+	resp, err := calcGrain.Add(&shared.NumberRequest{Number: addNumber}, cluster.WithRetryCount(3), cluster.WithTimeout(6*time.Second))
 	if err != nil {
 		plog.Error("call grain failed", log.Error(err))
 	}
