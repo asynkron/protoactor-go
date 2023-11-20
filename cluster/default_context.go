@@ -67,14 +67,17 @@ selectloop:
 
 			break selectloop
 		default:
-			pid := dcc.getCachedPid(identity, kind)
+			pid := dcc.getPid(identity, kind)
 			if pid == nil {
-				dcc.cluster.Logger().Debug(fmt.Sprintf("Requesting %s:%s did not get PID from IdentityLookup", identity, kind))
+				dcc.cluster.Logger().Debug("Requesting PID from IdentityLookup but got nil", slog.String("identity", identity), slog.String("kind", kind))
 				counter = callConfig.RetryAction(counter)
 				continue
 			}
 
 			resp, err = _context.RequestFuture(pid, message, ttl).Result()
+			if resp != nil {
+				break selectloop
+			}
 			if err != nil {
 				dcc.cluster.Logger().Error("cluster.RequestFuture failed", slog.Any("error", err), slog.Any("pid", pid))
 				switch err {
@@ -106,8 +109,12 @@ selectloop:
 
 // gets the cached PID for the given identity
 // it can return nil if none is found.
-func (dcc *DefaultContext) getCachedPid(identity, kind string) *actor.PID {
+func (dcc *DefaultContext) getPid(identity, kind string) *actor.PID {
 	pid, _ := dcc.cluster.PidCache.Get(identity, kind)
+	if pid == nil {
+		pid = dcc.cluster.Get(identity, kind)
+		dcc.cluster.PidCache.Set(identity, kind, pid)
+	}
 
 	return pid
 }
