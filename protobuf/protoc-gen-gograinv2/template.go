@@ -9,24 +9,18 @@ import (
 	"fmt"
 	"math"
 	"time"
+	"log/slog"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
-	logmod "github.com/asynkron/protoactor-go/log"
 	"google.golang.org/protobuf/proto"
 )
 
 var (
-	plog = logmod.New(logmod.InfoLevel, "[GRAIN][{{.PackageName}}]")
 	_    = proto.Marshal
 	_    = fmt.Errorf
 	_    = math.Inf
 )
-
-// SetLogLevel sets the log level.
-func SetLogLevel(level logmod.Level) {
-	plog.SetLevel(level)
-}
 
 {{ range $service := .Services -}}
 var x{{ $service.Name }}Factory func() {{ $service.Name }}
@@ -93,7 +87,7 @@ func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input.
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: {{ $method.Index }}, MessageData: bytes}
-	resp, err := g.cluster.Call(g.Identity, "{{ $service.Name }}", reqMsg, opts...)
+	resp, err := g.cluster.Request(g.Identity, "{{ $service.Name }}", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +140,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 			req := &{{ $method.Input.Name }}{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				plog.Error("{{ $method.Name }}({{ $method.Input.Name }}) proto.Unmarshal failed.", logmod.Error(err))
+				ctx.Logger().Error("[Grain] {{ $method.Name }}({{ $method.Input.Name }}) proto.Unmarshal failed.", slog.Any("error", err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 				return
@@ -159,7 +153,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 			}
 			bytes, err := proto.Marshal(r0)
 			if err != nil {
-				plog.Error("{{ $method.Name }}({{ $method.Input.Name }}) proto.Marshal failed", logmod.Error(err))
+				ctx.Logger().Error("[Grain] {{ $method.Name }}({{ $method.Input.Name }}) proto.Marshal failed", slog.Any("error", err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 				return
