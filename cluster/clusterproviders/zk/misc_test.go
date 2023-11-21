@@ -1,6 +1,7 @@
 package zk
 
 import (
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -48,7 +49,7 @@ func (suite *MiscTestSuite) TestMapString() {
 }
 
 func (suite *MiscTestSuite) TestSafeRun() {
-	suite.NotPanics(func() { safeRun(func() { panic("don't worry, should panic here") }) })
+	suite.NotPanics(func() { safeRun(slog.Default(), func() { panic("don't worry, should panic here") }) })
 }
 
 func (suite *MiscTestSuite) TestNode() {

@@ -70,7 +70,7 @@ type BatchingProducer struct {
 }
 
 func NewBatchingProducer(publisher Publisher, topic string, opts ...BatchingProducerConfigOption) *BatchingProducer {
-	config := newBatchingProducerConfig(publisher.Cluster().Logger(), opts...)
+	config := newBatchingProducerConfig(publisher.Logger(), opts...)
 	p := &BatchingProducer{
 		config:    config,
 		topic:     topic,
@@ -195,13 +195,13 @@ func (p *BatchingProducer) Produce(ctx context.Context, message interface{}) (*P
 func (p *BatchingProducer) publishLoop(ctx context.Context) {
 	defer close(p.loopDone)
 
-	p.publisher.Cluster().ActorSystem.Logger.Debug("Producer is starting the publisher loop for topic", slog.String("topic", p.topic))
+	p.publisher.Logger().Debug("Producer is starting the publisher loop for topic", slog.String("topic", p.topic))
 	batchWrapper := newPubSubBatchWithReceipts()
 
 	handleUnrecoverableError := func(err error) {
 		p.stopAcceptingNewMessages()
 		if p.config.LogThrottle() == actor.Open {
-			p.publisher.Cluster().ActorSystem.Logger.Error("Error in the publisher loop of Producer for topic", slog.String("topic", p.topic), slog.Any("error", err))
+			p.publisher.Logger().Error("Error in the publisher loop of Producer for topic", slog.String("topic", p.topic), slog.Any("error", err))
 		}
 		p.failBatch(batchWrapper, err)
 		p.failPendingMessages(err)
@@ -364,7 +364,7 @@ loop:
 				}
 
 				if p.config.LogThrottle() == actor.Open {
-					p.publisher.Cluster().ActorSystem.Logger.Warn("Error while publishing batch", slog.Any("error", err))
+					p.publisher.Logger().Warn("Error while publishing batch", slog.Any("error", err))
 				}
 
 				if decision == FailBatchAndContinue {

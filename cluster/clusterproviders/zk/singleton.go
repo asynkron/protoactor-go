@@ -32,11 +32,12 @@ func (s *SingletonScheduler) FromProducer(f actor.Producer) *SingletonScheduler 
 }
 
 func (s *SingletonScheduler) OnRoleChanged(rt RoleType) {
+
 	s.Lock()
 	defer s.Unlock()
 	if rt == Follower {
 		if len(s.pids) > 0 {
-			plog.Info("I am follower, poison singleton actors")
+			s.root.Logger().Info("I am follower, poison singleton actors")
 			for _, pid := range s.pids {
 				s.root.Poison(pid)
 			}
@@ -44,7 +45,7 @@ func (s *SingletonScheduler) OnRoleChanged(rt RoleType) {
 		}
 	} else if rt == Leader {
 		if len(s.props) > 0 {
-			plog.Info("I am leader now, start singleton actors")
+			s.root.Logger().Info("I am leader now, start singleton actors")
 			s.pids = make([]*actor.PID, len(s.props))
 			for i, p := range s.props {
 				s.pids[i] = s.root.Spawn(p)

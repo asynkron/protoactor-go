@@ -8,7 +8,6 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
 	"github.com/stretchr/testify/suite"
 )
@@ -18,7 +17,7 @@ type ZookeeperTestSuite struct {
 }
 
 func (suite *ZookeeperTestSuite) SetupTest() {
-	plog.SetLevel(log.ErrorLevel)
+
 }
 
 func (suite *ZookeeperTestSuite) TearDownTest() {

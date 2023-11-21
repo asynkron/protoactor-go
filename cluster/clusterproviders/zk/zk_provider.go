@@ -320,7 +320,7 @@ func (p *Provider) startRoleChangedNotifyLoop() {
 		for !p.shutdown {
 			role := <-p.roleChangedChan
 			if lis := p.roleChangedListener; lis != nil {
-				safeRun(func() { lis.OnRoleChanged(role) })
+				safeRun(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
 			}
 		}
 	}()
