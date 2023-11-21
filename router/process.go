@@ -23,6 +23,12 @@ var _ actor.Process = &process{}
 
 func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
 	_, msg, _ := actor.UnwrapEnvelope(message)
+
+	// Add support for PoisonPill. Originally only Stop is supported.
+	if _, ok := msg.(*actor.PoisonPill); ok {
+		ref.Poison(pid)
+		return
+	}
 	if _, ok := msg.(ManagementMessage); !ok {
 		ref.state.RouteMessage(message)
 	} else {
@@ -82,6 +88,16 @@ func (ref *process) Stop(pid *actor.PID) {
 	}
 
 	_ = ref.actorSystem.Root.StopFuture(ref.router).Wait()
+	ref.actorSystem.ProcessRegistry.Remove(pid)
+	ref.SendSystemMessage(pid, &actor.Stop{})
+}
+
+func (ref *process) Poison(pid *actor.PID) {
+	if atomic.SwapInt32(&ref.stopping, 1) == 1 {
+		return
+	}
+
+	_ = ref.actorSystem.Root.PoisonFuture(ref.router).Wait()
 	ref.actorSystem.ProcessRegistry.Remove(pid)
 	ref.SendSystemMessage(pid, &actor.Stop{})
 }
