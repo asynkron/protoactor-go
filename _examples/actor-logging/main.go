@@ -23,18 +23,21 @@ func (state *helloActor) Receive(context actor.Context) {
 	}
 }
 
+// enable JSON logging
 func jsonLogging(system *actor.ActorSystem) *slog.Logger {
 	return slog.New(slog.NewJSONHandler(os.Stdout, nil)).
 		With("lib", "Proto.Actor").
 		With("system", system.ID)
 }
 
+// enable console logging
 func consoleLogging(system *actor.ActorSystem) *slog.Logger {
 	return slog.Default().
 		With("lib", "Proto.Actor").
 		With("system", system.ID)
 }
 
+// enable colored console logging
 func coloredConsoleLogging(system *actor.ActorSystem) *slog.Logger {
 	return slog.New(tint.NewHandler(os.Stdout, &tint.Options{
 		Level:      slog.LevelDebug,
@@ -44,6 +47,7 @@ func coloredConsoleLogging(system *actor.ActorSystem) *slog.Logger {
 		With("system", system.ID)
 }
 
+// enable Zap logging
 func zapAdapterLogging(system *actor.ActorSystem) *slog.Logger {
 	zapLogger, _ := zap.NewProduction()
 
