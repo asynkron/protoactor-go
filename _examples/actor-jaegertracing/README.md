@@ -21,8 +21,7 @@ go get -u github.com/uber/jaeger-client-go
 ```
 
 ## Running the Example
-1. Save the code in a file, for example, `main.go`.
-2. Execute the program:
+
 ```bash
 go run main.go
 ```

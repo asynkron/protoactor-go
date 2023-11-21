@@ -19,8 +19,7 @@ go get -u github.com/asynkron/protoactor-go
 ```
 
 ## Running the Example
-1. Save the code in a file, named `main.go`, for example.
-2. Execute the program with:
+
 ```bash
 go run main.go
 ```
