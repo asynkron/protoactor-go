@@ -1,5 +1,31 @@
-# Switchable Behaviors
+## AI Generated Content. Please report issues
 
+# Go Example: Behavior Switching in Actors with Proto.Actor
+
+## Introduction
+This Go example demonstrates behavior switching in actors using the Proto.Actor framework. It shows how an actor can change its behavior dynamically in response to messages.
+
+## Description
+The program defines a `SetBehaviorActor` with two behaviors: `One` and `Other`. Initially, the actor responds to a `Hello` message with the `One` behavior. Upon receiving a `Hello` message, it switches to the `Other` behavior for subsequent messages. This example illustrates the dynamic behavior capabilities of actors in Proto.Actor, allowing them to adapt their responses based on their state or received messages.
+
+## Setup
+Ensure the following are installed to run this example:
+- Go programming environment
+- Proto.Actor for Go
+
+Install Proto.Actor with:
+```bash
+go get -u github.com/asynkron/protoactor-go
+```
+
+## Running the Example
+
+```bash
+go run main.go
+```
+
+
+# Switchable Behaviors
 Actors have the power to switch their behaviors at any point in time. This is usually referred as *becoming something*,
 as in *the actor becomes busy* or *the actor becomes connected*.
 
@@ -22,47 +48,11 @@ The API to change behaviors is available to the actor instance is very simple:
   ones;
 * `UnbecomeStacked` - Reverts to the previous message handler from the stack (only works with PushBehavior);
 
-```go
-...
 
-type Hello struct{ Who string }
-type SetBehaviorActor struct {
-	behavior actor.Behavior
-}
+## Additional Notes
+- The `SetBehaviorActor` uses the `Behavior` type to switch between `One` and `Other`.
+- The actor starts with the `One` behavior and switches to `Other` after processing the first `Hello` message.
+- This technique is useful for creating flexible and stateful actors that can change their behavior during runtime.
+- The example is beneficial for developers looking to implement dynamic actor behaviors in their Go applications using Proto.Actor.
 
-func (state *SetBehaviorActor) Receive(context actor.Context) {
-	state.behavior.Receive(context)
-}
-
-func (state *SetBehaviorActor) One(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case Hello:
-		fmt.Printf("Hello %v\n", msg.Who)
-		state.behavior.Become(state.Other)
-	}
-}
-
-func (state *SetBehaviorActor) Other(context actor.Context) {
-	switch msg := context.Message().(type) {
-	case Hello:
-		fmt.Printf("%v, ey we are now handling messages in another behavior", msg.Who)
-	}
-}
-
-func NewSetBehaviorActor() actor.Actor {
-	act := &SetBehaviorActor{
-		behavior: actor.NewBehavior(),
-	}
-	act.behavior.Become(act.One)
-	return act
-}
-
-func main() {
-	rootContext := actor.EmptyRootContext
-	props := actor.PropsFromProducer(NewSetBehaviorActor)
-	pid, _ := rootContext.Spawn(props)
-	rootContext.Send(pid, Hello{Who: "Roger"})
-	rootContext.Send(pid, Hello{Who: "Roger"})
-	console.ReadLine()
-}
-```
+This example provides a comprehensive demonstration of behavior switching in actors within a Go application using the Proto.Actor framework.
