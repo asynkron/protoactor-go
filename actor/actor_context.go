@@ -648,9 +648,10 @@ func (ctx *actorContext) stopAllChildren() {
 		return
 	}
 
-	ctx.extras.children.ForEach(func(_ int, pid *PID) {
-		ctx.Stop(pid)
-	})
+	var pids = ctx.extras.children.pids
+	for i := len(pids) - 1; i >= 0; i-- {
+		pids[i].sendSystemMessage(ctx.actorSystem, stopMessage)
+	}
 }
 
 func (ctx *actorContext) tryRestartOrTerminate() {
