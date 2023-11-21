@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"runtime"
 	"testing"
-
-	"github.com/asynkron/protoactor-go/log"
 )
 
 func Benchmark_Rendezvous_Get(b *testing.B) {
-	SetLogLevel(log.ErrorLevel)
+
 	for _, v := range []int{1, 2, 3, 5, 10, 100, 1000, 2000} {
 		members := newMembersForTest(v)
 		ms := newDefaultMemberStrategy(nil, "kind").(*simpleMemberStrategy)

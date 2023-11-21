@@ -3,7 +3,7 @@ package disthash
 import (
 	"github.com/asynkron/protoactor-go/actor"
 	clustering "github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/log"
+	"log/slog"
 )
 
 type GrainMeta struct {
@@ -28,12 +28,12 @@ func newPlacementActor(c *clustering.Cluster, pm *Manager) *placementActor {
 func (p *placementActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
-		plog.Info("Placement actor started")
+		ctx.Logger().Info("Placement actor started")
 	case *actor.Stopping:
-		plog.Info("Placement actor stopping")
+		ctx.Logger().Info("Placement actor stopping")
 		p.onStopping(ctx)
 	case *actor.Stopped:
-		plog.Info("Placement actor stopped")
+		ctx.Logger().Info("Placement actor stopped")
 	case *actor.Terminated:
 		p.onTerminated(msg, ctx)
 	case *clustering.ActivationRequest:
@@ -41,7 +41,7 @@ func (p *placementActor) Receive(ctx actor.Context) {
 	case *clustering.ClusterTopology:
 		p.onClusterTopology(msg, ctx)
 	default:
-		plog.Error("Invalid message", log.TypeOf("type", msg), log.PID("sender", ctx.Sender()))
+		ctx.Logger().Error("Invalid message", slog.Any("message", msg), slog.Any("sender", ctx.Sender()))
 	}
 }
 
@@ -69,7 +69,7 @@ func (p *placementActor) onStopping(ctx actor.Context) {
 	for key, future := range futures {
 		err := future.Wait()
 		if err != nil {
-			plog.Error("Failed to poison actor", log.String("identity", key), log.Error(err))
+			ctx.Logger().Error("Failed to poison actor", slog.String("identity", key), slog.Any("error", err))
 		}
 	}
 }
@@ -87,7 +87,7 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 
 	clusterKind := p.cluster.GetClusterKind(msg.ClusterIdentity.Kind)
 	if clusterKind == nil {
-		plog.Error("Unknown cluster kind", log.String("kind", msg.ClusterIdentity.Kind))
+		ctx.Logger().Error("Unknown cluster kind", slog.String("kind", msg.ClusterIdentity.Kind))
 
 		// TODO: what to do here?
 		ctx.Respond(nil)
@@ -127,11 +127,11 @@ func (p *placementActor) onClusterTopology(msg *clustering.ClusterTopology, ctx 
 		ownerAddress := rdv.GetByIdentity(identity)
 		if ownerAddress == myAddress {
 
-			plog.Debug("Actor stays", log.String("identity", identity), log.String("owner", ownerAddress), log.String("me", myAddress))
+			ctx.Logger().Debug("Actor stays", slog.String("identity", identity), slog.String("owner", ownerAddress), slog.String("me", myAddress))
 			continue
 		}
 
-		plog.Debug("Actor moved", log.String("identity", identity), log.String("owner", ownerAddress), log.String("me", myAddress))
+		ctx.Logger().Debug("Actor moved", slog.String("identity", identity), slog.String("owner", ownerAddress), slog.String("me", myAddress))
 
 		ctx.Poison(meta.PID)
 	}

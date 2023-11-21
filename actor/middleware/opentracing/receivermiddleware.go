@@ -2,9 +2,9 @@ package opentracing
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -13,10 +13,10 @@ func ReceiverMiddleware() actor.ReceiverMiddleware {
 		return func(c actor.ReceiverContext, envelope *actor.MessageEnvelope) {
 			spanContext, err := opentracing.GlobalTracer().Extract(opentracing.TextMap, opentracing.TextMapReader(&messageHeaderReader{ReadOnlyMessageHeader: envelope.Header}))
 			if err == opentracing.ErrSpanContextNotFound {
-				logger.Debug("INBOUND No spanContext found", log.Stringer("PID", c.Self()), log.Error(err))
+				c.Logger().Debug("INBOUND No spanContext found", slog.Any("self", c.Self()), slog.Any("error", err))
 				// next(c)
 			} else if err != nil {
-				logger.Debug("INBOUND Error", log.Stringer("PID", c.Self()), log.Error(err))
+				c.Logger().Debug("INBOUND Error", slog.Any("self", c.Self()), slog.Any("error", err))
 				next(c, envelope)
 				return
 			}
@@ -26,9 +26,9 @@ func ReceiverMiddleware() actor.ReceiverMiddleware {
 				parentSpan := getAndClearParentSpan(c.Self())
 				if parentSpan != nil {
 					span = opentracing.StartSpan(fmt.Sprintf("%T/%T", c.Actor(), envelope.Message), opentracing.ChildOf(parentSpan.Context()))
-					logger.Debug("INBOUND Found parent span", log.Stringer("PID", c.Self()), log.TypeOf("ActorType", c.Actor()), log.TypeOf("MessageType", envelope.Message))
+					c.Logger().Debug("INBOUND Found parent span", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
 				} else {
-					logger.Debug("INBOUND No parent span", log.Stringer("PID", c.Self()), log.TypeOf("ActorType", c.Actor()), log.TypeOf("MessageType", envelope.Message))
+					c.Logger().Debug("INBOUND No parent span", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
 				}
 			case *actor.Stopping:
 				var parentSpan opentracing.Span
@@ -57,11 +57,11 @@ func ReceiverMiddleware() actor.ReceiverMiddleware {
 				return
 			}
 			if span == nil && spanContext == nil {
-				logger.Debug("INBOUND No spanContext. Starting new span", log.Stringer("PID", c.Self()), log.TypeOf("ActorType", c.Actor()), log.TypeOf("MessageType", envelope.Message))
+				c.Logger().Debug("INBOUND No spanContext. Starting new span", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
 				span = opentracing.StartSpan(fmt.Sprintf("%T/%T", c.Actor(), envelope.Message))
 			}
 			if span == nil {
-				logger.Debug("INBOUND Starting span from parent", log.Stringer("PID", c.Self()), log.TypeOf("ActorType", c.Actor()), log.TypeOf("MessageType", envelope.Message))
+				c.Logger().Debug("INBOUND Starting span from parent", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
 				span = opentracing.StartSpan(fmt.Sprintf("%T/%T", c.Actor(), envelope.Message), opentracing.ChildOf(spanContext))
 			}
 
@@ -71,7 +71,7 @@ func ReceiverMiddleware() actor.ReceiverMiddleware {
 			span.SetTag("MessageType", fmt.Sprintf("%T", envelope.Message))
 
 			defer func() {
-				logger.Debug("INBOUND Finishing span", log.Stringer("PID", c.Self()), log.TypeOf("ActorType", c.Actor()), log.TypeOf("MessageType", envelope.Message))
+				c.Logger().Debug("INBOUND Finishing span", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
 				span.Finish()
 				clearActiveSpan(c.Self())
 			}()

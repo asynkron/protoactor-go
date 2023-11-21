@@ -4,9 +4,8 @@ package actor
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
-
-	"github.com/asynkron/protoactor-go/log"
 
 	"github.com/asynkron/protoactor-go/extensions"
 	"github.com/asynkron/protoactor-go/metrics"
@@ -18,8 +17,9 @@ import (
 var extensionId = extensions.NextExtensionID()
 
 type Metrics struct {
-	metrics *metrics.ProtoMetrics
-	enabled bool
+	metrics     *metrics.ProtoMetrics
+	enabled     bool
+	actorSystem *ActorSystem
 }
 
 var _ extensions.Extension = &Metrics{}
@@ -32,14 +32,15 @@ func (m *Metrics) ExtensionID() extensions.ExtensionID {
 	return extensionId
 }
 
-func NewMetrics(provider metric.MeterProvider) *Metrics {
+func NewMetrics(system *ActorSystem, provider metric.MeterProvider) *Metrics {
 	if provider == nil {
 		return &Metrics{}
 	}
 
 	return &Metrics{
-		metrics: metrics.NewProtoMetrics(provider),
-		enabled: true,
+		metrics:     metrics.NewProtoMetrics(system.Logger),
+		enabled:     true,
+		actorSystem: system,
 	}
 }
 
@@ -50,7 +51,7 @@ func (m *Metrics) PrepareMailboxLengthGauge() {
 		metric.WithUnit("1"))
 	if err != nil {
 		err = fmt.Errorf("failed to create ActorMailBoxLength instrument, %w", err)
-		plog.Error(err.Error(), log.Error(err))
+		m.actorSystem.Logger.Error(err.Error(), slog.Any("error", err))
 	}
 	m.metrics.Instruments().SetActorMailboxLengthGauge(gauge)
 }

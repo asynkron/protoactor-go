@@ -2,6 +2,7 @@ package actor
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/protoactor-go/ctxext"
@@ -19,6 +20,10 @@ var (
 // mockContext
 type mockContext struct {
 	mock.Mock
+}
+
+func (m *mockContext) Logger() *slog.Logger {
+	return slog.Default()
 }
 
 //

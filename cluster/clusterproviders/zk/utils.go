@@ -2,11 +2,10 @@ package zk
 
 import (
 	"fmt"
+	"log/slog"
 	"runtime"
 	"strconv"
 	"strings"
-
-	"github.com/asynkron/protoactor-go/log"
 )
 
 func intToStr(i int) string {
@@ -55,10 +54,10 @@ func mapString(list []string, fn func(string) string) []string {
 	return l
 }
 
-func safeRun(fn func()) {
+func safeRun(logger *slog.Logger, fn func()) {
 	defer func() {
 		if r := recover(); r != nil {
-			plog.Warn("OnRoleChanged.", log.Error(fmt.Errorf("%v\n%s", r, string(getRunTimeStack()))))
+			logger.Warn("OnRoleChanged.", slog.Any("error", fmt.Errorf("%v\n%s", r, string(getRunTimeStack()))))
 		}
 	}()
 	fn()

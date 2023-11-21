@@ -3,10 +3,10 @@ package remote
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/log"
 )
 
 // Register a known actor props by name
@@ -87,7 +87,7 @@ func newActivatorActor(remote *Remote) actor.Producer {
 func (a *activator) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		plog.Info("Started Activator")
+		context.Logger().Info("Started Activator")
 	case *Ping:
 		context.Respond(&Pong{})
 	case *ActorPidRequest:
@@ -138,6 +138,6 @@ func (a *activator) Receive(context actor.Context) {
 	case actor.SystemMessage, actor.AutoReceiveMessage:
 		// ignore
 	default:
-		plog.Error("Activator received unknown message", log.TypeOf("type", msg), log.Message(msg))
+		context.Logger().Error("Activator received unknown message", slog.Any("message", msg))
 	}
 }

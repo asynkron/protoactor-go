@@ -10,7 +10,7 @@ func WithOnInit(init ...func(ctx Context)) PropsOption {
 
 func WithProducer(p Producer) PropsOption {
 	return func(props *Props) {
-		props.producer = p
+		props.producer = func(*ActorSystem) Actor { return p() }
 	}
 }
 
@@ -78,7 +78,7 @@ func WithSpawnFunc(spawn SpawnFunc) PropsOption {
 
 func WithFunc(f ReceiveFunc) PropsOption {
 	return func(props *Props) {
-		props.producer = func() Actor { return f }
+		props.producer = func(system *ActorSystem) Actor { return f }
 	}
 }
 
@@ -100,6 +100,17 @@ func WithSpawnMiddleware(middleware ...SpawnMiddleware) PropsOption {
 // PropsFromProducer creates a props with the given actor producer assigned.
 func PropsFromProducer(producer Producer, opts ...PropsOption) *Props {
 	p := &Props{
+		producer:         func(*ActorSystem) Actor { return producer() },
+		contextDecorator: make([]ContextDecorator, 0),
+	}
+	p.Configure(opts...)
+
+	return p
+}
+
+// PropsFromProducer creates a props with the given actor producer assigned.
+func PropsFromProducerWithActorSystem(producer ProducerWithActorSystem, opts ...PropsOption) *Props {
+	p := &Props{
 		producer:         producer,
 		contextDecorator: make([]ContextDecorator, 0),
 	}
@@ -116,7 +127,7 @@ func PropsFromFunc(f ReceiveFunc, opts ...PropsOption) *Props {
 }
 
 func (props *Props) Clone(opts ...PropsOption) *Props {
-	cp := PropsFromProducer(props.producer,
+	cp := PropsFromProducerWithActorSystem(props.producer,
 		WithDispatcher(props.dispatcher),
 		WithMailbox(props.mailboxProducer),
 		WithContextDecorator(props.contextDecorator...),

@@ -18,6 +18,9 @@ func main() {
 	console.ReadLine()
 	pid := c.Get("abc", "hello")
 	fmt.Printf("Got pid %v", pid)
+	res, _ := c.Request("abc", "hello", &actor.Touch{})
+	fmt.Printf("Got response %v", res)
+
 	fmt.Println()
 	console.ReadLine()
 	c.Shutdown(true)

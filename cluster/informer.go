@@ -4,13 +4,13 @@ package cluster
 
 import (
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"reflect"
 	"time"
 
 	"github.com/asynkron/gofun/set"
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/log"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -36,6 +36,7 @@ type Informer struct {
 	gossipFanOut      int
 	gossipMaxSend     int
 	throttler         actor.ShouldThrottle
+	logger            *slog.Logger
 }
 
 // makes sure Informer complies with the Gossip interface
@@ -43,7 +44,7 @@ var _ Gossip = (*Informer)(nil)
 
 // Creates a new Informer value with the given properties and returns
 // back a pointer to its memory location in the heap
-func newInformer(myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int) *Informer {
+func newInformer(myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int, logger *slog.Logger) *Informer {
 	informer := Informer{
 		myID: myID,
 		state: &GossipState{
@@ -56,6 +57,7 @@ func newInformer(myID string, getBlockedMembers func() set.Set[string], fanOut i
 		getBlockedMembers: getBlockedMembers,
 		gossipFanOut:      fanOut,
 		gossipMaxSend:     maxSend,
+		logger:            logger,
 	}
 	informer.throttler = actor.NewThrottle(3, 60*time.Second, informer.throttledLog)
 	return &informer
@@ -96,7 +98,7 @@ func (inf *Informer) SetState(key string, message proto.Message) {
 	//}
 
 	if _, ok := inf.state.Members[inf.myID]; !ok {
-		plog.Error("State corrupt")
+		inf.logger.Error("State corrupt")
 	}
 
 	inf.checkConsensusKey(key)
@@ -288,5 +290,5 @@ func (inf *Informer) commitPendingOffsets(offsets map[string]int64) {
 }
 
 func (inf *Informer) throttledLog(counter int32) {
-	plog.Debug("[Gossip] Setting State", log.Int("throttled", int(counter)))
+	inf.logger.Debug("[Gossip] Setting State", slog.Int("throttled", int(counter)))
 }

@@ -38,6 +38,8 @@ require (
 	k8s.io/client-go v0.26.1
 )
 
+require github.com/lmittmann/tint v1.0.3
+
 require (
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

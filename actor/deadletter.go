@@ -3,9 +3,9 @@ package actor
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -23,7 +23,7 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 	}
 
 	shouldThrottle := NewThrottle(actorSystem.Config.DeadLetterThrottleCount, actorSystem.Config.DeadLetterThrottleInterval, func(i int32) {
-		plog.Info("[DeadLetter]", log.Int64("throttled", int64(i)))
+		actorSystem.Logger.Info("[DeadLetter]", slog.Int64("throttled", int64(i)))
 	})
 
 	actorSystem.ProcessRegistry.Add(dp, "deadletter")
@@ -42,7 +42,7 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 
 			if _, isIgnoreDeadLetter := deadLetter.Message.(IgnoreDeadLetterLogging); !isIgnoreDeadLetter {
 				if shouldThrottle() == Open {
-					plog.Debug("[DeadLetter]", log.Stringer("pid", deadLetter.PID), log.TypeOf("msg", deadLetter.Message), log.Stringer("sender", deadLetter.Sender))
+					actorSystem.Logger.Debug("[DeadLetter]", slog.Any("pid", deadLetter.PID), slog.Any("message", deadLetter.Message), slog.Any("sender", deadLetter.Sender))
 				}
 			}
 		}

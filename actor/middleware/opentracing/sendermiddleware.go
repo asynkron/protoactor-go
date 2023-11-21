@@ -2,8 +2,8 @@ package opentracing
 
 import (
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/opentracing/opentracing-go"
+	"log/slog"
 )
 
 func SenderMiddleware() actor.SenderMiddleware {
@@ -12,19 +12,19 @@ func SenderMiddleware() actor.SenderMiddleware {
 			span := getActiveSpan(c.Self())
 
 			if span == nil {
-				logger.Debug("OUTBOUND No active span", log.Stringer("PID", c.Self()), log.TypeOf("ActorType", c.Actor()), log.TypeOf("MessageType", envelope.Message))
+				c.Logger().Debug("OUTBOUND No active span", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
 				next(c, target, envelope)
 				return
 			}
 
 			err := opentracing.GlobalTracer().Inject(span.Context(), opentracing.TextMap, opentracing.TextMapWriter(&messageEnvelopeWriter{MessageEnvelope: envelope}))
 			if err != nil {
-				logger.Debug("OUTBOUND Error injecting", log.Stringer("PID", c.Self()), log.TypeOf("ActorType", c.Actor()), log.TypeOf("MessageType", envelope.Message))
+				c.Logger().Debug("OUTBOUND Error injecting", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
 				next(c, target, envelope)
 				return
 			}
 
-			logger.Debug("OUTBOUND Successfully injected", log.Stringer("PID", c.Self()), log.TypeOf("ActorType", c.Actor()), log.TypeOf("MessageType", envelope.Message))
+			c.Logger().Debug("OUTBOUND Successfully injected", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
 			next(c, target, envelope)
 		}
 	}

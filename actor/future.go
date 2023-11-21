@@ -3,12 +3,12 @@ package actor
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
 
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -27,7 +27,7 @@ func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
 
 	pid, ok := actorSystem.ProcessRegistry.Add(ref, "future"+id)
 	if !ok {
-		plog.Error("failed to register future process", log.Stringer("pid", pid))
+		actorSystem.Logger.Error("failed to register future process", slog.Any("pid", pid))
 	}
 
 	sysMetrics, ok := actorSystem.Extensions.Get(extensionId).(*Metrics)

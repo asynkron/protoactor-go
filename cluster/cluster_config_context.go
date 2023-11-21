@@ -3,7 +3,6 @@
 package cluster
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -17,28 +16,7 @@ const (
 
 // ClusterContextConfig is used to configure cluster context parameters
 type ClusterContextConfig struct {
-	ActorRequestTimeout                          time.Duration
 	RequestsLogThrottlePeriod                    time.Duration
 	MaxNumberOfEventsInRequestLogThrottledPeriod int
-	RetryAction                                  func(int) int
 	requestLogThrottle                           actor.ShouldThrottle
-}
-
-// NewDefaultClusterContextConfig creates a mew ClusterContextConfig with default
-// values and returns a pointer to its memory address
-func NewDefaultClusterContextConfig() *ClusterContextConfig {
-	config := ClusterContextConfig{
-		ActorRequestTimeout:                          defaultActorRequestTimeout,
-		RequestsLogThrottlePeriod:                    defaultRequestsLogThrottlePeriod,
-		MaxNumberOfEventsInRequestLogThrottledPeriod: defaultMaxNumberOfEvetsInRequestLogThrottledPeriod,
-		RetryAction: defaultRetryAction,
-		requestLogThrottle: actor.NewThrottle(
-			int32(defaultMaxNumberOfEvetsInRequestLogThrottledPeriod),
-			defaultRequestsLogThrottlePeriod,
-			func(i int32) {
-				plog.Info(fmt.Sprintf("Throttled %d Request logs", i))
-			},
-		),
-	}
-	return &config
 }

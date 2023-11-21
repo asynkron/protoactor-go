@@ -1,24 +1,24 @@
 package cluster
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
 )
 
-var pubsubMemberDeliveryLogThrottle = actor.NewThrottle(10, time.Second, func(i int32) {
-	plog.Warn("[PubSubMemberDeliveryActor] Throttled logs", log.Int("count", int(i)))
-})
-
 type PubSubMemberDeliveryActor struct {
 	subscriberTimeout time.Duration
+	shouldThrottle    actor.ShouldThrottle
 }
 
-func NewPubSubMemberDeliveryActor(subscriberTimeout time.Duration) *PubSubMemberDeliveryActor {
+func NewPubSubMemberDeliveryActor(subscriberTimeout time.Duration, logger *slog.Logger) *PubSubMemberDeliveryActor {
 	return &PubSubMemberDeliveryActor{
 		subscriberTimeout: subscriberTimeout,
+		shouldThrottle: actor.NewThrottleWithLogger(logger, 10, time.Second, func(logger *slog.Logger, i int32) {
+			logger.Warn("[PubSubMemberDeliveryActor] Throttled logs", slog.Int("count", int(i)))
+		}),
 	}
 }
 
@@ -44,11 +44,11 @@ func (p *PubSubMemberDeliveryActor) Receive(c actor.Context) {
 		for _, fWithIdentity := range futureList {
 			_, err := fWithIdentity.future.Result()
 			identityLog := func(err error) {
-				if pubsubMemberDeliveryLogThrottle() == actor.Open {
+				if p.shouldThrottle() == actor.Open {
 					if fWithIdentity.identity.GetPid() != nil {
-						plog.Info("Pub-sub message delivered to PID", log.String("pid", fWithIdentity.identity.GetPid().String()))
+						c.Logger().Info("Pub-sub message delivered to PID", slog.String("pid", fWithIdentity.identity.GetPid().String()))
 					} else if fWithIdentity.identity.GetClusterIdentity() != nil {
-						plog.Info("Pub-sub message delivered to cluster identity", log.String("cluster identity", fWithIdentity.identity.GetClusterIdentity().String()))
+						c.Logger().Info("Pub-sub message delivered to cluster identity", slog.String("cluster identity", fWithIdentity.identity.GetClusterIdentity().String()))
 					}
 				}
 			}
@@ -75,7 +75,7 @@ func (p *PubSubMemberDeliveryActor) Receive(c actor.Context) {
 		if len(invalidDeliveries) > 0 {
 			cluster := GetCluster(c.ActorSystem())
 			// we use cluster.Call to locate the topic actor in the cluster
-			_, _ = cluster.Call(batch.Topic, TopicActorKind, &NotifyAboutFailingSubscribersRequest{InvalidDeliveries: invalidDeliveries})
+			_, _ = cluster.Request(batch.Topic, TopicActorKind, &NotifyAboutFailingSubscribersRequest{InvalidDeliveries: invalidDeliveries})
 		}
 	}
 }

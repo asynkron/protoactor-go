@@ -2,11 +2,11 @@ package cluster
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/eventstream"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -42,7 +42,7 @@ func NewMemberList(cluster *Cluster) *MemberList {
 			// and merge that without own blocked set
 			var topology ClusterTopology
 			if err := t.Value.UnmarshalTo(&topology); err != nil {
-				plog.Warn("could not unpack into ClusterTopology proto.Message form Any", log.Error(err))
+				cluster.ActorSystem.Logger.Warn("could not unpack into ClusterTopology proto.Message form Any", slog.Any("error", err))
 
 				break
 			}
@@ -62,7 +62,7 @@ func (ml *MemberList) InitializeTopologyConsensus() {
 	ml.topologyConsensus = ml.cluster.Gossip.RegisterConsensusCheck("topology", func(any *anypb.Any) interface{} {
 		var topology ClusterTopology
 		if unpackErr := any.UnmarshalTo(&topology); unpackErr != nil {
-			plog.Error("could not unpack topology message", log.Error(unpackErr))
+			ml.cluster.Logger().Error("could not unpack topology message", slog.Any("error", unpackErr))
 
 			return nil
 		}
@@ -159,17 +159,17 @@ func (ml *MemberList) UpdateClusterTopology(members Members) {
 
 	ml.cluster.ActorSystem.EventStream.Publish(topology)
 
-	plog.Info("Updated ClusterTopology",
-		log.Uint64("topology-hash", topology.TopologyHash),
-		log.Int("members", len(topology.Members)),
-		log.Int("joined", len(topology.Joined)),
-		log.Int("left", len(topology.Left)),
-		log.Int("blocked", len(topology.Blocked)),
-		log.Int("membersFromProvider", len(members)))
+	ml.cluster.Logger().Info("Updated ClusterTopology",
+		slog.Uint64("topology-hash", topology.TopologyHash),
+		slog.Int("members", len(topology.Members)),
+		slog.Int("joined", len(topology.Joined)),
+		slog.Int("left", len(topology.Left)),
+		slog.Int("blocked", len(topology.Blocked)),
+		slog.Int("membersFromProvider", len(members)))
 }
 
 func (ml *MemberList) memberJoin(joiningMember *Member) {
-	plog.Info("member joined", log.String("member", joiningMember.Id))
+	ml.cluster.Logger().Info("member joined", slog.String("member", joiningMember.Id))
 
 	for _, kind := range joiningMember.Kinds {
 		if ml.memberStrategyByKind[kind] == nil {
@@ -240,7 +240,7 @@ func (ml *MemberList) ContainsMemberID(memberID string) bool {
 }
 
 func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {
-	plog.Info("creating member strategy", log.String("kind", kind))
+	ml.cluster.Logger().Info("creating member strategy", slog.String("kind", kind))
 
 	clusterKind, ok := ml.cluster.TryGetClusterKind(kind)
 

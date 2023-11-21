@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -20,6 +21,8 @@ type Publisher interface {
 
 	// Publish publishes a single message to the topic.
 	Publish(ctx context.Context, topic string, message interface{}, opts ...GrainCallOption) (*PublishResponse, error)
+
+	Logger() *slog.Logger
 }
 
 type defaultPublisher struct {
@@ -32,12 +35,16 @@ func NewPublisher(cluster *Cluster) Publisher {
 	}
 }
 
+func (p *defaultPublisher) Logger() *slog.Logger {
+	return p.cluster.Logger()
+}
+
 func (p *defaultPublisher) Initialize(ctx context.Context, topic string, config PublisherConfig) (*Acknowledge, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
-		res, err := p.cluster.Call(topic, TopicActorKind, &Initialize{
+		res, err := p.cluster.Request(topic, TopicActorKind, &Initialize{
 			IdleTimeout: durationpb.New(config.IdleTimeout),
 		})
 		if err != nil {
@@ -52,7 +59,7 @@ func (p *defaultPublisher) PublishBatch(ctx context.Context, topic string, batch
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
-		res, err := p.cluster.Call(topic, TopicActorKind, batch, opts...)
+		res, err := p.cluster.Request(topic, TopicActorKind, batch, opts...)
 		if err != nil {
 			return nil, err
 		}

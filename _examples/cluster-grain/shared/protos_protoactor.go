@@ -4,26 +4,20 @@ package shared
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
-	logmod "github.com/asynkron/protoactor-go/log"
 	"google.golang.org/protobuf/proto"
 )
 
 var (
-	plog = logmod.New(logmod.InfoLevel, "[GRAIN][shared]")
-	_    = proto.Marshal
-	_    = fmt.Errorf
-	_    = math.Inf
+	_ = proto.Marshal
+	_ = fmt.Errorf
+	_ = math.Inf
 )
-
-// SetLogLevel sets the log level.
-func SetLogLevel(level logmod.Level) {
-	plog.SetLevel(level)
-}
 
 var xHelloFactory func() Hello
 
@@ -87,7 +81,7 @@ func (g *HelloGrainClient) SayHello(r *HelloRequest, opts ...cluster.GrainCallOp
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	resp, err := g.cluster.Call(g.Identity, "Hello", reqMsg, opts...)
+	resp, err := g.cluster.Request(g.Identity, "Hello", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +110,7 @@ type HelloActor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *HelloActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started: // pass
+	case *actor.Started: //pass
 	case *cluster.ClusterInit:
 		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = xHelloFactory()
@@ -138,7 +132,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			req := &HelloRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				plog.Error("SayHello(HelloRequest) proto.Unmarshal failed.", logmod.Error(err))
+				ctx.Logger().Error("[Grain] SayHello(HelloRequest) proto.Unmarshal failed.", slog.Any("error", err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 				return
@@ -151,13 +145,14 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			}
 			bytes, err := proto.Marshal(r0)
 			if err != nil {
-				plog.Error("SayHello(HelloRequest) proto.Marshal failed", logmod.Error(err))
+				ctx.Logger().Error("[Grain] SayHello(HelloRequest) proto.Marshal failed", slog.Any("error", err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 				return
 			}
 			resp := &cluster.GrainResponse{MessageData: bytes}
 			ctx.Respond(resp)
+
 		}
 	default:
 		a.inner.ReceiveDefault(a.ctx)

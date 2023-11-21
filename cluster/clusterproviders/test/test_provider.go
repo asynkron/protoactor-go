@@ -1,11 +1,11 @@
 package test
 
 import (
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/log"
 	"golang.org/x/exp/maps"
 )
 
@@ -48,6 +48,7 @@ type Provider struct {
 	agent           *InMemAgent
 	id              string
 	ttlReportTicker *time.Ticker
+	cluster         *cluster.Cluster
 }
 
 func NewTestProvider(agent *InMemAgent, options ...ProviderOption) *Provider {
@@ -66,13 +67,15 @@ func NewTestProvider(agent *InMemAgent, options ...ProviderOption) *Provider {
 }
 
 func (t *Provider) StartMember(c *cluster.Cluster) error {
-	plog.Debug("start cluster member")
+
+	c.ActorSystem.Logger.Debug("start cluster member")
 	t.memberList = c.MemberList
 	host, port, err := c.ActorSystem.GetHostPort()
 	if err != nil {
 		return err
 	}
 	kinds := c.GetClusterKinds()
+	t.cluster = c
 	t.id = c.ActorSystem.ID
 	t.startTtlReport()
 	t.agent.SubscribeStatusUpdate(t.notifyStatuses)
@@ -89,7 +92,7 @@ func (t *Provider) StartClient(cluster *cluster.Cluster) error {
 }
 
 func (t *Provider) Shutdown(_ bool) error {
-	plog.Debug("Unregistering service", log.String("service", t.id))
+	t.cluster.Logger().Debug("Unregistering service", slog.String("service", t.id))
 	if t.ttlReportTicker != nil {
 		t.ttlReportTicker.Stop()
 	}
@@ -101,7 +104,7 @@ func (t *Provider) Shutdown(_ bool) error {
 func (t *Provider) notifyStatuses() {
 	statuses := t.agent.GetStatusHealth()
 
-	plog.Debug("TestAgent response", log.Object("statuses", statuses))
+	t.cluster.Logger().Debug("TestAgent response", slog.Any("statuses", statuses))
 	members := make([]*cluster.Member, 0, len(statuses))
 	for _, status := range statuses {
 		copiedKinds := make([]string, 0, len(status.Kinds))

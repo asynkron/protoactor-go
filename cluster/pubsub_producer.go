@@ -1,13 +1,13 @@
 package cluster
 
 import (
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/internal/queue/mpsc"
-	"github.com/asynkron/protoactor-go/log"
 	"golang.org/x/net/context"
 )
 
@@ -40,18 +40,16 @@ type BatchingProducerConfig struct {
 	PublisherIdleTimeout time.Duration
 }
 
-var defaultBatchingProducerLogThrottle = actor.NewThrottle(10, time.Second, func(i int32) {
-	plog.Info("[BatchingProducer] Throttled logs", log.Int("count", int(i)))
-})
-
-func newBatchingProducerConfig(opts ...BatchingProducerConfigOption) *BatchingProducerConfig {
+func newBatchingProducerConfig(logger *slog.Logger, opts ...BatchingProducerConfigOption) *BatchingProducerConfig {
 	config := &BatchingProducerConfig{
 		BatchSize:      2000,
 		PublishTimeout: 5 * time.Second,
 		OnPublishingError: func(retries int, e error, batch *PubSubBatch) *PublishingErrorDecision {
 			return FailBatchAndStop
 		},
-		LogThrottle: defaultBatchingProducerLogThrottle,
+		LogThrottle: actor.NewThrottleWithLogger(logger, 10, time.Second, func(logger *slog.Logger, i int32) {
+			logger.Info("[BatchingProducer] Throttled logs", slog.Int("count", int(i)))
+		}),
 	}
 
 	for _, opt := range opts {
@@ -72,7 +70,7 @@ type BatchingProducer struct {
 }
 
 func NewBatchingProducer(publisher Publisher, topic string, opts ...BatchingProducerConfigOption) *BatchingProducer {
-	config := newBatchingProducerConfig(opts...)
+	config := newBatchingProducerConfig(publisher.Logger(), opts...)
 	p := &BatchingProducer{
 		config:    config,
 		topic:     topic,
@@ -197,13 +195,13 @@ func (p *BatchingProducer) Produce(ctx context.Context, message interface{}) (*P
 func (p *BatchingProducer) publishLoop(ctx context.Context) {
 	defer close(p.loopDone)
 
-	plog.Debug("Producer is starting the publisher loop for topic", log.String("topic", p.topic))
+	p.publisher.Logger().Debug("Producer is starting the publisher loop for topic", slog.String("topic", p.topic))
 	batchWrapper := newPubSubBatchWithReceipts()
 
 	handleUnrecoverableError := func(err error) {
 		p.stopAcceptingNewMessages()
 		if p.config.LogThrottle() == actor.Open {
-			plog.Error("Error in the publisher loop of Producer for topic", log.String("topic", p.topic), log.Error(err))
+			p.publisher.Logger().Error("Error in the publisher loop of Producer for topic", slog.String("topic", p.topic), slog.Any("error", err))
 		}
 		p.failBatch(batchWrapper, err)
 		p.failPendingMessages(err)
@@ -366,7 +364,7 @@ loop:
 				}
 
 				if p.config.LogThrottle() == actor.Open {
-					plog.Warn("Error while publishing batch", log.Error(err))
+					p.publisher.Logger().Warn("Error while publishing batch", slog.Any("error", err))
 				}
 
 				if decision == FailBatchAndContinue {

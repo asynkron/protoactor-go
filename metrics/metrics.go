@@ -4,10 +4,8 @@ package metrics
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
-
-	"github.com/asynkron/protoactor-go/log"
-	"go.opentelemetry.io/otel/metric"
 )
 
 const InternalActorMetrics string = "internal.actor.metrics"
@@ -16,12 +14,14 @@ type ProtoMetrics struct {
 	mu           sync.Mutex
 	actorMetrics *ActorMetrics
 	knownMetrics map[string]*ActorMetrics
+	logger       *slog.Logger
 }
 
-func NewProtoMetrics(provider metric.MeterProvider) *ProtoMetrics {
+func NewProtoMetrics(logger *slog.Logger) *ProtoMetrics {
 	protoMetrics := ProtoMetrics{
-		actorMetrics: NewActorMetrics(),
+		actorMetrics: NewActorMetrics(logger),
 		knownMetrics: make(map[string]*ActorMetrics),
+		logger:       logger,
 	}
 
 	protoMetrics.Register(InternalActorMetrics, protoMetrics.actorMetrics)
@@ -33,10 +33,11 @@ func (pm *ProtoMetrics) Instruments() *ActorMetrics { return pm.actorMetrics }
 func (pm *ProtoMetrics) Register(key string, instance *ActorMetrics) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
+	logger := pm.logger
 
 	if _, ok := pm.knownMetrics[key]; ok {
 		err := fmt.Errorf("could not register instance %#v of metrics, %s already registered", instance, key)
-		plog.Error(err.Error(), log.Error(err))
+		logger.Error(err.Error(), slog.Any("error", err))
 		return
 	}
 
@@ -46,8 +47,9 @@ func (pm *ProtoMetrics) Register(key string, instance *ActorMetrics) {
 func (pm *ProtoMetrics) Get(key string) *ActorMetrics {
 	metrics, ok := pm.knownMetrics[key]
 	if !ok {
+		logger := pm.logger
 		err := fmt.Errorf("unknown metrics for the given %s key", key)
-		plog.Error(err.Error(), log.Error(err))
+		logger.Error(err.Error(), slog.Any("error", err))
 		return nil
 	}
 

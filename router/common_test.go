@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/protoactor-go/ctxext"
@@ -22,6 +23,11 @@ func init() {
 // mockContext
 type mockContext struct {
 	mock.Mock
+}
+
+func (m *mockContext) Logger() *slog.Logger {
+	//TODO implement me
+	panic("implement me")
 }
 
 //

@@ -8,7 +8,6 @@ import (
 
 	"github.com/asynkron/protoactor-go/internal/queue/goring"
 	"github.com/asynkron/protoactor-go/internal/queue/mpsc"
-	"github.com/asynkron/protoactor-go/log"
 )
 
 const (
@@ -80,7 +79,6 @@ func (m *endpointWriterMailbox) run() {
 	var msg interface{}
 	defer func() {
 		if r := recover(); r != nil {
-			plog.Info("[ACTOR] Recovering", log.Object("actor", m.invoker), log.Object("reason", r), log.Stack())
 			m.invoker.EscalateFailure(r, msg)
 		}
 	}()

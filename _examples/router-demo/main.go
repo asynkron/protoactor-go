@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -23,7 +24,7 @@ func main() {
 	act := func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *myMessage:
-			log.Printf("%v got message %d", context.Self(), msg.i)
+			context.Logger().Info("got message", slog.Any("self", context.Self()), slog.Any("message", msg))
 		}
 	}
 

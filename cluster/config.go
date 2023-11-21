@@ -1,7 +1,7 @@
 package cluster
 
 import (
-	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -60,17 +60,17 @@ func Configure(clusterName string, clusterProvider ClusterProvider, identityLook
 
 // ToClusterContextConfig converts this cluster Config Context parameters
 // into a valid ClusterContextConfig value and returns a pointer to its memory
-func (c *Config) ToClusterContextConfig() *ClusterContextConfig {
+func (c *Config) ToClusterContextConfig(logger *slog.Logger) *ClusterContextConfig {
 	clusterContextConfig := ClusterContextConfig{
-		ActorRequestTimeout:                          c.RequestTimeoutTime,
+
 		RequestsLogThrottlePeriod:                    c.RequestsLogThrottlePeriod,
 		MaxNumberOfEventsInRequestLogThrottledPeriod: c.MaxNumberOfEventsInRequestLogThrottledPeriod,
-		RetryAction: defaultRetryAction,
-		requestLogThrottle: actor.NewThrottle(
+
+		requestLogThrottle: actor.NewThrottleWithLogger(logger,
 			int32(defaultMaxNumberOfEvetsInRequestLogThrottledPeriod),
 			defaultRequestsLogThrottlePeriod,
-			func(i int32) {
-				plog.Info(fmt.Sprintf("Throttled %d Request logs", i))
+			func(logger *slog.Logger, i int32) {
+				logger.Info("Throttled %d Request logs", slog.Int("count", int(i)))
 			},
 		),
 	}

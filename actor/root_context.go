@@ -1,6 +1,7 @@
 package actor
 
 import (
+	"log/slog"
 	"time"
 )
 
@@ -38,6 +39,10 @@ func (rc RootContext) Copy() *RootContext {
 
 func (rc *RootContext) ActorSystem() *ActorSystem {
 	return rc.actorSystem
+}
+
+func (rc *RootContext) Logger() *slog.Logger {
+	return rc.actorSystem.Logger
 }
 
 func (rc *RootContext) WithHeaders(headers map[string]string) *RootContext {

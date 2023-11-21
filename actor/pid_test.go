@@ -13,7 +13,6 @@ func (sl *ShortLivingActor) Receive(Context) {
 }
 
 func TestStopFuture(t *testing.T) {
-	plog.Debug("hello world")
 
 	ID := "UniqueID"
 	{

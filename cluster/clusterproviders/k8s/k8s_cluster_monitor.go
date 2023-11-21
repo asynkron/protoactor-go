@@ -1,10 +1,10 @@
 package k8s
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/scheduler"
 )
 
@@ -24,28 +24,28 @@ func (kcm *k8sClusterMonitorActor) init(ctx actor.Context) {
 		timeout := getTimeout(ctx, kcm)
 
 		if err := kcm.registerMember(timeout); err != nil {
-			plog.Error("Failed to register service to k8s, will retry", log.Error(err))
+			ctx.Logger().Error("Failed to register service to k8s, will retry", slog.Any("error", err))
 			ctx.Send(ctx.Self(), r)
 			return
 		}
-		plog.Info("Registered service to k8s")
+		ctx.Logger().Info("Registered service to k8s")
 	case *DeregisterMember:
-		plog.Debug("Deregistering service from k8s")
+		ctx.Logger().Debug("Deregistering service from k8s")
 		timeout := getTimeout(ctx, kcm)
 
 		if err := kcm.deregisterMember(timeout); err != nil {
-			plog.Error("Failed to deregister service from k8s, proceeding with shutdown", log.Error(err))
+			ctx.Logger().Error("Failed to deregister service from k8s, proceeding with shutdown", slog.Any("error", err))
 		} else {
-			plog.Info("Deregistered service from k8s")
+			ctx.Logger().Info("Deregistered service from k8s")
 		}
 		ctx.Respond(&DeregisterMemberResponse{})
 	case *StartWatchingCluster:
 		if err := kcm.startWatchingCluster(); err != nil {
-			plog.Error("Failed to start watching k8s cluster, will retry", log.Error(err))
+			ctx.Logger().Error("Failed to start watching k8s cluster, will retry", slog.Any("error", err))
 			ctx.Send(ctx.Self(), r)
 			return
 		}
-		plog.Info("k8s cluster started to being watched")
+		ctx.Logger().Info("k8s cluster started to being watched")
 	case *StopWatchingCluster:
 		if kcm.cancelWatch != nil {
 			kcm.cancelWatch()

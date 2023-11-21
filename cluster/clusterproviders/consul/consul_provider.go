@@ -2,13 +2,13 @@ package consul
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 
 	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -87,7 +87,7 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 		return newProviderActor(p)
 	}), "consul-provider")
 	if err != nil {
-		plog.Error("Failed to start consul-provider actor", log.Error(err))
+		p.cluster.Logger().Error("Failed to start consul-provider actor", slog.Any("error", err))
 		return err
 	}
 
@@ -120,7 +120,7 @@ func (p *Provider) Shutdown(graceful bool) error {
 	p.shutdown = true
 	if p.pid != nil {
 		if err := p.cluster.ActorSystem.Root.StopFuture(p.pid).Wait(); err != nil {
-			plog.Error("Failed to stop consul-provider actor", log.Error(err))
+			p.cluster.Logger().Error("Failed to stop consul-provider actor", slog.Any("error", err))
 		}
 		p.pid = nil
 	}
@@ -165,10 +165,10 @@ func (p *Provider) notifyStatuses() {
 		WaitIndex: p.index,
 		WaitTime:  p.blockingWaitTime,
 	})
-	plog.Info("Consul health check")
+	p.cluster.Logger().Info("Consul health check")
 
 	if err != nil {
-		plog.Error("notifyStatues", log.Error(err))
+		p.cluster.Logger().Error("notifyStatues", slog.Any("error", err))
 		return
 	}
 	p.index = meta.LastIndex
@@ -179,7 +179,7 @@ func (p *Provider) notifyStatuses() {
 			memberId := v.Service.Meta["id"]
 			if memberId == "" {
 				memberId = fmt.Sprintf("%v@%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
-				plog.Info("meta['id'] was empty, fixeds", log.String("id", memberId))
+				p.cluster.Logger().Info("meta['id'] was empty, fixeds", slog.String("id", memberId))
 			}
 			members = append(members, &cluster.Member{
 				Id:    memberId,

@@ -3,11 +3,11 @@
 package cluster
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/asynkron/gofun/set"
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/log"
 )
 
 // convenience customary type to represent an empty value
@@ -24,13 +24,18 @@ type GossipActor struct {
 }
 
 // Creates a new GossipActor and returns a pointer to its location in the heap
-func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int) *GossipActor {
-	informer := newInformer(myID, getBlockedMembers, fanOut, maxSend)
+func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int, system *actor.ActorSystem) *GossipActor {
+
+	logger := system.Logger
+	informer := newInformer(myID, getBlockedMembers, fanOut, maxSend, logger)
 	gossipActor := GossipActor{
 		gossipRequestTimeout: requestTimeout,
 		gossip:               informer,
 	}
-	gossipActor.throttler = actor.NewThrottle(3, 60*time.Second, gossipActor.throttledLog)
+
+	gossipActor.throttler = actor.NewThrottleWithLogger(logger, 3, 60*time.Second, func(logger *slog.Logger, counter int32) {
+		logger.Debug("[Gossip] Sending GossipRequest", slog.Int("throttled", int(counter)))
+	})
 
 	return &gossipActor
 }
@@ -55,9 +60,9 @@ func (ga *GossipActor) Receive(ctx actor.Context) {
 	case *ClusterTopology:
 		ga.onClusterTopology(r)
 	case *GossipResponse:
-		plog.Error("GossipResponse should not be received by GossipActor") // it should be a response to a request
+		ctx.Logger().Error("GossipResponse should not be received by GossipActor") // it should be a response to a request
 	default:
-		plog.Warn("Gossip received unknown message request", log.Message(r), log.TypeOf("msg_type", r))
+		ctx.Logger().Warn("Gossip received unknown message request", slog.Any("message", r))
 	}
 }
 
@@ -81,12 +86,12 @@ func (ga *GossipActor) onGetGossipStateKey(r *GetGossipStateRequest, ctx actor.C
 
 func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 	if ga.throttler() == actor.Open {
-		plog.Debug("OnGossipRequest", log.PID("sender", ctx.Sender()))
+		ctx.Logger().Debug("OnGossipRequest", slog.Any("sender", ctx.Sender()))
 	}
 	ga.ReceiveState(r.State, ctx)
 
 	if !GetCluster(ctx.ActorSystem()).MemberList.ContainsMemberID(r.MemberId) {
-		plog.Warn("Got gossip request from unknown member", log.String("MemberId", r.MemberId))
+		ctx.Logger().Warn("Got gossip request from unknown member", slog.String("MemberId", r.MemberId))
 
 		// nothing to send, do not provide sender or state payload
 		// ctx.Respond(&GossipResponse{State: &GossipState{Members: make(map[string]*GossipState_GossipMemberState)}})
@@ -97,7 +102,7 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 
 	memberState := ga.gossip.GetMemberStateDelta(r.MemberId)
 	if !memberState.HasState {
-		plog.Warn("Got gossip request from member, but no state was found", log.String("MemberId", r.MemberId))
+		ctx.Logger().Warn("Got gossip request from member, but no state was found", slog.String("MemberId", r.MemberId))
 
 		// nothing to send, do not provide sender or state payload
 		ctx.Respond(&GossipResponse{})
@@ -164,7 +169,7 @@ func (ga *GossipActor) ReceiveState(remoteState *GossipState, ctx actor.Context)
 func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *MemberStateDelta, ctx actor.Context) {
 	pid := actor.NewPID(member.Address(), DefaultGossipActorName)
 	if ga.throttler() == actor.Open {
-		plog.Debug("Sending GossipRequest", log.String("MemberId", member.Id))
+		ctx.Logger().Debug("Sending GossipRequest", slog.String("MemberId", member.Id))
 	}
 
 	// a short timeout is massively important, we cannot afford hanging around waiting
@@ -178,13 +183,13 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 
 	ctx.ReenterAfter(future, func(res interface{}, err error) {
 		if err != nil {
-			plog.Warn("sendGossipForMember failed", log.String("MemberId", member.Id), log.Error(err))
+			ctx.Logger().Warn("sendGossipForMember failed", slog.String("MemberId", member.Id), slog.Any("error", err))
 			return
 		}
 
 		resp, ok := res.(*GossipResponse)
 		if !ok {
-			plog.Error("sendGossipForMember received unknown response message", log.TypeOf("messageType", res), log.Message(resp))
+			ctx.Logger().Error("sendGossipForMember received unknown response message", slog.Any("message", resp))
 
 			return
 		}
@@ -195,8 +200,4 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 			ga.ReceiveState(resp.State, ctx)
 		}
 	})
-}
-
-func (ga *GossipActor) throttledLog(counter int32) {
-	plog.Debug("[Gossip] Sending GossipRequest", log.Int("throttled", int(counter)))
 }

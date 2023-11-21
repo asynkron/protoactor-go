@@ -16,7 +16,7 @@ func (c *Cluster) BatchingProducer(topic string, opts ...BatchingProducerConfigO
 
 // SubscribeByPid subscribes to a PubSub topic by subscriber PID
 func (c *Cluster) SubscribeByPid(topic string, pid *actor.PID, opts ...GrainCallOption) (*SubscribeResponse, error) {
-	res, err := c.Call(topic, TopicActorKind, &SubscribeRequest{
+	res, err := c.Request(topic, TopicActorKind, &SubscribeRequest{
 		Subscriber: &SubscriberIdentity{Identity: &SubscriberIdentity_Pid{Pid: pid}},
 	}, opts...)
 	if err != nil {
@@ -27,7 +27,7 @@ func (c *Cluster) SubscribeByPid(topic string, pid *actor.PID, opts ...GrainCall
 
 // SubscribeByClusterIdentity subscribes to a PubSub topic by cluster identity
 func (c *Cluster) SubscribeByClusterIdentity(topic string, identity *ClusterIdentity, opts ...GrainCallOption) (*SubscribeResponse, error) {
-	res, err := c.Call(topic, TopicActorKind, &SubscribeRequest{
+	res, err := c.Request(topic, TopicActorKind, &SubscribeRequest{
 		Subscriber: &SubscriberIdentity{Identity: &SubscriberIdentity_ClusterIdentity{ClusterIdentity: identity}},
 	}, opts...)
 	if err != nil {
@@ -45,7 +45,7 @@ func (c *Cluster) SubscribeWithReceive(topic string, receive actor.ReceiveFunc, 
 
 // UnsubscribeByPid unsubscribes from a PubSub topic by subscriber PID
 func (c *Cluster) UnsubscribeByPid(topic string, pid *actor.PID, opts ...GrainCallOption) (*UnsubscribeResponse, error) {
-	res, err := c.Call(topic, TopicActorKind, &UnsubscribeRequest{
+	res, err := c.Request(topic, TopicActorKind, &UnsubscribeRequest{
 		Subscriber: &SubscriberIdentity{Identity: &SubscriberIdentity_Pid{Pid: pid}},
 	}, opts...)
 	if err != nil {
@@ -56,7 +56,7 @@ func (c *Cluster) UnsubscribeByPid(topic string, pid *actor.PID, opts ...GrainCa
 
 // UnsubscribeByClusterIdentity unsubscribes from a PubSub topic by cluster identity
 func (c *Cluster) UnsubscribeByClusterIdentity(topic string, identity *ClusterIdentity, opts ...GrainCallOption) (*UnsubscribeResponse, error) {
-	res, err := c.Call(topic, TopicActorKind, &UnsubscribeRequest{
+	res, err := c.Request(topic, TopicActorKind, &UnsubscribeRequest{
 		Subscriber: &SubscriberIdentity{Identity: &SubscriberIdentity_ClusterIdentity{ClusterIdentity: identity}},
 	}, opts...)
 	if err != nil {
@@ -67,7 +67,7 @@ func (c *Cluster) UnsubscribeByClusterIdentity(topic string, identity *ClusterId
 
 // UnsubscribeByIdentityAndKind unsubscribes from a PubSub topic by cluster identity
 func (c *Cluster) UnsubscribeByIdentityAndKind(topic string, identity string, kind string, opts ...GrainCallOption) (*UnsubscribeResponse, error) {
-	res, err := c.Call(topic, TopicActorKind, &UnsubscribeRequest{
+	res, err := c.Request(topic, TopicActorKind, &UnsubscribeRequest{
 		Subscriber: &SubscriberIdentity{Identity: &SubscriberIdentity_ClusterIdentity{ClusterIdentity: NewClusterIdentity(identity, kind)}},
 	}, opts...)
 	if err != nil {

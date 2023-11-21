@@ -2,10 +2,10 @@ package consul
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/scheduler"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
@@ -45,10 +45,10 @@ func (pa *providerActor) init(ctx actor.Context) {
 		ctx.Send(ctx.Self(), &RegisterService{})
 	case *RegisterService:
 		if err := pa.registerService(); err != nil {
-			plog.Error("Failed to register service to consul, will retry", log.Error(err))
+			ctx.Logger().Error("Failed to register service to consul, will retry", slog.Any("error", err))
 			ctx.Send(ctx.Self(), &RegisterService{})
 		} else {
-			plog.Info("Registered service to consul")
+			ctx.Logger().Info("Registered service to consul")
 			refreshScheduler := scheduler.NewTimerScheduler(ctx)
 			pa.refreshCanceller = refreshScheduler.SendRepeatedly(0, pa.refreshTTL, ctx.Self(), &UpdateTTL{})
 			if err := pa.startWatch(ctx); err == nil {
@@ -62,16 +62,16 @@ func (pa *providerActor) running(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *UpdateTTL:
 		if err := blockingUpdateTTL(pa.Provider); err != nil {
-			plog.Warn("Failed to update TTL", log.Error(err))
+			ctx.Logger().Warn("Failed to update TTL", slog.Any("error", err))
 		}
 	case *MemberListUpdated:
 		pa.cluster.MemberList.UpdateClusterTopology(msg.members)
 	case *actor.Stopping:
 		pa.refreshCanceller()
 		if err := pa.deregisterService(); err != nil {
-			plog.Error("Failed to deregister service from consul", log.Error(err))
+			ctx.Logger().Error("Failed to deregister service from consul", slog.Any("error", err))
 		} else {
-			plog.Info("De-registered service from consul")
+			ctx.Logger().Info("De-registered service from consul")
 		}
 	}
 }
@@ -83,7 +83,7 @@ func (pa *providerActor) startWatch(ctx actor.Context) error {
 	params["passingonly"] = false
 	plan, err := watch.Parse(params)
 	if err != nil {
-		plog.Error("Failed to parse consul watch definition", log.Error(err))
+		ctx.Logger().Error("Failed to parse consul watch definition", slog.Any("error", err))
 		return err
 	}
 	plan.Handler = func(index uint64, result interface{}) {
@@ -92,7 +92,7 @@ func (pa *providerActor) startWatch(ctx actor.Context) error {
 
 	go func() {
 		if err = plan.RunWithConfig(pa.consulConfig.Address, pa.consulConfig); err != nil {
-			plog.Error("Failed to start consul watch", log.Error(err))
+			ctx.Logger().Error("Failed to start consul watch", slog.Any("error", err))
 			panic(err)
 		}
 	}()
@@ -103,7 +103,7 @@ func (pa *providerActor) startWatch(ctx actor.Context) error {
 func (pa *providerActor) processConsulUpdate(index uint64, result interface{}, ctx actor.Context) {
 	serviceEntries, ok := result.([]*api.ServiceEntry)
 	if !ok {
-		plog.Warn("Didn't get expected data from consul watch")
+		ctx.Logger().Warn("Didn't get expected data from consul watch")
 		return
 	}
 	var members []*cluster.Member
@@ -112,7 +112,7 @@ func (pa *providerActor) processConsulUpdate(index uint64, result interface{}, c
 			memberId := v.Service.Meta["id"]
 			if memberId == "" {
 				memberId = fmt.Sprintf("%v@%v:%v", pa.clusterName, v.Service.Address, v.Service.Port)
-				plog.Info("meta['id'] was empty, fixed", log.String("id", memberId))
+				ctx.Logger().Info("meta['id'] was empty, fixed", slog.String("id", memberId))
 			}
 			members = append(members, &cluster.Member{
 				Id:    memberId,

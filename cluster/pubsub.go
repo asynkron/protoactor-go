@@ -26,13 +26,13 @@ func NewPubSub(cluster *Cluster) *PubSub {
 // Start the PubSubMemberDeliveryActor
 func (p *PubSub) Start() {
 	props := actor.PropsFromProducer(func() actor.Actor {
-		return NewPubSubMemberDeliveryActor(p.cluster.Config.PubSubConfig.SubscriberTimeout)
+		return NewPubSubMemberDeliveryActor(p.cluster.Config.PubSubConfig.SubscriberTimeout, p.cluster.Logger())
 	})
 	_, err := p.cluster.ActorSystem.Root.SpawnNamed(props, PubSubDeliveryName)
 	if err != nil {
 		panic(err) // let it crash
 	}
-	plog.Info("Started Cluster PubSub")
+	p.cluster.Logger().Info("Started Cluster PubSub")
 }
 
 func (p *PubSub) ExtensionID() extensions.ExtensionID {

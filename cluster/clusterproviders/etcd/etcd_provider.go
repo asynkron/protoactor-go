@@ -3,6 +3,7 @@ package etcd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"strconv"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/log"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -118,7 +118,7 @@ func (p *Provider) Shutdown(graceful bool) error {
 	if !p.deregistered {
 		err := p.deregisterService()
 		if err != nil {
-			plog.Error("deregisterMember", log.Error(err))
+			p.cluster.Logger().Error("deregisterMember", slog.Any("error", err))
 			return err
 		}
 		p.deregistered = true
@@ -176,12 +176,12 @@ func (p *Provider) startKeepAlive(ctx context.Context) {
 	go func() {
 		for !p.shutdown {
 			if err := ctx.Err(); err != nil {
-				plog.Info("Keepalive was stopped.", log.Error(err))
+				p.cluster.Logger().Info("Keepalive was stopped.", slog.Any("error", err))
 				return
 			}
 
 			if err := p.keepAliveForever(ctx); err != nil {
-				plog.Info("Failure refreshing service TTL. ReTrying...", log.Duration("after", p.retryInterval), log.Error(err))
+				p.cluster.Logger().Info("Failure refreshing service TTL. ReTrying...", slog.Duration("after", p.retryInterval), slog.Any("error", err))
 			}
 			time.Sleep(p.retryInterval)
 		}
@@ -233,7 +233,7 @@ func (p *Provider) handleWatchResponse(resp clientv3.WatchResponse) map[string]*
 		key := string(ev.Kv.Key)
 		nodeId, err := getNodeID(key, "/")
 		if err != nil {
-			plog.Error("Invalid member.", log.String("key", key))
+			p.cluster.Logger().Error("Invalid member.", slog.String("key", key))
 			continue
 		}
 
@@ -241,17 +241,17 @@ func (p *Provider) handleWatchResponse(resp clientv3.WatchResponse) map[string]*
 		case clientv3.EventTypePut:
 			node, err := NewNodeFromBytes(ev.Kv.Value)
 			if err != nil {
-				plog.Error("Invalid member.", log.String("key", key))
+				p.cluster.Logger().Error("Invalid member.", slog.String("key", key))
 				continue
 			}
 			if p.self.Equal(node) {
-				plog.Debug("Skip self.", log.String("key", key))
+				p.cluster.Logger().Debug("Skip self.", slog.String("key", key))
 				continue
 			}
 			if _, ok := p.members[nodeId]; ok {
-				plog.Debug("Update member.", log.String("key", key))
+				p.cluster.Logger().Debug("Update member.", slog.String("key", key))
 			} else {
-				plog.Debug("New member.", log.String("key", key))
+				p.cluster.Logger().Debug("New member.", slog.String("key", key))
 			}
 			changes[nodeId] = node
 		case clientv3.EventTypeDelete:
@@ -259,13 +259,13 @@ func (p *Provider) handleWatchResponse(resp clientv3.WatchResponse) map[string]*
 			if !ok {
 				continue
 			}
-			plog.Debug("Delete member.", log.String("key", key))
+			p.cluster.Logger().Debug("Delete member.", slog.String("key", key))
 			cloned := *node
 			cloned.SetAlive(false)
 			changes[nodeId] = &cloned
 		default:
-			plog.Error("Invalid etcd event.type.", log.String("key", key),
-				log.String("type", ev.Type.String()))
+			p.cluster.Logger().Error("Invalid etcd event.type.", slog.String("key", key),
+				slog.String("type", ev.Type.String()))
 		}
 	}
 	p.revision = uint64(resp.Header.GetRevision())
@@ -281,11 +281,11 @@ func (p *Provider) keepWatching(ctx context.Context) error {
 func (p *Provider) _keepWatching(stream clientv3.WatchChan) error {
 	for resp := range stream {
 		if err := resp.Err(); err != nil {
-			plog.Error("Failure watching service.")
+			p.cluster.Logger().Error("Failure watching service.")
 			return err
 		}
 		if len(resp.Events) <= 0 {
-			plog.Error("Empty etcd.events.", log.Int("events", len(resp.Events)))
+			p.cluster.Logger().Error("Empty etcd.events.", slog.Int("events", len(resp.Events)))
 			continue
 		}
 		nodesChanges := p.handleWatchResponse(resp)
@@ -302,7 +302,7 @@ func (p *Provider) startWatching() {
 	go func() {
 		for !p.shutdown {
 			if err := p.keepWatching(ctx); err != nil {
-				plog.Error("Failed to keepWatching.", log.Error(err))
+				p.cluster.Logger().Error("Failed to keepWatching.", slog.Any("error", err))
 				p.clusterError = err
 			}
 		}
@@ -375,7 +375,7 @@ func (p *Provider) createClusterTopologyEvent() []*cluster.Member {
 
 func (p *Provider) publishClusterTopologyEvent() {
 	res := p.createClusterTopologyEvent()
-	plog.Info("Update cluster.", log.Int("members", len(res)))
+	p.cluster.Logger().Info("Update cluster.", slog.Int("members", len(res)))
 	// for _, m := range res {
 	// 	plog.Info("\t", log.Object("member", m))
 	// }

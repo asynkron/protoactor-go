@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -73,6 +74,7 @@ func (suite *PubSubBatchingProducerTestSuite) timeout() (*PublishResponse, error
 }
 
 func (suite *PubSubBatchingProducerTestSuite) TestProducerSendsMessagesInBatches() {
+
 	producer := NewBatchingProducer(newMockPublisher(suite.record), "topic", WithBatchingProducerBatchSize(10))
 	defer producer.Dispose()
 
@@ -295,6 +297,10 @@ type mockPublisher struct {
 	publish func(*PubSubBatch) (*PublishResponse, error)
 }
 
+func (m *mockPublisher) Logger() *slog.Logger {
+	return slog.Default()
+}
+
 func newMockPublisher(publish func(*PubSubBatch) (*PublishResponse, error)) *mockPublisher {
 	return &mockPublisher{publish: publish}
 }
@@ -314,6 +320,10 @@ func (m *mockPublisher) Publish(_ context.Context, topic string, message interfa
 type optionalFailureMockPublisher struct {
 	sentBatches []*PubSubBatch
 	shouldFail  bool
+}
+
+func (o *optionalFailureMockPublisher) Logger() *slog.Logger {
+	return slog.Default()
 }
 
 // newOptionalFailureMockPublisher creates a mock publisher that can be configured to fail or not

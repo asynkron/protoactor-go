@@ -2,32 +2,32 @@ package cluster
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/eventstream"
-	"github.com/asynkron/protoactor-go/log"
 	"golang.org/x/exp/maps"
 )
 
 const TopicActorKind = "prototopic"
-
-var topicLogThrottle = actor.NewThrottle(10, time.Second, func(count int32) {
-	plog.Info("[TopicActor] Throttled logs", log.Int("count", int(count)))
-})
 
 type TopicActor struct {
 	topic                string
 	subscribers          map[subscribeIdentityStruct]*SubscriberIdentity
 	subscriptionStore    KeyValueStore[*Subscribers]
 	topologySubscription *eventstream.Subscription
+	shouldThrottle       actor.ShouldThrottle
 }
 
-func NewTopicActor(store KeyValueStore[*Subscribers]) *TopicActor {
+func NewTopicActor(store KeyValueStore[*Subscribers], logger *slog.Logger) *TopicActor {
 	return &TopicActor{
 		subscriptionStore: store,
 		subscribers:       make(map[subscribeIdentityStruct]*SubscriberIdentity),
+		shouldThrottle: actor.NewThrottleWithLogger(logger, 10, time.Second, func(logger *slog.Logger, count int32) {
+			logger.Info("[TopicActor] Throttled logs", slog.Int("count", int(count)))
+		}),
 	}
 }
 
@@ -62,7 +62,7 @@ func (t *TopicActor) onStarted(c actor.Context) {
 		}
 	})
 
-	sub := t.loadSubscriptions(t.topic)
+	sub := t.loadSubscriptions(t.topic, c.Logger())
 	if sub.Subscribers != nil {
 		for _, subscriber := range sub.Subscribers {
 			t.subscribers[newSubscribeIdentityStruct(subscriber)] = subscriber
@@ -70,7 +70,7 @@ func (t *TopicActor) onStarted(c actor.Context) {
 	}
 	t.unsubscribeSubscribersOnMembersThatLeft(c)
 
-	plog.Debug("Topic started", log.String("topic", t.topic))
+	c.Logger().Debug("Topic started", slog.String("topic", t.topic))
 }
 
 func (t *TopicActor) onStopping(c actor.Context) {
@@ -154,18 +154,18 @@ func (t *TopicActor) getClusterIdentityPid(c actor.Context, identity *ClusterIde
 // onNotifyAboutFailingSubscribers handles a NotifyAboutFailingSubscribersRequest message
 func (t *TopicActor) onNotifyAboutFailingSubscribers(c actor.Context, msg *NotifyAboutFailingSubscribersRequest) {
 	t.unsubscribeUnreachablePidSubscribers(c, msg.InvalidDeliveries)
-	t.logDeliveryErrors(msg.InvalidDeliveries)
+	t.logDeliveryErrors(msg.InvalidDeliveries, c.Logger())
 	c.Respond(&NotifyAboutFailingSubscribersResponse{})
 }
 
 // logDeliveryErrors logs the delivery errors in one log line
-func (t *TopicActor) logDeliveryErrors(reports []*SubscriberDeliveryReport) {
-	if len(reports) > 0 || topicLogThrottle() == actor.Open {
+func (t *TopicActor) logDeliveryErrors(reports []*SubscriberDeliveryReport, logger *slog.Logger) {
+	if len(reports) > 0 || t.shouldThrottle() == actor.Open {
 		subscribers := make([]string, len(reports))
 		for i, report := range reports {
 			subscribers[i] = report.Subscriber.String()
 		}
-		plog.Error("Topic following subscribers could not process the batch", log.String("topic", t.topic), log.String("subscribers", strings.Join(subscribers, ",")))
+		logger.Error("Topic following subscribers could not process the batch", slog.String("topic", t.topic), slog.String("subscribers", strings.Join(subscribers, ",")))
 	}
 }
 
@@ -177,11 +177,11 @@ func (t *TopicActor) unsubscribeUnreachablePidSubscribers(_ actor.Context, allIn
 			subscribers = append(subscribers, newSubscribeIdentityStruct(r.Subscriber))
 		}
 	}
-	t.removeSubscribers(subscribers)
+	t.removeSubscribers(subscribers, nil)
 }
 
 // onClusterTopologyChanged handles a ClusterTopology message
-func (t *TopicActor) onClusterTopologyChanged(_ actor.Context, msg *ClusterTopology) {
+func (t *TopicActor) onClusterTopologyChanged(ctx actor.Context, msg *ClusterTopology) {
 	if len(msg.Left) > 0 {
 		addressMap := make(map[string]struct{})
 		for _, member := range msg.Left {
@@ -197,7 +197,7 @@ func (t *TopicActor) onClusterTopologyChanged(_ actor.Context, msg *ClusterTopol
 				}
 			}
 		}
-		t.removeSubscribers(subscribersThatLeft)
+		t.removeSubscribers(subscribersThatLeft, ctx.Logger())
 	}
 }
 
@@ -217,64 +217,61 @@ func (t *TopicActor) unsubscribeSubscribersOnMembersThatLeft(c actor.Context) {
 			}
 		}
 	}
-	t.removeSubscribers(subscribersThatLeft)
+	t.removeSubscribers(subscribersThatLeft, nil)
 }
 
 // removeSubscribers remove subscribers from the topic
-func (t *TopicActor) removeSubscribers(subscribersThatLeft []subscribeIdentityStruct) {
+func (t *TopicActor) removeSubscribers(subscribersThatLeft []subscribeIdentityStruct, logger *slog.Logger) {
 	if len(subscribersThatLeft) > 0 {
 		for _, subscriber := range subscribersThatLeft {
 			delete(t.subscribers, subscriber)
 		}
-		if topicLogThrottle() == actor.Open {
-			plog.Warn("Topic removed subscribers, because they are dead or they are on members that left the clusterIdentity:", log.String("topic", t.topic), log.Object("subscribers", subscribersThatLeft))
+		if t.shouldThrottle() == actor.Open {
+			logger.Warn("Topic removed subscribers, because they are dead or they are on members that left the clusterIdentity:", slog.String("topic", t.topic), slog.Any("subscribers", subscribersThatLeft))
 		}
-		t.saveSubscriptionsInTopicActor()
+		t.saveSubscriptionsInTopicActor(logger)
 	}
 }
 
 // loadSubscriptions loads the subscriptions for the topic from the subscription store
-func (t *TopicActor) loadSubscriptions(topic string) *Subscribers {
+func (t *TopicActor) loadSubscriptions(topic string, logger *slog.Logger) *Subscribers {
 	// TODO: cancellation logic config?
 	state, err := t.subscriptionStore.Get(context.Background(), topic)
 	if err != nil {
-		if topicLogThrottle() == actor.Open {
-			plog.Error("Error when loading subscriptions", log.String("topic", topic), log.Error(err))
+		if t.shouldThrottle() == actor.Open {
+			logger.Error("Error when loading subscriptions", slog.String("topic", topic), slog.Any("error", err))
 		}
 		return &Subscribers{}
 	}
 	if state == nil {
 		return &Subscribers{}
 	}
-	plog.Debug("Loaded subscriptions for topic", log.String("topic", topic), log.Object("subscriptions", state))
+	logger.Debug("Loaded subscriptions for topic", slog.String("topic", topic), slog.Any("subscriptions", state))
 	return state
 }
 
 // saveSubscriptionsInTopicActor saves the TopicActor.subscribers for the TopicActor.topic to the subscription store
-func (t *TopicActor) saveSubscriptionsInTopicActor() {
-	t.saveSubscriptions(t.topic, &Subscribers{Subscribers: maps.Values(t.subscribers)})
-}
+func (t *TopicActor) saveSubscriptionsInTopicActor(logger *slog.Logger) {
+	var subscribers *Subscribers = &Subscribers{Subscribers: maps.Values(t.subscribers)}
 
-// saveSubscriptions saves the subscribers for the topic to the subscription store
-func (t *TopicActor) saveSubscriptions(topic string, subscribers *Subscribers) {
 	// TODO: cancellation logic config?
-	plog.Debug("Saving subscriptions for topic", log.String("topic", topic), log.Object("subscriptions", subscribers))
-	err := t.subscriptionStore.Set(context.Background(), topic, subscribers)
-	if err != nil && topicLogThrottle() == actor.Open {
-		plog.Error("Error when saving subscriptions", log.String("topic", topic), log.Error(err))
+	logger.Debug("Saving subscriptions for topic", slog.String("topic", t.topic), slog.Any("subscriptions", subscribers))
+	err := t.subscriptionStore.Set(context.Background(), t.topic, subscribers)
+	if err != nil && t.shouldThrottle() == actor.Open {
+		logger.Error("Error when saving subscriptions", slog.String("topic", t.topic), slog.Any("error", err))
 	}
 }
 
 func (t *TopicActor) onUnsubscribe(c actor.Context, msg *UnsubscribeRequest) {
 	delete(t.subscribers, newSubscribeIdentityStruct(msg.Subscriber))
-	t.saveSubscriptionsInTopicActor()
+	t.saveSubscriptionsInTopicActor(c.Logger())
 	c.Respond(&UnsubscribeResponse{})
 }
 
 func (t *TopicActor) onSubscribe(c actor.Context, msg *SubscribeRequest) {
 	t.subscribers[newSubscribeIdentityStruct(msg.Subscriber)] = msg.Subscriber
-	plog.Debug("Topic subscribed", log.String("topic", t.topic), log.Object("subscriber", msg.Subscriber))
-	t.saveSubscriptionsInTopicActor()
+	c.Logger().Debug("Topic subscribed", slog.String("topic", t.topic), slog.Any("subscriber", msg.Subscriber))
+	t.saveSubscriptionsInTopicActor(c.Logger())
 	c.Respond(&SubscribeResponse{})
 }
 

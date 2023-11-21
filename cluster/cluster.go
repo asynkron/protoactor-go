@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"log/slog"
 	"time"
 
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/extensions"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
 )
 
@@ -91,7 +91,7 @@ func (c *Cluster) StartMember() {
 	c.Remote.Start()
 
 	address := c.ActorSystem.Address()
-	plog.Info("Starting Proto.Actor cluster member", log.String("id", c.ActorSystem.ID), log.String("address", address))
+	c.ActorSystem.Logger.Info("Starting Proto.Actor cluster member", slog.String("address", address))
 
 	c.IdentityLookup = cfg.IdentityLookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)
@@ -127,7 +127,7 @@ func (c *Cluster) StartClient() {
 	c.Remote.Start()
 
 	address := c.ActorSystem.Address()
-	plog.Info("Starting Proto.Actor cluster-client", log.String("address", address))
+	c.ActorSystem.Logger.Info("Starting Proto.Actor cluster-client", slog.String("address", address))
 
 	c.IdentityLookup = cfg.IdentityLookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), true)
@@ -154,21 +154,21 @@ func (c *Cluster) Shutdown(graceful bool) {
 	c.Remote.Shutdown(graceful)
 
 	address := c.ActorSystem.Address()
-	plog.Info("Stopped Proto.Actor cluster", log.String("address", address))
+	c.ActorSystem.Logger.Info("Stopped Proto.Actor cluster", slog.String("address", address))
 }
 
 func (c *Cluster) Get(identity string, kind string) *actor.PID {
 	return c.IdentityLookup.Get(NewClusterIdentity(identity, kind))
 }
 
-func (c *Cluster) Request(identity string, kind string, message interface{}) (interface{}, error) {
+func (c *Cluster) Request(identity string, kind string, message interface{}, option ...GrainCallOption) (interface{}, error) {
 	return c.context.Request(identity, kind, message)
 }
 
 func (c *Cluster) GetClusterKind(kind string) *ActivatedKind {
 	k, ok := c.kinds[kind]
 	if !ok {
-		plog.Error("Invalid kind", log.String("kind", kind))
+		c.ActorSystem.Logger.Error("Invalid kind", slog.String("kind", kind))
 
 		return nil
 	}
@@ -203,60 +203,11 @@ func (c *Cluster) ensureTopicKindRegistered() {
 		store := &EmptyKeyValueStore[*Subscribers]{}
 
 		c.kinds[TopicActorKind] = NewKind(TopicActorKind, actor.PropsFromProducer(func() actor.Actor {
-			return NewTopicActor(store)
+			return NewTopicActor(store, c.Logger())
 		})).Build(c)
 	}
 }
 
-// Call is a wrap of context.RequestFuture with retries.
-func (c *Cluster) Call(name string, kind string, msg interface{}, opts ...GrainCallOption) (interface{}, error) {
-	callConfig := DefaultGrainCallConfig(c)
-	for _, o := range opts {
-		o(callConfig)
-	}
-
-	_context := callConfig.Context
-	if _context == nil {
-		_context = c.ActorSystem.Root
-	}
-
-	var lastError error
-
-	for i := 0; i < callConfig.RetryCount; i++ {
-		pid := c.Get(name, kind)
-
-		if pid == nil {
-			return nil, remote.ErrUnknownError
-		}
-
-		timeout := callConfig.Timeout
-		_resp, err := _context.RequestFuture(pid, msg, timeout).Result()
-		if err != nil {
-			plog.Error("cluster.RequestFuture failed", log.Error(err), log.PID("pid", pid))
-			lastError = err
-
-			switch err {
-			case actor.ErrTimeout, remote.ErrTimeout:
-				callConfig.RetryAction(i)
-
-				id := ClusterIdentity{Kind: kind, Identity: name}
-				c.PidCache.Remove(id.Identity, id.Kind)
-
-				continue
-			case actor.ErrDeadLetter, remote.ErrDeadLetter:
-				callConfig.RetryAction(i)
-
-				id := ClusterIdentity{Kind: kind, Identity: name}
-				c.PidCache.Remove(id.Identity, id.Kind)
-
-				continue
-			default:
-				return nil, err
-			}
-		}
-
-		return _resp, nil
-	}
-
-	return nil, lastError
+func (c *Cluster) Logger() *slog.Logger {
+	return c.ActorSystem.Logger
 }
