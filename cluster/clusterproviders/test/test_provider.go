@@ -68,7 +68,7 @@ func NewTestProvider(agent *InMemAgent, options ...ProviderOption) *Provider {
 
 func (t *Provider) StartMember(c *cluster.Cluster) error {
 
-	c.ActorSystem.Logger.Debug("start cluster member")
+	c.ActorSystem.Logger().Debug("start cluster member")
 	t.memberList = c.MemberList
 	host, port, err := c.ActorSystem.GetHostPort()
 	if err != nil {

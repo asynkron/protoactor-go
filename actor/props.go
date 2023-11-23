@@ -40,7 +40,7 @@ var (
 						return nil
 					}); err != nil {
 						err = fmt.Errorf("failed to instrument Actor Mailbox, %w", err)
-						actorSystem.Logger.Error(err.Error(), slog.Any("error", err))
+						actorSystem.Logger().Error(err.Error(), slog.Any("error", err))
 					}
 				}
 			}

@@ -42,7 +42,7 @@ func NewMemberList(cluster *Cluster) *MemberList {
 			// and merge that without own blocked set
 			var topology ClusterTopology
 			if err := t.Value.UnmarshalTo(&topology); err != nil {
-				cluster.ActorSystem.Logger.Warn("could not unpack into ClusterTopology proto.Message form Any", slog.Any("error", err))
+				cluster.Logger().Warn("could not unpack into ClusterTopology proto.Message form Any", slog.Any("error", err))
 
 				break
 			}

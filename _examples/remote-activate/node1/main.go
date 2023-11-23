@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"remoteactivate/messages"
@@ -26,9 +25,9 @@ func main() {
 		PropsFromFunc(func(context actor.Context) {
 			switch context.Message().(type) {
 			case *actor.Started:
-				log.Printf("actor started " + context.Self().String())
+				context.Logger().Info("actor started ", slog.Any("self", context.Self()))
 			case *messages.HelloRequest:
-				log.Println("Received pong from sender")
+				context.Logger().Info("Received pong from sender")
 				message := &messages.HelloResponse{Message: "hello from remote"}
 				context.Request(context.Sender(), message)
 			}
@@ -40,7 +39,7 @@ func main() {
 
 	response := res.(*messages.HelloResponse)
 
-	fmt.Printf("Response from remote %v", response.Message)
+	system.Logger().Info("Response from remote", slog.Any("message", response.Message))
 
 	console.ReadLine()
 }

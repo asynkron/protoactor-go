@@ -28,7 +28,7 @@ func (b *Behavior) Receive(context Context) {
 	if ok {
 		behavior(context)
 	} else {
-		context.ActorSystem().Logger.Error("empty behavior called", slog.Any("pid", context.Self()))
+		context.Logger().Error("empty behavior called", slog.Any("pid", context.Self()))
 	}
 }
 

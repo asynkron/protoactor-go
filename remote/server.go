@@ -73,7 +73,7 @@ func (r *Remote) Start() {
 
 	r.actorSystem.ProcessRegistry.RegisterAddressResolver(r.remoteHandler)
 	r.actorSystem.ProcessRegistry.Address = address
-	r.actorSystem.Logger.Info("Starting remote with address", slog.String("address", address))
+	r.Logger().Info("Starting remote with address", slog.String("address", address))
 
 	r.edpManager = newEndpointManager(r)
 	r.edpManager.start()
@@ -81,7 +81,7 @@ func (r *Remote) Start() {
 	r.s = grpc.NewServer(r.config.ServerOptions...)
 	r.edpReader = newEndpointReader(r)
 	RegisterRemotingServer(r.s, r.edpReader)
-	r.actorSystem.Logger.Info("Starting Proto.Actor server", slog.String("address", address))
+	r.Logger().Info("Starting Proto.Actor server", slog.String("address", address))
 	go r.s.Serve(lis)
 }
 
@@ -102,14 +102,14 @@ func (r *Remote) Shutdown(graceful bool) {
 
 		select {
 		case <-c:
-			r.actorSystem.Logger.Info("Stopped Proto.Actor server")
+			r.Logger().Info("Stopped Proto.Actor server")
 		case <-time.After(time.Second * 10):
 			r.s.Stop()
-			r.actorSystem.Logger.Info("Stopped Proto.Actor server", slog.String("err", "timeout"))
+			r.Logger().Info("Stopped Proto.Actor server", slog.String("err", "timeout"))
 		}
 	} else {
 		r.s.Stop()
-		r.actorSystem.Logger.Info("Killed Proto.Actor server")
+		r.Logger().Info("Killed Proto.Actor server")
 	}
 }
 
@@ -125,5 +125,5 @@ func (r *Remote) SendMessage(pid *actor.PID, header actor.ReadonlyMessageHeader,
 }
 
 func (r *Remote) Logger() *slog.Logger {
-	return r.actorSystem.Logger
+	return r.actorSystem.Logger()
 }

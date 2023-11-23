@@ -91,7 +91,7 @@ func (c *Cluster) StartMember() {
 	c.Remote.Start()
 
 	address := c.ActorSystem.Address()
-	c.ActorSystem.Logger.Info("Starting Proto.Actor cluster member", slog.String("address", address))
+	c.Logger().Info("Starting Proto.Actor cluster member", slog.String("address", address))
 
 	c.IdentityLookup = cfg.IdentityLookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), false)
@@ -127,7 +127,7 @@ func (c *Cluster) StartClient() {
 	c.Remote.Start()
 
 	address := c.ActorSystem.Address()
-	c.ActorSystem.Logger.Info("Starting Proto.Actor cluster-client", slog.String("address", address))
+	c.Logger().Info("Starting Proto.Actor cluster-client", slog.String("address", address))
 
 	c.IdentityLookup = cfg.IdentityLookup
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), true)
@@ -154,7 +154,7 @@ func (c *Cluster) Shutdown(graceful bool) {
 	c.Remote.Shutdown(graceful)
 
 	address := c.ActorSystem.Address()
-	c.ActorSystem.Logger.Info("Stopped Proto.Actor cluster", slog.String("address", address))
+	c.Logger().Info("Stopped Proto.Actor cluster", slog.String("address", address))
 }
 
 func (c *Cluster) Get(identity string, kind string) *actor.PID {
@@ -168,7 +168,7 @@ func (c *Cluster) Request(identity string, kind string, message interface{}, opt
 func (c *Cluster) GetClusterKind(kind string) *ActivatedKind {
 	k, ok := c.kinds[kind]
 	if !ok {
-		c.ActorSystem.Logger.Error("Invalid kind", slog.String("kind", kind))
+		c.Logger().Error("Invalid kind", slog.String("kind", kind))
 
 		return nil
 	}
@@ -209,5 +209,5 @@ func (c *Cluster) ensureTopicKindRegistered() {
 }
 
 func (c *Cluster) Logger() *slog.Logger {
-	return c.ActorSystem.Logger
+	return c.ActorSystem.Logger()
 }

@@ -37,7 +37,7 @@ func (gs *guardiansValue) newGuardian(s SupervisorStrategy) *guardianProcess {
 
 	pid, ok := gs.actorSystem.ProcessRegistry.Add(ref, "guardian"+id)
 	if !ok {
-		gs.actorSystem.Logger.Error("failed to register guardian process", slog.Any("pid", pid))
+		gs.actorSystem.Logger().Error("failed to register guardian process", slog.Any("pid", pid))
 	}
 
 	ref.pid = pid

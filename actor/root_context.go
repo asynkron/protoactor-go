@@ -42,7 +42,7 @@ func (rc *RootContext) ActorSystem() *ActorSystem {
 }
 
 func (rc *RootContext) Logger() *slog.Logger {
-	return rc.actorSystem.Logger
+	return rc.actorSystem.Logger()
 }
 
 func (rc *RootContext) WithHeaders(headers map[string]string) *RootContext {
