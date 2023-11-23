@@ -23,7 +23,7 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 	}
 
 	shouldThrottle := NewThrottle(actorSystem.Config.DeadLetterThrottleCount, actorSystem.Config.DeadLetterThrottleInterval, func(i int32) {
-		actorSystem.Logger.Info("[DeadLetter]", slog.Int64("throttled", int64(i)))
+		actorSystem.Logger().Info("[DeadLetter]", slog.Int64("throttled", int64(i)))
 	})
 
 	actorSystem.ProcessRegistry.Add(dp, "deadletter")
@@ -42,7 +42,7 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 
 			if _, isIgnoreDeadLetter := deadLetter.Message.(IgnoreDeadLetterLogging); !isIgnoreDeadLetter {
 				if shouldThrottle() == Open {
-					actorSystem.Logger.Debug("[DeadLetter]", slog.Any("pid", deadLetter.PID), slog.Any("message", deadLetter.Message), slog.Any("sender", deadLetter.Sender))
+					actorSystem.Logger().Debug("[DeadLetter]", slog.Any("pid", deadLetter.PID), slog.Any("message", deadLetter.Message), slog.Any("sender", deadLetter.Sender))
 				}
 			}
 		}

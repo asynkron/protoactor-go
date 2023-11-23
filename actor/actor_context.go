@@ -150,7 +150,7 @@ func (ctx *actorContext) ActorSystem() *ActorSystem {
 }
 
 func (ctx *actorContext) Logger() *slog.Logger {
-	return ctx.actorSystem.Logger
+	return ctx.actorSystem.Logger()
 }
 
 func (ctx *actorContext) Parent() *PID {
@@ -260,7 +260,7 @@ func (ctx *actorContext) receiveTimeoutHandler() {
 func (ctx *actorContext) Forward(pid *PID) {
 	if msg, ok := ctx.messageOrEnvelope.(SystemMessage); ok {
 		// SystemMessage cannot be forwarded
-		ctx.actorSystem.Logger.Error("SystemMessage cannot be forwarded", slog.Any("message", msg))
+		ctx.Logger().Error("SystemMessage cannot be forwarded", slog.Any("message", msg))
 
 		return
 	}
@@ -567,7 +567,7 @@ func (ctx *actorContext) InvokeSystemMessage(message interface{}) {
 	case *Restart:
 		ctx.handleRestart()
 	default:
-		ctx.actorSystem.Logger.Error("unknown system message", slog.Any("message", msg))
+		ctx.Logger().Error("unknown system message", slog.Any("message", msg))
 	}
 }
 
@@ -707,11 +707,11 @@ func (ctx *actorContext) finalizeStop() {
 
 func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {
 	//TODO: add callstack to log?
-	ctx.actorSystem.Logger.Info("[ACTOR] Recovering", slog.Any("self", ctx.self), slog.Any("reason", reason))
+	ctx.Logger().Info("[ACTOR] Recovering", slog.Any("self", ctx.self), slog.Any("reason", reason))
 	// debug setting, allows to output supervision failures in console/error level
 	if ctx.actorSystem.Config.DeveloperSupervisionLogging {
 		fmt.Println("[Supervision] Actor:", ctx.self, " failed with message:", message, " exception:", reason)
-		ctx.actorSystem.Logger.Error("[Supervision]", slog.Any("actor", ctx.self), slog.Any("message", message), slog.Any("exception", reason))
+		ctx.Logger().Error("[Supervision]", slog.Any("actor", ctx.self), slog.Any("message", message), slog.Any("exception", reason))
 	}
 
 	metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)

@@ -14,7 +14,7 @@ type SupervisorEvent struct {
 func SubscribeSupervision(actorSystem *ActorSystem) {
 	_ = actorSystem.EventStream.Subscribe(func(evt interface{}) {
 		if supervisorEvent, ok := evt.(*SupervisorEvent); ok {
-			actorSystem.Logger.Debug("[SUPERVISION]", slog.Any("actor", supervisorEvent.Child), slog.Any("directive", supervisorEvent.Directive), slog.Any("reason", supervisorEvent.Reason))
+			actorSystem.Logger().Debug("[SUPERVISION]", slog.Any("actor", supervisorEvent.Child), slog.Any("directive", supervisorEvent.Directive), slog.Any("reason", supervisorEvent.Reason))
 		}
 	})
 }

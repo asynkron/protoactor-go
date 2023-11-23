@@ -38,7 +38,7 @@ func NewMetrics(system *ActorSystem, provider metric.MeterProvider) *Metrics {
 	}
 
 	return &Metrics{
-		metrics:     metrics.NewProtoMetrics(system.Logger),
+		metrics:     metrics.NewProtoMetrics(system.Logger()),
 		enabled:     true,
 		actorSystem: system,
 	}
@@ -51,7 +51,7 @@ func (m *Metrics) PrepareMailboxLengthGauge() {
 		metric.WithUnit("1"))
 	if err != nil {
 		err = fmt.Errorf("failed to create ActorMailBoxLength instrument, %w", err)
-		m.actorSystem.Logger.Error(err.Error(), slog.Any("error", err))
+		m.actorSystem.Logger().Error(err.Error(), slog.Any("error", err))
 	}
 	m.metrics.Instruments().SetActorMailboxLengthGauge(gauge)
 }

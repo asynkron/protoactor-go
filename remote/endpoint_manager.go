@@ -279,7 +279,7 @@ func (state *endpointSupervisor) Receive(ctx actor.Context) {
 }
 
 func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, supervisor actor.Supervisor, child *actor.PID, rs *actor.RestartStatistics, reason interface{}, message interface{}) {
-	actorSystem.Logger.Debug("EndpointSupervisor handling failure", slog.Any("reason", reason), slog.Any("message", message))
+	actorSystem.Logger().Debug("EndpointSupervisor handling failure", slog.Any("reason", reason), slog.Any("message", message))
 	supervisor.RestartChildren(child)
 }
 

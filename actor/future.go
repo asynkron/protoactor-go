@@ -27,7 +27,7 @@ func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
 
 	pid, ok := actorSystem.ProcessRegistry.Add(ref, "future"+id)
 	if !ok {
-		actorSystem.Logger.Error("failed to register future process", slog.Any("pid", pid))
+		actorSystem.Logger().Error("failed to register future process", slog.Any("pid", pid))
 	}
 
 	sysMetrics, ok := actorSystem.Extensions.Get(extensionId).(*Metrics)
