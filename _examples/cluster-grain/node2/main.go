@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 
 	"cluster-grain/shared"
 
@@ -20,6 +21,7 @@ func (h HelloGrain) Terminate(ctx cluster.GrainContext)      {}
 func (h HelloGrain) ReceiveDefault(ctx cluster.GrainContext) {}
 
 func (h HelloGrain) SayHello(request *shared.HelloRequest, ctx cluster.GrainContext) (*shared.HelloResponse, error) {
+	ctx.Logger().Info("SayHello", slog.String("name", request.Name))
 	return &shared.HelloResponse{Message: "Hello " + request.Name}, nil
 }
 
