@@ -39,7 +39,7 @@ func main() {
 
 	response := res.(*messages.HelloResponse)
 
-	system.Logger.Info("Response from remote", slog.Any("message", response.Message))
+	system.Logger().Info("Response from remote", slog.Any("message", response.Message))
 
 	console.ReadLine()
 }
