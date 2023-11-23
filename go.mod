@@ -20,7 +20,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.21.0
 	go.opentelemetry.io/otel/sdk/metric v1.21.0
 	golang.org/x/net v0.17.0
-	google.golang.org/grpc v1.55.0
+	google.golang.org/grpc v1.58.3
 	google.golang.org/protobuf v1.31.0
 )
 
@@ -30,7 +30,7 @@ require (
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/lithammer/shortuuid/v4 v4.0.0
 	github.com/twmb/murmur3 v1.1.6
-	go.etcd.io/etcd/client/v3 v3.5.7
+	go.etcd.io/etcd/client/v3 v3.5.10
 	golang.org/x/exp v0.0.0-20220518171630-0b5c67f07fdf
 	golang.org/x/sync v0.5.0
 	k8s.io/api v0.28.4
@@ -40,7 +40,11 @@ require (
 
 require github.com/lmittmann/tint v1.0.3
 
-require github.com/google/gnostic-models v0.6.8 // indirect
+require (
+	github.com/google/gnostic-models v0.6.8 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20230711160842-782d3b101e98 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98 // indirect
+)
 
 require (
 	github.com/armon/go-metrics v0.4.0 // indirect
@@ -88,21 +92,21 @@ require (
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
-	go.etcd.io/etcd/api/v3 v3.5.7 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.7 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.10 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.10 // indirect
 	go.opentelemetry.io/otel/sdk v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
-	golang.org/x/oauth2 v0.8.0 // indirect
+	golang.org/x/oauth2 v0.10.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
+	google.golang.org/genproto v0.0.0-20230711160842-782d3b101e98 // indirect
 	gopkg.in/couchbase/gocbcore.v7 v7.1.18 // indirect
 	gopkg.in/couchbaselabs/gocbconnstr.v1 v1.0.4 // indirect
 	gopkg.in/couchbaselabs/gojcbmock.v1 v1.0.4 // indirect
