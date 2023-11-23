@@ -125,5 +125,5 @@ func (r *Remote) SendMessage(pid *actor.PID, header actor.ReadonlyMessageHeader,
 }
 
 func (r *Remote) Logger() *slog.Logger {
-	return r.Logger()
+	return r.actorSystem.Logger()
 }
