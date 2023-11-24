@@ -3,29 +3,28 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
+	"log/slog"
 	"sync"
 	"time"
 
 	"cluster-restartgracefully/shared"
 
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/partition"
-
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
 )
 
 var (
 	system   = actor.NewActorSystem()
-	plog     = log.New(log.DebugLevel, "[Example]")
+	plog     = slog.Default()
 	_cluster *cluster.Cluster
 )
 
 func main() {
-	cluster.SetLogLevel(log.InfoLevel)
+
 	loops := flag.Int("loops", 10000, "request times.")
 	interval := flag.Duration("interval", 0, "request interval miliseconds per client.")
 	clients := flag.Int("clients", 1, "clients count.")
@@ -68,7 +67,7 @@ func startNode(port int, provider string) {
 		panic(err)
 	}
 
-	id := partition.New()
+	id := disthash.New()
 	remoteCfg := remote.Configure("127.0.0.1", port)
 	cfg := cluster.Configure("cluster-restartgracefully", cp, id, remoteCfg)
 	_cluster = cluster.New(system, cfg)
@@ -94,10 +93,10 @@ func runClientsAll(clients int, loops int, interval time.Duration) {
 		costSecs = 1
 	}
 	plog.Info("end all.",
-		log.Int("clients", clients),
-		log.Int("total", total),
-		log.Int("req/s", total/costSecs),
-		log.Duration("take", cost))
+		slog.Int("clients", clients),
+		slog.Int("total", total),
+		slog.Int("req/s", total/costSecs),
+		slog.Duration("take", cost))
 }
 
 func runClient(grainId string, loops int, interval time.Duration) {
@@ -110,24 +109,24 @@ func runClient(grainId string, loops int, interval time.Duration) {
 	}
 	baseNumber := resp.Number
 	plog.Info("requests",
-		log.String("grainId", grainId),
-		log.String("status", "start"))
+		slog.String("grainId", grainId),
+		slog.String("status", "start"))
 	for i := 1; i <= loops; i++ {
 		assert_calcAdd(grainId, 1, baseNumber+int64(i))
 		time.Sleep(interval)
 	}
 	plog.Info("requests",
-		log.String("grainId", grainId),
-		log.String("status", "end"),
-		log.Int("loops", loops),
-		log.Duration("take", time.Since(now)))
+		slog.String("grainId", grainId),
+		slog.String("status", "end"),
+		slog.Int("loops", loops),
+		slog.Duration("take", time.Since(now)))
 }
 
 func calcAdd(grainId string, addNumber int64) int64 {
 	calcGrain := shared.GetCalculatorGrainClient(_cluster, grainId)
 	resp, err := calcGrain.Add(&shared.NumberRequest{Number: addNumber}, cluster.WithRetryCount(3), cluster.WithTimeout(6*time.Second))
 	if err != nil {
-		plog.Error("call grain failed", log.Error(err))
+		plog.Error("call grain failed", slog.Any("error", err))
 	}
 	return resp.Number
 }

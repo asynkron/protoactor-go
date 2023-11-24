@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,14 +16,13 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/log"
 	"github.com/asynkron/protoactor-go/remote"
 )
 
 var (
-	plog     = log.New(log.DebugLevel, "[Example]")
 	system   = actor.NewActorSystem()
 	_cluster *cluster.Cluster
+	plog     = slog.Default()
 )
 
 func main() {
@@ -45,7 +45,7 @@ func main() {
 			time.Sleep(time.Second)
 			os.Exit(0)
 		default:
-			plog.Info("Skipping", log.Object("sig", sig))
+			plog.Info("Skipping", slog.Any("sig", sig))
 		}
 	}
 }
