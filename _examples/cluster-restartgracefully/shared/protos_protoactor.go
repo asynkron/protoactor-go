@@ -4,26 +4,20 @@ package shared
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
-	logmod "github.com/asynkron/protoactor-go/log"
 	"google.golang.org/protobuf/proto"
 )
 
 var (
-	plog = logmod.New(logmod.InfoLevel, "[GRAIN][shared]")
-	_    = proto.Marshal
-	_    = fmt.Errorf
-	_    = math.Inf
+	_ = proto.Marshal
+	_ = fmt.Errorf
+	_ = math.Inf
 )
-
-// SetLogLevel sets the log level.
-func SetLogLevel(level logmod.Level) {
-	plog.SetLevel(level)
-}
 
 var xCalculatorFactory func() Calculator
 
@@ -89,7 +83,7 @@ func (g *CalculatorGrainClient) Add(r *NumberRequest, opts ...cluster.GrainCallO
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	resp, err := g.cluster.Call(g.Identity, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Request(g.Identity, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +109,7 @@ func (g *CalculatorGrainClient) Subtract(r *NumberRequest, opts ...cluster.Grain
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
-	resp, err := g.cluster.Call(g.Identity, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Request(g.Identity, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +135,7 @@ func (g *CalculatorGrainClient) GetCurrent(r *Void, opts ...cluster.GrainCallOpt
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 2, MessageData: bytes}
-	resp, err := g.cluster.Call(g.Identity, "Calculator", reqMsg, opts...)
+	resp, err := g.cluster.Request(g.Identity, "Calculator", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +164,7 @@ type CalculatorActor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *CalculatorActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started: // pass
+	case *actor.Started: //pass
 	case *cluster.ClusterInit:
 		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = xCalculatorFactory()
@@ -192,7 +186,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 			req := &NumberRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				plog.Error("Add(NumberRequest) proto.Unmarshal failed.", logmod.Error(err))
+				ctx.Logger().Error("[Grain] Add(NumberRequest) proto.Unmarshal failed.", slog.Any("error", err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 				return
@@ -205,7 +199,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 			}
 			bytes, err := proto.Marshal(r0)
 			if err != nil {
-				plog.Error("Add(NumberRequest) proto.Marshal failed", logmod.Error(err))
+				ctx.Logger().Error("[Grain] Add(NumberRequest) proto.Marshal failed", slog.Any("error", err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 				return
@@ -216,7 +210,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 			req := &NumberRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				plog.Error("Subtract(NumberRequest) proto.Unmarshal failed.", logmod.Error(err))
+				ctx.Logger().Error("[Grain] Subtract(NumberRequest) proto.Unmarshal failed.", slog.Any("error", err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 				return
@@ -229,7 +223,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 			}
 			bytes, err := proto.Marshal(r0)
 			if err != nil {
-				plog.Error("Subtract(NumberRequest) proto.Marshal failed", logmod.Error(err))
+				ctx.Logger().Error("[Grain] Subtract(NumberRequest) proto.Marshal failed", slog.Any("error", err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 				return
@@ -240,7 +234,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 			req := &Void{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				plog.Error("GetCurrent(Void) proto.Unmarshal failed.", logmod.Error(err))
+				ctx.Logger().Error("[Grain] GetCurrent(Void) proto.Unmarshal failed.", slog.Any("error", err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 				return
@@ -253,7 +247,7 @@ func (a *CalculatorActor) Receive(ctx actor.Context) {
 			}
 			bytes, err := proto.Marshal(r0)
 			if err != nil {
-				plog.Error("GetCurrent(Void) proto.Marshal failed", logmod.Error(err))
+				ctx.Logger().Error("[Grain] GetCurrent(Void) proto.Marshal failed", slog.Any("error", err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 				return
