@@ -1,6 +1,7 @@
 package router_test
 
 import (
+	"log/slog"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -41,7 +42,7 @@ type (
 func (state *routerActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *myMessage:
-		// log.Printf("%v got message %d", context.Self(), msg.i)
+		//context.Logger().Info("%v got message", slog.Any("self", context.Self()), slog.Int("msg", int(msg.i)))
 		atomic.AddInt32(&msg.i, 1)
 		wait.Done()
 	}
@@ -50,9 +51,13 @@ func (state *routerActor) Receive(context actor.Context) {
 func (state *tellerActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *myMessage:
+		start := msg.i
 		for i := 0; i < 100; i++ {
 			context.Send(msg.pid, msg)
 			time.Sleep(10 * time.Millisecond)
+		}
+		if msg.i != start+100 {
+			context.Logger().Error("Expected to send 100 messages", slog.Int("start", int(start)), slog.Int("end", int(msg.i)))
 		}
 	}
 }
@@ -96,5 +101,20 @@ func TestConcurrency(t *testing.T) {
 	props = actor.PropsFromProducer(func() actor.Actor { return &managerActor{} })
 	pid := system.Root.Spawn(props)
 	system.Root.Send(pid, &getRoutees{rpid})
-	wait.Wait()
+
+	// Implementing the timeout
+	timeout := time.After(5 * time.Second)
+	done := make(chan bool)
+	go func() {
+		wait.Wait()
+		done <- true
+	}()
+
+	select {
+	case <-timeout:
+		t.Fatal("Test timed out")
+	case <-done:
+		// Test completed within timeout
+	}
+
 }
