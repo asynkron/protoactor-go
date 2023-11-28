@@ -30,8 +30,10 @@ func (m *mailboxLogger) MailboxEmpty() {
 func main() {
 	system := actor.NewActorSystem()
 	rootContext := system.Root
-	props := actor.PropsFromFunc(func(ctx actor.Context) {
-	}, actor.WithMailbox(actor.Unbounded(&mailboxLogger{logger: system.Logger})))
+	props := actor.PropsFromFunc(
+		func(ctx actor.Context) {},
+		actor.WithMailbox(actor.Unbounded(&mailboxLogger{logger: system.Logger()})),
+	)
 	pid := rootContext.Spawn(props)
 	rootContext.Send(pid, "Hello")
 	_, _ = console.ReadLine()
