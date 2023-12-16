@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package hello;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/asynkron/protoactor-go/protoc-gen-go-grain/testdata/hello";
+
+message SayHelloResponse {
+  string message = 1;
+}
+
+service Hello {
+  rpc SayHello (google.protobuf.Empty) returns (SayHelloResponse) {}
+}
