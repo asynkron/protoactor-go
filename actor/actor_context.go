@@ -648,7 +648,7 @@ func (ctx *actorContext) stopAllChildren() {
 		return
 	}
 
-	var pids = ctx.extras.children.pids
+	pids := ctx.extras.children.pids
 	for i := len(pids) - 1; i >= 0; i-- {
 		pids[i].sendSystemMessage(ctx.actorSystem, stopMessage)
 	}
@@ -706,7 +706,7 @@ func (ctx *actorContext) finalizeStop() {
 //
 
 func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {
-	//TODO: add callstack to log?
+	// TODO: add callstack to log?
 	ctx.Logger().Info("[ACTOR] Recovering", slog.Any("self", ctx.self), slog.Any("reason", reason))
 	// debug setting, allows to output supervision failures in console/error level
 	if ctx.actorSystem.Config.DeveloperSupervisionLogging {
