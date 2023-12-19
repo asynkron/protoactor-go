@@ -16,10 +16,11 @@ type serviceDesc struct {
 }
 
 type methodDesc struct {
-	Name   string
-	Input  string
-	Output string
-	Index  int
+	Name        string
+	Input       string
+	Output      string
+	Index       int
+	Reenterable bool
 }
 
 func (s *serviceDesc) execute() string {

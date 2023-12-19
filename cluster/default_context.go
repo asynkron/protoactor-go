@@ -74,7 +74,7 @@ selectloop:
 				continue
 			}
 
-			//TODO: why is err != nil when res != nil?
+			// TODO: why is err != nil when res != nil?
 			resp, err = _context.RequestFuture(pid, message, ttl).Result()
 			if resp != nil {
 				break selectloop
@@ -104,6 +104,43 @@ selectloop:
 	}
 
 	return resp, err
+}
+
+func (dcc *DefaultContext) RequestFuture(identity string, kind string, message interface{}, opts ...GrainCallOption) (*actor.Future, error) {
+	var counter int
+	callConfig := DefaultGrainCallConfig(dcc.cluster)
+	for _, o := range opts {
+		o(callConfig)
+	}
+
+	_context := callConfig.Context
+
+	dcc.cluster.Logger().Debug(fmt.Sprintf("Requesting future %s:%s Message %#v", identity, kind, message))
+
+	// crate a new Timeout Context
+	ttl := callConfig.Timeout
+
+	ctx, cancel := context.WithTimeout(context.Background(), ttl)
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// TODO: handler throttling and messaging here
+			err := fmt.Errorf("request failed: %w", ctx.Err())
+			return nil, err
+		default:
+			pid := dcc.getPid(identity, kind)
+			if pid == nil {
+				dcc.cluster.Logger().Debug("Requesting PID from IdentityLookup but got nil", slog.String("identity", identity), slog.String("kind", kind))
+				counter = callConfig.RetryAction(counter)
+				continue
+			}
+
+			f := _context.RequestFuture(pid, message, ttl)
+			return f, nil
+		}
+	}
 }
 
 // gets the cached PID for the given identity

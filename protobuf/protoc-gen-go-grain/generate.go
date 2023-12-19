@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/asynkron/protoactor-go/protobuf/protoc-gen-go-grain/options"
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
@@ -83,11 +85,17 @@ func generateService(service *protogen.Service, file *protogen.File, g *protogen
 			continue
 		}
 
+		methodOptions, ok := proto.GetExtension(method.Desc.Options(), options.E_MethodOptions).(*options.MethodOptions)
+		if !ok {
+			continue
+		}
+
 		md := &methodDesc{
-			Name:   method.GoName,
-			Input:  g.QualifiedGoIdent(method.Input.GoIdent),
-			Output: g.QualifiedGoIdent(method.Output.GoIdent),
-			Index:  i,
+			Name:        method.GoName,
+			Input:       g.QualifiedGoIdent(method.Input.GoIdent),
+			Output:      g.QualifiedGoIdent(method.Output.GoIdent),
+			Index:       i,
+			Reenterable: methodOptions.GetReenterable(),
 		}
 
 		sd.Methods = append(sd.Methods, md)
