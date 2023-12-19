@@ -43,7 +43,7 @@ func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers
 // Receive method.
 func (ga *GossipActor) Receive(ctx actor.Context) {
 	switch r := ctx.Message().(type) {
-	case *actor.Started:
+	case *actor.Started, *actor.Stopping, *actor.Stopped:
 		// pass
 	case *SetGossipStateKey:
 		ga.onSetGossipStateKey(r, ctx)
