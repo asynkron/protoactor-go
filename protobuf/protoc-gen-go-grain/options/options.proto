@@ -7,7 +7,7 @@ import "google/protobuf/descriptor.proto";
 option go_package = "github.com/asynkron/protoactor-go/protobuf/protoc-gen-go-grain/options";
 
 message MethodOptions {
-  optional bool reenterable = 1;
+  bool reenterable = 1;
 }
 
 extend google.protobuf.MethodOptions {
