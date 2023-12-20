@@ -2,30 +2,24 @@ package main
 
 import (
 	errors "errors"
-	slog "log/slog"
-	"os"
-
 	"github.com/asynkron/protoactor-go/cluster"
 )
 
 type HelloGrain struct {
-	logger *slog.Logger
 }
 
 func NewHelloGrain() Hello {
-	return &HelloGrain{
-		logger: slog.New(slog.NewJSONHandler(os.Stdout, nil)),
-	}
+	return &HelloGrain{}
 }
 
 // Init implements Hello.
 func (g *HelloGrain) Init(ctx cluster.GrainContext) {
-	g.logger.Info("HelloGrain Init")
+	ctx.Logger().Info("HelloGrain Init")
 }
 
 // ReceiveDefault implements Hello.
 func (g *HelloGrain) ReceiveDefault(ctx cluster.GrainContext) {
-	g.logger.Info("HelloGrain ReceiveDefault")
+	ctx.Logger().Info("HelloGrain ReceiveDefault")
 }
 
 // InvokeService implements Hello.
@@ -81,5 +75,5 @@ func (g *HelloGrain) DoWork(req *DoWorkRequest, ctx cluster.GrainContext) (*DoWo
 
 // Terminate implements Hello.
 func (g *HelloGrain) Terminate(ctx cluster.GrainContext) {
-	g.logger.Info("HelloGrain Terminate")
+	ctx.Logger().Info("HelloGrain Terminate")
 }
