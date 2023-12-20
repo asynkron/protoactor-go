@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/asynkron/protoactor-go/protobuf/protoc-gen-go-grain/options"
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
@@ -20,6 +22,9 @@ const (
 )
 
 func generateFile(gen *protogen.Plugin, file *protogen.File) {
+	if len(file.Services) == 0 {
+		return
+	}
 	filename := file.GeneratedFilenamePrefix + "_grain.pb.go"
 	g := gen.NewGeneratedFile(filename, file.GoImportPath)
 
@@ -58,7 +63,6 @@ func generateContent(gen *protogen.Plugin, g *protogen.GeneratedFile, file *prot
 	g.QualifiedGoIdent(actorPackage.Ident(""))
 	g.QualifiedGoIdent(clusterPackage.Ident(""))
 	g.QualifiedGoIdent(protoPackage.Ident(""))
-	g.QualifiedGoIdent(errorsPackage.Ident(""))
 	g.QualifiedGoIdent(fmtPackage.Ident(""))
 	g.QualifiedGoIdent(timePackage.Ident(""))
 	g.QualifiedGoIdent(slogPackage.Ident(""))
@@ -83,11 +87,17 @@ func generateService(service *protogen.Service, file *protogen.File, g *protogen
 			continue
 		}
 
+		methodOptions, ok := proto.GetExtension(method.Desc.Options(), options.E_MethodOptions).(*options.MethodOptions)
+		if !ok {
+			continue
+		}
+
 		md := &methodDesc{
-			Name:   method.GoName,
-			Input:  g.QualifiedGoIdent(method.Input.GoIdent),
-			Output: g.QualifiedGoIdent(method.Output.GoIdent),
-			Index:  i,
+			Name:        method.GoName,
+			Input:       g.QualifiedGoIdent(method.Input.GoIdent),
+			Output:      g.QualifiedGoIdent(method.Output.GoIdent),
+			Index:       i,
+			Reenterable: methodOptions.GetReenterable(),
 		}
 
 		sd.Methods = append(sd.Methods, md)

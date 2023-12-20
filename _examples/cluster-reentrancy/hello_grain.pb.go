@@ -2,16 +2,15 @@
 // versions:
 //  protoc-gen-grain v0.3.0
 //  protoc           v4.25.0
-// source: testdata/hello/hello.proto
+// source: hello.proto
 
-package hello
+package main
 
 import (
 	fmt "fmt"
 	actor "github.com/asynkron/protoactor-go/actor"
 	cluster "github.com/asynkron/protoactor-go/cluster"
 	proto "google.golang.org/protobuf/proto"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	slog "log/slog"
 	time "time"
 )
@@ -62,7 +61,8 @@ type Hello interface {
 	Init(ctx cluster.GrainContext)
 	Terminate(ctx cluster.GrainContext)
 	ReceiveDefault(ctx cluster.GrainContext)
-	SayHello(req *emptypb.Empty, ctx cluster.GrainContext) (*SayHelloResponse, error)
+	InvokeService(req *InvokeServiceRequest, respond func(*InvokeServiceResponse), onError func(error), ctx cluster.GrainContext) error
+	DoWork(req *DoWorkRequest, ctx cluster.GrainContext) (*DoWorkResponse, error)
 }
 
 // HelloGrainClient holds the base data for the HelloGrain
@@ -71,8 +71,24 @@ type HelloGrainClient struct {
 	cluster  *cluster.Cluster
 }
 
-// SayHello requests the execution on to the cluster with CallOptions
-func (g *HelloGrainClient) SayHello(r *emptypb.Empty, opts ...cluster.GrainCallOption) (*SayHelloResponse, error) {
+// InvokeServiceFuture return a future for the execution of InvokeService on the cluster
+func (g *HelloGrainClient) InvokeServiceFuture(r *InvokeServiceRequest, opts ...cluster.GrainCallOption) (*actor.Future, error) {
+	bytes, err := proto.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+
+	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
+	f, err := g.cluster.RequestFuture(g.Identity, "Hello", reqMsg, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("error request future: %w", err)
+	}
+
+	return f, nil
+}
+
+// InvokeService requests the execution on to the cluster with CallOptions
+func (g *HelloGrainClient) InvokeService(r *InvokeServiceRequest, opts ...cluster.GrainCallOption) (*InvokeServiceResponse, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -83,7 +99,28 @@ func (g *HelloGrainClient) SayHello(r *emptypb.Empty, opts ...cluster.GrainCallO
 		return nil, fmt.Errorf("error request: %w", err)
 	}
 	switch msg := resp.(type) {
-	case *SayHelloResponse:
+	case *InvokeServiceResponse:
+		return msg, nil
+	case error:
+		return nil, fmt.Errorf("error response: %w", msg)
+	default:
+		return nil, fmt.Errorf("unknown response type %T", resp)
+	}
+}
+
+// DoWork requests the execution on to the cluster with CallOptions
+func (g *HelloGrainClient) DoWork(r *DoWorkRequest, opts ...cluster.GrainCallOption) (*DoWorkResponse, error) {
+	bytes, err := proto.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	reqMsg := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
+	resp, err := g.cluster.Request(g.Identity, "Hello", reqMsg, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("error request: %w", err)
+	}
+	switch msg := resp.(type) {
+	case *DoWorkResponse:
 		return msg, nil
 	case error:
 		return nil, fmt.Errorf("error response: %w", msg)
@@ -121,15 +158,28 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 	case *cluster.GrainRequest:
 		switch msg.MethodIndex {
 		case 0:
-			req := &emptypb.Empty{}
+			req := &InvokeServiceRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				ctx.Logger().Error("[Grain] SayHello(emptypb.Empty) proto.Unmarshal failed.", slog.Any("error", err))
+				ctx.Logger().Error("[Grain] InvokeService(InvokeServiceRequest) proto.Unmarshal failed.", slog.Any("error", err))
+				ctx.Respond(err)
+				return
+			}
+			err = a.inner.InvokeService(req, respond[*InvokeServiceResponse](a.ctx), a.onError, a.ctx)
+			if err != nil {
+				ctx.Respond(err)
+				return
+			}
+		case 1:
+			req := &DoWorkRequest{}
+			err := proto.Unmarshal(msg.MessageData, req)
+			if err != nil {
+				ctx.Logger().Error("[Grain] DoWork(DoWorkRequest) proto.Unmarshal failed.", slog.Any("error", err))
 				ctx.Respond(err)
 				return
 			}
 
-			r0, err := a.inner.SayHello(req, a.ctx)
+			r0, err := a.inner.DoWork(req, a.ctx)
 			if err != nil {
 				ctx.Respond(err)
 				return

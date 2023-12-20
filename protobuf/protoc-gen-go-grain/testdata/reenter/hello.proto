@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package hello;
+
+import "protobuf/protoc-gen-go-grain/options/options.proto";
+
+option go_package = "github.com/asynkron/protoactor-go/protoc-gen-go-grain/testdata/hello";
+
+message SayHelloRequest {
+  string name = 1;
+}
+
+message SayHelloResponse {
+  string message = 1;
+}
+
+message DoworkRequest {
+  string name = 1;
+}
+
+message DoworkResponse {
+  string message = 1;
+}
+
+service Hello {
+  rpc SayHello (SayHelloRequest) returns (SayHelloResponse) {
+    option (options.method_options).reenterable = true;
+  };
+
+  rpc Dowork (DoworkRequest) returns (DoworkResponse) {};
+}

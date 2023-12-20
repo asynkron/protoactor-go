@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package options;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/asynkron/protoactor-go/protobuf/protoc-gen-go-grain/options";
+
+message MethodOptions {
+  bool reenterable = 1;
+}
+
+extend google.protobuf.MethodOptions {
+  MethodOptions method_options = 50000;
+}
