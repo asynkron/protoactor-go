@@ -16,4 +16,5 @@ stop:
 
 proto:
 	protoc -I=.  --gogoslick_out=. shared/*.proto
-	protoc -I=.  --gograinv2_out=. shared/*.proto
+	protoc --go_out=. --go_opt=paths=source_relative --plugin=$GOPATH/bin/protoc-gen-go-grain --go-grain_out=. --go-grain_opt=paths=source_relative protos.proto
+
