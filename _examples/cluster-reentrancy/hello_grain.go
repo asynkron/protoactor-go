@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/asynkron/protoactor-go/cluster"
-	proto "google.golang.org/protobuf/proto"
 )
 
 type HelloGrain struct {
@@ -41,17 +40,12 @@ func (g *HelloGrain) InvokeService(req *InvokeServiceRequest, respond func(*Invo
 			}
 
 			switch msg := resp.(type) {
-			case *cluster.GrainResponse:
-				result := &InvokeServiceResponse{}
-				err = proto.Unmarshal(msg.MessageData, result)
-				if err != nil {
-					onError(err)
-				}
+			case *InvokeServiceResponse:
 				respond(&InvokeServiceResponse{
-					Message: req.Name + " from " + ctx.Identity() + " and " + result.Message,
+					Message: req.Name + " from " + ctx.Identity() + " and " + msg.Message,
 				})
-			case *cluster.GrainErrorResponse:
-				onError(errors.New(msg.Err))
+			case error:
+				onError(msg)
 			default:
 				onError(errors.New("unknown response"))
 			}

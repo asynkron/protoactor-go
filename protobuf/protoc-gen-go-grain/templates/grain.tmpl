@@ -71,7 +71,7 @@ func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}Future(r *{{ $method.
 	reqMsg := &cluster.GrainRequest{MethodIndex: {{ $method.Index }}, MessageData: bytes}
 	f, err := g.cluster.RequestFuture(g.Identity, "{{ $service.Name }}", reqMsg, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error request future: %w", err)
 	}
 
 	return f, nil
@@ -86,20 +86,15 @@ func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input 
 	reqMsg := &cluster.GrainRequest{MethodIndex: {{ $method.Index }}, MessageData: bytes}
 	resp, err := g.cluster.Request(g.Identity, "{{ $service.Name }}", reqMsg, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error request: %w", err)
 	}
 	switch msg := resp.(type) {
-	case *cluster.GrainResponse:
-		result := &{{ $method.Output }}{}
-		err = proto.Unmarshal(msg.MessageData, result)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
-	case *cluster.GrainErrorResponse:
-		return nil, errors.New(msg.Err)
+	case *{{ $method.Output }}:
+		return msg, nil
+	case error:
+		return nil, fmt.Errorf("error response: %w", msg)
 	default:
-		return nil, errors.New("unknown response")
+		return nil, fmt.Errorf("unknown response type %T", resp)
 	}
 }
 {{ end }}
@@ -137,33 +132,18 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
 				ctx.Logger().Error("[Grain] {{ $method.Name }}({{ $method.Input }}) proto.Unmarshal failed.", slog.Any("error", err))
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
-				ctx.Respond(resp)
+				ctx.Respond(err)
 				return
 			}
 			{{ if $method.Reenterable -}}
 			a.inner.{{ $method.Name }}(req, respond[*{{ $method.Output }}](a.ctx), a.onError, a.ctx)
-			if err != nil {
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
-				ctx.Respond(resp)
-				return
-			}
 			{{ else }}
 			r0, err := a.inner.{{ $method.Name }}(req, a.ctx)
 			if err != nil {
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
-				ctx.Respond(resp)
+				ctx.Respond(err)
 				return
 			}
-			bytes, err := proto.Marshal(r0)
-			if err != nil {
-				ctx.Logger().Error("[Grain] {{ $method.Name }}({{ $method.Input }}) proto.Marshal failed", slog.Any("error", err))
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
-				ctx.Respond(resp)
-				return
-			}
-			resp := &cluster.GrainResponse{MessageData: bytes}
-			ctx.Respond(resp)
+			ctx.Respond(r0)
 			{{ end -}}
 		{{ end -}}
 		}
@@ -173,20 +153,11 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 }
 
 func (a *{{ $service.Name }}Actor) onError(err error) {
-	resp := &cluster.GrainErrorResponse{Err: err.Error()}
-	a.ctx.Respond(resp)
+	a.ctx.Respond(err)
 }
 
 func respond[T proto.Message](ctx cluster.GrainContext) func (T) {
 	return func (resp T) {
-		bytes, err := proto.Marshal(resp)
-		if err != nil {
-			ctx.Logger().Error("[Grain] proto.Marshal failed.", slog.Any("error", err))
-			resp := &cluster.GrainErrorResponse{Err: err.Error()}
-			ctx.Respond(resp)
-			return
-		}
-		r := &cluster.GrainResponse{MessageData: bytes}
-		ctx.Respond(r)
+		ctx.Respond(resp)
 	}
 }

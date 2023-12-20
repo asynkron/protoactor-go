@@ -7,7 +7,6 @@
 package hello
 
 import (
-	errors "errors"
 	fmt "fmt"
 	actor "github.com/asynkron/protoactor-go/actor"
 	cluster "github.com/asynkron/protoactor-go/cluster"
@@ -81,20 +80,15 @@ func (g *HelloGrainClient) SayHello(r *emptypb.Empty, opts ...cluster.GrainCallO
 	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
 	resp, err := g.cluster.Request(g.Identity, "Hello", reqMsg, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error request: %w", err)
 	}
 	switch msg := resp.(type) {
-	case *cluster.GrainResponse:
-		result := &SayHelloResponse{}
-		err = proto.Unmarshal(msg.MessageData, result)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
-	case *cluster.GrainErrorResponse:
-		return nil, errors.New(msg.Err)
+	case *SayHelloResponse:
+		return msg, nil
+	case error:
+		return nil, fmt.Errorf("error response: %w", msg)
 	default:
-		return nil, errors.New("unknown response")
+		return nil, fmt.Errorf("unknown response type %T", resp)
 	}
 }
 
@@ -131,26 +125,16 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
 				ctx.Logger().Error("[Grain] SayHello(emptypb.Empty) proto.Unmarshal failed.", slog.Any("error", err))
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
-				ctx.Respond(resp)
+				ctx.Respond(err)
 				return
 			}
 
 			r0, err := a.inner.SayHello(req, a.ctx)
 			if err != nil {
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
-				ctx.Respond(resp)
+				ctx.Respond(err)
 				return
 			}
-			bytes, err := proto.Marshal(r0)
-			if err != nil {
-				ctx.Logger().Error("[Grain] SayHello(emptypb.Empty) proto.Marshal failed", slog.Any("error", err))
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
-				ctx.Respond(resp)
-				return
-			}
-			resp := &cluster.GrainResponse{MessageData: bytes}
-			ctx.Respond(resp)
+			ctx.Respond(r0)
 		}
 	default:
 		a.inner.ReceiveDefault(a.ctx)
@@ -158,20 +142,11 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 }
 
 func (a *HelloActor) onError(err error) {
-	resp := &cluster.GrainErrorResponse{Err: err.Error()}
-	a.ctx.Respond(resp)
+	a.ctx.Respond(err)
 }
 
 func respond[T proto.Message](ctx cluster.GrainContext) func(T) {
 	return func(resp T) {
-		bytes, err := proto.Marshal(resp)
-		if err != nil {
-			ctx.Logger().Error("[Grain] proto.Marshal failed.", slog.Any("error", err))
-			resp := &cluster.GrainErrorResponse{Err: err.Error()}
-			ctx.Respond(resp)
-			return
-		}
-		r := &cluster.GrainResponse{MessageData: bytes}
-		ctx.Respond(r)
+		ctx.Respond(resp)
 	}
 }

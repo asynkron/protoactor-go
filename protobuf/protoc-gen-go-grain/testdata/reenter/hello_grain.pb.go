@@ -7,7 +7,6 @@
 package hello
 
 import (
-	errors "errors"
 	fmt "fmt"
 	actor "github.com/asynkron/protoactor-go/actor"
 	cluster "github.com/asynkron/protoactor-go/cluster"
@@ -82,10 +81,31 @@ func (g *HelloGrainClient) SayHelloFuture(r *SayHelloRequest, opts ...cluster.Gr
 	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
 	f, err := g.cluster.RequestFuture(g.Identity, "Hello", reqMsg, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error request future: %w", err)
 	}
 
 	return f, nil
+}
+
+// SayHello requests the execution on to the cluster with CallOptions
+func (g *HelloGrainClient) SayHello(r *SayHelloRequest, opts ...cluster.GrainCallOption) (*SayHelloResponse, error) {
+	bytes, err := proto.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
+	resp, err := g.cluster.Request(g.Identity, "Hello", reqMsg, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("error request: %w", err)
+	}
+	switch msg := resp.(type) {
+	case *SayHelloResponse:
+		return msg, nil
+	case error:
+		return nil, fmt.Errorf("error response: %w", msg)
+	default:
+		return nil, fmt.Errorf("unknown response type %T", resp)
+	}
 }
 
 // Dowork requests the execution on to the cluster with CallOptions
@@ -97,20 +117,15 @@ func (g *HelloGrainClient) Dowork(r *DoworkRequest, opts ...cluster.GrainCallOpt
 	reqMsg := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
 	resp, err := g.cluster.Request(g.Identity, "Hello", reqMsg, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error request: %w", err)
 	}
 	switch msg := resp.(type) {
-	case *cluster.GrainResponse:
-		result := &DoworkResponse{}
-		err = proto.Unmarshal(msg.MessageData, result)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
-	case *cluster.GrainErrorResponse:
-		return nil, errors.New(msg.Err)
+	case *DoworkResponse:
+		return msg, nil
+	case error:
+		return nil, fmt.Errorf("error response: %w", msg)
 	default:
-		return nil, errors.New("unknown response")
+		return nil, fmt.Errorf("unknown response type %T", resp)
 	}
 }
 
@@ -147,41 +162,25 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
 				ctx.Logger().Error("[Grain] SayHello(SayHelloRequest) proto.Unmarshal failed.", slog.Any("error", err))
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
-				ctx.Respond(resp)
+				ctx.Respond(err)
 				return
 			}
-			a.inner.SayHello(req, a.ctx, respond[*SayHelloResponse](a.ctx), a.onError, a.ctx)
-			if err != nil {
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
-				ctx.Respond(resp)
-				return
-			}
+			a.inner.SayHello(req, respond[*SayHelloResponse](a.ctx), a.onError, a.ctx)
 		case 1:
 			req := &DoworkRequest{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
 				ctx.Logger().Error("[Grain] Dowork(DoworkRequest) proto.Unmarshal failed.", slog.Any("error", err))
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
-				ctx.Respond(resp)
+				ctx.Respond(err)
 				return
 			}
 
 			r0, err := a.inner.Dowork(req, a.ctx)
 			if err != nil {
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
-				ctx.Respond(resp)
+				ctx.Respond(err)
 				return
 			}
-			bytes, err := proto.Marshal(r0)
-			if err != nil {
-				ctx.Logger().Error("[Grain] Dowork(DoworkRequest) proto.Marshal failed", slog.Any("error", err))
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
-				ctx.Respond(resp)
-				return
-			}
-			resp := &cluster.GrainResponse{MessageData: bytes}
-			ctx.Respond(resp)
+			ctx.Respond(r0)
 		}
 	default:
 		a.inner.ReceiveDefault(a.ctx)
@@ -189,20 +188,11 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 }
 
 func (a *HelloActor) onError(err error) {
-	resp := &cluster.GrainErrorResponse{Err: err.Error()}
-	a.ctx.Respond(resp)
+	a.ctx.Respond(err)
 }
 
 func respond[T proto.Message](ctx cluster.GrainContext) func(T) {
 	return func(resp T) {
-		bytes, err := proto.Marshal(resp)
-		if err != nil {
-			ctx.Logger().Error("[Grain] proto.Marshal failed.", slog.Any("error", err))
-			resp := &cluster.GrainErrorResponse{Err: err.Error()}
-			ctx.Respond(resp)
-			return
-		}
-		r := &cluster.GrainResponse{MessageData: bytes}
-		ctx.Respond(r)
+		ctx.Respond(resp)
 	}
 }

@@ -60,7 +60,6 @@ func generateContent(gen *protogen.Plugin, g *protogen.GeneratedFile, file *prot
 	g.QualifiedGoIdent(actorPackage.Ident(""))
 	g.QualifiedGoIdent(clusterPackage.Ident(""))
 	g.QualifiedGoIdent(protoPackage.Ident(""))
-	g.QualifiedGoIdent(errorsPackage.Ident(""))
 	g.QualifiedGoIdent(fmtPackage.Ident(""))
 	g.QualifiedGoIdent(timePackage.Ident(""))
 	g.QualifiedGoIdent(slogPackage.Ident(""))
