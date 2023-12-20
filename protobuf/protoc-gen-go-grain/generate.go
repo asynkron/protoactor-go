@@ -22,6 +22,9 @@ const (
 )
 
 func generateFile(gen *protogen.Plugin, file *protogen.File) {
+	if len(file.Services) == 0 {
+		return
+	}
 	filename := file.GeneratedFilenamePrefix + "_grain.pb.go"
 	g := gen.NewGeneratedFile(filename, file.GoImportPath)
 
