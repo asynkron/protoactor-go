@@ -47,9 +47,9 @@ type {{ $service.Name }} interface {
 	ReceiveDefault(ctx cluster.GrainContext)
 	{{- range $method := .Methods }}
 	{{ if $method.Reenterable -}}
-	{{ $method.Name }}(*{{ $method.Input }}, func(*{{ $method.Output }}), func(error), cluster.GrainContext) error
+	{{ $method.Name }}(req *{{ $method.Input }}, respond func(*{{ $method.Output }}), onError func(error), ctx cluster.GrainContext) error
 	{{- else -}}
-	{{ $method.Name }}(*{{ $method.Input }}, cluster.GrainContext) (*{{ $method.Output }}, error)
+	{{ $method.Name }}(req *{{ $method.Input }}, ctx cluster.GrainContext) (*{{ $method.Output }}, error)
 	{{- end }}
 	{{- end}}
 }
@@ -136,7 +136,11 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 				return
 			}
 			{{ if $method.Reenterable -}}
-			a.inner.{{ $method.Name }}(req, respond[*{{ $method.Output }}](a.ctx), a.onError, a.ctx)
+			err = a.inner.{{ $method.Name }}(req, respond[*{{ $method.Output }}](a.ctx), a.onError, a.ctx)
+			if err != nil {
+				ctx.Respond(err)
+				return
+			}
 			{{ else }}
 			r0, err := a.inner.{{ $method.Name }}(req, a.ctx)
 			if err != nil {
@@ -152,6 +156,8 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 	}
 }
 
+// onError should be used in ctx.ReenterAfter
+// you can just return error in reenterable method for other errors
 func (a *{{ $service.Name }}Actor) onError(err error) {
 	a.ctx.Respond(err)
 }
