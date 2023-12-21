@@ -214,17 +214,13 @@ func (ctx *actorContext) Unwatch(who *PID) {
 }
 
 func (ctx *actorContext) SetReceiveTimeout(d time.Duration) {
-	if d <= 0 {
-		panic("Duration must be greater than zero")
+	if d < time.Millisecond {
+		// anything less than 1 millisecond is set to zero
+		d = 0
 	}
 
 	if d == ctx.receiveTimeout {
 		return
-	}
-
-	if d < time.Millisecond {
-		// anything less than 1 millisecond is set to zero
-		d = 0
 	}
 
 	ctx.receiveTimeout = d
