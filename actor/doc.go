@@ -53,13 +53,13 @@ shared state inside calls to this function.
 A PID is the primary interface for sending messages to actors. Context.Send is used to send an asynchronous
 message to the actor associated with the PID:
 
-	context.Aend(pid, "Hello World")
+	context.Send(pid, "Hello World")
 
 Depending on the requirements, communication between actors can take place synchronously or asynchronously. Regardless
 of the circumstances, actors always communicate via a PID.
 
 When sending a message using PID.Request or PID.RequestFuture, the actor which receives the message will respond
-using the Context.Sender method, which returns the PID of of the sender.
+using the Context.Sender method, which returns the PID of the sender.
 
 For synchronous communication, an actor will use a Future and wait for the result before continuing. To send a message
 to an actor and wait for a response, use the RequestFuture method, which returns a Future:
