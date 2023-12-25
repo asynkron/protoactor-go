@@ -46,7 +46,7 @@ type {{ $service.Name }} interface {
 	Terminate(ctx cluster.GrainContext)
 	ReceiveDefault(ctx cluster.GrainContext)
 	{{- range $method := .Methods }}
-	{{ if $method.Reenterable -}}
+	{{ if $method.Options.Reenterable -}}
 	{{ $method.Name }}(req *{{ $method.Input }}, respond func(*{{ $method.Output }}), onError func(error), ctx cluster.GrainContext) error
 	{{- else -}}
 	{{ $method.Name }}(req *{{ $method.Input }}, ctx cluster.GrainContext) (*{{ $method.Output }}, error)
@@ -60,7 +60,7 @@ type {{ $service.Name }}GrainClient struct {
 	cluster  *cluster.Cluster
 }
 {{ range $method := .Methods}}
-{{ if $method.Reenterable -}}
+{{ if $method.Options.Future -}}
 // {{ $method.Name }}Future return a future for the execution of {{ $method.Name }} on the cluster
 func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}Future(r *{{ $method.Input }}, opts ...cluster.GrainCallOption) (*actor.Future, error) {
 	bytes, err := proto.Marshal(r)
@@ -135,7 +135,7 @@ func (a *{{ $service.Name }}Actor) Receive(ctx actor.Context) {
 				ctx.Respond(err)
 				return
 			}
-			{{ if $method.Reenterable -}}
+			{{ if $method.Options.Reenterable -}}
 			err = a.inner.{{ $method.Name }}(req, respond[*{{ $method.Output }}](a.ctx), a.onError, a.ctx)
 			if err != nil {
 				ctx.Respond(err)

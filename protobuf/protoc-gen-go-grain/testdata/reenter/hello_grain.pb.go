@@ -71,22 +71,6 @@ type HelloGrainClient struct {
 	cluster  *cluster.Cluster
 }
 
-// SayHelloFuture return a future for the execution of SayHello on the cluster
-func (g *HelloGrainClient) SayHelloFuture(r *SayHelloRequest, opts ...cluster.GrainCallOption) (*actor.Future, error) {
-	bytes, err := proto.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-
-	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	f, err := g.cluster.RequestFuture(g.Identity, "Hello", reqMsg, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("error request future: %w", err)
-	}
-
-	return f, nil
-}
-
 // SayHello requests the execution on to the cluster with CallOptions
 func (g *HelloGrainClient) SayHello(r *SayHelloRequest, opts ...cluster.GrainCallOption) (*SayHelloResponse, error) {
 	bytes, err := proto.Marshal(r)
@@ -106,6 +90,22 @@ func (g *HelloGrainClient) SayHello(r *SayHelloRequest, opts ...cluster.GrainCal
 	default:
 		return nil, fmt.Errorf("unknown response type %T", resp)
 	}
+}
+
+// DoworkFuture return a future for the execution of Dowork on the cluster
+func (g *HelloGrainClient) DoworkFuture(r *DoworkRequest, opts ...cluster.GrainCallOption) (*actor.Future, error) {
+	bytes, err := proto.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+
+	reqMsg := &cluster.GrainRequest{MethodIndex: 1, MessageData: bytes}
+	f, err := g.cluster.RequestFuture(g.Identity, "Hello", reqMsg, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("error request future: %w", err)
+	}
+
+	return f, nil
 }
 
 // Dowork requests the execution on to the cluster with CallOptions
@@ -191,8 +191,8 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 	}
 }
 
-// onError and respond should be used in ctx.ReenterAfter
-// you can return error in reenterable method for fast fail
+// onError should be used in ctx.ReenterAfter
+// you can just return error in reenterable method for other errors
 func (a *HelloActor) onError(err error) {
 	a.ctx.Respond(err)
 }

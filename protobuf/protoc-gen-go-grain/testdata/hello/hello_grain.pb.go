@@ -141,8 +141,8 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 	}
 }
 
-// onError and respond should be used in ctx.ReenterAfter
-// you can return error in reenterable method for fast fail
+// onError should be used in ctx.ReenterAfter
+// you can just return error in reenterable method for other errors
 func (a *HelloActor) onError(err error) {
 	a.ctx.Respond(err)
 }

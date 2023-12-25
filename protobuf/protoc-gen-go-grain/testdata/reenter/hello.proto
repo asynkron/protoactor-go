@@ -27,5 +27,7 @@ service Hello {
     option (options.method_options).reenterable = true;
   };
 
-  rpc Dowork (DoworkRequest) returns (DoworkResponse) {};
+  rpc Dowork (DoworkRequest) returns (DoworkResponse) {
+    option (options.method_options).future = true;
+  };
 }

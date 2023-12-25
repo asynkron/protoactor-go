@@ -5,6 +5,8 @@ import (
 	_ "embed"
 	"strings"
 	"text/template"
+
+	"github.com/asynkron/protoactor-go/protobuf/protoc-gen-go-grain/options"
 )
 
 //go:embed templates/grain.tmpl
@@ -16,11 +18,11 @@ type serviceDesc struct {
 }
 
 type methodDesc struct {
-	Name        string
-	Input       string
-	Output      string
-	Index       int
-	Reenterable bool
+	Name    string
+	Input   string
+	Output  string
+	Index   int
+	Options *options.MethodOptions
 }
 
 func (s *serviceDesc) execute() string {

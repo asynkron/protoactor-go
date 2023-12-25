@@ -25,6 +25,9 @@ message DoWorkResponse {
 service Hello {
   rpc InvokeService (InvokeServiceRequest) returns (InvokeServiceResponse) {
     option (options.method_options).reenterable = true;
+    option (options.method_options).future = true;
   }
-  rpc DoWork (DoWorkRequest) returns (DoWorkResponse) {}
+  rpc DoWork (DoWorkRequest) returns (DoWorkResponse) {
+    option (options.method_options).future = true;
+  }
 }
