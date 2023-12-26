@@ -21,8 +21,17 @@ func main() {
 	cluster := cluster.New(system, clusterConfig)
 	cluster.StartMember()
 
+	// self call: request -> 1 -> 1
 	client := GetHelloGrainClient(cluster, "1")
 	resp, err := client.InvokeService(&InvokeServiceRequest{Name: "Alice"})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%v\n", resp)
+
+	// reenter call: request -> 2 -> 1 -> 2
+	client = GetHelloGrainClient(cluster, "2")
+	resp, err = client.InvokeService(&InvokeServiceRequest{Name: "Alice"})
 	if err != nil {
 		panic(err)
 	}

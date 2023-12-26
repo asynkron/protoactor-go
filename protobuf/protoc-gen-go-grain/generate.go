@@ -92,12 +92,16 @@ func generateService(service *protogen.Service, file *protogen.File, g *protogen
 			continue
 		}
 
+		if methodOptions == nil {
+			methodOptions = &options.MethodOptions{}
+		}
+
 		md := &methodDesc{
-			Name:        method.GoName,
-			Input:       g.QualifiedGoIdent(method.Input.GoIdent),
-			Output:      g.QualifiedGoIdent(method.Output.GoIdent),
-			Index:       i,
-			Reenterable: methodOptions.GetReenterable(),
+			Name:    method.GoName,
+			Input:   g.QualifiedGoIdent(method.Input.GoIdent),
+			Output:  g.QualifiedGoIdent(method.Output.GoIdent),
+			Index:   i,
+			Options: methodOptions,
 		}
 
 		sd.Methods = append(sd.Methods, md)

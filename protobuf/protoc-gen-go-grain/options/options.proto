@@ -7,7 +7,11 @@ import "google/protobuf/descriptor.proto";
 option go_package = "github.com/asynkron/protoactor-go/protobuf/protoc-gen-go-grain/options";
 
 message MethodOptions {
+  // mark a method as reenterable will generate a callback version of the method
   bool reenterable = 1;
+  // generate an extra future interface in the client
+  // all methods called in reenterable methods should use the future interface
+  bool future = 2;
 }
 
 extend google.protobuf.MethodOptions {
