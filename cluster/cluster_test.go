@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"testing"
@@ -112,11 +113,11 @@ func newClusterForTest(name string, cp ClusterProvider, opts ...ConfigOption) *C
 	c.MemberList = NewMemberList(c)
 	c.Config.RequestTimeoutTime = 1 * time.Second
 	c.Remote = remote.NewRemote(system, c.Config.RemoteConfig)
+	c.IdentityLookup = &lookup
 	return c
 }
 
 func TestCluster_Call(t *testing.T) {
-	t.Skipf("Maintaining")
 	assert := assert.New(t)
 
 	members := Members{
@@ -132,18 +133,9 @@ func TestCluster_Call(t *testing.T) {
 	t.Run("invalid kind", func(t *testing.T) {
 		msg := struct{}{}
 		resp, err := c.Request("name", "nonkind", &msg)
-		assert.Equal(remote.ErrUnAvailable, err)
+		assert.ErrorContains(err, "max retries")
 		assert.Nil(resp)
 	})
-
-	// FIXME: testcase
-	// t.Run("timeout", func(t *testing.T) {
-	// 	msg := struct{}{}
-	// 	callopts := NewGrainCallOptions(c).WithRetryCount(2).WithRequestTimeout(1 * time.Second)
-	// 	resp, err := c.Call("name", "kind", &msg, callopts)
-	// 	assert.Equalf(Remote.ErrUnknownError, err, "%v", err)
-	// 	assert.Nil(resp)
-	// })
 
 	testProps := actor.PropsFromFunc(
 		func(context actor.Context) {
@@ -162,7 +154,13 @@ func TestCluster_Call(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal(&struct{ Code int }{9528}, resp)
 	})
-	// t.Fatalf("need more testcases for cluster.Call")
+
+	t.Run("timeout", func(t *testing.T) {
+		msg := struct{}{}
+		resp, err := c.Request("name", "kind", &msg, WithTimeout(time.Millisecond))
+		assert.ErrorIs(err, context.DeadlineExceeded)
+		assert.Nil(resp)
+	})
 }
 
 func TestCluster_Get(t *testing.T) {

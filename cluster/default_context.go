@@ -67,6 +67,11 @@ selectloop:
 
 			break selectloop
 		default:
+			if counter >= callConfig.RetryCount {
+				err = fmt.Errorf("have reached max retries: %v", callConfig.RetryCount)
+
+				break selectloop
+			}
 			pid := dcc.getPid(identity, kind)
 			if pid == nil {
 				dcc.cluster.Logger().Debug("Requesting PID from IdentityLookup but got nil", slog.String("identity", identity), slog.String("kind", kind))
@@ -130,6 +135,10 @@ func (dcc *DefaultContext) RequestFuture(identity string, kind string, message i
 			err := fmt.Errorf("request failed: %w", ctx.Err())
 			return nil, err
 		default:
+			if counter >= callConfig.RetryCount {
+				return nil, fmt.Errorf("have reached max retries: %v", callConfig.RetryCount)
+			}
+
 			pid := dcc.getPid(identity, kind)
 			if pid == nil {
 				dcc.cluster.Logger().Debug("Requesting PID from IdentityLookup but got nil", slog.String("identity", identity), slog.String("kind", kind))
