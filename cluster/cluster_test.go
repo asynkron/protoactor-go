@@ -112,11 +112,12 @@ func newClusterForTest(name string, cp ClusterProvider, opts ...ConfigOption) *C
 	c.MemberList = NewMemberList(c)
 	c.Config.RequestTimeoutTime = 1 * time.Second
 	c.Remote = remote.NewRemote(system, c.Config.RemoteConfig)
+	c.IdentityLookup = &lookup
 	return c
 }
 
 func TestCluster_Call(t *testing.T) {
-	t.Skipf("Maintaining")
+	// t.Skipf("Maintaining")
 	assert := assert.New(t)
 
 	members := Members{
@@ -133,6 +134,13 @@ func TestCluster_Call(t *testing.T) {
 		msg := struct{}{}
 		resp, err := c.Request("name", "nonkind", &msg)
 		assert.Equal(remote.ErrUnAvailable, err)
+		assert.Nil(resp)
+	})
+
+	t.Run("retry", func(t *testing.T) {
+		msg := struct{}{}
+		resp, err := c.Request("nonexists", "kind", &msg)
+		assert.ErrorContains(err, "max retries")
 		assert.Nil(resp)
 	})
 

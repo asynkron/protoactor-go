@@ -26,8 +26,8 @@ func DefaultGrainCallConfig(cluster *Cluster) *GrainCallConfig {
 
 func NewGrainCallOptions(cluster *Cluster) *GrainCallConfig {
 	return &GrainCallConfig{
-		//TODO: set default in config
-		RetryCount: 10,
+		// TODO: set default in config
+		RetryCount: 3,
 		Context:    cluster.ActorSystem.Root,
 		Timeout:    cluster.Config.RequestTimeoutTime,
 		RetryAction: func(i int) int {
