@@ -18,11 +18,10 @@ func main() {
 	helloKind := NewHelloKind(NewHelloGrain, 0)
 	clusterConfig := cluster.Configure("core", provider, lookup, config, cluster.WithKinds(
 		helloKind))
-	cluster := cluster.New(system, clusterConfig)
-	cluster.StartMember()
-
+	cst := cluster.New(system, clusterConfig)
+	cst.StartMember()
 	// self call: request -> 1 -> 1
-	client := GetHelloGrainClient(cluster, "1")
+	client := GetHelloGrainClient(cst, "1")
 	resp, err := client.InvokeService(&InvokeServiceRequest{Name: "Alice"})
 	if err != nil {
 		panic(err)
@@ -30,7 +29,7 @@ func main() {
 	fmt.Printf("%v\n", resp)
 
 	// reenter call: request -> 2 -> 1 -> 2
-	client = GetHelloGrainClient(cluster, "2")
+	client = GetHelloGrainClient(cst, "2")
 	resp, err = client.InvokeService(&InvokeServiceRequest{Name: "Alice"})
 	if err != nil {
 		panic(err)
