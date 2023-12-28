@@ -66,6 +66,7 @@ func generateContent(gen *protogen.Plugin, g *protogen.GeneratedFile, file *prot
 	g.QualifiedGoIdent(fmtPackage.Ident(""))
 	g.QualifiedGoIdent(timePackage.Ident(""))
 	g.QualifiedGoIdent(slogPackage.Ident(""))
+	g.QualifiedGoIdent(errorsPackage.Ident(""))
 
 	for _, service := range file.Services {
 		generateService(service, file, g)
