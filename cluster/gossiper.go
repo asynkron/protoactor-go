@@ -69,7 +69,9 @@ func newGossiper(cl *Cluster, opts ...Option) (*Gossiper, error) {
 }
 
 func (g *Gossiper) GetState(key string) (map[string]*GossipKeyValue, error) {
-	g.cluster.Logger().Debug(fmt.Sprintf("Gossiper getting state from %s", g.pid))
+	if g.throttler() == actor.Open {
+		g.cluster.Logger().Debug(fmt.Sprintf("Gossiper getting state from %s", g.pid))
+	}
 
 	msg := NewGetGossipStateRequest(key)
 	timeout := g.cluster.Config.TimeoutTime
