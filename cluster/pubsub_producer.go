@@ -9,6 +9,7 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/internal/queue/mpsc"
 	"golang.org/x/net/context"
+	"google.golang.org/protobuf/proto"
 )
 
 // PublishingErrorHandler decides what to do with a publishing error in BatchingProducer
@@ -98,13 +99,13 @@ type pubsubBatchWithReceipts struct {
 // newPubSubBatchWithReceipts creates a new pubsubBatchWithReceipts
 func newPubSubBatchWithReceipts() *pubsubBatchWithReceipts {
 	return &pubsubBatchWithReceipts{
-		batch:  &PubSubBatch{Envelopes: make([]interface{}, 0, 10)},
+		batch:  &PubSubBatch{Envelopes: make([]proto.Message, 0, 10)},
 		ctxArr: make([]context.Context, 0, 10),
 	}
 }
 
 type produceMessage struct {
-	message interface{}
+	message proto.Message
 	ctx     context.Context
 }
 
@@ -171,7 +172,7 @@ func (p *BatchingProducer) getProduceProcessInfo(ctx context.Context) *ProducePr
 }
 
 // Produce a message to producer queue. The return info can be used to wait for the message to be published.
-func (p *BatchingProducer) Produce(ctx context.Context, message interface{}) (*ProduceProcessInfo, error) {
+func (p *BatchingProducer) Produce(ctx context.Context, message proto.Message) (*ProduceProcessInfo, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	info := &ProduceProcessInfo{
 		Finished:   make(chan struct{}),
@@ -301,7 +302,7 @@ func (p *BatchingProducer) failBatch(batchWrapper *pubsubBatchWithReceipts, err 
 
 // clearBatch clears the batch wrapper
 func (p *BatchingProducer) clearBatch(batchWrapper *pubsubBatchWithReceipts) {
-	batchWrapper.batch = &PubSubBatch{Envelopes: make([]interface{}, 0, 10)}
+	batchWrapper.batch = &PubSubBatch{Envelopes: make([]proto.Message, 0, 10)}
 	batchWrapper.ctxArr = batchWrapper.ctxArr[:0]
 }
 

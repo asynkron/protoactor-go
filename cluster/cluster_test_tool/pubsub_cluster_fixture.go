@@ -13,6 +13,7 @@ import (
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -134,7 +135,7 @@ func (p *PubSubClusterFixture) PublishData(topic string, data int) (*cluster.Pub
 
 // PublishDataBatch publishes the given messages to the given topic
 func (p *PubSubClusterFixture) PublishDataBatch(topic string, data []int) (*cluster.PublishResponse, error) {
-	batches := make([]interface{}, 0)
+	batches := make([]proto.Message, 0)
 	for _, d := range data {
 		batches = append(batches, &DataPublished{Data: int32(d)})
 	}
