@@ -87,6 +87,8 @@ func (t *DeliverBatchRequestTransport) Deserialize() remote.RootSerializable {
 	}
 }
 
+var _ actor.MessageBatch = (*PubSubAutoRespondBatch)(nil)
+
 type PubSubAutoRespondBatch struct {
 	Envelopes []proto.Message
 }
@@ -109,8 +111,12 @@ func (b *PubSubAutoRespondBatch) GetAutoResponse(_ actor.Context) interface{} {
 }
 
 // GetMessages returns the message.
-func (b *PubSubAutoRespondBatch) GetMessages() []proto.Message {
-	return b.Envelopes
+func (b *PubSubAutoRespondBatch) GetMessages() []interface{} {
+	var messages []interface{}
+	for _, envelope := range b.Envelopes {
+		messages = append(messages, envelope)
+	}
+	return messages
 }
 
 // Deserialize converts a PubSubAutoRespondBatchTransport to a PubSubAutoRespondBatch.
