@@ -46,9 +46,9 @@ func (p *PubSubMemberDeliveryActor) Receive(c actor.Context) {
 			identityLog := func(err error) {
 				if p.shouldThrottle() == actor.Open {
 					if fWithIdentity.identity.GetPid() != nil {
-						c.Logger().Info("Pub-sub message delivered to PID", slog.String("pid", fWithIdentity.identity.GetPid().String()))
+						c.Logger().Error("Pub-sub message failed to deliver to PID", slog.String("pid", fWithIdentity.identity.GetPid().String()), slog.Any("error", err))
 					} else if fWithIdentity.identity.GetClusterIdentity() != nil {
-						c.Logger().Info("Pub-sub message delivered to cluster identity", slog.String("cluster identity", fWithIdentity.identity.GetClusterIdentity().String()))
+						c.Logger().Error("Pub-sub message failed to deliver to cluster identity", slog.String("cluster identity", fWithIdentity.identity.GetClusterIdentity().String()), slog.Any("error", err))
 					}
 				}
 			}
