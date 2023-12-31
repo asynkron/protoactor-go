@@ -3,10 +3,11 @@ package cluster
 import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
+	"google.golang.org/protobuf/proto"
 )
 
 type PubSubBatch struct {
-	Envelopes []interface{}
+	Envelopes []proto.Message
 }
 
 // Serialize converts a PubSubBatch to a PubSubBatchTransport.
@@ -46,7 +47,7 @@ func (b *PubSubBatch) Serialize() remote.RootSerialized {
 // Deserialize converts a PubSubBatchTransport to a PubSubBatch.
 func (t *PubSubBatchTransport) Deserialize() remote.RootSerializable {
 	b := &PubSubBatch{
-		Envelopes: make([]interface{}, 0),
+		Envelopes: make([]proto.Message, 0),
 	}
 
 	for _, envelope := range t.Envelopes {
@@ -54,7 +55,12 @@ func (t *PubSubBatchTransport) Deserialize() remote.RootSerializable {
 		if err != nil {
 			panic(err)
 		}
-		b.Envelopes = append(b.Envelopes, message)
+		protoMessage, ok := message.(proto.Message)
+		if !ok {
+			panic("message is not proto.Message")
+		}
+
+		b.Envelopes = append(b.Envelopes, protoMessage)
 	}
 	return b
 }
@@ -81,8 +87,10 @@ func (t *DeliverBatchRequestTransport) Deserialize() remote.RootSerializable {
 	}
 }
 
+var _ actor.MessageBatch = (*PubSubAutoRespondBatch)(nil)
+
 type PubSubAutoRespondBatch struct {
-	Envelopes []interface{}
+	Envelopes []proto.Message
 }
 
 // Serialize converts a PubSubAutoRespondBatch to a PubSubAutoRespondBatchTransport.
@@ -104,7 +112,11 @@ func (b *PubSubAutoRespondBatch) GetAutoResponse(_ actor.Context) interface{} {
 
 // GetMessages returns the message.
 func (b *PubSubAutoRespondBatch) GetMessages() []interface{} {
-	return b.Envelopes
+	var messages []interface{}
+	for _, envelope := range b.Envelopes {
+		messages = append(messages, envelope)
+	}
+	return messages
 }
 
 // Deserialize converts a PubSubAutoRespondBatchTransport to a PubSubAutoRespondBatch.

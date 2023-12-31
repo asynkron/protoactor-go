@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -20,7 +21,7 @@ type Publisher interface {
 	PublishBatch(ctx context.Context, topic string, batch *PubSubBatch, opts ...GrainCallOption) (*PublishResponse, error)
 
 	// Publish publishes a single message to the topic.
-	Publish(ctx context.Context, topic string, message interface{}, opts ...GrainCallOption) (*PublishResponse, error)
+	Publish(ctx context.Context, topic string, message proto.Message, opts ...GrainCallOption) (*PublishResponse, error)
 
 	Logger() *slog.Logger
 }
@@ -67,8 +68,8 @@ func (p *defaultPublisher) PublishBatch(ctx context.Context, topic string, batch
 	}
 }
 
-func (p *defaultPublisher) Publish(ctx context.Context, topic string, message interface{}, opts ...GrainCallOption) (*PublishResponse, error) {
+func (p *defaultPublisher) Publish(ctx context.Context, topic string, message proto.Message, opts ...GrainCallOption) (*PublishResponse, error) {
 	return p.PublishBatch(ctx, topic, &PubSubBatch{
-		Envelopes: []interface{}{message},
+		Envelopes: []proto.Message{message},
 	}, opts...)
 }
