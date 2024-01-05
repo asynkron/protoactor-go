@@ -12,7 +12,7 @@ import (
 
 type endpointLazy struct {
 	// valueFunc func() *endpoint
-	unloaded uint32
+	unloaded atomic.Bool
 	once     sync.Once
 	endpoint atomic.Value
 	manager  *endpointManager
@@ -27,6 +27,7 @@ func NewEndpointLazy(em *endpointManager, address string) *endpointLazy {
 }
 
 func (el *endpointLazy) connect() {
+	el.manager.remote.actorSystem.Logger().Debug("connecting to remote address", slog.String("address", el.address))
 	em := el.manager
 	system := em.remote.actorSystem
 	rst, _ := system.Root.RequestFuture(em.endpointSupervisor, el.address, -1).Result()
@@ -247,10 +248,10 @@ func (em *endpointManager) removeEndpoint(msg *EndpointTerminatedEvent) {
 	v, ok := em.connections.Load(msg.Address)
 	if ok {
 		le := v.(*endpointLazy)
-		if atomic.CompareAndSwapUint32(&le.unloaded, 0, 1) {
+		if le.unloaded.CompareAndSwap(false, true) {
 			em.connections.Delete(msg.Address)
 			ep := le.Get()
-			em.remote.Logger().Debug("Sending EndpointTerminatedEvent to EndpointWatcher ans EndpointWriter", slog.String("address", msg.Address))
+			em.remote.Logger().Debug("Sending EndpointTerminatedEvent to EndpointWatcher and EndpointWriter", slog.String("address", msg.Address))
 			em.remote.actorSystem.Root.Send(ep.watcher, msg)
 			em.remote.actorSystem.Root.Send(ep.writer, msg)
 		}
@@ -274,13 +275,18 @@ func (state *endpointSupervisor) Receive(ctx actor.Context) {
 			writer:  state.spawnEndpointWriter(state.remote, address, ctx),
 			watcher: state.spawnEndpointWatcher(state.remote, address, ctx),
 		}
+		ctx.Logger().Debug("id", slog.String("ewr", e.writer.Id), slog.String("ewa", e.watcher.Id))
 		ctx.Respond(e)
 	}
 }
 
 func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, supervisor actor.Supervisor, child *actor.PID, rs *actor.RestartStatistics, reason interface{}, message interface{}) {
 	actorSystem.Logger().Debug("EndpointSupervisor handling failure", slog.Any("reason", reason), slog.Any("message", message))
-	supervisor.RestartChildren(child)
+	// use restart will cause a start loop, just stop it for now
+	// supervisor.RestartChildren(child)
+
+	// TODO: an extra stop is sent to the deadletter caused by EndpointTerminatedEvent
+	supervisor.StopChildren(child)
 }
 
 func (state *endpointSupervisor) spawnEndpointWriter(remote *Remote, address string, ctx actor.Context) *actor.PID {
