@@ -142,7 +142,11 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 		// translate from on-the-wire representation to in-process representation
 		// this only applies to root level messages, and never on nested child messages
 		if v, ok := message.(RootSerialized); ok {
-			message = v.Deserialize()
+			message, err = v.Deserialize()
+			if err != nil {
+				s.remote.Logger().Error("EndpointReader failed to deserialize", slog.Any("error", err))
+				return err
+			}
 		}
 
 		switch msg := message.(type) {

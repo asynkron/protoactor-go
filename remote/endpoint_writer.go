@@ -155,7 +155,7 @@ func (state *endpointWriter) initializeInternal() error {
 }
 
 func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context) {
-	envelopes := make([]*MessageEnvelope, len(msg))
+	envelopes := make([]*MessageEnvelope, 0)
 
 	// type name uniqueness map name string to type index
 	typeNames := make(map[string]int32)
@@ -175,7 +175,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		serializerID int32
 	)
 
-	for i, tmp := range msg {
+	for _, tmp := range msg {
 		switch unwrapped := tmp.(type) {
 		case *EndpointTerminatedEvent, EndpointTerminatedEvent:
 			state.remote.Logger().Debug("Handling array wrapped terminate event", slog.String("address", state.address), slog.Any("message", unwrapped))
@@ -205,13 +205,19 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		// if the message can be translated to a serialization representation, we do this here
 		// this only apply to root level messages and never to nested child objects inside the message
 		message := rd.message
+		var err error
 		if v, ok := message.(RootSerializable); ok {
-			message = v.Serialize()
+			message, err = v.Serialize()
+			if err != nil {
+				state.remote.Logger().Error("EndpointWriter failed to serialize message", slog.String("address", state.address), slog.Any("error", err), slog.Any("message", v))
+				continue
+			}
 		}
 
 		bytes, typeName, err := Serialize(message, serializerID)
 		if err != nil {
-			panic(err)
+			state.remote.Logger().Error("EndpointWriter failed to serialize message", slog.String("address", state.address), slog.Any("error", err), slog.Any("message", message))
+			continue
 		}
 		typeID, typeNamesArr = addToLookup(typeNames, typeName, typeNamesArr)
 		targetID, targetNamesArr = addToTargetLookup(targetNames, rd.target, targetNamesArr)
@@ -223,7 +229,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			senderRequestID = rd.sender.RequestId
 		}
 
-		envelopes[i] = &MessageEnvelope{
+		envelopes = append(envelopes, &MessageEnvelope{
 			MessageHeader:   header,
 			MessageData:     bytes,
 			Sender:          senderID,
@@ -232,7 +238,11 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			SerializerId:    serializerID,
 			TargetRequestId: targetRequestID,
 			SenderRequestId: senderRequestID,
-		}
+		})
+	}
+
+	if len(envelopes) == 0 {
+		return
 	}
 
 	err := state.stream.Send(&RemoteMessage{
@@ -248,7 +258,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	if err != nil {
 		ctx.Stash()
 		state.remote.Logger().Debug("gRPC Failed to send", slog.String("address", state.address), slog.Any("error", err))
-		panic("restart it")
+		ctx.Stop(ctx.Self())
 	}
 }
 

@@ -63,10 +63,7 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 	pm.cluster.Logger().Info("onClusterTopology", slog.Uint64("topology-hash", tplg.TopologyHash))
 
 	for _, m := range tplg.Members {
-		pm.cluster.Logger().Info("Got member ", slog.String("MemberId", m.Id))
-		for _, k := range m.Kinds {
-			pm.cluster.Logger().Info("" + m.Id + " - " + k)
-		}
+		pm.cluster.Logger().Info("Got member", slog.Any("member", m))
 	}
 
 	pm.rdv = clustering.NewRendezvous()

@@ -22,8 +22,14 @@ type Serializer interface {
 
 func Serialize(message interface{}, serializerID int32) ([]byte, string, error) {
 	res, err := serializers[serializerID].Serialize(message)
+	if err != nil {
+		return nil, "", err
+	}
 	typeName, err := serializers[serializerID].GetTypeName(message)
-	return res, typeName, err
+	if err != nil {
+		return nil, "", err
+	}
+	return res, typeName, nil
 }
 
 func Deserialize(message []byte, typeName string, serializerID int32) (interface{}, error) {
@@ -34,12 +40,12 @@ func Deserialize(message []byte, typeName string, serializerID int32) (interface
 type RootSerializable interface {
 	// Serialize returns the on-the-wire representation of the message
 	//   Message -> IRootSerialized -> ByteString
-	Serialize() RootSerialized
+	Serialize() (RootSerialized, error)
 }
 
 // RootSerialized is the root level on-the-wire representation of a message
 type RootSerialized interface {
 	// Deserialize returns the in-process representation of a message
 	//   ByteString -> IRootSerialized -> Message
-	Deserialize() RootSerializable
+	Deserialize() (RootSerializable, error)
 }
