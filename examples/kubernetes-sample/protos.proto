@@ -1,0 +1,9 @@
+syntax = "proto3";
+package main;
+option go_package = "github.com/asynkron/protoactor-go/examples/kubernetes-sample/main";
+
+message HelloRequest {
+    string Name = 1;
+}
+
+message HelloResponse { }

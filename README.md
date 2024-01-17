@@ -120,7 +120,7 @@ This command exectutes all tests in the repository except for consul integration
 those tests). We also skip directories that don't contain any tests.
 
 ```
-go test `go list ./... | grep -v "/_examples/" | grep -v "/persistence" | grep -v "/scheduler"`
+go test `go list ./... | grep -v "/examples/" | grep -v "/persistence" | grep -v "/scheduler"`
 ```
 ## Hello world
 

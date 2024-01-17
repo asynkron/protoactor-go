@@ -1,7 +1,0 @@
-syntax = "proto3";
-package shared;
-option go_package = "github.com/asynkron/protoactor-go/_examples/cluster-basic/shared";
-
-message Hello {
-  string name = 1;
-}

@@ -233,9 +233,6 @@ FakesAssemblies/
 /go.work
 /go.work.sum
 
-# go.sum of examples
-_examples/**/go.sum
-_examples/**/go.work.sum
 .vscode/
 
 /test_report.html

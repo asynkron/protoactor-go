@@ -1,0 +1,9 @@
+syntax = "proto3";
+package messages;
+option go_package = "github.com/asynkron/protoactor-go/examples/remote-watch/messages";
+
+
+message HelloRequest {}
+message HelloResponse {
+  string Message = 1;
+}

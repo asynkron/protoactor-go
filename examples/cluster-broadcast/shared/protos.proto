@@ -1,0 +1,33 @@
+syntax = "proto3";
+package shared;
+option go_package = "github.com/asynkron/protoactor-go/examples/cluster-broadcast/shared";
+
+message Noop {}
+
+message NumberRequest {
+  int64 number = 1;
+}
+
+message CountResponse {
+  int64 number = 1;
+}
+
+service Calculator {
+  rpc Add(NumberRequest) returns (CountResponse) {}
+  rpc Subtract(NumberRequest) returns (CountResponse) {}
+  rpc GetCurrent(Noop) returns (CountResponse) {}
+}
+
+message RegisterMessage {
+  string grain_id = 1;
+}
+
+message TotalsResponse {
+  map<string, int64> totals = 1;
+}
+
+service Tracker {
+  rpc RegisterGrain(RegisterMessage) returns (Noop) {}
+  rpc DeregisterGrain(RegisterMessage) returns (Noop) {}
+  rpc BroadcastGetCounts(Noop) returns (TotalsResponse) {}
+}

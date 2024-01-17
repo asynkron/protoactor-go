@@ -1,7 +1,0 @@
-syntax = "proto3";
-option go_package = "github.com/asynkron/protoactor-go/_examples/cluster-eventstream-broadcast/main";
-package main;
-
-message MyEvent {
-  string description = 1;
-}
