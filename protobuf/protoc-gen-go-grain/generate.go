@@ -71,6 +71,9 @@ func generateContent(gen *protogen.Plugin, g *protogen.GeneratedFile, file *prot
 	for _, service := range file.Services {
 		generateService(service, file, g)
 	}
+
+	g.P()
+	generateRespond(g)
 }
 
 func generateService(service *protogen.Service, file *protogen.File, g *protogen.GeneratedFile) {
@@ -111,4 +114,12 @@ func generateService(service *protogen.Service, file *protogen.File, g *protogen
 	if len(sd.Methods) != 0 {
 		g.P(sd.execute())
 	}
+}
+
+func generateRespond(g *protogen.GeneratedFile) {
+	g.P("func respond[T proto.Message](ctx cluster.GrainContext) func (T) {")
+	g.P("return func (resp T) {")
+	g.P("ctx.Respond(resp)")
+	g.P("}")
+	g.P("}")
 }

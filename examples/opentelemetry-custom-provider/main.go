@@ -1,52 +1,82 @@
 package main
 
-// type (
-// 	hello      struct{ Who string }
-// 	helloActor struct{}
-// )
+import (
+	"context"
+	"fmt"
+	"log"
+	"time"
 
-// func (state *helloActor) Receive(context actor.Context) {
-// 	switch msg := context.Message().(type) {
-// 	case *hello:
-// 		fmt.Printf("Hello %s\n", msg.Who)
-// 	}
-// }
+	console "github.com/asynkron/goconsole"
+	"github.com/asynkron/protoactor-go/actor"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+)
 
-// func main() {
-// 	ctx := context.Background()
-// 	provider := stdoutExporter(ctx)
-// 	defer func() {
-// 		if err := provider.(*controller.Controller).Stop(ctx); err != nil {
-// 			log.Fatalf("could not stop push controller: %v", err)
-// 		}
-// 	}()
+type (
+	hello      struct{ Who string }
+	helloActor struct{}
+)
 
-// 	config := actor.Configure(actor.WithMetricProviders(provider))
-// 	system := actor.NewActorSystemWithConfig(config)
-// 	props := actor.PropsFromProducer(func() actor.Actor {
-// 		return &helloActor{}
-// 	})
+func (state *helloActor) Receive(context actor.Context) {
+	switch msg := context.Message().(type) {
+	case *hello:
+		fmt.Printf("Hello %s\n", msg.Who)
+	}
+}
 
-// 	pid := system.Root.Spawn(props)
-// 	system.Root.Request(pid, &hello{Who: "Stdout Exporter"})
-// 	time.Sleep(100 * time.Millisecond)
-// 	_, _ = console.ReadLine()
-// }
+func main() {
+	ctx := context.Background()
 
-// func stdoutExporter(ctx context.Context) metric.MeterProvider {
-// 	exporter, _ := stdout.New(stdout.WithPrettyPrint())
-// 	provider := controller.New(
-// 		processor.NewFactory(
-// 			simple.NewWithInexpensiveDistribution(),
-// 			exporter,
-// 		),
-// 		controller.WithExporter(exporter),
-// 	)
+	// Set up resource.
+	res, err := newResource("test-service", "0.1.0")
+	if err != nil {
+		log.Fatalf("failed to create resource: %v", err)
+	}
 
-// 	if err := provider.Start(ctx); err != nil {
-// 		log.Fatalf("could not start push controller: %v", err)
-// 	}
-// 	otel.SetMeterProvider(provider)
+	meterProvider, err := newMeterProvider(res)
+	if err != nil {
+		log.Fatalf("failed to create meter provider: %v", err)
+	}
+	defer func() {
+		err := meterProvider.Shutdown(ctx)
+		if err != nil {
+			log.Fatalf("failed to shutdown meter provider: %v", err)
+		}
+	}()
 
-// 	return provider
-// }
+	config := actor.Configure(actor.WithMetricProviders(meterProvider))
+	system := actor.NewActorSystemWithConfig(config)
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &helloActor{}
+	})
+
+	pid := system.Root.Spawn(props)
+	system.Root.Request(pid, &hello{Who: "Stdout Exporter"})
+	time.Sleep(100 * time.Millisecond)
+	_, _ = console.ReadLine()
+}
+
+func newResource(serviceName, serviceVersion string) (*resource.Resource, error) {
+	return resource.Merge(resource.Default(),
+		resource.NewWithAttributes(semconv.SchemaURL,
+			semconv.ServiceName(serviceName),
+			semconv.ServiceVersion(serviceVersion),
+		))
+}
+
+func newMeterProvider(res *resource.Resource) (*metric.MeterProvider, error) {
+	metricExporter, err := stdoutmetric.New()
+	if err != nil {
+		return nil, err
+	}
+
+	meterProvider := metric.NewMeterProvider(
+		metric.WithResource(res),
+		metric.WithReader(metric.NewPeriodicReader(metricExporter,
+			// Default is 1m. Set to 3s for demonstrative purposes.
+			metric.WithInterval(3*time.Second))),
+	)
+	return meterProvider, nil
+}

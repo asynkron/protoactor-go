@@ -165,9 +165,3 @@ func (a *{{ $service.Name }}Actor) onError(err error) {
 	resp := &cluster.GrainErrorResponse{Err: err.Error()}
 	a.ctx.Respond(resp)
 }
-
-func respond[T proto.Message](ctx cluster.GrainContext) func (T) {
-	return func (resp T) {
-		ctx.Respond(resp)
-	}
-}
