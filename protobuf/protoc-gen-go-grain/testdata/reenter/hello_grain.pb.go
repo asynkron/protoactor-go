@@ -7,7 +7,6 @@
 package hello
 
 import (
-	errors "errors"
 	fmt "fmt"
 	actor "github.com/asynkron/protoactor-go/actor"
 	cluster "github.com/asynkron/protoactor-go/cluster"
@@ -87,7 +86,7 @@ func (g *HelloGrainClient) SayHello(r *SayHelloRequest, opts ...cluster.GrainCal
 	case *SayHelloResponse:
 		return msg, nil
 	case *cluster.GrainErrorResponse:
-		return nil, errors.New(msg.Err)
+		return nil, msg
 	default:
 		return nil, fmt.Errorf("unknown response type %T", resp)
 	}
@@ -124,7 +123,7 @@ func (g *HelloGrainClient) Dowork(r *DoworkRequest, opts ...cluster.GrainCallOpt
 	case *DoworkResponse:
 		return msg, nil
 	case *cluster.GrainErrorResponse:
-		return nil, errors.New(msg.Err)
+		return nil, msg
 	default:
 		return nil, fmt.Errorf("unknown response type %T", resp)
 	}
@@ -163,13 +162,16 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
 				ctx.Logger().Error("[Grain] SayHello(SayHelloRequest) proto.Unmarshal failed.", slog.Any("error", err))
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				resp := cluster.NewGrainErrorResponse(cluster.ErrorReason_INVALID_ARGUMENT, err.Error()).
+					WithMetadata(map[string]string{
+						"argument": req.String(),
+					})
 				ctx.Respond(resp)
 				return
 			}
 			err = a.inner.SayHello(req, respond[*SayHelloResponse](a.ctx), a.onError, a.ctx)
 			if err != nil {
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				resp := cluster.FromError(err)
 				ctx.Respond(resp)
 				return
 			}
@@ -178,14 +180,17 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
 				ctx.Logger().Error("[Grain] Dowork(DoworkRequest) proto.Unmarshal failed.", slog.Any("error", err))
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				resp := cluster.NewGrainErrorResponse(cluster.ErrorReason_INVALID_ARGUMENT, err.Error()).
+					WithMetadata(map[string]string{
+						"argument": req.String(),
+					})
 				ctx.Respond(resp)
 				return
 			}
 
 			r0, err := a.inner.Dowork(req, a.ctx)
 			if err != nil {
-				resp := &cluster.GrainErrorResponse{Err: err.Error()}
+				resp := cluster.FromError(err)
 				ctx.Respond(resp)
 				return
 			}
@@ -199,7 +204,7 @@ func (a *HelloActor) Receive(ctx actor.Context) {
 // onError should be used in ctx.ReenterAfter
 // you can just return error in reenterable method for other errors
 func (a *HelloActor) onError(err error) {
-	resp := &cluster.GrainErrorResponse{Err: err.Error()}
+	resp := cluster.FromError(err)
 	a.ctx.Respond(resp)
 }
 

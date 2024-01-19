@@ -1,0 +1,17 @@
+{{ range .Errors }}
+
+{{ if .HasComment }}{{ .Comment }}{{ end -}}
+func Err{{ .CamelValue }}(format string, args ...interface{}) *cluster.GrainErrorResponse {
+	 return cluster.NewGrainErrorResponse({{ .Name }}_{{ .Value }}.String(), fmt.Sprintf(format, args...))
+}
+
+{{ if .HasComment }}{{ .Comment }}{{ end -}}
+func Is{{.CamelValue}}(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := cluster.FromError(err)
+	return e.Reason == {{ .Name }}_{{ .Value }}.String()
+}
+
+{{- end }}

@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/asynkron/protoactor-go/protobuf/protoc-gen-go-grain/options"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -19,6 +22,11 @@ const (
 	protoPackage   = protogen.GoImportPath("google.golang.org/protobuf/proto")
 	actorPackage   = protogen.GoImportPath("github.com/asynkron/protoactor-go/actor")
 	clusterPackage = protogen.GoImportPath("github.com/asynkron/protoactor-go/cluster")
+)
+
+var (
+	noLowerCaser = cases.Title(language.AmericanEnglish, cases.NoLower)
+	caser        = cases.Title(language.AmericanEnglish)
 )
 
 func generateFile(gen *protogen.Plugin, file *protogen.File) {
@@ -54,7 +62,6 @@ func generateHeader(gen *protogen.Plugin, g *protogen.GeneratedFile, file *proto
 
 func generateContent(gen *protogen.Plugin, g *protogen.GeneratedFile, file *protogen.File) {
 	g.P("package ", file.GoPackageName)
-	g.P()
 
 	if len(file.Services) == 0 {
 		return
@@ -66,13 +73,18 @@ func generateContent(gen *protogen.Plugin, g *protogen.GeneratedFile, file *prot
 	g.QualifiedGoIdent(fmtPackage.Ident(""))
 	g.QualifiedGoIdent(timePackage.Ident(""))
 	g.QualifiedGoIdent(slogPackage.Ident(""))
-	g.QualifiedGoIdent(errorsPackage.Ident(""))
+
+	for _, enum := range file.Enums {
+		if enum.Desc.Name() == "ErrorReason" {
+			generateErrorReasons(g, enum)
+		}
+	}
 
 	for _, service := range file.Services {
 		generateService(service, file, g)
+		g.P()
 	}
 
-	g.P()
 	generateRespond(g)
 }
 
@@ -122,4 +134,41 @@ func generateRespond(g *protogen.GeneratedFile) {
 	g.P("ctx.Respond(resp)")
 	g.P("}")
 	g.P("}")
+}
+
+func generateErrorReasons(g *protogen.GeneratedFile, enum *protogen.Enum) {
+	var es errorsWrapper
+	for _, v := range enum.Values {
+		comment := v.Comments.Leading.String()
+		if comment == "" {
+			comment = v.Comments.Trailing.String()
+		}
+
+		err := &errorDesc{
+			Name:       string(enum.Desc.Name()),
+			Value:      string(v.Desc.Name()),
+			CamelValue: toCamel(string(v.Desc.Name())),
+			Comment:    comment,
+			HasComment: len(comment) > 0,
+		}
+		es.Errors = append(es.Errors, err)
+	}
+	if len(es.Errors) != 0 {
+		g.P(es.execute())
+	}
+}
+
+func toCamel(s string) string {
+	if !strings.Contains(s, "_") {
+		if s == strings.ToUpper(s) {
+			s = strings.ToLower(s)
+		}
+		return noLowerCaser.String(s)
+	}
+
+	slice := strings.Split(s, "_")
+	for i := 0; i < len(slice); i++ {
+		slice[i] = caser.String(slice[i])
+	}
+	return strings.Join(slice, "")
 }
