@@ -92,6 +92,9 @@ func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input 
 	case *{{ $method.Output }}:
 		return msg, nil
 	case *cluster.GrainErrorResponse:
+		if msg == nil {
+			return nil, nil
+		}
 		return nil, msg
 	default:
 		return nil, fmt.Errorf("unknown response type %T", resp)
