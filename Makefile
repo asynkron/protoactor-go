@@ -11,7 +11,7 @@ build:
 
 # {{{ test
 
-PACKAGES := $(shell go list ./... | grep -v "/_examples/" | grep -v "/persistence" | grep -v "/scheduler")
+PACKAGES := $(shell go list ./... | grep -v "/examples/" | grep -v "/persistence" | grep -v "/scheduler")
 
 
 

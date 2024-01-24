@@ -1,0 +1,19 @@
+syntax = "proto3";
+option go_package = "github.com/asynkron/protoactor-go/examples/cluster-restartgracefully/shared";
+package shared;
+
+message Void {}
+
+message NumberRequest {
+  int64 number = 1;
+}
+
+message CountResponse {
+  int64 number = 1;
+}
+
+service Calculator {
+  rpc Add(NumberRequest) returns (CountResponse) {}
+  rpc Subtract(NumberRequest) returns (CountResponse) {}
+  rpc GetCurrent(Void) returns (CountResponse) {}
+}

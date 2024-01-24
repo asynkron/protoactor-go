@@ -14,5 +14,7 @@ message GrainResponse {
 }
 
 message GrainErrorResponse {
-  string err = 1;
-}
+  string reason = 1;
+  string message = 2;
+  map<string, string> metadata = 3;
+};

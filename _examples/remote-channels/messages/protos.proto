@@ -1,7 +1,0 @@
-syntax = "proto3";
-package messages;
-option go_package = "github.com/asynkron/protoactor-go/_examples/remote-channels/messages";
-
-message MyMessage {
-  string Message = 1;
-}
