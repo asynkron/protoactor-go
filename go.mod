@@ -32,7 +32,7 @@ require (
 	github.com/twmb/murmur3 v1.1.8
 	go.etcd.io/etcd/client/v3 v3.5.10
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
-	golang.org/x/sync v0.5.0
+	golang.org/x/sync v0.6.0
 	k8s.io/api v0.28.4
 	k8s.io/apimachinery v0.28.4
 	k8s.io/client-go v0.28.4
