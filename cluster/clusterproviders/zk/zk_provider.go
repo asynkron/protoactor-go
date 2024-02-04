@@ -339,14 +339,12 @@ func (p *Provider) updateLeadership(ns []*Node) {
 }
 
 func (p *Provider) onEvent(evt zk.Event) {
-	p.cluster.Logger().Debug("Zookeeper event.", slog.String("type", evt.Type.String()), slog.String("state", evt.State.String()), slog.String("path", evt.Path))
 	if evt.Type != zk.EventSession {
 		return
 	}
 	switch evt.State {
 	case zk.StateConnecting, zk.StateDisconnected, zk.StateExpired:
 		if p.role == Leader {
-			p.cluster.Logger().Info("Role changed.", slog.String("from", Leader.String()), slog.String("to", Follower.String()))
 			p.role = Follower
 			p.roleChangedChan <- Follower
 		}
