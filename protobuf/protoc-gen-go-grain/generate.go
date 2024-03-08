@@ -64,6 +64,9 @@ func generateHeader(gen *protogen.Plugin, g *protogen.GeneratedFile, file *proto
 func generateContent(g *protogen.GeneratedFile, file *protogen.File) {
 	g.P("package ", file.GoPackageName)
 
+	g.QualifiedGoIdent(clusterPackage.Ident(""))
+	g.QualifiedGoIdent(fmtPackage.Ident(""))
+
 	for _, enum := range file.Enums {
 		if enum.Desc.Name() == "ErrorReason" {
 			generateErrorReasons(g, enum)
@@ -75,9 +78,7 @@ func generateContent(g *protogen.GeneratedFile, file *protogen.File) {
 	}
 
 	g.QualifiedGoIdent(actorPackage.Ident(""))
-	g.QualifiedGoIdent(clusterPackage.Ident(""))
 	g.QualifiedGoIdent(protoPackage.Ident(""))
-	g.QualifiedGoIdent(fmtPackage.Ident(""))
 	g.QualifiedGoIdent(timePackage.Ident(""))
 	g.QualifiedGoIdent(slogPackage.Ident(""))
 
