@@ -30,14 +30,15 @@ var (
 )
 
 func generateFile(gen *protogen.Plugin, file *protogen.File) {
-	if len(file.Services) == 0 {
+	if len(file.Services) == 0 && len(file.Enums) == 0 {
 		return
 	}
+
 	filename := file.GeneratedFilenamePrefix + "_grain.pb.go"
 	g := gen.NewGeneratedFile(filename, file.GoImportPath)
 
 	generateHeader(gen, g, file)
-	generateContent(gen, g, file)
+	generateContent(g, file)
 }
 
 func generateHeader(gen *protogen.Plugin, g *protogen.GeneratedFile, file *protogen.File) {
@@ -60,8 +61,14 @@ func generateHeader(gen *protogen.Plugin, g *protogen.GeneratedFile, file *proto
 	g.P()
 }
 
-func generateContent(gen *protogen.Plugin, g *protogen.GeneratedFile, file *protogen.File) {
+func generateContent(g *protogen.GeneratedFile, file *protogen.File) {
 	g.P("package ", file.GoPackageName)
+
+	for _, enum := range file.Enums {
+		if enum.Desc.Name() == "ErrorReason" {
+			generateErrorReasons(g, enum)
+		}
+	}
 
 	if len(file.Services) == 0 {
 		return
@@ -74,21 +81,15 @@ func generateContent(gen *protogen.Plugin, g *protogen.GeneratedFile, file *prot
 	g.QualifiedGoIdent(timePackage.Ident(""))
 	g.QualifiedGoIdent(slogPackage.Ident(""))
 
-	for _, enum := range file.Enums {
-		if enum.Desc.Name() == "ErrorReason" {
-			generateErrorReasons(g, enum)
-		}
-	}
-
 	for _, service := range file.Services {
-		generateService(service, file, g)
+		generateService(service, g)
 		g.P()
 	}
 
 	generateRespond(g)
 }
 
-func generateService(service *protogen.Service, file *protogen.File, g *protogen.GeneratedFile) {
+func generateService(service *protogen.Service, g *protogen.GeneratedFile) {
 	if service.Desc.Options().(*descriptorpb.ServiceOptions).GetDeprecated() {
 		g.P("//")
 		g.P(deprecationComment)

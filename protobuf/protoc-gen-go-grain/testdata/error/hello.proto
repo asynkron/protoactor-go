@@ -2,19 +2,9 @@ syntax = "proto3";
 
 package hello;
 
-import "google/protobuf/empty.proto";
-
 option go_package = "github.com/asynkron/protoactor-go/protoc-gen-go-grain/testdata/hello";
 
 enum ErrorReason {
   USER_NOT_FOUND = 0;
   CONTENT_MISSING = 1;
-}
-
-message SayHelloResponse {
-  string message = 1;
-}
-
-service Hello {
-  rpc SayHello (google.protobuf.Empty) returns (SayHelloResponse) {}
 }
