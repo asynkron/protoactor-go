@@ -159,7 +159,6 @@ func (p *Provider) startClusterMonitor(c *cluster.Cluster) error {
 	p.clusterMonitor, err = c.ActorSystem.Root.SpawnNamed(actor.PropsFromProducer(func() actor.Actor {
 		return newClusterMonitor(p)
 	}), "k8s-cluster-monitor")
-
 	if err != nil {
 		p.cluster.Logger().Error("Failed to start k8s-cluster-monitor actor", slog.Any("error", err))
 		return err
@@ -177,7 +176,7 @@ func (p *Provider) registerMemberAsync(c *cluster.Cluster) {
 
 // registers itself as a member in k8s cluster
 func (p *Provider) registerMember(timeout time.Duration) error {
-	p.cluster.Logger().Info(fmt.Sprintf("Registering service %s on %s", p.podName, p.address))
+	p.cluster.Logger().Info("Registering service in Kubernetes", slog.String("podName", p.podName), slog.String("address", p.address))
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -187,7 +186,7 @@ func (p *Provider) registerMember(timeout time.Duration) error {
 		return fmt.Errorf("unable to get own pod information for %s: %w", p.podName, err)
 	}
 
-	p.cluster.Logger().Info(fmt.Sprintf("Using Kubernetes namespace: %s\nUsing Kubernetes port: %d", pod.Namespace, p.port))
+	p.cluster.Logger().Info("Using Kubernetes namespace", slog.String("namespace", pod.Namespace), slog.Int("port", p.port))
 
 	labels := Labels{
 		LabelCluster:  p.clusterName,
@@ -218,7 +217,7 @@ func (p *Provider) startWatchingClusterAsync(c *cluster.Cluster) {
 func (p *Provider) startWatchingCluster() error {
 	selector := fmt.Sprintf("%s=%s", LabelCluster, p.clusterName)
 
-	p.cluster.Logger().Debug(fmt.Sprintf("Starting to watch pods with %s", selector), slog.String("selector", selector))
+	p.cluster.Logger().Debug("Starting to watch pods", slog.String("selector", selector))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancelWatch = cancel
@@ -365,7 +364,7 @@ func mapPodsToMembers(clusterPods map[types.UID]*v1.Pod, logger *slog.Logger) []
 
 // deregister itself as a member from a k8s cluster
 func (p *Provider) deregisterMember(timeout time.Duration) error {
-	p.cluster.Logger().Info(fmt.Sprintf("Deregistering service %s from %s", p.podName, p.address))
+	p.cluster.Logger().Info("Deregistering service from Kubernetes", slog.String("podName", p.podName), slog.String("address", p.address))
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -419,7 +418,7 @@ func (p *Provider) retrieveNamespace() string {
 		filename := filepath.Join(string(filepath.Separator), "var", "run", "secrets", "kubernetes.io", "serviceaccount", "namespace")
 		content, err := os.ReadFile(filename)
 		if err != nil {
-			p.cluster.Logger().Warn(fmt.Sprintf("Could not read %s contents defaulting to empty namespace: %s", filename, err.Error()))
+			p.cluster.Logger().Warn("Could not read contents, defaulting to empty namespace", slog.String("filename", filename), slog.Any("error", err))
 			return p.namespace
 		}
 		p.namespace = string(content)

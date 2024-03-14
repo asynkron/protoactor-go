@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -50,7 +51,7 @@ func (dcc *DefaultContext) Request(identity, kind string, message interface{}, o
 
 	start := time.Now()
 
-	dcc.cluster.Logger().Debug(fmt.Sprintf("Requesting %s:%s Message %#v", identity, kind, message))
+	dcc.cluster.Logger().Debug("Requesting", slog.String("identity", identity), slog.String("kind", kind), slog.String("type", reflect.TypeOf(message).String()), slog.Any("message", message))
 
 	// crate a new Timeout Context
 	ttl := callConfig.Timeout
@@ -120,7 +121,7 @@ func (dcc *DefaultContext) RequestFuture(identity string, kind string, message i
 
 	_context := callConfig.Context
 
-	dcc.cluster.Logger().Debug(fmt.Sprintf("Requesting future %s:%s Message %#v", identity, kind, message))
+	dcc.cluster.Logger().Debug("Requesting future", slog.String("identity", identity), slog.String("kind", kind), slog.String("type", reflect.TypeOf(message).String()), slog.Any("message", message))
 
 	// crate a new Timeout Context
 	ttl := callConfig.Timeout
