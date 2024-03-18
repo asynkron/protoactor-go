@@ -208,7 +208,7 @@ type Delivery struct {
 	Data     int
 }
 
-func NewInMemorySubscriberStore() *InMemorySubscribersStore[*cluster.Subscribers] {
+func NewInMemorySubscriberStore() cluster.KeyValueStore[*cluster.Subscribers] {
 	return &InMemorySubscribersStore[*cluster.Subscribers]{
 		store: &sync.Map{},
 	}
@@ -235,4 +235,13 @@ func (i *InMemorySubscribersStore[T]) Get(_ context.Context, key string) (T, err
 func (i *InMemorySubscribersStore[T]) Clear(_ context.Context, key string) error {
 	i.store.Delete(key)
 	return nil
+}
+
+func (i *InMemorySubscribersStore[T]) Keys(_ context.Context) ([]string, error) {
+	keys := make([]string, 0)
+	i.store.Range(func(key, value interface{}) bool {
+		keys = append(keys, key.(string))
+		return true
+	})
+	return keys, nil
 }
