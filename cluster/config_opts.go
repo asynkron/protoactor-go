@@ -54,3 +54,9 @@ func WithHeartbeatExpiration(t time.Duration) ConfigOption {
 		c.HeartbeatExpiration = t
 	}
 }
+
+func WithRequestLog(enabled bool) ConfigOption {
+	return func(c *Config) {
+		c.RequestLog = enabled
+	}
+}

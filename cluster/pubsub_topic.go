@@ -170,14 +170,14 @@ func (t *TopicActor) logDeliveryErrors(reports []*SubscriberDeliveryReport, logg
 }
 
 // unsubscribeUnreachablePidSubscribers deletes all subscribers that have a PID that is unreachable
-func (t *TopicActor) unsubscribeUnreachablePidSubscribers(_ actor.Context, allInvalidDeliveryReports []*SubscriberDeliveryReport) {
+func (t *TopicActor) unsubscribeUnreachablePidSubscribers(c actor.Context, allInvalidDeliveryReports []*SubscriberDeliveryReport) {
 	subscribers := make([]subscribeIdentityStruct, 0, len(allInvalidDeliveryReports))
 	for _, r := range allInvalidDeliveryReports {
 		if r.Subscriber.GetPid() != nil && r.Status == DeliveryStatus_SubscriberNoLongerReachable {
 			subscribers = append(subscribers, newSubscribeIdentityStruct(r.Subscriber))
 		}
 	}
-	t.removeSubscribers(subscribers, nil)
+	t.removeSubscribers(subscribers, c.Logger())
 }
 
 // onClusterTopologyChanged handles a ClusterTopology message
@@ -217,7 +217,7 @@ func (t *TopicActor) unsubscribeSubscribersOnMembersThatLeft(c actor.Context) {
 			}
 		}
 	}
-	t.removeSubscribers(subscribersThatLeft, nil)
+	t.removeSubscribers(subscribersThatLeft, c.Logger())
 }
 
 // removeSubscribers remove subscribers from the topic

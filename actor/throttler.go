@@ -58,7 +58,7 @@ func NewThrottle(maxEventsInPeriod int32, period time.Duration, throttledCallBac
 func NewThrottleWithLogger(logger *slog.Logger, maxEventsInPeriod int32, period time.Duration, throttledCallBack func(*slog.Logger, int32)) ShouldThrottle {
 	currentEvents := int32(0)
 
-	startTimer := func(duration time.Duration, back func(*slog.Logger, int32)) {
+	startTimer := func(duration time.Duration) {
 		go func() {
 			// crete ticker to mimic sleep, we do not want to put the goroutine to sleep
 			// as it will schedule it out of the P making a syscall, we just want it to
@@ -77,7 +77,7 @@ func NewThrottleWithLogger(logger *slog.Logger, maxEventsInPeriod int32, period 
 	return func() Valve {
 		tries := atomic.AddInt32(&currentEvents, 1)
 		if tries == 1 {
-			startTimer(period, throttledCallBack)
+			startTimer(period)
 		}
 
 		if tries == maxEventsInPeriod {

@@ -70,7 +70,7 @@ func newGossiper(cl *Cluster, opts ...Option) (*Gossiper, error) {
 
 func (g *Gossiper) GetState(key string) (map[string]*GossipKeyValue, error) {
 	if g.throttler() == actor.Open {
-		g.cluster.Logger().Debug(fmt.Sprintf("Gossiper getting state from %s", g.pid))
+		g.cluster.Logger().Debug("Gossiper getting state", slog.String("key", key), slog.String("remote", g.pid.String()))
 	}
 
 	msg := NewGetGossipStateRequest(key)
@@ -104,7 +104,7 @@ func (g *Gossiper) GetState(key string) (map[string]*GossipKeyValue, error) {
 // SetState Sends fire and forget message to update member state
 func (g *Gossiper) SetState(key string, value proto.Message) {
 	if g.throttler() == actor.Open {
-		g.cluster.Logger().Debug(fmt.Sprintf("Gossiper setting state %s to %s", key, g.pid))
+		g.cluster.Logger().Debug("Gossiper setting state", slog.String("key", key), slog.String("remote", g.pid.String()))
 	}
 
 	if g.pid == nil {
@@ -118,7 +118,7 @@ func (g *Gossiper) SetState(key string, value proto.Message) {
 // SetStateRequest Sends a Request (that blocks) to update member state
 func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
 	if g.throttler() == actor.Open {
-		g.cluster.Logger().Debug(fmt.Sprintf("Gossiper setting state %s to %s", key, g.pid))
+		g.cluster.Logger().Debug("Gossiper setting state", slog.String("key", key), slog.String("remote", g.pid.String()))
 	}
 
 	if g.pid == nil {
@@ -186,7 +186,6 @@ func (g *Gossiper) StartGossiping() error {
 			system,
 		)
 	}), g.GossipActorName)
-
 	if err != nil {
 		g.cluster.Logger().Error("Failed to start gossip actor", slog.Any("error", err))
 		return err
@@ -300,5 +299,5 @@ func (g *Gossiper) blockGracefullyLeft() {
 }
 
 func (g *Gossiper) throttledLog(counter int32) {
-	g.cluster.Logger().Debug(fmt.Sprintf("[Gossiper] Gossiper Setting State to %s", g.pid), slog.Int("throttled", int(counter)))
+	g.cluster.Logger().Debug("Gossiper Setting State", slog.String("remote", g.pid.String()), slog.Int("throttled", int(counter)))
 }

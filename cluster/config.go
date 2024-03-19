@@ -17,6 +17,7 @@ type Config struct {
 	RemoteConfig                                 *remote.Config
 	RequestTimeoutTime                           time.Duration
 	RequestsLogThrottlePeriod                    time.Duration
+	RequestLog                                   bool
 	MaxNumberOfEventsInRequestLogThrottledPeriod int
 	ClusterContextProducer                       ContextProducer
 	MemberStrategyBuilder                        func(cluster *Cluster, kind string) MemberStrategy
@@ -62,7 +63,6 @@ func Configure(clusterName string, clusterProvider ClusterProvider, identityLook
 // into a valid ClusterContextConfig value and returns a pointer to its memory
 func (c *Config) ToClusterContextConfig(logger *slog.Logger) *ClusterContextConfig {
 	clusterContextConfig := ClusterContextConfig{
-
 		RequestsLogThrottlePeriod:                    c.RequestsLogThrottlePeriod,
 		MaxNumberOfEventsInRequestLogThrottledPeriod: c.MaxNumberOfEventsInRequestLogThrottledPeriod,
 
