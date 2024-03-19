@@ -79,6 +79,9 @@ func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}Future(r *{{ $method.
 {{ end }}
 // {{ $method.Name }} requests the execution on to the cluster with CallOptions
 func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}(r *{{ $method.Input }}, opts ...cluster.GrainCallOption) (*{{ $method.Output }}, error) {
+	if g.cluster.Config.RequestLog {
+		g.cluster.Logger().Info("Requesting", slog.String("identity", g.Identity), slog.String("kind", "{{ $service.Name }}"), slog.String("method", "{{ $method.Name }}"), slog.Any("request", r))
+	}
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
