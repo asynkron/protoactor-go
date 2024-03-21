@@ -25,7 +25,6 @@ type GossipActor struct {
 
 // Creates a new GossipActor and returns a pointer to its location in the heap
 func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int, system *actor.ActorSystem) *GossipActor {
-
 	logger := system.Logger()
 	informer := newInformer(myID, getBlockedMembers, fanOut, maxSend, logger)
 	gossipActor := GossipActor{
@@ -111,7 +110,6 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 	}
 
 	ctx.Respond(&GossipResponse{})
-	return
 
 	// turn off acking for now
 

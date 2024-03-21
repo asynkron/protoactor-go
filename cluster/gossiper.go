@@ -265,7 +265,7 @@ func (g *Gossiper) blockExpiredHeartbeats() {
 	for k, v := range t {
 		if k != g.cluster.ActorSystem.ID &&
 			!blockList.IsBlocked(k) &&
-			time.Now().Sub(time.UnixMilli(v.LocalTimestampUnixMilliseconds)) > g.cluster.Config.HeartbeatExpiration {
+			time.Since(time.UnixMilli(v.LocalTimestampUnixMilliseconds)) > g.cluster.Config.HeartbeatExpiration {
 			blocked = append(blocked, k)
 		}
 	}

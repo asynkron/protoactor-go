@@ -98,8 +98,6 @@ func withClusterReceiveMiddleware() actor.PropsOption {
 			default:
 				next(c, envelope)
 			}
-
-			return
 		}
 	})
 }

@@ -3,6 +3,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -132,15 +133,11 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 	}
 
 	showLog := func(hasConsensus bool, topologyHash uint64, valueTuples []*consensusMemberValue) {
-		if ccb.logger.Enabled(nil, slog.LevelDebug) {
+		if ccb.logger.Enabled(context.Background(), slog.LevelDebug) {
 			groups := map[string]int{}
 			for _, memberValue := range valueTuples {
 				key := fmt.Sprintf("%s:%d", memberValue.key, memberValue.value)
-				if _, ok := groups[key]; ok {
-					groups[key]++
-				} else {
-					groups[key] = 1
-				}
+				groups[key]++
 			}
 
 			for k, value := range groups {
@@ -148,7 +145,7 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 				if value > 1 {
 					suffix = fmt.Sprintf("%s, %d nodes", k, value)
 				}
-				ccb.logger.Debug("consensus", slog.Bool("consensus", hasConsensus), slog.String("values", suffix))
+				ccb.logger.Debug("consensus", slog.Bool("consensus", hasConsensus), slog.String("values", suffix), slog.Uint64("topologyHash", topologyHash))
 			}
 		}
 	}
@@ -157,7 +154,7 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 		mapToValue := ccb.MapToValue(ccb.getConsensusValues[0])
 
 		return func(state *GossipState, ids map[string]empty) (bool, interface{}) {
-			var memberStates []map[string]*GossipMemberState
+			memberStates := []map[string]*GossipMemberState{}
 			getValidMemberStates(state, ids, memberStates)
 
 			if len(memberStates) < len(ids) { // Not all members have state...
@@ -180,7 +177,7 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 	}
 
 	return func(state *GossipState, ids map[string]empty) (bool, interface{}) {
-		var memberStates []map[string]*GossipMemberState
+		memberStates := []map[string]*GossipMemberState{}
 		getValidMemberStates(state, ids, memberStates)
 
 		if len(memberStates) < len(ids) { // Not all members have state...
