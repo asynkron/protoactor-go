@@ -159,7 +159,9 @@ func (dcc *DefaultContext) getPid(identity, kind string) *actor.PID {
 	pid, _ := dcc.cluster.PidCache.Get(identity, kind)
 	if pid == nil {
 		pid = dcc.cluster.Get(identity, kind)
-		dcc.cluster.PidCache.Set(identity, kind, pid)
+		if pid != nil {
+			dcc.cluster.PidCache.Set(identity, kind, pid)
+		}
 	}
 
 	return pid
