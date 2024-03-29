@@ -60,3 +60,9 @@ func WithRequestLog(enabled bool) ConfigOption {
 		c.RequestLog = enabled
 	}
 }
+
+func WithClusterContextProducerFunc(f func(*Cluster) Context) ConfigOption {
+	return func(c *Config) {
+		c.ClusterContextProducer = f
+	}
+}
