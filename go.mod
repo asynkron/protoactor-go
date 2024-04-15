@@ -38,7 +38,7 @@ require (
 	k8s.io/client-go v0.28.4
 )
 
-require github.com/lmittmann/tint v1.0.3
+require github.com/lmittmann/tint v1.0.4
 
 require (
 	github.com/golang/protobuf v1.5.3 // indirect
