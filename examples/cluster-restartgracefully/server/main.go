@@ -16,6 +16,7 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/etcd"
 	"github.com/asynkron/protoactor-go/remote"
 )
 
@@ -61,8 +62,8 @@ func startNode(port int, provider string, timeout time.Duration) {
 	switch provider {
 	case "consul":
 		cp, err = consul.New()
-	// case "etcd":
-	//	cp, err = etcd.New()
+	case "etcd":
+		cp, err = etcd.New()
 	default:
 		panic(fmt.Errorf("invalid provider:%s", provider))
 	}

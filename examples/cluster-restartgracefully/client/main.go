@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 
 	"cluster-restartgracefully/shared"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/etcd"
 	"github.com/asynkron/protoactor-go/remote"
 )
 
@@ -57,8 +59,8 @@ func startNode(port int, provider string) {
 		ttl := consul.WithTTL(100 * time.Millisecond)
 		refreshTTL := consul.WithRefreshTTL(100 * time.Millisecond)
 		cp, err = consul.New(ttl, refreshTTL)
-	// case "etcd":
-	//	cp, err = etcd.New()
+	case "etcd":
+		cp, err = etcd.New()
 	default:
 		panic(fmt.Errorf("invalid provider:%s", provider))
 	}
