@@ -1,12 +1,12 @@
 package disthash
 
 import (
-	"log/slog"
-	"time"
-
 	"github.com/asynkron/protoactor-go/actor"
 	clustering "github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/eventstream"
+	"log/slog"
+	"sync"
+	"time"
 )
 
 const (
@@ -17,6 +17,7 @@ type Manager struct {
 	cluster        *clustering.Cluster
 	topologySub    *eventstream.Subscription
 	placementActor *actor.PID
+	rdvMutex       sync.RWMutex
 	rdv            *clustering.Rendezvous
 }
 
@@ -60,6 +61,9 @@ func (pm *Manager) PidOfActivatorActor(addr string) *actor.PID {
 }
 
 func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
+	pm.rdvMutex.Lock()
+	defer pm.rdvMutex.Unlock()
+
 	pm.cluster.Logger().Info("onClusterTopology", slog.Uint64("topology-hash", tplg.TopologyHash))
 
 	for _, m := range tplg.Members {
@@ -72,6 +76,9 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 }
 
 func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
+	pm.rdvMutex.RLock()
+	defer pm.rdvMutex.RUnlock()
+
 	ownerAddress := pm.rdv.GetByClusterIdentity(identity)
 
 	if ownerAddress == "" {
