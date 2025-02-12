@@ -1,22 +1,23 @@
 package disthash
 
 import (
-	"sync"
-	"testing"
-	"time"
-
+	"fmt"
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/test"
+	"github.com/asynkron/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"sync"
+	"testing"
+	"time"
 )
 
-// TestManagerConcurrentAccess verifies that concurrent access to the Manager
-// doesn't trigger race conditions
 func TestManagerConcurrentAccess(t *testing.T) {
 	system := actor.NewActorSystem()
 	provider := test.NewTestProvider(test.NewInMemAgent())
-	config := cluster.Configure("test-cluster", provider, disthash.New())
+	lookup := New()
+	config := cluster.Configure("test-cluster", provider, lookup, remote.Configure("127.0.0.1", 0))
 	c := cluster.New(system, config)
 
 	manager := newPartitionManager(c)
@@ -73,25 +74,40 @@ func TestManagerConcurrentAccess(t *testing.T) {
 	}
 }
 
-// Integration test using ClusterFixture
+// Integration test suite
 type DistHashManagerTestSuite struct {
 	suite.Suite
-	fixture *cluster_test_tool.BaseClusterFixture
+	clusters []*cluster.Cluster
 }
 
 func (suite *DistHashManagerTestSuite) SetupTest() {
-	suite.fixture = cluster_test_tool.NewBaseInMemoryClusterFixture(3)
-	suite.fixture.Initialize()
+	// Create 3 cluster nodes for testing
+	suite.clusters = make([]*cluster.Cluster, 3)
+	inMemAgent := test.NewInMemAgent()
+
+	for i := 0; i < 3; i++ {
+		system := actor.NewActorSystem()
+		provider := test.NewTestProvider(inMemAgent)
+		config := cluster.Configure("test-cluster",
+			provider,
+			New(),
+			remote.Configure("localhost", 0),
+		)
+
+		c := cluster.New(system, config)
+		c.StartMember()
+		suite.clusters[i] = c
+	}
 }
 
 func (suite *DistHashManagerTestSuite) TearDownTest() {
-	suite.fixture.ShutDown()
+	for _, c := range suite.clusters {
+		c.Shutdown(true)
+	}
 }
 
 func (suite *DistHashManagerTestSuite) TestConcurrentClusterOperations() {
-	// Get the clusters
-	clusters := suite.fixture.GetMembers()
-	assert.Equal(suite.T(), 3, len(clusters))
+	assert.Equal(suite.T(), 3, len(suite.clusters))
 
 	// Create multiple concurrent operations
 	var wg sync.WaitGroup
@@ -103,7 +119,7 @@ func (suite *DistHashManagerTestSuite) TestConcurrentClusterOperations() {
 			defer wg.Done()
 
 			// Randomly select a cluster
-			cluster := clusters[iteration%len(clusters)]
+			cluster := suite.clusters[iteration%len(suite.clusters)]
 
 			// Perform a Get operation
 			identity := fmt.Sprintf("test-%d", iteration)
