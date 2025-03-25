@@ -259,6 +259,10 @@ func (p *Provider) handleWatchResponse(resp clientv3.WatchResponse) map[string]*
 			if !ok {
 				continue
 			}
+			if p.self.Equal(node) {
+				p.cluster.Logger().Debug("Skip self.", slog.String("key", key))
+				continue
+			}
 			p.cluster.Logger().Debug("Delete member.", slog.String("key", key))
 			cloned := *node
 			cloned.SetAlive(false)
