@@ -8,12 +8,6 @@ type RoleChangedListener interface {
 	OnRoleChanged(RoleType)
 }
 
-type OnRoleChangedFunc func(RoleType)
-
-func (fn OnRoleChangedFunc) OnRoleChanged(rt RoleType) {
-	fn(rt)
-}
-
 type Option func(*config)
 
 func WithBaseKey(baseKey string) Option {

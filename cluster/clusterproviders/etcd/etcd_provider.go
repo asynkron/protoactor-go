@@ -92,6 +92,10 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 	if err := p.init(c); err != nil {
 		return err
 	}
+	// register self
+	if err := p.registerService(); err != nil {
+		return err
+	}
 
 	p.startRoleChangedNotifyLoop()
 	// fetch memberlist
@@ -104,10 +108,6 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 	p.publishClusterTopologyEvent()
 	p.startWatching()
 
-	// register self
-	if err := p.registerService(); err != nil {
-		return err
-	}
 	ctx := context.TODO()
 	p.startKeepAlive(ctx)
 	p.updateLeadership(nodes)
@@ -330,6 +330,17 @@ func (p *Provider) startWatching() {
 	ctx, cancel := context.WithCancel(ctx)
 	p.cancelWatch = cancel
 	go func() {
+		//recover
+		defer func() {
+			if r := recover(); r != nil {
+				p.cluster.Logger().Error("Recovered from panic in keepWatching.", slog.Any("error", r))
+				p.clusterError = fmt.Errorf("keepWatching panic: %v", r)
+			}
+			if p.cancelWatchCh != nil {
+				close(p.cancelWatchCh)
+			}
+			p.cancelWatch = nil
+		}()
 		for !p.shutdown {
 			if err := p.keepWatching(ctx); err != nil {
 				p.cluster.Logger().Error("Failed to keepWatching.", slog.Any("error", err))
@@ -494,6 +505,9 @@ func getRunTimeStack() []byte {
 }
 
 func (p *Provider) isLeaderOf(ns []*Node) bool {
+	if ns == nil {
+		return false
+	}
 	if len(ns) == 1 && p.self != nil && ns[0].ID == p.self.ID {
 		return true
 	}
