@@ -1,6 +1,8 @@
 module actorlogging
 
-go 1.21
+go 1.23.0
+
+toolchain go1.23.11
 
 require (
 	github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716
@@ -40,6 +42,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
-	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )

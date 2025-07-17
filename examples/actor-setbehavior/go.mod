@@ -1,6 +1,8 @@
 module setbehavior
 
-go 1.21
+go 1.23.0
+
+toolchain go1.23.11
 
 replace github.com/asynkron/protoactor-go => ../..
 
@@ -34,6 +36,6 @@ require (
 	go.opentelemetry.io/otel/sdk v1.21.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )

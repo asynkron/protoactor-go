@@ -1,13 +1,15 @@
 module deadletter
 
-go 1.21
+go 1.23.0
+
+toolchain go1.23.11
 
 replace github.com/asynkron/protoactor-go => ../..
 
 require (
 	github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716
 	github.com/asynkron/protoactor-go v0.0.0-20240116091649-93e384a26d0d
-	golang.org/x/time v0.3.0
+	golang.org/x/time v0.11.0
 )
 
 require (
@@ -34,6 +36,6 @@ require (
 	go.opentelemetry.io/otel/sdk v1.21.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )

@@ -1,6 +1,8 @@
 module opentelemetry-custom-provider
 
-go 1.21
+go 1.23.0
+
+toolchain go1.23.11
 
 replace github.com/asynkron/protoactor-go => ../..
 
@@ -33,6 +35,6 @@ require (
 	go.opentelemetry.io/otel/exporters/prometheus v0.44.0 // indirect
 	go.opentelemetry.io/otel/metric v1.22.0 // indirect
 	go.opentelemetry.io/otel/trace v1.22.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )
