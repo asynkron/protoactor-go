@@ -78,16 +78,23 @@ func (p *inmemoryProvider) Shutdown(graceful bool) error {
 }
 
 type fakeIdentityLookup struct {
-	m sync.Map
+	m       sync.Map
+	cluster *Cluster
 }
 
 func (l *fakeIdentityLookup) Get(identity *ClusterIdentity) *actor.PID {
 	if val, ok := l.m.Load(identity.Identity); ok {
 		return val.(*actor.PID)
-	} else {
-		// pid := actor.NewPID("127.0.0.1", fmt.Sprintf("%s/%s", identity.Kind, identity.Identity))
-		// l.m.Store(identity.Identity, pid)
-		// return pid
+	}
+	// if the kind is registered, spawn the actor on first lookup
+	if l.cluster != nil {
+		if kind := l.cluster.GetClusterKind(identity.Kind); kind != nil {
+			pid, err := l.cluster.ActorSystem.Root.SpawnNamed(kind.Props, identity.Identity)
+			if err == nil {
+				l.m.Store(identity.Identity, pid)
+				return pid
+			}
+		}
 	}
 	return nil
 }
@@ -99,6 +106,7 @@ func (l *fakeIdentityLookup) RemovePid(identity *ClusterIdentity, pid *actor.PID
 }
 
 func (lu *fakeIdentityLookup) Setup(cluster *Cluster, kinds []string, isClient bool) {
+	lu.cluster = cluster
 }
 
 func (lu *fakeIdentityLookup) Shutdown() {
@@ -164,7 +172,6 @@ func TestCluster_Call(t *testing.T) {
 }
 
 func TestCluster_Get(t *testing.T) {
-	t.Skipf("Maintaining")
 	cp := newInmemoryProvider()
 	kind := NewKind("kind", actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
