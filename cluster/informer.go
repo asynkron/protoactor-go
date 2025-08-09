@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"log/slog"
 	"math/rand"
-	"reflect"
+	"maps"
 	"time"
 
 	"github.com/asynkron/gofun/set"
@@ -211,7 +211,7 @@ func (inf *Informer) GetMemberStateDelta(targetMemberID string) *MemberStateDelt
 		}
 	}
 
-	hasState := reflect.DeepEqual(inf.committedOffsets, pendingOffsets)
+	hasState := maps.Equal(inf.committedOffsets, pendingOffsets)
 	memberState := &MemberStateDelta{
 		TargetMemberID: targetMemberID,
 		HasState:       hasState,
