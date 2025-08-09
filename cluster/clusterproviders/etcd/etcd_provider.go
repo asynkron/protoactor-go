@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -31,6 +32,10 @@ type Provider struct {
 	retryInterval time.Duration
 	revision      uint64
 	// deregisterCritical time.Duration
+	schedulers          []*SingletonScheduler
+	role                RoleType
+	roleChangedChan     chan RoleType
+	roleChangedListener RoleChangedListener
 }
 
 func New() (*Provider, error) {
@@ -40,18 +45,27 @@ func New() (*Provider, error) {
 	})
 }
 
-func NewWithConfig(baseKey string, cfg clientv3.Config) (*Provider, error) {
-	client, err := clientv3.New(cfg)
+func NewWithConfig(baseKey string, cfg clientv3.Config, opts ...Option) (*Provider, error) {
+	c := defaultConfig()
+	WithBaseKey(baseKey)(c)
+	WithEtcdConfig(cfg)(c)
+	for _, opt := range opts {
+		opt(c)
+	}
+	client, err := clientv3.New(c.cfg)
 	if err != nil {
 		return nil, err
 	}
 	p := &Provider{
-		client:        client,
-		keepAliveTTL:  3 * time.Second,
-		retryInterval: 1 * time.Second,
-		baseKey:       baseKey,
-		members:       map[string]*Node{},
-		cancelWatchCh: make(chan bool),
+		client:              client,
+		keepAliveTTL:        3 * time.Second,
+		retryInterval:       1 * time.Second,
+		baseKey:             c.BaseKey,
+		members:             map[string]*Node{},
+		cancelWatchCh:       make(chan bool),
+		role:                Follower,
+		roleChangedChan:     make(chan RoleType, 1),
+		roleChangedListener: c.RoleChanged,
 	}
 	return p, nil
 }
@@ -78,7 +92,12 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 	if err := p.init(c); err != nil {
 		return err
 	}
+	// register self
+	if err := p.registerService(); err != nil {
+		return err
+	}
 
+	p.startRoleChangedNotifyLoop()
 	// fetch memberlist
 	nodes, err := p.fetchNodes()
 	if err != nil {
@@ -89,12 +108,9 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 	p.publishClusterTopologyEvent()
 	p.startWatching()
 
-	// register self
-	if err := p.registerService(); err != nil {
-		return err
-	}
 	ctx := context.TODO()
 	p.startKeepAlive(ctx)
+	p.updateLeadership(nodes)
 	return nil
 }
 
@@ -116,6 +132,7 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 func (p *Provider) Shutdown(graceful bool) error {
 	p.shutdown = true
 	if !p.deregistered {
+		p.updateLeadership(nil)
 		err := p.deregisterService()
 		if err != nil {
 			p.cluster.Logger().Error("deregisterMember", slog.Any("error", err))
@@ -254,15 +271,23 @@ func (p *Provider) handleWatchResponse(resp clientv3.WatchResponse) map[string]*
 				p.cluster.Logger().Debug("New member.", slog.String("key", key))
 			}
 			changes[nodeId] = node
+			node.SetMeta(metaKeySeq, nodeId)
+			node.SetMeta(metaKeySeq, fmt.Sprintf("%d", ev.Kv.Lease))
 		case clientv3.EventTypeDelete:
 			node, ok := p.members[nodeId]
 			if !ok {
+				continue
+			}
+			if p.self.Equal(node) {
+				p.cluster.Logger().Debug("Skip self.", slog.String("key", key))
 				continue
 			}
 			p.cluster.Logger().Debug("Delete member.", slog.String("key", key))
 			cloned := *node
 			cloned.SetAlive(false)
 			changes[nodeId] = &cloned
+			node.SetMeta(metaKeySeq, nodeId)
+			node.SetMeta(metaKeySeq, fmt.Sprintf("%d", ev.Kv.Lease))
 		default:
 			p.cluster.Logger().Error("Invalid etcd event.type.", slog.String("key", key),
 				slog.String("type", ev.Type.String()))
@@ -290,6 +315,11 @@ func (p *Provider) _keepWatching(stream clientv3.WatchChan) error {
 		}
 		nodesChanges := p.handleWatchResponse(resp)
 		p.updateNodesWithChanges(nodesChanges)
+		l := make([]*Node, 0)
+		for _, node := range nodesChanges {
+			l = append(l, node)
+		}
+		p.updateLeadership(l)
 		p.publishClusterTopologyEvent()
 	}
 	return nil
@@ -300,6 +330,17 @@ func (p *Provider) startWatching() {
 	ctx, cancel := context.WithCancel(ctx)
 	p.cancelWatch = cancel
 	go func() {
+		//recover
+		defer func() {
+			if r := recover(); r != nil {
+				p.cluster.Logger().Error("Recovered from panic in keepWatching.", slog.Any("error", r))
+				p.clusterError = fmt.Errorf("keepWatching panic: %v", r)
+			}
+			if p.cancelWatchCh != nil {
+				close(p.cancelWatchCh)
+			}
+			p.cancelWatch = nil
+		}()
 		for !p.shutdown {
 			if err := p.keepWatching(ctx); err != nil {
 				p.cluster.Logger().Error("Failed to keepWatching.", slog.Any("error", err))
@@ -335,6 +376,10 @@ func (p *Provider) fetchNodes() ([]*Node, error) {
 			return nil, err
 		}
 		nodes = append(nodes, &n)
+		if v.Lease > 0 {
+			n.SetMeta(metaKeySeq, fmt.Sprintf("%d", v.Lease))
+			n.SetMeta(metaKeyID, n.ID)
+		}
 	}
 	p.revision = uint64(resp.Header.GetRevision())
 	// plog.Debug("fetch nodes",
@@ -389,6 +434,7 @@ func (p *Provider) getLeaseID() clientv3.LeaseID {
 
 func (p *Provider) setLeaseID(leaseID clientv3.LeaseID) {
 	atomic.StoreInt64((*int64)(&p.leaseID), (int64)(leaseID))
+	p.self.SetMeta(metaKeySeq, fmt.Sprintf("%d", leaseID))
 }
 
 func (p *Provider) newLeaseID() (clientv3.LeaseID, error) {
@@ -412,4 +458,89 @@ func splitHostPort(addr string) (host string, port int, err error) {
 		port, err = strconv.Atoi(p)
 	}
 	return
+}
+
+func (p *Provider) RegisterSingletonScheduler(scheduler *SingletonScheduler) {
+	p.schedulers = append(p.schedulers, scheduler)
+}
+
+// 修改现有的角色变化处理逻辑
+func (p *Provider) updateLeadership(ns []*Node) {
+	role := Follower
+	ns, err := p.fetchNodes()
+	if err != nil {
+		p.cluster.Logger().Error("Failed to fetch nodes in updateLeadership.", slog.Any("error", err))
+	}
+
+	if p.isLeaderOf(ns) {
+		role = Leader
+	}
+	if role != p.role {
+		p.cluster.Logger().Info("Role changed.", slog.String("from", p.role.String()), slog.String("to", role.String()))
+		p.role = role
+		p.roleChangedChan <- role
+
+		// 通知所有注册的 SingletonScheduler
+		for _, scheduler := range p.schedulers {
+			safeRun(p.cluster.Logger(), func() {
+				scheduler.OnRoleChanged(role)
+			})
+		}
+	}
+}
+
+func safeRun(logger *slog.Logger, fn func()) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Warn("OnRoleChanged.", slog.Any("error", fmt.Errorf("%v\n%s", r, string(getRunTimeStack()))))
+		}
+	}()
+	fn()
+}
+
+func getRunTimeStack() []byte {
+	const size = 64 << 10
+	buf := make([]byte, size)
+	return buf[:runtime.Stack(buf, false)]
+}
+
+func (p *Provider) isLeaderOf(ns []*Node) bool {
+	if ns == nil {
+		return false
+	}
+	if len(ns) == 1 && p.self != nil && ns[0].ID == p.self.ID {
+		return true
+	}
+	var minSeq int
+	for _, node := range ns {
+		if !node.IsAlive() {
+			continue
+		}
+		if seq := node.GetSeq(); (seq > 0 && seq < minSeq) || minSeq == 0 {
+			minSeq = seq
+		}
+	}
+	//for _, node := range ns {
+	//	if p.self != nil && node.ID == p.self.ID {
+	//		return minSeq > 0 && minSeq == p.self.GetSeq()
+	//	}
+	//}
+	if minSeq <= 0 { // 没有在线actor
+		return true
+	}
+	if p.self != nil && p.self.GetSeq() <= minSeq {
+		return true
+	}
+	return false
+}
+
+func (p *Provider) startRoleChangedNotifyLoop() {
+	go func() {
+		for !p.shutdown {
+			role := <-p.roleChangedChan
+			if lis := p.roleChangedListener; lis != nil {
+				safeRun(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
+			}
+		}
+	}()
 }
