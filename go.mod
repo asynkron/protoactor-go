@@ -1,8 +1,6 @@
 module github.com/asynkron/protoactor-go
 
-go 1.23.8
-
-toolchain go1.24.4
+go 1.22
 
 require (
 	github.com/Workiva/go-datastructures v1.1.5

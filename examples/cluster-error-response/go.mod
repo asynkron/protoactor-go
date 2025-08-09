@@ -1,8 +1,7 @@
 module cluster-error-response
 
-go 1.23.8
+go 1.22
 
-toolchain go1.24.4
 
 replace github.com/asynkron/protoactor-go => ../..
 
