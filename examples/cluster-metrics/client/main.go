@@ -82,7 +82,7 @@ func setupLogger(c *cluster.Cluster) {
 			log.Printf("Member Unavailable " + msg.Name())
 		case *cluster.MemberAvailableEvent:
 			log.Printf("Member Available " + msg.Name())
-		case cluster.ClusterTopology:
+		case *cluster.ClusterTopology:
 			log.Printf("Cluster Topology Poll")
 		}
 	})
