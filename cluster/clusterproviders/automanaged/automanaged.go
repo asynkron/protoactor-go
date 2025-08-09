@@ -16,35 +16,31 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// TODO: needs to be attached to the provider instance
-var (
-	clusterTTLErrorMutex       = new(sync.Mutex)
-	clusterMonitorErrorMutex   = new(sync.Mutex)
-	shutdownMutex              = new(sync.Mutex)
-	deregisteredMutex          = new(sync.Mutex)
-	activeProviderMutex        = new(sync.Mutex)
-	activeProviderRunningMutex = new(sync.Mutex)
-)
-
 type AutoManagedProvider struct {
-	deregistered          bool
-	shutdown              bool
-	activeProvider        *echo.Echo
-	activeProviderRunning bool
-	activeProviderTesting bool
-	httpClient            *http.Client
-	monitoringStatus      bool
-	clusterName           string
-	address               string
-	autoManagePort        int
-	memberPort            int
-	knownKinds            []string
-	knownNodes            []*NodeModel
-	hosts                 []string
-	refreshTTL            time.Duration
-	clusterTTLError       error
-	clusterMonitorError   error
-	cluster               *cluster.Cluster
+	deregistered               bool
+	shutdown                   bool
+	activeProvider             *echo.Echo
+	activeProviderRunning      bool
+	activeProviderTesting      bool
+	httpClient                 *http.Client
+	monitoringStatus           bool
+	clusterName                string
+	address                    string
+	autoManagePort             int
+	memberPort                 int
+	knownKinds                 []string
+	knownNodes                 []*NodeModel
+	hosts                      []string
+	refreshTTL                 time.Duration
+	clusterTTLError            error
+	clusterMonitorError        error
+	cluster                    *cluster.Cluster
+	clusterTTLErrorMutex       sync.Mutex
+	clusterMonitorErrorMutex   sync.Mutex
+	shutdownMutex              sync.Mutex
+	deregisteredMutex          sync.Mutex
+	activeProviderMutex        sync.Mutex
+	activeProviderRunningMutex sync.Mutex
 }
 
 // New creates a AutoManagedProvider that connects locally
@@ -131,8 +127,8 @@ func (p *AutoManagedProvider) StartClient(cluster *cluster.Cluster) error {
 
 // DeregisterMember set the shutdown to true preventing anymore TTL updates
 func (p *AutoManagedProvider) DeregisterMember() error {
-	deregisteredMutex.Lock()
-	defer deregisteredMutex.Unlock()
+	p.deregisteredMutex.Lock()
+	defer p.deregisteredMutex.Unlock()
 
 	p.deregistered = true
 	return nil
@@ -140,8 +136,8 @@ func (p *AutoManagedProvider) DeregisterMember() error {
 
 // Shutdown set the shutdown to true preventing anymore TTL updates
 func (p *AutoManagedProvider) Shutdown(graceful bool) error {
-	shutdownMutex.Lock()
-	defer shutdownMutex.Unlock()
+	p.shutdownMutex.Lock()
+	defer p.shutdownMutex.Unlock()
 
 	p.shutdown = true
 	p.activeProvider.Close()
@@ -150,9 +146,9 @@ func (p *AutoManagedProvider) Shutdown(graceful bool) error {
 
 // UpdateTTL sets up an endpoint to respond to other members
 func (p *AutoManagedProvider) UpdateTTL() {
-	activeProviderRunningMutex.Lock()
+	p.activeProviderRunningMutex.Lock()
 	running := p.activeProviderRunning
-	activeProviderRunningMutex.Unlock()
+	p.activeProviderRunningMutex.Unlock()
 
 	if (p.isShutdown() || p.isDeregistered()) && running {
 		p.activeProvider.Close()
@@ -174,16 +170,16 @@ func (p *AutoManagedProvider) UpdateTTL() {
 		})
 	}
 	go func() {
-		activeProviderRunningMutex.Lock()
+		p.activeProviderRunningMutex.Lock()
 		p.activeProviderRunning = true
-		activeProviderRunningMutex.Unlock()
+		p.activeProviderRunningMutex.Unlock()
 
 		appURI := fmt.Sprintf("0.0.0.0:%d", p.autoManagePort)
 		p.cluster.Logger().Error("Automanaged server stopping..!", slog.Any("error", p.activeProvider.Start(appURI)))
 
-		activeProviderRunningMutex.Lock()
+		p.activeProviderRunningMutex.Lock()
 		p.activeProviderRunning = false
-		activeProviderRunningMutex.Unlock()
+		p.activeProviderRunningMutex.Unlock()
 	}()
 }
 
@@ -202,10 +198,10 @@ func (p *AutoManagedProvider) monitorMemberStatusChanges() {
 // GetHealthStatus returns an error if the cluster health status has problems
 func (p *AutoManagedProvider) GetHealthStatus() error {
 	var err error
-	clusterTTLErrorMutex.Lock()
-	clusterMonitorErrorMutex.Lock()
-	defer clusterMonitorErrorMutex.Unlock()
-	defer clusterTTLErrorMutex.Unlock()
+	p.clusterTTLErrorMutex.Lock()
+	p.clusterMonitorErrorMutex.Lock()
+	defer p.clusterMonitorErrorMutex.Unlock()
+	defer p.clusterTTLErrorMutex.Unlock()
 
 	if p.clusterTTLError != nil {
 		err = fmt.Errorf("TTL: %s", p.clusterTTLError.Error())
@@ -228,8 +224,8 @@ func (p *AutoManagedProvider) GetHealthStatus() error {
 
 // monitorStatuses checks for node changes in the cluster
 func (p *AutoManagedProvider) monitorStatuses() {
-	clusterMonitorErrorMutex.Lock()
-	defer clusterMonitorErrorMutex.Unlock()
+	p.clusterMonitorErrorMutex.Lock()
+	defer p.clusterMonitorErrorMutex.Unlock()
 
 	autoManagedNodes, err := p.checkNodes()
 	if err != nil && len(autoManagedNodes) == 0 {
@@ -321,16 +317,16 @@ func (p *AutoManagedProvider) checkNodes() ([]*NodeModel, error) {
 }
 
 func (p *AutoManagedProvider) deregisterService() {
-	deregisteredMutex.Lock()
-	defer deregisteredMutex.Unlock()
+	p.deregisteredMutex.Lock()
+	defer p.deregisteredMutex.Unlock()
 
 	p.deregistered = true
 }
 
 func (p *AutoManagedProvider) startActiveProvider() {
-	activeProviderRunningMutex.Lock()
+	p.activeProviderRunningMutex.Lock()
 	running := p.activeProviderRunning
-	activeProviderRunningMutex.Unlock()
+	p.activeProviderRunningMutex.Unlock()
 
 	if !running {
 		if !p.activeProviderTesting {
@@ -344,15 +340,15 @@ func (p *AutoManagedProvider) startActiveProvider() {
 		appURI := fmt.Sprintf("0.0.0.0:%d", p.autoManagePort)
 
 		go func() {
-			activeProviderRunningMutex.Lock()
+			p.activeProviderRunningMutex.Lock()
 			p.activeProviderRunning = true
-			activeProviderRunningMutex.Unlock()
+			p.activeProviderRunningMutex.Unlock()
 			err := p.activeProvider.Start(appURI)
 			p.cluster.Logger().Error("Automanaged server stopping..!", slog.Any("error", err))
 
-			activeProviderRunningMutex.Lock()
+			p.activeProviderRunningMutex.Lock()
 			p.activeProviderRunning = false
-			activeProviderRunningMutex.Unlock()
+			p.activeProviderRunningMutex.Unlock()
 		}()
 	}
 }
@@ -362,20 +358,20 @@ func (p *AutoManagedProvider) stopActiveProvider() {
 }
 
 func (p *AutoManagedProvider) isShutdown() bool {
-	shutdownMutex.Lock()
-	defer shutdownMutex.Unlock()
+	p.shutdownMutex.Lock()
+	defer p.shutdownMutex.Unlock()
 	return p.shutdown
 }
 
 func (p *AutoManagedProvider) isDeregistered() bool {
-	deregisteredMutex.Lock()
-	defer deregisteredMutex.Unlock()
+	p.deregisteredMutex.Lock()
+	defer p.deregisteredMutex.Unlock()
 	return p.deregistered
 }
 
 func (p *AutoManagedProvider) isActiveProviderRunning() bool {
-	activeProviderRunningMutex.Lock()
-	defer activeProviderRunningMutex.Unlock()
+	p.activeProviderRunningMutex.Lock()
+	defer p.activeProviderRunningMutex.Unlock()
 	return p.activeProviderRunning
 }
 
