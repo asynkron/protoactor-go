@@ -2,8 +2,14 @@ package etcd
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/asynkron/protoactor-go/cluster"
+)
+
+const (
+	metaKeyID  = "id"
+	metaKeySeq = "seq"
 )
 
 type Node struct {
@@ -63,6 +69,17 @@ func (n *Node) GetMeta(name string) (string, bool) {
 	}
 	val, ok := n.Meta[name]
 	return val, ok
+}
+func (n *Node) GetSeq() int {
+	if seqStr, ok := n.GetMeta(metaKeySeq); ok {
+		return strToInt(seqStr)
+	}
+	return 0
+}
+
+func strToInt(s string) int {
+	i, _ := strconv.ParseInt(s, 10, 64)
+	return int(i)
 }
 
 func (n *Node) MemberStatus() *cluster.Member {
