@@ -2,7 +2,6 @@ module remoteactivate
 
 go 1.23.8
 
-toolchain go1.24.4
 
 replace github.com/asynkron/protoactor-go => ../..
 

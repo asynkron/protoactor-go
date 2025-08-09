@@ -2,7 +2,6 @@ module cluster-broadcast
 
 go 1.23.8
 
-toolchain go1.24.4
 
 require (
 	github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716

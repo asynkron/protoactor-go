@@ -2,7 +2,6 @@ module cluster-grain
 
 go 1.23.8
 
-toolchain go1.24.4
 
 //
 
