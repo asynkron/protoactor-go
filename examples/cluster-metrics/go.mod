@@ -1,6 +1,6 @@
 module cluster-metrics
 
-go 1.22
+go 1.23.8
 
 
 require (

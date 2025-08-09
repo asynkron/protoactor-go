@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go_version: ['1.22']
+        go_version: ['1.23.8']
     # services:
     #   redis:
     #     image: redis:5.0-alpine

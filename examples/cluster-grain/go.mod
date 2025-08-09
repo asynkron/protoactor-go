@@ -1,6 +1,6 @@
 module cluster-grain
 
-go 1.22
+go 1.23.8
 
 
 //
