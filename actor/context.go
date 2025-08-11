@@ -94,6 +94,13 @@ type basePart interface {
 	Forward(pid *PID)
 
 	ReenterAfter(f *Future, continuation func(res interface{}, err error))
+
+	// Capture captures the current MessageEnvelope for the context.
+	// Use the returned CapturedContext to reprocess messages later.
+	Capture() *CapturedContext
+
+	// Apply overwrites the context current state with the state from the captured context.
+	Apply(captured *CapturedContext)
 }
 
 type messagePart interface {
