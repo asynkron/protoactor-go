@@ -281,6 +281,17 @@ func (ctx *actorContext) ReenterAfter(f *Future, cont func(res interface{}, err 
 	})
 }
 
+func (ctx *actorContext) Capture() *CapturedContext {
+	return &CapturedContext{
+		MessageEnvelope: WrapEnvelope(ctx.messageOrEnvelope),
+		Context:         ctx,
+	}
+}
+
+func (ctx *actorContext) Apply(captured *CapturedContext) {
+	ctx.messageOrEnvelope = captured.MessageEnvelope
+}
+
 //
 // Interface: sender
 //

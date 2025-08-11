@@ -110,6 +110,15 @@ func (m *mockContext) ReenterAfter(f *actor.Future, cont func(res interface{}, e
 	m.Called(f, cont)
 }
 
+func (m *mockContext) Capture() *actor.CapturedContext {
+	args := m.Called()
+	return args.Get(0).(*actor.CapturedContext)
+}
+
+func (m *mockContext) Apply(captured *actor.CapturedContext) {
+	m.Called(captured)
+}
+
 //
 // Interface: SenderContext
 //
