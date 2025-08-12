@@ -507,6 +507,7 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 			ctx.processMessage(md)
 			delta := time.Since(t)
 
+
 			labels := append(
 				systemMetrics.CommonLabels(ctx),
 				attribute.String("messagetype", fmt.Sprintf("%T", md)),
