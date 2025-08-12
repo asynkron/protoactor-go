@@ -81,6 +81,7 @@ func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
 			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
 				labels := []attribute.KeyValue{
 					attribute.String("address", dp.actorSystem.Address()),
+					attribute.String("id", dp.actorSystem.ID),
 					attribute.String("messagetype", strings.Replace(fmt.Sprintf("%T", message), "*", "", 1)),
 				}
 

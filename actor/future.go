@@ -37,6 +37,7 @@ func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
 				ctx := context.Background()
 				labels := []attribute.KeyValue{
 					attribute.String("address", ref.actorSystem.Address()),
+					attribute.String("id", actorSystem.ID),
 				}
 
 				instruments.FuturesStartedCount.Add(ctx, 1, metric.WithAttributes(labels...))
@@ -179,6 +180,7 @@ func (ref *futureProcess) instrument() {
 			ctx := context.Background()
 			labels := []attribute.KeyValue{
 				attribute.String("address", ref.actorSystem.Address()),
+				attribute.String("id", ref.actorSystem.ID),
 			}
 
 			instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics)
