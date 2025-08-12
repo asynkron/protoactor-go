@@ -45,6 +45,7 @@ func NewMetrics(system *ActorSystem, provider metric.MeterProvider) *Metrics {
 func (m *Metrics) CommonLabels(ctx Context) []attribute.KeyValue {
 	labels := []attribute.KeyValue{
 		attribute.String("address", ctx.ActorSystem().Address()),
+		attribute.String("id", ctx.ActorSystem().ID),
 		attribute.String("actortype", strings.Replace(fmt.Sprintf("%T", ctx.Actor()), "*", "", 1)),
 	}
 
