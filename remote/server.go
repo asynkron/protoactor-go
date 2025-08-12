@@ -11,7 +11,6 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	remotemetrics "github.com/asynkron/protoactor-go/remote/metrics"
-	"go.opentelemetry.io/otel/attribute"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )
@@ -64,13 +63,6 @@ func (r *Remote) ExtensionID() extensions.ExtensionID {
 }
 
 func (r *Remote) BlockList() *BlockList { return r.blocklist }
-
-func (r *Remote) commonLabels() []attribute.KeyValue {
-	return []attribute.KeyValue{
-		attribute.String("id", r.actorSystem.ID),
-		attribute.String("address", r.actorSystem.Address()),
-	}
-}
 
 // Start the remote server
 func (r *Remote) Start() {
