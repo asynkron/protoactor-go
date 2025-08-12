@@ -57,6 +57,7 @@ func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
 			}
 			ref.err = ErrTimeout
 			ref.cond.L.Unlock()
+			ref.instrument()
 			ref.Stop(pid)
 		})
 		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&ref.t)), unsafe.Pointer(tp))
