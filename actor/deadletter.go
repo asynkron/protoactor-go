@@ -74,6 +74,9 @@ type DeadLetterEvent struct {
 }
 
 func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
+	// unwrap the incoming envelope to access the actual message and sender
+	_, msg, sender := UnwrapEnvelope(message)
+
 	if dp.actorSystem.Config.MetricsEnabled {
 		metricsSystem, ok := dp.actorSystem.Extensions.Get(extensionId).(*Metrics)
 		if ok && metricsSystem.Enabled() {
@@ -82,14 +85,14 @@ func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
 				labels := []attribute.KeyValue{
 					attribute.String("address", dp.actorSystem.Address()),
 					attribute.String("id", dp.actorSystem.ID),
-					attribute.String("messagetype", strings.Replace(fmt.Sprintf("%T", message), "*", "", 1)),
+					attribute.String("messagetype", strings.Replace(fmt.Sprintf("%T", msg), "*", "", 1)),
 				}
 
 				instruments.DeadLetterCount.Add(ctx, 1, metric.WithAttributes(labels...))
 			}
 		}
 	}
-	_, msg, sender := UnwrapEnvelope(message)
+
 	dp.actorSystem.EventStream.Publish(&DeadLetterEvent{
 		PID:     pid,
 		Message: msg,
