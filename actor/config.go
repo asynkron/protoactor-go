@@ -23,12 +23,15 @@ type Config struct {
 	DeveloperSupervisionLogging bool               // console log and promote supervision logs to Warning level
 	DiagnosticsSerializer       func(Actor) string // extract diagnostics from actor and return as string
 	MetricsProvider             metric.MeterProvider
-	LoggerFactory               func(system *ActorSystem) *slog.Logger
+	// MetricsEnabled toggles emission of Proto.Actor metrics.
+	MetricsEnabled bool
+	LoggerFactory  func(system *ActorSystem) *slog.Logger
 }
 
 func defaultConfig() *Config {
 	return &Config{
 		MetricsProvider:             nil,
+		MetricsEnabled:              false,
 		DeadLetterThrottleInterval:  1 * time.Second,
 		DeadLetterThrottleCount:     3,
 		DeadLetterRequestLogging:    true,

@@ -504,7 +504,7 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 		_ctx := context.Background()
 
 		if instruments := systemMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-			histogram := instruments.ActorMessageReceiveHistogram
+			histogram := instruments.ActorMessageReceiveDuration
 
 			labels := append(
 				systemMetrics.CommonLabels(ctx),
