@@ -11,6 +11,8 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // Defines a type to provide DefaultContext configurations / implementations.
@@ -59,6 +61,9 @@ func (dcc *DefaultContext) Request(identity, kind string, message interface{}, o
 	ctx, cancel := context.WithTimeout(context.Background(), ttl)
 	defer cancel()
 
+	var fromCache bool
+	var pid *actor.PID
+
 selectloop:
 	for {
 		select {
@@ -73,10 +78,20 @@ selectloop:
 
 				break selectloop
 			}
-			pid := dcc.getPid(identity, kind)
+			pid, fromCache = dcc.getPid(identity, kind)
 			if pid == nil {
 				dcc.cluster.Logger().Debug("Requesting PID from IdentityLookup but got nil", slog.String("identity", identity), slog.String("kind", kind))
 				counter = callConfig.RetryAction(counter)
+				if dcc.cluster.metricsEnabled {
+					_ctx := context.Background()
+					attrs := []attribute.KeyValue{
+						attribute.String("id", dcc.cluster.ActorSystem.ID),
+						attribute.String("address", dcc.cluster.ActorSystem.Address()),
+						attribute.String("clusterkind", kind),
+						attribute.String("messagetype", actor.MessageName(message)),
+					}
+					dcc.cluster.metrics.ClusterRequestRetryCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
+				}
 				continue
 			}
 
@@ -91,18 +106,40 @@ selectloop:
 				case actor.ErrTimeout, remote.ErrTimeout, actor.ErrDeadLetter, remote.ErrDeadLetter:
 					counter = callConfig.RetryAction(counter)
 					dcc.cluster.PidCache.Remove(identity, kind)
+					if dcc.cluster.metricsEnabled {
+						_ctx := context.Background()
+						attrs := []attribute.KeyValue{
+							attribute.String("id", dcc.cluster.ActorSystem.ID),
+							attribute.String("address", dcc.cluster.ActorSystem.Address()),
+							attribute.String("clusterkind", kind),
+							attribute.String("messagetype", actor.MessageName(message)),
+						}
+						dcc.cluster.metrics.ClusterRequestRetryCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
+					}
 					continue
 				default:
 					break selectloop
 				}
 			}
-
-			// TODO: add metrics to increment retries
 		}
 	}
 
 	totalTime := time.Since(start)
-	// TODO: add metrics ot set histogram for total request time
+	if dcc.cluster.metricsEnabled {
+		_ctx := context.Background()
+		source := "IIdentityLookup"
+		if fromCache {
+			source = "PidCache"
+		}
+		attrs := []attribute.KeyValue{
+			attribute.String("id", dcc.cluster.ActorSystem.ID),
+			attribute.String("address", dcc.cluster.ActorSystem.Address()),
+			attribute.String("clusterkind", kind),
+			attribute.String("messagetype", actor.MessageName(message)),
+			attribute.String("pidsource", source),
+		}
+		dcc.cluster.metrics.ClusterRequestDuration.Record(_ctx, totalTime.Seconds(), metric.WithAttributes(attrs...))
+	}
 
 	if contextError := ctx.Err(); contextError != nil && cfg.requestLogThrottle() == actor.Open {
 		// context timeout exceeded, report and return
@@ -140,10 +177,20 @@ func (dcc *DefaultContext) RequestFuture(identity string, kind string, message i
 				return nil, fmt.Errorf("have reached max retries: %v", callConfig.RetryCount)
 			}
 
-			pid := dcc.getPid(identity, kind)
+			pid, _ := dcc.getPid(identity, kind)
 			if pid == nil {
 				dcc.cluster.Logger().Debug("Requesting PID from IdentityLookup but got nil", slog.String("identity", identity), slog.String("kind", kind))
 				counter = callConfig.RetryAction(counter)
+				if dcc.cluster.metricsEnabled {
+					_ctx := context.Background()
+					attrs := []attribute.KeyValue{
+						attribute.String("id", dcc.cluster.ActorSystem.ID),
+						attribute.String("address", dcc.cluster.ActorSystem.Address()),
+						attribute.String("clusterkind", kind),
+						attribute.String("messagetype", actor.MessageName(message)),
+					}
+					dcc.cluster.metrics.ClusterRequestRetryCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
+				}
 				continue
 			}
 
@@ -155,14 +202,32 @@ func (dcc *DefaultContext) RequestFuture(identity string, kind string, message i
 
 // gets the cached PID for the given identity
 // it can return nil if none is found.
-func (dcc *DefaultContext) getPid(identity, kind string) *actor.PID {
-	pid, _ := dcc.cluster.PidCache.Get(identity, kind)
-	if pid == nil {
+func (dcc *DefaultContext) getPid(identity, kind string) (*actor.PID, bool) {
+	if pid, ok := dcc.cluster.PidCache.Get(identity, kind); ok {
+		return pid, true
+	}
+
+	var pid *actor.PID
+	if dcc.cluster.metricsEnabled {
+		start := time.Now()
+		pid = dcc.cluster.Get(identity, kind)
+		if pid != nil {
+			dcc.cluster.PidCache.Set(identity, kind, pid)
+		}
+		elapsed := time.Since(start)
+		_ctx := context.Background()
+		attrs := []attribute.KeyValue{
+			attribute.String("id", dcc.cluster.ActorSystem.ID),
+			attribute.String("address", dcc.cluster.ActorSystem.Address()),
+			attribute.String("clusterkind", kind),
+		}
+		dcc.cluster.metrics.ClusterResolvePidDuration.Record(_ctx, elapsed.Seconds(), metric.WithAttributes(attrs...))
+	} else {
 		pid = dcc.cluster.Get(identity, kind)
 		if pid != nil {
 			dcc.cluster.PidCache.Set(identity, kind, pid)
 		}
 	}
 
-	return pid
+	return pid, false
 }

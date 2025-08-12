@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime/debug"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -510,7 +509,7 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 
 			labels := append(
 				systemMetrics.CommonLabels(ctx),
-				attribute.String("messagetype", strings.Replace(fmt.Sprintf("%T", md), "*", "", 1)),
+				attribute.String("messagetype", MessageName(md)),
 			)
 			instruments.ActorMessageReceiveDuration.Record(_ctx, delta.Seconds(), metric.WithAttributes(labels...))
 		} else {
