@@ -436,9 +436,9 @@ func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 
 // Stop will stop actor immediately regardless of existing user messages in mailbox.
 func (ctx *actorContext) Stop(pid *PID) {
-	if ctx.actorSystem.Config.MetricsProvider != nil {
+	if ctx.actorSystem.Config.MetricsEnabled {
 		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
-		if ok && metricsSystem.enabled {
+		if ok && metricsSystem.Enabled() {
 			_ctx := context.Background()
 			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
 				instruments.ActorStoppedCount.Add(_ctx, 1, metric.WithAttributes(metricsSystem.CommonLabels(ctx)...))
@@ -495,22 +495,26 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 	}
 
 	systemMetrics, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
-	if ok && systemMetrics.enabled {
-		t := time.Now()
-
-		ctx.processMessage(md)
-
-		delta := time.Since(t)
+	if ok && ctx.actorSystem.Config.MetricsEnabled && systemMetrics.Enabled() {
 		_ctx := context.Background()
+		instruments := systemMetrics.metrics.Get(metrics.InternalActorMetrics)
+		if instruments != nil {
+			if ap, ok := ctx.self.ref(ctx.actorSystem).(*ActorProcess); ok {
+				instruments.ActorMailboxLength.Record(_ctx, int64(ap.mailbox.UserMessageCount()), metric.WithAttributes(systemMetrics.CommonLabels(ctx)...))
+			}
 
-		if instruments := systemMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-			histogram := instruments.ActorMessageReceiveDuration
+			t := time.Now()
+			ctx.processMessage(md)
+			delta := time.Since(t)
+
 
 			labels := append(
 				systemMetrics.CommonLabels(ctx),
 				attribute.String("messagetype", fmt.Sprintf("%T", md)),
 			)
-			histogram.Record(_ctx, delta.Seconds(), metric.WithAttributes(labels...))
+			instruments.ActorMessageReceiveDuration.Record(_ctx, delta.Seconds(), metric.WithAttributes(labels...))
+		} else {
+			ctx.processMessage(md)
 		}
 	} else {
 		ctx.processMessage(md)
@@ -543,11 +547,13 @@ func (ctx *actorContext) incarnateActor() {
 	atomic.StoreInt32(&ctx.state, stateAlive)
 	ctx.actor = ctx.props.producer(ctx.actorSystem)
 
-	metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
-	if ok && metricsSystem.enabled {
-		_ctx := context.Background()
-		if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-			instruments.ActorSpawnCount.Add(_ctx, 1, metric.WithAttributes(metricsSystem.CommonLabels(ctx)...))
+	if ctx.actorSystem.Config.MetricsEnabled {
+		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		if ok && metricsSystem.Enabled() {
+			_ctx := context.Background()
+			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+				instruments.ActorSpawnCount.Add(_ctx, 1, metric.WithAttributes(metricsSystem.CommonLabels(ctx)...))
+			}
 		}
 	}
 }
@@ -607,11 +613,13 @@ func (ctx *actorContext) handleRestart() {
 	ctx.stopAllChildren()
 	ctx.tryRestartOrTerminate()
 
-	metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
-	if ok && metricsSystem.enabled {
-		_ctx := context.Background()
-		if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-			instruments.ActorRestartedCount.Add(_ctx, 1, metric.WithAttributes(metricsSystem.CommonLabels(ctx)...))
+	if ctx.actorSystem.Config.MetricsEnabled {
+		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		if ok && metricsSystem.Enabled() {
+			_ctx := context.Background()
+			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+				instruments.ActorRestartedCount.Add(_ctx, 1, metric.WithAttributes(metricsSystem.CommonLabels(ctx)...))
+			}
 		}
 	}
 }
@@ -722,11 +730,13 @@ func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}
 		ctx.Logger().Error("[Supervision]", slog.Any("actor", ctx.self), slog.Any("message", message), slog.Any("exception", reason))
 	}
 
-	metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
-	if ok && metricsSystem.enabled {
-		_ctx := context.Background()
-		if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-			instruments.ActorFailureCount.Add(_ctx, 1, metric.WithAttributes(metricsSystem.CommonLabels(ctx)...))
+	if ctx.actorSystem.Config.MetricsEnabled {
+		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		if ok && metricsSystem.Enabled() {
+			_ctx := context.Background()
+			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+				instruments.ActorFailureCount.Add(_ctx, 1, metric.WithAttributes(metricsSystem.CommonLabels(ctx)...))
+			}
 		}
 	}
 

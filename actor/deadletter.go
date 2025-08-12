@@ -74,16 +74,18 @@ type DeadLetterEvent struct {
 }
 
 func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
-	metricsSystem, ok := dp.actorSystem.Extensions.Get(extensionId).(*Metrics)
-	if ok && metricsSystem.enabled {
-		ctx := context.Background()
-		if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-			labels := []attribute.KeyValue{
-				attribute.String("address", dp.actorSystem.Address()),
-				attribute.String("messagetype", strings.Replace(fmt.Sprintf("%T", message), "*", "", 1)),
-			}
+	if dp.actorSystem.Config.MetricsEnabled {
+		metricsSystem, ok := dp.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		if ok && metricsSystem.Enabled() {
+			ctx := context.Background()
+			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+				labels := []attribute.KeyValue{
+					attribute.String("address", dp.actorSystem.Address()),
+					attribute.String("messagetype", strings.Replace(fmt.Sprintf("%T", message), "*", "", 1)),
+				}
 
-			instruments.DeadLetterCount.Add(ctx, 1, metric.WithAttributes(labels...))
+				instruments.DeadLetterCount.Add(ctx, 1, metric.WithAttributes(labels...))
+			}
 		}
 	}
 	_, msg, sender := UnwrapEnvelope(message)

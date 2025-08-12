@@ -31,7 +31,7 @@ func (m *Metrics) ExtensionID() extensions.ExtensionID {
 }
 
 func NewMetrics(system *ActorSystem, provider metric.MeterProvider) *Metrics {
-	if provider == nil {
+	if provider == nil || !system.Config.MetricsEnabled {
 		return &Metrics{}
 	}
 

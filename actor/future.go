@@ -30,15 +30,17 @@ func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
 		actorSystem.Logger().Error("failed to register future process", slog.Any("pid", pid))
 	}
 
-	sysMetrics, ok := actorSystem.Extensions.Get(extensionId).(*Metrics)
-	if ok && sysMetrics.enabled {
-		if instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-			ctx := context.Background()
-			labels := []attribute.KeyValue{
-				attribute.String("address", ref.actorSystem.Address()),
-			}
+	if actorSystem.Config.MetricsEnabled {
+		sysMetrics, ok := actorSystem.Extensions.Get(extensionId).(*Metrics)
+		if ok && sysMetrics.Enabled() {
+			if instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
+				ctx := context.Background()
+				labels := []attribute.KeyValue{
+					attribute.String("address", ref.actorSystem.Address()),
+				}
 
-			instruments.FuturesStartedCount.Add(ctx, 1, metric.WithAttributes(labels...))
+				instruments.FuturesStartedCount.Add(ctx, 1, metric.WithAttributes(labels...))
+			}
 		}
 	}
 
@@ -171,19 +173,21 @@ func (ref *futureProcess) SendSystemMessage(pid *PID, message interface{}) {
 }
 
 func (ref *futureProcess) instrument() {
-	sysMetrics, ok := ref.actorSystem.Extensions.Get(extensionId).(*Metrics)
-	if ok && sysMetrics.enabled {
-		ctx := context.Background()
-		labels := []attribute.KeyValue{
-			attribute.String("address", ref.actorSystem.Address()),
-		}
+	if ref.actorSystem.Config.MetricsEnabled {
+		sysMetrics, ok := ref.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		if ok && sysMetrics.Enabled() {
+			ctx := context.Background()
+			labels := []attribute.KeyValue{
+				attribute.String("address", ref.actorSystem.Address()),
+			}
 
-		instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics)
-		if instruments != nil {
-			if ref.err == nil {
-				instruments.FuturesCompletedCount.Add(ctx, 1, metric.WithAttributes(labels...))
-			} else {
-				instruments.FuturesTimedOutCount.Add(ctx, 1, metric.WithAttributes(labels...))
+			instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics)
+			if instruments != nil {
+				if ref.err == nil {
+					instruments.FuturesCompletedCount.Add(ctx, 1, metric.WithAttributes(labels...))
+				} else {
+					instruments.FuturesTimedOutCount.Add(ctx, 1, metric.WithAttributes(labels...))
+				}
 			}
 		}
 	}
