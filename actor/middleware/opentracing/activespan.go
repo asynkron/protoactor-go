@@ -33,7 +33,7 @@ func GetActiveSpan(context actor.Context) opentracing.Span {
 	span := getActiveSpan(context.Self())
 	if span == nil {
 		// TODO: Fix finding the real span always or handle no-span better on receiving side
-		span = opentracing.StartSpan(fmt.Sprintf("%T/%T", context.Actor(), context.Message()))
+		span = opentracing.StartSpan(fmt.Sprintf("%T/%s", context.Actor(), actor.MessageType(context.Message())))
 	}
 
 	return span

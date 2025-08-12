@@ -38,7 +38,7 @@ func GetActiveSpan(ctx actor.Context) trace.Span {
 	span := getActiveSpan(ctx.Self())
 	if span == nil {
 		// TODO: Fix finding the real span always or handle no-span better on receiving side
-		bctx, newSpan := otel.Tracer("protoactor/middleware").Start(context.Background(), fmt.Sprintf("%T/%T", ctx.Actor(), ctx.Message()))
+		bctx, newSpan := otel.Tracer("protoactor/middleware").Start(context.Background(), fmt.Sprintf("%T/%s", ctx.Actor(), actor.MessageType(ctx.Message())))
 		_ = bctx
 		span = newSpan
 	}

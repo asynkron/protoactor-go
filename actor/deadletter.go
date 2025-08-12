@@ -2,9 +2,7 @@ package actor
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
-	"strings"
 
 	"github.com/asynkron/protoactor-go/metrics"
 	"go.opentelemetry.io/otel/attribute"
@@ -85,7 +83,7 @@ func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
 				labels := []attribute.KeyValue{
 					attribute.String("address", dp.actorSystem.Address()),
 					attribute.String("id", dp.actorSystem.ID),
-					attribute.String("messagetype", strings.Replace(fmt.Sprintf("%T", msg), "*", "", 1)),
+					attribute.String("messagetype", MessageName(msg)),
 				}
 
 				instruments.DeadLetterCount.Add(ctx, 1, metric.WithAttributes(labels...))

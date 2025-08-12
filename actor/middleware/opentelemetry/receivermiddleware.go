@@ -40,7 +40,7 @@ func ReceiverMiddleware() actor.ReceiverMiddleware {
 				}
 				parentCtx, span = otel.Tracer("protoactor/middleware").Start(parentCtx, fmt.Sprintf("%T/stopping", c.Actor()))
 				setStoppingSpan(c.Self(), span)
-				span.SetAttributes(attribute.String("ActorPID", c.Self().String()), attribute.String("ActorType", fmt.Sprintf("%T", c.Actor())), attribute.String("MessageType", fmt.Sprintf("%T", envelope.Message)))
+				span.SetAttributes(attribute.String("ActorPID", c.Self().String()), attribute.String("ActorType", fmt.Sprintf("%T", c.Actor())), attribute.String("MessageType", actor.MessageType(envelope.Message)))
 				childCtx, stoppingHandlingSpan := otel.Tracer("protoactor/middleware").Start(parentCtx, "stopping-handling")
 				_ = childCtx
 				next(c, envelope)
@@ -61,14 +61,14 @@ func ReceiverMiddleware() actor.ReceiverMiddleware {
 				} else {
 					c.Logger().Debug("INBOUND Starting span from parent", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
 				}
-				ctx, span = otel.Tracer("protoactor/middleware").Start(ctx, fmt.Sprintf("%T/%T", c.Actor(), envelope.Message))
+				ctx, span = otel.Tracer("protoactor/middleware").Start(ctx, fmt.Sprintf("%T/%s", c.Actor(), actor.MessageType(envelope.Message)))
 			}
 
 			setActiveSpan(c.Self(), span)
 			span.SetAttributes(
 				attribute.String("ActorPID", c.Self().String()),
 				attribute.String("ActorType", fmt.Sprintf("%T", c.Actor())),
-				attribute.String("MessageType", fmt.Sprintf("%T", envelope.Message)),
+				attribute.String("MessageType", actor.MessageType(envelope.Message)),
 			)
 
 			defer func() {

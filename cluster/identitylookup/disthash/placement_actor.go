@@ -1,10 +1,14 @@
 package disthash
 
 import (
+	"context"
 	"log/slog"
+	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	clustering "github.com/asynkron/protoactor-go/cluster"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type GrainMeta struct {
@@ -50,6 +54,8 @@ func (p *placementActor) onTerminated(msg *actor.Terminated) {
 	found, key, meta := p.pidToMeta(msg.Who)
 	clusterKind := p.cluster.GetClusterKind(meta.ID.Kind)
 	clusterKind.Dec()
+
+	p.updateVirtualActorsGauge()
 
 	activationTerminated := &clustering.ActivationTerminated{
 		Pid:             msg.Who,
@@ -99,8 +105,19 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 
 	props := clustering.WithClusterIdentity(clusterKind.Props, msg.ClusterIdentity)
 
+	start := time.Now()
 	pid := ctx.SpawnPrefix(props, msg.ClusterIdentity.Identity)
 	clusterKind.Inc()
+	if p.cluster.MetricsEnabled() {
+		_ctx := context.Background()
+		attrs := []attribute.KeyValue{
+			attribute.String("id", p.cluster.ActorSystem.ID),
+			attribute.String("address", p.cluster.ActorSystem.Address()),
+			attribute.String("clusterkind", msg.ClusterIdentity.Kind),
+		}
+		p.cluster.Metrics().ClusterActorSpawnDuration.Record(_ctx, time.Since(start).Seconds(), metric.WithAttributes(attrs...))
+		p.updateVirtualActorsGauge()
+	}
 
 	p.actors[key] = GrainMeta{
 		ID:  msg.ClusterIdentity,
@@ -112,6 +129,13 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 	}
 
 	ctx.Respond(response)
+}
+
+func (p *placementActor) updateVirtualActorsGauge() {
+	if !p.cluster.MetricsEnabled() {
+		return
+	}
+	p.cluster.Metrics().VirtualActorsCount.Set(p.cluster.VirtualActorCount())
 }
 
 func (p *placementActor) pidToMeta(pid *actor.PID) (bool, *string, *GrainMeta) {

@@ -25,7 +25,7 @@ func ReceiverMiddleware() actor.ReceiverMiddleware {
 			case *actor.Started:
 				parentSpan := getAndClearParentSpan(c.Self())
 				if parentSpan != nil {
-					span = opentracing.StartSpan(fmt.Sprintf("%T/%T", c.Actor(), envelope.Message), opentracing.ChildOf(parentSpan.Context()))
+					span = opentracing.StartSpan(fmt.Sprintf("%T/%s", c.Actor(), actor.MessageType(envelope.Message)), opentracing.ChildOf(parentSpan.Context()))
 					c.Logger().Debug("INBOUND Found parent span", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
 				} else {
 					c.Logger().Debug("INBOUND No parent span", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
@@ -43,7 +43,7 @@ func ReceiverMiddleware() actor.ReceiverMiddleware {
 				setStoppingSpan(c.Self(), span)
 				span.SetTag("ActorPID", c.Self())
 				span.SetTag("ActorType", fmt.Sprintf("%T", c.Actor()))
-				span.SetTag("MessageType", fmt.Sprintf("%T", envelope.Message))
+				span.SetTag("MessageType", actor.MessageType(envelope.Message))
 				stoppingHandlingSpan := opentracing.StartSpan("stopping-handling", opentracing.ChildOf(span.Context()))
 				next(c, envelope)
 				stoppingHandlingSpan.Finish()
@@ -58,17 +58,17 @@ func ReceiverMiddleware() actor.ReceiverMiddleware {
 			}
 			if span == nil && spanContext == nil {
 				c.Logger().Debug("INBOUND No spanContext. Starting new span", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
-				span = opentracing.StartSpan(fmt.Sprintf("%T/%T", c.Actor(), envelope.Message))
+				span = opentracing.StartSpan(fmt.Sprintf("%T/%s", c.Actor(), actor.MessageType(envelope.Message)))
 			}
 			if span == nil {
 				c.Logger().Debug("INBOUND Starting span from parent", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
-				span = opentracing.StartSpan(fmt.Sprintf("%T/%T", c.Actor(), envelope.Message), opentracing.ChildOf(spanContext))
+				span = opentracing.StartSpan(fmt.Sprintf("%T/%s", c.Actor(), actor.MessageType(envelope.Message)), opentracing.ChildOf(spanContext))
 			}
 
 			setActiveSpan(c.Self(), span)
 			span.SetTag("ActorPID", c.Self())
 			span.SetTag("ActorType", fmt.Sprintf("%T", c.Actor()))
-			span.SetTag("MessageType", fmt.Sprintf("%T", envelope.Message))
+			span.SetTag("MessageType", actor.MessageType(envelope.Message))
 
 			defer func() {
 				c.Logger().Debug("INBOUND Finishing span", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
