@@ -17,13 +17,13 @@ func TestActorMetrics(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(provider)
-	system := NewActorSystemWithConfig(&Config{
-		MetricsProvider: provider,
-		MetricsEnabled:  true,
-		LoggerFactory: func(_ *ActorSystem) *slog.Logger {
-			return slog.New(slog.NewTextHandler(io.Discard, nil))
-		},
-	})
+	cfg := NewConfig()
+	cfg.MetricsProvider = provider
+	cfg.MetricsEnabled = true
+	cfg.LoggerFactory = func(_ *ActorSystem) *slog.Logger {
+		return slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+	system := NewActorSystemWithConfig(cfg)
 	defer system.Shutdown()
 
 	var wg sync.WaitGroup
@@ -65,6 +65,114 @@ func TestActorMetrics(t *testing.T) {
 
 	if !(foundSpawn && foundMailbox && foundDuration) {
 		t.Fatalf("missing metrics spawn:%v mailbox:%v duration:%v", foundSpawn, foundMailbox, foundDuration)
+	}
+}
+
+// TestActorLifecycleMetrics verifies metrics related to actor failures, restarts
+// and stops are emitted.
+func TestActorLifecycleMetrics(t *testing.T) {
+	reader := sdkmetric.NewManualReader()
+	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	otel.SetMeterProvider(provider)
+	cfg := NewConfig()
+	cfg.MetricsProvider = provider
+	cfg.MetricsEnabled = true
+	cfg.LoggerFactory = func(_ *ActorSystem) *slog.Logger {
+		return slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+	system := NewActorSystemWithConfig(cfg)
+	defer system.Shutdown()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	pid := system.Root.Spawn(PropsFromFunc(func(ctx Context) {
+		switch ctx.Message().(type) {
+		case string:
+			// trigger a failure which should restart the actor
+			panic("boom")
+		case *Restarting:
+			ctx.Stop(ctx.Self())
+			wg.Done()
+		}
+	}))
+
+	system.Root.Send(pid, "fail")
+	wg.Wait()
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(context.Background(), &rm); err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+
+	foundFailure, foundRestart, foundStop := false, false, false
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			switch m.Name {
+			case "protoactor_actor_failure_count":
+				if data, ok := m.Data.(metricdata.Sum[int64]); ok && len(data.DataPoints) > 0 && data.DataPoints[0].Value > 0 {
+					foundFailure = true
+				}
+			case "protoactor_actor_restarted_count":
+				if data, ok := m.Data.(metricdata.Sum[int64]); ok && len(data.DataPoints) > 0 && data.DataPoints[0].Value > 0 {
+					foundRestart = true
+				}
+			case "protoactor_actor_stopped_count":
+				if data, ok := m.Data.(metricdata.Sum[int64]); ok && len(data.DataPoints) > 0 && data.DataPoints[0].Value > 0 {
+					foundStop = true
+				}
+			}
+		}
+	}
+
+	if !(foundFailure && foundRestart && foundStop) {
+		t.Fatalf("missing metrics failure:%v restart:%v stop:%v", foundFailure, foundRestart, foundStop)
+	}
+}
+
+// TestDeadLetterMetrics ensures dead letter messages increment the metric.
+func TestDeadLetterMetrics(t *testing.T) {
+	reader := sdkmetric.NewManualReader()
+	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	otel.SetMeterProvider(provider)
+	cfg := NewConfig()
+	cfg.MetricsProvider = provider
+	cfg.MetricsEnabled = true
+	cfg.LoggerFactory = func(_ *ActorSystem) *slog.Logger {
+		return slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+	system := NewActorSystemWithConfig(cfg)
+	defer system.Shutdown()
+
+	ch := make(chan struct{}, 1)
+	sub := system.EventStream.Subscribe(func(evt interface{}) {
+		if _, ok := evt.(*DeadLetterEvent); ok {
+			ch <- struct{}{}
+		}
+	})
+	defer system.EventStream.Unsubscribe(sub)
+
+	pid := NewPID(system.Address(), "unknown")
+	system.Root.Send(pid, "msg")
+	<-ch
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(context.Background(), &rm); err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+
+	found := false
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			if m.Name == "protoactor_deadletter_count" {
+				if data, ok := m.Data.(metricdata.Sum[int64]); ok && len(data.DataPoints) > 0 && data.DataPoints[0].Value > 0 {
+					found = true
+				}
+			}
+		}
+	}
+
+	if !found {
+		t.Fatalf("missing dead letter metric")
 	}
 }
 
