@@ -28,9 +28,6 @@ type ActorMetrics struct {
 	FuturesStartedCount   metric.Int64Counter
 	FuturesCompletedCount metric.Int64Counter
 	FuturesTimedOutCount  metric.Int64Counter
-
-	// Threadpool
-	ThreadPoolLatency metric.Float64Histogram
 }
 
 // NewActorMetrics creates a new ActorMetrics value and returns a pointer to it
@@ -125,15 +122,6 @@ func newInstruments(logger *slog.Logger) *ActorMetrics {
 		metric.WithDescription("Number of futures that timed out"),
 	); err != nil {
 		err = fmt.Errorf("failed to create FuturesTimedOutCount instrument, %w", err)
-		logger.Error(err.Error(), slog.Any("error", err))
-	}
-
-	if instruments.ThreadPoolLatency, err = meter.Float64Histogram(
-		"protoactor_threadpool_latency_duration",
-		metric.WithDescription("Latency of the thread pool measured as time required to spawn a new task"),
-		metric.WithUnit("s"),
-	); err != nil {
-		err = fmt.Errorf("failed to create ThreadPoolLatency instrument, %w", err)
 		logger.Error(err.Error(), slog.Any("error", err))
 	}
 
