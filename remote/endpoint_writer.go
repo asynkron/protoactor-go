@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
@@ -151,6 +153,13 @@ func (state *endpointWriter) initializeInternal() error {
 
 	connected := &EndpointConnectedEvent{Address: state.address}
 	state.remote.actorSystem.EventStream.Publish(connected)
+
+	if state.remote.metricsEnabled {
+		_ctx := context.Background()
+		attrs := append(state.remote.commonLabels(), attribute.String("destinationaddress", state.address))
+		state.remote.metrics.RemoteEndpointConnectedCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
+	}
+
 	return nil
 }
 
@@ -219,6 +228,13 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			state.remote.Logger().Error("EndpointWriter failed to serialize message", slog.String("address", state.address), slog.Any("error", err), slog.Any("message", message))
 			continue
 		}
+
+		if state.remote.metricsEnabled {
+			_ctx := context.Background()
+			attrs := append(state.remote.commonLabels(), attribute.String("messagetype", typeName))
+			state.remote.metrics.RemoteSerializedMessageCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
+		}
+
 		typeID, typeNamesArr = addToLookup(typeNames, typeName, typeNamesArr)
 		targetID, targetNamesArr = addToTargetLookup(targetNames, rd.target, targetNamesArr)
 		targetRequestID := rd.target.RequestId
@@ -245,6 +261,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 		return
 	}
 
+	start := time.Now()
 	err := state.stream.Send(&RemoteMessage{
 		MessageType: &RemoteMessage_MessageBatch{
 			MessageBatch: &MessageBatch{
@@ -255,6 +272,13 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			},
 		},
 	})
+
+	if state.remote.metricsEnabled {
+		_ctx := context.Background()
+		attrs := append(state.remote.commonLabels(), attribute.String("destinationaddress", state.address))
+		state.remote.metrics.RemoteWriteDuration.Record(_ctx, time.Since(start).Seconds(), metric.WithAttributes(attrs...))
+	}
+
 	if err != nil {
 		ctx.Stash()
 		state.remote.Logger().Debug("gRPC Failed to send", slog.String("address", state.address), slog.Any("error", err))
@@ -332,6 +356,11 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 
 func (state *endpointWriter) closeClientConn() {
 	state.remote.Logger().Info("EndpointWriter closing client connection", slog.String("address", state.address))
+
+	if state.remote.metricsEnabled {
+		_ctx := context.Background()
+		state.remote.metrics.RemoteEndpointDisconnectedCount.Add(_ctx, 1, metric.WithAttributes(state.remote.commonLabels()...))
+	}
 	if state.stream != nil {
 		err := state.stream.CloseSend()
 		if err != nil {

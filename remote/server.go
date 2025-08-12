@@ -10,6 +10,8 @@ import (
 	"github.com/asynkron/protoactor-go/extensions"
 
 	"github.com/asynkron/protoactor-go/actor"
+	remotemetrics "github.com/asynkron/protoactor-go/remote/metrics"
+	"go.opentelemetry.io/otel/attribute"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )
@@ -17,14 +19,16 @@ import (
 var extensionId = extensions.NextExtensionID()
 
 type Remote struct {
-	actorSystem  *actor.ActorSystem
-	s            *grpc.Server
-	edpReader    *endpointReader
-	edpManager   *endpointManager
-	config       *Config
-	kinds        map[string]*actor.Props
-	activatorPid *actor.PID
-	blocklist    *BlockList
+	actorSystem    *actor.ActorSystem
+	s              *grpc.Server
+	edpReader      *endpointReader
+	edpManager     *endpointManager
+	config         *Config
+	kinds          map[string]*actor.Props
+	activatorPid   *actor.PID
+	blocklist      *BlockList
+	metrics        *remotemetrics.RemoteMetrics
+	metricsEnabled bool
 }
 
 func NewRemote(actorSystem *actor.ActorSystem, config *Config) *Remote {
@@ -36,6 +40,11 @@ func NewRemote(actorSystem *actor.ActorSystem, config *Config) *Remote {
 	}
 	for k, v := range config.Kinds {
 		r.kinds[k] = v
+	}
+
+	if actorSystem.Config.MetricsEnabled {
+		r.metrics = remotemetrics.NewRemoteMetrics(actorSystem.Logger())
+		r.metricsEnabled = true
 	}
 
 	actorSystem.Extensions.Register(r)
@@ -55,6 +64,13 @@ func (r *Remote) ExtensionID() extensions.ExtensionID {
 }
 
 func (r *Remote) BlockList() *BlockList { return r.blocklist }
+
+func (r *Remote) commonLabels() []attribute.KeyValue {
+	return []attribute.KeyValue{
+		attribute.String("id", r.actorSystem.ID),
+		attribute.String("address", r.actorSystem.Address()),
+	}
+}
 
 // Start the remote server
 func (r *Remote) Start() {

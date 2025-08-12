@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	context2 "golang.org/x/net/context"
 )
 
 // Register a known actor props by name
@@ -112,6 +115,12 @@ func (a *activator) Receive(context actor.Context) {
 		pid, err := context.SpawnNamed(props, "Remote$"+name)
 
 		if err == nil {
+			if a.remote.metricsEnabled {
+				_ctx := context2.Background()
+				attrs := append(a.remote.commonLabels(), attribute.String("kind", msg.Kind))
+				a.remote.metrics.RemoteActorSpawnCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
+			}
+
 			response := &ActorPidResponse{Pid: pid}
 			context.Respond(response)
 		} else if err == actor.ErrNameExists {

@@ -8,6 +8,8 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/asynkron/protoactor-go/actor"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"golang.org/x/net/context"
 )
 
@@ -135,7 +137,14 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 			return errors.New("unknown target")
 		}
 
-		message, err := Deserialize(data, m.TypeNames[envelope.TypeId], envelope.SerializerId)
+		typeName := m.TypeNames[envelope.TypeId]
+		if s.remote.metricsEnabled {
+			_ctx := context.Background()
+			attrs := append(s.remote.commonLabels(), attribute.String("messagetype", typeName))
+			s.remote.metrics.RemoteDeserializedMessageCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
+		}
+
+		message, err := Deserialize(data, typeName, envelope.SerializerId)
 		if err != nil {
 			s.remote.Logger().Error("EndpointReader failed to deserialize", slog.Any("error", err))
 			return err
