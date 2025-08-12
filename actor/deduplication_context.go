@@ -1,6 +1,9 @@
 package actor
 
-import "time"
+import (
+	"log/slog"
+	"time"
+)
 
 // Deduplicator extracts a deduplication key from a message.
 // Messages yielding the same key within the TTL are treated as duplicates.
@@ -40,6 +43,7 @@ func (d *dedupContext) Receive(envelope *MessageEnvelope) {
 		if last, exists := d.seen[key]; exists {
 			if now.Sub(last) < d.ttl {
 				d.seen[key] = now
+				d.Logger().Info("Request de-duplicated", slog.String("key", key))
 				return
 			}
 		}
