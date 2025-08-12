@@ -185,10 +185,14 @@ func (ref *futureProcess) instrument() {
 
 			instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics)
 			if instruments != nil {
-				if ref.err == nil {
+				switch {
+				case ref.err == nil:
+					// The future completed successfully.
 					instruments.FuturesCompletedCount.Add(ctx, 1, metric.WithAttributes(labels...))
-				} else {
+				case ref.err == ErrTimeout:
+					// Only count actual timeouts as timed out futures.
 					instruments.FuturesTimedOutCount.Add(ctx, 1, metric.WithAttributes(labels...))
+					// Other errors are not counted toward timeout metrics.
 				}
 			}
 		}
