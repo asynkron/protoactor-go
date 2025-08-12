@@ -51,12 +51,20 @@ func NewMetrics(system *ActorSystem, provider metric.MeterProvider) *Metrics {
 	}
 }
 
-func (m *Metrics) CommonLabels(ctx Context) []attribute.KeyValue {
-	labels := []attribute.KeyValue{
-		attribute.String("address", ctx.ActorSystem().Address()),
-		attribute.String("id", ctx.ActorSystem().ID),
-		attribute.String("actortype", strings.Replace(fmt.Sprintf("%T", ctx.Actor()), "*", "", 1)),
+// SystemLabels returns a standard set of attributes that identify the actor system
+// emitting the metric. These labels are used across modules to maintain
+// consistency in OpenTelemetry reporting.
+func SystemLabels(system *ActorSystem) []attribute.KeyValue {
+	return []attribute.KeyValue{
+		attribute.String("address", system.Address()),
+		attribute.String("id", system.ID),
 	}
+}
 
-	return labels
+// CommonLabels returns the default set of labels for an actor metric, including
+// system-wide labels and the specific actor type.
+func (m *Metrics) CommonLabels(ctx Context) []attribute.KeyValue {
+	return append(SystemLabels(ctx.ActorSystem()),
+		attribute.String("actortype", strings.Replace(fmt.Sprintf("%T", ctx.Actor()), "*", "", 1)),
+	)
 }

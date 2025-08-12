@@ -110,11 +110,10 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 	clusterKind.Inc()
 	if p.cluster.MetricsEnabled() {
 		_ctx := context.Background()
-		attrs := []attribute.KeyValue{
-			attribute.String("id", p.cluster.ActorSystem.ID),
-			attribute.String("address", p.cluster.ActorSystem.Address()),
+		attrs := append(
+			actor.SystemLabels(p.cluster.ActorSystem),
 			attribute.String("clusterkind", msg.ClusterIdentity.Kind),
-		}
+		)
 		p.cluster.Metrics().ClusterActorSpawnDuration.Record(_ctx, time.Since(start).Seconds(), metric.WithAttributes(attrs...))
 		p.updateVirtualActorsGauge()
 	}

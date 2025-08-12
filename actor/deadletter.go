@@ -80,11 +80,9 @@ func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
 		if ok && metricsSystem.Enabled() {
 			ctx := context.Background()
 			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
-				labels := []attribute.KeyValue{
-					attribute.String("address", dp.actorSystem.Address()),
-					attribute.String("id", dp.actorSystem.ID),
+				labels := append(SystemLabels(dp.actorSystem),
 					attribute.String("messagetype", MessageName(msg)),
-				}
+				)
 
 				instruments.DeadLetterCount.Add(ctx, 1, metric.WithAttributes(labels...))
 			}

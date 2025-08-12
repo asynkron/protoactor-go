@@ -117,7 +117,7 @@ func (a *activator) Receive(context actor.Context) {
 		if err == nil {
 			if a.remote.metricsEnabled {
 				_ctx := context2.Background()
-				attrs := append(a.remote.commonLabels(), attribute.String("kind", msg.Kind))
+				attrs := append(actor.SystemLabels(a.remote.actorSystem), attribute.String("kind", msg.Kind))
 				a.remote.metrics.RemoteActorSpawnCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
 			}
 

@@ -156,7 +156,7 @@ func (state *endpointWriter) initializeInternal() error {
 
 	if state.remote.metricsEnabled {
 		_ctx := context.Background()
-		attrs := append(state.remote.commonLabels(), attribute.String("destinationaddress", state.address))
+		attrs := append(actor.SystemLabels(state.remote.actorSystem), attribute.String("destinationaddress", state.address))
 		state.remote.metrics.RemoteEndpointConnectedCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
 	}
 
@@ -231,7 +231,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 
 		if state.remote.metricsEnabled {
 			_ctx := context.Background()
-			attrs := append(state.remote.commonLabels(), attribute.String("messagetype", typeName))
+			attrs := append(actor.SystemLabels(state.remote.actorSystem), attribute.String("messagetype", typeName))
 			state.remote.metrics.RemoteSerializedMessageCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
 		}
 
@@ -275,7 +275,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 
 	if state.remote.metricsEnabled {
 		_ctx := context.Background()
-		attrs := append(state.remote.commonLabels(), attribute.String("destinationaddress", state.address))
+		attrs := append(actor.SystemLabels(state.remote.actorSystem), attribute.String("destinationaddress", state.address))
 		state.remote.metrics.RemoteWriteDuration.Record(_ctx, time.Since(start).Seconds(), metric.WithAttributes(attrs...))
 	}
 
@@ -359,7 +359,7 @@ func (state *endpointWriter) closeClientConn() {
 
 	if state.remote.metricsEnabled {
 		_ctx := context.Background()
-		state.remote.metrics.RemoteEndpointDisconnectedCount.Add(_ctx, 1, metric.WithAttributes(state.remote.commonLabels()...))
+		state.remote.metrics.RemoteEndpointDisconnectedCount.Add(_ctx, 1, metric.WithAttributes(actor.SystemLabels(state.remote.actorSystem)...))
 	}
 	if state.stream != nil {
 		err := state.stream.CloseSend()

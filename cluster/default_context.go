@@ -84,12 +84,11 @@ selectloop:
 				counter = callConfig.RetryAction(counter)
 				if dcc.cluster.metricsEnabled {
 					_ctx := context.Background()
-					attrs := []attribute.KeyValue{
-						attribute.String("id", dcc.cluster.ActorSystem.ID),
-						attribute.String("address", dcc.cluster.ActorSystem.Address()),
+					attrs := append(
+						actor.SystemLabels(dcc.cluster.ActorSystem),
 						attribute.String("clusterkind", kind),
 						attribute.String("messagetype", actor.MessageName(message)),
-					}
+					)
 					dcc.cluster.metrics.ClusterRequestRetryCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
 				}
 				continue
@@ -108,12 +107,11 @@ selectloop:
 					dcc.cluster.PidCache.Remove(identity, kind)
 					if dcc.cluster.metricsEnabled {
 						_ctx := context.Background()
-						attrs := []attribute.KeyValue{
-							attribute.String("id", dcc.cluster.ActorSystem.ID),
-							attribute.String("address", dcc.cluster.ActorSystem.Address()),
+						attrs := append(
+							actor.SystemLabels(dcc.cluster.ActorSystem),
 							attribute.String("clusterkind", kind),
 							attribute.String("messagetype", actor.MessageName(message)),
-						}
+						)
 						dcc.cluster.metrics.ClusterRequestRetryCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
 					}
 					continue
@@ -131,13 +129,12 @@ selectloop:
 		if fromCache {
 			source = "PidCache"
 		}
-		attrs := []attribute.KeyValue{
-			attribute.String("id", dcc.cluster.ActorSystem.ID),
-			attribute.String("address", dcc.cluster.ActorSystem.Address()),
+		attrs := append(
+			actor.SystemLabels(dcc.cluster.ActorSystem),
 			attribute.String("clusterkind", kind),
 			attribute.String("messagetype", actor.MessageName(message)),
 			attribute.String("pidsource", source),
-		}
+		)
 		dcc.cluster.metrics.ClusterRequestDuration.Record(_ctx, totalTime.Seconds(), metric.WithAttributes(attrs...))
 	}
 
@@ -183,12 +180,11 @@ func (dcc *DefaultContext) RequestFuture(identity string, kind string, message i
 				counter = callConfig.RetryAction(counter)
 				if dcc.cluster.metricsEnabled {
 					_ctx := context.Background()
-					attrs := []attribute.KeyValue{
-						attribute.String("id", dcc.cluster.ActorSystem.ID),
-						attribute.String("address", dcc.cluster.ActorSystem.Address()),
+					attrs := append(
+						actor.SystemLabels(dcc.cluster.ActorSystem),
 						attribute.String("clusterkind", kind),
 						attribute.String("messagetype", actor.MessageName(message)),
-					}
+					)
 					dcc.cluster.metrics.ClusterRequestRetryCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
 				}
 				continue
@@ -216,11 +212,10 @@ func (dcc *DefaultContext) getPid(identity, kind string) (*actor.PID, bool) {
 		}
 		elapsed := time.Since(start)
 		_ctx := context.Background()
-		attrs := []attribute.KeyValue{
-			attribute.String("id", dcc.cluster.ActorSystem.ID),
-			attribute.String("address", dcc.cluster.ActorSystem.Address()),
+		attrs := append(
+			actor.SystemLabels(dcc.cluster.ActorSystem),
 			attribute.String("clusterkind", kind),
-		}
+		)
 		dcc.cluster.metrics.ClusterResolvePidDuration.Record(_ctx, elapsed.Seconds(), metric.WithAttributes(attrs...))
 	} else {
 		pid = dcc.cluster.Get(identity, kind)

@@ -10,7 +10,6 @@ import (
 	"unsafe"
 
 	"github.com/asynkron/protoactor-go/metrics"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
@@ -35,10 +34,7 @@ func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
 		if ok && sysMetrics.Enabled() {
 			if instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
 				ctx := context.Background()
-				labels := []attribute.KeyValue{
-					attribute.String("address", ref.actorSystem.Address()),
-					attribute.String("id", actorSystem.ID),
-				}
+				labels := SystemLabels(ref.actorSystem)
 
 				instruments.FuturesStartedCount.Add(ctx, 1, metric.WithAttributes(labels...))
 			}
@@ -179,10 +175,7 @@ func (ref *futureProcess) instrument() {
 		sysMetrics, ok := ref.actorSystem.Extensions.Get(extensionId).(*Metrics)
 		if ok && sysMetrics.Enabled() {
 			ctx := context.Background()
-			labels := []attribute.KeyValue{
-				attribute.String("address", ref.actorSystem.Address()),
-				attribute.String("id", ref.actorSystem.ID),
-			}
+			labels := SystemLabels(ref.actorSystem)
 
 			instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics)
 			if instruments != nil {

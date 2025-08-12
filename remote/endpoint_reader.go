@@ -140,7 +140,7 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 		typeName := m.TypeNames[envelope.TypeId]
 		if s.remote.metricsEnabled {
 			_ctx := context.Background()
-			attrs := append(s.remote.commonLabels(), attribute.String("messagetype", typeName))
+			attrs := append(actor.SystemLabels(s.remote.actorSystem), attribute.String("messagetype", typeName))
 			s.remote.metrics.RemoteDeserializedMessageCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
 		}
 
