@@ -12,4 +12,8 @@ func TestNewRemoteMetrics(t *testing.T) {
 	if m == nil {
 		t.Fatalf("expected metrics instance")
 	}
+	if m.RemoteWriteDuration == nil || m.RemoteActorSpawnCount == nil || m.RemoteSerializedMessageCount == nil ||
+		m.RemoteDeserializedMessageCount == nil || m.RemoteEndpointConnectedCount == nil || m.RemoteEndpointDisconnectedCount == nil {
+		t.Fatalf("expected all metric instruments to be initialized")
+	}
 }
