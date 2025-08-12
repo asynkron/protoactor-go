@@ -67,3 +67,25 @@ func TestActorMetrics(t *testing.T) {
 		t.Fatalf("missing metrics spawn:%v mailbox:%v duration:%v", foundSpawn, foundMailbox, foundDuration)
 	}
 }
+
+// TestNewMetricsSetsGlobalProvider verifies that NewMetrics installs the supplied
+// meter provider as the process-wide default. Because this mutates global
+// state, the previous provider is restored after the test completes.
+func TestNewMetricsSetsGlobalProvider(t *testing.T) {
+	// Save and restore the existing provider so the global state does not
+	// leak to other tests.
+	prev := otel.GetMeterProvider()
+	t.Cleanup(func() { otel.SetMeterProvider(prev) })
+
+	cfg := NewConfig()
+	cfg.MetricsEnabled = true
+	system := NewActorSystemWithConfig(cfg)
+	defer system.Shutdown()
+
+	provider := sdkmetric.NewMeterProvider()
+	NewMetrics(system, provider)
+
+	if got := otel.GetMeterProvider(); got != provider {
+		t.Fatalf("expected global meter provider to change")
+	}
+}
