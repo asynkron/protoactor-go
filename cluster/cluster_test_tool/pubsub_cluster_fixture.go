@@ -75,7 +75,7 @@ func NewPubSubClusterFixture(t testing.TB, clusterSize int, useDefaultTopicRegis
 
 // RandomMember returns a random cluster member from the fixture.
 func (p *PubSubClusterFixture) RandomMember() *cluster.Cluster {
-	members := p.BaseClusterFixture.GetMembers()
+	members := p.GetMembers()
 	return members[rand.Intn(len(members))]
 }
 

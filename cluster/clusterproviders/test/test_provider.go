@@ -233,5 +233,5 @@ func NewAgentServiceStatus(id string, host string, port int, kinds []string) Age
 
 // Alive reports whether the service TTL has not expired.
 func (a AgentServiceStatus) Alive() bool {
-	return time.Now().Sub(a.TTL) <= (time.Second * 5)
+	return time.Since(a.TTL) <= 5*time.Second
 }

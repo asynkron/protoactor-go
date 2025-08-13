@@ -63,7 +63,7 @@ func TestActorMetrics(t *testing.T) {
 		}
 	}
 
-	if !(foundSpawn && foundMailbox && foundDuration) {
+	if !foundSpawn || !foundMailbox || !foundDuration {
 		t.Fatalf("missing metrics spawn:%v mailbox:%v duration:%v", foundSpawn, foundMailbox, foundDuration)
 	}
 }
@@ -124,7 +124,7 @@ func TestActorLifecycleMetrics(t *testing.T) {
 		}
 	}
 
-	if !(foundFailure && foundRestart && foundStop) {
+	if !foundFailure || !foundRestart || !foundStop {
 		t.Fatalf("missing metrics failure:%v restart:%v stop:%v", foundFailure, foundRestart, foundStop)
 	}
 }

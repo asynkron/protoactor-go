@@ -24,10 +24,10 @@ func (suite *ZookeeperTestSuite) TearDownTest() {
 }
 
 func TestZookeeperTestSuite(t *testing.T) {
-       if testing.Short() {
-               t.Skip("skipping Zookeeper integration test in short mode")
-       }
-       suite.Run(t, new(ZookeeperTestSuite))
+	if testing.Short() {
+		t.Skip("skipping Zookeeper integration test in short mode")
+	}
+	suite.Run(t, new(ZookeeperTestSuite))
 }
 
 type ClusterAndSystem struct {
@@ -35,8 +35,8 @@ type ClusterAndSystem struct {
 	System  *actor.ActorSystem
 }
 
-func (self *ClusterAndSystem) Shutdown() {
-	self.Cluster.Shutdown(true)
+func (cs *ClusterAndSystem) Shutdown() {
+	cs.Cluster.Shutdown(true)
 }
 
 func (suite *ZookeeperTestSuite) start(name string, opts ...cluster.ConfigOption) *ClusterAndSystem {

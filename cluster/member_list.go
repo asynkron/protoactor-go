@@ -82,29 +82,6 @@ func (ml *MemberList) TopologyConsensus(ctx context.Context) (uint64, bool) {
 	return 0, false
 }
 
-func (ml *MemberList) getPartitionMember(name, kind string) string {
-	ml.mutex.RLock()
-	defer ml.mutex.RUnlock()
-
-	var res string
-	if memberStrategy, ok := ml.memberStrategyByKind[kind]; ok {
-		res = memberStrategy.GetPartition(name)
-	}
-
-	return res
-}
-
-func (ml *MemberList) getPartitionMemberV2(clusterIdentity *ClusterIdentity) string {
-	ml.mutex.RLock()
-	defer ml.mutex.RUnlock()
-
-	if ms, ok := ml.memberStrategyByKind[clusterIdentity.Kind]; ok {
-		return ms.GetPartition(clusterIdentity.Identity)
-	}
-
-	return ""
-}
-
 func (ml *MemberList) GetActivatorMember(kind string, requestSourceAddress string) string {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()

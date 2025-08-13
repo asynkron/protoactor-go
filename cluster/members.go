@@ -41,9 +41,7 @@ func (ms *MemberSet) ContainsID(id string) bool {
 }
 
 func (ms *MemberSet) GetMemberById(id string) *Member {
-	member, _ := ms.lookup[id]
-
-	return member
+	return ms.lookup[id]
 }
 
 func (ms *MemberSet) Except(other *MemberSet) *MemberSet {

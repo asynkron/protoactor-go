@@ -43,7 +43,7 @@ func TestStartMember(t *testing.T) {
 	a := assert.New(t)
 
 	p, _ := New()
-	defer p.Shutdown(true)
+	defer func() { _ = p.Shutdown(true) }()
 
 	c := newClusterForTest("mycluster", "127.0.0.1:8000", p)
 	eventstream := c.ActorSystem.EventStream
@@ -67,7 +67,7 @@ func TestStartMember(t *testing.T) {
 		members := []*cluster.Member{
 			{
 				// Id:    "mycluster@127.0.0.1:8000",
-				Id:    fmt.Sprintf("%s", c.ActorSystem.ID),
+				Id:    c.ActorSystem.ID,
 				Host:  "127.0.0.1",
 				Port:  8000,
 				Kinds: []string{},
@@ -101,7 +101,7 @@ func TestRegisterMultipleMembers(t *testing.T) {
 	}
 
 	p, _ := New()
-	defer p.Shutdown(true)
+	defer func() { _ = p.Shutdown(true) }()
 	for _, member := range members {
 		addr := fmt.Sprintf("%s:%d", member.host, member.port)
 		_p, _ := New()
@@ -109,7 +109,7 @@ func TestRegisterMultipleMembers(t *testing.T) {
 		err := p.StartMember(c)
 		a.NoError(err)
 		t.Cleanup(func() {
-			_p.Shutdown(true)
+			_ = _p.Shutdown(true)
 		})
 	}
 

@@ -41,7 +41,7 @@ func TestStartMember(t *testing.T) {
 
 	p, err := New()
 	a.NoError(err)
-	defer p.Shutdown(true)
+	defer func() { _ = p.Shutdown(true) }()
 
 	c := newClusterForTest("test_etcd_provider", "127.0.0.1:8000", p)
 	eventstream := c.ActorSystem.EventStream

@@ -6,14 +6,11 @@ import (
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/scheduler"
 )
 
 type k8sClusterMonitorActor struct {
 	*Provider
 	actor.Behavior
-
-	refreshCanceller scheduler.CancelFunc
 }
 
 func (kcm *k8sClusterMonitorActor) Receive(ctx actor.Context) { kcm.Behavior.Receive(ctx) }
@@ -58,7 +55,7 @@ func (kcm *k8sClusterMonitorActor) init(ctx actor.Context) {
 func getTimeout(ctx actor.Context, kcm *k8sClusterMonitorActor) time.Duration {
 	timeout := ctx.ReceiveTimeout()
 	if timeout.Microseconds() == 0 {
-		timeout = kcm.Provider.cluster.Config.RequestTimeoutTime
+		timeout = kcm.cluster.Config.RequestTimeoutTime
 		if timeout.Microseconds() == 0 {
 			timeout = time.Second * 5 // default to 5 seconds
 		}

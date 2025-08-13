@@ -130,7 +130,7 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 	for _, envelope := range m.Envelopes {
 		data := envelope.MessageData
 
-		sender = deserializeSender(sender, envelope.Sender, envelope.SenderRequestId, m.Senders)
+		sender = deserializeSender(envelope.Sender, envelope.SenderRequestId, m.Senders)
 		target = deserializeTarget(envelope.Target, envelope.TargetRequestId, m.Targets, s.remote.actorSystem.Address())
 		if target == nil {
 			s.remote.Logger().Error("EndpointReader received message with unknown target", slog.Int("target", int(envelope.Target)), slog.Int("targetRequestId", int(envelope.TargetRequestId)))
@@ -194,17 +194,16 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 	return nil
 }
 
-func deserializeSender(pid *actor.PID, index int32, requestID uint32, arr []*actor.PID) *actor.PID {
+func deserializeSender(index int32, requestID uint32, arr []*actor.PID) *actor.PID {
 	if index == 0 {
-		pid = nil
-	} else {
-		pid = arr[index-1]
+		return nil
+	}
+	pid := arr[index-1]
 
-		// if request id is used. make sure to clone the PID first, so we don't corrupt the lookup
-		if requestID > 0 {
-			pid, _ = proto.Clone(pid).(*actor.PID)
-			pid.RequestId = requestID
-		}
+	// if request id is used, clone the PID first so we don't corrupt the lookup
+	if requestID > 0 {
+		pid, _ = proto.Clone(pid).(*actor.PID)
+		pid.RequestId = requestID
 	}
 	return pid
 }

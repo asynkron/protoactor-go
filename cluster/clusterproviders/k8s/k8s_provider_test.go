@@ -46,13 +46,12 @@ func TestStartMember(t *testing.T) {
 	}
 	assert := assert.New(t)
 
-	p, _ := New()
-	p, newErr := New()
-	if newErr != nil {
-		panic(fmt.Errorf("could not create new cluster provider: %w", newErr))
+	p, err := New()
+	if err != nil {
+		panic(fmt.Errorf("could not create new cluster provider: %w", err))
 	}
 	id := disthash.New()
-	defer p.Shutdown(true)
+	defer func() { _ = p.Shutdown(true) }()
 
 	c := newClusterForTest("k8scluster", "127.0.0.1:8000", p, id)
 	eventstream := c.ActorSystem.EventStream
@@ -63,7 +62,7 @@ func TestStartMember(t *testing.T) {
 		}
 	})
 
-	err := p.StartMember(c)
+	err = p.StartMember(c)
 	assert.NoError(err)
 
 	select {
@@ -110,7 +109,7 @@ func TestRegisterMultipleMembers(t *testing.T) {
 	}
 
 	p, _ := New()
-	defer p.Shutdown(true)
+	defer func() { _ = p.Shutdown(true) }()
 	for _, member := range members {
 		addr := fmt.Sprintf("%s:%d", member.host, member.port)
 		_p, _ := New()
@@ -119,7 +118,7 @@ func TestRegisterMultipleMembers(t *testing.T) {
 		err := p.StartMember(c)
 		assert.NoError(err)
 		t.Cleanup(func() {
-			_p.Shutdown(true)
+			_ = _p.Shutdown(true)
 		})
 	}
 
@@ -142,7 +141,7 @@ func TestUpdateMemberState(t *testing.T) {
 
 	p, _ := New()
 	id := disthash.New()
-	defer p.Shutdown(true)
+	defer func() { _ = p.Shutdown(true) }()
 
 	c := newClusterForTest("k8scluster3", "127.0.0.1:8000", p, id)
 	err := p.StartMember(c)
@@ -164,7 +163,7 @@ func TestUpdateMemberState_DoesNotReregisterAfterShutdown(t *testing.T) {
 	err := p.StartMember(c)
 	assert.NoError(err)
 	t.Cleanup(func() {
-		p.Shutdown(true)
+		_ = p.Shutdown(true)
 	})
 
 	err = p.Shutdown(true)

@@ -70,10 +70,6 @@ func (suite *PubSubBatchingProducerTestSuite) failTimesThenSucceed(times int) fu
 	}
 }
 
-func (suite *PubSubBatchingProducerTestSuite) timeout() (*PublishResponse, error) {
-	return nil, nil
-}
-
 func (suite *PubSubBatchingProducerTestSuite) TestProducerSendsMessagesInBatches() {
 	producer := NewBatchingProducer(newMockPublisher(suite.record), "topic", WithBatchingProducerBatchSize(10))
 	defer producer.Dispose()

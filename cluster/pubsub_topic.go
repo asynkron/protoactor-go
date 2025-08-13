@@ -263,7 +263,7 @@ func (t *TopicActor) loadSubscriptions(topic string, logger *slog.Logger) *Subsc
 
 // saveSubscriptionsInTopicActor saves the TopicActor.subscribers for the TopicActor.topic to the subscription store
 func (t *TopicActor) saveSubscriptionsInTopicActor(logger *slog.Logger) {
-	var subscribers *Subscribers = &Subscribers{Subscribers: maps.Values(t.subscribers)}
+	subscribers := &Subscribers{Subscribers: maps.Values(t.subscribers)}
 
 	// TODO: cancellation logic config?
 	logger.Debug("Saving subscriptions for topic", slog.String("topic", t.topic), slog.Any("subscriptions", subscribers))
@@ -303,15 +303,6 @@ func newPidStruct(pid *actor.PID) pidStruct {
 	}
 }
 
-// toPID converts a pidStruct to a *actor.PID
-func (p pidStruct) toPID() *actor.PID {
-	return &actor.PID{
-		Address:   p.address,
-		Id:        p.id,
-		RequestId: p.requestId,
-	}
-}
-
 type clusterIdentityStruct struct {
 	identity string
 	kind     string
@@ -322,14 +313,6 @@ func newClusterIdentityStruct(clusterIdentity *ClusterIdentity) clusterIdentityS
 	return clusterIdentityStruct{
 		identity: clusterIdentity.Identity,
 		kind:     clusterIdentity.Kind,
-	}
-}
-
-// toClusterIdentity converts a clusterIdentityStruct to a *ClusterIdentity
-func (c clusterIdentityStruct) toClusterIdentity() *ClusterIdentity {
-	return &ClusterIdentity{
-		Identity: c.identity,
-		Kind:     c.kind,
 	}
 }
 
@@ -352,17 +335,5 @@ func newSubscribeIdentityStruct(subscriberIdentity *SubscriberIdentity) subscrib
 	return subscribeIdentityStruct{
 		isPID:           false,
 		clusterIdentity: newClusterIdentityStruct(subscriberIdentity.GetClusterIdentity()),
-	}
-}
-
-// toSubscriberIdentity converts a subscribeIdentityStruct to a *SubscriberIdentity
-func (s subscribeIdentityStruct) toSubscriberIdentity() *SubscriberIdentity {
-	if s.isPID {
-		return &SubscriberIdentity{
-			Identity: &SubscriberIdentity_Pid{Pid: s.pid.toPID()},
-		}
-	}
-	return &SubscriberIdentity{
-		Identity: &SubscriberIdentity_ClusterIdentity{ClusterIdentity: s.clusterIdentity.toClusterIdentity()},
 	}
 }

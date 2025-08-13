@@ -23,7 +23,12 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-var ProviderShuttingDownError = fmt.Errorf("kubernetes cluster provider is being shut down")
+var ErrProviderShuttingDown = fmt.Errorf("kubernetes cluster provider is being shut down")
+
+// ProviderShuttingDownError is retained for backward compatibility.
+//
+//lint:ignore ST1012 deprecated: use ErrProviderShuttingDown instead
+var ProviderShuttingDownError = ErrProviderShuttingDown
 
 // Convenience type to store cluster labels
 type Labels map[string]string
@@ -42,7 +47,6 @@ type Provider struct {
 	port           int
 	client         *kubernetes.Clientset
 	clusterMonitor *actor.PID
-	deregistered   bool
 	shutdown       bool
 	cancelWatch    context.CancelFunc
 }
@@ -88,7 +92,7 @@ func (p *Provider) init(c *cluster.Cluster) error {
 	}
 
 	p.cluster = c
-	p.id = strings.Replace(uuid.New().String(), "-", "", -1)
+	p.id = strings.ReplaceAll(uuid.New().String(), "-", "")
 	p.knownKinds = c.GetClusterKinds()
 	p.clusterName = c.Config.Name
 	p.clusterPods = make(map[types.UID]*v1.Pod)
@@ -201,7 +205,7 @@ func (p *Provider) registerMember(timeout time.Duration) error {
 	}
 
 	// add existing labels back
-	for key, value := range pod.ObjectMeta.Labels {
+	for key, value := range pod.Labels {
 		labels[key] = value
 	}
 	pod.SetLabels(labels)
@@ -273,14 +277,14 @@ func (p *Provider) watchPods(ctx context.Context, selector string) error {
 }
 
 func (p *Provider) processPodEvent(event watch.Event, pod *v1.Pod) {
-	p.cluster.Logger().Debug("Watcher reported event for pod", slog.Any("eventType", event.Type), slog.String("podName", pod.ObjectMeta.Name))
+	p.cluster.Logger().Debug("Watcher reported event for pod", slog.Any("eventType", event.Type), slog.String("podName", pod.Name))
 
-	podClusterName, hasClusterName := pod.ObjectMeta.Labels[LabelCluster]
+	podClusterName, hasClusterName := pod.Labels[LabelCluster]
 	if !hasClusterName {
-		p.cluster.Logger().Info("The pod is not a cluster member", slog.Any("podName", pod.ObjectMeta.Name))
+		p.cluster.Logger().Info("The pod is not a cluster member", slog.Any("podName", pod.Name))
 		delete(p.clusterPods, pod.UID) // pod could have been in the cluster, but then it was deregistered
 	} else if podClusterName != p.clusterName {
-		p.cluster.Logger().Info("The pod is a member of another cluster", slog.Any("podName", pod.ObjectMeta.Name), slog.String("otherCluster", podClusterName))
+		p.cluster.Logger().Info("The pod is a member of another cluster", slog.Any("podName", pod.Name), slog.String("otherCluster", podClusterName))
 		return
 	} else {
 		switch event.Type {
@@ -294,7 +298,7 @@ func (p *Provider) processPodEvent(event watch.Event, pod *v1.Pod) {
 		}
 	}
 
-	if p.cluster.Logger().Enabled(nil, slog.LevelDebug) {
+	if p.cluster.Logger().Enabled(context.TODO(), slog.LevelDebug) {
 		logCurrentPods(p.clusterPods, p.cluster.Logger())
 	}
 
@@ -307,7 +311,7 @@ func (p *Provider) processPodEvent(event watch.Event, pod *v1.Pod) {
 func logCurrentPods(clusterPods map[types.UID]*v1.Pod, logger *slog.Logger) {
 	podNames := make([]string, 0, len(clusterPods))
 	for _, pod := range clusterPods {
-		podNames = append(podNames, pod.ObjectMeta.Name)
+		podNames = append(podNames, pod.Name)
 	}
 	logger.Debug("Detected cluster pods are now", slog.Int("numberOfPods", len(clusterPods)), slog.Any("podNames", podNames))
 }
@@ -318,25 +322,25 @@ func mapPodsToMembers(clusterPods map[types.UID]*v1.Pod, logger *slog.Logger) []
 		if clusterPod.Status.Phase == "Running" && len(clusterPod.Status.PodIPs) > 0 {
 
 			var kinds []string
-			for key, value := range clusterPod.ObjectMeta.Labels {
+			for key, value := range clusterPod.Labels {
 				if strings.HasPrefix(key, LabelKind) && value == "true" {
 					kinds = append(kinds, strings.Replace(key, fmt.Sprintf("%s-", LabelKind), "", 1))
 				}
 			}
 
 			host := clusterPod.Status.PodIP
-			port, err := strconv.Atoi(clusterPod.ObjectMeta.Labels[LabelPort])
+			port, err := strconv.Atoi(clusterPod.Labels[LabelPort])
 			if err != nil {
 				err = fmt.Errorf("can not convert pod meta %s into integer: %w", LabelPort, err)
 				logger.Error(err.Error(), slog.Any("error", err))
 				continue
 			}
 
-			mid := clusterPod.ObjectMeta.Labels[LabelMemberID]
+			mid := clusterPod.Labels[LabelMemberID]
 			alive := true
 			for _, status := range clusterPod.Status.ContainerStatuses {
 				if !status.Ready {
-					logger.Debug("Pod container is not ready", slog.String("podName", clusterPod.ObjectMeta.Name), slog.String("containerName", status.Name))
+					logger.Debug("Pod container is not ready", slog.String("podName", clusterPod.Name), slog.String("containerName", status.Name))
 					alive = false
 					break
 				}
@@ -346,7 +350,7 @@ func mapPodsToMembers(clusterPods map[types.UID]*v1.Pod, logger *slog.Logger) []
 				continue
 			}
 
-			logger.Debug("Pod is running and all containers are ready", slog.String("podName", clusterPod.ObjectMeta.Name), slog.Any("podIPs", clusterPod.Status.PodIPs), slog.String("podPhase", string(clusterPod.Status.Phase)))
+			logger.Debug("Pod is running and all containers are ready", slog.String("podName", clusterPod.Name), slog.Any("podIPs", clusterPod.Status.PodIPs), slog.String("podPhase", string(clusterPod.Status.Phase)))
 
 			members = append(members, &cluster.Member{
 				Id:    mid,
@@ -355,7 +359,7 @@ func mapPodsToMembers(clusterPods map[types.UID]*v1.Pod, logger *slog.Logger) []
 				Kinds: kinds,
 			})
 		} else {
-			logger.Debug("Pod is not in Running state", slog.String("podName", clusterPod.ObjectMeta.Name), slog.Any("podIPs", clusterPod.Status.PodIPs), slog.String("podPhase", string(clusterPod.Status.Phase)))
+			logger.Debug("Pod is not in Running state", slog.String("podName", clusterPod.Name), slog.Any("podIPs", clusterPod.Status.PodIPs), slog.String("podPhase", string(clusterPod.Status.Phase)))
 		}
 	}
 

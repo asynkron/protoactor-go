@@ -38,28 +38,10 @@ type SpawnLock struct {
 	ClusterIdentity *ClusterIdentity
 }
 
-func newSpawnLock(lockID string, clusterIdentity *ClusterIdentity) *SpawnLock {
-	this := &SpawnLock{
-		LockID:          lockID,
-		ClusterIdentity: clusterIdentity,
-	}
-
-	return this
-}
-
 // StoredActivation contains
 type StoredActivation struct {
 	Pid      string
 	MemberID string
-}
-
-func newStoredActivation(pid string, memberID string) *StoredActivation {
-	this := &StoredActivation{
-		Pid:      pid,
-		MemberID: memberID,
-	}
-
-	return this
 }
 
 // GetPid contains
@@ -67,23 +49,7 @@ type GetPid struct {
 	ClusterIdentity *ClusterIdentity
 }
 
-func newGetPid(clusterIdentity *ClusterIdentity) *GetPid {
-	this := &GetPid{
-		ClusterIdentity: clusterIdentity,
-	}
-
-	return this
-}
-
 // PidResult contains
 type PidResult struct {
 	Pid *actor.PID
-}
-
-func newPidResult(p *actor.PID) *PidResult {
-	this := &PidResult{
-		Pid: p,
-	}
-
-	return this
 }

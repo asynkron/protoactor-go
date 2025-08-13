@@ -38,7 +38,8 @@ func TestRemoteMetrics(t *testing.T) {
 	system2 := newSystem(provider)
 	remote2 := remote.NewRemote(system2, remote.Configure("127.0.0.1", 0))
 	remote2.Register("echo", actor.PropsFromFunc(func(ctx actor.Context) {
-		if _, ok := ctx.Message().(*remote.ActorPidRequest); ok {
+		switch ctx.Message().(type) {
+		case *remote.ActorPidRequest:
 			// no-op
 			return
 		}

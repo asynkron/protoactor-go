@@ -28,7 +28,7 @@ func (j *jsonSerializer) Serialize(msg interface{}) ([]byte, error) {
 		return []byte(message.JSON), nil
 	} else if message, ok := msg.(proto.Message); ok {
 
-		str, err := j.Marshaler.MarshalToString(message)
+		str, err := j.MarshalToString(message)
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +53,9 @@ func (j *jsonSerializer) Deserialize(typeName string, b []byte) (interface{}, er
 	instance, ok := intPtr.Interface().(proto.Message)
 	if ok {
 		r := bytes.NewReader(b)
-		j.Unmarshaler.Unmarshal(r, instance)
+		if err := j.Unmarshal(r, instance); err != nil {
+			return nil, err
+		}
 
 		return instance, nil
 	}

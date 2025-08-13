@@ -81,7 +81,7 @@ func (state *endpointWriter) initialize(_ actor.Context) {
 }
 
 func (state *endpointWriter) initializeInternal() error {
-	conn, err := grpc.Dial(state.address, state.config.DialOptions...)
+	conn, err := grpc.NewClient(state.address, state.config.DialOptions...)
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,6 @@ func (state *endpointWriter) initializeInternal() error {
 	case *RemoteMessage_ConnectResponse:
 		state.remote.Logger().Debug("Received connect response", slog.String("fromAddress", state.address))
 		// TODO: handle blocked status received from remote server
-		break
 	default:
 		state.remote.Logger().Error("EndpointWriter got invalid connect response", slog.String("address", state.address), slog.Any("type", connection.MessageType))
 		return errors.New("invalid connect response")

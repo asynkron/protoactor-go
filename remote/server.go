@@ -2,7 +2,7 @@ package remote
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log/slog"
 	"net"
 	"time"
@@ -25,7 +25,6 @@ type Remote struct {
 	edpManager     *endpointManager
 	config         *Config
 	kinds          map[string]*actor.Props
-	activatorPid   *actor.PID
 	blocklist      *BlockList
 	metrics        *remotemetrics.RemoteMetrics
 	metricsEnabled bool
@@ -72,7 +71,7 @@ func (r *Remote) BlockList() *BlockList { return r.blocklist }
 
 // Start the remote server.
 func (r *Remote) Start() {
-	grpclog.SetLoggerV2(grpclog.NewLoggerV2(ioutil.Discard, ioutil.Discard, ioutil.Discard))
+	grpclog.SetLoggerV2(grpclog.NewLoggerV2(io.Discard, io.Discard, io.Discard))
 	lis, err := net.Listen("tcp", r.config.Address())
 	if err != nil {
 		panic(fmt.Errorf("failed to listen: %v", err))
@@ -96,7 +95,11 @@ func (r *Remote) Start() {
 	r.edpReader = newEndpointReader(r)
 	RegisterRemotingServer(r.s, r.edpReader)
 	r.Logger().Info("Starting Proto.Actor server", slog.String("address", address))
-	go r.s.Serve(lis)
+	go func() {
+		if err := r.s.Serve(lis); err != nil {
+			r.Logger().Error("gRPC server stopped", slog.Any("error", err))
+		}
+	}()
 }
 
 // Shutdown stops the remote server. If graceful is true it waits for running

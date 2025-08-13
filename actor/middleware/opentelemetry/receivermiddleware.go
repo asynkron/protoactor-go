@@ -61,7 +61,7 @@ func ReceiverMiddleware() actor.ReceiverMiddleware {
 				} else {
 					c.Logger().Debug("INBOUND Starting span from parent", slog.Any("self", c.Self()), slog.Any("actor", c.Actor()), slog.Any("message", envelope.Message))
 				}
-				ctx, span = otel.Tracer("protoactor/middleware").Start(ctx, fmt.Sprintf("%T/%s", c.Actor(), actor.MessageType(envelope.Message)))
+				_, span = otel.Tracer("protoactor/middleware").Start(ctx, fmt.Sprintf("%T/%s", c.Actor(), actor.MessageType(envelope.Message)))
 			}
 
 			setActiveSpan(c.Self(), span)
