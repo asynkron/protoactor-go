@@ -13,11 +13,16 @@ import (
 // testProvider implements an in-memory ClusterProvider used only by tests.
 // Tests use it to manually manage the member list so topology changes and
 // recoveries can be simulated without real networking. Members are keyed by
-// their ActorSystem IDs so a restarted node is treated as a brand new member.
+// their ActorSystem IDs rather than address, mirroring real cluster semantics
+// where a rebooted node receives a new system ID and must be treated as a
+// completely new member.
 type testProvider struct {
-	mu       sync.Mutex
-	members  map[string]*Member
-	clusters []*Cluster
+        mu sync.Mutex
+        // members are keyed by ActorSystem ID to emulate node identity in the
+        // production provider. A restarted node gets a new ID, so using the ID
+        // as the map key prevents accidental reuse of stale memberships.
+        members  map[string]*Member
+        clusters []*Cluster
 }
 
 // newTestProvider constructs a fresh testProvider for unit tests.
