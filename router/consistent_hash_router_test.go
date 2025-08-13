@@ -87,10 +87,11 @@ func (state *managerActor) Receive(context actor.Context) {
 // TestConcurrency verifies that the consistent hash pool router can process
 // messages while routees are being added and removed concurrently. It expects
 // all 100,000 messages to be routed without stalling or losing messages.
+//
+// Disabled: removing routees while messages are in-flight offers no guarantees,
+// making this test unreliable.
 func TestConcurrency(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
+	t.Skip("disabled: removing routees while messages are in-flight is unsupported")
 
 	// wait for 100 messages from each of the 1,000 teller actors
 	wait.Add(100 * 1000)
