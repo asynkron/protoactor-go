@@ -53,6 +53,12 @@ func (p *placementActor) Receive(ctx actor.Context) {
 
 func (p *placementActor) onTerminated(msg *actor.Terminated) {
 	found, key, meta := p.pidToMeta(msg.Who)
+	if !found {
+		// actor was not tracked; log and skip cleanup
+		p.cluster.Logger().Warn("Terminated actor not found", slog.Any("pid", msg.Who))
+		return
+	}
+
 	clusterKind := p.cluster.GetClusterKind(meta.ID.Kind)
 	clusterKind.Dec()
 
@@ -64,9 +70,7 @@ func (p *placementActor) onTerminated(msg *actor.Terminated) {
 	}
 	p.partitionManager.cluster.MemberList.BroadcastEvent(activationTerminated, true)
 
-	if found {
-		delete(p.actors, *key)
-	}
+	delete(p.actors, *key)
 }
 
 func (p *placementActor) onStopping(ctx actor.Context) {
