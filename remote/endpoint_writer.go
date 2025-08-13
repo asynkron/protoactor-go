@@ -99,8 +99,9 @@ func (state *endpointWriter) initializeInternal() error {
 			ConnectRequest: &ConnectRequest{
 				ConnectionType: &ConnectRequest_ServerConnection{
 					ServerConnection: &ServerConnection{
-						SystemId: state.remote.actorSystem.ID,
-						Address:  state.remote.actorSystem.Address(),
+						MemberId:  state.remote.actorSystem.ID,
+						Address:   state.remote.actorSystem.Address(),
+						BlockList: state.remote.BlockList().BlockedMembers().ToSlice(),
 					},
 				},
 			},
@@ -171,7 +172,7 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 	typeNamesArr := make([]string, 0)
 
 	targetNames := make(map[string]int32)
-	targetNamesArr := make([]*actor.PID, 0)
+	targetNamesArr := make([]string, 0)
 
 	senderNames := make(map[string]int32)
 	senderNamesArr := make([]*actor.PID, 0)
@@ -297,16 +298,14 @@ func addToLookup(m map[string]int32, name string, a []string) (int32, []string) 
 	return id, a
 }
 
-func addToTargetLookup(m map[string]int32, pid *actor.PID, arr []*actor.PID) (int32, []*actor.PID) {
+func addToTargetLookup(m map[string]int32, pid *actor.PID, arr []string) (int32, []string) {
 	max := int32(len(m))
 	key := pid.Address + "/" + pid.Id
 	id, ok := m[key]
 	if !ok {
-		c, _ := proto.Clone(pid).(*actor.PID)
-		c.RequestId = 0
 		m[key] = max
 		id = max
-		arr = append(arr, c)
+		arr = append(arr, pid.Id)
 	}
 	return id, arr
 }

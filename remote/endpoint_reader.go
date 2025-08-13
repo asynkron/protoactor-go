@@ -131,7 +131,7 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 		data := envelope.MessageData
 
 		sender = deserializeSender(sender, envelope.Sender, envelope.SenderRequestId, m.Senders)
-		target = deserializeTarget(target, envelope.Target, envelope.TargetRequestId, m.Targets)
+		target = deserializeTarget(envelope.Target, envelope.TargetRequestId, m.Targets, s.remote.actorSystem.Address())
 		if target == nil {
 			s.remote.Logger().Error("EndpointReader received message with unknown target", slog.Int("target", int(envelope.Target)), slog.Int("targetRequestId", int(envelope.TargetRequestId)))
 			return errors.New("unknown target")
@@ -209,20 +209,14 @@ func deserializeSender(pid *actor.PID, index int32, requestId uint32, arr []*act
 	return pid
 }
 
-func deserializeTarget(pid *actor.PID, index int32, requestId uint32, arr []*actor.PID) *actor.PID {
-	pid = arr[index]
-
-	// if request id is used. make sure to clone the PID first, so we don't corrupt the lookup
-	if requestId > 0 {
-		pid, _ = proto.Clone(pid).(*actor.PID)
-		pid.RequestId = requestId
-	}
-
+func deserializeTarget(index int32, requestId uint32, arr []string, address string) *actor.PID {
+	pid := actor.NewPID(address, arr[index])
+	pid.RequestId = requestId
 	return pid
 }
 
 func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *ServerConnection) {
-	if s.remote.BlockList().IsBlocked(sc.SystemId) {
+	if s.remote.BlockList().IsBlocked(sc.MemberId) {
 		s.remote.Logger().Debug("EndpointReader is blocked")
 
 		err := stream.Send(
@@ -239,7 +233,8 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 		}
 
 		address := sc.Address
-		systemID := sc.SystemId
+		systemID := sc.MemberId
+		_ = sc.BlockList
 
 		// TODO
 		_ = address
