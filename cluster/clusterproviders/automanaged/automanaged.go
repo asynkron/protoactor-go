@@ -17,6 +17,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// AutoManagedProvider is a simple provider storing cluster state in memory and HTTP endpoints.
 type AutoManagedProvider struct {
 	deregistered               bool
 	shutdown                   bool
@@ -108,6 +109,7 @@ func (p *AutoManagedProvider) init(cluster *cluster.Cluster) error {
 	return nil
 }
 
+// StartMember joins the cluster as a member and begins monitoring status changes.
 func (p *AutoManagedProvider) StartMember(cluster *cluster.Cluster) error {
 	if err := p.init(cluster); err != nil {
 		return err
@@ -117,6 +119,7 @@ func (p *AutoManagedProvider) StartMember(cluster *cluster.Cluster) error {
 	return nil
 }
 
+// StartClient connects to the cluster in client mode without registering this node.
 func (p *AutoManagedProvider) StartClient(cluster *cluster.Cluster) error {
 	if err := p.init(cluster); err != nil {
 		return err

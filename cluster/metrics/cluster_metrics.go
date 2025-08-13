@@ -42,6 +42,7 @@ func (g *observableGauge) Set(v int64) {
 	g.mu.Unlock()
 }
 
+// ClusterMetrics exposes OpenTelemetry instruments used to record cluster statistics.
 type ClusterMetrics struct {
 	ClusterActorSpawnDuration metric.Float64Histogram
 	ClusterRequestDuration    metric.Float64Histogram
@@ -51,6 +52,7 @@ type ClusterMetrics struct {
 	ClusterMembersCount       *observableGauge
 }
 
+// NewClusterMetrics creates a new metrics container wired to the given logger.
 func NewClusterMetrics(logger *slog.Logger) *ClusterMetrics {
 	meter := otel.Meter(metrics.LibName)
 	m := &ClusterMetrics{}

@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
+// GrainMeta tracks the PID associated with a cluster identity.
 type GrainMeta struct {
 	ID  *clustering.ClusterIdentity
 	PID *actor.PID

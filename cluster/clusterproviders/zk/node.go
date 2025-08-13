@@ -12,6 +12,7 @@ const (
 	metaKeySeq = "seq"
 )
 
+// Node represents a cluster member stored in ZooKeeper.
 type Node struct {
 	ID      string            `json:"id"`
 	Name    string            `json:"name"`
@@ -23,6 +24,7 @@ type Node struct {
 	Alive   bool              `json:"alive"`
 }
 
+// NewNode constructs a new Node instance.
 func NewNode(name, host string, port int, kinds []string) *Node {
 	return &Node{
 		ID:      name,
@@ -36,6 +38,7 @@ func NewNode(name, host string, port int, kinds []string) *Node {
 	}
 }
 
+// GetAddress returns the host and port for the node.
 func (n *Node) GetAddress() (host string, port int) {
 	host = n.Host
 	port = n.Port
@@ -45,11 +48,13 @@ func (n *Node) GetAddress() (host string, port int) {
 	return
 }
 
+// GetAddressString returns a "host:port" string for the node.
 func (n *Node) GetAddressString() string {
 	h, p := n.GetAddress()
 	return fmt.Sprintf("%v:%v", h, p)
 }
 
+// Equal compares two nodes by ID.
 func (n *Node) Equal(other *Node) bool {
 	if n == nil || other == nil {
 		return false
@@ -60,6 +65,7 @@ func (n *Node) Equal(other *Node) bool {
 	return n.ID == other.ID
 }
 
+// GetMeta returns a metadata value by name.
 func (n *Node) GetMeta(name string) (string, bool) {
 	if n.Meta == nil {
 		return "", false
@@ -68,6 +74,7 @@ func (n *Node) GetMeta(name string) (string, bool) {
 	return val, ok
 }
 
+// GetSeq returns the sequence number from metadata.
 func (n *Node) GetSeq() int {
 	if seqStr, ok := n.GetMeta(metaKeySeq); ok {
 		return strToInt(seqStr)
@@ -75,6 +82,7 @@ func (n *Node) GetSeq() int {
 	return 0
 }
 
+// MemberStatus converts the node into a cluster.Member description.
 func (n *Node) MemberStatus() *cluster.Member {
 	host, port := n.GetAddress()
 	kinds := n.Kinds
@@ -89,6 +97,7 @@ func (n *Node) MemberStatus() *cluster.Member {
 	}
 }
 
+// SetMeta sets a metadata value.
 func (n *Node) SetMeta(name string, val string) {
 	if n.Meta == nil {
 		n.Meta = map[string]string{}
@@ -96,6 +105,7 @@ func (n *Node) SetMeta(name string, val string) {
 	n.Meta[name] = val
 }
 
+// Serialize encodes the node to JSON.
 func (n *Node) Serialize() ([]byte, error) {
 	data, err := json.Marshal(n)
 	if err != nil {
@@ -104,6 +114,7 @@ func (n *Node) Serialize() ([]byte, error) {
 	return data, nil
 }
 
+// Deserialize populates the node from JSON data.
 func (n *Node) Deserialize(data []byte) error {
 	return json.Unmarshal(data, n)
 }

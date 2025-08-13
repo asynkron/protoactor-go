@@ -87,6 +87,7 @@ func newZkOptions(opts ...zkConnOpt) *zkoption {
 
 type zkConnOpt func(*zkoption)
 
+// WithEventCallback sets a callback for ZooKeeper connection events.
 func WithEventCallback(cb zk.EventCallback) zkConnOpt {
 	return func(o *zkoption) {
 		o.ecb = cb

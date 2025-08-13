@@ -18,8 +18,11 @@ type providerActor struct {
 }
 
 type (
-	RegisterService   struct{}
-	UpdateTTL         struct{}
+	// RegisterService asks the provider actor to register its service in Consul.
+	RegisterService struct{}
+	// UpdateTTL triggers a TTL refresh in Consul for the registered service.
+	UpdateTTL struct{}
+	// MemberListUpdated carries the latest set of cluster members retrieved from Consul.
 	MemberListUpdated struct {
 		members []*cluster.Member
 		index   uint64

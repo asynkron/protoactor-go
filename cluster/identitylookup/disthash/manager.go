@@ -10,9 +10,11 @@ import (
 )
 
 const (
+	// PartitionActivatorActorName is the name used for the partition activator actor.
 	PartitionActivatorActorName = "partition-activator"
 )
 
+// Manager coordinates partition ownership and routing for virtual actors.
 type Manager struct {
 	cluster        *clustering.Cluster
 	topologySub    *eventstream.Subscription
@@ -28,6 +30,7 @@ func newPartitionManager(c *clustering.Cluster) *Manager {
 	}
 }
 
+// Start initializes the manager and begins listening for topology changes.
 func (pm *Manager) Start() {
 	pm.cluster.Logger().Info("Started partition manager")
 	system := pm.cluster.ActorSystem
@@ -44,6 +47,7 @@ func (pm *Manager) Start() {
 		})
 }
 
+// Stop terminates the placement actor and unsubscribes from topology events.
 func (pm *Manager) Stop() {
 	system := pm.cluster.ActorSystem
 	system.EventStream.Unsubscribe(pm.topologySub)
@@ -56,6 +60,7 @@ func (pm *Manager) Stop() {
 	pm.cluster.Logger().Info("Stopped PartitionManager")
 }
 
+// PidOfActivatorActor returns the PID of the partition activator on the given node.
 func (pm *Manager) PidOfActivatorActor(addr string) *actor.PID {
 	return actor.NewPID(addr, PartitionActivatorActorName)
 }
@@ -75,6 +80,7 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 	pm.cluster.ActorSystem.Root.Send(pm.placementActor, tplg)
 }
 
+// Get resolves the PID responsible for the given cluster identity.
 func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
 	pm.rdvMutex.RLock()
 	defer pm.rdvMutex.RUnlock()

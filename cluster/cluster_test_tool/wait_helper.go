@@ -6,8 +6,10 @@ import (
 	"time"
 )
 
+// DefaultWaitTimeout is the default duration to wait for test conditions.
 const DefaultWaitTimeout = time.Second * 5
 
+// WaitUntil repeatedly checks cond until it returns true or the timeout is reached.
 func WaitUntil(t testing.TB, cond func() bool, errorMsg string, timeout time.Duration) {
 	after := time.After(timeout)
 
