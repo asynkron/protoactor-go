@@ -70,7 +70,7 @@ func (p *placementActor) onTerminated(msg *actor.Terminated) {
 }
 
 func (p *placementActor) onStopping(ctx actor.Context) {
-	futures := make(map[string]*actor.Future, len(p.actors))
+	futures := make(map[string]actor.Future, len(p.actors))
 
 	for key, meta := range p.actors {
 		futures[key] = ctx.PoisonFuture(meta.PID)

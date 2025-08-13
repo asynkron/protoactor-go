@@ -146,7 +146,7 @@ selectloop:
 	return resp, err
 }
 
-func (dcc *DefaultContext) RequestFuture(identity string, kind string, message interface{}, opts ...GrainCallOption) (*actor.Future, error) {
+func (dcc *DefaultContext) RequestFuture(identity string, kind string, message interface{}, opts ...GrainCallOption) (actor.Future, error) {
 	var counter int
 	callConfig := DefaultGrainCallConfig(dcc.cluster)
 	for _, o := range opts {

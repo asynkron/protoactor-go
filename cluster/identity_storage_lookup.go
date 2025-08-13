@@ -49,7 +49,7 @@ func (id *IdentityStorageLookup) Get(clusterIdentity *ClusterIdentity) *actor.PI
 	timeout := 5 * time.Second
 
 	res, _ := id.system.Root.RequestFuture(id.router, msg, timeout).Result()
-	response := res.(*actor.Future)
+	response := res.(actor.Future)
 
 	return response.PID()
 }

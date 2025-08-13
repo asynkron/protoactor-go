@@ -265,14 +265,15 @@ func (ctx *actorContext) Forward(pid *PID) {
 	ctx.sendUserMessage(pid, ctx.messageOrEnvelope)
 }
 
-func (ctx *actorContext) ReenterAfter(f *Future, cont func(res interface{}, err error)) {
+func (ctx *actorContext) ReenterAfter(f Future, cont func(res interface{}, err error)) {
+	concrete := f.(*future)
 	wrapper := func() {
-		cont(f.result, f.err)
+		cont(concrete.result, concrete.err)
 	}
 
 	message := ctx.messageOrEnvelope
 	// invoke the callback when the future completes
-	f.continueWith(func(res interface{}, err error) {
+	concrete.continueWith(func(res interface{}, err error) {
 		// send the wrapped callback as a continuation message to self
 		ctx.self.sendSystemMessage(ctx.actorSystem, &continuation{
 			f:       wrapper,
@@ -335,7 +336,7 @@ func (ctx *actorContext) RequestWithCustomSender(pid *PID, message interface{}, 
 	ctx.sendUserMessage(pid, env)
 }
 
-func (ctx *actorContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
+func (ctx *actorContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) Future {
 	future := NewFuture(ctx.actorSystem, timeout)
 	env := &MessageEnvelope{
 		Header:  nil,
@@ -450,8 +451,8 @@ func (ctx *actorContext) Stop(pid *PID) {
 }
 
 // StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
-func (ctx *actorContext) StopFuture(pid *PID) *Future {
-	future := NewFuture(ctx.actorSystem, 10*time.Second)
+func (ctx *actorContext) StopFuture(pid *PID) Future {
+	future := newFuture(ctx.actorSystem, 10*time.Second)
 
 	pid.sendSystemMessage(ctx.actorSystem, &Watch{Watcher: future.pid})
 	ctx.Stop(pid)
@@ -465,8 +466,8 @@ func (ctx *actorContext) Poison(pid *PID) {
 }
 
 // PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
-func (ctx *actorContext) PoisonFuture(pid *PID) *Future {
-	future := NewFuture(ctx.actorSystem, 10*time.Second)
+func (ctx *actorContext) PoisonFuture(pid *PID) Future {
+	future := newFuture(ctx.actorSystem, 10*time.Second)
 
 	pid.sendSystemMessage(ctx.actorSystem, &Watch{Watcher: future.pid})
 	ctx.Poison(pid)

@@ -97,7 +97,7 @@ type basePart interface {
 	// Forward forwards current message to the given PID
 	Forward(pid *PID)
 
-	ReenterAfter(f *Future, continuation func(res interface{}, err error))
+	ReenterAfter(f Future, continuation func(res interface{}, err error))
 
 	// Capture captures the current MessageEnvelope for the context.
 	// Use the returned CapturedContext to reprocess messages later.
@@ -129,7 +129,7 @@ type senderPart interface {
 	RequestWithCustomSender(pid *PID, message interface{}, sender *PID)
 
 	// RequestFuture sends a message to a given PID and returns a Future
-	RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future
+	RequestFuture(pid *PID, message interface{}, timeout time.Duration) Future
 }
 
 type receiverPart interface {
@@ -156,11 +156,11 @@ type stopperPart interface {
 	Stop(pid *PID)
 
 	// StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
-	StopFuture(pid *PID) *Future
+	StopFuture(pid *PID) Future
 
 	// Poison will tell actor to stop after processing current user messages in mailbox.
 	Poison(pid *PID)
 
 	// PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
-	PoisonFuture(pid *PID) *Future
+	PoisonFuture(pid *PID) Future
 }

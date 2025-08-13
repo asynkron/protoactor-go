@@ -72,7 +72,7 @@ type HelloGrainClient struct {
 }
 
 // InvokeServiceFuture return a future for the execution of InvokeService on the cluster
-func (g *HelloGrainClient) InvokeServiceFuture(r *InvokeServiceRequest, opts ...cluster.GrainCallOption) (*actor.Future, error) {
+func (g *HelloGrainClient) InvokeServiceFuture(r *InvokeServiceRequest, opts ...cluster.GrainCallOption) (actor.Future, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func (g *HelloGrainClient) InvokeService(r *InvokeServiceRequest, opts ...cluste
 }
 
 // DoWorkFuture return a future for the execution of DoWork on the cluster
-func (g *HelloGrainClient) DoWorkFuture(r *DoWorkRequest, opts ...cluster.GrainCallOption) (*actor.Future, error) {
+func (g *HelloGrainClient) DoWorkFuture(r *DoWorkRequest, opts ...cluster.GrainCallOption) (actor.Future, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err

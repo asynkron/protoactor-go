@@ -99,7 +99,7 @@ func (g *HelloGrainClient) SayHello(r *SayHelloRequest, opts ...cluster.GrainCal
 }
 
 // DoworkFuture return a future for the execution of Dowork on the cluster
-func (g *HelloGrainClient) DoworkFuture(r *DoworkRequest, opts ...cluster.GrainCallOption) (*actor.Future, error) {
+func (g *HelloGrainClient) DoworkFuture(r *DoworkRequest, opts ...cluster.GrainCallOption) (actor.Future, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err

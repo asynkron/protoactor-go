@@ -19,9 +19,21 @@ var ErrTimeout = errors.New("future: timeout")
 // ErrDeadLetter is meaning you request to a unreachable PID.
 var ErrDeadLetter = errors.New("future: dead letter")
 
-// NewFuture creates and returns a new actor.Future with a timeout of duration d.
-func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
-	ref := &futureProcess{Future{actorSystem: actorSystem, cond: sync.NewCond(&sync.Mutex{})}}
+// Future defines the public interface for future responses.
+type Future interface {
+	// PID to the backing actor for the Future result.
+	PID() *PID
+	// PipeTo forwards the result or error of the future to the specified PIDs.
+	PipeTo(pids ...*PID)
+	// Result waits for the future to resolve and returns the result or error.
+	Result() (interface{}, error)
+	// Wait blocks until the future resolves and returns the error, if any.
+	Wait() error
+}
+
+// newFuture creates and returns a new future with a timeout of duration d.
+func newFuture(actorSystem *ActorSystem, d time.Duration) *future {
+	ref := &futureProcess{future{actorSystem: actorSystem, cond: sync.NewCond(&sync.Mutex{})}}
 	id := actorSystem.ProcessRegistry.NextId()
 
 	pid, ok := actorSystem.ProcessRegistry.Add(ref, "future"+id)
@@ -59,10 +71,15 @@ func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
 		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&ref.t)), unsafe.Pointer(tp))
 	}
 
-	return &ref.Future
+	return &ref.future
 }
 
-type Future struct {
+// NewFuture creates and returns a new Future with a timeout of duration d.
+func NewFuture(actorSystem *ActorSystem, d time.Duration) Future {
+	return newFuture(actorSystem, d)
+}
+
+type future struct {
 	actorSystem *ActorSystem
 	pid         *PID
 	cond        *sync.Cond
@@ -76,12 +93,12 @@ type Future struct {
 }
 
 // PID to the backing actor for the Future result.
-func (f *Future) PID() *PID {
+func (f *future) PID() *PID {
 	return f.pid
 }
 
 // PipeTo forwards the result or error of the future to the specified pids.
-func (f *Future) PipeTo(pids ...*PID) {
+func (f *future) PipeTo(pids ...*PID) {
 	f.cond.L.Lock()
 	f.pipes = append(f.pipes, pids...)
 	// for an already completed future, force push the result to targets.
@@ -91,7 +108,7 @@ func (f *Future) PipeTo(pids ...*PID) {
 	f.cond.L.Unlock()
 }
 
-func (f *Future) sendToPipes() {
+func (f *future) sendToPipes() {
 	if f.pipes == nil {
 		return
 	}
@@ -110,7 +127,7 @@ func (f *Future) sendToPipes() {
 	f.pipes = nil
 }
 
-func (f *Future) wait() {
+func (f *future) wait() {
 	f.cond.L.Lock()
 	for !f.done {
 		f.cond.Wait()
@@ -119,19 +136,19 @@ func (f *Future) wait() {
 }
 
 // Result waits for the future to resolve.
-func (f *Future) Result() (interface{}, error) {
+func (f *future) Result() (interface{}, error) {
 	f.wait()
 
 	return f.result, f.err
 }
 
-func (f *Future) Wait() error {
+func (f *future) Wait() error {
 	f.wait()
 
 	return f.err
 }
 
-func (f *Future) continueWith(continuation func(res interface{}, err error)) {
+func (f *future) continueWith(continuation func(res interface{}, err error)) {
 	f.cond.L.Lock()
 	defer f.cond.L.Unlock() // use defer as the continuation co
 	// uld blow up
@@ -144,7 +161,7 @@ func (f *Future) continueWith(continuation func(res interface{}, err error)) {
 
 // futureProcess is a struct carrying a response PID and a channel where the response is placed.
 type futureProcess struct {
-	Future
+	future
 }
 
 var _ Process = &futureProcess{}
@@ -219,7 +236,7 @@ func (ref *futureProcess) Stop(pid *PID) {
 // TODO: we could replace "pipes" with this
 // instead of pushing PIDs to pipes, we could push wrapper funcs that tells the pid
 // as a completion, that would unify the model.
-func (f *Future) runCompletions() {
+func (f *future) runCompletions() {
 	if f.completions == nil {
 		return
 	}

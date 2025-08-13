@@ -30,7 +30,7 @@ func (p *PubSubMemberDeliveryActor) Receive(c actor.Context) {
 		invalidDeliveries := make([]*SubscriberDeliveryReport, 0, len(siList))
 
 		type futureWithIdentity struct {
-			future   *actor.Future
+			future   actor.Future
 			identity *SubscriberIdentity
 		}
 		futureList := make([]futureWithIdentity, 0, len(siList))
@@ -81,7 +81,7 @@ func (p *PubSubMemberDeliveryActor) Receive(c actor.Context) {
 }
 
 // DeliverBatch delivers PubSubAutoRespondBatch to SubscriberIdentity.
-func (p *PubSubMemberDeliveryActor) DeliverBatch(c actor.Context, batch *PubSubAutoRespondBatch, s *SubscriberIdentity) *actor.Future {
+func (p *PubSubMemberDeliveryActor) DeliverBatch(c actor.Context, batch *PubSubAutoRespondBatch, s *SubscriberIdentity) actor.Future {
 	if pid := s.GetPid(); pid != nil {
 		return p.DeliverToPid(c, batch, pid)
 	}
@@ -92,12 +92,12 @@ func (p *PubSubMemberDeliveryActor) DeliverBatch(c actor.Context, batch *PubSubA
 }
 
 // DeliverToPid delivers PubSubAutoRespondBatch to PID.
-func (p *PubSubMemberDeliveryActor) DeliverToPid(c actor.Context, batch *PubSubAutoRespondBatch, pid *actor.PID) *actor.Future {
+func (p *PubSubMemberDeliveryActor) DeliverToPid(c actor.Context, batch *PubSubAutoRespondBatch, pid *actor.PID) actor.Future {
 	return c.RequestFuture(pid, batch, p.subscriberTimeout)
 }
 
 // DeliverToClusterIdentity delivers PubSubAutoRespondBatch to ClusterIdentity.
-func (p *PubSubMemberDeliveryActor) DeliverToClusterIdentity(c actor.Context, batch *PubSubAutoRespondBatch, ci *ClusterIdentity) *actor.Future {
+func (p *PubSubMemberDeliveryActor) DeliverToClusterIdentity(c actor.Context, batch *PubSubAutoRespondBatch, ci *ClusterIdentity) actor.Future {
 	cluster := GetCluster(c.ActorSystem())
 	// deliver to virtual actor
 	// delivery should always be possible, since a virtual actor always exists
