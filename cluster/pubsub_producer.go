@@ -442,6 +442,7 @@ type boundedChannel[T any] struct {
 	left     *atomic.Bool
 }
 
+//lint:ignore U1000 used via interface
 func (b *boundedChannel[T]) tryWrite(msg T) bool {
 	select {
 	case b.c <- msg:
@@ -454,6 +455,7 @@ func (b *boundedChannel[T]) tryWrite(msg T) bool {
 	}
 }
 
+//lint:ignore U1000 used via interface
 func (b *boundedChannel[T]) tryRead() (msg T, ok bool) {
 	var msgDefault T
 	select {
@@ -464,6 +466,7 @@ func (b *boundedChannel[T]) tryRead() (msg T, ok bool) {
 	}
 }
 
+//lint:ignore U1000 used via interface
 func (b *boundedChannel[T]) isComplete() bool {
 	select {
 	case <-b.quit:
@@ -473,16 +476,19 @@ func (b *boundedChannel[T]) isComplete() bool {
 	}
 }
 
+//lint:ignore U1000 used via interface
 func (b *boundedChannel[T]) complete() {
 	b.once.Do(func() {
 		close(b.quit)
 	})
 }
 
+//lint:ignore U1000 used via interface
 func (b *boundedChannel[T]) empty() bool {
 	return len(b.c) == 0
 }
 
+//lint:ignore U1000 used via interface
 func (b *boundedChannel[T]) waitToRead() {
 	b.cond.L.Lock()
 	defer b.cond.L.Unlock()
@@ -492,6 +498,7 @@ func (b *boundedChannel[T]) waitToRead() {
 	b.left.Store(false)
 }
 
+//lint:ignore U1000 used via interface
 func (b *boundedChannel[T]) broadcast() {
 	b.left.Store(true)
 	b.cond.Broadcast()
@@ -518,6 +525,7 @@ type unboundedChannel[T any] struct {
 	left  *atomic.Bool
 }
 
+//lint:ignore U1000 used via interface
 func (u *unboundedChannel[T]) tryWrite(msg T) bool {
 	select {
 	case <-u.quit:
@@ -529,6 +537,7 @@ func (u *unboundedChannel[T]) tryWrite(msg T) bool {
 	}
 }
 
+//lint:ignore U1000 used via interface
 func (u *unboundedChannel[T]) tryRead() (T, bool) {
 	var msg T
 	tmp := u.queue.Pop()
@@ -540,12 +549,14 @@ func (u *unboundedChannel[T]) tryRead() (T, bool) {
 	}
 }
 
+//lint:ignore U1000 used via interface
 func (u *unboundedChannel[T]) complete() {
 	u.once.Do(func() {
 		close(u.quit)
 	})
 }
 
+//lint:ignore U1000 used via interface
 func (u *unboundedChannel[T]) isComplete() bool {
 	select {
 	case <-u.quit:
@@ -555,10 +566,12 @@ func (u *unboundedChannel[T]) isComplete() bool {
 	}
 }
 
+//lint:ignore U1000 used via interface
 func (u *unboundedChannel[T]) empty() bool {
 	return u.queue.Empty()
 }
 
+//lint:ignore U1000 used via interface
 func (u *unboundedChannel[T]) waitToRead() {
 	u.cond.L.Lock()
 	defer u.cond.L.Unlock()
@@ -568,6 +581,7 @@ func (u *unboundedChannel[T]) waitToRead() {
 	u.left.Store(false)
 }
 
+//lint:ignore U1000 used via interface
 func (u *unboundedChannel[T]) broadcast() {
 	u.left.Store(true)
 	u.cond.Broadcast()

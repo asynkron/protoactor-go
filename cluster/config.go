@@ -99,7 +99,6 @@ func withClusterReceiveMiddleware() actor.PropsOption {
 				next(c, envelope)
 			}
 
-			return
 		}
 	})
 }

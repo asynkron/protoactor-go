@@ -167,8 +167,7 @@ func (p *Provider) Shutdown(graceful bool) error {
 	p.shutdown = true
 	if !p.deregistered {
 		p.updateLeadership(nil)
-		err := p.deregisterService()
-		if err != nil {
+		if err := p.deregisterService(); err != nil {
 			p.cluster.Logger().Error("deregisterMember", slog.Any("error", err))
 			return err
 		}
@@ -225,7 +224,9 @@ func (p *Provider) createClusterNode(dir string) error {
 
 func (p *Provider) deregisterService() error {
 	if p.fullpath != "" {
-		p.conn.Delete(p.fullpath, -1)
+		if err := p.conn.Delete(p.fullpath, -1); err != nil {
+			return err
+		}
 	}
 	p.fullpath = ""
 	p.conn.Close()
@@ -277,7 +278,9 @@ func (p *Provider) _keepWatching(registerSelf bool, stream <-chan zk.Event) erro
 		p.cluster.Logger().Error("Failure watching service.", slog.Any("error", err))
 		if registerSelf && p.clusterNotContainsSelfPath() {
 			p.cluster.Logger().Info("Register info lost, register self again")
-			p.registerService()
+			if err := p.registerService(); err != nil {
+				return err
+			}
 		}
 		return err
 	}
@@ -509,7 +512,7 @@ func (pro *Provider) createEphemeralChildNode(data []byte) (string, error) {
 				if err != nil {
 					return "", err
 				}
-				if exists == true {
+				if exists {
 					continue
 				}
 				_, err = pro.conn.Create(pth, []byte{}, 0, acl)

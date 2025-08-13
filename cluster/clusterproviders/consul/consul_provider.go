@@ -13,8 +13,13 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-// ProviderShuttingDownError is returned when operations occur during provider shutdown.
-var ProviderShuttingDownError = fmt.Errorf("consul cluster provider is shutting down")
+// ErrProviderShuttingDown is returned when operations occur during provider shutdown.
+var ErrProviderShuttingDown = fmt.Errorf("consul cluster provider is shutting down")
+
+// ProviderShuttingDownError is retained for backward compatibility.
+//
+//lint:ignore ST1012 deprecated: use ErrProviderShuttingDown instead
+var ProviderShuttingDownError = ErrProviderShuttingDown
 
 // Provider integrates Consul as a cluster provider for Proto.Actor.
 type Provider struct {

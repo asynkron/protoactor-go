@@ -5,12 +5,13 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func defaultConfig() *Config {
 	return &Config{
 		AdvertisedHost:           "",
-		DialOptions:              []grpc.DialOption{grpc.WithInsecure()},
+		DialOptions:              []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())},
 		EndpointWriterBatchSize:  1000,
 		EndpointManagerBatchSize: 1000,
 		EndpointWriterQueueSize:  1000000,

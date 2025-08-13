@@ -41,7 +41,6 @@ type AutoManagedProvider struct {
 	clusterMonitorErrorMutex   sync.Mutex
 	shutdownMutex              sync.Mutex
 	deregisteredMutex          sync.Mutex
-	activeProviderMutex        sync.Mutex
 	activeProviderRunningMutex sync.Mutex
 }
 
@@ -144,7 +143,9 @@ func (p *AutoManagedProvider) Shutdown(graceful bool) error {
 	defer p.shutdownMutex.Unlock()
 
 	p.shutdown = true
-	p.activeProvider.Close()
+	if err := p.activeProvider.Close(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -155,7 +156,9 @@ func (p *AutoManagedProvider) UpdateTTL() {
 	p.activeProviderRunningMutex.Unlock()
 
 	if (p.isShutdown() || p.isDeregistered()) && running {
-		p.activeProvider.Close()
+		if err := p.activeProvider.Close(); err != nil {
+			p.cluster.Logger().Error("failed to close active provider", slog.Any("error", err))
+		}
 		return
 	}
 
@@ -320,47 +323,6 @@ func (p *AutoManagedProvider) checkNodes() ([]*NodeModel, error) {
 	return retNodes, err
 }
 
-func (p *AutoManagedProvider) deregisterService() {
-	p.deregisteredMutex.Lock()
-	defer p.deregisteredMutex.Unlock()
-
-	p.deregistered = true
-}
-
-func (p *AutoManagedProvider) startActiveProvider() {
-	p.activeProviderRunningMutex.Lock()
-	running := p.activeProviderRunning
-	p.activeProviderRunningMutex.Unlock()
-
-	if !running {
-		if !p.activeProviderTesting {
-			p.activeProvider = echo.New()
-			p.activeProvider.HideBanner = true
-			p.activeProvider.GET("/_health", func(context echo.Context) error {
-				return context.JSON(http.StatusOK, p.getCurrentNode())
-			})
-		}
-
-		appURI := fmt.Sprintf("0.0.0.0:%d", p.autoManagePort)
-
-		go func() {
-			p.activeProviderRunningMutex.Lock()
-			p.activeProviderRunning = true
-			p.activeProviderRunningMutex.Unlock()
-			err := p.activeProvider.Start(appURI)
-			p.cluster.Logger().Error("Automanaged server stopping..!", slog.Any("error", err))
-
-			p.activeProviderRunningMutex.Lock()
-			p.activeProviderRunning = false
-			p.activeProviderRunningMutex.Unlock()
-		}()
-	}
-}
-
-func (p *AutoManagedProvider) stopActiveProvider() {
-	p.activeProvider.Close()
-}
-
 func (p *AutoManagedProvider) isShutdown() bool {
 	p.shutdownMutex.Lock()
 	defer p.shutdownMutex.Unlock()
@@ -371,12 +333,6 @@ func (p *AutoManagedProvider) isDeregistered() bool {
 	p.deregisteredMutex.Lock()
 	defer p.deregisteredMutex.Unlock()
 	return p.deregistered
-}
-
-func (p *AutoManagedProvider) isActiveProviderRunning() bool {
-	p.activeProviderRunningMutex.Lock()
-	defer p.activeProviderRunningMutex.Unlock()
-	return p.activeProviderRunning
 }
 
 func (p *AutoManagedProvider) getCurrentNode() *NodeModel {

@@ -36,9 +36,6 @@ var (
 
 		return pid, nil
 	}
-	defaultContextDecorator = func(ctx Context) Context {
-		return ctx
-	}
 )
 
 func initialize(props *Props, ctx *actorContext) {
@@ -98,14 +95,6 @@ func (props *Props) getSupervisor() SupervisorStrategy {
 	}
 
 	return props.supervisionStrategy
-}
-
-func (props *Props) getContextDecoratorChain() ContextDecoratorFunc {
-	if props.contextDecoratorChain == nil {
-		return defaultContextDecorator
-	}
-
-	return props.contextDecoratorChain
 }
 
 func (props *Props) produceMailbox() Mailbox {

@@ -3,6 +3,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -132,15 +133,11 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 	}
 
 	showLog := func(hasConsensus bool, topologyHash uint64, valueTuples []*consensusMemberValue) {
-		if ccb.logger.Enabled(nil, slog.LevelDebug) {
+		if ccb.logger.Enabled(context.TODO(), slog.LevelDebug) {
 			groups := map[string]int{}
 			for _, memberValue := range valueTuples {
 				key := fmt.Sprintf("%s:%d", memberValue.key, memberValue.value)
-				if _, ok := groups[key]; ok {
-					groups[key]++
-				} else {
-					groups[key] = 1
-				}
+				groups[key]++
 			}
 
 			for k, value := range groups {

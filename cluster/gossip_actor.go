@@ -119,7 +119,6 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 	}
 
 	ctx.Respond(&GossipResponse{})
-	return
 
 	// turn off acking for now
 

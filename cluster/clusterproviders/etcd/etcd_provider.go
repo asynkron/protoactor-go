@@ -114,7 +114,7 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 
 	ctx := context.TODO()
 	p.startKeepAlive(ctx)
-	p.updateLeadership(nodes)
+	p.updateLeadership()
 	return nil
 }
 
@@ -138,7 +138,7 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 func (p *Provider) Shutdown(graceful bool) error {
 	p.shutdown = true
 	if !p.deregistered {
-		p.updateLeadership(nil)
+		p.updateLeadership()
 		err := p.deregisterService()
 		if err != nil {
 			p.cluster.Logger().Error("deregisterMember", slog.Any("error", err))
@@ -321,11 +321,7 @@ func (p *Provider) _keepWatching(stream clientv3.WatchChan) error {
 		}
 		nodesChanges := p.handleWatchResponse(resp)
 		p.updateNodesWithChanges(nodesChanges)
-		l := make([]*Node, 0)
-		for _, node := range nodesChanges {
-			l = append(l, node)
-		}
-		p.updateLeadership(l)
+		p.updateLeadership()
 		p.publishClusterTopologyEvent()
 	}
 	return nil
@@ -359,10 +355,6 @@ func (p *Provider) startWatching() {
 // GetHealthStatus returns an error if the cluster health status has problems
 func (p *Provider) GetHealthStatus() error {
 	return p.clusterError
-}
-
-func newContext(timeout time.Duration) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.TODO(), timeout)
 }
 
 func (p *Provider) buildKey(names ...string) string {
@@ -472,7 +464,7 @@ func (p *Provider) RegisterSingletonScheduler(scheduler *SingletonScheduler) {
 }
 
 // 修改现有的角色变化处理逻辑
-func (p *Provider) updateLeadership(ns []*Node) {
+func (p *Provider) updateLeadership() {
 	role := Follower
 	ns, err := p.fetchNodes()
 	if err != nil {
