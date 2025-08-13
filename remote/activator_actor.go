@@ -111,7 +111,7 @@ func (a *activator) Receive(context actor.Context) {
 
 		// unnamed actor, assign auto ExtensionID
 		if name == "" {
-			name = context.ActorSystem().ProcessRegistry.NextId()
+			name = context.ActorSystem().ProcessRegistry.NextID()
 		}
 
 		pid, err := context.SpawnNamed(props, "Remote$"+name)

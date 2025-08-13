@@ -8,7 +8,7 @@ var (
 
 func init() {
 	RegisterSerializer(newProtoSerializer())
-	RegisterSerializer(newJsonSerializer())
+	RegisterSerializer(newJSONSerializer())
 }
 
 // RegisterSerializer registers a Serializer implementation.

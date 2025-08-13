@@ -12,6 +12,7 @@ import (
 
 const TopicActorKind = "prototopic"
 
+// TopicActor manages subscriptions and publishes messages for a topic.
 type TopicActor struct {
 	topic                string
 	subscribers          map[subscribeIdentityStruct]*SubscriberIdentity
@@ -20,6 +21,7 @@ type TopicActor struct {
 	shouldThrottle       actor.ShouldThrottle
 }
 
+// NewTopicActor creates a new TopicActor using the provided store and logger.
 func NewTopicActor(store KeyValueStore[*Subscribers], logger *slog.Logger) *TopicActor {
 	return &TopicActor{
 		subscriptionStore: store,
@@ -30,6 +32,7 @@ func NewTopicActor(store KeyValueStore[*Subscribers], logger *slog.Logger) *Topi
 	}
 }
 
+// Receive processes actor lifecycle and pub-sub messages.
 func (t *TopicActor) Receive(c actor.Context) {
 	switch msg := c.Message().(type) {
 	case *actor.Started:

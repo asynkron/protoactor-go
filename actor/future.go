@@ -34,7 +34,7 @@ type Future interface {
 // newFuture creates and returns a new future with a timeout of duration d.
 func newFuture(actorSystem *ActorSystem, d time.Duration) *future {
 	ref := &futureProcess{future{actorSystem: actorSystem, cond: sync.NewCond(&sync.Mutex{})}}
-	id := actorSystem.ProcessRegistry.NextId()
+	id := actorSystem.ProcessRegistry.NextID()
 
 	pid, ok := actorSystem.ProcessRegistry.Add(ref, "future"+id)
 	if !ok {
@@ -42,7 +42,7 @@ func newFuture(actorSystem *ActorSystem, d time.Duration) *future {
 	}
 
 	if actorSystem.Config.MetricsEnabled {
-		sysMetrics, ok := actorSystem.Extensions.Get(extensionId).(*Metrics)
+		sysMetrics, ok := actorSystem.Extensions.Get(extensionID).(*Metrics)
 		if ok && sysMetrics.Enabled() {
 			if instruments := sysMetrics.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
 				ctx := context.Background()
@@ -189,7 +189,7 @@ func (ref *futureProcess) SendSystemMessage(pid *PID, message interface{}) {
 
 func (ref *futureProcess) instrument() {
 	if ref.actorSystem.Config.MetricsEnabled {
-		sysMetrics, ok := ref.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		sysMetrics, ok := ref.actorSystem.Extensions.Get(extensionID).(*Metrics)
 		if ok && sysMetrics.Enabled() {
 			ctx := context.Background()
 			labels := SystemLabels(ref.actorSystem)

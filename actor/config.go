@@ -37,7 +37,7 @@ func defaultConfig() *Config {
 		DeadLetterThrottleCount:     3,
 		DeadLetterRequestLogging:    true,
 		DeveloperSupervisionLogging: false,
-		DiagnosticsSerializer: func(actor Actor) string {
+		DiagnosticsSerializer: func(_ Actor) string {
 			return ""
 		},
 		LoggerFactory: func(system *ActorSystem) *slog.Logger {

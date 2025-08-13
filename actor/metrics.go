@@ -13,8 +13,9 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
-var extensionId = extensions.NextExtensionID()
+var extensionID = extensions.NextExtensionID()
 
+// Metrics provides access to system-wide metric instrumentation.
 type Metrics struct {
 	metrics     *metrics.ProtoMetrics
 	enabled     bool
@@ -23,12 +24,14 @@ type Metrics struct {
 
 var _ extensions.Extension = &Metrics{}
 
+// Enabled reports whether metrics collection is enabled.
 func (m *Metrics) Enabled() bool {
 	return m.enabled
 }
 
+// ExtensionID returns the unique ID for the metrics extension.
 func (m *Metrics) ExtensionID() extensions.ExtensionID {
-	return extensionId
+	return extensionID
 }
 
 // NewMetrics initializes metrics collection for the given actor system using the

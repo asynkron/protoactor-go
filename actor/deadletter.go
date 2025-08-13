@@ -76,7 +76,7 @@ func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
 	_, msg, sender := UnwrapEnvelope(message)
 
 	if dp.actorSystem.Config.MetricsEnabled {
-		metricsSystem, ok := dp.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		metricsSystem, ok := dp.actorSystem.Extensions.Get(extensionID).(*Metrics)
 		if ok && metricsSystem.Enabled() {
 			ctx := context.Background()
 			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {

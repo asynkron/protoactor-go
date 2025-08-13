@@ -65,7 +65,7 @@ func (state *endpointWatcher) connected(ctx actor.Context) {
 			// try to find the watcher ExtensionID in the local actor registry
 			ref, ok := state.remote.actorSystem.ProcessRegistry.GetLocal(id)
 			if ok {
-				pidSet.ForEach(func(i int, pid *actor.PID) {
+				pidSet.ForEach(func(_ int, pid *actor.PID) {
 					// create a terminated event for the Watched actor
 					terminated := &actor.Terminated{
 						Who: pid,

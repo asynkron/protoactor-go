@@ -35,10 +35,10 @@ type remoteTerminate struct {
 	Watchee *actor.PID
 }
 
-// JsonMessage carries a JSON encoded message and its type name.
-type JsonMessage struct {
+// JSONMessage carries a JSON encoded payload and its type name.
+type JSONMessage struct {
 	TypeName string
-	Json     string
+	JSON     string
 }
 
 var stopMessage interface{} = &actor.Stop{}

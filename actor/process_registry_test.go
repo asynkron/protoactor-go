@@ -20,7 +20,7 @@ func TestUint64ToId(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.e, func(t *testing.T) {
-			s := uint64ToId(tc.i)
+			s := uint64ToID(tc.i)
 			assert.Equal(t, tc.e, s)
 		})
 	}
@@ -31,7 +31,7 @@ var ss string
 func BenchmarkUint64ToId(b *testing.B) {
 	var s string
 	for i := 0; i < b.N; i++ {
-		s = uint64ToId(uint64(i) << 5)
+		s = uint64ToID(uint64(i) << 5)
 	}
 	ss = s
 }

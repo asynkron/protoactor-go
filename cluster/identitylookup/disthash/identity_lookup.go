@@ -26,7 +26,7 @@ func (p *IdentityLookup) RemovePid(clusterIdentity *cluster.ClusterIdentity, pid
 }
 
 // Setup initializes the identity lookup for the given cluster.
-func (p *IdentityLookup) Setup(cluster *cluster.Cluster, kinds []string, isClient bool) {
+func (p *IdentityLookup) Setup(cluster *cluster.Cluster, _ []string, _ bool) {
 	p.partitionManager = newPartitionManager(cluster)
 	p.partitionManager.Start()
 }

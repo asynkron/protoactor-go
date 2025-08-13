@@ -273,7 +273,7 @@ func (ctx *actorContext) ReenterAfter(f Future, cont func(res interface{}, err e
 
 	message := ctx.messageOrEnvelope
 	// invoke the callback when the future completes
-	concrete.continueWith(func(res interface{}, err error) {
+	concrete.continueWith(func(_ interface{}, _ error) {
 		// send the wrapped callback as a continuation message to self
 		ctx.self.sendSystemMessage(ctx.actorSystem, &continuation{
 			f:       wrapper,
@@ -390,7 +390,7 @@ func (ctx *actorContext) defaultReceive() {
 //
 
 func (ctx *actorContext) Spawn(props *Props) *PID {
-	pid, err := ctx.SpawnNamed(props, ctx.actorSystem.ProcessRegistry.NextId())
+	pid, err := ctx.SpawnNamed(props, ctx.actorSystem.ProcessRegistry.NextID())
 	if err != nil {
 		panic(err)
 	}
@@ -399,7 +399,7 @@ func (ctx *actorContext) Spawn(props *Props) *PID {
 }
 
 func (ctx *actorContext) SpawnPrefix(props *Props, prefix string) *PID {
-	pid, err := ctx.SpawnNamed(props, prefix+ctx.actorSystem.ProcessRegistry.NextId())
+	pid, err := ctx.SpawnNamed(props, prefix+ctx.actorSystem.ProcessRegistry.NextID())
 	if err != nil {
 		panic(err)
 	}
@@ -438,7 +438,7 @@ func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 // Stop will stop actor immediately regardless of existing user messages in mailbox.
 func (ctx *actorContext) Stop(pid *PID) {
 	if ctx.actorSystem.Config.MetricsEnabled {
-		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionID).(*Metrics)
 		if ok && metricsSystem.Enabled() {
 			_ctx := context.Background()
 			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
@@ -495,7 +495,7 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 		}
 	}
 
-	systemMetrics, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+	systemMetrics, ok := ctx.actorSystem.Extensions.Get(extensionID).(*Metrics)
 	if ok && ctx.actorSystem.Config.MetricsEnabled && systemMetrics.Enabled() {
 		_ctx := context.Background()
 		instruments := systemMetrics.metrics.Get(metrics.InternalActorMetrics)
@@ -548,7 +548,7 @@ func (ctx *actorContext) incarnateActor() {
 	ctx.actor = ctx.props.producer(ctx.actorSystem)
 
 	if ctx.actorSystem.Config.MetricsEnabled {
-		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionID).(*Metrics)
 		if ok && metricsSystem.Enabled() {
 			_ctx := context.Background()
 			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
@@ -614,7 +614,7 @@ func (ctx *actorContext) handleRestart() {
 	ctx.tryRestartOrTerminate()
 
 	if ctx.actorSystem.Config.MetricsEnabled {
-		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionID).(*Metrics)
 		if ok && metricsSystem.Enabled() {
 			_ctx := context.Background()
 			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {
@@ -705,7 +705,7 @@ func (ctx *actorContext) finalizeStop() {
 	otherStopped := &Terminated{Who: ctx.self}
 	// Notify watchers
 	if ctx.extras != nil {
-		ctx.extras.watchers.ForEach(func(i int, pid *PID) {
+		ctx.extras.watchers.ForEach(func(_ int, pid *PID) {
 			pid.sendSystemMessage(ctx.actorSystem, otherStopped)
 		})
 	}
@@ -731,7 +731,7 @@ func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}
 	}
 
 	if ctx.actorSystem.Config.MetricsEnabled {
-		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionId).(*Metrics)
+		metricsSystem, ok := ctx.actorSystem.Extensions.Get(extensionID).(*Metrics)
 		if ok && metricsSystem.Enabled() {
 			_ctx := context.Background()
 			if instruments := metricsSystem.metrics.Get(metrics.InternalActorMetrics); instruments != nil {

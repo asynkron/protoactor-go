@@ -15,6 +15,8 @@ type memberData struct {
 	member    *Member
 	hashBytes []byte
 }
+
+// Rendezvous implements rendezvous hashing for distributing identities across cluster members.
 type Rendezvous struct {
 	mutex      sync.RWMutex
 	hasher     hash.Hash32
@@ -22,6 +24,7 @@ type Rendezvous struct {
 	members    []*memberData
 }
 
+// NewRendezvous creates a new rendezvous hashing instance.
 func NewRendezvous() *Rendezvous {
 	return &Rendezvous{
 		hasher:  fnv.New32a(),
@@ -29,6 +32,7 @@ func NewRendezvous() *Rendezvous {
 	}
 }
 
+// GetByClusterIdentity returns the member address responsible for the given identity.
 func (r *Rendezvous) GetByClusterIdentity(ci *ClusterIdentity) string {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -66,6 +70,7 @@ func (r *Rendezvous) GetByClusterIdentity(ci *ClusterIdentity) string {
 	return maxMember.member.Address()
 }
 
+// GetByIdentity parses a combined kind/identity string and returns the member address.
 func (r *Rendezvous) GetByIdentity(identity string) string {
 	parts := strings.SplitN(identity, "/", 2)
 
@@ -85,6 +90,7 @@ func (r *Rendezvous) memberDataByKind(kind string) []*memberData {
 	return m
 }
 
+// UpdateMembers replaces the internal member list used for hashing.
 func (r *Rendezvous) UpdateMembers(members Members) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()

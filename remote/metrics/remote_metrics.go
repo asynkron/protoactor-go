@@ -10,6 +10,8 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
+// RemoteMetrics contains OpenTelemetry instruments used to track remote
+// actor operations such as message serialization and endpoint state.
 type RemoteMetrics struct {
 	RemoteWriteDuration             metric.Float64Histogram
 	RemoteActorSpawnCount           metric.Int64Counter
@@ -19,6 +21,8 @@ type RemoteMetrics struct {
 	RemoteEndpointDisconnectedCount metric.Int64Counter
 }
 
+// NewRemoteMetrics creates all metric instruments required for reporting remote
+// activity to OpenTelemetry. Any failures to create instruments are logged.
 func NewRemoteMetrics(logger *slog.Logger) *RemoteMetrics {
 	meter := otel.Meter(metrics.LibName)
 	m := &RemoteMetrics{}

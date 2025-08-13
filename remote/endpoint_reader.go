@@ -23,11 +23,11 @@ func (s *endpointReader) mustEmbedUnimplementedRemotingServer() {
 	panic("implement me")
 }
 
-func (s *endpointReader) ListProcesses(ctx context.Context, request *ListProcessesRequest) (*ListProcessesResponse, error) {
+func (s *endpointReader) ListProcesses(_ context.Context, _ *ListProcessesRequest) (*ListProcessesResponse, error) {
 	panic("implement me")
 }
 
-func (s *endpointReader) GetProcessDiagnostics(ctx context.Context, request *GetProcessDiagnosticsRequest) (*GetProcessDiagnosticsResponse, error) {
+func (s *endpointReader) GetProcessDiagnostics(_ context.Context, _ *GetProcessDiagnosticsRequest) (*GetProcessDiagnosticsResponse, error) {
 	panic("implement me")
 }
 
@@ -194,24 +194,24 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 	return nil
 }
 
-func deserializeSender(pid *actor.PID, index int32, requestId uint32, arr []*actor.PID) *actor.PID {
+func deserializeSender(pid *actor.PID, index int32, requestID uint32, arr []*actor.PID) *actor.PID {
 	if index == 0 {
 		pid = nil
 	} else {
 		pid = arr[index-1]
 
 		// if request id is used. make sure to clone the PID first, so we don't corrupt the lookup
-		if requestId > 0 {
+		if requestID > 0 {
 			pid, _ = proto.Clone(pid).(*actor.PID)
-			pid.RequestId = requestId
+			pid.RequestId = requestID
 		}
 	}
 	return pid
 }
 
-func deserializeTarget(index int32, requestId uint32, arr []string, address string) *actor.PID {
+func deserializeTarget(index int32, requestID uint32, arr []string, address string) *actor.PID {
 	pid := actor.NewPID(address, arr[index])
-	pid.RequestId = requestId
+	pid.RequestId = requestID
 	return pid
 }
 

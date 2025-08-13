@@ -14,7 +14,7 @@ type jsonSerializer struct {
 	jsonpb.Unmarshaler
 }
 
-func newJsonSerializer() Serializer {
+func newJSONSerializer() Serializer {
 	return &jsonSerializer{
 		Marshaler: jsonpb.Marshaler{},
 		Unmarshaler: jsonpb.Unmarshaler{
@@ -24,8 +24,8 @@ func newJsonSerializer() Serializer {
 }
 
 func (j *jsonSerializer) Serialize(msg interface{}) ([]byte, error) {
-	if message, ok := msg.(*JsonMessage); ok {
-		return []byte(message.Json), nil
+	if message, ok := msg.(*JSONMessage); ok {
+		return []byte(message.JSON), nil
 	} else if message, ok := msg.(proto.Message); ok {
 
 		str, err := j.Marshaler.MarshalToString(message)
@@ -41,9 +41,9 @@ func (j *jsonSerializer) Serialize(msg interface{}) ([]byte, error) {
 func (j *jsonSerializer) Deserialize(typeName string, b []byte) (interface{}, error) {
 	protoType := proto.MessageType(typeName)
 	if protoType == nil {
-		m := &JsonMessage{
+		m := &JSONMessage{
 			TypeName: typeName,
-			Json:     string(b),
+			JSON:     string(b),
 		}
 		return m, nil
 	}
@@ -62,7 +62,7 @@ func (j *jsonSerializer) Deserialize(typeName string, b []byte) (interface{}, er
 }
 
 func (j *jsonSerializer) GetTypeName(msg interface{}) (string, error) {
-	if message, ok := msg.(*JsonMessage); ok {
+	if message, ok := msg.(*JSONMessage); ok {
 		return message.TypeName, nil
 	} else if message, ok := msg.(proto.Message); ok {
 		typeName := proto.MessageName(message)
