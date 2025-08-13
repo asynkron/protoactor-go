@@ -32,7 +32,12 @@ func (ci *ClusterIdentity) ExtensionID() ctxext.ContextExtensionID {
 
 // GetClusterIdentity retrieves the ClusterIdentity from the context.
 func GetClusterIdentity(ctx actor.ExtensionContext) *ClusterIdentity {
-	return ctx.Get(ciExtensionId).(*ClusterIdentity)
+	if ext := ctx.Get(ciExtensionId); ext != nil {
+		if ci, ok := ext.(*ClusterIdentity); ok {
+			return ci
+		}
+	}
+	return nil
 }
 
 // SetClusterIdentity stores the ClusterIdentity on the context.
