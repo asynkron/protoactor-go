@@ -1,3 +1,4 @@
+// Package automanaged provides a simple cluster provider for development and tests.
 package automanaged
 
 import (

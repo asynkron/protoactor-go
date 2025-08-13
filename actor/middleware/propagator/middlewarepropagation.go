@@ -1,3 +1,4 @@
+// Package propagator offers utilities for forwarding middleware and decorators.
 package propagator
 
 import (

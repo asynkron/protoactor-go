@@ -1,3 +1,4 @@
+// Package k8s implements a Kubernetes-based cluster provider.
 package k8s
 
 import (

@@ -1,3 +1,4 @@
+// Package consul provides a Consul-based cluster provider.
 package consul
 
 import (

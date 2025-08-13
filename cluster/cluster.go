@@ -1,3 +1,4 @@
+// Package cluster enables distributed actors and grain management.
 package cluster
 
 import (

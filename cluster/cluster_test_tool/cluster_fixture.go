@@ -1,3 +1,4 @@
+// Package cluster_test_tool offers utilities for cluster-related tests.
 package cluster_test_tool
 
 import (
