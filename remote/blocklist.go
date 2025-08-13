@@ -10,12 +10,13 @@ import (
 	"github.com/asynkron/gofun/set"
 )
 
-// TODO: document it
+// BlockList keeps track of blocked cluster member IDs.
 type BlockList struct {
 	mu             *sync.RWMutex
 	blockedMembers *set.ImmutableSet[string]
 }
 
+// NewBlockList creates an empty BlockList.
 func NewBlockList() *BlockList {
 	blocklist := BlockList{
 		mu:             &sync.RWMutex{},
@@ -24,6 +25,7 @@ func NewBlockList() *BlockList {
 	return &blocklist
 }
 
+// BlockedMembers returns the set of blocked member IDs.
 func (bl *BlockList) BlockedMembers() set.Set[string] {
 	return bl.blockedMembers
 }

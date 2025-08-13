@@ -35,6 +35,8 @@ type activator struct {
 // Partition will then find next available Activator to spawn
 var ErrActivatorUnavailable = &ActivatorError{ResponseStatusCodeUNAVAILABLE.ToInt32(), true}
 
+// ActivatorError represents an error returned from the activator and controls
+// whether the activator should panic when it occurs.
 type ActivatorError struct {
 	Code       int32
 	DoNotPanic bool

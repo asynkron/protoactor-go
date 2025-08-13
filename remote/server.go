@@ -17,6 +17,7 @@ import (
 
 var extensionId = extensions.NextExtensionID()
 
+// Remote enables communication between actors across network boundaries.
 type Remote struct {
 	actorSystem    *actor.ActorSystem
 	s              *grpc.Server
@@ -30,6 +31,7 @@ type Remote struct {
 	metricsEnabled bool
 }
 
+// NewRemote creates a new Remote extension for the given actor system.
 func NewRemote(actorSystem *actor.ActorSystem, config *Config) *Remote {
 	r := &Remote{
 		actorSystem: actorSystem,
@@ -51,6 +53,8 @@ func NewRemote(actorSystem *actor.ActorSystem, config *Config) *Remote {
 	return r
 }
 
+// GetRemote retrieves the Remote extension from the actor system.
+//
 //goland:noinspection GoUnusedExportedFunction
 func GetRemote(actorSystem *actor.ActorSystem) *Remote {
 	r := actorSystem.Extensions.Get(extensionId)
@@ -58,13 +62,15 @@ func GetRemote(actorSystem *actor.ActorSystem) *Remote {
 	return r.(*Remote)
 }
 
+// ExtensionID returns the unique ID of the Remote extension.
 func (r *Remote) ExtensionID() extensions.ExtensionID {
 	return extensionId
 }
 
+// BlockList returns the list of blocked members.
 func (r *Remote) BlockList() *BlockList { return r.blocklist }
 
-// Start the remote server
+// Start the remote server.
 func (r *Remote) Start() {
 	grpclog.SetLoggerV2(grpclog.NewLoggerV2(ioutil.Discard, ioutil.Discard, ioutil.Discard))
 	lis, err := net.Listen("tcp", r.config.Address())
@@ -93,6 +99,8 @@ func (r *Remote) Start() {
 	go r.s.Serve(lis)
 }
 
+// Shutdown stops the remote server. If graceful is true it waits for running
+// requests to finish.
 func (r *Remote) Shutdown(graceful bool) {
 	if graceful {
 		// TODO: need more graceful
@@ -121,6 +129,7 @@ func (r *Remote) Shutdown(graceful bool) {
 	}
 }
 
+// SendMessage delivers the given message to the target PID using remoting.
 func (r *Remote) SendMessage(pid *actor.PID, header actor.ReadonlyMessageHeader, message interface{}, sender *actor.PID, serializerID int32) {
 	rd := &remoteDeliver{
 		header:       header,
@@ -132,6 +141,7 @@ func (r *Remote) SendMessage(pid *actor.PID, header actor.ReadonlyMessageHeader,
 	r.edpManager.remoteDeliver(rd)
 }
 
+// Logger returns the logger used by the Remote extension.
 func (r *Remote) Logger() *slog.Logger {
 	return r.actorSystem.Logger()
 }

@@ -2,15 +2,23 @@ package remote
 
 import "strconv"
 
+// ResponseStatusCode represents possible outcomes of remote operations.
 type ResponseStatusCode int32
 
 const (
+	// ResponseStatusCodeOK indicates the operation completed successfully.
 	ResponseStatusCodeOK ResponseStatusCode = iota
+	// ResponseStatusCodeUNAVAILABLE indicates the remote endpoint was unavailable.
 	ResponseStatusCodeUNAVAILABLE
+	// ResponseStatusCodeTIMEOUT indicates the operation timed out.
 	ResponseStatusCodeTIMEOUT
+	// ResponseStatusCodePROCESSNAMEALREADYEXIST indicates a process name conflict.
 	ResponseStatusCodePROCESSNAMEALREADYEXIST
+	// ResponseStatusCodeERROR indicates an unspecified error occurred.
 	ResponseStatusCodeERROR
+	// ResponseStatusCodeDeadLetter indicates the target PID could not be found.
 	ResponseStatusCodeDeadLetter
+	// ResponseStatusCodeMAX is a boundary marker for the enum.
 	ResponseStatusCodeMAX // just a boundary.
 )
 
@@ -26,6 +34,7 @@ func init() {
 	responseNames[ResponseStatusCodeDeadLetter] = "ResponseStatusCodeDeadLetter"
 }
 
+// ToInt32 converts the status code to its int32 representation.
 func (c ResponseStatusCode) ToInt32() int32 {
 	return int32(c)
 }
@@ -38,6 +47,7 @@ func (c ResponseStatusCode) String() string {
 	return responseNames[statusCode]
 }
 
+// AsError converts the status code to a ResponseError.
 func (c ResponseStatusCode) AsError() *ResponseError {
 	switch c {
 	case ResponseStatusCodeOK:

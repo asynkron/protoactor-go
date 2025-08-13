@@ -2,6 +2,7 @@ package remote
 
 import "google.golang.org/grpc"
 
+// ConfigOption configures a Remote instance.
 type ConfigOption func(config *Config)
 
 // WithEndpointWriterBatchSize sets the batch size for the endpoint writer

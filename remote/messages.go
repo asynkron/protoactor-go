@@ -2,10 +2,12 @@ package remote
 
 import "github.com/asynkron/protoactor-go/actor"
 
+// EndpointTerminatedEvent is published when a remote endpoint terminates.
 type EndpointTerminatedEvent struct {
 	Address string
 }
 
+// EndpointConnectedEvent is published when a remote endpoint establishes a connection.
 type EndpointConnectedEvent struct {
 	Address string
 }
@@ -33,6 +35,7 @@ type remoteTerminate struct {
 	Watchee *actor.PID
 }
 
+// JsonMessage carries a JSON encoded message and its type name.
 type JsonMessage struct {
 	TypeName string
 	Json     string
@@ -41,8 +44,11 @@ type JsonMessage struct {
 var stopMessage interface{} = &actor.Stop{}
 
 var (
-	ActorPidRespErr         interface{} = &ActorPidResponse{StatusCode: ResponseStatusCodeERROR.ToInt32()}
-	ActorPidRespTimeout     interface{} = &ActorPidResponse{StatusCode: ResponseStatusCodeTIMEOUT.ToInt32()}
+	// ActorPidRespErr is returned when spawning an actor results in an error.
+	ActorPidRespErr interface{} = &ActorPidResponse{StatusCode: ResponseStatusCodeERROR.ToInt32()}
+	// ActorPidRespTimeout is returned when spawning an actor times out.
+	ActorPidRespTimeout interface{} = &ActorPidResponse{StatusCode: ResponseStatusCodeTIMEOUT.ToInt32()}
+	// ActorPidRespUnavailable is returned when the activator is unavailable.
 	ActorPidRespUnavailable interface{} = &ActorPidResponse{StatusCode: ResponseStatusCodeUNAVAILABLE.ToInt32()}
 )
 
