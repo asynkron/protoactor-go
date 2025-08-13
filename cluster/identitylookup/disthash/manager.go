@@ -88,6 +88,7 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 }
 
 // Get resolves the PID responsible for the given cluster identity.
+// Returns nil if the cluster kind is unknown or activation failed.
 func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
 	pm.rdvMutex.RLock()
 	defer pm.rdvMutex.RUnlock()
@@ -109,7 +110,7 @@ func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
 		return nil
 	}
 	typed, ok := res.(*clustering.ActivationResponse)
-	if !ok {
+	if !ok || typed.Failed {
 		return nil
 	}
 	return typed.Pid

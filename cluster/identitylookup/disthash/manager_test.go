@@ -13,6 +13,28 @@ import (
 	"time"
 )
 
+func TestPlacementActorUnknownKind(t *testing.T) {
+	system := actor.NewActorSystem()
+	provider := test.NewTestProvider(test.NewInMemAgent())
+	lookup := New()
+	config := cluster.Configure("test-cluster", provider, lookup, remote.Configure("127.0.0.1", 0))
+	c := cluster.New(system, config)
+
+	manager := newPartitionManager(c)
+	manager.Start()
+	defer manager.Stop()
+
+	identity := &cluster.ClusterIdentity{Identity: "abc", Kind: "unknown"}
+	req := &cluster.ActivationRequest{ClusterIdentity: identity}
+	future := system.Root.RequestFuture(manager.placementActor, req, time.Second)
+	res, err := future.Result()
+	assert.NoError(t, err)
+	resp, ok := res.(*cluster.ActivationResponse)
+	assert.True(t, ok)
+	assert.True(t, resp.Failed)
+	assert.Nil(t, resp.Pid)
+}
+
 func TestManagerConcurrentAccess(t *testing.T) {
 	system := actor.NewActorSystem()
 	provider := test.NewTestProvider(test.NewInMemAgent())
