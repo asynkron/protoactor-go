@@ -84,25 +84,33 @@ func (state *managerActor) Receive(context actor.Context) {
 	}
 }
 
+// TestConcurrency verifies that the consistent hash pool router can process
+// messages while routees are being added and removed concurrently. It expects
+// all 100,000 messages to be routed without stalling or losing messages.
 func TestConcurrency(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
 
+	// wait for 100 messages from each of the 1,000 teller actors
 	wait.Add(100 * 1000)
+
+	// create a router with 100 initial routees
 	rpid := system.Root.Spawn(router.NewConsistentHashPool(100).Configure(actor.WithProducer(func() actor.Actor { return &routerActor{} })))
 
+	// spawn teller actors that hammer the router with messages
 	props := actor.PropsFromProducer(func() actor.Actor { return &tellerActor{} })
 	for i := 0; i < 1000; i++ {
 		pid := system.Root.Spawn(props)
 		system.Root.Send(pid, &myMessage{int32(i), rpid})
 	}
 
+	// concurrently modify the routees while messages are flowing
 	props = actor.PropsFromProducer(func() actor.Actor { return &managerActor{} })
 	pid := system.Root.Spawn(props)
 	system.Root.Send(pid, &getRoutees{rpid})
 
-	// Implementing the timeout
+	// fail the test if the expected messages are not processed in time
 	timeout := time.After(5 * time.Second)
 	done := make(chan bool)
 	go func() {
@@ -114,7 +122,6 @@ func TestConcurrency(t *testing.T) {
 	case <-timeout:
 		t.Fatal("Test timed out")
 	case <-done:
-		// Test completed within timeout
+		// all messages processed
 	}
-
 }
