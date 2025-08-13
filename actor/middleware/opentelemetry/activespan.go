@@ -1,3 +1,4 @@
+// Package opentelemetry provides OpenTelemetry tracing middleware for actors.
 package opentelemetry
 
 import (

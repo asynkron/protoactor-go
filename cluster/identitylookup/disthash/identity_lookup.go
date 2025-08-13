@@ -1,3 +1,4 @@
+// Package disthash implements a distributed hash-based identity lookup.
 package disthash
 
 import (

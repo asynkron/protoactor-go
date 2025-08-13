@@ -1,3 +1,4 @@
+// Package cluster defines messages used by the cluster infrastructure.
 package cluster
 
 import (
@@ -84,16 +85,19 @@ type SendGossipStateResponse struct{}
 // Used by the GossipActor to respond SetGossipStatus requests
 type SetGossipStateResponse struct{}
 
+// AddConsensusCheck registers a consensus check with the gossip actor.
 type AddConsensusCheck struct {
 	ID    string
 	Check *ConsensusCheck
 }
 
+// RemoveConsensusCheck instructs the gossip actor to remove a consensus check.
 // Mimic .NET ReenterAfterCancellation on GossipActor
 type RemoveConsensusCheck struct {
 	ID string
 }
 
+// NewAddConsensusCheck creates a new AddConsensusCheck message.
 func NewAddConsensusCheck(id string, check *ConsensusCheck) AddConsensusCheck {
 	value := AddConsensusCheck{
 		ID:    id,
@@ -102,6 +106,7 @@ func NewAddConsensusCheck(id string, check *ConsensusCheck) AddConsensusCheck {
 	return value
 }
 
+// NewRemoveConsensusCheck creates a new RemoveConsensusCheck message.
 func NewRemoveConsensusCheck(id string) RemoveConsensusCheck {
 	value := RemoveConsensusCheck{
 		ID: id,

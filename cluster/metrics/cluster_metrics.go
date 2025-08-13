@@ -1,3 +1,4 @@
+// Package clustermetrics reports cluster metrics via OpenTelemetry.
 package clustermetrics
 
 import (

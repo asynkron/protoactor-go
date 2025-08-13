@@ -1,3 +1,4 @@
+// Package middleware provides reusable actor middleware components.
 package middleware
 
 import (

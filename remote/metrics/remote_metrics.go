@@ -1,3 +1,4 @@
+// Package remotemetrics collects metrics for remote actors using OpenTelemetry.
 package remotemetrics
 
 import (

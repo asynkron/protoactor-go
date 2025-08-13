@@ -1,3 +1,4 @@
+// Package zk provides ZooKeeper-based cluster provider configuration.
 package zk
 
 import (

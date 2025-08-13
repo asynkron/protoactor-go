@@ -1,3 +1,4 @@
+// Package etcd contains options for configuring an etcd-based cluster provider.
 package etcd
 
 import (

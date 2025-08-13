@@ -1,3 +1,4 @@
+// Package opentracing integrates OpenTracing with Proto.Actor.
 package opentracing
 
 import (
