@@ -1,11 +1,16 @@
 package remote
 
 var (
-	ErrUnAvailable             = &ResponseError{ResponseStatusCodeUNAVAILABLE}
-	ErrTimeout                 = &ResponseError{ResponseStatusCodeTIMEOUT}
+	// ErrUnAvailable is returned when the remote endpoint is unavailable.
+	ErrUnAvailable = &ResponseError{ResponseStatusCodeUNAVAILABLE}
+	// ErrTimeout is returned when a remote call times out.
+	ErrTimeout = &ResponseError{ResponseStatusCodeTIMEOUT}
+	// ErrProcessNameAlreadyExist indicates a process name conflict.
 	ErrProcessNameAlreadyExist = &ResponseError{ResponseStatusCodePROCESSNAMEALREADYEXIST}
-	ErrDeadLetter              = &ResponseError{ResponseStatusCodeDeadLetter}
-	ErrUnknownError            = &ResponseError{ResponseStatusCodeERROR}
+	// ErrDeadLetter is returned when the target PID cannot be found.
+	ErrDeadLetter = &ResponseError{ResponseStatusCodeDeadLetter}
+	// ErrUnknownError represents an unspecified remote error.
+	ErrUnknownError = &ResponseError{ResponseStatusCodeERROR}
 )
 
 // ResponseError is an error type.

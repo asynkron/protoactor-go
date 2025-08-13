@@ -19,6 +19,7 @@ type endpointLazy struct {
 	address  string
 }
 
+// NewEndpointLazy creates an endpoint that connects to the remote address on first use.
 func NewEndpointLazy(em *endpointManager, address string) *endpointLazy {
 	return &endpointLazy{
 		manager: em,
