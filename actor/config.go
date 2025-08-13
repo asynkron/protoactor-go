@@ -16,6 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// Config holds configuration options for an ActorSystem.
 type Config struct {
 	DeadLetterThrottleInterval  time.Duration      // throttle deadletter logging after this interval
 	DeadLetterThrottleCount     int32              // throttle deadletter logging after this count
@@ -78,6 +79,7 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 	return provider
 }
 
+// NewConfig returns a configuration with default values.
 func NewConfig() *Config {
 	return defaultConfig()
 }

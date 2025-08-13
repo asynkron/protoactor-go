@@ -19,16 +19,19 @@ type Context interface {
 	extensionPart
 }
 
+// ExtensionContext exposes extension-related functionality for actors.
 type ExtensionContext interface {
 	extensionPart
 }
 
+// SenderContext provides context for sending messages.
 type SenderContext interface {
 	infoPart
 	senderPart
 	messagePart
 }
 
+// ReceiverContext provides context for receiving messages.
 type ReceiverContext interface {
 	infoPart
 	receiverPart
@@ -36,6 +39,7 @@ type ReceiverContext interface {
 	extensionPart
 }
 
+// SpawnerContext provides context for spawning child actors.
 type SpawnerContext interface {
 	infoPart
 	spawnerPart
