@@ -9,6 +9,7 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+// ProviderConfig holds configuration values for the in-memory test provider.
 type ProviderConfig struct {
 	// ServiceTtl is the time to live for services. Default: 3s
 	ServiceTtl time.Duration
@@ -18,6 +19,7 @@ type ProviderConfig struct {
 	DeregisterCritical time.Duration
 }
 
+// ProviderOption configures a test provider instance.
 type ProviderOption func(config *ProviderConfig)
 
 // WithTestProviderServiceTtl sets the service ttl. Default: 3s
@@ -41,6 +43,7 @@ func WithTestProviderDeregisterCritical(deregisterCritical time.Duration) Provid
 	}
 }
 
+// Provider implements cluster.ClusterProvider using an in-memory agent.
 type Provider struct {
 	memberList *cluster.MemberList
 	config     *ProviderConfig
@@ -51,6 +54,7 @@ type Provider struct {
 	cluster         *cluster.Cluster
 }
 
+// NewTestProvider creates a new Provider backed by the given in-memory agent.
 func NewTestProvider(agent *InMemAgent, options ...ProviderOption) *Provider {
 	config := &ProviderConfig{
 		ServiceTtl:         time.Second * 3,
@@ -66,6 +70,7 @@ func NewTestProvider(agent *InMemAgent, options ...ProviderOption) *Provider {
 	}
 }
 
+// StartMember starts the provider as a cluster member.
 func (t *Provider) StartMember(c *cluster.Cluster) error {
 
 	c.ActorSystem.Logger().Debug("start cluster member")
@@ -83,6 +88,7 @@ func (t *Provider) StartMember(c *cluster.Cluster) error {
 	return nil
 }
 
+// StartClient starts the provider in client mode without registering services.
 func (t *Provider) StartClient(cluster *cluster.Cluster) error {
 	t.memberList = cluster.MemberList
 	t.id = cluster.ActorSystem.ID
@@ -91,6 +97,7 @@ func (t *Provider) StartClient(cluster *cluster.Cluster) error {
 	return nil
 }
 
+// Shutdown stops the provider and deregisters its service.
 func (t *Provider) Shutdown(_ bool) error {
 	t.cluster.Logger().Debug("Unregistering service", slog.String("service", t.id))
 	if t.ttlReportTicker != nil {
@@ -130,6 +137,7 @@ func (t *Provider) startTtlReport() {
 	}()
 }
 
+// InMemAgent is a lightweight service registry used for testing.
 type InMemAgent struct {
 	services     map[string]AgentServiceStatus
 	servicesLock *sync.RWMutex
@@ -138,6 +146,7 @@ type InMemAgent struct {
 	statusUpdateHandlersLock *sync.RWMutex
 }
 
+// NewInMemAgent returns a new in-memory agent.
 func NewInMemAgent() *InMemAgent {
 	return &InMemAgent{
 		services:                 make(map[string]AgentServiceStatus),
@@ -202,6 +211,7 @@ func (m *InMemAgent) onStatusUpdate() {
 	}
 }
 
+// AgentServiceStatus contains metadata about a registered service.
 type AgentServiceStatus struct {
 	ID    string
 	TTL   time.Time // last alive time
@@ -221,6 +231,7 @@ func NewAgentServiceStatus(id string, host string, port int, kinds []string) Age
 	}
 }
 
+// Alive reports whether the service TTL has not expired.
 func (a AgentServiceStatus) Alive() bool {
 	return time.Now().Sub(a.TTL) <= (time.Second * 5)
 }

@@ -17,10 +17,13 @@ import (
 )
 
 const (
-	PubSubSubscriberKind        = "Subscriber"
+	// PubSubSubscriberKind is the cluster kind used for regular subscribers.
+	PubSubSubscriberKind = "Subscriber"
+	// PubSubTimeoutSubscriberKind is a subscriber kind that intentionally times out.
 	PubSubTimeoutSubscriberKind = "TimeoutSubscriber"
 )
 
+// PubSubClusterFixture simplifies setting up clusters for PubSub testing.
 type PubSubClusterFixture struct {
 	*BaseClusterFixture
 
@@ -33,6 +36,7 @@ type PubSubClusterFixture struct {
 	subscriberStore cluster.KeyValueStore[*cluster.Subscribers]
 }
 
+// NewPubSubClusterFixture creates a new fixture with the given cluster size.
 func NewPubSubClusterFixture(t testing.TB, clusterSize int, useDefaultTopicRegistration bool, opts ...ClusterFixtureOption) *PubSubClusterFixture {
 	lock := &sync.RWMutex{}
 	store := NewInMemorySubscriberStore()
@@ -69,6 +73,7 @@ func NewPubSubClusterFixture(t testing.TB, clusterSize int, useDefaultTopicRegis
 	return fixture
 }
 
+// RandomMember returns a random cluster member from the fixture.
 func (p *PubSubClusterFixture) RandomMember() *cluster.Cluster {
 	members := p.BaseClusterFixture.GetMembers()
 	return members[rand.Intn(len(members))]
@@ -203,26 +208,31 @@ func (p *PubSubClusterFixture) AppendDelivery(delivery Delivery) {
 	p.DeliveriesLock.Unlock()
 }
 
+// Delivery describes a message delivered to a subscriber.
 type Delivery struct {
 	Identity string
 	Data     int
 }
 
+// NewInMemorySubscriberStore returns an in-memory key-value store for subscribers.
 func NewInMemorySubscriberStore() *InMemorySubscribersStore[*cluster.Subscribers] {
 	return &InMemorySubscribersStore[*cluster.Subscribers]{
 		store: &sync.Map{},
 	}
 }
 
+// InMemorySubscribersStore provides a simple concurrent map-based storage.
 type InMemorySubscribersStore[T any] struct {
 	store *sync.Map // map[string]T
 }
 
+// Set stores the value for the given key.
 func (i *InMemorySubscribersStore[T]) Set(_ context.Context, key string, value T) error {
 	i.store.Store(key, value)
 	return nil
 }
 
+// Get retrieves the value for the given key.
 func (i *InMemorySubscribersStore[T]) Get(_ context.Context, key string) (T, error) {
 	var r T
 	value, ok := i.store.Load(key)
@@ -232,6 +242,7 @@ func (i *InMemorySubscribersStore[T]) Get(_ context.Context, key string) (T, err
 	return value.(T), nil
 }
 
+// Clear removes the value associated with the given key.
 func (i *InMemorySubscribersStore[T]) Clear(_ context.Context, key string) error {
 	i.store.Delete(key)
 	return nil

@@ -15,6 +15,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// ClusterFixture defines operations for managing a test cluster.
 type ClusterFixture interface {
 	GetMembers() []*cluster.Cluster
 	GetClusterSize() int
@@ -23,6 +24,7 @@ type ClusterFixture interface {
 	ShutDown()
 }
 
+// ClusterFixtureConfig holds configuration for building test clusters.
 type ClusterFixtureConfig struct {
 	GetClusterKinds    func() []*cluster.Kind
 	GetClusterProvider func() cluster.ClusterProvider
@@ -31,6 +33,7 @@ type ClusterFixtureConfig struct {
 	OnDeposing         func()
 }
 
+// ClusterFixtureOption configures a ClusterFixtureConfig.
 type ClusterFixtureOption func(*ClusterFixtureConfig)
 
 // WithGetClusterKinds sets the cluster kinds for the cluster fixture
@@ -68,8 +71,10 @@ func WithOnDeposing(onDeposing func()) ClusterFixtureOption {
 	}
 }
 
+// InvalidIdentity represents a non-existing actor identity used in tests.
 const InvalidIdentity string = "invalid"
 
+// BaseClusterFixture implements common functionality for cluster fixtures.
 type BaseClusterFixture struct {
 	clusterName string
 	clusterSize int
@@ -77,6 +82,7 @@ type BaseClusterFixture struct {
 	members     []*cluster.Cluster
 }
 
+// NewBaseClusterFixture creates a BaseClusterFixture with the given cluster size.
 func NewBaseClusterFixture(clusterSize int, opts ...ClusterFixtureOption) *BaseClusterFixture {
 	config := &ClusterFixtureConfig{
 		GetClusterKinds:    func() []*cluster.Kind { return make([]*cluster.Kind, 0) },
@@ -104,20 +110,24 @@ func (b *BaseClusterFixture) Initialize() {
 	b.members = append(b.members, nodes...)
 }
 
+// GetMembers returns the current cluster members.
 func (b *BaseClusterFixture) GetMembers() []*cluster.Cluster {
 	return b.members
 }
 
+// GetClusterSize returns the expected size of the cluster.
 func (b *BaseClusterFixture) GetClusterSize() int {
 	return b.clusterSize
 }
 
+// SpawnNode adds a new member to the cluster and returns it.
 func (b *BaseClusterFixture) SpawnNode() *cluster.Cluster {
 	node := b.spawnClusterMember()
 	b.members = append(b.members, node)
 	return node
 }
 
+// RemoveNode removes the given member from the cluster.
 func (b *BaseClusterFixture) RemoveNode(node *cluster.Cluster, graceful bool) {
 	has := false
 	for i, member := range b.members {
@@ -133,6 +143,7 @@ func (b *BaseClusterFixture) RemoveNode(node *cluster.Cluster, graceful bool) {
 	}
 }
 
+// ShutDown disposes the fixture and stops all members.
 func (b *BaseClusterFixture) ShutDown() {
 	b.config.OnDeposing()
 	b.waitForMembersToShutdown()

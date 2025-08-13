@@ -9,7 +9,9 @@ import (
 type RoleType int
 
 const (
+	// Follower indicates the node is not the leader.
 	Follower RoleType = iota
+	// Leader indicates the node currently holds leadership.
 	Leader
 )
 
@@ -30,10 +32,12 @@ type SingletonScheduler struct {
 	pids  []*actor.PID
 }
 
+// NewSingletonScheduler creates a new scheduler bound to the given root context.
 func NewSingletonScheduler(rc *actor.RootContext) *SingletonScheduler {
 	return &SingletonScheduler{root: rc}
 }
 
+// FromFunc registers an actor function to run when the node becomes leader.
 func (s *SingletonScheduler) FromFunc(f actor.ReceiveFunc) *SingletonScheduler {
 	s.Lock()
 	defer s.Unlock()
@@ -41,6 +45,7 @@ func (s *SingletonScheduler) FromFunc(f actor.ReceiveFunc) *SingletonScheduler {
 	return s
 }
 
+// FromProducer registers an actor producer to run when the node becomes leader.
 func (s *SingletonScheduler) FromProducer(f actor.Producer) *SingletonScheduler {
 	s.Lock()
 	defer s.Unlock()
@@ -48,6 +53,7 @@ func (s *SingletonScheduler) FromProducer(f actor.Producer) *SingletonScheduler 
 	return s
 }
 
+// OnRoleChanged reacts to leadership changes and spawns or poisons actors accordingly.
 func (s *SingletonScheduler) OnRoleChanged(rt RoleType) {
 	s.Lock()
 	defer s.Unlock()

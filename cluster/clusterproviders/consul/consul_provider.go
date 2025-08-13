@@ -13,8 +13,10 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+// ProviderShuttingDownError is returned when operations occur during provider shutdown.
 var ProviderShuttingDownError = fmt.Errorf("consul cluster provider is shutting down")
 
+// Provider integrates Consul as a cluster provider for Proto.Actor.
 type Provider struct {
 	cluster            *cluster.Cluster
 	deregistered       bool
@@ -36,10 +38,12 @@ type Provider struct {
 	consulConfig       *api.Config
 }
 
+// New creates a new Consul provider with default configuration.
 func New(opts ...Option) (*Provider, error) {
 	return NewWithConfig(&api.Config{}, opts...)
 }
 
+// NewWithConfig creates a new Consul provider using the supplied Consul config.
 func NewWithConfig(consulConfig *api.Config, opts ...Option) (*Provider, error) {
 	client, err := api.NewClient(consulConfig)
 	if err != nil {
@@ -78,6 +82,7 @@ func (p *Provider) init(c *cluster.Cluster) error {
 	return nil
 }
 
+// StartMember connects the provider to Consul and registers the node as a member.
 func (p *Provider) StartMember(c *cluster.Cluster) error {
 	err := p.init(c)
 	if err != nil {
@@ -95,6 +100,7 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 	return nil
 }
 
+// StartClient connects the provider to Consul without registering the node as a member.
 func (p *Provider) StartClient(c *cluster.Cluster) error {
 	if err := p.init(c); err != nil {
 		return err
@@ -104,6 +110,7 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 	return nil
 }
 
+// DeregisterMember removes the provider's service registration from Consul.
 func (p *Provider) DeregisterMember() error {
 	err := p.deregisterService()
 	if err != nil {
@@ -114,6 +121,7 @@ func (p *Provider) DeregisterMember() error {
 	return nil
 }
 
+// Shutdown stops the provider and its internal actor.
 func (p *Provider) Shutdown(graceful bool) error {
 	if p.shutdown {
 		return nil

@@ -15,6 +15,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
+// Provider uses etcd for cluster membership discovery.
 type Provider struct {
 	leaseID       clientv3.LeaseID
 	cluster       *cluster.Cluster
@@ -38,6 +39,7 @@ type Provider struct {
 	roleChangedListener RoleChangedListener
 }
 
+// New creates a provider with default etcd configuration.
 func New() (*Provider, error) {
 	return NewWithConfig("/protoactor", clientv3.Config{
 		Endpoints:   []string{"127.0.0.1:2379"},
@@ -45,6 +47,7 @@ func New() (*Provider, error) {
 	})
 }
 
+// NewWithConfig creates a provider using the specified etcd configuration.
 func NewWithConfig(baseKey string, cfg clientv3.Config, opts ...Option) (*Provider, error) {
 	c := defaultConfig()
 	WithBaseKey(baseKey)(c)
@@ -88,6 +91,7 @@ func (p *Provider) init(c *cluster.Cluster) error {
 	return nil
 }
 
+// StartMember registers the node in etcd and starts watching for updates.
 func (p *Provider) StartMember(c *cluster.Cluster) error {
 	if err := p.init(c); err != nil {
 		return err
@@ -114,6 +118,7 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 	return nil
 }
 
+// StartClient initializes the provider without registering the node.
 func (p *Provider) StartClient(c *cluster.Cluster) error {
 	if err := p.init(c); err != nil {
 		return err
@@ -129,6 +134,7 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 	return nil
 }
 
+// Shutdown deregisters the node and stops background tasks.
 func (p *Provider) Shutdown(graceful bool) error {
 	p.shutdown = true
 	if !p.deregistered {
@@ -460,6 +466,7 @@ func splitHostPort(addr string) (host string, port int, err error) {
 	return
 }
 
+// RegisterSingletonScheduler adds a singleton scheduler to be notified on role changes.
 func (p *Provider) RegisterSingletonScheduler(scheduler *SingletonScheduler) {
 	p.schedulers = append(p.schedulers, scheduler)
 }
