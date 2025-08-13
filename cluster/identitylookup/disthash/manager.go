@@ -5,6 +5,8 @@ import (
 	clustering "github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/eventstream"
 	"log/slog"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -69,11 +71,16 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 	pm.rdvMutex.Lock()
 	defer pm.rdvMutex.Unlock()
 
-	pm.cluster.Logger().Info("onClusterTopology", slog.Uint64("topology-hash", tplg.TopologyHash))
-
-	for _, m := range tplg.Members {
-		pm.cluster.Logger().Info("Got member", slog.Any("member", m))
+	// gather member addresses to provide a concise summary log while
+	// keeping detailed member data available at debug level
+	memberAddrs := make([]string, len(tplg.Members))
+	for i, m := range tplg.Members {
+		addr := m.Host + ":" + strconv.Itoa(int(m.Port))
+		pm.cluster.Logger().Debug("Topology member", slog.String("id", m.Id), slog.String("address", addr), slog.String("kinds", strings.Join(m.Kinds, ",")))
+		memberAddrs[i] = addr
 	}
+	// log the overall topology change in a single info log
+	pm.cluster.Logger().Info("onClusterTopology", slog.Uint64("topology-hash", tplg.TopologyHash), slog.Int("member-count", len(memberAddrs)), slog.String("members", strings.Join(memberAddrs, ",")))
 
 	pm.rdv = clustering.NewRendezvous()
 	pm.rdv.UpdateMembers(tplg.Members)
