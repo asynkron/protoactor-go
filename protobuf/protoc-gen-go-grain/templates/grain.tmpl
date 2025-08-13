@@ -62,19 +62,19 @@ type {{ $service.Name }}GrainClient struct {
 {{ range $method := .Methods}}
 {{ if $method.Options.Future -}}
 // {{ $method.Name }}Future return a future for the execution of {{ $method.Name }} on the cluster
-func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}Future(r *{{ $method.Input }}, opts ...cluster.GrainCallOption) (*actor.Future, error) {
+func (g *{{ $service.Name }}GrainClient) {{ $method.Name }}Future(r *{{ $method.Input }}, opts ...cluster.GrainCallOption) (actor.Future, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 
 	reqMsg := &cluster.GrainRequest{MethodIndex: {{ $method.Index }}, MessageData: bytes}
-	f, err := g.cluster.RequestFuture(g.Identity, "{{ $service.Name }}", reqMsg, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("error request future: %w", err)
-	}
+        f, err := g.cluster.RequestFuture(g.Identity, "{{ $service.Name }}", reqMsg, opts...)
+        if err != nil {
+                return nil, fmt.Errorf("error request future: %w", err)
+        }
 
-	return f, nil
+        return f, nil
 }
 {{ end }}
 // {{ $method.Name }} requests the execution on to the cluster with CallOptions

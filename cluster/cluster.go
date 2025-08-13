@@ -190,7 +190,7 @@ func (c *Cluster) Request(identity string, kind string, message interface{}, opt
 	return c.context.Request(identity, kind, message, option...)
 }
 
-func (c *Cluster) RequestFuture(identity string, kind string, message interface{}, option ...GrainCallOption) (*actor.Future, error) {
+func (c *Cluster) RequestFuture(identity string, kind string, message interface{}, option ...GrainCallOption) (actor.Future, error) {
 	return c.context.RequestFuture(identity, kind, message, option...)
 }
 

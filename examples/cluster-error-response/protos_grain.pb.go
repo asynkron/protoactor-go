@@ -84,7 +84,7 @@ type HelloGrainClient struct {
 }
 
 // ReenterableFuture return a future for the execution of Reenterable on the cluster
-func (g *HelloGrainClient) ReenterableFuture(r *ReenterableRequest, opts ...cluster.GrainCallOption) (*actor.Future, error) {
+func (g *HelloGrainClient) ReenterableFuture(r *ReenterableRequest, opts ...cluster.GrainCallOption) (actor.Future, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err

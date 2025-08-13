@@ -127,7 +127,7 @@ func (rc *RootContext) RequestWithCustomSender(pid *PID, message interface{}, se
 }
 
 // RequestFuture sends a message to a given PID and returns a Future.
-func (rc *RootContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) *Future {
+func (rc *RootContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) Future {
 	future := NewFuture(rc.actorSystem, timeout)
 	env := &MessageEnvelope{
 		Header:  nil,
@@ -201,8 +201,8 @@ func (rc *RootContext) Stop(pid *PID) {
 }
 
 // StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
-func (rc *RootContext) StopFuture(pid *PID) *Future {
-	future := NewFuture(rc.actorSystem, 10*time.Second)
+func (rc *RootContext) StopFuture(pid *PID) Future {
+	future := newFuture(rc.actorSystem, 10*time.Second)
 
 	pid.sendSystemMessage(rc.actorSystem, &Watch{Watcher: future.pid})
 	rc.Stop(pid)
@@ -216,8 +216,8 @@ func (rc *RootContext) Poison(pid *PID) {
 }
 
 // PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
-func (rc *RootContext) PoisonFuture(pid *PID) *Future {
-	future := NewFuture(rc.actorSystem, 10*time.Second)
+func (rc *RootContext) PoisonFuture(pid *PID) Future {
+	future := newFuture(rc.actorSystem, 10*time.Second)
 
 	pid.sendSystemMessage(rc.actorSystem, &Watch{Watcher: future.pid})
 	rc.Poison(pid)

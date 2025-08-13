@@ -53,7 +53,7 @@ func (r *Remote) ActivatorForAddress(address string) *actor.PID {
 }
 
 // SpawnFuture spawns a remote actor and returns a Future that completes once the actor is started
-func (r *Remote) SpawnFuture(address, name, kind string, timeout time.Duration) *actor.Future {
+func (r *Remote) SpawnFuture(address, name, kind string, timeout time.Duration) actor.Future {
 	activator := r.ActivatorForAddress(address)
 	f := r.actorSystem.Root.RequestFuture(activator, &ActorPidRequest{
 		Name: name,
