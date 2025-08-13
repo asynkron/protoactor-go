@@ -1,7 +1,9 @@
 package actor
 
-// The Producer type is a function that creates a new actor
+// Producer creates a new actor instance when invoked.
 type Producer func() Actor
+
+// ProducerWithActorSystem creates a new actor instance with access to the actor system.
 type ProducerWithActorSystem func(system *ActorSystem) Actor
 
 // Actor is the interface that defines the Receive method.
@@ -19,8 +21,11 @@ func (f ReceiveFunc) Receive(c Context) {
 	f(c)
 }
 
+// ReceiverFunc processes an incoming message envelope.
 type ReceiverFunc func(c ReceiverContext, envelope *MessageEnvelope)
 
+// SenderFunc processes an outgoing message envelope before delivery.
 type SenderFunc func(c SenderContext, target *PID, envelope *MessageEnvelope)
 
+// ContextDecoratorFunc modifies a context before it is used by an actor.
 type ContextDecoratorFunc func(ctx Context) Context

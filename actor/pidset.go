@@ -1,5 +1,6 @@
 package actor
 
+// PIDSet is a set of PIDs backed by a slice and lookup map.
 type PIDSet struct {
 	pids   []*PID
 	lookup map[pidKey]int
@@ -38,6 +39,7 @@ func (p *PIDSet) indexOf(v *PID) int {
 	return -1
 }
 
+// Contains reports whether v is present in the set.
 func (p *PIDSet) Contains(v *PID) bool {
 	_, ok := p.lookup[p.key(v)]
 	return ok
@@ -103,10 +105,12 @@ func (p *PIDSet) ForEach(f func(i int, pid *PID)) {
 	}
 }
 
+// Get returns the PID at the specified index.
 func (p *PIDSet) Get(index int) *PID {
 	return p.pids[index]
 }
 
+// Clone creates a shallow copy of the PID set.
 func (p *PIDSet) Clone() *PIDSet {
 	return NewPIDSet(p.pids...)
 }

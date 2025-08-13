@@ -11,7 +11,7 @@ const (
 	pidClusterIdentityStartIndex = len(placementActorName) + 1
 )
 
-// IdentityStorageLookup contains
+// IdentityStorageLookup connects identity storage with the cluster for locating actors.
 type IdentityStorageLookup struct {
 	Storage        StorageLookup
 	cluster        *Cluster
@@ -23,15 +23,15 @@ type IdentityStorageLookup struct {
 }
 
 func newIdentityStorageLookup(storage StorageLookup) *IdentityStorageLookup {
-	this := &IdentityStorageLookup{
+	isl := &IdentityStorageLookup{
 		Storage: storage,
 	}
-	return this
+	return isl
 }
 
 // RemoveMember from identity storage
-func (i *IdentityStorageLookup) RemoveMember(memberID string) {
-	i.Storage.RemoveMemberId(memberID)
+func (isl *IdentityStorageLookup) RemoveMember(memberID string) {
+	isl.Storage.RemoveMemberId(memberID)
 }
 
 // RemotePlacementActor returns the PID of the remote placement actor
@@ -44,20 +44,20 @@ func RemotePlacementActor(address string) *actor.PID {
 //
 
 // Get returns a PID for a given ClusterIdentity
-func (id *IdentityStorageLookup) Get(clusterIdentity *ClusterIdentity) *actor.PID {
+func (isl *IdentityStorageLookup) Get(clusterIdentity *ClusterIdentity) *actor.PID {
 	msg := newGetPid(clusterIdentity)
 	timeout := 5 * time.Second
 
-	res, _ := id.system.Root.RequestFuture(id.router, msg, timeout).Result()
+	res, _ := isl.system.Root.RequestFuture(isl.router, msg, timeout).Result()
 	response := res.(actor.Future)
 
 	return response.PID()
 }
 
-func (id *IdentityStorageLookup) Setup(cluster *Cluster, kinds []string, isClient bool) {
-	id.cluster = cluster
-	id.system = cluster.ActorSystem
-	id.memberID = cluster.ActorSystem.ID
+func (isl *IdentityStorageLookup) Setup(cluster *Cluster, _ []string, _ bool) {
+	isl.cluster = cluster
+	isl.system = cluster.ActorSystem
+	isl.memberID = cluster.ActorSystem.ID
 
 	// workerProps := actor.PropsFromProducer(func() actor.Actor { return newIdentityStorageWorker(identity) })
 

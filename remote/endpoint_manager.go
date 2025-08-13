@@ -19,8 +19,8 @@ type endpointLazy struct {
 	address  string
 }
 
-// NewEndpointLazy creates an endpoint that connects to the remote address on first use.
-func NewEndpointLazy(em *endpointManager, address string) *endpointLazy {
+// newEndpointLazy creates an endpoint that connects to the remote address on first use.
+func newEndpointLazy(em *endpointManager, address string) *endpointLazy {
 	return &endpointLazy{
 		manager: em,
 		address: address,
@@ -216,7 +216,7 @@ func (em *endpointManager) remoteDeliver(msg *remoteDeliver) {
 func (em *endpointManager) ensureConnected(address string) *endpoint {
 	e, ok := em.connections.Load(address)
 	if !ok {
-		el := NewEndpointLazy(em, address)
+		el := newEndpointLazy(em, address)
 		e, _ = em.connections.LoadOrStore(address, el)
 	}
 	el := e.(*endpointLazy)
@@ -281,7 +281,7 @@ func (state *endpointSupervisor) Receive(ctx actor.Context) {
 	}
 }
 
-func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, supervisor actor.Supervisor, child *actor.PID, rs *actor.RestartStatistics, reason interface{}, message interface{}) {
+func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, supervisor actor.Supervisor, child *actor.PID, _ *actor.RestartStatistics, reason interface{}, message interface{}) {
 	actorSystem.Logger().Debug("EndpointSupervisor handling failure", slog.Any("reason", reason), slog.Any("message", message))
 	// use restart will cause a start loop, just stop it for now
 	// supervisor.RestartChildren(child)

@@ -66,7 +66,7 @@ const (
 	digits = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~+"
 )
 
-func uint64ToId(u uint64) string {
+func uint64ToID(u uint64) string {
 	var buf [13]byte
 	i := 13
 	// base is power of 2: use shifts and masks instead of / and %
@@ -84,11 +84,11 @@ func uint64ToId(u uint64) string {
 	return string(buf[i:])
 }
 
-// NextId returns the next unique process identifier.
-func (pr *ProcessRegistryValue) NextId() string {
+// NextID returns the next unique process identifier.
+func (pr *ProcessRegistryValue) NextID() string {
 	counter := atomic.AddUint64(&pr.SequenceID, 1)
 
-	return uint64ToId(counter)
+	return uint64ToID(counter)
 }
 
 // Add registers a process with the given id and returns its PID.

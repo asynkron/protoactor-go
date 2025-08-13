@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStart(t *testing.T) {
+func TestStart(_ *testing.T) {
 	system := actor.NewActorSystem()
 	config := Configure("localhost", 0)
 	remote := NewRemote(system, config)

@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/grpclog"
 )
 
-var extensionId = extensions.NextExtensionID()
+var extensionID = extensions.NextExtensionID()
 
 // Remote enables communication between actors across network boundaries.
 type Remote struct {
@@ -57,14 +57,14 @@ func NewRemote(actorSystem *actor.ActorSystem, config *Config) *Remote {
 //
 //goland:noinspection GoUnusedExportedFunction
 func GetRemote(actorSystem *actor.ActorSystem) *Remote {
-	r := actorSystem.Extensions.Get(extensionId)
+	r := actorSystem.Extensions.Get(extensionID)
 
 	return r.(*Remote)
 }
 
 // ExtensionID returns the unique ID of the Remote extension.
 func (r *Remote) ExtensionID() extensions.ExtensionID {
-	return extensionId
+	return extensionID
 }
 
 // BlockList returns the list of blocked members.

@@ -40,6 +40,7 @@ func TestRemoteMetrics(t *testing.T) {
 	remote2.Register("echo", actor.PropsFromFunc(func(ctx actor.Context) {
 		if _, ok := ctx.Message().(*remote.ActorPidRequest); ok {
 			// no-op
+			return
 		}
 	}))
 	remote2.Start()

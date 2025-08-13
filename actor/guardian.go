@@ -33,7 +33,7 @@ func (gs *guardiansValue) newGuardian(s SupervisorStrategy) *guardianProcess {
 		strategy:  s,
 		guardians: gs,
 	}
-	id := gs.actorSystem.ProcessRegistry.NextId()
+	id := gs.actorSystem.ProcessRegistry.NextID()
 
 	pid, ok := gs.actorSystem.ProcessRegistry.Add(ref, "guardian"+id)
 	if !ok {

@@ -10,6 +10,9 @@ import (
 	"github.com/lithammer/shortuuid/v4"
 )
 
+// ActorSystem is the runtime environment that hosts actors and manages their
+// execution, supervision, and system-wide services.
+//
 //goland:noinspection GoNameStartsWithPackageName
 type ActorSystem struct {
 	ProcessRegistry *ProcessRegistryValue
@@ -24,14 +27,17 @@ type ActorSystem struct {
 	logger          *slog.Logger
 }
 
+// Logger returns the logger associated with the actor system.
 func (as *ActorSystem) Logger() *slog.Logger {
 	return as.logger
 }
 
+// NewLocalPID creates a PID for a local actor with the given id.
 func (as *ActorSystem) NewLocalPID(id string) *PID {
 	return NewPID(as.ProcessRegistry.Address, id)
 }
 
+// Address returns the network address of the actor system.
 func (as *ActorSystem) Address() string {
 	return as.ProcessRegistry.Address
 }
@@ -66,12 +72,16 @@ func (as *ActorSystem) IsStopped() bool {
 	}
 }
 
+// NewActorSystem creates a new actor system with optional configuration
+// options.
 func NewActorSystem(options ...ConfigOption) *ActorSystem {
 	config := Configure(options...)
 
 	return NewActorSystemWithConfig(config)
 }
 
+// NewActorSystemWithConfig creates a new actor system using an explicit
+// configuration struct.
 func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system := &ActorSystem{}
 	system.ID = shortuuid.New()

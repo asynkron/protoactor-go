@@ -36,7 +36,7 @@ type restartAfterConnectFailure struct {
 	err error
 }
 
-func (state *endpointWriter) initialize(ctx actor.Context) {
+func (state *endpointWriter) initialize(_ actor.Context) {
 	now := time.Now()
 
 	state.remote.Logger().Info("Started EndpointWriter. connecting", slog.String("address", state.address))
@@ -288,23 +288,23 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 }
 
 func addToLookup(m map[string]int32, name string, a []string) (int32, []string) {
-	max := int32(len(m))
+	maxIdx := int32(len(m))
 	id, ok := m[name]
 	if !ok {
-		m[name] = max
-		id = max
+		m[name] = maxIdx
+		id = maxIdx
 		a = append(a, name)
 	}
 	return id, a
 }
 
 func addToTargetLookup(m map[string]int32, pid *actor.PID, arr []string) (int32, []string) {
-	max := int32(len(m))
+	maxIdx := int32(len(m))
 	key := pid.Address + "/" + pid.Id
 	id, ok := m[key]
 	if !ok {
-		m[key] = max
-		id = max
+		m[key] = maxIdx
+		id = maxIdx
 		arr = append(arr, pid.Id)
 	}
 	return id, arr
@@ -315,14 +315,14 @@ func addToSenderLookup(m map[string]int32, pid *actor.PID, arr []*actor.PID) (in
 		return 0, arr
 	}
 
-	max := int32(len(m))
+	maxIdx := int32(len(m))
 	key := pid.Address + "/" + pid.Id
 	id, ok := m[key]
 	if !ok {
 		c, _ := proto.Clone(pid).(*actor.PID)
 		c.RequestId = 0
-		m[key] = max
-		id = max
+		m[key] = maxIdx
+		id = maxIdx
 		arr = append(arr, c)
 	}
 	return id + 1, arr

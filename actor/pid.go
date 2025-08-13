@@ -54,6 +54,8 @@ func (pid *PID) sendSystemMessage(actorSystem *ActorSystem, message interface{})
 	pid.ref(actorSystem).SendSystemMessage(pid, message)
 }
 
+// Equal reports whether two PIDs refer to the same actor instance.
+//
 //goland:noinspection GoReceiverNames.
 func (pid *PID) Equal(other *PID) bool {
 	if pid != nil && other == nil {

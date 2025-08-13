@@ -15,11 +15,14 @@ type KeyValueStore[T any] interface {
 // EmptyKeyValueStore is a key value store that does nothing.
 type EmptyKeyValueStore[T any] struct{}
 
+// Set discards the key and value and always returns nil.
 func (e *EmptyKeyValueStore[T]) Set(_ context.Context, _ string, _ T) error { return nil }
 
+// Get always returns the zero value for T and no error.
 func (e *EmptyKeyValueStore[T]) Get(_ context.Context, _ string) (T, error) {
 	var r T
 	return r, nil
 }
 
+// Clear is a no-op that always returns nil.
 func (e *EmptyKeyValueStore[T]) Clear(_ context.Context, _ string) error { return nil }

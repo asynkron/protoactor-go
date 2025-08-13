@@ -11,10 +11,10 @@ import (
 
 // ProviderConfig holds configuration values for the in-memory test provider.
 type ProviderConfig struct {
-	// ServiceTtl is the time to live for services. Default: 3s
-	ServiceTtl time.Duration
-	// RefreshTtl is the time between refreshes of the service ttl. Default: 1s
-	RefreshTtl time.Duration
+	// ServiceTTL is the time to live for services. Default: 3s
+	ServiceTTL time.Duration
+	// RefreshTTL is the time between refreshes of the service ttl. Default: 1s
+	RefreshTTL time.Duration
 	// DeregisterCritical is the time after which a service is deregistered if it is not refreshed. Default: 10s
 	DeregisterCritical time.Duration
 }
@@ -22,17 +22,17 @@ type ProviderConfig struct {
 // ProviderOption configures a test provider instance.
 type ProviderOption func(config *ProviderConfig)
 
-// WithTestProviderServiceTtl sets the service ttl. Default: 3s
-func WithTestProviderServiceTtl(serviceTtl time.Duration) ProviderOption {
+// WithTestProviderServiceTTL sets the service ttl. Default: 3s
+func WithTestProviderServiceTTL(serviceTTL time.Duration) ProviderOption {
 	return func(config *ProviderConfig) {
-		config.ServiceTtl = serviceTtl
+		config.ServiceTTL = serviceTTL
 	}
 }
 
-// WithTestProviderRefreshTtl sets the refresh ttl. Default: 1s
-func WithTestProviderRefreshTtl(refreshTtl time.Duration) ProviderOption {
+// WithTestProviderRefreshTTL sets the refresh ttl. Default: 1s
+func WithTestProviderRefreshTTL(refreshTTL time.Duration) ProviderOption {
 	return func(config *ProviderConfig) {
-		config.RefreshTtl = refreshTtl
+		config.RefreshTTL = refreshTTL
 	}
 }
 
@@ -57,8 +57,8 @@ type Provider struct {
 // NewTestProvider creates a new Provider backed by the given in-memory agent.
 func NewTestProvider(agent *InMemAgent, options ...ProviderOption) *Provider {
 	config := &ProviderConfig{
-		ServiceTtl:         time.Second * 3,
-		RefreshTtl:         time.Second,
+		ServiceTTL:         time.Second * 3,
+		RefreshTTL:         time.Second,
 		DeregisterCritical: time.Second * 10,
 	}
 	for _, option := range options {
@@ -82,7 +82,7 @@ func (t *Provider) StartMember(c *cluster.Cluster) error {
 	kinds := c.GetClusterKinds()
 	t.cluster = c
 	t.id = c.ActorSystem.ID
-	t.startTtlReport()
+	t.startTTLReport()
 	t.agent.SubscribeStatusUpdate(t.notifyStatuses)
 	t.agent.RegisterService(NewAgentServiceStatus(t.id, host, port, kinds))
 	return nil
@@ -127,9 +127,9 @@ func (t *Provider) notifyStatuses() {
 	t.memberList.UpdateClusterTopology(members)
 }
 
-// startTtlReport starts the ttl report loop.
-func (t *Provider) startTtlReport() {
-	t.ttlReportTicker = time.NewTicker(t.config.RefreshTtl)
+// startTTLReport starts the ttl report loop.
+func (t *Provider) startTTLReport() {
+	t.ttlReportTicker = time.NewTicker(t.config.RefreshTTL)
 	go func() {
 		for range t.ttlReportTicker.C {
 			t.agent.RefreshServiceTTL(t.id)
