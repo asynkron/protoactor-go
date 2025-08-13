@@ -7,6 +7,9 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 )
 
+// testTimeout is generously long to reduce flakiness on busy CI systems.
+const testTimeout = 5 * time.Second
+
 // spawnRoutee creates an actor that responds with its id for each int message.
 func spawnRoutee(id int) *actor.PID {
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
@@ -19,7 +22,7 @@ func spawnRoutee(id int) *actor.PID {
 
 // request sends msg to pid and waits for an int response.
 func request(t *testing.T, pid *actor.PID, msg interface{}) int {
-	f := system.Root.RequestFuture(pid, msg, time.Second)
+	f := system.Root.RequestFuture(pid, msg, testTimeout)
 	res, err := f.Result()
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
@@ -90,7 +93,7 @@ func TestRoundRobinGroupRouter_AddAndRemoveRoutees(t *testing.T) {
 	r2 := spawnRoutee(2)
 	defer system.Root.Stop(r2)
 	system.Root.Send(routerPID, &AddRoutee{PID: r2})
-	if _, err := system.Root.RequestFuture(routerPID, &GetRoutees{}, time.Second).Result(); err != nil {
+	if _, err := system.Root.RequestFuture(routerPID, &GetRoutees{}, testTimeout).Result(); err != nil {
 		t.Fatalf("waiting for AddRoutee failed: %v", err)
 	}
 
@@ -114,7 +117,7 @@ func TestRoundRobinGroupRouter_AddAndRemoveRoutees(t *testing.T) {
 
 	// remove one routee
 	system.Root.Send(routerPID, &RemoveRoutee{PID: r1})
-	if _, err := system.Root.RequestFuture(routerPID, &GetRoutees{}, time.Second).Result(); err != nil {
+	if _, err := system.Root.RequestFuture(routerPID, &GetRoutees{}, testTimeout).Result(); err != nil {
 		t.Fatalf("waiting for RemoveRoutee failed: %v", err)
 	}
 
