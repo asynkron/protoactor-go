@@ -10,12 +10,16 @@ type ResumeMailbox struct{}
 // This will not be forwarded to the Receive method
 type SuspendMailbox struct{}
 
+// MailboxMessage marks a message that can be processed by a mailbox.
 type MailboxMessage interface {
 	MailboxMessage()
 }
 
+// MailboxMessage implements the MailboxMessage interface.
 func (*SuspendMailbox) MailboxMessage() {}
-func (*ResumeMailbox) MailboxMessage()  {}
+
+// MailboxMessage implements the MailboxMessage interface.
+func (*ResumeMailbox) MailboxMessage() {}
 
 // InfrastructureMessage is a marker for all built in Proto.Actor messages
 type InfrastructureMessage interface {
@@ -73,24 +77,47 @@ type continuation struct {
 	f       func()
 }
 
+// GetAutoResponse returns the auto-response for a Touch message.
 func (*Touch) GetAutoResponse(ctx Context) interface{} {
 	return &Touched{
 		Who: ctx.Self(),
 	}
 }
 
+// AutoReceiveMessage marks Restarting as an automatically handled message.
 func (*Restarting) AutoReceiveMessage() {}
-func (*Stopping) AutoReceiveMessage()   {}
-func (*Stopped) AutoReceiveMessage()    {}
+
+// AutoReceiveMessage marks Stopping as an automatically handled message.
+func (*Stopping) AutoReceiveMessage() {}
+
+// AutoReceiveMessage marks Stopped as an automatically handled message.
+func (*Stopped) AutoReceiveMessage() {}
+
+// AutoReceiveMessage marks PoisonPill as an automatically handled message.
 func (*PoisonPill) AutoReceiveMessage() {}
 
-func (*Started) SystemMessage()      {}
-func (*Stop) SystemMessage()         {}
-func (*Watch) SystemMessage()        {}
-func (*Unwatch) SystemMessage()      {}
-func (*Terminated) SystemMessage()   {}
-func (*Failure) SystemMessage()      {}
-func (*Restart) SystemMessage()      {}
+// SystemMessage marks Started as a system message.
+func (*Started) SystemMessage() {}
+
+// SystemMessage marks Stop as a system message.
+func (*Stop) SystemMessage() {}
+
+// SystemMessage marks Watch as a system message.
+func (*Watch) SystemMessage() {}
+
+// SystemMessage marks Unwatch as a system message.
+func (*Unwatch) SystemMessage() {}
+
+// SystemMessage marks Terminated as a system message.
+func (*Terminated) SystemMessage() {}
+
+// SystemMessage marks Failure as a system message.
+func (*Failure) SystemMessage() {}
+
+// SystemMessage marks Restart as a system message.
+func (*Restart) SystemMessage() {}
+
+// SystemMessage marks continuation as a system message.
 func (*continuation) SystemMessage() {}
 
 var (

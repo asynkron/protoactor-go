@@ -8,6 +8,7 @@ import (
 	cmap "github.com/orcaman/concurrent-map"
 )
 
+// ProcessRegistryValue tracks processes within an actor system.
 type ProcessRegistryValue struct {
 	SequenceID     uint64
 	ActorSystem    *ActorSystem
@@ -16,6 +17,7 @@ type ProcessRegistryValue struct {
 	RemoteHandlers []AddressResolver
 }
 
+// SliceMap is a sharded map for storing local PIDs.
 type SliceMap struct {
 	LocalPIDs []cmap.ConcurrentMap
 }
@@ -31,6 +33,7 @@ func newSliceMap() *SliceMap {
 	return sm
 }
 
+// GetBucket returns the shard bucket for the given key.
 func (s *SliceMap) GetBucket(key string) cmap.ConcurrentMap {
 	hash := murmur32.Sum32([]byte(key))
 	index := int(hash) % len(s.LocalPIDs)
@@ -42,6 +45,7 @@ const (
 	localAddress = "nonhost"
 )
 
+// NewProcessRegistry creates a new process registry for the actor system.
 func NewProcessRegistry(actorSystem *ActorSystem) *ProcessRegistryValue {
 	return &ProcessRegistryValue{
 		ActorSystem: actorSystem,
@@ -53,6 +57,7 @@ func NewProcessRegistry(actorSystem *ActorSystem) *ProcessRegistryValue {
 // An AddressResolver is used to resolve remote actors
 type AddressResolver func(*PID) (Process, bool)
 
+// RegisterAddressResolver adds a resolver for remote addresses.
 func (pr *ProcessRegistryValue) RegisterAddressResolver(handler AddressResolver) {
 	pr.RemoteHandlers = append(pr.RemoteHandlers, handler)
 }
@@ -79,12 +84,14 @@ func uint64ToId(u uint64) string {
 	return string(buf[i:])
 }
 
+// NextId returns the next unique process identifier.
 func (pr *ProcessRegistryValue) NextId() string {
 	counter := atomic.AddUint64(&pr.SequenceID, 1)
 
 	return uint64ToId(counter)
 }
 
+// Add registers a process with the given id and returns its PID.
 func (pr *ProcessRegistryValue) Add(process Process, id string) (*PID, bool) {
 	bucket := pr.LocalPIDs.GetBucket(id)
 
@@ -94,6 +101,7 @@ func (pr *ProcessRegistryValue) Add(process Process, id string) (*PID, bool) {
 	}, bucket.SetIfAbsent(id, process)
 }
 
+// Remove deletes the process with the given PID from the registry.
 func (pr *ProcessRegistryValue) Remove(pid *PID) {
 	bucket := pr.LocalPIDs.GetBucket(pid.Id)
 
@@ -103,6 +111,7 @@ func (pr *ProcessRegistryValue) Remove(pid *PID) {
 	}
 }
 
+// Get retrieves a process by PID, checking remote handlers if needed.
 func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {
 	if pid == nil {
 		return pr.ActorSystem.DeadLetter, false
@@ -129,6 +138,7 @@ func (pr *ProcessRegistryValue) Get(pid *PID) (Process, bool) {
 	return ref.(Process), true
 }
 
+// GetLocal retrieves a local process by id.
 func (pr *ProcessRegistryValue) GetLocal(id string) (Process, bool) {
 	bucket := pr.LocalPIDs.GetBucket(id)
 	ref, ok := bucket.Get(id)
