@@ -27,6 +27,11 @@ jobs:
           cache: true
       - name: start services
         run: docker compose up -d
+      - name: build
+        run: go build ./...
+      - name: build examples
+        run: |
+          find ./examples -name go.mod -execdir sh -c 'go mod tidy && go build ./...' \;
       - name: run testcases
         run: make test2
       - name: benchmark
