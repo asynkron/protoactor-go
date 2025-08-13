@@ -89,7 +89,8 @@ func (l *fakeIdentityLookup) Get(identity *ClusterIdentity) *actor.PID {
 	// if the kind is registered, spawn the actor on first lookup
 	if l.cluster != nil {
 		if kind := l.cluster.GetClusterKind(identity.Kind); kind != nil {
-			pid, err := l.cluster.ActorSystem.Root.SpawnNamed(kind.Props, identity.Identity)
+			props := WithClusterIdentity(kind.Props, identity)
+			pid, err := l.cluster.ActorSystem.Root.SpawnNamed(props, identity.Identity)
 			if err == nil {
 				l.m.Store(identity.Identity, pid)
 				return pid
