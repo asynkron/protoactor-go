@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -13,7 +12,8 @@ import (
 
 // testProvider implements an in-memory ClusterProvider used only by tests.
 // Tests use it to manually manage the member list so topology changes and
-// recoveries can be simulated without real networking.
+// recoveries can be simulated without real networking. Members are keyed by
+// their ActorSystem IDs so a restarted node is treated as a brand new member.
 type testProvider struct {
 	mu       sync.Mutex
 	members  map[string]*Member
@@ -41,10 +41,11 @@ func (p *testProvider) publish() {
 
 // StartMember registers the given cluster with the provider and immediately
 // publishes the updated topology. Tests call this to simulate a node joining
-// the cluster.
+// the cluster. A member's ID is its ActorSystem's unique ID, matching the real
+// cluster providers' behaviour.
 func (p *testProvider) StartMember(c *Cluster) error {
 	host, port, _ := c.ActorSystem.GetHostPort()
-	self := &Member{Host: host, Port: int32(port), Id: fmt.Sprintf("%s@%s:%d", c.Config.Name, host, port), Kinds: c.GetClusterKinds()}
+	self := &Member{Host: host, Port: int32(port), Id: c.ActorSystem.ID, Kinds: c.GetClusterKinds()}
 	p.mu.Lock()
 	p.members[self.Id] = self
 	p.clusters = append(p.clusters, c)
@@ -63,16 +64,16 @@ func (p *testProvider) Shutdown(bool) error { return nil }
 // removeCluster deletes the cluster from the member list and broadcasts the
 // change. Tests use it to simulate a node failure.
 func (p *testProvider) removeCluster(c *Cluster) {
-	host, port, _ := c.ActorSystem.GetHostPort()
-	id := fmt.Sprintf("%s@%s:%d", c.Config.Name, host, port)
+	id := c.ActorSystem.ID
 	p.mu.Lock()
 	delete(p.members, id)
 	p.mu.Unlock()
 	p.publish()
 }
 
-// membershipRecovery restarts a previously stopped cluster node and
-// re-registers it with the test provider to mimic a recovered member.
+// membershipRecovery starts the supplied cluster node. Tests invoke this on a
+// freshly created cluster instance to mimic a rebooted member rejoining with a
+// new ActorSystem ID.
 func membershipRecovery(c *Cluster) {
 	c.StartMember()
 }
@@ -108,12 +109,12 @@ func TestCluster_MembershipRecovery(t *testing.T) {
 	prov.removeCluster(c2)
 	c2.Shutdown(true)
 
-	fut = c1.ActorSystem.Root.RequestFuture(pid2, &emptypb.Empty{}, 200*time.Millisecond)
-	_, err = fut.Result()
-	assert.Error(t, err)
+	// the provider broadcasts the removal which clears the PID cache
+	_, ok = c1.PidCache.Get("echo", "echo")
+	assert.False(t, ok)
 	assert.Equal(t, 1, c1.MemberList.Length())
 
-	// node recovers with a fresh cluster instance
+	// node recovers with a fresh cluster instance and new system ID
 	c2a := newClusterForTest("node2", prov, WithKinds(kind))
 	membershipRecovery(c2a)
 	pid2a, err := c2a.ActorSystem.Root.SpawnNamed(kind.Props, "echo")
