@@ -79,3 +79,81 @@ func TestActorDeadLettersAfterStop(t *testing.T) {
 
 	system.EventStream.Unsubscribe(sub)
 }
+
+type forwardingParent struct {
+	childProps *Props
+	child      *PID
+}
+
+func (p *forwardingParent) Receive(ctx Context) {
+	switch ctx.Message().(type) {
+	case *Started:
+		p.child = ctx.Spawn(p.childProps)
+	case int, string:
+		ctx.Send(p.child, ctx.Message())
+	}
+}
+
+// TestSupervisorHandlesChildPanicUnderLoad verifies that a parent actor with a
+// supervision strategy restarts a failing child under concurrent message load
+// without losing messages or entering an inconsistent state.
+func TestSupervisorHandlesChildPanicUnderLoad(t *testing.T) {
+	system := NewActorSystem()
+
+	const total = 100
+	var processed int32
+	done := make(chan struct{})
+
+	childProps := PropsFromFunc(func(ctx Context) {
+		switch ctx.Message().(type) {
+		case int:
+			if atomic.AddInt32(&processed, 1) == total {
+				close(done)
+			}
+		case string:
+			panic("boom")
+		}
+	})
+
+	var restarts int32
+	decider := func(reason interface{}) Directive {
+		atomic.AddInt32(&restarts, 1)
+		return RestartDirective
+	}
+	supervisor := NewOneForOneStrategy(10, time.Second, decider)
+
+	parentProps := PropsFromProducer(func() Actor {
+		return &forwardingParent{childProps: childProps}
+	}, WithSupervisor(supervisor))
+
+	pid := system.Root.Spawn(parentProps)
+
+	workers := 10
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < total/workers; j++ {
+				system.Root.Send(pid, j)
+			}
+		}()
+	}
+
+	// inject a failure while other messages are in flight
+	system.Root.Send(pid, "panic")
+
+	wg.Wait()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatalf("timeout waiting for messages, processed %d", atomic.LoadInt32(&processed))
+	}
+
+	if atomic.LoadInt32(&restarts) != 1 {
+		t.Fatalf("expected 1 restart, got %d", atomic.LoadInt32(&restarts))
+	}
+
+	_ = system.Root.StopFuture(pid).Wait()
+}
