@@ -99,8 +99,8 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 	if clusterKind == nil {
 		ctx.Logger().Error("Unknown cluster kind", slog.String("kind", msg.ClusterIdentity.Kind))
 
-		// TODO: what to do here?
-		ctx.Respond(nil)
+		// Reply with a failed activation so callers can handle the error.
+		ctx.Respond(&clustering.ActivationResponse{Failed: true})
 		return
 	}
 

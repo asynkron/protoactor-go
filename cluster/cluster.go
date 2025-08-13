@@ -182,6 +182,8 @@ func (c *Cluster) Shutdown(graceful bool) {
 	c.Logger().Info("Stopped Proto.Actor cluster", slog.String("address", address))
 }
 
+// Get resolves the PID for the given identity and kind.
+// It returns nil if the kind is not registered or the activation fails.
 func (c *Cluster) Get(identity string, kind string) *actor.PID {
 	return c.IdentityLookup.Get(NewClusterIdentity(identity, kind))
 }
