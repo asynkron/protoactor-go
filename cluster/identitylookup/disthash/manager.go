@@ -1,6 +1,7 @@
 package disthash
 
 import (
+	"fmt"
 	"github.com/asynkron/protoactor-go/actor"
 	clustering "github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/eventstream"
@@ -81,14 +82,16 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 }
 
 // Get resolves the PID responsible for the given cluster identity.
-func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
+// It logs unexpected errors and responses for easier troubleshooting.
+// Consider changing the signature to return an error if callers can handle it.
+func (pm *Manager) Get(identity *clustering.ClusterIdentity) (*actor.PID, error) {
 	pm.rdvMutex.RLock()
 	defer pm.rdvMutex.RUnlock()
 
 	ownerAddress := pm.rdv.GetByClusterIdentity(identity)
 
 	if ownerAddress == "" {
-		return nil
+		return nil, nil
 	}
 
 	identityOwnerPid := pm.PidOfActivatorActor(ownerAddress)
@@ -99,11 +102,13 @@ func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
 	future := pm.cluster.ActorSystem.Root.RequestFuture(identityOwnerPid, request, 5*time.Second)
 	res, err := future.Result()
 	if err != nil {
-		return nil
+		pm.cluster.Logger().Error("Activation request failed", slog.Any("error", err))
+		return nil, err
 	}
 	typed, ok := res.(*clustering.ActivationResponse)
 	if !ok {
-		return nil
+		pm.cluster.Logger().Error("Unexpected activation response", slog.Any("response", res))
+		return nil, fmt.Errorf("unexpected activation response of type %T", res)
 	}
-	return typed.Pid
+	return typed.Pid, nil
 }

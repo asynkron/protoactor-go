@@ -4,6 +4,7 @@ package disthash
 import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
+	"log/slog"
 )
 
 // IdentityLookup resolves cluster identities to actor PIDs using a partition manager.
@@ -12,8 +13,13 @@ type IdentityLookup struct {
 }
 
 // Get returns the PID for the given cluster identity if it exists.
+// Errors from the underlying partition manager are logged.
 func (p *IdentityLookup) Get(clusterIdentity *cluster.ClusterIdentity) *actor.PID {
-	return p.partitionManager.Get(clusterIdentity)
+	pid, err := p.partitionManager.Get(clusterIdentity)
+	if err != nil {
+		p.partitionManager.cluster.Logger().Error("Partition manager lookup failed", slog.Any("error", err))
+	}
+	return pid
 }
 
 // RemovePid removes a PID from the cluster identity registry.

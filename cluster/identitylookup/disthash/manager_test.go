@@ -55,7 +55,7 @@ func TestManagerConcurrentAccess(t *testing.T) {
 				Identity: "test",
 				Kind:     "test",
 			}
-			_ = manager.Get(identity)
+			_, _ = manager.Get(identity)
 		}
 	}()
 
