@@ -1,3 +1,4 @@
+// Package etcd provides an etcd-based cluster provider.
 package etcd
 
 import (
@@ -135,7 +136,7 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 }
 
 // Shutdown deregisters the node and stops background tasks.
-func (p *Provider) Shutdown(graceful bool) error {
+func (p *Provider) Shutdown(_ bool) error {
 	p.shutdown = true
 	if !p.deregistered {
 		p.updateLeadership()
@@ -153,7 +154,7 @@ func (p *Provider) Shutdown(graceful bool) error {
 	return nil
 }
 
-func (p *Provider) keepAliveForever(ctx context.Context) error {
+func (p *Provider) keepAliveForever(_ context.Context) error {
 	if p.self == nil {
 		return fmt.Errorf("keepalive must be after initialize")
 	}
@@ -164,21 +165,21 @@ func (p *Provider) keepAliveForever(ctx context.Context) error {
 	}
 	fullKey := p.getEtcdKey()
 
-	var leaseId clientv3.LeaseID
-	leaseId, err = p.newLeaseID()
+	var leaseID clientv3.LeaseID
+	leaseID, err = p.newLeaseID()
 	if err != nil {
 		return err
 	}
-	p.setLeaseID(leaseId)
+	p.setLeaseID(leaseID)
 
-	if leaseId <= 0 {
-		return fmt.Errorf("grant lease failed. leaseId=%d", leaseId)
+	if leaseID <= 0 {
+		return fmt.Errorf("grant lease failed. leaseID=%d", leaseID)
 	}
-	_, err = p.client.Put(context.TODO(), fullKey, string(data), clientv3.WithLease(leaseId))
+	_, err = p.client.Put(context.TODO(), fullKey, string(data), clientv3.WithLease(leaseID))
 	if err != nil {
 		return err
 	}
-	kaRespCh, err := p.client.KeepAlive(context.TODO(), leaseId)
+	kaRespCh, err := p.client.KeepAlive(context.TODO(), leaseID)
 	if err != nil {
 		return err
 	}
@@ -228,16 +229,16 @@ func (p *Provider) registerService() error {
 	if err != nil {
 		return err
 	}
-	leaseId := p.getLeaseID()
-	if leaseId <= 0 {
-		_leaseId, err := p.newLeaseID()
+	leaseID := p.getLeaseID()
+	if leaseID <= 0 {
+		_leaseID, err := p.newLeaseID()
 		if err != nil {
 			return err
 		}
-		leaseId = _leaseId
-		p.setLeaseID(leaseId)
+		leaseID = _leaseID
+		p.setLeaseID(leaseID)
 	}
-	_, err = p.client.Put(context.TODO(), fullKey, string(data), clientv3.WithLease(leaseId))
+	_, err = p.client.Put(context.TODO(), fullKey, string(data), clientv3.WithLease(leaseID))
 	if err != nil {
 		return err
 	}
@@ -254,7 +255,7 @@ func (p *Provider) handleWatchResponse(resp clientv3.WatchResponse) map[string]*
 	changes := map[string]*Node{}
 	for _, ev := range resp.Events {
 		key := string(ev.Kv.Key)
-		nodeId, err := getNodeID(key, "/")
+		nodeID, err := getNodeID(key, "/")
 		if err != nil {
 			p.cluster.Logger().Error("Invalid member.", slog.String("key", key))
 			continue
@@ -271,16 +272,16 @@ func (p *Provider) handleWatchResponse(resp clientv3.WatchResponse) map[string]*
 				p.cluster.Logger().Debug("Skip self.", slog.String("key", key))
 				continue
 			}
-			if _, ok := p.members[nodeId]; ok {
+			if _, ok := p.members[nodeID]; ok {
 				p.cluster.Logger().Debug("Update member.", slog.String("key", key))
 			} else {
 				p.cluster.Logger().Debug("New member.", slog.String("key", key))
 			}
-			changes[nodeId] = node
-			node.SetMeta(metaKeySeq, nodeId)
+			changes[nodeID] = node
+			node.SetMeta(metaKeySeq, nodeID)
 			node.SetMeta(metaKeySeq, fmt.Sprintf("%d", ev.Kv.Lease))
 		case clientv3.EventTypeDelete:
-			node, ok := p.members[nodeId]
+			node, ok := p.members[nodeID]
 			if !ok {
 				continue
 			}
@@ -291,8 +292,8 @@ func (p *Provider) handleWatchResponse(resp clientv3.WatchResponse) map[string]*
 			p.cluster.Logger().Debug("Delete member.", slog.String("key", key))
 			cloned := *node
 			cloned.SetAlive(false)
-			changes[nodeId] = &cloned
-			node.SetMeta(metaKeySeq, nodeId)
+			changes[nodeID] = &cloned
+			node.SetMeta(metaKeySeq, nodeID)
 			node.SetMeta(metaKeySeq, fmt.Sprintf("%d", ev.Kv.Lease))
 		default:
 			p.cluster.Logger().Error("Invalid etcd event.type.", slog.String("key", key),
@@ -398,10 +399,10 @@ func (p *Provider) updateNodesWithSelf(members []*Node) {
 }
 
 func (p *Provider) updateNodesWithChanges(changes map[string]*Node) {
-	for memberId, member := range changes {
-		p.members[memberId] = member
+	for memberID, member := range changes {
+		p.members[memberID] = member
 		if !member.IsAlive() {
-			delete(p.members, memberId)
+			delete(p.members, memberID)
 		}
 	}
 }

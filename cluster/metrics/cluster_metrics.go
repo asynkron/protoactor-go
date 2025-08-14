@@ -21,7 +21,7 @@ func newObservableGauge(meter metric.Meter, name, description string, logger *sl
 	g := &observableGauge{}
 	_, err := meter.Int64ObservableGauge(name,
 		metric.WithDescription(description),
-		metric.WithInt64Callback(func(ctx context.Context, o metric.Int64Observer) error {
+		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
 			g.mu.RLock()
 			v := g.value
 			g.mu.RUnlock()
