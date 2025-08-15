@@ -71,7 +71,7 @@ func NewWithConfig(consulConfig *api.Config, opts ...Option) (*Provider, error) 
 func (p *Provider) init(c *cluster.Cluster) error {
 	knownKinds := c.GetClusterKinds()
 	clusterName := c.Config.Name
-	memberId := c.ActorSystem.ID
+	memberID := c.ActorSystem.ID
 
 	host, port, err := c.ActorSystem.GetHostPort()
 	if err != nil {
@@ -79,7 +79,7 @@ func (p *Provider) init(c *cluster.Cluster) error {
 	}
 
 	p.cluster = c
-	p.id = memberId
+	p.id = memberID
 	p.clusterName = clusterName
 	p.address = host
 	p.port = port
@@ -127,7 +127,7 @@ func (p *Provider) DeregisterMember() error {
 }
 
 // Shutdown stops the provider and its internal actor.
-func (p *Provider) Shutdown(graceful bool) error {
+func (p *Provider) Shutdown(_ bool) error {
 	if p.shutdown {
 		return nil
 	}
@@ -190,13 +190,13 @@ func (p *Provider) notifyStatuses() {
 	var members []*cluster.Member
 	for _, v := range statuses {
 		if len(v.Checks) > 0 && v.Checks.AggregatedStatus() == api.HealthPassing {
-			memberId := v.Service.Meta["id"]
-			if memberId == "" {
-				memberId = fmt.Sprintf("%v@%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
-				p.cluster.Logger().Info("meta['id'] was empty, fixeds", slog.String("id", memberId))
+			memberID := v.Service.Meta["id"]
+			if memberID == "" {
+				memberID = fmt.Sprintf("%v@%v:%v", p.clusterName, v.Service.Address, v.Service.Port)
+				p.cluster.Logger().Info("meta['id'] was empty, fixeds", slog.String("id", memberID))
 			}
 			members = append(members, &cluster.Member{
-				Id:    memberId,
+				Id:    memberID,
 				Host:  v.Service.Address,
 				Port:  int32(v.Service.Port),
 				Kinds: v.Service.Tags,

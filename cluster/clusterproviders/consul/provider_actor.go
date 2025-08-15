@@ -1,3 +1,4 @@
+// Package consul provides a Consul-based cluster provider.
 package consul
 
 import (
@@ -112,13 +113,13 @@ func (pa *providerActor) processConsulUpdate(index uint64, result interface{}, c
 	var members []*cluster.Member
 	for _, v := range serviceEntries {
 		if len(v.Checks) > 0 && v.Checks.AggregatedStatus() == api.HealthPassing {
-			memberId := v.Service.Meta["id"]
-			if memberId == "" {
-				memberId = fmt.Sprintf("%v@%v:%v", pa.clusterName, v.Service.Address, v.Service.Port)
-				ctx.Logger().Info("meta['id'] was empty, fixed", slog.String("id", memberId))
+			memberID := v.Service.Meta["id"]
+			if memberID == "" {
+				memberID = fmt.Sprintf("%v@%v:%v", pa.clusterName, v.Service.Address, v.Service.Port)
+				ctx.Logger().Info("meta['id'] was empty, fixed", slog.String("id", memberID))
 			}
 			members = append(members, &cluster.Member{
-				Id:    memberId,
+				Id:    memberID,
 				Host:  v.Service.Address,
 				Port:  int32(v.Service.Port),
 				Kinds: v.Service.Tags,
