@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/testkit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,8 +13,7 @@ import (
 // context extension and also obtain the Cluster instance.
 func TestVirtualActorContextHasClusterIdentity(t *testing.T) {
 	cp := newInmemoryProvider()
-	identityCh := make(chan *ClusterIdentity, 1)
-	clusterCh := make(chan *Cluster, 1)
+	probe := testkit.NewTestProbe()
 
 	kindName := "kind"
 	actorID := "myactor"
@@ -23,8 +23,8 @@ func TestVirtualActorContextHasClusterIdentity(t *testing.T) {
 	kind := NewKind(kindName, actor.PropsFromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
 		case *ClusterInit:
-			identityCh <- GetClusterIdentity(ctx)
-			clusterCh <- GetCluster(ctx.ActorSystem())
+			probe.Context().Send(probe.Context().Self(), GetClusterIdentity(ctx))
+			probe.Context().Send(probe.Context().Self(), GetCluster(ctx.ActorSystem()))
 		}
 	}))
 
@@ -32,23 +32,19 @@ func TestVirtualActorContextHasClusterIdentity(t *testing.T) {
 	c.StartMember()
 	cp.publishClusterTopologyEvent()
 
+	c.ActorSystem.Root.Spawn(actor.PropsFromProducer(func() actor.Actor { return probe }))
+
 	pid := c.Get(actorID, kindName)
 	assert.NotNil(t, pid)
 
-	select {
-	case ci := <-identityCh:
-		assert.NotNil(t, ci)
-		assert.Equal(t, actorID, ci.Identity)
-		assert.Equal(t, kindName, ci.Kind)
-	case <-time.After(time.Second):
-		t.Fatalf("timeout waiting for ClusterIdentity")
-	}
+	ci, err := testkit.GetNextMessageOf[*ClusterIdentity](probe, time.Second)
+	assert.NoError(t, err)
+	assert.NotNil(t, ci)
+	assert.Equal(t, actorID, ci.Identity)
+	assert.Equal(t, kindName, ci.Kind)
 
-	select {
-	case cl := <-clusterCh:
-		assert.NotNil(t, cl)
-		assert.Equal(t, c, cl)
-	case <-time.After(time.Second):
-		t.Fatalf("timeout waiting for Cluster instance")
-	}
+	cl, err := testkit.GetNextMessageOf[*Cluster](probe, time.Second)
+	assert.NoError(t, err)
+	assert.NotNil(t, cl)
+	assert.Equal(t, c, cl)
 }
