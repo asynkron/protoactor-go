@@ -44,3 +44,44 @@ func (t *TestMailboxStats) MessageReceived(message interface{}) {
 func (t *TestMailboxStats) MailboxEmpty() { t.Stats = append(t.Stats, "Empty") }
 
 var _ actor.MailboxMiddleware = (*TestMailboxStats)(nil)
+
+// ReceiverMiddleware converts the stats collector into a receiver middleware.
+// Every received message is recorded before being passed on.
+func (t *TestMailboxStats) ReceiverMiddleware() actor.ReceiverMiddleware {
+	return func(next actor.ReceiverFunc) actor.ReceiverFunc {
+		return func(ctx actor.ReceiverContext, envelope *actor.MessageEnvelope) {
+			if envelope != nil {
+				t.MessageReceived(envelope.Message)
+			}
+			next(ctx, envelope)
+		}
+	}
+}
+
+// SenderMiddleware converts the stats collector into a sender middleware.
+// Each sent message is recorded before being forwarded.
+func (t *TestMailboxStats) SenderMiddleware() actor.SenderMiddleware {
+	return func(next actor.SenderFunc) actor.SenderFunc {
+		return func(ctx actor.SenderContext, target *actor.PID, env *actor.MessageEnvelope) {
+			if env != nil {
+				t.MessagePosted(env.Message)
+			}
+			next(ctx, target, env)
+		}
+	}
+}
+
+// WithMailboxStats configures props with a mailbox that records stats.
+func WithMailboxStats(stats *TestMailboxStats) actor.PropsOption {
+	return actor.WithMailbox(actor.Unbounded(stats))
+}
+
+// WithReceiveStats applies the stats collector as a receive middleware.
+func WithReceiveStats(stats *TestMailboxStats) actor.PropsOption {
+	return actor.WithReceiverMiddleware(stats.ReceiverMiddleware())
+}
+
+// WithSendStats applies the stats collector as a send middleware.
+func WithSendStats(stats *TestMailboxStats) actor.PropsOption {
+	return actor.WithSenderMiddleware(stats.SenderMiddleware())
+}
