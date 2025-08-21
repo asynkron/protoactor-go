@@ -9,6 +9,7 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	remote "github.com/asynkron/protoactor-go/remote"
+	"github.com/asynkron/protoactor-go/testkit"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
@@ -37,13 +38,18 @@ func TestRemoteMetrics(t *testing.T) {
 
 	system2 := newSystem(provider)
 	remote2 := remote.NewRemote(system2, remote.Configure("127.0.0.1", 0))
+	// collect mailbox stats to determine when the request is handled
+	stats := testkit.NewTestMailboxStats(func(m interface{}) bool {
+		_, ok := m.(*remote.ActorPidRequest)
+		return ok
+	})
 	remote2.Register("echo", actor.PropsFromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
 		case *remote.ActorPidRequest:
 			// no-op
 			return
 		}
-	}))
+	}, testkit.WithReceiveStats(stats)))
 	remote2.Start()
 	defer system2.Shutdown()
 
@@ -56,7 +62,7 @@ func TestRemoteMetrics(t *testing.T) {
 	}
 
 	system1.Root.Send(resp.Pid, &remote.ActorPidRequest{})
-	time.Sleep(100 * time.Millisecond)
+	<-stats.Reset // wait for the remote actor to handle the request
 
 	remote1.Shutdown(true)
 	remote2.Shutdown(true)
