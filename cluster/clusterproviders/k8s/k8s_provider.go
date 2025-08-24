@@ -132,7 +132,8 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 	return nil
 }
 
-func (p *Provider) Shutdown(graceful bool) error {
+// Shutdown stops the provider. The argument is kept for API compatibility.
+func (p *Provider) Shutdown(_ bool) error {
 	if p.shutdown {
 		// we are already shut down or shutting down
 		return nil

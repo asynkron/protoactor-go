@@ -137,8 +137,8 @@ func (p *AutoManagedProvider) DeregisterMember() error {
 	return nil
 }
 
-// Shutdown set the shutdown to true preventing anymore TTL updates
-func (p *AutoManagedProvider) Shutdown(graceful bool) error {
+// Shutdown set the shutdown to true preventing anymore TTL updates.
+func (p *AutoManagedProvider) Shutdown(_ bool) error {
 	p.shutdownMutex.Lock()
 	defer p.shutdownMutex.Unlock()
 

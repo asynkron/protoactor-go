@@ -163,7 +163,7 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 }
 
 // Shutdown deregisters the node and stops background processing.
-func (p *Provider) Shutdown(graceful bool) error {
+func (p *Provider) Shutdown(_ bool) error {
 	p.shutdown = true
 	if !p.deregistered {
 		p.updateLeadership(nil)
@@ -268,8 +268,8 @@ func (p *Provider) addWatcher(ctx context.Context, clusterKey string) (<-chan zk
 	return p.addWatcher(ctx, clusterKey)
 }
 
-func (p *Provider) isChildrenChanged(ctx context.Context, stat *zk.Stat) bool {
-	return stat.Cversion != int32(p.revision)
+func (p *Provider) isChildrenChanged(_ context.Context, stat *zk.Stat) bool {
+        return stat.Cversion != int32(p.revision)
 }
 
 func (p *Provider) _keepWatching(registerSelf bool, stream <-chan zk.Event) error {
