@@ -6,6 +6,7 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/stretchr/testify/require"
+	"sync"
 )
 
 func TestMailboxStatsCapturesMessages(t *testing.T) {
@@ -27,4 +28,23 @@ func TestMailboxStatsCapturesMessages(t *testing.T) {
 	require.Equal(t, "hi", stats.Posted[1])
 	require.Len(t, stats.Received, 2)
 	require.Equal(t, "hi", stats.Received[1])
+}
+
+func TestMailboxStatsConcurrent(t *testing.T) {
+	stats := NewTestMailboxStats(nil)
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(2)
+		go func(v int) {
+			defer wg.Done()
+			stats.MessagePosted(v)
+		}(i)
+		go func(v int) {
+			defer wg.Done()
+			stats.MessageReceived(v)
+		}(i)
+	}
+	wg.Wait()
+	require.Len(t, stats.Posted, 100)
+	require.Len(t, stats.Received, 100)
 }
