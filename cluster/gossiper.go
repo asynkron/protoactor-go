@@ -18,6 +18,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
+// DefaultGossipActorName is the default name used for the gossip actor.
 const DefaultGossipActorName string = "gossip"
 
 // GossipUpdate Used to update gossip data when a ClusterTopology event occurs
@@ -33,7 +34,7 @@ type GossipUpdate struct {
 //	type ConsensusChecker[T] func(GossipState, map[string]empty) (bool, T)
 type ConsensusChecker func(*GossipState, map[string]empty) (bool, interface{})
 
-// The Gossiper data structure manages Gossip
+// Gossiper manages gossip data and dissemination within the cluster.
 type Gossiper struct {
 	// The Gossiper Actor Name, defaults to "gossip"
 	GossipActorName string
@@ -68,6 +69,7 @@ func newGossiper(cl *Cluster, opts ...Option) (*Gossiper, error) {
 	return gossiper, nil
 }
 
+// GetState retrieves gossip state for the given key.
 func (g *Gossiper) GetState(key string) (map[string]*GossipKeyValue, error) {
 	if g.throttler() == actor.Open {
 		g.cluster.Logger().Debug("Gossiper getting state", slog.String("key", key), slog.String("gossipPid", g.pid.String()))
@@ -101,7 +103,7 @@ func (g *Gossiper) GetState(key string) (map[string]*GossipKeyValue, error) {
 	return response.State, nil
 }
 
-// SetState Sends fire and forget message to update member state
+// SetState sends a fire-and-forget message to update member state.
 func (g *Gossiper) SetState(gossipStateKey string, value proto.Message) {
 	if g.throttler() == actor.Open {
 		g.cluster.Logger().Info("Gossiper setting state", slog.String("gossipStateKey", gossipStateKey), slog.String("gossipPid", g.pid.String()))
@@ -115,6 +117,7 @@ func (g *Gossiper) SetState(gossipStateKey string, value proto.Message) {
 	g.cluster.ActorSystem.Root.Send(g.pid, &msg)
 }
 
+// SetMapState updates the value for a key within a map state.
 func (g *Gossiper) SetMapState(gossipStateKey string, mapKey string, value proto.Message) {
 	if g.throttler() == actor.Open {
 		g.cluster.Logger().Info("Gossiper setting map state", slog.String("gossipStateKey", gossipStateKey), slog.String("gossipPid", g.pid.String()))
@@ -133,6 +136,7 @@ func (g *Gossiper) SetMapState(gossipStateKey string, mapKey string, value proto
 	g.cluster.ActorSystem.Root.Send(g.pid, &msg)
 }
 
+// GetMapState retrieves a value from a map in the gossip state.
 func (g *Gossiper) GetMapState(gossipStateKey string, mapKey string) *anypb.Any {
 	if g.throttler() == actor.Open {
 		g.cluster.Logger().Info("Gossiper setting map state", slog.String("gossipStateKey", gossipStateKey), slog.String("gossipPid", g.pid.String()))
@@ -158,6 +162,7 @@ func (g *Gossiper) GetMapState(gossipStateKey string, mapKey string) *anypb.Any 
 	return response.Value
 }
 
+// RemoveMapState deletes a key from a gossip map state.
 func (g *Gossiper) RemoveMapState(gossipStateKey string, mapKey string) {
 	if g.throttler() == actor.Open {
 		g.cluster.Logger().Info("Gossiper setting map state", slog.String("gossipStateKey", gossipStateKey), slog.String("gossipPid", g.pid.String()))
@@ -175,6 +180,7 @@ func (g *Gossiper) RemoveMapState(gossipStateKey string, mapKey string) {
 	g.cluster.ActorSystem.Root.Send(g.pid, &msg)
 }
 
+// GetMapKeys returns all keys stored in a map gossip state.
 func (g *Gossiper) GetMapKeys(gossipStateKey string) []string {
 	if g.throttler() == actor.Open {
 		g.cluster.Logger().Info("Gossiper setting map state", slog.String("gossipStateKey", gossipStateKey), slog.String("gossipPid", g.pid.String()))
@@ -204,7 +210,7 @@ func (g *Gossiper) GetMapKeys(gossipStateKey string) []string {
 	return response.MapKeys
 }
 
-// SetStateRequest Sends a Request (that blocks) to update member state
+// SetStateRequest sends a request that blocks to update member state.
 func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
 	if g.throttler() == actor.Open {
 		g.cluster.Logger().Debug("Gossiper setting state", slog.String("key", key), slog.String("gossipPid", g.pid.String()))
@@ -235,6 +241,7 @@ func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
 	return nil
 }
 
+// SendState requests the gossip actor to broadcast its current state.
 func (g *Gossiper) SendState() {
 	if g.pid == nil {
 		return
@@ -261,6 +268,7 @@ func (g *Gossiper) RegisterConsensusCheck(key string, getValue func(*anypb.Any) 
 	return consensusHandle
 }
 
+// StartGossiping spawns the gossip actor and begins gossiping.
 func (g *Gossiper) StartGossiping() error {
 	var err error
 	g.cluster.Logger().Info("Starting gossip")
@@ -293,6 +301,7 @@ func (g *Gossiper) StartGossiping() error {
 	return nil
 }
 
+// Shutdown stops the gossip actor and terminates gossiping.
 func (g *Gossiper) Shutdown() {
 	if g.pid == nil {
 		return
@@ -336,6 +345,7 @@ breakLoop:
 	}
 }
 
+// GetActorCount returns the number of actors for each registered kind.
 func (g *Gossiper) GetActorCount() map[string]int64 {
 	m := make(map[string]int64)
 	clusterKinds := g.cluster.GetClusterKinds()

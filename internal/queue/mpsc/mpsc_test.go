@@ -26,7 +26,7 @@ func TestQueue_Empty(t *testing.T) {
 	assert.False(t, q.Empty())
 }
 
-func TestQueue_PushPopOneProducer(t *testing.T) {
+func TestQueue_PushPopOneProducer(_ *testing.T) {
 	expCount := 100
 
 	var wg sync.WaitGroup

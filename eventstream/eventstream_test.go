@@ -54,7 +54,7 @@ func TestEventStream_Subscribe_WithPredicate_IsCalled(t *testing.T) {
 	es := &eventstream.EventStream{}
 	es.SubscribeWithPredicate(
 		func(interface{}) { called = true },
-		func(m interface{}) bool { return true },
+		func(_ interface{}) bool { return true },
 	)
 	es.Publish("")
 
@@ -66,7 +66,7 @@ func TestEventStream_Subscribe_WithPredicate_IsNotCalled(t *testing.T) {
 	es := &eventstream.EventStream{}
 	es.SubscribeWithPredicate(
 		func(interface{}) { called = true },
-		func(m interface{}) bool { return false },
+		func(_ interface{}) bool { return false },
 	)
 	es.Publish("")
 
