@@ -1,3 +1,4 @@
+// Package core contains internal debugging helpers for Proto.Actor.
 package core
 
 import (
@@ -6,6 +7,7 @@ import (
 	"strings"
 )
 
+// IdentifyPanic returns a concise location for the current panic.
 func IdentifyPanic() string {
 	var name, file string
 	var line int

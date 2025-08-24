@@ -6,6 +6,7 @@ import (
 	"log/slog"
 )
 
+// SpawnMiddleware propagates spans when spawning child actors.
 func SpawnMiddleware() actor.SpawnMiddleware {
 	return func(next actor.SpawnFunc) actor.SpawnFunc {
 		return func(actorSystem *actor.ActorSystem, id string, props *actor.Props, parentContext actor.SpawnerContext) (pid *actor.PID, e error) {

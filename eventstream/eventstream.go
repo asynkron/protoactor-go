@@ -1,3 +1,4 @@
+// Package eventstream implements a simple publish-subscribe event stream.
 package eventstream
 
 import (
@@ -5,12 +6,13 @@ import (
 	"sync/atomic"
 )
 
-// Handler defines a callback function that must be pass when subscribing.
+// Handler defines a callback function that must be passed when subscribing.
 type Handler func(interface{})
 
-// Predicate is a function used to filter messages before being forwarded to a subscriber
+// Predicate is a function used to filter messages before being forwarded to a subscriber.
 type Predicate func(evt interface{}) bool
 
+// EventStream is a threadsafe publish-subscribe message bus.
 type EventStream struct {
 	sync.RWMutex
 
@@ -21,7 +23,7 @@ type EventStream struct {
 	counter int32
 }
 
-// Create a new EventStream value and returns it back.
+// NewEventStream creates and returns an EventStream.
 func NewEventStream() *EventStream {
 	es := &EventStream{
 		subscriptions: []*Subscription{},
@@ -30,7 +32,7 @@ func NewEventStream() *EventStream {
 	return es
 }
 
-// Subscribe the given handler to the EventStream
+// Subscribe attaches the given handler to the EventStream.
 func (es *EventStream) Subscribe(handler Handler) *Subscription {
 	sub := &Subscription{
 		handler: handler,
@@ -47,8 +49,8 @@ func (es *EventStream) Subscribe(handler Handler) *Subscription {
 	return sub
 }
 
-// SubscribeWithPredicate creates a new Subscription value and sets a predicate to filter messages passed to
-// the subscriber, it returns a pointer to the Subscription value
+// SubscribeWithPredicate creates a Subscription and sets a predicate to filter messages.
+// It returns a pointer to the Subscription.
 func (es *EventStream) SubscribeWithPredicate(handler Handler, p Predicate) *Subscription {
 	sub := es.Subscribe(handler)
 	sub.p = p
@@ -56,7 +58,7 @@ func (es *EventStream) SubscribeWithPredicate(handler Handler, p Predicate) *Sub
 	return sub
 }
 
-// Unsubscribes the given subscription from the EventStream
+// Unsubscribe removes the subscription from the EventStream.
 func (es *EventStream) Unsubscribe(sub *Subscription) {
 	if sub == nil {
 		return
@@ -87,7 +89,7 @@ func (es *EventStream) Unsubscribe(sub *Subscription) {
 	}
 }
 
-// Publishes the given event to all the subscribers in the stream
+// Publish sends the event to all active subscribers.
 func (es *EventStream) Publish(evt interface{}) {
 	subs := make([]*Subscription, 0, es.Length())
 	es.RLock()
@@ -109,16 +111,16 @@ func (es *EventStream) Publish(evt interface{}) {
 	}
 }
 
-// Returns an integer that represents the current number of subscribers to the stream
+// Length returns the number of subscribers currently in the stream.
 func (es *EventStream) Length() int32 {
 	es.RLock()
 	defer es.RUnlock()
 	return es.counter
 }
 
-// Subscription is returned from the Subscribe function.
+// Subscription represents a registered handler and its state.
 //
-// This value and can be passed to Unsubscribe when the observer is no longer interested in receiving messages
+// It can be passed to Unsubscribe when the observer is no longer interested in receiving messages.
 type Subscription struct {
 	id      int32
 	handler Handler
@@ -126,20 +128,17 @@ type Subscription struct {
 	active  uint32
 }
 
-// Activates the Subscription setting its active flag as 1, if the subscription
-// was already active it returns false, true otherwise
+// Activate sets the Subscription as active. It returns true if the state changed.
 func (s *Subscription) Activate() bool {
 	return atomic.CompareAndSwapUint32(&s.active, 0, 1)
 }
 
-// Deactivates the Subscription setting its active flag as 0, if the subscription
-// was already inactive it returns false, true otherwise
+// Deactivate sets the Subscription as inactive. It returns true if the state changed.
 func (s *Subscription) Deactivate() bool {
 	return atomic.CompareAndSwapUint32(&s.active, 1, 0)
 }
 
-// Returns true if the active flag of the Subscription is set as 1
-// otherwise it returns false
+// IsActive reports whether the Subscription is active.
 func (s *Subscription) IsActive() bool {
 	return atomic.LoadUint32(&s.active) == 1
 }
