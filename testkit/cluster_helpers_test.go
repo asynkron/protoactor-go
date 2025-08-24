@@ -19,12 +19,11 @@ func TestExpectMemberToExist(t *testing.T) {
 	members := cluster.Members{member}
 	c.MemberList.UpdateClusterTopology(members)
 
-	if err := ExpectMemberToExist(c, member, time.Second); err != nil {
+	if err := ExpectMemberToExist(c.MemberList, member.Id, time.Second); err != nil {
 		t.Fatalf("expected member to exist: %v", err)
 	}
 
-	missing := &cluster.Member{Id: "missing"}
-	if err := ExpectMemberToExist(c, missing, 50*time.Millisecond); err == nil {
+	if err := ExpectMemberToExist(c.MemberList, "missing", 50*time.Millisecond); err == nil {
 		t.Fatalf("expected error for missing member")
 	}
 }
