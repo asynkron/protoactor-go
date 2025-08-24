@@ -1,6 +1,10 @@
 package testkit
 
-import "github.com/asynkron/protoactor-go/actor"
+import (
+	"sync"
+
+	"github.com/asynkron/protoactor-go/actor"
+)
 
 // TestMailboxStats collects mailbox events for tests.
 type TestMailboxStats struct {
@@ -9,6 +13,8 @@ type TestMailboxStats struct {
 	Stats           []interface{}
 	Posted          []interface{}
 	Received        []interface{}
+
+	mu sync.Mutex
 }
 
 // NewTestMailboxStats creates a new stats collector.
@@ -20,18 +26,26 @@ func NewTestMailboxStats(wait func(interface{}) bool) *TestMailboxStats {
 }
 
 // MailboxStarted records the start event.
-func (t *TestMailboxStats) MailboxStarted() { t.Stats = append(t.Stats, "Started") }
+func (t *TestMailboxStats) MailboxStarted() {
+	t.mu.Lock()
+	t.Stats = append(t.Stats, "Started")
+	t.mu.Unlock()
+}
 
 // MessagePosted records a posted message.
 func (t *TestMailboxStats) MessagePosted(message interface{}) {
+	t.mu.Lock()
 	t.Stats = append(t.Stats, message)
 	t.Posted = append(t.Posted, message)
+	t.mu.Unlock()
 }
 
 // MessageReceived records a received message and signals if predicate matches.
 func (t *TestMailboxStats) MessageReceived(message interface{}) {
+	t.mu.Lock()
 	t.Stats = append(t.Stats, message)
 	t.Received = append(t.Received, message)
+	t.mu.Unlock()
 	if t.waitForReceived != nil && t.waitForReceived(message) {
 		select {
 		case t.Reset <- struct{}{}:
@@ -41,7 +55,11 @@ func (t *TestMailboxStats) MessageReceived(message interface{}) {
 }
 
 // MailboxEmpty records an empty mailbox event.
-func (t *TestMailboxStats) MailboxEmpty() { t.Stats = append(t.Stats, "Empty") }
+func (t *TestMailboxStats) MailboxEmpty() {
+	t.mu.Lock()
+	t.Stats = append(t.Stats, "Empty")
+	t.mu.Unlock()
+}
 
 var _ actor.MailboxMiddleware = (*TestMailboxStats)(nil)
 
