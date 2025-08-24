@@ -12,7 +12,7 @@ import (
 func TestMailboxStatsCapturesMessages(t *testing.T) {
 	system := actor.NewActorSystem()
 	stats := NewTestMailboxStats(func(msg interface{}) bool { return msg == "hi" })
-	props := actor.PropsFromFunc(func(ctx actor.Context) {}, actor.WithMailbox(actor.Unbounded(stats)))
+	props := actor.PropsFromFunc(func(actor.Context) {}, actor.WithMailbox(actor.Unbounded(stats)))
 	pid := system.Root.Spawn(props)
 
 	system.Root.Send(pid, "hi")
