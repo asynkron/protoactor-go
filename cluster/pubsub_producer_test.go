@@ -202,10 +202,10 @@ func (suite *PubSubBatchingProducerTestSuite) TestCanRetryOnPublishingError() {
 	retries := make([]int, 0, 10)
 	producer := NewBatchingProducer(newMockPublisher(suite.failTimesThenSucceed(3)), "topic",
 		WithBatchingProducerBatchSize(1),
-		WithBatchingProducerOnPublishingError(func(retry int, e error, batch *PubSubBatch) *PublishingErrorDecision {
-			retries = append(retries, retry)
-			return RetryBatchImmediately
-		}))
+                WithBatchingProducerOnPublishingError(func(retry int, _ error, _ *PubSubBatch) *PublishingErrorDecision {
+                        retries = append(retries, retry)
+                        return RetryBatchImmediately
+                }))
 	defer producer.Dispose()
 
 	info, err := producer.Produce(context.Background(), &TestMessage{Number: 1})
@@ -218,9 +218,9 @@ func (suite *PubSubBatchingProducerTestSuite) TestCanRetryOnPublishingError() {
 func (suite *PubSubBatchingProducerTestSuite) TestCanSkipBatchOnPublishingError() {
 	producer := NewBatchingProducer(newMockPublisher(suite.failTimesThenSucceed(1)), "topic",
 		WithBatchingProducerBatchSize(1),
-		WithBatchingProducerOnPublishingError(func(retry int, e error, batch *PubSubBatch) *PublishingErrorDecision {
-			return FailBatchAndContinue
-		}))
+                WithBatchingProducerOnPublishingError(func(_ int, _ error, _ *PubSubBatch) *PublishingErrorDecision {
+                        return FailBatchAndContinue
+                }))
 	defer producer.Dispose()
 
 	t1, err := producer.Produce(context.Background(), &TestMessage{Number: 1})

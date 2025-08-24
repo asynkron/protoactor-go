@@ -6,6 +6,7 @@ import (
 	"log/slog"
 )
 
+// SenderMiddleware injects the current span into outgoing messages.
 func SenderMiddleware() actor.SenderMiddleware {
 	return func(next actor.SenderFunc) actor.SenderFunc {
 		return func(c actor.SenderContext, target *actor.PID, envelope *actor.MessageEnvelope) {

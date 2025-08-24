@@ -11,9 +11,10 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
+// ConsensusCheckDefinition produces a consensus check along with the keys it touches.
 type ConsensusCheckDefinition interface {
-	Check() *ConsensusCheck
-	AffectedKeys() map[string]struct{}
+        Check() *ConsensusCheck
+        AffectedKeys() map[string]struct{}
 }
 
 type consensusValue struct {
@@ -27,12 +28,14 @@ type consensusMemberValue struct {
 	value    uint64
 }
 
+// ConsensusCheckBuilder aggregates value extractors to create a consensus check.
 type ConsensusCheckBuilder struct {
-	getConsensusValues []*consensusValue
-	check              ConsensusChecker
-	logger             *slog.Logger
+        getConsensusValues []*consensusValue
+        check              ConsensusChecker
+        logger             *slog.Logger
 }
 
+// NewConsensusCheckBuilder returns a builder seeded with a single consensus value extractor.
 func NewConsensusCheckBuilder(logger *slog.Logger, key string, getValue func(*anypb.Any) interface{}) *ConsensusCheckBuilder {
 	builder := ConsensusCheckBuilder{
 		getConsensusValues: []*consensusValue{
@@ -132,7 +135,7 @@ func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (
 		}
 	}
 
-	showLog := func(hasConsensus bool, topologyHash uint64, valueTuples []*consensusMemberValue) {
+        showLog := func(hasConsensus bool, _ uint64, valueTuples []*consensusMemberValue) {
 		if ccb.logger.Enabled(context.TODO(), slog.LevelDebug) {
 			groups := map[string]int{}
 			for _, memberValue := range valueTuples {

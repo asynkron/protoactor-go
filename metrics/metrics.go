@@ -8,8 +8,10 @@ import (
 	"sync"
 )
 
+// InternalActorMetrics is the key under which builtin actor metrics are registered.
 const InternalActorMetrics string = "internal.actor.metrics"
 
+// ProtoMetrics manages metric instruments for actors.
 type ProtoMetrics struct {
 	mu           sync.Mutex
 	actorMetrics *ActorMetrics
@@ -17,6 +19,7 @@ type ProtoMetrics struct {
 	logger       *slog.Logger
 }
 
+// NewProtoMetrics constructs a ProtoMetrics instance and registers default instruments.
 func NewProtoMetrics(logger *slog.Logger) *ProtoMetrics {
 	protoMetrics := ProtoMetrics{
 		actorMetrics: NewActorMetrics(logger),
@@ -28,8 +31,10 @@ func NewProtoMetrics(logger *slog.Logger) *ProtoMetrics {
 	return &protoMetrics
 }
 
+// Instruments returns the default ActorMetrics instance.
 func (pm *ProtoMetrics) Instruments() *ActorMetrics { return pm.actorMetrics }
 
+// Register associates the provided metrics instance with the given key.
 func (pm *ProtoMetrics) Register(key string, instance *ActorMetrics) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
@@ -44,6 +49,7 @@ func (pm *ProtoMetrics) Register(key string, instance *ActorMetrics) {
 	pm.knownMetrics[key] = instance
 }
 
+// Get retrieves the metrics instance registered under key, or nil if none exist.
 func (pm *ProtoMetrics) Get(key string) *ActorMetrics {
 	metrics, ok := pm.knownMetrics[key]
 	if !ok {

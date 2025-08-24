@@ -8,6 +8,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 )
 
+// ReceiverMiddleware extracts spans from incoming messages and sets them as active.
 func ReceiverMiddleware() actor.ReceiverMiddleware {
 	return func(next actor.ReceiverFunc) actor.ReceiverFunc {
 		return func(c actor.ReceiverContext, envelope *actor.MessageEnvelope) {

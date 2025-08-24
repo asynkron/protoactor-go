@@ -30,6 +30,8 @@ func setActiveSpan(pid *actor.PID, span opentracing.Span) {
 	activeSpan.Store(pid, span)
 }
 
+// GetActiveSpan returns the span currently associated with the actor context.
+// A new span is started if no active span is found.
 func GetActiveSpan(context actor.Context) opentracing.Span {
 	span := getActiveSpan(context.Self())
 	if span == nil {

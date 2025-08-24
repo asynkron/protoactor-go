@@ -5,16 +5,18 @@ import (
 	cmap "github.com/orcaman/concurrent-map"
 )
 
+// PidCacheValue stores actor PIDs for quick lookups.
 type PidCacheValue struct {
-	cache cmap.ConcurrentMap
+        cache cmap.ConcurrentMap
 }
 
+// NewPidCache constructs a new PID cache.
 func NewPidCache() *PidCacheValue {
-	pidCache := &PidCacheValue{
-		cache: cmap.New(),
-	}
+        pidCache := &PidCacheValue{
+                cache: cmap.New(),
+        }
 
-	return pidCache
+        return pidCache
 }
 
 func key(identity string, kind string) string {
@@ -40,10 +42,10 @@ func (c *PidCacheValue) Set(identity string, kind string, pid *actor.PID) {
 func (c *PidCacheValue) RemoveByValue(identity string, kind string, pid *actor.PID) {
 	k := key(identity, kind)
 
-	c.cache.RemoveCb(k, func(key string, v interface{}, exists bool) bool {
-		if !exists {
-			return false
-		}
+        c.cache.RemoveCb(k, func(_ string, v interface{}, exists bool) bool {
+                if !exists {
+                        return false
+                }
 
 		existing, _ := v.(*actor.PID)
 

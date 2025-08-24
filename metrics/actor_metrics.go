@@ -1,5 +1,6 @@
 // Copyright (C) 2017 - 2024 Asynkron.se <http://www.asynkron.se>
 
+// Package metrics exposes instrumentation helpers for Proto.Actor.
 package metrics
 
 import (
@@ -10,8 +11,10 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
+// LibName identifies the metrics instrumentation library.
 const LibName string = "protoactor"
 
+// ActorMetrics groups the metric instruments used by actors.
 type ActorMetrics struct {
 	// Actors
 	ActorFailureCount           metric.Int64Counter
