@@ -31,7 +31,11 @@ func (el *endpointLazy) connect() {
 	el.manager.remote.actorSystem.Logger().Debug("connecting to remote address", slog.String("address", el.address))
 	em := el.manager
 	system := em.remote.actorSystem
-	rst, _ := system.Root.RequestFuture(em.endpointSupervisor, el.address, -1).Result()
+	rst, err := system.Root.RequestFuture(em.endpointSupervisor, el.address, -1).Result()
+	if err != nil {
+		system.Logger().Error("failed to connect to remote address", slog.String("address", el.address), slog.Any("error", err))
+		return
+	}
 	ep := rst.(*endpoint)
 	el.Set(ep)
 }
