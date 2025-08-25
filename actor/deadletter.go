@@ -51,9 +51,9 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 	// This can happen if one actor tries to Watch a PID, while another thread sends a Stop message.
 	actorSystem.EventStream.Subscribe(func(msg interface{}) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
-			if m, ok := deadLetter.Message.(*Watch); ok {
+			if watchMsg, ok := deadLetter.Message.(*Watch); ok {
 				// we know that this is a local actor since we get it on our own event stream, thus the address is not terminated
-				m.Watcher.sendSystemMessage(actorSystem, &Terminated{
+				watchMsg.Watcher.sendSystemMessage(actorSystem, &Terminated{
 					Who: deadLetter.PID,
 					Why: TerminatedReason_NotFound,
 				})

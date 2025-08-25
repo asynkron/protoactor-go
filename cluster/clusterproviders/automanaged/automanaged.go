@@ -270,12 +270,12 @@ func (p *AutoManagedProvider) checkNodes() ([]*NodeModel, error) {
 	allNodes := make([]*NodeModel, len(p.hosts))
 	g, _ := errgroup.WithContext(context.Background())
 
-	for indice, nodeHost := range p.hosts {
-		idx, el := indice, nodeHost // https://golang.org/doc/faq#closures_and_goroutines
+	for idx, host := range p.hosts {
+		idx, host := idx, host // https://golang.org/doc/faq#closures_and_goroutines
 
 		// Calling go funcs to execute the node check
 		g.Go(func() error {
-			url := fmt.Sprintf("http://%s/_health", el)
+			url := fmt.Sprintf("http://%s/_health", host)
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
 				p.cluster.Logger().Error("Couldn't request node health status", slog.Any("error", err), slog.String("autoManMemberUrl", url))
@@ -291,7 +291,7 @@ func (p *AutoManagedProvider) checkNodes() ([]*NodeModel, error) {
 			defer resp.Body.Close() // nolint: errcheck
 
 			if resp.StatusCode != http.StatusOK {
-				err = fmt.Errorf("non 200 status returned: %d - from node: %s", resp.StatusCode, el)
+				err = fmt.Errorf("non 200 status returned: %d - from node: %s", resp.StatusCode, host)
 				p.cluster.Logger().Error("Bad response from the node health status", slog.Any("error", err), slog.String("autoManMemberUrl", url))
 				return err
 			}
@@ -299,7 +299,7 @@ func (p *AutoManagedProvider) checkNodes() ([]*NodeModel, error) {
 			var node *NodeModel
 			err = json.NewDecoder(resp.Body).Decode(&node)
 			if err != nil {
-				err = fmt.Errorf("could not deserialize response: %v - from node: %s", resp, el)
+				err = fmt.Errorf("could not deserialize response: %v - from node: %s", resp, host)
 				p.cluster.Logger().Error("Bad data from the node health status", slog.Any("error", err), slog.String("autoManMemberUrl", url))
 				return err
 			}

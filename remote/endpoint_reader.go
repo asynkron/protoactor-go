@@ -103,10 +103,10 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 }
 
 func (s *endpointReader) OnConnectRequest(stream Remoting_ReceiveServer, c *ConnectRequest) (bool, error) {
-	switch tt := c.ConnectionType.(type) {
+	switch connType := c.ConnectionType.(type) {
 	case *ConnectRequest_ServerConnection:
 		{
-			sc := tt.ServerConnection
+			sc := connType.ServerConnection
 			s.onServerConnection(stream, sc)
 		}
 	case *ConnectRequest_ClientConnection:
