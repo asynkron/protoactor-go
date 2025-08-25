@@ -168,7 +168,13 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 			}
 			s.remote.edpManager.remoteTerminate(rt)
 		case actor.SystemMessage:
-			ref, _ := s.remote.actorSystem.ProcessRegistry.GetLocal(target.Id)
+			// attempt to get a local process reference
+			ref, ok := s.remote.actorSystem.ProcessRegistry.GetLocal(target.Id)
+			if !ok {
+				// drop the message if the target process does not exist
+				s.remote.Logger().Warn("EndpointReader failed to get local process", slog.String("pid", target.Id))
+				continue
+			}
 			ref.SendSystemMessage(target, msg)
 		default:
 			var header map[string]string
