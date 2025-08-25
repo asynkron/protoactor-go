@@ -17,14 +17,14 @@ type messageAndSender struct {
 // TestProbe is an actor used in tests to intercept and assert on messages.
 // It stores every incoming message along with its sender.
 type TestProbe struct {
-	ch     chan messageAndSender
-	ctx    actor.Context
-	sender *actor.PID
+	mailbox chan messageAndSender
+	ctx     actor.Context
+	sender  *actor.PID
 }
 
 // NewTestProbe creates a new TestProbe instance.
 func NewTestProbe() *TestProbe {
-	return &TestProbe{ch: make(chan messageAndSender, 100)}
+	return &TestProbe{mailbox: make(chan messageAndSender, 100)}
 }
 
 // Receive implements actor.Actor. It records all messages after initialization.
@@ -33,7 +33,7 @@ func (tp *TestProbe) Receive(ctx actor.Context) {
 	case *actor.Started:
 		tp.ctx = ctx
 	default:
-		tp.ch <- messageAndSender{message: ctx.Message(), sender: ctx.Sender()}
+		tp.mailbox <- messageAndSender{message: ctx.Message(), sender: ctx.Sender()}
 	}
 }
 
@@ -54,7 +54,7 @@ func (tp *TestProbe) ExpectNoMessage(timeAllowed time.Duration) error {
 		timeAllowed = time.Second
 	}
 	select {
-	case m := <-tp.ch:
+	case m := <-tp.mailbox:
 		return fmt.Errorf("waited %v and received message of type %T", timeAllowed, m.message)
 	case <-time.After(timeAllowed):
 		return nil
@@ -67,7 +67,7 @@ func (tp *TestProbe) GetNextMessage(timeAllowed time.Duration) (interface{}, err
 		timeAllowed = time.Second
 	}
 	select {
-	case m := <-tp.ch:
+	case m := <-tp.mailbox:
 		tp.sender = m.sender
 		return m.message, nil
 	case <-time.After(timeAllowed):
@@ -130,7 +130,7 @@ func FishForMessage[T any](tp *TestProbe, when func(T) bool, timeAllowed time.Du
 	for time.Now().Before(deadline) {
 		remaining := time.Until(deadline)
 		select {
-		case m := <-tp.ch:
+		case m := <-tp.mailbox:
 			if typed, ok := m.message.(T); ok && when(typed) {
 				tp.sender = m.sender
 				return typed, nil
