@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"encoding/json"
+	"log/slog"
 	"strconv"
 
 	"github.com/asynkron/protoactor-go/cluster"
@@ -85,8 +86,13 @@ func (n *Node) GetSeq() int {
 	return 0
 }
 
+// strToInt converts a string to an int, logging and returning 0 on failure.
 func strToInt(s string) int {
-	i, _ := strconv.ParseInt(s, 10, 64)
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		slog.Error("failed to parse int", slog.String("value", s), slog.Any("error", err))
+		return 0
+	}
 	return int(i)
 }
 
