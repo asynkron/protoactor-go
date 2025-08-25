@@ -6,52 +6,39 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ConsensusCheckDefinition produces a consensus check along with the keys it touches.
+// It is implemented by ConsensusCheckBuilder.
 type ConsensusCheckDefinition interface {
-        Check() *ConsensusCheck
-        AffectedKeys() map[string]struct{}
-}
-
-type consensusValue struct {
-	Key   string
-	Value func(*anypb.Any) interface{}
-}
-
-type consensusMemberValue struct {
-	memberID string
-	key      string
-	value    uint64
+	Check() *ConsensusCheck
+	AffectedKeys() []string
 }
 
 // ConsensusCheckBuilder aggregates value extractors to create a consensus check.
-type ConsensusCheckBuilder struct {
-        getConsensusValues []*consensusValue
-        check              ConsensusChecker
-        logger             *slog.Logger
+// T must be comparable so values can be checked for equality without reflection.
+type ConsensusCheckBuilder[T comparable] struct {
+	keys       []string
+	extractors []func(*anypb.Any) (T, error)
+	check      ConsensusChecker
+	logger     *slog.Logger
 }
 
 // NewConsensusCheckBuilder returns a builder seeded with a single consensus value extractor.
-func NewConsensusCheckBuilder(logger *slog.Logger, key string, getValue func(*anypb.Any) interface{}) *ConsensusCheckBuilder {
-	builder := ConsensusCheckBuilder{
-		getConsensusValues: []*consensusValue{
-			{
-				Key:   key,
-				Value: getValue,
-			},
-		},
-		logger: logger,
+func NewConsensusCheckBuilder[T comparable](logger *slog.Logger, key string, getValue func(*anypb.Any) (T, error)) *ConsensusCheckBuilder[T] {
+	builder := &ConsensusCheckBuilder[T]{
+		keys:       []string{key},
+		extractors: []func(*anypb.Any) (T, error){getValue},
+		logger:     logger,
 	}
 	builder.check = builder.build()
-	return &builder
+	return builder
 }
 
-// Build builds a new ConsensusHandler and ConsensusCheck values and returns pointers to them
-func (ccb *ConsensusCheckBuilder) Build() (ConsensusHandler, *ConsensusCheck) {
+// Build creates a new ConsensusHandler and ConsensusCheck and returns pointers to them.
+func (ccb *ConsensusCheckBuilder[T]) Build() (ConsensusHandler, *ConsensusCheck) {
 	handle := NewGossipConsensusHandler()
 	onConsensus := handle.TrySetConsensus
 	lostConsensus := handle.TryResetConsensus
@@ -82,149 +69,78 @@ func (ccb *ConsensusCheckBuilder) Build() (ConsensusHandler, *ConsensusCheck) {
 	return handle, check()
 }
 
-func (ccb *ConsensusCheckBuilder) Check() ConsensusChecker { return ccb.check }
+// Check returns the consensus checker produced by this builder.
+func (ccb *ConsensusCheckBuilder[T]) Check() ConsensusChecker { return ccb.check }
 
-func (ccb *ConsensusCheckBuilder) AffectedKeys() []string {
-	var keys []string
-	for _, value := range ccb.getConsensusValues {
-		keys = append(keys, value.Key)
-	}
-	return keys
+// AffectedKeys returns the gossip keys inspected by this builder.
+func (ccb *ConsensusCheckBuilder[T]) AffectedKeys() []string {
+	return append([]string(nil), ccb.keys...)
 }
 
-func (ccb *ConsensusCheckBuilder) MapToValue(valueTuple *consensusValue) func(string, *GossipMemberState) (string, string, uint64) {
-	// REVISIT: in .NET implementation the ConsensusCheckBuilder can be of any given T type
-	//          so this method returns (string, string, T) in .NET, it just feels wrong to
-	//          return an interface{} from here as so far only checkers for uint64 are
-	//          being used but this is not acceptable, and we shall put this implementation
-	//          on par with .NET version, so maybe with new go1.18 generics or making the
-	//          ConsensusCheckBuilder struct to store an additional field of type empty
-	//          interface to operate with internally and then provide of a custom callback
-	//          from users of the data structure to convert back and forth ¯\_(ツ)_/¯
-	key := valueTuple.Key
-	unpack := valueTuple.Value
-
-	return func(member string, state *GossipMemberState) (string, string, uint64) {
-		var value uint64
-
-		gossipKey, ok := state.Values[key]
-		if !ok {
-			value = 0
-		} else {
-			// REVISIT: the valueTuple is here supposedly to be able to convert
-			//          the protobuf Any values contained by GossipMemberState
-			//          into the right value, this is true in the .NET version
-			//          as ConsensusCheckBuilder is defined as a generic type
-			//          ConsensusCheckBuilder<T> so the unpacker can unpack from
-			//          Any into T, but we can not do that (for now) so we have
-			//          to stick to unpack to the concrete uint64 type here
-			value = unpack(gossipKey.Value).(uint64)
+// build constructs the ConsensusChecker used to evaluate consensus.
+func (ccb *ConsensusCheckBuilder[T]) build() ConsensusChecker {
+	showLog := func(hasConsensus bool, values []T) {
+		if !ccb.logger.Enabled(context.TODO(), slog.LevelDebug) {
+			return
 		}
-		return member, key, value
-	}
-}
-
-func (ccb *ConsensusCheckBuilder) build() func(*GossipState, map[string]empty) (bool, interface{}) {
-	getValidMemberStates := func(state *GossipState, ids map[string]empty, result []map[string]*GossipMemberState) {
-		for member, memberState := range state.Members {
-			if _, ok := ids[member]; ok {
-				result = append(result, map[string]*GossipMemberState{
-					member: memberState,
-				})
-			}
+		groups := map[string]int{}
+		for _, v := range values {
+			groups[fmt.Sprintf("%v", v)]++
 		}
-	}
-
-        showLog := func(hasConsensus bool, _ uint64, valueTuples []*consensusMemberValue) {
-		if ccb.logger.Enabled(context.TODO(), slog.LevelDebug) {
-			groups := map[string]int{}
-			for _, memberValue := range valueTuples {
-				key := fmt.Sprintf("%s:%d", memberValue.key, memberValue.value)
-				groups[key]++
+		for k, v := range groups {
+			suffix := k
+			if v > 1 {
+				suffix = fmt.Sprintf("%s, %d nodes", k, v)
 			}
-
-			for k, value := range groups {
-				suffix := strings.Split(k, ":")[0]
-				if value > 1 {
-					suffix = fmt.Sprintf("%s, %d nodes", k, value)
-				}
-				ccb.logger.Debug("consensus", slog.Bool("consensus", hasConsensus), slog.String("values", suffix))
-			}
-		}
-	}
-
-	if len(ccb.getConsensusValues) == 1 {
-		mapToValue := ccb.MapToValue(ccb.getConsensusValues[0])
-
-		return func(state *GossipState, ids map[string]empty) (bool, interface{}) {
-			var memberStates []map[string]*GossipMemberState
-			getValidMemberStates(state, ids, memberStates)
-
-			if len(memberStates) < len(ids) { // Not all members have state...
-				return false, nil
-			}
-
-			var valueTuples []*consensusMemberValue
-			for _, memberState := range memberStates {
-				for id, state := range memberState {
-					member, key, value := mapToValue(id, state)
-					valueTuples = append(valueTuples, &consensusMemberValue{member, key, value})
-				}
-			}
-
-			hasConsensus, topologyHash := ccb.HasConsensus(valueTuples)
-			showLog(hasConsensus, topologyHash, valueTuples)
-
-			return hasConsensus, topologyHash
+			ccb.logger.Debug("consensus", slog.Bool("consensus", hasConsensus), slog.String("values", suffix))
 		}
 	}
 
 	return func(state *GossipState, ids map[string]empty) (bool, interface{}) {
-		var memberStates []map[string]*GossipMemberState
-		getValidMemberStates(state, ids, memberStates)
-
-		if len(memberStates) < len(ids) { // Not all members have state...
-			return false, nil
-		}
-
-		var valueTuples []*consensusMemberValue
-		for _, consensusValues := range ccb.getConsensusValues {
-			mapToValue := ccb.MapToValue(consensusValues)
-			for _, memberState := range memberStates {
-				for id, state := range memberState {
-					member, key, value := mapToValue(id, state)
-					valueTuples = append(valueTuples, &consensusMemberValue{member, key, value})
+		var values []T
+		for id := range ids {
+			memberState, ok := state.Members[id]
+			if !ok {
+				return false, nil
+			}
+			for i, key := range ccb.keys {
+				gossipKey, ok := memberState.Values[key]
+				if !ok {
+					return false, nil
 				}
+				v, err := ccb.extractors[i](gossipKey.Value)
+				if err != nil {
+					return false, nil
+				}
+				values = append(values, v)
 			}
 		}
 
-		hasConsensus, topologyHash := ccb.HasConsensus(valueTuples)
-		showLog(hasConsensus, topologyHash, valueTuples)
+		if len(values) < len(ids)*len(ccb.keys) {
+			return false, nil
+		}
 
-		return hasConsensus, topologyHash
+		has, val := ccb.HasConsensus(values)
+		showLog(has, values)
+
+		if has {
+			return true, any(val)
+		}
+		return false, nil
 	}
 }
 
-func (ccb *ConsensusCheckBuilder) HasConsensus(memberValues []*consensusMemberValue) (bool, uint64) {
-	var hasConsensus bool
-	var topologyHash uint64
-
-	if len(memberValues) == 0 {
-		return hasConsensus, topologyHash
+// HasConsensus checks whether all values in the slice are identical.
+func (ccb *ConsensusCheckBuilder[T]) HasConsensus(values []T) (bool, T) {
+	var zero T
+	if len(values) == 0 {
+		return false, zero
 	}
-
-	first := memberValues[0]
-	for i, next := range memberValues {
-		if i == 0 {
-			continue
-		}
-
-		if first.value != next.value {
-			return hasConsensus, topologyHash
+	first := values[0]
+	for _, v := range values[1:] {
+		if v != first {
+			return false, zero
 		}
 	}
-
-	hasConsensus = true
-	topologyHash = first.value
-	return hasConsensus, topologyHash
+	return true, first
 }
