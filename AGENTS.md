@@ -1,5 +1,13 @@
 # Agent Instructions
 
+## Coding Guidelines
+
+### Always do this
+- Lint the code, there is a script for this, "make lint", then fix some of the reported issues
+- Maintenance task, scan actor, remote, cluster, testkit for bad variable / parameter naming. use as idiomatic names as possible for Golang.
+- Ensure all exported code has proper comments
+- Run all tests at the end of each task
+
 ## Consul requirement for tests
 
 Some test packages require a local Consul agent. Start Consul in dev mode before running these tests:
@@ -27,8 +35,4 @@ go test ./remote/... -count=1
 go test ./persistence/... -count=1
 ```
 
-## Coding Guidelines
 
-* always lint the code, there is a script for this, "make lint", then fix some of the reported issues
-* maintenance task, scan actor, remote, cluster, testkit for bad variable / parameter naming. use as idiomatic names as possible for Golang.
-* ensure all exported code has proper comments
