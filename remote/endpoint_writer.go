@@ -192,7 +192,12 @@ func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context)
 			return
 		}
 
-		rd, _ := tmp.(*remoteDeliver)
+		// ensure the message is a remoteDeliver before proceeding
+		rd, ok := tmp.(*remoteDeliver)
+		if !ok {
+			state.remote.Logger().Error("EndpointWriter received unknown message", slog.Any("message", tmp))
+			continue
+		}
 
 		if state.stream == nil { // not connected yet since first connection attempt failed and we are waiting for the retry
 			if rd.sender != nil {
