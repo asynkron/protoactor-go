@@ -258,9 +258,9 @@ func (g *Gossiper) SendState() {
 	}
 }
 
-// RegisterConsensusCheck Builds a consensus handler and a consensus checker, send the checker to the
-// Gossip actor and returns the handler back to the caller
-func (g *Gossiper) RegisterConsensusCheck(key string, getValue func(*anypb.Any) interface{}) ConsensusHandler {
+// RegisterConsensusCheck builds a consensus handler and checker for the given key and value extractor.
+// The extractor unpacks the gossip state into a value used for comparison.
+func (g *Gossiper) RegisterConsensusCheck(key string, getValue func(*anypb.Any) (uint64, error)) ConsensusHandler {
 	definition := NewConsensusCheckBuilder(g.cluster.Logger(), key, getValue)
 	consensusHandle, check := definition.Build()
 	request := NewAddConsensusCheck(consensusHandle.GetID(), check)

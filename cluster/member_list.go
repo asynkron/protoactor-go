@@ -58,16 +58,15 @@ func (ml *MemberList) stopMemberList() {
 	// ml.cluster.ActorSystem.EventStream.Unsubscribe(ml.membershipSub)
 }
 
+// InitializeTopologyConsensus registers a consensus check for the cluster topology hash.
 func (ml *MemberList) InitializeTopologyConsensus() {
-	ml.topologyConsensus = ml.cluster.Gossip.RegisterConsensusCheck("topology", func(any *anypb.Any) interface{} {
+	ml.topologyConsensus = ml.cluster.Gossip.RegisterConsensusCheck("topology", func(any *anypb.Any) (uint64, error) {
 		var topology ClusterTopology
-		if unpackErr := any.UnmarshalTo(&topology); unpackErr != nil {
-			ml.cluster.Logger().Error("could not unpack topology message", slog.Any("error", unpackErr))
-
-			return nil
+		if err := any.UnmarshalTo(&topology); err != nil {
+			ml.cluster.Logger().Error("could not unpack topology message", slog.Any("error", err))
+			return 0, err
 		}
-
-		return topology.TopologyHash
+		return topology.TopologyHash, nil
 	})
 }
 
