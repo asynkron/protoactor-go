@@ -29,6 +29,6 @@ go test ./persistence/... -count=1
 
 ## Coding Guidelines
 
-* always lint the code, there is a script for this, "make lint"
+* always lint the code, there is a script for this, "make lint", then fix some of the reported issues
 * maintenance task, scan actor, remote, cluster, testkit for bad variable / parameter naming. use as idiomatic names as possible for Golang.
 * ensure all exported code has proper comments
