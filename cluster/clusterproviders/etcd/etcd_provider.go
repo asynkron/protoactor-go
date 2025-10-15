@@ -62,8 +62,8 @@ func NewWithConfig(baseKey string, cfg clientv3.Config, opts ...Option) (*Provid
 	}
 	p := &Provider{
 		client:              client,
-		keepAliveTTL:        3 * time.Second,
-		retryInterval:       1 * time.Second,
+		keepAliveTTL:        c.KeepAliveTTL,
+		retryInterval:       c.RetryInterval,
 		baseKey:             c.BaseKey,
 		members:             map[string]*Node{},
 		cancelWatchCh:       make(chan bool),

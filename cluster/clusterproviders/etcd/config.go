@@ -3,6 +3,12 @@ package etcd
 
 import (
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"time"
+)
+
+const (
+	DefaultEtcdKeepAliveTtl = 3 * time.Second
+	DefaultRetryInterval    = 1 * time.Second
 )
 
 // RoleChangedListener receives notifications when the node role changes.
@@ -34,12 +40,31 @@ func WithRoleChangedListener(l RoleChangedListener) Option {
 	}
 }
 
+// WithKeepAliveTTL sets the grant TTL for node leases.
+func WithKeepAliveTTL(ttl time.Duration) Option {
+	return func(o *config) {
+		o.KeepAliveTTL = ttl
+	}
+}
+
+// WithRetryInterval sets the interval between retries for etcd operations.
+func WithRetryInterval(interval time.Duration) Option {
+	return func(o *config) {
+		o.RetryInterval = interval
+	}
+}
+
 type config struct {
-	BaseKey     string
-	cfg         clientv3.Config
-	RoleChanged RoleChangedListener
+	BaseKey       string
+	cfg           clientv3.Config
+	RoleChanged   RoleChangedListener
+	KeepAliveTTL  time.Duration
+	RetryInterval time.Duration
 }
 
 func defaultConfig() *config {
-	return &config{}
+	return &config{
+		KeepAliveTTL:  DefaultEtcdKeepAliveTtl,
+		RetryInterval: DefaultRetryInterval,
+	}
 }
