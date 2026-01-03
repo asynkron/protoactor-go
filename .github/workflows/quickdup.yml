@@ -22,7 +22,7 @@ jobs:
           cache: false
 
       - name: Install QuickDup
-        run: go install github.com/asynkron/Asynkron.QuickDup/cmd/quickdup@latest
+        run: go install github.com/asynkron/Asynkron.QuickDup/cmd/quickdup@v0.2.0
 
       - name: Run QuickDup
         run: quickdup -path . -ext .go --exclude "*.pb.go" --github-annotations --git-diff origin/${{ github.base_ref || 'dev' }} --no-cache
