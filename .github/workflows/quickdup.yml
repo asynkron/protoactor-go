@@ -25,4 +25,4 @@ jobs:
         run: go install github.com/asynkron/Asynkron.QuickDup/cmd/quickdup@latest
 
       - name: Run QuickDup
-        run: quickdup -path . -ext .go --github-annotations --git-diff origin/${{ github.base_ref || 'dev' }} --no-cache
+        run: quickdup -path . -ext .go --exclude "*.pb.go" --github-annotations --git-diff origin/${{ github.base_ref || 'dev' }} --no-cache
