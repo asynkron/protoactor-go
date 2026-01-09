@@ -56,12 +56,14 @@ func NewWithConfig(baseKey string, cfg clientv3.Config, opts ...Option) (*Provid
 	for _, opt := range opts {
 		opt(c)
 	}
-	client, err := clientv3.New(c.cfg)
-	if err != nil {
-		return nil, err
+	if c.client == nil {
+		var err error
+		if c.client, err = clientv3.New(c.cfg); err != nil {
+			return nil, err
+		}
 	}
 	p := &Provider{
-		client:              client,
+		client:              c.client,
 		keepAliveTTL:        3 * time.Second,
 		retryInterval:       1 * time.Second,
 		baseKey:             c.BaseKey,
