@@ -30,7 +30,7 @@ func (state *broadcastRouterState) GetRoutees() *actor.PIDSet {
 }
 
 func (state *broadcastRouterState) RouteMessage(message interface{}) {
-	state.routees.ForEach(func(i int, pid *actor.PID) {
+	state.routees.ForEach(func(_ int, pid *actor.PID) {
 		state.sender.Send(pid, message)
 	})
 }

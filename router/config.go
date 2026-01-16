@@ -15,7 +15,7 @@ const (
 
 type RouterConfig interface {
 	RouterType() RouterType
-	OnStarted(context actor.Context, props *actor.Props, state State)
+	OnStarted(actor.Context, *actor.Props, State)
 	CreateRouterState() State
 }
 
