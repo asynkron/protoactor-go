@@ -34,10 +34,18 @@ func WithRoleChangedListener(l RoleChangedListener) Option {
 	}
 }
 
+// WithEtcdClient sets a custom etcd client instance.
+func WithEtcdClient(client *clientv3.Client) Option {
+	return func(o *config) {
+		o.client = client
+	}
+}
+
 type config struct {
 	BaseKey     string
 	cfg         clientv3.Config
 	RoleChanged RoleChangedListener
+	client      *clientv3.Client
 }
 
 func defaultConfig() *config {
