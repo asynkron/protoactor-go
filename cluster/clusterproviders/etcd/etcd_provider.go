@@ -63,7 +63,7 @@ func NewWithConfig(baseKey string, cfg clientv3.Config, opts ...Option) (*Provid
 		}
 	}
 	p := &Provider{
-		client:              client,
+		client:              c.client,
 		keepAliveTTL:        c.KeepAliveTTL,
 		retryInterval:       c.RetryInterval,
 		baseKey:             c.BaseKey,
