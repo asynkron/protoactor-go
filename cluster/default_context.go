@@ -148,7 +148,7 @@ selectloop:
 
 func (dcc *DefaultContext) RequestFuture(identity string, kind string, message interface{}, opts ...GrainCallOption) (actor.Future, error) {
 	var counter int
-	callConfig := DefaultGrainCallConfig(dcc.cluster)
+	callConfig := NewGrainCallOptions(dcc.cluster)
 	for _, o := range opts {
 		o(callConfig)
 	}
