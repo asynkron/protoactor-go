@@ -78,7 +78,7 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 	}
 }
 
-func (state *consistentHashRouterState) InvokeRouterManagementMessage(msg ManagementMessage, sender *actor.PID) {
+func (state *consistentHashRouterState) InvokeRouterManagementMessage(ManagementMessage, *actor.PID) {
 }
 
 func NewConsistentHashPool(size int, opts ...actor.PropsOption) *actor.Props {
