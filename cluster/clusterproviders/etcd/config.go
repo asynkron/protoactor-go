@@ -51,6 +51,11 @@ func WithKeepAliveTTL(ttl time.Duration) Option {
 func WithRetryInterval(interval time.Duration) Option {
 	return func(o *config) {
 		o.RetryInterval = interval
+
+// WithEtcdClient sets a custom etcd client instance.
+func WithEtcdClient(client *clientv3.Client) Option {
+	return func(o *config) {
+		o.client = client
 	}
 }
 
@@ -60,6 +65,7 @@ type config struct {
 	RoleChanged   RoleChangedListener
 	KeepAliveTTL  time.Duration
 	RetryInterval time.Duration
+	client      *clientv3.Client
 }
 
 func defaultConfig() *config {

@@ -15,7 +15,7 @@ func TestBroadcastRouterThreadSafe(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
-	props := actor.PropsFromFunc(func(c actor.Context) {})
+	props := actor.PropsFromFunc(func(_ actor.Context) {})
 
 	grp := system.Root.Spawn(NewBroadcastGroup())
 	go func() {
