@@ -56,6 +56,12 @@ func NewWithConfig(baseKey string, cfg clientv3.Config, opts ...Option) (*Provid
 	for _, opt := range opts {
 		opt(c)
 	}
+	if c.KeepAliveTTL <= 0 {
+		c.KeepAliveTTL = defaultKeepAliveTTL
+	}
+	if c.RetryInterval <= 0 {
+		c.RetryInterval = defaultRetryInterval
+	}
 	if c.client == nil {
 		var err error
 		if c.client, err = clientv3.New(c.cfg); err != nil {
@@ -64,8 +70,8 @@ func NewWithConfig(baseKey string, cfg clientv3.Config, opts ...Option) (*Provid
 	}
 	p := &Provider{
 		client:              c.client,
-		keepAliveTTL:        3 * time.Second,
-		retryInterval:       1 * time.Second,
+		keepAliveTTL:        c.KeepAliveTTL,
+		retryInterval:       c.RetryInterval,
 		baseKey:             c.BaseKey,
 		members:             map[string]*Node{},
 		cancelWatchCh:       make(chan bool),
@@ -439,7 +445,10 @@ func (p *Provider) setLeaseID(leaseID clientv3.LeaseID) {
 }
 
 func (p *Provider) newLeaseID() (clientv3.LeaseID, error) {
-	ttlSecs := int64(p.keepAliveTTL / time.Second)
+	ttlSecs := int64((p.keepAliveTTL + time.Second - 1) / time.Second)
+	if ttlSecs < 1 {
+		ttlSecs = 1
+	}
 	resp, err := p.client.Grant(context.TODO(), ttlSecs)
 	if err != nil {
 		return 0, err
