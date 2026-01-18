@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	DefaultEtcdKeepAliveTtl = 3 * time.Second
-	DefaultRetryInterval    = 1 * time.Second
+	defaultKeepAliveTTL  = 3 * time.Second
+	defaultRetryInterval = 1 * time.Second
 )
 
 // RoleChangedListener receives notifications when the node role changes.
@@ -73,7 +73,7 @@ type config struct {
 
 func defaultConfig() *config {
 	return &config{
-		KeepAliveTTL:  DefaultEtcdKeepAliveTtl,
-		RetryInterval: DefaultRetryInterval,
+		KeepAliveTTL:  defaultKeepAliveTTL,
+		RetryInterval: defaultRetryInterval,
 	}
 }
