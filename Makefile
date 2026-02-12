@@ -17,14 +17,14 @@ PACKAGES := $(shell go list ./... | grep -v "/examples/" | grep -v "/persistence
 
 
 test:
-	@go test $(PACKAGES) -timeout=30s
+	@go test $(PACKAGES) -timeout=120s -race
 
 test2:
 	@go install gotest.tools/gotestsum@latest
-	@gotestsum --format testname $(PACKAGES)
+	@gotestsum --format testname -- $(PACKAGES) -timeout=120s -race
 
 test-short:
-	@go test $(PACKAGES) -timeout=30s -short
+	@go test $(PACKAGES) -timeout=120s -short -race
 
 test-race:
 	@go test $(PACKAGES) -timeout=30s -race
