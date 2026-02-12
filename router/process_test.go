@@ -14,8 +14,7 @@ var (
 	_ time.Time
 )
 
-// TODO fix this
-func __TestRouterSendsUserMessageToChild(t *testing.T) {
+func TestRouterSendsUserMessageToChild(t *testing.T) {
 	child, p := spawnMockProcess("child")
 	defer removeMockProcess(child)
 
@@ -28,12 +27,12 @@ func __TestRouterSendsUserMessageToChild(t *testing.T) {
 	s1 := actor.NewPIDSet(child)
 
 	rs := new(testRouterState)
-	//	rs.On("SetSender",)
+	rs.On("SetSender", mock.Anything)
 	rs.On("SetRoutees", s1)
 	rs.On("RouteMessage", mock.MatchedBy(func(env interface{}) bool {
 		_, msg, _ := actor.UnwrapEnvelope(env)
 		return msg.(string) == "hello"
-	}), mock.Anything)
+	}))
 
 	grc := newGroupRouterConfig(child)
 	grc.On("CreateRouterState").Return(rs)
@@ -41,6 +40,9 @@ func __TestRouterSendsUserMessageToChild(t *testing.T) {
 	routerPID := system.Root.Spawn((&actor.Props{}).Configure(actor.WithSpawnFunc(spawner(grc))))
 	system.Root.Send(routerPID, "hello")
 	system.Root.RequestWithCustomSender(routerPID, "hello", routerPID)
+
+	// Allow time for async message delivery
+	time.Sleep(500 * time.Millisecond)
 
 	mock.AssertExpectationsForObjects(t, p, rs)
 }

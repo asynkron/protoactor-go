@@ -142,6 +142,10 @@ func TestStartMember_Multiple(t *testing.T) {
 	}
 }
 
+// TODO: TestUpdateMemberState and TestUpdateMemberState_DoesNotReregisterAfterShutdown
+// are disabled because they use cluster.ClusterState and UpdateClusterState which are
+// commented out / removed from the cluster provider interface. These require an etcd
+// instance to run. To re-enable, the ClusterState API needs to be restored first.
 //func TestUpdateMemberState(t *testing.T) {
 //	if testing.Short() {
 //		return

@@ -1,6 +1,9 @@
 package cluster_test_tool
 
-//TODO: fix this
+// TODO: This entire test suite is disabled because it requires a full in-memory
+// cluster infrastructure (PubSubClusterFixture with 3 cluster members).
+// The fixture spawns real cluster nodes for testing member leave scenarios.
+// Re-enabling requires ensuring the in-memory cluster fixture works correctly.
 //
 //import (
 //	"testing"

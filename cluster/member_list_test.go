@@ -8,6 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TODO: TestPublishRaceCondition is disabled because it uses an old cluster.Configure
+// signature (4 args) that no longer matches the current API. To re-enable, rewrite
+// using the current Configure(name, clusterProvider, identityLookup, remoteConfig) API.
 //func TestPublishRaceCondition(t *testing.T) {
 //	actorSystem := actor.NewActorSystem()
 //	c := New(actorSystem, Configure("mycluster", nil, nil, remote.Configure("127.0.0.1", 0)))
@@ -230,6 +233,8 @@ func TestMemberList_getPartitionMember(t *testing.T) {
 //	}
 //}
 
+// TODO: TestMemberList_getPartitionMemberV2 is disabled because the getPartitionMemberV2
+// method no longer exists. To re-enable, rewrite using the current member list API.
 //func TestMemberList_getPartitionMemberV2(t *testing.T) {
 //	assert := assert.New(t)
 //

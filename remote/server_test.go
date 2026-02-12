@@ -76,6 +76,11 @@ func TestRemote_RegisterViaStruct(t *testing.T) {
 	assert.Equal(t, "someOther", kinds[1])
 }
 
+// TODO: The following tests were disabled because they rely on a test-suite style
+// with direct access to internal fields (edpReader, activatorPid, endpointManager,
+// endpointSupervisor) and mock processes (spawnMockProcess/removeMockProcess) that
+// no longer exist in the remote package. To re-enable, these tests need to be
+// rewritten to use the current Remote API.
 //
 //func (suite *ServerTestSuite) TestStart_AdvertisedAddress() {
 //	// Find available Port
