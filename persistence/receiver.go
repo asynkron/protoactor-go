@@ -1,7 +1,7 @@
 package persistence
 
 import (
-	"log"
+	"fmt"
 	"reflect"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -22,7 +22,7 @@ func Using(provider Provider) func(next actor.ReceiverFunc) actor.ReceiverFunc {
 					p.init(provider, ctx.(actor.Context))
 				} else {
 					// not an persistent actor, bail out
-					log.Fatalf("Actor type %v is not persistent", reflect.TypeOf(ctx.Actor()))
+					panic(fmt.Sprintf("Actor type %v is not persistent", reflect.TypeOf(ctx.Actor())))
 				}
 			default:
 				next(ctx, env)

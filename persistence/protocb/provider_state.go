@@ -1,6 +1,7 @@
 package protocb
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -33,12 +34,12 @@ func (state *cbState) GetEvents(actorName string, eventIndexStart int, eventInde
 
 	rows, err := state.bucket.ExecuteN1qlQuery(q, p)
 	if err != nil {
-		log.Fatalf("Error executing N1ql: %v", err)
+		panic(fmt.Sprintf("Error executing N1ql: %v", err))
 	}
 	defer func() {
 		err := rows.Close()
 		if err != nil {
-			log.Fatalf("Error closing gocb reader: %v", err)
+			panic(fmt.Sprintf("Error closing gocb reader: %v", err))
 		}
 	}()
 
@@ -65,12 +66,12 @@ func (state *cbState) GetSnapshot(actorName string) (snapshot interface{}, event
 
 	rows, err := state.bucket.ExecuteN1qlQuery(q, p)
 	if err != nil {
-		log.Fatalf("Error executing N1ql: %v", err)
+		panic(fmt.Sprintf("Error executing N1ql: %v", err))
 	}
 	defer func() {
 		err := rows.Close()
 		if err != nil {
-			log.Fatalf("Error closing gocb reader: %v", err)
+			panic(fmt.Sprintf("Error closing gocb reader: %v", err))
 		}
 	}()
 
@@ -110,7 +111,7 @@ func (state *cbState) persistEnvelope(key string, envelope *envelope) {
 	persist := func() {
 		_, err := state.bucket.Insert(key, envelope, 0)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		state.wg.Done()
 	}

@@ -1,7 +1,7 @@
 package protocb
 
 import (
-	"log"
+	"fmt"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -26,11 +26,11 @@ func (provider *Provider) GetState() persistence.ProviderState {
 func New(actorSystem *actor.ActorSystem, bucketName string, baseU string, options ...CouchbaseOption) *Provider {
 	c, err := gocb.Connect(baseU)
 	if err != nil {
-		log.Fatalf("Error connecting:  %v", err)
+		panic(fmt.Sprintf("Error connecting:  %v", err))
 	}
 	bucket, err := c.OpenBucketWithMt(bucketName, "")
 	if err != nil {
-		log.Fatalf("Error getting bucket:  %v", err)
+		panic(fmt.Sprintf("Error getting bucket:  %v", err))
 	}
 	bucket.SetTranscoder(transcoder{})
 

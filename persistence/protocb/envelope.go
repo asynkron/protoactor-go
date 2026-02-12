@@ -2,7 +2,6 @@ package protocb
 
 import (
 	"encoding/json"
-	"log"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -20,7 +19,7 @@ func newEnvelope(message proto.Message, doctype string, eventIndex int) *envelop
 	typeName := proto.MessageName(message)
 	bytes, err := json.Marshal(message)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	envelope := &envelope{
 		Type:       string(typeName),
@@ -34,13 +33,13 @@ func newEnvelope(message proto.Message, doctype string, eventIndex int) *envelop
 func (envelope *envelope) message() proto.Message {
 	mt, err := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(envelope.Type))
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	pm := mt.New().Interface()
 	err = json.Unmarshal(envelope.Message, pm)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	return pm
 }
