@@ -60,6 +60,7 @@ func WithMetricProviders(provider metric.MeterProvider) ConfigOption {
 
 	return func(config *Config) {
 		config.MetricsProvider = provider
+		config.MetricsEnabled = true
 	}
 }
 
