@@ -56,6 +56,9 @@ func (config *roundRobinGroupRouter) CreateRouterState() State {
 }
 
 func roundRobinRoutee(index *int32, routees *actor.PIDSet) *actor.PID {
+	if routees.Len() == 0 {
+		return nil
+	}
 	i := int(atomic.AddInt32(index, 1))
 	if i < 0 {
 		*index = 0
