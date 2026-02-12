@@ -27,6 +27,10 @@ type Config struct {
 	// MetricsEnabled toggles emission of Proto.Actor metrics.
 	MetricsEnabled bool
 	LoggerFactory  func(system *ActorSystem) *slog.Logger
+	// StopTimeout is the timeout used for StopFuture and PoisonFuture calls.
+	StopTimeout time.Duration
+	// RequestTimeout is the default timeout used for request operations.
+	RequestTimeout time.Duration
 }
 
 func defaultConfig() *Config {
@@ -50,6 +54,8 @@ func defaultConfig() *Config {
 			})).With("lib", "Proto.Actor").
 				With("system", system.ID)
 		},
+		StopTimeout:    10 * time.Second,
+		RequestTimeout: 5 * time.Second,
 	}
 }
 
@@ -90,6 +96,12 @@ func (c *Config) validate() error {
 	}
 	if c.LoggerFactory == nil {
 		return fmt.Errorf("LoggerFactory must not be nil")
+	}
+	if c.StopTimeout <= 0 {
+		return fmt.Errorf("StopTimeout must be > 0, got %v", c.StopTimeout)
+	}
+	if c.RequestTimeout <= 0 {
+		return fmt.Errorf("RequestTimeout must be > 0, got %v", c.RequestTimeout)
 	}
 	return nil
 }

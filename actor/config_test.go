@@ -110,3 +110,57 @@ func TestConfigValidate_MultipleErrors_ReportsFirst(t *testing.T) {
 	// First validation check should be DeadLetterThrottleCount
 	assert.True(t, strings.Contains(err.Error(), "DeadLetterThrottleCount"))
 }
+
+func TestActorConfig_DefaultStopTimeout(t *testing.T) {
+	config := defaultConfig()
+	assert.Equal(t, 10*time.Second, config.StopTimeout)
+}
+
+func TestActorConfig_DefaultRequestTimeout(t *testing.T) {
+	config := defaultConfig()
+	assert.Equal(t, 5*time.Second, config.RequestTimeout)
+}
+
+func TestActorConfig_WithStopTimeout(t *testing.T) {
+	sys := NewActorSystem(WithStopTimeout(5 * time.Second))
+	defer sys.Shutdown()
+	require.Equal(t, 5*time.Second, sys.Config.StopTimeout)
+}
+
+func TestActorConfig_WithRequestTimeout(t *testing.T) {
+	sys := NewActorSystem(WithRequestTimeout(3 * time.Second))
+	defer sys.Shutdown()
+	require.Equal(t, 3*time.Second, sys.Config.RequestTimeout)
+}
+
+func TestConfigValidate_ZeroStopTimeout(t *testing.T) {
+	config := defaultConfig()
+	config.StopTimeout = 0
+	err := config.validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "StopTimeout must be > 0")
+}
+
+func TestConfigValidate_NegativeStopTimeout(t *testing.T) {
+	config := defaultConfig()
+	config.StopTimeout = -1 * time.Second
+	err := config.validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "StopTimeout must be > 0")
+}
+
+func TestConfigValidate_ZeroRequestTimeout(t *testing.T) {
+	config := defaultConfig()
+	config.RequestTimeout = 0
+	err := config.validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "RequestTimeout must be > 0")
+}
+
+func TestConfigValidate_NegativeRequestTimeout(t *testing.T) {
+	config := defaultConfig()
+	config.RequestTimeout = -1 * time.Second
+	err := config.validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "RequestTimeout must be > 0")
+}

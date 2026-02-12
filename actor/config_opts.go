@@ -96,3 +96,17 @@ func WithLoggerFactory(factory func(system *ActorSystem) *slog.Logger) ConfigOpt
 		config.LoggerFactory = factory
 	}
 }
+
+// WithStopTimeout sets the timeout used for StopFuture and PoisonFuture calls.
+func WithStopTimeout(d time.Duration) ConfigOption {
+	return func(config *Config) {
+		config.StopTimeout = d
+	}
+}
+
+// WithRequestTimeout sets the default timeout used for request operations.
+func WithRequestTimeout(d time.Duration) ConfigOption {
+	return func(config *Config) {
+		config.RequestTimeout = d
+	}
+}

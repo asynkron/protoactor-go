@@ -2,6 +2,7 @@ package remote
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -128,4 +129,64 @@ func TestConfigureWithError_WithOptions(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 500, config.EndpointWriterBatchSize)
 	assert.Equal(t, 50000, config.EndpointWriterQueueSize)
+}
+
+func TestRemoteConfig_DefaultRetryBaseDelay(t *testing.T) {
+	config := defaultConfig()
+	assert.Equal(t, 2*time.Second, config.RetryBaseDelay)
+}
+
+func TestRemoteConfig_DefaultShutdownTimeout(t *testing.T) {
+	config := defaultConfig()
+	assert.Equal(t, 10*time.Second, config.ShutdownTimeout)
+}
+
+func TestRemoteConfig_WithRetryBaseDelay(t *testing.T) {
+	config := Configure("localhost", 0, WithRetryBaseDelay(500*time.Millisecond))
+	require.Equal(t, 500*time.Millisecond, config.RetryBaseDelay)
+}
+
+func TestRemoteConfig_WithShutdownTimeout(t *testing.T) {
+	config := Configure("localhost", 0, WithShutdownTimeout(30*time.Second))
+	require.Equal(t, 30*time.Second, config.ShutdownTimeout)
+}
+
+func TestRemoteConfigValidate_ZeroRetryBaseDelay(t *testing.T) {
+	config := defaultConfig()
+	config.Host = "localhost"
+	config.Port = 8080
+	config.RetryBaseDelay = 0
+	err := config.validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "RetryBaseDelay must be > 0")
+}
+
+func TestRemoteConfigValidate_NegativeRetryBaseDelay(t *testing.T) {
+	config := defaultConfig()
+	config.Host = "localhost"
+	config.Port = 8080
+	config.RetryBaseDelay = -1 * time.Second
+	err := config.validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "RetryBaseDelay must be > 0")
+}
+
+func TestRemoteConfigValidate_ZeroShutdownTimeout(t *testing.T) {
+	config := defaultConfig()
+	config.Host = "localhost"
+	config.Port = 8080
+	config.ShutdownTimeout = 0
+	err := config.validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ShutdownTimeout must be > 0")
+}
+
+func TestRemoteConfigValidate_NegativeShutdownTimeout(t *testing.T) {
+	config := defaultConfig()
+	config.Host = "localhost"
+	config.Port = 8080
+	config.ShutdownTimeout = -1 * time.Second
+	err := config.validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ShutdownTimeout must be > 0")
 }

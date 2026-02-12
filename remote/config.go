@@ -2,6 +2,7 @@ package remote
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"google.golang.org/grpc"
@@ -18,6 +19,8 @@ func defaultConfig() *Config {
 		EndpointManagerQueueSize: 1000000,
 		Kinds:                    make(map[string]*actor.Props),
 		MaxRetryCount:            5,
+		RetryBaseDelay:           2 * time.Second,
+		ShutdownTimeout:          10 * time.Second,
 	}
 }
 
@@ -54,6 +57,12 @@ func (c *Config) validate() error {
 	}
 	if c.EndpointManagerQueueSize <= 0 {
 		return fmt.Errorf("EndpointManagerQueueSize must be > 0, got %d", c.EndpointManagerQueueSize)
+	}
+	if c.RetryBaseDelay <= 0 {
+		return fmt.Errorf("RetryBaseDelay must be > 0, got %v", c.RetryBaseDelay)
+	}
+	if c.ShutdownTimeout <= 0 {
+		return fmt.Errorf("ShutdownTimeout must be > 0, got %v", c.ShutdownTimeout)
 	}
 	return nil
 }
@@ -97,4 +106,9 @@ type Config struct {
 	EndpointManagerQueueSize int
 	Kinds                    map[string]*actor.Props
 	MaxRetryCount            int
+	// RetryBaseDelay is the base delay between connection retry attempts.
+	RetryBaseDelay time.Duration
+	// ShutdownTimeout is the maximum time to wait for a graceful shutdown
+	// before forcing a hard stop.
+	ShutdownTimeout time.Duration
 }

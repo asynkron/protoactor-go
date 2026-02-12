@@ -1,6 +1,10 @@
 package remote
 
-import "google.golang.org/grpc"
+import (
+	"time"
+
+	"google.golang.org/grpc"
+)
 
 // ConfigOption configures a Remote instance.
 type ConfigOption func(config *Config)
@@ -67,5 +71,21 @@ func WithKinds(kinds ...*Kind) ConfigOption {
 		for _, k := range kinds {
 			config.Kinds[k.Kind] = k.Props
 		}
+	}
+}
+
+// WithRetryBaseDelay sets the base delay between connection retry attempts in
+// the endpoint writer.
+func WithRetryBaseDelay(d time.Duration) ConfigOption {
+	return func(config *Config) {
+		config.RetryBaseDelay = d
+	}
+}
+
+// WithShutdownTimeout sets the maximum time to wait for a graceful shutdown
+// before forcing a hard stop.
+func WithShutdownTimeout(d time.Duration) ConfigOption {
+	return func(config *Config) {
+		config.ShutdownTimeout = d
 	}
 }

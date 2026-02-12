@@ -468,7 +468,7 @@ func (ctx *actorContext) Stop(pid *PID) {
 
 // StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
 func (ctx *actorContext) StopFuture(pid *PID) Future {
-	future := newFuture(ctx.actorSystem, 10*time.Second)
+	future := newFuture(ctx.actorSystem, ctx.actorSystem.Config.StopTimeout)
 
 	pid.sendSystemMessage(ctx.actorSystem, &Watch{Watcher: future.pid})
 	ctx.Stop(pid)
@@ -483,7 +483,7 @@ func (ctx *actorContext) Poison(pid *PID) {
 
 // PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
 func (ctx *actorContext) PoisonFuture(pid *PID) Future {
-	future := newFuture(ctx.actorSystem, 10*time.Second)
+	future := newFuture(ctx.actorSystem, ctx.actorSystem.Config.StopTimeout)
 
 	pid.sendSystemMessage(ctx.actorSystem, &Watch{Watcher: future.pid})
 	ctx.Poison(pid)

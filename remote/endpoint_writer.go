@@ -48,9 +48,9 @@ func (state *endpointWriter) initialize(_ actor.Context) {
 		err = state.initializeInternal()
 		if err != nil {
 			state.remote.Logger().Error("EndpointWriter failed to connect", slog.String("address", state.address), slog.Any("error", err), slog.Int("retry", i))
-			// Wait 2 seconds to restart and retry
-			// Replace with Exponential Backoff
-			time.Sleep(2 * time.Second)
+			// Wait before retrying connection
+			// TODO: Replace with Exponential Backoff
+			time.Sleep(state.config.RetryBaseDelay)
 			continue
 		}
 
