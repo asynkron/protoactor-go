@@ -2,6 +2,7 @@ package router
 
 import (
 	"log"
+	"sync/atomic"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/serialx/hashring"
@@ -24,7 +25,7 @@ type hashmapContainer struct {
 	routeeMap map[string]*actor.PID
 }
 type consistentHashRouterState struct {
-	hmc    *hashmapContainer
+	hmc    atomic.Pointer[hashmapContainer]
 	sender actor.SenderContext
 }
 
@@ -44,12 +45,15 @@ func (state *consistentHashRouterState) SetRoutees(routees *actor.PIDSet) {
 	})
 	// initialize hashring for mapping message keys to node names
 	hmc.hashring = hashring.New(nodes)
-	state.hmc = &hmc
+	state.hmc.Store(&hmc)
 }
 
 func (state *consistentHashRouterState) GetRoutees() *actor.PIDSet {
 	var routees actor.PIDSet
-	hmc := state.hmc
+	hmc := state.hmc.Load()
+	if hmc == nil {
+		return &routees
+	}
 	for _, v := range hmc.routeeMap {
 		routees.Add(v)
 	}
@@ -61,7 +65,10 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 	switch msg := uwpMsg.(type) {
 	case Hasher:
 		key := msg.Hash()
-		hmc := state.hmc
+		hmc := state.hmc.Load()
+		if hmc == nil {
+			return
+		}
 
 		node, ok := hmc.hashring.GetNode(key)
 		if !ok {
