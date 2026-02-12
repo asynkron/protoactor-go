@@ -79,6 +79,21 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 	return provider
 }
 
+// validate checks the configuration for invalid values and returns an error
+// if any field is out of range.
+func (c *Config) validate() error {
+	if c.DeadLetterThrottleCount < 0 {
+		return fmt.Errorf("DeadLetterThrottleCount must be >= 0, got %d", c.DeadLetterThrottleCount)
+	}
+	if c.DeadLetterThrottleInterval <= 0 {
+		return fmt.Errorf("DeadLetterThrottleInterval must be > 0")
+	}
+	if c.LoggerFactory == nil {
+		return fmt.Errorf("LoggerFactory must not be nil")
+	}
+	return nil
+}
+
 // NewConfig returns a configuration with default values.
 func NewConfig() *Config {
 	return defaultConfig()

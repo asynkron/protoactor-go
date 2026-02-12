@@ -76,12 +76,27 @@ func (as *ActorSystem) IsStopped() bool {
 	}
 }
 
-// NewActorSystem creates a new actor system with optional configuration
-// options.
-func NewActorSystem(options ...ConfigOption) *ActorSystem {
-	config := Configure(options...)
+// NewActorSystemWithError creates a new actor system with optional configuration
+// options. It returns an error if the configuration is invalid.
+func NewActorSystemWithError(options ...ConfigOption) (*ActorSystem, error) {
+	config, err := ConfigureWithError(options...)
+	if err != nil {
+		return nil, err
+	}
 
-	return NewActorSystemWithConfig(config)
+	return NewActorSystemWithConfig(config), nil
+}
+
+// NewActorSystem creates a new actor system with optional configuration
+// options. It panics if the configuration is invalid. Use
+// NewActorSystemWithError for a non-panicking variant.
+func NewActorSystem(options ...ConfigOption) *ActorSystem {
+	system, err := NewActorSystemWithError(options...)
+	if err != nil {
+		panic(err)
+	}
+
+	return system
 }
 
 // NewActorSystemWithConfig creates a new actor system using an explicit

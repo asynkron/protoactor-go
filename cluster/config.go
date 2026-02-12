@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -31,7 +32,30 @@ type Config struct {
 	PubSubConfig                                 *PubSubConfig
 }
 
-func Configure(clusterName string, clusterProvider ClusterProvider, identityLookup IdentityLookup, remoteConfig *remote.Config, options ...ConfigOption) *Config {
+// validate checks the cluster configuration for invalid values and returns an
+// error if any field is out of range or a required dependency is nil.
+func (c *Config) validate() error {
+	if c.Name == "" {
+		return fmt.Errorf("cluster name must not be empty")
+	}
+	if c.ClusterProvider == nil {
+		return fmt.Errorf("ClusterProvider must not be nil")
+	}
+	if c.IdentityLookup == nil {
+		return fmt.Errorf("IdentityLookup must not be nil")
+	}
+	if c.RemoteConfig == nil {
+		return fmt.Errorf("RemoteConfig must not be nil")
+	}
+	if c.RequestTimeoutTime <= 0 {
+		return fmt.Errorf("RequestTimeoutTime must be > 0")
+	}
+	return nil
+}
+
+// ConfigureWithError creates a new cluster configuration and validates it.
+// It returns an error if the configuration is invalid.
+func ConfigureWithError(clusterName string, clusterProvider ClusterProvider, identityLookup IdentityLookup, remoteConfig *remote.Config, options ...ConfigOption) (*Config, error) {
 	config := &Config{
 		Name:                      clusterName,
 		ClusterProvider:           clusterProvider,
@@ -54,6 +78,21 @@ func Configure(clusterName string, clusterProvider ClusterProvider, identityLook
 
 	for _, option := range options {
 		option(config)
+	}
+
+	if err := config.validate(); err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+// Configure creates a new cluster configuration. It panics if the
+// configuration is invalid. Use ConfigureWithError for a non-panicking variant.
+func Configure(clusterName string, clusterProvider ClusterProvider, identityLookup IdentityLookup, remoteConfig *remote.Config, options ...ConfigOption) *Config {
+	config, err := ConfigureWithError(clusterName, clusterProvider, identityLookup, remoteConfig, options...)
+	if err != nil {
+		panic(err)
 	}
 
 	return config

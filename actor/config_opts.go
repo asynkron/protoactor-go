@@ -10,11 +10,27 @@ import (
 // ConfigOption is a function that configures the actor system
 type ConfigOption func(config *Config)
 
-// Configure sets the configuration options
-func Configure(options ...ConfigOption) *Config {
+// ConfigureWithError sets the configuration options and validates the result.
+// It returns an error if the configuration is invalid.
+func ConfigureWithError(options ...ConfigOption) (*Config, error) {
 	config := defaultConfig()
 	for _, option := range options {
 		option(config)
+	}
+
+	if err := config.validate(); err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+// Configure sets the configuration options. It panics if the resulting
+// configuration is invalid. Use ConfigureWithError for a non-panicking variant.
+func Configure(options ...ConfigOption) *Config {
+	config, err := ConfigureWithError(options...)
+	if err != nil {
+		panic(err)
 	}
 
 	return config

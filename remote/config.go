@@ -34,11 +34,51 @@ func (rc Config) Address() string {
 	return fmt.Sprintf("%v:%v", rc.Host, rc.Port)
 }
 
-// Configure configures the remote
-func Configure(host string, port int, options ...ConfigOption) *Config {
+// validate checks the remote configuration for invalid values and returns an
+// error if any field is out of range.
+func (c *Config) validate() error {
+	if c.Host == "" {
+		return fmt.Errorf("host must not be empty")
+	}
+	if c.Port < 0 {
+		return fmt.Errorf("port must be >= 0, got %d", c.Port)
+	}
+	if c.EndpointWriterBatchSize <= 0 {
+		return fmt.Errorf("EndpointWriterBatchSize must be > 0, got %d", c.EndpointWriterBatchSize)
+	}
+	if c.EndpointWriterQueueSize <= 0 {
+		return fmt.Errorf("EndpointWriterQueueSize must be > 0, got %d", c.EndpointWriterQueueSize)
+	}
+	if c.EndpointManagerBatchSize <= 0 {
+		return fmt.Errorf("EndpointManagerBatchSize must be > 0, got %d", c.EndpointManagerBatchSize)
+	}
+	if c.EndpointManagerQueueSize <= 0 {
+		return fmt.Errorf("EndpointManagerQueueSize must be > 0, got %d", c.EndpointManagerQueueSize)
+	}
+	return nil
+}
+
+// ConfigureWithError configures the remote and validates the resulting
+// configuration. It returns an error if the configuration is invalid.
+func ConfigureWithError(host string, port int, options ...ConfigOption) (*Config, error) {
 	c := newConfig(options...)
 	c.Host = host
 	c.Port = port
+
+	if err := c.validate(); err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+// Configure configures the remote. It panics if the configuration is invalid.
+// Use ConfigureWithError for a non-panicking variant.
+func Configure(host string, port int, options ...ConfigOption) *Config {
+	c, err := ConfigureWithError(host, port, options...)
+	if err != nil {
+		panic(err)
+	}
 
 	return c
 }
