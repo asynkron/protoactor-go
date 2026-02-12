@@ -2,6 +2,7 @@ package remote
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 
@@ -137,6 +138,10 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 			return errors.New("unknown target")
 		}
 
+		if envelope.TypeId < 0 || int(envelope.TypeId) >= len(m.TypeNames) {
+			s.remote.Logger().Error("EndpointReader received message with invalid type id", slog.Int("typeId", int(envelope.TypeId)), slog.Int("typeNamesLength", len(m.TypeNames)))
+			return fmt.Errorf("invalid type id %d: out of range [0, %d)", envelope.TypeId, len(m.TypeNames))
+		}
 		typeName := m.TypeNames[envelope.TypeId]
 		if s.remote.metricsEnabled {
 			_ctx := context.Background()
@@ -204,6 +209,9 @@ func deserializeSender(index int32, requestID uint32, arr []*actor.PID) *actor.P
 	if index == 0 {
 		return nil
 	}
+	if index < 0 || int(index-1) >= len(arr) {
+		return nil
+	}
 	pid := arr[index-1]
 
 	// if request id is used, clone the PID first so we don't corrupt the lookup
@@ -215,6 +223,9 @@ func deserializeSender(index int32, requestID uint32, arr []*actor.PID) *actor.P
 }
 
 func deserializeTarget(index int32, requestID uint32, arr []string, address string) *actor.PID {
+	if index < 0 || int(index) >= len(arr) {
+		return nil
+	}
 	pid := actor.NewPID(address, arr[index])
 	pid.RequestId = requestID
 	return pid

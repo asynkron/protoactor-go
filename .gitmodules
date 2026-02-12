@@ -1,0 +1,6 @@
+[submodule "agent-vendored/Asynkron.Documentation"]
+	path = agent-vendored/Asynkron.Documentation
+	url = git@github.com:asynkron/Asynkron.Documentation.git
+[submodule "agent-vendored/protoactor-dotnet"]
+	path = agent-vendored/protoactor-dotnet
+	url = git@github.com:asynkron/protoactor-dotnet.git
