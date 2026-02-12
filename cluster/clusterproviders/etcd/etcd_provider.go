@@ -356,6 +356,12 @@ func (p *Provider) startWatching() {
 			if err := p.keepWatching(ctx); err != nil {
 				p.cluster.Logger().Error("Failed to keepWatching.", slog.Any("error", err))
 				p.clusterError = err
+				// Add backoff before retrying to avoid tight error loop
+				select {
+				case <-time.After(p.retryInterval):
+				case <-ctx.Done():
+					return
+				}
 			}
 		}
 	}()
