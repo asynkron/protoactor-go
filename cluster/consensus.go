@@ -52,12 +52,10 @@ func (hdl *gossipConsensusHandler) TryGetConsensus(context.Context) (interface{}
 
 func (hdl *gossipConsensusHandler) TrySetConsensus(consensus interface{}) {
 	hdl.result.Lock()
-	go func() {
-		defer hdl.result.Unlock()
+	defer hdl.result.Unlock()
 
-		hdl.result.value = consensus
-		hdl.result.consensus = true
-	}()
+	hdl.result.value = consensus
+	hdl.result.consensus = true
 }
 
 func (hdl *gossipConsensusHandler) TryResetConsensus() {
