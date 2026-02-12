@@ -149,6 +149,14 @@ type spawnerPart interface {
 	//
 	// Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1"
 	SpawnNamed(props *Props, id string) (*PID, error)
+
+	// TrySpawn starts a new child actor based on props and named with a unique id.
+	// Unlike Spawn, it returns an error instead of panicking on failure.
+	TrySpawn(props *Props) (*PID, error)
+
+	// TrySpawnPrefix starts a new child actor based on props and named using a prefix followed by a unique id.
+	// Unlike SpawnPrefix, it returns an error instead of panicking on failure.
+	TrySpawnPrefix(props *Props, prefix string) (*PID, error)
 }
 
 type stopperPart interface {

@@ -187,6 +187,18 @@ func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
 	return pid
 }
 
+// TrySpawn starts a new actor based on props and named with a unique id.
+// Unlike Spawn, it returns an error instead of panicking on failure.
+func (rc *RootContext) TrySpawn(props *Props) (*PID, error) {
+	return rc.SpawnNamed(props, rc.actorSystem.ProcessRegistry.NextID())
+}
+
+// TrySpawnPrefix starts a new actor based on props and named using a prefix followed by a unique id.
+// Unlike SpawnPrefix, it returns an error instead of panicking on failure.
+func (rc *RootContext) TrySpawnPrefix(props *Props, prefix string) (*PID, error) {
+	return rc.SpawnNamed(props, prefix+rc.actorSystem.ProcessRegistry.NextID())
+}
+
 // SpawnNamed starts a new actor based on props and named using the specified name
 //
 // # ErrNameExists will be returned if id already exists

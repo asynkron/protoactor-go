@@ -194,6 +194,16 @@ func (m *mockContext) SpawnNamed(p *Props, name string) (*PID, error) {
 	return args.Get(0).(*PID), args.Get(1).(error)
 }
 
+func (m *mockContext) TrySpawn(p *Props) (*PID, error) {
+	args := m.Called(p)
+	return args.Get(0).(*PID), args.Error(1)
+}
+
+func (m *mockContext) TrySpawnPrefix(p *Props, prefix string) (*PID, error) {
+	args := m.Called(p, prefix)
+	return args.Get(0).(*PID), args.Error(1)
+}
+
 // mockProcess
 type mockProcess struct {
 	mock.Mock

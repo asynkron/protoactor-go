@@ -407,6 +407,18 @@ func (ctx *actorContext) SpawnPrefix(props *Props, prefix string) *PID {
 	return pid
 }
 
+// TrySpawn starts a new child actor based on props and named with a unique id.
+// Unlike Spawn, it returns an error instead of panicking on failure.
+func (ctx *actorContext) TrySpawn(props *Props) (*PID, error) {
+	return ctx.SpawnNamed(props, ctx.actorSystem.ProcessRegistry.NextID())
+}
+
+// TrySpawnPrefix starts a new child actor based on props and named using a prefix followed by a unique id.
+// Unlike SpawnPrefix, it returns an error instead of panicking on failure.
+func (ctx *actorContext) TrySpawnPrefix(props *Props, prefix string) (*PID, error) {
+	return ctx.SpawnNamed(props, prefix+ctx.actorSystem.ProcessRegistry.NextID())
+}
+
 func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	if props.guardianStrategy != nil {
 		panic(errors.New("props used to spawn child cannot have GuardianStrategy"))
