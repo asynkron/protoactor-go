@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"sync/atomic"
 
 	"google.golang.org/protobuf/proto"
 
@@ -15,7 +16,7 @@ import (
 )
 
 type endpointReader struct {
-	suspended bool
+	suspended atomic.Bool
 	remote    *Remote
 }
 
@@ -75,7 +76,7 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 		case err != nil:
 			s.remote.Logger().Info("EndpointReader failed to read", slog.Any("error", err))
 			return err
-		case s.suspended:
+		case s.suspended.Load():
 			continue
 		}
 
@@ -272,7 +273,7 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 }
 
 func (s *endpointReader) suspend(toSuspend bool) {
-	s.suspended = toSuspend
+	s.suspended.Store(toSuspend)
 	if toSuspend {
 		s.remote.Logger().Debug("Suspended EndpointReader")
 	}
