@@ -73,7 +73,9 @@ func startNode(port int, provider string) {
 	remoteCfg := remote.Configure("127.0.0.1", port)
 	cfg := cluster.Configure("cluster-restartgracefully", cp, id, remoteCfg)
 	_cluster = cluster.New(system, cfg)
-	_cluster.StartClient()
+	if err := _cluster.StartClient(); err != nil {
+		panic(fmt.Sprintf("failed to start client: %v", err))
+	}
 }
 
 func runClientsAll(clients int, loops int, interval time.Duration) {

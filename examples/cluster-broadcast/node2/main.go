@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"cluster-broadcast/shared"
@@ -65,7 +66,9 @@ func startNode(port int64) *cluster.Cluster {
 
 	cluster := cluster.New(system, clusterConfig)
 
-	cluster.StartMember()
+	if err := cluster.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 	return cluster
 }
 

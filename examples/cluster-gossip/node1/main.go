@@ -3,6 +3,7 @@ package main
 import (
 	"cluster-gossip/shared"
 	"fmt"
+	"log"
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
@@ -91,7 +92,9 @@ func startNode() *cluster.Cluster {
 	config := remote.Configure("localhost", 0)
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
 	c := cluster.New(system, clusterConfig)
-	c.StartMember()
+	if err := c.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 
 	return c
 }

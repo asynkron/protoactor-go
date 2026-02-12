@@ -26,7 +26,9 @@ func main() {
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
 	c := cluster.New(system, clusterConfig)
 	setupLogger(c)
-	c.StartMember()
+	if err := c.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 
 	callopts := []cluster.GrainCallOption{
 		cluster.WithTimeout(5 * time.Second),

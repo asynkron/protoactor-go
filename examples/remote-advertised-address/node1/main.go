@@ -18,7 +18,9 @@ var (
 func main() {
 	cfg := remote.Configure("0.0.0.0", 8081, remote.WithAdvertisedHost("localhost:8081"))
 	r := remote.NewRemote(system, cfg)
-	r.Start()
+	if err := r.Start(); err != nil {
+		panic(err)
+	}
 
 	remotePid := actor.NewPID("127.0.0.1:8080", "remote")
 

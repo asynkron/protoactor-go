@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"log/slog"
 
 	"cluster-grain/shared"
@@ -37,7 +38,9 @@ func main() {
 		cluster.WithKinds(helloKind))
 
 	c := cluster.New(system, clusterConfig)
-	c.StartMember()
+	if err := c.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()
 	c.Shutdown(true)

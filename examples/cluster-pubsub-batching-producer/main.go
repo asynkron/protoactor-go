@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync/atomic"
 	"time"
 
@@ -66,7 +67,9 @@ func startNode() *cluster.Cluster {
 
 	cluster := cluster.New(system, clusterConfig)
 
-	cluster.StartMember()
+	if err := cluster.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 
 	return cluster
 }

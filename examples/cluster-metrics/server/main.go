@@ -76,7 +76,9 @@ func main() {
 
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, remoteConfig, cluster.WithKinds(helloKind))
 	c := cluster.New(system, clusterConfig)
-	c.StartMember()
+	if err := c.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 
 	// this node knows about Hello kind
 	hello := shared.GetHelloGrainClient(c, "MyGrain")

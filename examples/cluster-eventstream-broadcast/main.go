@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -42,7 +43,9 @@ func startNode(remotingPort int, clusteringPort int, clusterMembers []string) *c
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
 	cluster := cluster.New(system, clusterConfig)
 
-	cluster.StartMember()
+	if err := cluster.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 
 	return cluster
 }

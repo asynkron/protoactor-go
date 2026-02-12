@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -82,7 +83,9 @@ func startNode(agent *test.InMemAgent, hostHello bool) node {
 
 	clusterConfig := cluster.Configure("demo", provider, lookup, config, opts...)
 	c := cluster.New(system, clusterConfig)
-	c.StartMember()
+	if err := c.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 
 	return node{c: c, ctx: root}
 }

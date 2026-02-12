@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"cluster-grain/shared"
 
@@ -21,7 +22,9 @@ func main() {
 	config := remote.Configure("localhost", 0)
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
 	c := cluster.New(system, clusterConfig)
-	c.StartMember()
+	if err := c.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 
 	fmt.Print("\nBoot other nodes and press Enter\n")
 	console.ReadLine()

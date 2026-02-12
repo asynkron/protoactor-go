@@ -77,5 +77,7 @@ func startNode(port int, provider string, timeout time.Duration) {
 	remoteCfg := remote.Configure("127.0.0.1", port)
 	cfg := cluster.Configure("cluster-restartgracefully", cp, id, remoteCfg, cluster.WithKinds(shared.GetCalculatorKind()))
 	_cluster = cluster.New(system, cfg)
-	_cluster.StartMember()
+	if err := _cluster.StartMember(); err != nil {
+		panic(fmt.Sprintf("failed to start member: %v", err))
+	}
 }

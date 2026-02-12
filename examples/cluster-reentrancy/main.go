@@ -2,6 +2,7 @@ package main
 
 import (
 	fmt "fmt"
+	"log"
 
 	actor "github.com/asynkron/protoactor-go/actor"
 	cluster "github.com/asynkron/protoactor-go/cluster"
@@ -19,7 +20,9 @@ func main() {
 	clusterConfig := cluster.Configure("core", provider, lookup, config, cluster.WithKinds(
 		helloKind))
 	cst := cluster.New(system, clusterConfig)
-	cst.StartMember()
+	if err := cst.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 	// self call: request -> 1 -> 1
 	client := GetHelloGrainClient(cst, "1")
 	resp, err := client.InvokeService(&InvokeServiceRequest{Name: "Alice"})

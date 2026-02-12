@@ -21,7 +21,9 @@ func main() {
 
 	r := remote.NewRemote(system, cfg)
 	r.Register("remote", props)
-	r.Start()
+	if err := r.Start(); err != nil {
+		panic(err)
+	}
 
 	// empty actor just to have something to remote spawn
 

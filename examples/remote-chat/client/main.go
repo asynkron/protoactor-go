@@ -14,7 +14,9 @@ func main() {
 	system := actor.NewActorSystem()
 	config := remote.Configure("127.0.0.1", 0)
 	remoter := remote.NewRemote(system, config)
-	remoter.Start()
+	if err := remoter.Start(); err != nil {
+		panic(err)
+	}
 
 	server := actor.NewPID("127.0.0.1:8080", "chatserver")
 

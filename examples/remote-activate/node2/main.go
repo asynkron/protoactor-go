@@ -33,7 +33,9 @@ func main() {
 		remote.WithKinds(remote.NewKind("hello", actor.PropsFromProducer(newHelloActor))))
 
 	remoter := remote.NewRemote(system, remoteConfig)
-	remoter.Start()
+	if err := remoter.Start(); err != nil {
+		panic(err)
+	}
 
 	console.ReadLine()
 }

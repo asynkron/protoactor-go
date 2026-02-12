@@ -17,7 +17,9 @@ var (
 func main() {
 	cfg := remote.Configure("127.0.0.1", 8081)
 	r := remote.NewRemote(system, cfg)
-	r.Start()
+	if err := r.Start(); err != nil {
+		panic(err)
+	}
 
 	timeout := 5 * time.Second
 

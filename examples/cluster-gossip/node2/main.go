@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/lmittmann/tint"
+	"log"
 	"os"
 	"time"
 
@@ -71,6 +72,8 @@ func startNode() *cluster.Cluster {
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKinds(helloKind))
 	c := cluster.New(system, clusterConfig)
 
-	c.StartMember()
+	if err := c.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 	return c
 }

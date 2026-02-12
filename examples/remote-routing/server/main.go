@@ -53,7 +53,9 @@ func newRemote(bind, name string) {
 	}
 
 	r := remote.NewRemote(system, remote.Configure(host, port))
-	r.Start()
+	if err := r.Start(); err != nil {
+		panic(err)
+	}
 
 	props := actor.
 		PropsFromProducer(newRemoteActor(name),

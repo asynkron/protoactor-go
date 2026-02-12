@@ -22,7 +22,9 @@ func main() {
 	system := actor.NewActorSystem()
 	config := remote.Configure("127.0.0.1", 8080)
 	remoter := remote.NewRemote(system, config)
-	remoter.Start()
+	if err := remoter.Start(); err != nil {
+		panic(err)
+	}
 
 	clients := actor.NewPIDSet()
 

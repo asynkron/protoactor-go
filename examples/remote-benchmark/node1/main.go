@@ -80,7 +80,9 @@ func main() {
 	// remote.DefaultSerializerID = 1
 	system := actor.NewActorSystem()
 	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 8081 /*, remote.WithCallOptions(grpc.UseCompressor(gzip.Name))*/))
-	r.Start()
+	if err := r.Start(); err != nil {
+		log.Fatal(err)
+	}
 
 	rootContext := system.Root
 

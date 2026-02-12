@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"cluster-broadcast/shared"
@@ -76,7 +77,9 @@ func startNode(port int64) *cluster.Cluster {
 		return &shared.TrackGrain{}
 	})
 
-	cluster.StartMember()
+	if err := cluster.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 
 	return cluster
 }

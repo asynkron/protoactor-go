@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	actor "github.com/asynkron/protoactor-go/actor"
 	cluster "github.com/asynkron/protoactor-go/cluster"
@@ -19,7 +20,9 @@ func main() {
 	clusterConfig := cluster.Configure("test", provider, lookup, config, cluster.WithKinds(
 		helloKind))
 	cst := cluster.New(system, clusterConfig)
-	cst.StartMember()
+	if err := cst.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 
 	client := GetHelloGrainClient(cst, "test")
 	_, err := client.Hello(&HelloRequest{Name: "user-not-found"})

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"strconv"
 
 	console "github.com/asynkron/goconsole"
@@ -39,7 +40,9 @@ func startNode() *cluster.Cluster {
 
 	cluster := cluster.New(system, clusterConfig)
 
-	cluster.StartMember()
+	if err := cluster.StartMember(); err != nil {
+		log.Fatal(err)
+	}
 
 	return cluster
 }

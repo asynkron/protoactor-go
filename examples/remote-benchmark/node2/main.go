@@ -36,7 +36,9 @@ func main() {
 	system := actor.NewActorSystem()
 	r := remote.NewRemote(system, remote.Configure("127.0.0.1", 12000 /*, remote.WithCallOptions(grpc.UseCompressor(gzip.Name))*/))
 	r.Register("echo", props)
-	r.Start()
+	if err := r.Start(); err != nil {
+		log.Fatal(err)
+	}
 
 	rootContext := system.Root
 
