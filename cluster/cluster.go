@@ -174,7 +174,9 @@ func (c *Cluster) Shutdown(graceful bool) {
 	c.Gossip.SetState(GracefullyLeftKey, &emptypb.Empty{})
 	c.ActorSystem.Shutdown()
 	if graceful {
-		_ = c.Config.ClusterProvider.Shutdown(graceful)
+		if err := c.Config.ClusterProvider.Shutdown(graceful); err != nil {
+			c.Logger().Error("cluster provider shutdown failed", slog.Any("error", err))
+		}
 		c.IdentityLookup.Shutdown()
 		// This is to wait ownership transferring complete.
 		time.Sleep(time.Millisecond * 2000)

@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -71,10 +72,11 @@ func spawn(actorSystem *actor.ActorSystem, id string, config RouterConfig, props
 	pc.Configure(actor.WithSpawnFunc(nil))
 	ref.state = config.CreateRouterState()
 
+	var spawnErr error
 	if config.RouterType() == GroupRouterType {
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
-		ref.router, _ = actor.DefaultSpawner(actorSystem, id+"/router", actor.PropsFromProducer(func() actor.Actor {
+		ref.router, spawnErr = actor.DefaultSpawner(actorSystem, id+"/router", actor.PropsFromProducer(func() actor.Actor {
 			return &groupRouterActor{
 				props:  &pc,
 				config: config,
@@ -82,11 +84,14 @@ func spawn(actorSystem *actor.ActorSystem, id string, config RouterConfig, props
 				wg:     wg,
 			}
 		}), parentContext)
+		if spawnErr != nil {
+			return nil, fmt.Errorf("failed to spawn group router actor: %w", spawnErr)
+		}
 		wg.Wait() // wait for routerActor to start
 	} else {
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
-		ref.router, _ = actor.DefaultSpawner(actorSystem, id+"/router", actor.PropsFromProducer(func() actor.Actor {
+		ref.router, spawnErr = actor.DefaultSpawner(actorSystem, id+"/router", actor.PropsFromProducer(func() actor.Actor {
 			return &poolRouterActor{
 				props:  &pc,
 				config: config,
@@ -94,6 +99,9 @@ func spawn(actorSystem *actor.ActorSystem, id string, config RouterConfig, props
 				wg:     wg,
 			}
 		}), parentContext)
+		if spawnErr != nil {
+			return nil, fmt.Errorf("failed to spawn pool router actor: %w", spawnErr)
+		}
 		wg.Wait() // wait for routerActor to start
 	}
 

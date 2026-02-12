@@ -196,6 +196,16 @@ func (m *mockContext) SpawnNamed(p *actor.Props, name string) (*actor.PID, error
 	return args.Get(0).(*actor.PID), args.Get(1).(error)
 }
 
+func (m *mockContext) TrySpawn(p *actor.Props) (*actor.PID, error) {
+	args := m.Called(p)
+	return args.Get(0).(*actor.PID), args.Error(1)
+}
+
+func (m *mockContext) TrySpawnPrefix(p *actor.Props, prefix string) (*actor.PID, error) {
+	args := m.Called(p, prefix)
+	return args.Get(0).(*actor.PID), args.Error(1)
+}
+
 //
 // Interface: StopperContext
 //

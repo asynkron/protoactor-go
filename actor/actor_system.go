@@ -15,16 +15,17 @@ import (
 //
 //goland:noinspection GoNameStartsWithPackageName
 type ActorSystem struct {
-	ProcessRegistry *ProcessRegistryValue
-	Root            *RootContext
-	EventStream     *eventstream.EventStream
-	Guardians       *guardiansValue
-	DeadLetter      *deadLetterProcess
-	Extensions      *extensions.Extensions
-	Config          *Config
-	ID              string
-	stopper         chan struct{}
-	logger          *slog.Logger
+	ProcessRegistry        *ProcessRegistryValue
+	Root                   *RootContext
+	EventStream            *eventstream.EventStream
+	Guardians              *guardiansValue
+	DeadLetter             *deadLetterProcess
+	Extensions             *extensions.Extensions
+	Config                 *Config
+	ID                     string
+	stopper                chan struct{}
+	logger                 *slog.Logger
+	supervisionSubscription *eventstream.Subscription
 }
 
 // Logger returns the logger associated with the actor system.
@@ -60,6 +61,9 @@ func (as *ActorSystem) GetHostPort() (host string, port int, err error) {
 }
 
 func (as *ActorSystem) Shutdown() {
+	if as.supervisionSubscription != nil {
+		as.EventStream.Unsubscribe(as.supervisionSubscription)
+	}
 	close(as.stopper)
 }
 
@@ -93,7 +97,7 @@ func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system.EventStream = eventstream.NewEventStream()
 	system.DeadLetter = NewDeadLetter(system)
 	system.Extensions = extensions.NewExtensions()
-	SubscribeSupervision(system)
+	system.supervisionSubscription = SubscribeSupervision(system)
 	system.Extensions.Register(NewMetrics(system, config.MetricsProvider))
 
 	system.ProcessRegistry.Add(NewEventStreamProcess(system), "eventstream")

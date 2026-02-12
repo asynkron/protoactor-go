@@ -75,7 +75,11 @@ func (p *PubSubMemberDeliveryActor) Receive(c actor.Context) {
 		if len(invalidDeliveries) > 0 {
 			cluster := GetCluster(c.ActorSystem())
 			// we use cluster.Call to locate the topic actor in the cluster
-			_, _ = cluster.Request(batch.Topic, TopicActorKind, &NotifyAboutFailingSubscribersRequest{InvalidDeliveries: invalidDeliveries})
+			if _, err := cluster.Request(batch.Topic, TopicActorKind, &NotifyAboutFailingSubscribersRequest{InvalidDeliveries: invalidDeliveries}); err != nil {
+				c.Logger().Error("failed to notify topic about failing subscribers",
+					slog.String("topic", batch.Topic),
+					slog.Any("error", err))
+			}
 		}
 	}
 }

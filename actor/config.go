@@ -68,7 +68,9 @@ func defaultPrometheusProvider(port int) metric.MeterProvider {
 	_port := fmt.Sprintf(":%d", port)
 
 	go func() {
-		_ = http.ListenAndServe(_port, nil)
+		if err := http.ListenAndServe(_port, nil); err != nil && err != http.ErrServerClosed {
+			slog.Error("metrics HTTP server failed", slog.Any("error", err))
+		}
 	}()
 
 	//TODO: fix
