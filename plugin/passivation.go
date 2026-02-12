@@ -1,7 +1,7 @@
 package plugin
 
 import (
-	"log"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -15,13 +15,14 @@ type PassivationAware interface {
 }
 
 type PassivationHolder struct {
-	timer *time.Timer
-	done  int32
+	timer  *time.Timer
+	done   int32
+	doneCh chan struct{}
 }
 
 func (state *PassivationHolder) Reset(duration time.Duration) {
 	if state.timer == nil {
-		log.Fatalf("Cannot reset passivation of a non-started actor")
+		panic(fmt.Sprintf("Cannot reset passivation of a non-started actor"))
 	}
 	if atomic.LoadInt32(&state.done) == 0 {
 		state.timer.Reset(duration)
@@ -31,12 +32,14 @@ func (state *PassivationHolder) Reset(duration time.Duration) {
 func (state *PassivationHolder) Init(actorSystem *actor.ActorSystem, pid *actor.PID, duration time.Duration) {
 	state.timer = time.NewTimer(duration)
 	state.done = 0
+	state.doneCh = make(chan struct{})
 	go func() {
 		select {
 		case <-state.timer.C:
 			actorSystem.Root.Stop(pid)
 			atomic.StoreInt32(&state.done, 1)
-			break
+		case <-state.doneCh:
+			return
 		}
 	}()
 }
@@ -44,6 +47,9 @@ func (state *PassivationHolder) Init(actorSystem *actor.ActorSystem, pid *actor.
 func (state *PassivationHolder) Cancel() {
 	if state.timer != nil {
 		state.timer.Stop()
+		if atomic.CompareAndSwapInt32(&state.done, 0, 1) {
+			close(state.doneCh)
+		}
 	}
 }
 
