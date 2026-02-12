@@ -25,11 +25,12 @@ func endpointWriterProducer(remote *Remote, address string, config *Config) acto
 }
 
 type endpointWriter struct {
-	config  *Config
-	address string
-	conn    *grpc.ClientConn
-	stream  Remoting_ReceiveClient
-	remote  *Remote
+	config     *Config
+	address    string
+	conn       *grpc.ClientConn
+	stream     Remoting_ReceiveClient
+	remote     *Remote
+	cancelFunc context.CancelFunc
 }
 
 type restartAfterConnectFailure struct {
@@ -87,8 +88,16 @@ func (state *endpointWriter) initializeInternal() error {
 	}
 	state.conn = conn
 	c := NewRemotingClient(conn)
-	stream, err := c.Receive(context.Background(), state.config.CallOptions...)
+	// Cancel any previous context from a failed retry attempt
+	if state.cancelFunc != nil {
+		state.cancelFunc()
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	state.cancelFunc = cancel
+	stream, err := c.Receive(ctx, state.config.CallOptions...)
 	if err != nil {
+		cancel()
+		state.cancelFunc = nil
 		state.remote.Logger().Error("EndpointWriter failed to create receive stream", slog.String("address", state.address), slog.Any("error", err))
 		return err
 	}
@@ -363,6 +372,12 @@ func (state *endpointWriter) closeClientConn() {
 	if state.remote.metricsEnabled {
 		_ctx := context.Background()
 		state.remote.metrics.RemoteEndpointDisconnectedCount.Add(_ctx, 1, metric.WithAttributes(actor.SystemLabels(state.remote.actorSystem)...))
+	}
+	// Cancel the stream context first to unblock the background goroutine
+	// that is reading from the stream via Recv().
+	if state.cancelFunc != nil {
+		state.cancelFunc()
+		state.cancelFunc = nil
 	}
 	if state.stream != nil {
 		err := state.stream.CloseSend()
