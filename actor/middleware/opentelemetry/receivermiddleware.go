@@ -48,6 +48,9 @@ func ReceiverMiddleware() actor.ReceiverMiddleware {
 				return
 			case *actor.Stopped:
 				span = getAndClearStoppingSpan(c.Self())
+				// Clean up all per-actor span state to prevent memory leak
+				clearActiveSpan(c.Self())
+				parentSpans.Delete(c.Self())
 				next(c, envelope)
 				if span != nil {
 					span.End()
