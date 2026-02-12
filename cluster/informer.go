@@ -149,7 +149,7 @@ func (inf *Informer) GetMemberStateDelta(targetMemberID string) *MemberStateDelt
 	newState := GossipState{Members: make(map[string]*GossipMemberState)}
 
 	// hashmaps in Go are random by nature so no need to randomize state.Members
-	pendingOffsets := inf.committedOffsets
+	pendingOffsets := maps.Clone(inf.committedOffsets)
 
 	// create a new map with gossipMaxSend entries max
 	members := make(map[string]*GossipMemberState)
