@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"fmt"
 	"log/slog"
 	"sync"
 	"sync/atomic"
@@ -79,7 +80,7 @@ func newEndpointManager(r *Remote) *endpointManager {
 	return em
 }
 
-func (em *endpointManager) start() {
+func (em *endpointManager) start() error {
 	eventStream := em.remote.actorSystem.EventStream
 	em.endpointSub = eventStream.
 		SubscribeWithPredicate(em.endpointEvent, func(m interface{}) bool {
@@ -89,14 +90,19 @@ func (em *endpointManager) start() {
 			}
 			return false
 		})
-	em.startActivator()
-	em.startSupervisor()
+	if err := em.startActivator(); err != nil {
+		return err
+	}
+	if err := em.startSupervisor(); err != nil {
+		return err
+	}
 
 	if err := em.waiting(3 * time.Second); err != nil {
-		panic(err)
+		return err
 	}
 
 	em.remote.Logger().Info("Started EndpointManager")
+	return nil
 }
 
 func (em *endpointManager) waiting(timeout time.Duration) error {
@@ -130,21 +136,22 @@ func (em *endpointManager) stop() {
 	em.remote.Logger().Info("Stopped EndpointManager")
 }
 
-func (em *endpointManager) startActivator() {
+func (em *endpointManager) startActivator() error {
 	p := newActivatorActor(em.remote)
 	props := actor.PropsFromProducer(p, actor.WithGuardian(actor.RestartingSupervisorStrategy()))
 	pid, err := em.remote.actorSystem.Root.SpawnNamed(props, "activator")
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to start activator: %w", err)
 	}
 	em.activator = pid
+	return nil
 }
 
 func (em *endpointManager) stopActivator() error {
 	return em.remote.actorSystem.Root.StopFuture(em.activator).Wait()
 }
 
-func (em *endpointManager) startSupervisor() {
+func (em *endpointManager) startSupervisor() error {
 	r := em.remote
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return newEndpointSupervisor(r)
@@ -155,9 +162,10 @@ func (em *endpointManager) startSupervisor() {
 
 	pid, err := r.actorSystem.Root.SpawnNamed(props, "EndpointSupervisor")
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to start endpoint supervisor: %w", err)
 	}
 	em.endpointSupervisor = pid
+	return nil
 }
 
 func (em *endpointManager) stopSupervisor() error {

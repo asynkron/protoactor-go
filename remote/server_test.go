@@ -8,11 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStart(_ *testing.T) {
+func TestStart(t *testing.T) {
 	system := actor.NewActorSystem()
 	config := Configure("localhost", 0)
 	remote := NewRemote(system, config)
-	remote.Start()
+	err := remote.Start()
+	assert.NoError(t, err)
 	remote.Shutdown(true)
 }
 
@@ -20,7 +21,8 @@ func TestConfig_WithAdvertisedHost(t *testing.T) {
 	system := actor.NewActorSystem()
 	config := Configure("localhost", 0, WithAdvertisedHost("Banana"))
 	remote := NewRemote(system, config)
-	remote.Start()
+	err := remote.Start()
+	assert.NoError(t, err)
 	assert.Equal(t, "Banana", system.Address())
 	remote.Shutdown(true)
 }

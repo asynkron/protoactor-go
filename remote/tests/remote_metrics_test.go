@@ -33,7 +33,9 @@ func TestRemoteMetrics(t *testing.T) {
 
 	system1 := newSystem(provider)
 	remote1 := remote.NewRemote(system1, remote.Configure("127.0.0.1", 0))
-	remote1.Start()
+	if err := remote1.Start(); err != nil {
+		t.Fatalf("remote1.Start: %v", err)
+	}
 	defer system1.Shutdown()
 
 	system2 := newSystem(provider)
@@ -50,7 +52,9 @@ func TestRemoteMetrics(t *testing.T) {
 			return
 		}
 	}, testkit.WithReceiveStats(stats)))
-	remote2.Start()
+	if err := remote2.Start(); err != nil {
+		t.Fatalf("remote2.Start: %v", err)
+	}
 	defer system2.Shutdown()
 
 	resp, err := remote1.Spawn(system2.Address(), "echo", time.Second)

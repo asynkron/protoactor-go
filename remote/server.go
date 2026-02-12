@@ -70,11 +70,11 @@ func (r *Remote) ExtensionID() extensions.ExtensionID {
 func (r *Remote) BlockList() *BlockList { return r.blocklist }
 
 // Start the remote server.
-func (r *Remote) Start() {
+func (r *Remote) Start() error {
 	grpclog.SetLoggerV2(grpclog.NewLoggerV2(io.Discard, io.Discard, io.Discard))
 	lis, err := net.Listen("tcp", r.config.Address())
 	if err != nil {
-		panic(fmt.Errorf("failed to listen: %v", err))
+		return fmt.Errorf("failed to listen: %v", err)
 	}
 
 	var address string
@@ -89,7 +89,10 @@ func (r *Remote) Start() {
 	r.Logger().Info("Starting remote with address", slog.String("address", address))
 
 	r.edpManager = newEndpointManager(r)
-	r.edpManager.start()
+	if err := r.edpManager.start(); err != nil {
+		lis.Close()
+		return fmt.Errorf("failed to start endpoint manager: %v", err)
+	}
 
 	r.s = grpc.NewServer(r.config.ServerOptions...)
 	r.edpReader = newEndpointReader(r)
@@ -100,6 +103,8 @@ func (r *Remote) Start() {
 			r.Logger().Error("gRPC server stopped", slog.Any("error", err))
 		}
 	}()
+
+	return nil
 }
 
 // Shutdown stops the remote server. If graceful is true it waits for running

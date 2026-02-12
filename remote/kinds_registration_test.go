@@ -30,7 +30,8 @@ func TestKindsRegistrationViaConfig(t *testing.T) {
 func TestUnknownKindReturnsError(t *testing.T) {
 	system := actor.NewActorSystem()
 	remote := NewRemote(system, Configure("localhost", 0))
-	remote.Start()
+	err := remote.Start()
+	assert.NoError(t, err)
 	defer remote.Shutdown(true)
 
 	// Attempt to spawn a kind that has not been registered.

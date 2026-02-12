@@ -15,8 +15,10 @@ func simulatePartition(r *Remote) {
 }
 
 // reconnectRemote starts the provided remote server after a partition.
-func reconnectRemote(r *Remote) {
-	r.Start()
+func reconnectRemote(t *testing.T, r *Remote) {
+	t.Helper()
+	err := r.Start()
+	assert.NoError(t, err)
 }
 
 // TestRemote_ReconnectAfterPartition starts a remote node, shuts it down to
@@ -24,13 +26,15 @@ func reconnectRemote(r *Remote) {
 func TestRemote_ReconnectAfterPartition(t *testing.T) {
 	systemA := actor.NewActorSystem()
 	remoteA := NewRemote(systemA, Configure("127.0.0.1", 0))
-	remoteA.Start()
+	err := remoteA.Start()
+	assert.NoError(t, err)
 	defer remoteA.Shutdown(true)
 
 	// initial remote node
 	systemB := actor.NewActorSystem()
 	remoteB := NewRemote(systemB, Configure("127.0.0.1", 0))
-	remoteB.Start()
+	err = remoteB.Start()
+	assert.NoError(t, err)
 
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		if _, ok := ctx.Message().(*emptypb.Empty); ok {
@@ -54,7 +58,7 @@ func TestRemote_ReconnectAfterPartition(t *testing.T) {
 	// bring up a new remote node
 	systemB2 := actor.NewActorSystem()
 	remoteB2 := NewRemote(systemB2, Configure("127.0.0.1", 0))
-	reconnectRemote(remoteB2)
+	reconnectRemote(t, remoteB2)
 	defer remoteB2.Shutdown(true)
 
 	pid2, err := systemB2.Root.SpawnNamed(props, "echo2")
