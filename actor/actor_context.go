@@ -11,7 +11,6 @@ import (
 
 	"github.com/asynkron/protoactor-go/ctxext"
 	"github.com/asynkron/protoactor-go/metrics"
-	"github.com/emirpasic/gods/stacks/linkedliststack"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -27,7 +26,7 @@ type actorContextExtras struct {
 	children            PIDSet
 	receiveTimeoutTimer *time.Timer
 	rs                  *RestartStatistics
-	stash               *linkedliststack.Stack
+	stash               *messageStack
 	watchers            PIDSet
 	context             Context
 	extensions          *ctxext.ContextExtensions
@@ -196,7 +195,7 @@ func (ctx *actorContext) Respond(response interface{}) {
 func (ctx *actorContext) Stash() {
 	extra := ctx.ensureExtras()
 	if extra.stash == nil {
-		extra.stash = linkedliststack.New()
+		extra.stash = newMessageStack()
 	}
 
 	extra.stash.Push(ctx.Message())

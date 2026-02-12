@@ -3,12 +3,11 @@ package actor
 import (
 	"log/slog"
 
-	rbqueue "github.com/Workiva/go-datastructures/queue"
 	"github.com/asynkron/protoactor-go/internal/queue/mpsc"
 )
 
 type boundedMailboxQueue struct {
-	userMailbox *rbqueue.RingBuffer
+	userMailbox *ringBuffer
 	dropping    bool
 }
 
@@ -53,7 +52,7 @@ func BoundedDropping(size int, mailboxStats ...MailboxMiddleware) MailboxProduce
 func bounded(size int, dropping bool, mailboxStats ...MailboxMiddleware) MailboxProducer {
 	return func() Mailbox {
 		q := &boundedMailboxQueue{
-			userMailbox: rbqueue.NewRingBuffer(uint64(size)),
+			userMailbox: newRingBuffer(size),
 			dropping:    dropping,
 		}
 

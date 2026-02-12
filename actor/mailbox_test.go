@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	rbqueue "github.com/Workiva/go-datastructures/queue"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -110,7 +108,7 @@ func TestUnboundedLockfreeMailboxSysMessageConsistency(t *testing.T) {
 func TestBoundedMailbox(t *testing.T) {
 	size := 3
 	m := boundedMailboxQueue{
-		userMailbox: rbqueue.NewRingBuffer(uint64(size)),
+		userMailbox: newRingBuffer(size),
 		dropping:    false,
 	}
 	m.Push("1")
@@ -122,7 +120,7 @@ func TestBoundedMailbox(t *testing.T) {
 func TestBoundedDroppingMailbox(t *testing.T) {
 	size := 3
 	m := boundedMailboxQueue{
-		userMailbox: rbqueue.NewRingBuffer(uint64(size)),
+		userMailbox: newRingBuffer(size),
 		dropping:    true,
 	}
 	m.Push("1")
