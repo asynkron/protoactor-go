@@ -1,6 +1,8 @@
 package cluster
 
 import (
+	"fmt"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
 	"google.golang.org/protobuf/proto"
@@ -67,7 +69,7 @@ func (t *PubSubBatchTransport) Deserialize() (remote.RootSerializable, error) {
 		}
 		protoMessage, ok := message.(proto.Message)
 		if !ok {
-			panic("message is not proto.Message")
+			return nil, fmt.Errorf("deserialized message is not proto.Message, got %T", message)
 		}
 
 		b.Envelopes = append(b.Envelopes, protoMessage)
@@ -87,9 +89,14 @@ func (d *DeliverBatchRequest) Serialize() (remote.RootSerialized, error) {
 		return nil, err
 	}
 
+	batch, ok := rs.(*PubSubBatchTransport)
+	if !ok {
+		return nil, fmt.Errorf("unexpected serialized type %T, expected *PubSubBatchTransport", rs)
+	}
+
 	return &DeliverBatchRequestTransport{
 		Subscribers: d.Subscribers,
-		Batch:       rs.(*PubSubBatchTransport),
+		Batch:       batch,
 		Topic:       d.Topic,
 	}, nil
 }
@@ -100,9 +107,14 @@ func (t *DeliverBatchRequestTransport) Deserialize() (remote.RootSerializable, e
 		return nil, err
 	}
 
+	batch, ok := rs.(*PubSubBatch)
+	if !ok {
+		return nil, fmt.Errorf("unexpected deserialized type %T, expected *PubSubBatch", rs)
+	}
+
 	return &DeliverBatchRequest{
 		Subscribers: t.Subscribers,
-		PubSubBatch: rs.(*PubSubBatch),
+		PubSubBatch: batch,
 		Topic:       t.Topic,
 	}, nil
 }
@@ -122,9 +134,14 @@ func (b *PubSubAutoRespondBatch) Serialize() (remote.RootSerialized, error) {
 		return nil, err
 	}
 
+	transport, ok := rs.(*PubSubBatchTransport)
+	if !ok {
+		return nil, fmt.Errorf("unexpected serialized type %T, expected *PubSubBatchTransport", rs)
+	}
+
 	return &PubSubAutoRespondBatchTransport{
-		TypeNames: rs.(*PubSubBatchTransport).TypeNames,
-		Envelopes: rs.(*PubSubBatchTransport).Envelopes,
+		TypeNames: transport.TypeNames,
+		Envelopes: transport.Envelopes,
 	}, nil
 }
 
@@ -155,7 +172,12 @@ func (t *PubSubAutoRespondBatchTransport) Deserialize() (remote.RootSerializable
 		return nil, err
 	}
 
+	deserialized, ok := rs.(*PubSubBatch)
+	if !ok {
+		return nil, fmt.Errorf("unexpected deserialized type %T, expected *PubSubBatch", rs)
+	}
+
 	return &PubSubAutoRespondBatch{
-		Envelopes: rs.(*PubSubBatch).Envelopes,
+		Envelopes: deserialized.Envelopes,
 	}, nil
 }

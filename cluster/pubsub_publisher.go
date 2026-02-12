@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -51,7 +52,11 @@ func (p *defaultPublisher) Initialize(ctx context.Context, topic string, config 
 		if err != nil {
 			return nil, err
 		}
-		return res.(*Acknowledge), err
+		ack, ok := res.(*Acknowledge)
+		if !ok {
+			return nil, fmt.Errorf("unexpected response type %T, expected *Acknowledge", res)
+		}
+		return ack, nil
 	}
 }
 
@@ -64,7 +69,11 @@ func (p *defaultPublisher) PublishBatch(ctx context.Context, topic string, batch
 		if err != nil {
 			return nil, err
 		}
-		return res.(*PublishResponse), err
+		resp, ok := res.(*PublishResponse)
+		if !ok {
+			return nil, fmt.Errorf("unexpected response type %T, expected *PublishResponse", res)
+		}
+		return resp, nil
 	}
 }
 

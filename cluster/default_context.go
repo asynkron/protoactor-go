@@ -4,6 +4,7 @@ package cluster
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"reflect"
@@ -101,8 +102,8 @@ selectloop:
 			}
 			if err != nil {
 				dcc.cluster.Logger().Error("cluster.RequestFuture failed", slog.Any("error", err), slog.Any("pid", pid))
-				switch err {
-				case actor.ErrTimeout, remote.ErrTimeout, actor.ErrDeadLetter, remote.ErrDeadLetter:
+				if errors.Is(err, actor.ErrTimeout) || errors.Is(err, remote.ErrTimeout) ||
+					errors.Is(err, actor.ErrDeadLetter) || errors.Is(err, remote.ErrDeadLetter) {
 					counter = callConfig.RetryAction(counter)
 					dcc.cluster.PidCache.Remove(identity, kind)
 					if dcc.cluster.metricsEnabled {
@@ -115,9 +116,8 @@ selectloop:
 						dcc.cluster.metrics.ClusterRequestRetryCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
 					}
 					continue
-				default:
-					break selectloop
 				}
+				break selectloop
 			}
 		}
 	}

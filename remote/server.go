@@ -53,12 +53,19 @@ func NewRemote(actorSystem *actor.ActorSystem, config *Config) *Remote {
 }
 
 // GetRemote retrieves the Remote extension from the actor system.
+// Returns nil if the extension is not registered or has an unexpected type.
 //
 //goland:noinspection GoUnusedExportedFunction
 func GetRemote(actorSystem *actor.ActorSystem) *Remote {
 	r := actorSystem.Extensions.Get(extensionID)
-
-	return r.(*Remote)
+	if r == nil {
+		return nil
+	}
+	remote, ok := r.(*Remote)
+	if !ok {
+		return nil
+	}
+	return remote
 }
 
 // ExtensionID returns the unique ID of the Remote extension.
@@ -74,7 +81,7 @@ func (r *Remote) Start() error {
 	grpclog.SetLoggerV2(grpclog.NewLoggerV2(io.Discard, io.Discard, io.Discard))
 	lis, err := net.Listen("tcp", r.config.Address())
 	if err != nil {
-		return fmt.Errorf("failed to listen: %v", err)
+		return fmt.Errorf("failed to listen: %w", err)
 	}
 
 	var address string
@@ -91,7 +98,7 @@ func (r *Remote) Start() error {
 	r.edpManager = newEndpointManager(r)
 	if err := r.edpManager.start(); err != nil {
 		lis.Close()
-		return fmt.Errorf("failed to start endpoint manager: %v", err)
+		return fmt.Errorf("failed to start endpoint manager: %w", err)
 	}
 
 	r.s = grpc.NewServer(r.config.ServerOptions...)

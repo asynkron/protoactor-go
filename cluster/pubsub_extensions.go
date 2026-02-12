@@ -1,6 +1,8 @@
 package cluster
 
 import (
+	"fmt"
+
 	"github.com/asynkron/protoactor-go/actor"
 )
 
@@ -22,7 +24,11 @@ func (c *Cluster) SubscribeByPid(topic string, pid *actor.PID, opts ...GrainCall
 	if err != nil {
 		return nil, err
 	}
-	return res.(*SubscribeResponse), err
+	resp, ok := res.(*SubscribeResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type %T, expected *SubscribeResponse", res)
+	}
+	return resp, nil
 }
 
 // SubscribeByClusterIdentity subscribes to a PubSub topic by cluster identity
@@ -33,7 +39,11 @@ func (c *Cluster) SubscribeByClusterIdentity(topic string, identity *ClusterIden
 	if err != nil {
 		return nil, err
 	}
-	return res.(*SubscribeResponse), err
+	resp, ok := res.(*SubscribeResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type %T, expected *SubscribeResponse", res)
+	}
+	return resp, nil
 }
 
 // SubscribeWithReceive subscribe to a PubSub topic by providing a Receive function, that will be used to spawn a subscriber actor
@@ -51,7 +61,11 @@ func (c *Cluster) UnsubscribeByPid(topic string, pid *actor.PID, opts ...GrainCa
 	if err != nil {
 		return nil, err
 	}
-	return res.(*UnsubscribeResponse), err
+	resp, ok := res.(*UnsubscribeResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type %T, expected *UnsubscribeResponse", res)
+	}
+	return resp, nil
 }
 
 // UnsubscribeByClusterIdentity unsubscribes from a PubSub topic by cluster identity
@@ -62,7 +76,11 @@ func (c *Cluster) UnsubscribeByClusterIdentity(topic string, identity *ClusterId
 	if err != nil {
 		return nil, err
 	}
-	return res.(*UnsubscribeResponse), err
+	resp, ok := res.(*UnsubscribeResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type %T, expected *UnsubscribeResponse", res)
+	}
+	return resp, nil
 }
 
 // UnsubscribeByIdentityAndKind unsubscribes from a PubSub topic by cluster identity
@@ -73,5 +91,9 @@ func (c *Cluster) UnsubscribeByIdentityAndKind(topic string, identity string, ki
 	if err != nil {
 		return nil, err
 	}
-	return res.(*UnsubscribeResponse), err
+	resp, ok := res.(*UnsubscribeResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type %T, expected *UnsubscribeResponse", res)
+	}
+	return resp, nil
 }

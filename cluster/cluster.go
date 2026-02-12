@@ -98,9 +98,15 @@ func (c *Cluster) ExtensionID() extensions.ExtensionID {
 
 //goland:noinspection GoUnusedExportedFunction
 func GetCluster(actorSystem *actor.ActorSystem) *Cluster {
-	c := actorSystem.Extensions.Get(extensionID)
-
-	return c.(*Cluster)
+	r := actorSystem.Extensions.Get(extensionID)
+	if r == nil {
+		return nil
+	}
+	c, ok := r.(*Cluster)
+	if !ok {
+		return nil
+	}
+	return c
 }
 
 func (c *Cluster) GetBlockedMembers() set.Set[string] {

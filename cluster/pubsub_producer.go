@@ -170,9 +170,18 @@ func (p *ProduceProcessInfo) success() {
 
 type produceProcessInfoKey struct{}
 
-// GetProduceProcessInfo adds a new produce info to the BatchingProducer.Produce context
+// getProduceProcessInfo retrieves the produce info from the BatchingProducer.Produce context.
+// Returns nil if the value is not set or has an unexpected type.
 func (p *BatchingProducer) getProduceProcessInfo(ctx context.Context) *ProduceProcessInfo {
-	return ctx.Value(produceProcessInfoKey{}).(*ProduceProcessInfo)
+	v := ctx.Value(produceProcessInfoKey{})
+	if v == nil {
+		return nil
+	}
+	info, ok := v.(*ProduceProcessInfo)
+	if !ok {
+		return nil
+	}
+	return info
 }
 
 // Produce a message to producer queue. The return info can be used to wait for the message to be published.

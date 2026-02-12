@@ -37,7 +37,11 @@ func (el *endpointLazy) connect() {
 		system.Logger().Error("failed to connect to remote address", slog.String("address", el.address), slog.Any("error", err))
 		return
 	}
-	ep := rst.(*endpoint)
+	ep, ok := rst.(*endpoint)
+	if !ok {
+		system.Logger().Error("failed to connect to remote address: unexpected response type", slog.String("address", el.address))
+		return
+	}
 	el.Set(ep)
 }
 
@@ -127,8 +131,9 @@ func (em *endpointManager) stop() {
 	em.connections = nil
 	if em.endpointReaderConnections != nil {
 		em.endpointReaderConnections.Range(func(key interface{}, value interface{}) bool {
-			channel := value.(chan bool)
-			channel <- true
+			if channel, ok := value.(chan bool); ok {
+				channel <- true
+			}
 			em.endpointReaderConnections.Delete(key)
 			return true
 		})
@@ -267,7 +272,10 @@ func (em *endpointManager) ensureConnected(address string) *endpoint {
 		el := newEndpointLazy(em, address)
 		e, _ = em.connections.LoadOrStore(address, el)
 	}
-	el := e.(*endpointLazy)
+	el, ok := e.(*endpointLazy)
+	if !ok {
+		return nil
+	}
 	ep := el.Get()
 	if ep == nil {
 		em.connections.Delete(address)
@@ -300,7 +308,10 @@ func (em *endpointManager) ensureConnected(address string) *endpoint {
 func (em *endpointManager) removeEndpoint(msg *EndpointTerminatedEvent) {
 	v, ok := em.connections.Load(msg.Address)
 	if ok {
-		le := v.(*endpointLazy)
+		le, ok := v.(*endpointLazy)
+		if !ok {
+			return
+		}
 		if le.unloaded.CompareAndSwap(false, true) {
 			em.connections.Delete(msg.Address)
 			ep := le.Get()

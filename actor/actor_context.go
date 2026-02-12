@@ -266,7 +266,11 @@ func (ctx *actorContext) Forward(pid *PID) {
 }
 
 func (ctx *actorContext) ReenterAfter(f Future, cont func(res interface{}, err error)) {
-	concrete := f.(*future)
+	concrete, ok := f.(*future)
+	if !ok {
+		ctx.Logger().Error("ReenterAfter called with unsupported Future implementation", slog.String("type", fmt.Sprintf("%T", f)))
+		return
+	}
 	wrapper := func() {
 		cont(concrete.result, concrete.err)
 	}

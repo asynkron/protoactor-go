@@ -53,7 +53,16 @@ func newPubSubConfig() *PubSubConfig {
 	}
 }
 
-// GetPubSub returns the PubSub extension from the actor system
+// GetPubSub returns the PubSub extension from the actor system.
+// Returns nil if the extension is not registered or has an unexpected type.
 func GetPubSub(system *actor.ActorSystem) *PubSub {
-	return system.Extensions.Get(pubsubExtensionID).(*PubSub)
+	r := system.Extensions.Get(pubsubExtensionID)
+	if r == nil {
+		return nil
+	}
+	ps, ok := r.(*PubSub)
+	if !ok {
+		return nil
+	}
+	return ps
 }

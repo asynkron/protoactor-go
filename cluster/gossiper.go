@@ -227,7 +227,7 @@ func (g *Gossiper) SetStateRequest(key string, value proto.Message) error {
 	msg := NewGossipStateKey(key, value)
 	r, err := g.cluster.ActorSystem.Root.RequestFuture(g.pid, &msg, g.cluster.Config.TimeoutTime).Result()
 	if err != nil {
-		if err == actor.ErrTimeout {
+		if errors.Is(err, actor.ErrTimeout) {
 			g.cluster.Logger().Error("Could not get a response from Gossiper Actor: request timeout", slog.String("gossipPid", g.pid.String()))
 			return err
 		}
