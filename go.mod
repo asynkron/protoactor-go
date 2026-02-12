@@ -25,7 +25,6 @@ require (
 
 require (
 	github.com/go-zookeeper/zk v1.0.4
-	github.com/golang/mock v1.6.0
 	github.com/lithammer/shortuuid/v4 v4.2.0
 	github.com/twmb/murmur3 v1.1.8
 	go.etcd.io/etcd/client/v3 v3.6.6

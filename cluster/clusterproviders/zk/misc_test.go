@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -88,15 +87,6 @@ func (suite *MiscTestSuite) TestNode() {
 
 type MiscTestSuite struct {
 	suite.Suite
-	ctrl *gomock.Controller
-}
-
-func (suite *MiscTestSuite) SetupTest() {
-	suite.ctrl = gomock.NewController(suite.T())
-}
-
-func (suite *MiscTestSuite) TearDownTest() {
-	suite.ctrl.Finish()
 }
 
 func TestMiscTestSuite(t *testing.T) {
