@@ -1,8 +1,7 @@
 package protocb
 
 import (
-	"fmt"
-	"log"
+	"log/slog"
 	"sync"
 
 	"github.com/couchbase/gocb"
@@ -34,12 +33,13 @@ func (state *cbState) GetEvents(actorName string, eventIndexStart int, eventInde
 
 	rows, err := state.bucket.ExecuteN1qlQuery(q, p)
 	if err != nil {
-		panic(fmt.Sprintf("Error executing N1ql: %v", err))
+		slog.Error("Failed to execute N1QL query for GetEvents", "actor", actorName, "error", err)
+		return
 	}
 	defer func() {
 		err := rows.Close()
 		if err != nil {
-			panic(fmt.Sprintf("Error closing gocb reader: %v", err))
+			slog.Error("Failed to close N1QL result rows", "actor", actorName, "error", err)
 		}
 	}()
 
@@ -48,7 +48,7 @@ func (state *cbState) GetEvents(actorName string, eventIndexStart int, eventInde
 	for rows.Next(&row) {
 		e := row.message()
 		if row.EventIndex != i {
-			log.Printf("%v, Invalid actor state, missing event %v", actorName, i)
+			slog.Error("Invalid actor state, missing event", "actor", actorName, "expectedIndex", i)
 			return
 		}
 		callback(e)
@@ -66,12 +66,13 @@ func (state *cbState) GetSnapshot(actorName string) (snapshot interface{}, event
 
 	rows, err := state.bucket.ExecuteN1qlQuery(q, p)
 	if err != nil {
-		panic(fmt.Sprintf("Error executing N1ql: %v", err))
+		slog.Error("Failed to execute N1QL query for GetSnapshot", "actor", actorName, "error", err)
+		return nil, 0, false
 	}
 	defer func() {
 		err := rows.Close()
 		if err != nil {
-			panic(fmt.Sprintf("Error closing gocb reader: %v", err))
+			slog.Error("Failed to close N1QL result rows", "actor", actorName, "error", err)
 		}
 	}()
 
@@ -93,7 +94,14 @@ func (state *cbState) PersistEvent(actorName string, eventIndex int, event proto
 }
 
 func (state *cbState) DeleteEvents(actorName string, inclusiveToIndex int) {
-	panic("implement me")
+	q := gocb.NewN1qlQuery("DELETE FROM `" + state.bucketName + "` b WHERE meta(b).id >= $1 AND meta(b).id <= $2")
+	var p []interface{}
+	p = append(p, formatEventKey(actorName, 0))
+	p = append(p, formatEventKey(actorName, inclusiveToIndex))
+	_, err := state.bucket.ExecuteN1qlQuery(q, p)
+	if err != nil {
+		slog.Error("Failed to delete events", "actor", actorName, "toIndex", inclusiveToIndex, "error", err)
+	}
 }
 
 func (state *cbState) PersistSnapshot(actorName string, eventIndex int, snapshot proto.Message) {
@@ -103,7 +111,14 @@ func (state *cbState) PersistSnapshot(actorName string, eventIndex int, snapshot
 }
 
 func (state *cbState) DeleteSnapshots(actorName string, inclusiveToIndex int) {
-	panic("implement me")
+	q := gocb.NewN1qlQuery("DELETE FROM `" + state.bucketName + "` b WHERE meta(b).id >= $1 AND meta(b).id <= $2")
+	var p []interface{}
+	p = append(p, formatSnapshotKey(actorName, 0))
+	p = append(p, formatSnapshotKey(actorName, inclusiveToIndex))
+	_, err := state.bucket.ExecuteN1qlQuery(q, p)
+	if err != nil {
+		slog.Error("Failed to delete snapshots", "actor", actorName, "toIndex", inclusiveToIndex, "error", err)
+	}
 }
 
 func (state *cbState) persistEnvelope(key string, envelope *envelope) {
@@ -111,12 +126,12 @@ func (state *cbState) persistEnvelope(key string, envelope *envelope) {
 	persist := func() {
 		_, err := state.bucket.Insert(key, envelope, 0)
 		if err != nil {
-			panic(err)
+			slog.Error("Failed to persist envelope", "key", key, "error", err)
 		}
 		state.wg.Done()
 	}
 	if state.async {
-		//	state.writer.Tell(&write{fun: persist})
+		state.actorSystem.Root.Send(state.writer, &write{fun: persist})
 	} else {
 		persist()
 	}

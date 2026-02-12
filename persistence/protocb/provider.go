@@ -10,6 +10,7 @@ import (
 )
 
 type Provider struct {
+	actorSystem      *actor.ActorSystem
 	async            bool
 	bucket           *gocb.Bucket
 	bucketName       string
@@ -40,6 +41,7 @@ func New(actorSystem *actor.ActorSystem, bucketName string, baseU string, option
 	}
 
 	provider := &Provider{
+		actorSystem:      actorSystem,
 		snapshotInterval: config.snapshotInterval,
 		async:            config.async,
 		bucket:           bucket,
