@@ -14,11 +14,12 @@ type persistent interface {
 }
 
 type Mixin struct {
-	eventIndex    int
-	providerState ProviderState
-	name          string
-	receiver      receiver
-	recovering    bool
+	eventIndex       int
+	providerState    ProviderState
+	snapshotStrategy SnapshotStrategy
+	name             string
+	receiver         receiver
+	recovering       bool
 }
 
 // enforces that Mixin implements persistent interface
@@ -33,9 +34,15 @@ func (mixin *Mixin) Name() string {
 	return mixin.name
 }
 
+// SetSnapshotStrategy allows users to override the default interval-based
+// snapshot strategy with a custom implementation.
+func (mixin *Mixin) SetSnapshotStrategy(strategy SnapshotStrategy) {
+	mixin.snapshotStrategy = strategy
+}
+
 func (mixin *Mixin) PersistReceive(message proto.Message) {
 	mixin.providerState.PersistEvent(mixin.Name(), mixin.eventIndex, message)
-	if mixin.eventIndex%mixin.providerState.GetSnapshotInterval() == 0 {
+	if mixin.snapshotStrategy.ShouldSnapshot(nil, mixin.eventIndex) {
 		mixin.receiver.Receive(&actor.MessageEnvelope{Message: &RequestSnapshot{}})
 	}
 	mixin.eventIndex++
@@ -48,6 +55,11 @@ func (mixin *Mixin) PersistSnapshot(snapshot proto.Message) {
 func (mixin *Mixin) init(provider Provider, context actor.Context) {
 	if mixin.providerState == nil {
 		mixin.providerState = provider.GetState()
+	}
+
+	// Default to the legacy interval-based strategy if none has been set.
+	if mixin.snapshotStrategy == nil {
+		mixin.snapshotStrategy = NewIntervalStrategy(mixin.providerState.GetSnapshotInterval())
 	}
 
 	receiver := context.(receiver)
