@@ -117,7 +117,9 @@ func (suite *DistHashManagerTestSuite) SetupTest() {
 		)
 
 		c := cluster.New(system, config)
-		c.StartMember()
+		if err := c.StartMember(); err != nil {
+			suite.T().Fatalf("failed to start member %d: %v", i, err)
+		}
 		suite.clusters[i] = c
 	}
 }

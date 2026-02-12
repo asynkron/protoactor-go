@@ -181,7 +181,8 @@ func TestCluster_Get(t *testing.T) {
 		}
 	}))
 	c := newClusterForTest("mycluster", cp, WithKinds(kind))
-	c.StartMember()
+	err := c.StartMember()
+	assert.NoError(t, err)
 	cp.publishClusterTopologyEvent()
 	t.Run("invalid kind", func(t *testing.T) {
 		assert := assert.New(t)

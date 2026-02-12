@@ -29,7 +29,8 @@ func TestVirtualActorContextHasClusterIdentity(t *testing.T) {
 	}))
 
 	c := newClusterForTest("mycluster", cp, WithKinds(kind))
-	c.StartMember()
+	err := c.StartMember()
+	assert.NoError(t, err)
 	cp.publishClusterTopologyEvent()
 
 	c.ActorSystem.Root.Spawn(actor.PropsFromProducer(func() actor.Actor { return probe }))

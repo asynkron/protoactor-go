@@ -38,7 +38,9 @@ func startNode() *cluster.Cluster {
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
 	cluster := cluster.New(system, clusterConfig)
 
-	cluster.StartMember()
+	if err := cluster.StartMember(); err != nil {
+		panic(err)
+	}
 
 	return cluster
 }

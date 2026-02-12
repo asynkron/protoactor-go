@@ -79,8 +79,8 @@ func (p *testProvider) removeCluster(c *Cluster) {
 // membershipRecovery starts the supplied cluster node. Tests invoke this on a
 // freshly created cluster instance to mimic a rebooted member rejoining with a
 // new ActorSystem ID.
-func membershipRecovery(c *Cluster) {
-	c.StartMember()
+func membershipRecovery(c *Cluster) error {
+	return c.StartMember()
 }
 
 // TestCluster_MembershipRecovery verifies member list and routing behaviour
@@ -96,8 +96,10 @@ func TestCluster_MembershipRecovery(t *testing.T) {
 	c1 := newClusterForTest("node1", prov, WithKinds(kind))
 	c2 := newClusterForTest("node2", prov, WithKinds(kind))
 
-	c1.StartMember()
-	c2.StartMember()
+	err := c1.StartMember()
+	assert.NoError(t, err)
+	err = c2.StartMember()
+	assert.NoError(t, err)
 
 	// spawn echo actor on second node and cache its PID in the first
 	pid2, err := c2.ActorSystem.Root.SpawnNamed(kind.Props, "echo")
@@ -121,7 +123,8 @@ func TestCluster_MembershipRecovery(t *testing.T) {
 
 	// node recovers with a fresh cluster instance and new system ID
 	c2a := newClusterForTest("node2", prov, WithKinds(kind))
-	membershipRecovery(c2a)
+	err = membershipRecovery(c2a)
+	assert.NoError(t, err)
 	pid2a, err := c2a.ActorSystem.Root.SpawnNamed(kind.Props, "echo")
 	assert.NoError(t, err)
 	c1.PidCache.Set("echo", "echo", pid2a)

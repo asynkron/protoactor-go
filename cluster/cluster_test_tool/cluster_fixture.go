@@ -3,6 +3,7 @@ package cluster_test_tool
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -197,7 +198,9 @@ func (b *BaseClusterFixture) spawnClusterMember() *cluster.Cluster {
 	system := actor.NewActorSystem()
 
 	c := cluster.New(system, config)
-	c.StartMember()
+	if err := c.StartMember(); err != nil {
+		panic(fmt.Sprintf("failed to start member: %v", err))
+	}
 	return c
 }
 

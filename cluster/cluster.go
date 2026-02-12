@@ -2,6 +2,7 @@
 package cluster
 
 import (
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -106,14 +107,16 @@ func (c *Cluster) GetBlockedMembers() set.Set[string] {
 	return c.Remote.BlockList().BlockedMembers()
 }
 
-func (c *Cluster) StartMember() {
+func (c *Cluster) StartMember() error {
 	cfg := c.Config
 	c.Remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
 
 	c.initKinds()
 
 	// TODO: make it possible to become a cluster even if remoting is already started
-	c.Remote.Start()
+	if err := c.Remote.Start(); err != nil {
+		return fmt.Errorf("failed to start remote: %w", err)
+	}
 
 	address := c.ActorSystem.Address()
 	c.Logger().Info("Starting Proto.Actor cluster member", slog.String("address", address))
@@ -124,16 +127,17 @@ func (c *Cluster) StartMember() {
 	// TODO: Disable Gossip for now until API changes are done
 	// gossiper must be started whenever any topology events starts flowing
 	if err := c.Gossip.StartGossiping(); err != nil {
-		panic(err)
+		return fmt.Errorf("failed to start gossiping: %w", err)
 	}
 	c.PubSub.Start()
 	c.MemberList.InitializeTopologyConsensus()
 
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
-		panic(err)
+		return fmt.Errorf("failed to start cluster provider member: %w", err)
 	}
 
 	time.Sleep(1 * time.Second)
+	return nil
 }
 
 func (c *Cluster) GetClusterKinds() []string {
@@ -145,11 +149,13 @@ func (c *Cluster) GetClusterKinds() []string {
 	return keys
 }
 
-func (c *Cluster) StartClient() {
+func (c *Cluster) StartClient() error {
 	cfg := c.Config
 	c.Remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
 
-	c.Remote.Start()
+	if err := c.Remote.Start(); err != nil {
+		return fmt.Errorf("failed to start remote: %w", err)
+	}
 
 	address := c.ActorSystem.Address()
 	c.Logger().Info("Starting Proto.Actor cluster-client", slog.String("address", address))
@@ -158,9 +164,10 @@ func (c *Cluster) StartClient() {
 	c.IdentityLookup.Setup(c, c.GetClusterKinds(), true)
 
 	if err := cfg.ClusterProvider.StartClient(c); err != nil {
-		panic(err)
+		return fmt.Errorf("failed to start cluster provider client: %w", err)
 	}
 	c.PubSub.Start()
+	return nil
 }
 
 func (c *Cluster) Shutdown(graceful bool) {
