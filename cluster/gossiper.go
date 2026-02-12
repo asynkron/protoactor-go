@@ -15,6 +15,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/eventstream"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -50,6 +51,9 @@ type Gossiper struct {
 
 	// Message throttler
 	throttler actor.ShouldThrottle
+
+	// Event stream subscription for cluster topology updates
+	topologySub *eventstream.Subscription
 }
 
 // Creates a new Gossiper value and return it back
@@ -289,7 +293,7 @@ func (g *Gossiper) StartGossiping() error {
 		return err
 	}
 
-	g.cluster.ActorSystem.EventStream.Subscribe(func(evt interface{}) {
+	g.topologySub = g.cluster.ActorSystem.EventStream.Subscribe(func(evt interface{}) {
 		if topology, ok := evt.(*ClusterTopology); ok {
 			g.cluster.ActorSystem.Root.Send(g.pid, topology)
 		}
@@ -310,6 +314,12 @@ func (g *Gossiper) Shutdown() {
 	g.cluster.Logger().Info("Shutting down gossip")
 
 	close(g.close)
+
+	// Unsubscribe from the event stream to prevent goroutine leak
+	if g.topologySub != nil {
+		g.cluster.ActorSystem.EventStream.Unsubscribe(g.topologySub)
+		g.topologySub = nil
+	}
 
 	err := g.cluster.ActorSystem.Root.StopFuture(g.pid).Wait()
 	if err != nil {
