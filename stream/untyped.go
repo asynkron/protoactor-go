@@ -1,12 +1,17 @@
 package stream
 
-import "github.com/asynkron/protoactor-go/actor"
+import (
+	"sync/atomic"
+
+	"github.com/asynkron/protoactor-go/actor"
+)
 
 // UntypedStream converts all actor messages into a channel of empty interface.
 type UntypedStream struct {
 	c           chan interface{}
 	pid         *actor.PID
 	actorSystem *actor.ActorSystem
+	closed      atomic.Bool
 }
 
 // C returns the underlying receive-only channel.
@@ -21,6 +26,7 @@ func (s *UntypedStream) PID() *actor.PID {
 
 // Close stops the backing actor and closes the channel.
 func (s *UntypedStream) Close() {
+	s.closed.Store(true)
 	s.actorSystem.Root.Stop(s.pid)
 	close(s.c)
 }
@@ -29,19 +35,27 @@ func (s *UntypedStream) Close() {
 func NewUntypedStream(actorSystem *actor.ActorSystem) *UntypedStream {
 	c := make(chan interface{})
 
+	s := &UntypedStream{
+		c:           c,
+		pid:         nil, // will be set after spawn
+		actorSystem: actorSystem,
+	}
+
 	props := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
 		case actor.AutoReceiveMessage, actor.SystemMessage:
 		// ignore terminate
 		default:
-			c <- msg
+			if !s.closed.Load() {
+				func() {
+					defer func() { recover() }() // protect against race between check and send
+					c <- msg
+				}()
+			}
 		}
 	})
 	pid := actorSystem.Root.Spawn(props)
+	s.pid = pid
 
-	return &UntypedStream{
-		c:           c,
-		pid:         pid,
-		actorSystem: actorSystem,
-	}
+	return s
 }
