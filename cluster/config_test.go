@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"testing"
+	"time"
 
 	"github.com/asynkron/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
@@ -112,4 +113,57 @@ func TestClusterConfigure_PanicsOnNilIdentityLookup(t *testing.T) {
 	assert.Panics(t, func() {
 		Configure("test-cluster", provider, nil, rc)
 	})
+}
+
+func TestClusterConfig_WithGossipInterval(t *testing.T) {
+	provider := newInmemoryProvider()
+	lookup := &fakeIdentityLookup{}
+	rc := remote.Configure("localhost", 0)
+	config := Configure("test-cluster", provider, lookup, rc,
+		WithGossipInterval(1*time.Second),
+	)
+	assert.Equal(t, 1*time.Second, config.GossipInterval)
+}
+
+func TestClusterConfig_WithGossipRequestTimeout(t *testing.T) {
+	provider := newInmemoryProvider()
+	lookup := &fakeIdentityLookup{}
+	rc := remote.Configure("localhost", 0)
+	config := Configure("test-cluster", provider, lookup, rc,
+		WithGossipRequestTimeout(2*time.Second),
+	)
+	assert.Equal(t, 2*time.Second, config.GossipRequestTimeout)
+}
+
+func TestClusterConfig_WithGossipFanOut(t *testing.T) {
+	provider := newInmemoryProvider()
+	lookup := &fakeIdentityLookup{}
+	rc := remote.Configure("localhost", 0)
+	config := Configure("test-cluster", provider, lookup, rc,
+		WithGossipFanOut(5),
+	)
+	assert.Equal(t, 5, config.GossipFanOut)
+}
+
+func TestClusterConfig_WithGossipMaxSend(t *testing.T) {
+	provider := newInmemoryProvider()
+	lookup := &fakeIdentityLookup{}
+	rc := remote.Configure("localhost", 0)
+	config := Configure("test-cluster", provider, lookup, rc,
+		WithGossipMaxSend(100),
+	)
+	assert.Equal(t, 100, config.GossipMaxSend)
+}
+
+func TestClusterConfig_WithMemberStrategyBuilder(t *testing.T) {
+	provider := newInmemoryProvider()
+	lookup := &fakeIdentityLookup{}
+	rc := remote.Configure("localhost", 0)
+	customBuilder := func(cluster *Cluster, kind string) MemberStrategy {
+		return nil
+	}
+	config := Configure("test-cluster", provider, lookup, rc,
+		WithMemberStrategyBuilder(customBuilder),
+	)
+	assert.NotNil(t, config.MemberStrategyBuilder)
 }

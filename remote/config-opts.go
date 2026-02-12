@@ -89,3 +89,10 @@ func WithShutdownTimeout(d time.Duration) ConfigOption {
 		config.ShutdownTimeout = d
 	}
 }
+
+// WithMaxRetryCount sets the maximum number of retry attempts for endpoint connections.
+func WithMaxRetryCount(count int) ConfigOption {
+	return func(config *Config) {
+		config.MaxRetryCount = count
+	}
+}

@@ -190,3 +190,13 @@ func TestRemoteConfigValidate_NegativeShutdownTimeout(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "ShutdownTimeout must be > 0")
 }
+
+func TestRemoteConfig_DefaultMaxRetryCount(t *testing.T) {
+	config := defaultConfig()
+	assert.Equal(t, 5, config.MaxRetryCount)
+}
+
+func TestRemoteConfig_WithMaxRetryCount(t *testing.T) {
+	config := Configure("localhost", 0, WithMaxRetryCount(10))
+	require.Equal(t, 10, config.MaxRetryCount)
+}
