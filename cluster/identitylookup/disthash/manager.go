@@ -90,10 +90,17 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 // Get resolves the PID responsible for the given cluster identity.
 // Returns nil if the cluster kind is unknown or activation failed.
 func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
+	// Snapshot the rendezvous under the read lock, then release before
+	// making the blocking RPC call.  The previous implementation held the
+	// RLock for the entire duration of the request (up to 5 s), which
+	// blocked topology updates and created a TOCTOU window where the lock
+	// prevented forward progress while the looked-up address could already
+	// be stale.
 	pm.rdvMutex.RLock()
-	defer pm.rdvMutex.RUnlock()
+	rdv := pm.rdv
+	pm.rdvMutex.RUnlock()
 
-	ownerAddress := pm.rdv.GetByClusterIdentity(identity)
+	ownerAddress := rdv.GetByClusterIdentity(identity)
 
 	if ownerAddress == "" {
 		return nil

@@ -175,6 +175,80 @@ func (suite *DistHashManagerTestSuite) TestConcurrentClusterOperations() {
 	}
 }
 
+// TestGetDoesNotBlockTopologyUpdate verifies that concurrent Get calls do
+// not hold the rdvMutex across the blocking RPC, which would prevent
+// topology updates from proceeding.  Before the fix, Get held an RLock
+// for the entire duration of the request future (up to 5 s), starving
+// onClusterTopology which needs a write lock.
+func TestGetDoesNotBlockTopologyUpdate(t *testing.T) {
+	system := actor.NewActorSystem()
+	provider := test.NewTestProvider(test.NewInMemAgent())
+	lookup := New()
+	config := cluster.Configure("test-cluster", provider, lookup, remote.Configure("127.0.0.1", 0))
+	c := cluster.New(system, config)
+
+	manager := newPartitionManager(c)
+	manager.Start()
+	defer manager.Stop()
+
+	// Seed the rendezvous with an initial topology so Get performs a
+	// real lookup that will block waiting for a response.
+	members := []*cluster.Member{
+		{Id: "1", Host: "127.0.0.1", Port: 9999, Kinds: []string{"test"}},
+	}
+	manager.onClusterTopology(&cluster.ClusterTopology{
+		Members:      members,
+		TopologyHash: 1,
+	})
+
+	// Launch several concurrent Get calls.  Each one will block on
+	// RequestFuture (nobody is listening at 127.0.0.1:9999 for the
+	// activation request, so these will time out after 5 s).  If the
+	// old code is in place, the RLock would be held during this wait.
+	const concurrency = 5
+	var getWg sync.WaitGroup
+	getWg.Add(concurrency)
+	for i := 0; i < concurrency; i++ {
+		go func(n int) {
+			defer getWg.Done()
+			identity := &cluster.ClusterIdentity{
+				Identity: fmt.Sprintf("actor-%d", n),
+				Kind:     "test",
+			}
+			_ = manager.Get(identity)
+		}(i)
+	}
+
+	// Give the Get goroutines a moment to start and enter the RPC wait.
+	time.Sleep(50 * time.Millisecond)
+
+	// Now try to push a topology update.  With the fix, this should
+	// succeed almost immediately because Get no longer holds the RLock
+	// across the blocking call.  With the old code, this would have to
+	// wait up to 5 s for every in-flight Get to finish.
+	topologyDone := make(chan struct{})
+	go func() {
+		manager.onClusterTopology(&cluster.ClusterTopology{
+			Members: []*cluster.Member{
+				{Id: "1", Host: "127.0.0.1", Port: 9999, Kinds: []string{"test"}},
+				{Id: "2", Host: "127.0.0.1", Port: 9998, Kinds: []string{"test"}},
+			},
+			TopologyHash: 2,
+		})
+		close(topologyDone)
+	}()
+
+	select {
+	case <-topologyDone:
+		// Topology update completed promptly - TOCTOU fix is working.
+	case <-time.After(2 * time.Second):
+		t.Fatal("topology update blocked for >2 s; Get is likely still holding rdvMutex across the RPC call")
+	}
+
+	// Wait for the Get goroutines to finish (they will time out).
+	getWg.Wait()
+}
+
 func TestDistHashManager(t *testing.T) {
 	suite.Run(t, new(DistHashManagerTestSuite))
 }
