@@ -42,7 +42,7 @@ import (
 //}
 
 func TestMemberList_UpdateClusterTopology(t *testing.T) {
-	c := newClusterForTest("test-UpdateClusterTopology", nil)
+	c := newClusterForTest("test-UpdateClusterTopology", newInmemoryProvider())
 	obj := NewMemberList(c)
 	empty := make([]*Member, 0)
 
@@ -137,7 +137,7 @@ func newMembersForTest(count int, kinds ...string) Members {
 }
 
 func TestMemberList_UpdateClusterTopology2(t *testing.T) {
-	c := newClusterForTest("test-UpdateClusterTopology", nil)
+	c := newClusterForTest("test-UpdateClusterTopology", newInmemoryProvider())
 
 	obj := NewMemberList(c)
 	dumpMembers := func(list Members) {
@@ -188,7 +188,7 @@ func TestMemberList_UpdateClusterTopology2(t *testing.T) {
 func TestMemberList_getPartitionMember(t *testing.T) {
 	t.Parallel()
 
-	c := newClusterForTest("test-memberlist", nil)
+	c := newClusterForTest("test-memberlist", newInmemoryProvider())
 	obj := NewMemberList(c)
 
 	for _, v := range []int{1, 2, 10, 100, 1000} {
@@ -259,7 +259,7 @@ func TestMemberList_newMemberStrategies(t *testing.T) {
 	t.Parallel()
 	a := assert.New(t)
 
-	c := newClusterForTest("test-memberlist", nil)
+	c := newClusterForTest("test-memberlist", newInmemoryProvider())
 	obj := NewMemberList(c)
 
 	for _, v := range []int{1, 10, 100, 1000} {

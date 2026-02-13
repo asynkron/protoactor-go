@@ -137,7 +137,7 @@ func TestCluster_Call(t *testing.T) {
 			Kinds: []string{"kind"},
 		},
 	}
-	c := newClusterForTest("mycluster", nil)
+	c := newClusterForTest("mycluster", newInmemoryProvider())
 	c.MemberList.UpdateClusterTopology(members)
 	t.Run("invalid kind", func(t *testing.T) {
 		msg := struct{}{}

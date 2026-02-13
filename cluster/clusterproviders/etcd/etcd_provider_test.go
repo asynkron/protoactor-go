@@ -9,6 +9,7 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +21,7 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 	}
 	port, _ := strconv.Atoi(_port)
 	remoteConfig := remote.Configure(host, port)
-	config := cluster.Configure(name, cp, nil, remoteConfig)
+	config := cluster.Configure(name, cp, disthash.New(), remoteConfig)
 
 	system := actor.NewActorSystem()
 	c := cluster.New(system, config)
