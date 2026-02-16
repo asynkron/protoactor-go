@@ -50,6 +50,7 @@ type Provider struct {
 	clusterMonitor *actor.PID
 	shutdown       atomic.Bool
 	cancelWatch    context.CancelFunc
+	watchDone      chan struct{}
 }
 
 // make sure our Provider complies with the ClusterProvider interface
@@ -154,6 +155,21 @@ func (p *Provider) Shutdown(_ bool) error {
 		p.clusterMonitor = nil
 	}
 
+	// Ensure the watch context is cancelled even if the cluster monitor
+	// did not handle StopWatchingCluster (e.g. it was never started).
+	if p.cancelWatch != nil {
+		p.cancelWatch()
+	}
+
+	// Wait for the watch goroutine to exit so we don't leak it.
+	if p.watchDone != nil {
+		select {
+		case <-p.watchDone:
+		case <-time.After(5 * time.Second):
+			p.cluster.Logger().Warn("Timed out waiting for watch goroutine to exit")
+		}
+	}
+
 	return nil
 }
 
@@ -225,9 +241,11 @@ func (p *Provider) startWatchingCluster() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancelWatch = cancel
+	p.watchDone = make(chan struct{})
 
 	// start a new goroutine to monitor the cluster events
 	go func() {
+		defer close(p.watchDone)
 		for {
 			select {
 			case <-ctx.Done():
