@@ -3,43 +3,55 @@ package cluster
 import (
 	"fmt"
 	"sort"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO: TestPublishRaceCondition is disabled because it uses an old cluster.Configure
-// signature (4 args) that no longer matches the current API. To re-enable, rewrite
-// using the current Configure(name, clusterProvider, identityLookup, remoteConfig) API.
-//func TestPublishRaceCondition(t *testing.T) {
-//	actorSystem := actor.NewActorSystem()
-//	c := New(actorSystem, Configure("mycluster", nil, nil, remote.Configure("127.0.0.1", 0)))
-//	NewMemberList(c)
-//	rounds := 1000
-//
-//	var wg sync.WaitGroup
-//	wg.Add(2 * rounds)
-//
-//	go func() {
-//		for i := 0; i < rounds; i++ {
-//			actorSystem.EventStream.Publish(TopologyEvent(Members{{}, {}}))
-//			actorSystem.EventStream.Publish(TopologyEvent(Members{{}}))
-//			wg.Done()
-//		}
-//	}()
-//
-//	go func() {
-//		for i := 0; i < rounds; i++ {
-//			s := actorSystem.EventStream.Subscribe(func(evt interface{}) {})
-//			actorSystem.EventStream.Unsubscribe(s)
-//			wg.Done()
-//		}
-//	}()
-//
-//	if waitTimeout(&wg, 2*time.Second) {
-//		t.Error("Should not run into a timeout")
-//	}
-//}
+func TestPublishRaceCondition(t *testing.T) {
+	cp := newInmemoryProvider()
+	c := newClusterForTest("mycluster", cp)
+
+	rounds := 1000
+	var wg sync.WaitGroup
+	wg.Add(2 * rounds)
+
+	go func() {
+		for i := 0; i < rounds; i++ {
+			c.MemberList.UpdateClusterTopology([]*Member{
+				{Id: "1", Host: "localhost", Port: 1},
+				{Id: "2", Host: "localhost", Port: 2},
+			})
+			c.MemberList.UpdateClusterTopology([]*Member{
+				{Id: "1", Host: "localhost", Port: 1},
+			})
+			wg.Done()
+		}
+	}()
+
+	go func() {
+		for i := 0; i < rounds; i++ {
+			s := c.ActorSystem.EventStream.Subscribe(func(evt any) {})
+			c.ActorSystem.EventStream.Unsubscribe(s)
+			wg.Done()
+		}
+	}()
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// success
+	case <-time.After(5 * time.Second):
+		t.Error("Should not run into a timeout")
+	}
+}
 
 func TestMemberList_UpdateClusterTopology(t *testing.T) {
 	c := newClusterForTest("test-UpdateClusterTopology", newInmemoryProvider())
