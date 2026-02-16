@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -23,16 +24,18 @@ func NewPubSub(cluster *Cluster) *PubSub {
 	return p
 }
 
-// Start the PubSubMemberDeliveryActor
-func (p *PubSub) Start() {
+// Start the PubSubMemberDeliveryActor. Returns an error if the actor
+// cannot be spawned.
+func (p *PubSub) Start() error {
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return NewPubSubMemberDeliveryActor(p.cluster.Config.PubSubConfig.SubscriberTimeout, p.cluster.Logger())
 	})
 	_, err := p.cluster.ActorSystem.Root.SpawnNamed(props, PubSubDeliveryName)
 	if err != nil {
-		panic(err) // let it crash
+		return fmt.Errorf("failed to start PubSub delivery actor: %w", err)
 	}
 	p.cluster.Logger().Info("Started Cluster PubSub")
+	return nil
 }
 
 func (p *PubSub) ExtensionID() extensions.ExtensionID {

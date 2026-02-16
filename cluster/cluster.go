@@ -142,7 +142,9 @@ func (c *Cluster) StartMember() error {
 	if err := c.Gossip.StartGossiping(); err != nil {
 		return fmt.Errorf("failed to start gossiping: %w", err)
 	}
-	c.PubSub.Start()
+	if err := c.PubSub.Start(); err != nil {
+		return fmt.Errorf("failed to start PubSub: %w", err)
+	}
 	c.MemberList.InitializeTopologyConsensus()
 
 	if err := cfg.ClusterProvider.StartMember(c); err != nil {
@@ -179,7 +181,9 @@ func (c *Cluster) StartClient() error {
 	if err := cfg.ClusterProvider.StartClient(c); err != nil {
 		return fmt.Errorf("failed to start cluster provider client: %w", err)
 	}
-	c.PubSub.Start()
+	if err := c.PubSub.Start(); err != nil {
+		return fmt.Errorf("failed to start PubSub: %w", err)
+	}
 	return nil
 }
 
