@@ -20,9 +20,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
+	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/google/uuid"
 
 	// Register the pgx stdlib driver for database/sql.
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -83,40 +86,229 @@ func (s *PostgresIdentityStorage) release() {
 // TryGetExistingActivation looks up the current activation for a cluster
 // identity. Returns nil if no activation exists.
 func (s *PostgresIdentityStorage) TryGetExistingActivation(clusterIdentity *cluster.ClusterIdentity) *cluster.StoredActivation {
-	panic("not implemented")
+	s.acquire()
+	defer s.release()
+
+	ctx := context.Background()
+	key := clusterIdentity.AsKey()
+
+	query := fmt.Sprintf(
+		`SELECT pid_id, pid_address, member_id FROM %s WHERE key = $1 AND pid_id != ''`,
+		s.tableName,
+	)
+
+	var pidID, pidAddr, memberID string
+	err := s.db.QueryRowContext(ctx, query, key).Scan(&pidID, &pidAddr, &memberID)
+	if err != nil {
+		return nil
+	}
+
+	return &cluster.StoredActivation{
+		Pid:      fmt.Sprintf("%s/%s", pidAddr, pidID),
+		MemberID: memberID,
+	}
 }
 
 // TryAcquireLock attempts to acquire an exclusive spawn lock for the given
 // cluster identity. Returns nil if the identity already has a lock or
 // activation.
 func (s *PostgresIdentityStorage) TryAcquireLock(clusterIdentity *cluster.ClusterIdentity) *cluster.SpawnLock {
-	panic("not implemented")
+	s.acquire()
+	defer s.release()
+
+	ctx := context.Background()
+	key := clusterIdentity.AsKey()
+	lockID := uuid.New().String()
+	lockExpires := time.Now().Add(s.config.LockTTL)
+
+	// First, clean up any expired locks for this key (rows that have a lock but no activation).
+	cleanQuery := fmt.Sprintf(
+		`DELETE FROM %s WHERE key = $1 AND lock_id != '' AND pid_id = '' AND lock_expires_at < NOW()`,
+		s.tableName,
+	)
+	_, _ = s.db.ExecContext(ctx, cleanQuery, key)
+
+	// Try to insert a new lock row. ON CONFLICT DO NOTHING means if the key
+	// already exists (locked or activated), the insert is a no-op.
+	insertQuery := fmt.Sprintf(
+		`INSERT INTO %s (key, lock_id, lock_expires_at) VALUES ($1, $2, $3) ON CONFLICT (key) DO NOTHING`,
+		s.tableName,
+	)
+	result, err := s.db.ExecContext(ctx, insertQuery, key, lockID, lockExpires)
+	if err != nil {
+		slog.Error("Postgres TryAcquireLock failed", slog.String("key", key), slog.Any("error", err))
+		return nil
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil || rows == 0 {
+		return nil
+	}
+
+	return &cluster.SpawnLock{
+		LockID:          lockID,
+		ClusterIdentity: clusterIdentity,
+	}
 }
 
 // WaitForActivation polls Postgres until an activation appears for the given
-// cluster identity, or the lock TTL expires. Returns nil if the activation
-// is not found within the timeout period.
+// cluster identity, or the lock TTL expires. It uses exponential backoff
+// while polling. Returns nil if the activation is not found within the
+// timeout period.
 func (s *PostgresIdentityStorage) WaitForActivation(clusterIdentity *cluster.ClusterIdentity) *cluster.StoredActivation {
-	panic("not implemented")
+	ctx := context.Background()
+	key := clusterIdentity.AsKey()
+	deadline := time.Now().Add(s.config.LockTTL)
+
+	query := fmt.Sprintf(
+		`SELECT lock_id, pid_id, pid_address, member_id FROM %s WHERE key = $1`,
+		s.tableName,
+	)
+
+	// Read the initial state to capture the current lock ID.
+	s.acquire()
+	var lockID, pidID, pidAddr, memberID string
+	err := s.db.QueryRowContext(ctx, query, key).Scan(&lockID, &pidID, &pidAddr, &memberID)
+	s.release()
+
+	var initialLockID string
+	if err == nil {
+		initialLockID = lockID
+	}
+
+	iteration := 1
+	for time.Now().Before(deadline) {
+		// Exponential backoff: 20ms, 40ms, 60ms, ...
+		backoff := time.Duration(20*iteration) * time.Millisecond
+		if backoff > 500*time.Millisecond {
+			backoff = 500 * time.Millisecond
+		}
+		time.Sleep(backoff)
+		iteration++
+
+		s.acquire()
+		err = s.db.QueryRowContext(ctx, query, key).Scan(&lockID, &pidID, &pidAddr, &memberID)
+		s.release()
+
+		if err != nil {
+			if initialLockID != "" {
+				// Row was deleted (stale lock cleanup) -- let caller retry.
+				return nil
+			}
+			// Row doesn't exist yet -- keep waiting.
+			continue
+		}
+
+		// If lock_id is empty and pid_id is set, the activation is complete.
+		if lockID == "" && pidID != "" {
+			return &cluster.StoredActivation{
+				Pid:      fmt.Sprintf("%s/%s", pidAddr, pidID),
+				MemberID: memberID,
+			}
+		}
+
+		// If we didn't have a lock ID before, capture the one we just saw.
+		if initialLockID == "" {
+			initialLockID = lockID
+			continue
+		}
+
+		// If the lock ID changed, another node took over; let caller retry.
+		if lockID != initialLockID {
+			return nil
+		}
+	}
+
+	// Lock TTL expired and still locked by the same request -- stale lock.
+	// Remove it so the cluster can retry.
+	if initialLockID != "" {
+		s.RemoveLock(cluster.SpawnLock{
+			LockID:          initialLockID,
+			ClusterIdentity: clusterIdentity,
+		})
+	}
+
+	return nil
 }
 
 // RemoveLock removes a spawn lock, but only if the lock ID matches.
+// This prevents accidentally removing a lock that was acquired by another node.
 func (s *PostgresIdentityStorage) RemoveLock(spawnLock cluster.SpawnLock) {
-	panic("not implemented")
+	s.acquire()
+	defer s.release()
+
+	ctx := context.Background()
+	key := spawnLock.ClusterIdentity.AsKey()
+
+	query := fmt.Sprintf(
+		`DELETE FROM %s WHERE key = $1 AND lock_id = $2`,
+		s.tableName,
+	)
+
+	_, err := s.db.ExecContext(ctx, query, key, spawnLock.LockID)
+	if err != nil {
+		slog.Error("Postgres RemoveLock failed", slog.String("key", key), slog.Any("error", err))
+	}
 }
 
 // StoreActivation stores a completed activation, associating the PID with the
-// cluster identity.
+// cluster identity. The operation is conditional on the spawn lock still being
+// held (verified by matching lock_id).
 func (s *PostgresIdentityStorage) StoreActivation(memberID string, spawnLock *cluster.SpawnLock, pid *actor.PID) {
-	panic("not implemented")
+	s.acquire()
+	defer s.release()
+
+	ctx := context.Background()
+	key := spawnLock.ClusterIdentity.AsKey()
+
+	query := fmt.Sprintf(
+		`UPDATE %s SET pid_id=$1, pid_address=$2, member_id=$3, lock_id='', lock_expires_at=NULL WHERE key=$4 AND lock_id=$5`,
+		s.tableName,
+	)
+
+	result, err := s.db.ExecContext(ctx, query, pid.Id, pid.Address, memberID, key, spawnLock.LockID)
+	if err != nil {
+		slog.Error("Postgres StoreActivation failed",
+			slog.String("key", key), slog.Any("error", err))
+		return
+	}
+
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		slog.Warn("Postgres StoreActivation lock mismatch -- lock was lost",
+			slog.String("key", key), slog.String("lockID", spawnLock.LockID))
+	}
 }
 
 // RemoveActivation removes an activation from Postgres.
 func (s *PostgresIdentityStorage) RemoveActivation(spawnLock *cluster.SpawnLock) {
-	panic("not implemented")
+	s.acquire()
+	defer s.release()
+
+	ctx := context.Background()
+	key := spawnLock.ClusterIdentity.AsKey()
+
+	query := fmt.Sprintf(`DELETE FROM %s WHERE key = $1`, s.tableName)
+
+	_, err := s.db.ExecContext(ctx, query, key)
+	if err != nil {
+		slog.Error("Postgres RemoveActivation failed",
+			slog.String("key", key), slog.Any("error", err))
+	}
 }
 
 // RemoveMemberId removes all activations belonging to the given member.
 func (s *PostgresIdentityStorage) RemoveMemberId(memberID string) {
-	panic("not implemented")
+	s.acquire()
+	defer s.release()
+
+	ctx := context.Background()
+
+	query := fmt.Sprintf(`DELETE FROM %s WHERE member_id = $1`, s.tableName)
+
+	_, err := s.db.ExecContext(ctx, query, memberID)
+	if err != nil {
+		slog.Error("Postgres RemoveMemberId failed",
+			slog.String("memberID", memberID), slog.Any("error", err))
+	}
 }
