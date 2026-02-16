@@ -44,7 +44,7 @@ func (suite *ZookeeperTestSuite) start(name string, opts ...cluster.ConfigOption
 	remoteConfig := remote.Configure("localhost", 0)
 	config := cluster.Configure(name, cp, disthash.New(), remoteConfig, opts...)
 	system := actor.NewActorSystem()
-	c := cluster.New(system, config)
+	c := cluster.NewCluster(system, config)
 	if err := c.StartMember(); err != nil {
 		suite.T().Fatalf("failed to start member: %v", err)
 	}

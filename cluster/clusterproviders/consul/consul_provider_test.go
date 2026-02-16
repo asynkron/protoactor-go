@@ -27,7 +27,7 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 	// return cluster.NewForTest(system, config)
 
 	system := actor.NewActorSystem()
-	c := cluster.New(system, config)
+	c := cluster.NewCluster(system, config)
 
 	// use for test without start remote
 	c.ActorSystem.ProcessRegistry.Address = addr

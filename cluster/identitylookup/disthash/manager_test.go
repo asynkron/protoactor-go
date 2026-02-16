@@ -18,7 +18,7 @@ func TestPlacementActorUnknownKind(t *testing.T) {
 	provider := test.NewTestProvider(test.NewInMemAgent())
 	lookup := New()
 	config := cluster.Configure("test-cluster", provider, lookup, remote.Configure("127.0.0.1", 0))
-	c := cluster.New(system, config)
+	c := cluster.NewCluster(system, config)
 
 	manager := newPartitionManager(c)
 	manager.Start()
@@ -40,7 +40,7 @@ func TestManagerConcurrentAccess(t *testing.T) {
 	provider := test.NewTestProvider(test.NewInMemAgent())
 	lookup := New()
 	config := cluster.Configure("test-cluster", provider, lookup, remote.Configure("127.0.0.1", 0))
-	c := cluster.New(system, config)
+	c := cluster.NewCluster(system, config)
 
 	manager := newPartitionManager(c)
 	manager.Start()
@@ -116,7 +116,7 @@ func (suite *DistHashManagerTestSuite) SetupTest() {
 			remote.Configure("localhost", 0),
 		)
 
-		c := cluster.New(system, config)
+		c := cluster.NewCluster(system, config)
 		if err := c.StartMember(); err != nil {
 			suite.T().Fatalf("failed to start member %d: %v", i, err)
 		}
@@ -185,7 +185,7 @@ func TestGetDoesNotBlockTopologyUpdate(t *testing.T) {
 	provider := test.NewTestProvider(test.NewInMemAgent())
 	lookup := New()
 	config := cluster.Configure("test-cluster", provider, lookup, remote.Configure("127.0.0.1", 0))
-	c := cluster.New(system, config)
+	c := cluster.NewCluster(system, config)
 
 	manager := newPartitionManager(c)
 	manager.Start()

@@ -22,7 +22,7 @@
 //	provider := consulprovider.New()
 //	lookup := disthash.New()
 //	config := cluster.NewConfig("my-cluster", provider, lookup)
-//	c := cluster.New(system, config)
+//	c := cluster.NewCluster(system, config)
 //	c.StartMember()
 //
 //	// Call a grain

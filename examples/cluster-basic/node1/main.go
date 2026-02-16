@@ -34,7 +34,7 @@ func startNode() *cluster.Cluster {
 	lookup := disthash.New()
 	config := remote.Configure("localhost", 0)
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
-	c := cluster.New(system, clusterConfig)
+	c := cluster.NewCluster(system, clusterConfig)
 	if err := c.StartMember(); err != nil {
 		log.Fatal(err)
 	}

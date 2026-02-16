@@ -19,7 +19,7 @@ func main() {
 	helloKind := NewHelloKind(NewHelloGrain, 0)
 	clusterConfig := cluster.Configure("test", provider, lookup, config, cluster.WithKinds(
 		helloKind))
-	cst := cluster.New(system, clusterConfig)
+	cst := cluster.NewCluster(system, clusterConfig)
 	if err := cst.StartMember(); err != nil {
 		log.Fatal(err)
 	}

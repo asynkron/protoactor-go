@@ -24,7 +24,7 @@ func main() {
 	lookup := disthash.New()
 
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config)
-	c := cluster.New(system, clusterConfig)
+	c := cluster.NewCluster(system, clusterConfig)
 	setupLogger(c)
 	if err := c.StartMember(); err != nil {
 		log.Fatal(err)

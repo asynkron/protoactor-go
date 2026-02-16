@@ -82,7 +82,7 @@ func startNode(agent *test.InMemAgent, hostHello bool) node {
 	}
 
 	clusterConfig := cluster.Configure("demo", provider, lookup, config, opts...)
-	c := cluster.New(system, clusterConfig)
+	c := cluster.NewCluster(system, clusterConfig)
 	if err := c.StartMember(); err != nil {
 		log.Fatal(err)
 	}

@@ -197,7 +197,7 @@ func (b *BaseClusterFixture) spawnClusterMember() *cluster.Cluster {
 
 	system := actor.NewActorSystem()
 
-	c := cluster.New(system, config)
+	c := cluster.NewCluster(system, config)
 	if err := c.StartMember(); err != nil {
 		panic(fmt.Sprintf("failed to start member: %v", err))
 	}

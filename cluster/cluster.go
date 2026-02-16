@@ -36,7 +36,8 @@ type Cluster struct {
 
 var _ extensions.Extension = &Cluster{}
 
-func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
+// NewCluster creates a new Cluster instance.
+func NewCluster(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	c := &Cluster{
 		ActorSystem: actorSystem,
 		Config:      config,
@@ -65,6 +66,12 @@ func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	}
 
 	return c
+}
+
+// New creates a new Cluster instance.
+// Deprecated: Use NewCluster instead.
+func New(actorSystem *actor.ActorSystem, config *Config) *Cluster {
+	return NewCluster(actorSystem, config)
 }
 
 func (c *Cluster) subscribeToTopologyEvents() {

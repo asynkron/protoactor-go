@@ -37,7 +37,7 @@ func main() {
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, remoteConfig,
 		cluster.WithKinds(helloKind))
 
-	c := cluster.New(system, clusterConfig)
+	c := cluster.NewCluster(system, clusterConfig)
 	if err := c.StartMember(); err != nil {
 		log.Fatal(err)
 	}

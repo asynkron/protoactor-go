@@ -72,7 +72,7 @@ func startNode(port int, provider string) {
 	id := disthash.New()
 	remoteCfg := remote.Configure("127.0.0.1", port)
 	cfg := cluster.Configure("cluster-restartgracefully", cp, id, remoteCfg)
-	_cluster = cluster.New(system, cfg)
+	_cluster = cluster.NewCluster(system, cfg)
 	if err := _cluster.StartClient(); err != nil {
 		panic(fmt.Sprintf("failed to start client: %v", err))
 	}

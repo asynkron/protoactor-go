@@ -70,7 +70,7 @@ func startNode() *cluster.Cluster {
 	})
 	helloKind := cluster.NewKind("hello", props)
 	clusterConfig := cluster.Configure("my-cluster", provider, lookup, config, cluster.WithKinds(helloKind))
-	c := cluster.New(system, clusterConfig)
+	c := cluster.NewCluster(system, clusterConfig)
 
 	if err := c.StartMember(); err != nil {
 		log.Fatal(err)
