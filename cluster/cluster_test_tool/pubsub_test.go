@@ -191,7 +191,7 @@ func (suite *PubSubTestSuite) TestStoppedActorThatDidNotUnsubscribeDoesNotBlockP
 			}
 		}
 		return !hasPid2
-	}, "pid2 should be removed from subscriber store", DefaultWaitTimeout*1000)
+	}, "pid2 should be removed from subscriber store", 30*time.Second)
 }
 
 func (suite *PubSubTestSuite) TestSlowPidSubscriberThatTimesOutDoesNotPreventSubsequentPublishes() {

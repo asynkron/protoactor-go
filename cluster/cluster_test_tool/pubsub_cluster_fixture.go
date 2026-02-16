@@ -85,7 +85,7 @@ func (p *PubSubClusterFixture) VerifyAllSubscribersGotAllTheData(subscriberIds [
 		p.DeliveriesLock.RLock()
 		defer p.DeliveriesLock.RUnlock()
 		return len(p.Deliveries) == numMessages*len(subscriberIds)
-	}, "All messages should be delivered ", DefaultWaitTimeout*1000)
+	}, "All messages should be delivered ", 30*time.Second)
 
 	p.DeliveriesLock.RLock()
 	defer p.DeliveriesLock.RUnlock()
@@ -189,7 +189,8 @@ func (p *PubSubClusterFixture) subscriberProps() *actor.Props {
 func (p *PubSubClusterFixture) timeoutSubscriberProps() *actor.Props {
 	return actor.PropsFromFunc(func(context actor.Context) {
 		if msg, ok := context.Message().(*DataPublished); ok {
-			time.Sleep(time.Second * 4) // 4 seconds is longer than the configured subscriber timeout
+			// Intentional delay: exceeds the configured SubscriberTimeout (2s) to test timeout handling.
+			time.Sleep(time.Second * 4)
 
 			identity := cluster.GetClusterIdentity(context)
 			p.AppendDelivery(Delivery{
