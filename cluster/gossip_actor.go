@@ -118,35 +118,19 @@ func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
 		return
 	}
 
+	// Gossip acks are intentionally disabled. The gossip protocol uses
+	// eventual consistency and fan-out to ensure state propagation.
+	// Re-sending state on the next gossip round handles message loss.
+	// Acks were disabled because:
+	// 1. They add latency to every gossip exchange
+	// 2. The CommitOffsets pattern can cause state to be held too long
+	// 3. Fan-out + periodic re-send provides adequate reliability
+	//
+	// If gossip delivery issues are observed in production, consider:
+	// - Increasing GossipFanOut (default 3)
+	// - Decreasing GossipInterval (default 300ms)
+	// - Adding a gossip convergence health metric
 	ctx.Respond(&GossipResponse{})
-
-	// turn off acking for now
-
-	//msg := GossipResponse{
-	//	State: memberState.State,
-	//}
-	//future := ctx.RequestFuture(ctx.Sender(), &msg, GetCluster(ctx.ActorSystem()).Config.GossipRequestTimeout)
-	//
-	//ctx.ReenterAfter(future, func(res interface{}, err error) {
-	//	if err != nil {
-	//		plog.Warn("onGossipRequest failed", log.String("MemberId", r.MemberId), log.Error(err))
-	//		return
-	//	}
-	//
-	//	if _, ok := res.(*GossipResponseAck); ok {
-	//		memberState.CommitOffsets()
-	//		return
-	//	}
-	//
-	//	m, ok := res.(proto.Message)
-	//	if !ok {
-	//		plog.Warn("onGossipRequest failed", log.String("MemberId", r.MemberId), log.Error(err))
-	//		return
-	//	}
-	//	n := string(proto.MessageName(m).Name())
-	//
-	//	plog.Error("onGossipRequest received unknown response message", log.String("type", n), log.Message(r))
-	//})
 }
 
 func (ga *GossipActor) onSetGossipState(r *SetGossipState, ctx actor.Context) {
