@@ -59,7 +59,9 @@ func (hdl *gossipConsensusHandler) TrySetConsensus(consensus any) {
 }
 
 func (hdl *gossipConsensusHandler) TryResetConsensus() {
-	// this is a noop for now need to discuss the right
-	// approach for check waiting in Go as might be another
-	// way of expressing this
+	hdl.result.Lock()
+	defer hdl.result.Unlock()
+
+	hdl.result.consensus = false
+	hdl.result.value = nil
 }
