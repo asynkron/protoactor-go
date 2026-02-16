@@ -2,6 +2,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -42,6 +43,8 @@ type Provider struct {
 	clusterError       error
 	pid                *actor.PID
 	consulConfig       *api.Config
+	ctx                context.Context
+	cancel             context.CancelFunc
 }
 
 // New creates a new Consul provider with default configuration.
@@ -90,6 +93,8 @@ func (p *Provider) init(c *cluster.Cluster) error {
 
 // StartMember connects the provider to Consul and registers the node as a member.
 func (p *Provider) StartMember(c *cluster.Cluster) error {
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+
 	err := p.init(c)
 	if err != nil {
 		return err
@@ -108,6 +113,8 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 
 // StartClient connects the provider to Consul without registering the node as a member.
 func (p *Provider) StartClient(c *cluster.Cluster) error {
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+
 	if err := p.init(c); err != nil {
 		return err
 	}
@@ -131,6 +138,9 @@ func (p *Provider) DeregisterMember() error {
 func (p *Provider) Shutdown(_ bool) error {
 	if !p.shutdown.CompareAndSwap(false, true) {
 		return nil
+	}
+	if p.cancel != nil {
+		p.cancel()
 	}
 	if p.pid != nil {
 		if err := p.cluster.ActorSystem.Root.StopFuture(p.pid).Wait(); err != nil {
@@ -166,7 +176,10 @@ func (p *Provider) registerService() error {
 }
 
 func (p *Provider) deregisterService() error {
-	return p.client.Agent().ServiceDeregister(p.id)
+	// Use a fresh context for deregistration since p.ctx may already be cancelled
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return p.client.Agent().ServiceDeregisterOpts(p.id, (&api.QueryOptions{}).WithContext(ctx))
 }
 
 // call this directly after registering the service
@@ -175,10 +188,10 @@ func (p *Provider) blockingStatusChange() {
 }
 
 func (p *Provider) notifyStatuses() {
-	statuses, meta, err := p.client.Health().Service(p.clusterName, "", false, &api.QueryOptions{
+	statuses, meta, err := p.client.Health().Service(p.clusterName, "", false, (&api.QueryOptions{
 		WaitIndex: p.index,
 		WaitTime:  p.blockingWaitTime,
-	})
+	}).WithContext(p.ctx))
 	p.cluster.Logger().Info("Consul health check")
 
 	if err != nil {
@@ -214,6 +227,9 @@ func (p *Provider) notifyStatuses() {
 func (p *Provider) monitorMemberStatusChanges() {
 	go func() {
 		for !p.shutdown.Load() {
+			if p.ctx.Err() != nil {
+				return
+			}
 			p.notifyStatuses()
 		}
 	}()
