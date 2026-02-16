@@ -55,7 +55,7 @@ func TestAllForOneStrategyResume(t *testing.T) {
 	ch1 := make(chan *PID, 1)
 	ch2 := make(chan *PID, 1)
 
-	decider := func(reason interface{}) Directive { return ResumeDirective }
+	decider := func(reason any) Directive { return ResumeDirective }
 	parentProps := PropsFromProducer(func() Actor {
 		return &parentActor{child1Props: child1Props, child2Props: child2Props, ch1: ch1, ch2: ch2}
 	}, WithSupervisor(NewAllForOneStrategy(1, time.Second, decider)))
@@ -96,7 +96,7 @@ func TestAllForOneStrategyRestart(t *testing.T) {
 	ch1 := make(chan *PID, 1)
 	ch2 := make(chan *PID, 1)
 
-	decider := func(reason interface{}) Directive { return RestartDirective }
+	decider := func(reason any) Directive { return RestartDirective }
 	parentProps := PropsFromProducer(func() Actor {
 		return &parentActor{child1Props: child1Props, child2Props: child2Props, ch1: ch1, ch2: ch2}
 	}, WithSupervisor(NewAllForOneStrategy(1, time.Second, decider)))
@@ -135,7 +135,7 @@ func TestAllForOneStrategyStop(t *testing.T) {
 	ch1 := make(chan *PID, 1)
 	ch2 := make(chan *PID, 1)
 
-	decider := func(reason interface{}) Directive { return StopDirective }
+	decider := func(reason any) Directive { return StopDirective }
 	parentProps := PropsFromProducer(func() Actor {
 		return &parentActor{child1Props: child1Props, child2Props: child2Props, ch1: ch1, ch2: ch2}
 	}, WithSupervisor(NewAllForOneStrategy(1, time.Second, decider)))

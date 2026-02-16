@@ -10,7 +10,7 @@ type SnapshotStrategy interface {
 	// ShouldSnapshot returns true if a snapshot should be taken for the given
 	// event index. The state parameter is provided for strategies that may
 	// inspect actor state; it may be nil.
-	ShouldSnapshot(state interface{}, eventIndex int) bool
+	ShouldSnapshot(state any, eventIndex int) bool
 }
 
 // IntervalStrategy triggers a snapshot every N events.
@@ -27,7 +27,7 @@ func NewIntervalStrategy(interval int) *IntervalStrategy {
 
 // ShouldSnapshot returns true when eventIndex is a multiple of the configured
 // interval (and interval > 0).
-func (s *IntervalStrategy) ShouldSnapshot(_ interface{}, eventIndex int) bool {
+func (s *IntervalStrategy) ShouldSnapshot(_ any, eventIndex int) bool {
 	if s.interval <= 0 {
 		return false
 	}
@@ -56,7 +56,7 @@ func NewTimeStrategy(interval time.Duration) *TimeStrategy {
 // ShouldSnapshot returns true when the configured duration has elapsed since
 // the last snapshot was taken (or since creation). When it returns true it
 // resets the internal timer.
-func (s *TimeStrategy) ShouldSnapshot(_ interface{}, _ int) bool {
+func (s *TimeStrategy) ShouldSnapshot(_ any, _ int) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

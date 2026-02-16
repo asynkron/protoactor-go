@@ -13,7 +13,7 @@ import (
 
 type node struct {
 	next *node
-	val  interface{}
+	val  any
 }
 
 type Queue struct {
@@ -31,7 +31,7 @@ func New() *Queue {
 // Push adds x to the back of the queue.
 //
 // Push can be safely called from multiple goroutines
-func (q *Queue) Push(x interface{}) {
+func (q *Queue) Push(x any) {
 	n := new(node)
 	n.val = x
 	// current producer acquires head node
@@ -44,7 +44,7 @@ func (q *Queue) Push(x interface{}) {
 // Pop removes the item from the front of the queue or nil if the queue is empty
 //
 // Pop must be called from a single, consumer goroutine
-func (q *Queue) Pop() interface{} {
+func (q *Queue) Pop() any {
 	tail := q.tail
 	next := (*node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&tail.next)))) // acquire
 	if next != nil {

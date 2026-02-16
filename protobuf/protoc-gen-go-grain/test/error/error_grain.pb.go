@@ -11,7 +11,7 @@ import (
 	cluster "github.com/asynkron/protoactor-go/cluster"
 )
 
-func ErrUserNotFound(format string, args ...interface{}) *cluster.GrainErrorResponse {
+func ErrUserNotFound(format string, args ...any) *cluster.GrainErrorResponse {
 	return cluster.NewGrainErrorResponse(ErrorReason_USER_NOT_FOUND.String(), fmt.Sprintf(format, args...))
 }
 
@@ -23,7 +23,7 @@ func IsUserNotFound(err error) bool {
 	return e.Reason == ErrorReason_USER_NOT_FOUND.String()
 }
 
-func ErrContentMissing(format string, args ...interface{}) *cluster.GrainErrorResponse {
+func ErrContentMissing(format string, args ...any) *cluster.GrainErrorResponse {
 	return cluster.NewGrainErrorResponse(ErrorReason_CONTENT_MISSING.String(), fmt.Sprintf(format, args...))
 }
 

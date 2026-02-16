@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"google.golang.org/protobuf/types/known/anypb"
 	"log/slog"
-	"math/rand"
 	"maps"
+	"math/rand"
 	"time"
 
 	"github.com/asynkron/gofun/set"

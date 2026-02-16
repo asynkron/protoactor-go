@@ -78,7 +78,7 @@ func (m *mockContext) Children() []*actor.PID {
 	return args.Get(0).([]*actor.PID)
 }
 
-func (m *mockContext) Respond(response interface{}) {
+func (m *mockContext) Respond(response any) {
 	m.Called(response)
 }
 
@@ -106,7 +106,7 @@ func (m *mockContext) Forward(pid *actor.PID) {
 	m.Called()
 }
 
-func (m *mockContext) ReenterAfter(f actor.Future, cont func(res interface{}, err error)) {
+func (m *mockContext) ReenterAfter(f actor.Future, cont func(res any, err error)) {
 	m.Called(f, cont)
 }
 
@@ -123,7 +123,7 @@ func (m *mockContext) Apply(captured *actor.CapturedContext) {
 // Interface: SenderContext
 //
 
-func (m *mockContext) Message() interface{} {
+func (m *mockContext) Message() any {
 	args := m.Called()
 	return args.Get(0)
 }
@@ -133,13 +133,13 @@ func (m *mockContext) MessageHeader() actor.ReadonlyMessageHeader {
 	return args.Get(0).(actor.ReadonlyMessageHeader)
 }
 
-func (m *mockContext) Send(pid *actor.PID, message interface{}) {
+func (m *mockContext) Send(pid *actor.PID, message any) {
 	m.Called()
 	p, _ := system.ProcessRegistry.Get(pid)
 	p.SendUserMessage(pid, message)
 }
 
-func (m *mockContext) Request(pid *actor.PID, message interface{}) {
+func (m *mockContext) Request(pid *actor.PID, message any) {
 	args := m.Called()
 	p, _ := system.ProcessRegistry.Get(pid)
 	env := &actor.MessageEnvelope{
@@ -150,7 +150,7 @@ func (m *mockContext) Request(pid *actor.PID, message interface{}) {
 	p.SendUserMessage(pid, env)
 }
 
-func (m *mockContext) RequestWithCustomSender(pid *actor.PID, message interface{}, sender *actor.PID) {
+func (m *mockContext) RequestWithCustomSender(pid *actor.PID, message any, sender *actor.PID) {
 	m.Called()
 	p, _ := system.ProcessRegistry.Get(pid)
 	env := &actor.MessageEnvelope{
@@ -161,7 +161,7 @@ func (m *mockContext) RequestWithCustomSender(pid *actor.PID, message interface{
 	p.SendUserMessage(pid, env)
 }
 
-func (m *mockContext) RequestFuture(pid *actor.PID, message interface{}, timeout time.Duration) actor.Future {
+func (m *mockContext) RequestFuture(pid *actor.PID, message any, timeout time.Duration) actor.Future {
 	args := m.Called()
 	m.Called()
 	p, _ := system.ProcessRegistry.Get(pid)
@@ -247,11 +247,11 @@ func removeMockProcess(pid *actor.PID) {
 	system.ProcessRegistry.Remove(pid)
 }
 
-func (m *mockProcess) SendUserMessage(pid *actor.PID, message interface{}) {
+func (m *mockProcess) SendUserMessage(pid *actor.PID, message any) {
 	m.Called(pid, message)
 }
 
-func (m *mockProcess) SendSystemMessage(pid *actor.PID, message interface{}) {
+func (m *mockProcess) SendSystemMessage(pid *actor.PID, message any) {
 	m.Called(pid, message)
 }
 

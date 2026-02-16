@@ -36,10 +36,10 @@ func newDefaultClusterContext(cluster *Cluster) Context {
 	return &clusterContext
 }
 
-func (dcc *DefaultContext) Request(identity, kind string, message interface{}, opts ...GrainCallOption) (interface{}, error) {
+func (dcc *DefaultContext) Request(identity, kind string, message any, opts ...GrainCallOption) (any, error) {
 	var err error
 
-	var resp interface{}
+	var resp any
 
 	var counter int
 	callConfig := NewGrainCallOptions(dcc.cluster)
@@ -146,7 +146,7 @@ selectloop:
 	return resp, err
 }
 
-func (dcc *DefaultContext) RequestFuture(identity string, kind string, message interface{}, opts ...GrainCallOption) (actor.Future, error) {
+func (dcc *DefaultContext) RequestFuture(identity string, kind string, message any, opts ...GrainCallOption) (actor.Future, error) {
 	var counter int
 	callConfig := NewGrainCallOptions(dcc.cluster)
 	for _, o := range opts {

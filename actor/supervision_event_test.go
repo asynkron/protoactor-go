@@ -41,7 +41,7 @@ func TestSupervisorEventHandleFromEventstream(t *testing.T) {
 	for _, v := range supervisors {
 		t.Run(v.name, func(t *testing.T) {
 			wg := sync.WaitGroup{}
-			sid := system.EventStream.Subscribe(func(evt interface{}) {
+			sid := system.EventStream.Subscribe(func(evt any) {
 				if _, ok := evt.(*SupervisorEvent); ok {
 					wg.Done()
 				}

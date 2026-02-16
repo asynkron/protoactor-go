@@ -2,18 +2,18 @@ package actor
 
 // messageStack is a simple slice-based LIFO stack used for stashing messages.
 type messageStack struct {
-	items []interface{}
+	items []any
 }
 
 func newMessageStack() *messageStack {
 	return &messageStack{}
 }
 
-func (s *messageStack) Push(item interface{}) {
+func (s *messageStack) Push(item any) {
 	s.items = append(s.items, item)
 }
 
-func (s *messageStack) Pop() (interface{}, bool) {
+func (s *messageStack) Pop() (any, bool) {
 	if len(s.items) == 0 {
 		return nil, false
 	}

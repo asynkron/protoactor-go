@@ -9,11 +9,11 @@ type unboundedMailboxQueue struct {
 	userMailbox *goring.Queue
 }
 
-func (q *unboundedMailboxQueue) Push(m interface{}) {
+func (q *unboundedMailboxQueue) Push(m any) {
 	q.userMailbox.Push(m)
 }
 
-func (q *unboundedMailboxQueue) Pop() interface{} {
+func (q *unboundedMailboxQueue) Pop() any {
 	m, o := q.userMailbox.Pop()
 	if o {
 		return m

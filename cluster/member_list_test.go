@@ -196,7 +196,7 @@ func TestMemberList_getPartitionMember(t *testing.T) {
 		obj.UpdateClusterTopology(members)
 
 		testName := fmt.Sprintf("member*%d", v)
-                t.Run(testName, func(_ *testing.T) {
+		t.Run(testName, func(_ *testing.T) {
 			//assert := assert.New(t)
 			//
 			//identity := NewClusterIdentity("name", "kind")

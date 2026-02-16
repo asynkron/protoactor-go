@@ -52,11 +52,11 @@ type guardianProcess struct {
 
 var _ Process = &guardianProcess{}
 
-func (g *guardianProcess) SendUserMessage(_ *PID, _ interface{}) {
+func (g *guardianProcess) SendUserMessage(_ *PID, _ any) {
 	panic(errors.New("guardian actor cannot receive any user messages"))
 }
 
-func (g *guardianProcess) SendSystemMessage(_ *PID, message interface{}) {
+func (g *guardianProcess) SendSystemMessage(_ *PID, message any) {
 	if msg, ok := message.(*Failure); ok {
 		g.strategy.HandleFailure(g.guardians.actorSystem, g, msg.Who, msg.RestartStats, msg.Reason, msg.Message)
 	}
@@ -70,7 +70,7 @@ func (g *guardianProcess) Children() []*PID {
 	panic(errors.New("guardian does not hold its children PIDs"))
 }
 
-func (g *guardianProcess) EscalateFailure(_ interface{}, _ interface{}) {
+func (g *guardianProcess) EscalateFailure(_ any, _ any) {
 	panic(errors.New("guardian cannot escalate failure"))
 }
 

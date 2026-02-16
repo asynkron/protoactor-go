@@ -57,7 +57,7 @@ func TestActorDeadLettersAfterStop(t *testing.T) {
 	pid := system.Root.Spawn(PropsFromFunc(func(Context) {}))
 
 	var deadletters int32
-	sub := system.EventStream.Subscribe(func(msg interface{}) {
+	sub := system.EventStream.Subscribe(func(msg any) {
 		if _, ok := msg.(*DeadLetterEvent); ok {
 			atomic.AddInt32(&deadletters, 1)
 		}
@@ -116,7 +116,7 @@ func TestSupervisorHandlesChildPanicUnderLoad(t *testing.T) {
 	})
 
 	var restarts int32
-	decider := func(reason interface{}) Directive {
+	decider := func(reason any) Directive {
 		atomic.AddInt32(&restarts, 1)
 		return RestartDirective
 	}

@@ -74,7 +74,7 @@ func (m *mockContext) Children() []*PID {
 	return args.Get(0).([]*PID)
 }
 
-func (m *mockContext) Respond(response interface{}) {
+func (m *mockContext) Respond(response any) {
 	m.Called(response)
 }
 
@@ -102,7 +102,7 @@ func (m *mockContext) Forward(_ *PID) {
 	m.Called()
 }
 
-func (m *mockContext) ReenterAfter(f Future, cont func(res interface{}, err error)) {
+func (m *mockContext) ReenterAfter(f Future, cont func(res any, err error)) {
 	m.Called(f, cont)
 }
 
@@ -119,7 +119,7 @@ func (m *mockContext) Apply(captured *CapturedContext) {
 // Interface: SenderContext
 //
 
-func (m *mockContext) Message() interface{} {
+func (m *mockContext) Message() any {
 	args := m.Called()
 
 	return args.Get(0)
@@ -131,11 +131,11 @@ func (m *mockContext) MessageHeader() ReadonlyMessageHeader {
 	return args.Get(0).(ReadonlyMessageHeader)
 }
 
-func (m *mockContext) Send(_ *PID, _ interface{}) {
+func (m *mockContext) Send(_ *PID, _ any) {
 	m.Called()
 }
 
-func (m *mockContext) Request(pid *PID, message interface{}) {
+func (m *mockContext) Request(pid *PID, message any) {
 	args := m.Called()
 
 	p, _ := system.ProcessRegistry.Get(pid)
@@ -147,7 +147,7 @@ func (m *mockContext) Request(pid *PID, message interface{}) {
 	p.SendUserMessage(pid, env)
 }
 
-func (m *mockContext) RequestWithCustomSender(pid *PID, message interface{}, sender *PID) {
+func (m *mockContext) RequestWithCustomSender(pid *PID, message any, sender *PID) {
 	m.Called()
 
 	p, _ := system.ProcessRegistry.Get(pid)
@@ -159,7 +159,7 @@ func (m *mockContext) RequestWithCustomSender(pid *PID, message interface{}, sen
 	p.SendUserMessage(pid, env)
 }
 
-func (m *mockContext) RequestFuture(_ *PID, _ interface{}, _ time.Duration) Future {
+func (m *mockContext) RequestFuture(_ *PID, _ any, _ time.Duration) Future {
 	args := m.Called()
 
 	return args.Get(0).(Future)
@@ -224,11 +224,11 @@ func removeMockProcess(pid *PID) {
 	system.ProcessRegistry.Remove(pid)
 }
 
-func (m *mockProcess) SendUserMessage(pid *PID, message interface{}) {
+func (m *mockProcess) SendUserMessage(pid *PID, message any) {
 	m.Called(pid, message)
 }
 
-func (m *mockProcess) SendSystemMessage(pid *PID, message interface{}) {
+func (m *mockProcess) SendSystemMessage(pid *PID, message any) {
 	m.Called(pid, message)
 }
 

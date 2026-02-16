@@ -121,14 +121,14 @@ func RegisterRemotingServer(s grpc.ServiceRegistrar, srv RemotingServer) {
 	s.RegisterService(&Remoting_ServiceDesc, srv)
 }
 
-func _Remoting_Receive_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Remoting_Receive_Handler(srv any, stream grpc.ServerStream) error {
 	return srv.(RemotingServer).Receive(&grpc.GenericServerStream[RemoteMessage, RemoteMessage]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Remoting_ReceiveServer = grpc.BidiStreamingServer[RemoteMessage, RemoteMessage]
 
-func _Remoting_ListProcesses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Remoting_ListProcesses_Handler(srv any, ctx context.Context, dec func(any) error, interceptor grpc.UnaryServerInterceptor) (any, error) {
 	in := new(ListProcessesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
@@ -140,13 +140,13 @@ func _Remoting_ListProcesses_Handler(srv interface{}, ctx context.Context, dec f
 		Server:     srv,
 		FullMethod: Remoting_ListProcesses_FullMethodName,
 	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+	handler := func(ctx context.Context, req any) (any, error) {
 		return srv.(RemotingServer).ListProcesses(ctx, req.(*ListProcessesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Remoting_GetProcessDiagnostics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Remoting_GetProcessDiagnostics_Handler(srv any, ctx context.Context, dec func(any) error, interceptor grpc.UnaryServerInterceptor) (any, error) {
 	in := new(GetProcessDiagnosticsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
@@ -158,7 +158,7 @@ func _Remoting_GetProcessDiagnostics_Handler(srv interface{}, ctx context.Contex
 		Server:     srv,
 		FullMethod: Remoting_GetProcessDiagnostics_FullMethodName,
 	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+	handler := func(ctx context.Context, req any) (any, error) {
 		return srv.(RemotingServer).GetProcessDiagnostics(ctx, req.(*GetProcessDiagnosticsRequest))
 	}
 	return interceptor(ctx, in, info, handler)

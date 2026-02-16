@@ -10,7 +10,7 @@ import (
 
 // messageAndSender captures a message and its sender.
 type messageAndSender struct {
-	message interface{}
+	message any
 	sender  *actor.PID
 }
 
@@ -62,7 +62,7 @@ func (tp *TestProbe) ExpectNoMessage(timeAllowed time.Duration) error {
 }
 
 // GetNextMessage waits for the next message and returns it.
-func (tp *TestProbe) GetNextMessage(timeAllowed time.Duration) (interface{}, error) {
+func (tp *TestProbe) GetNextMessage(timeAllowed time.Duration) (any, error) {
 	if timeAllowed == 0 {
 		timeAllowed = time.Second
 	}
@@ -76,15 +76,15 @@ func (tp *TestProbe) GetNextMessage(timeAllowed time.Duration) (interface{}, err
 }
 
 // Send forwards a message to the target actor.
-func (tp *TestProbe) Send(target *actor.PID, message interface{}) { tp.Context().Send(target, message) }
+func (tp *TestProbe) Send(target *actor.PID, message any) { tp.Context().Send(target, message) }
 
 // Request sends a request message from the probe to the target.
-func (tp *TestProbe) Request(target *actor.PID, message interface{}) {
+func (tp *TestProbe) Request(target *actor.PID, message any) {
 	tp.Context().Request(target, message)
 }
 
 // Respond sends a response to the last sender if present.
-func (tp *TestProbe) Respond(message interface{}) {
+func (tp *TestProbe) Respond(message any) {
 	if tp.sender != nil {
 		tp.Send(tp.sender, message)
 	}
@@ -148,7 +148,7 @@ func FishForMessageOf[T any](tp *TestProbe, timeAllowed time.Duration) (T, error
 }
 
 // RequestFuture sends a request and waits for a typed response.
-func RequestFuture[T any](tp *TestProbe, target *actor.PID, message interface{}, timeout time.Duration) (T, error) {
+func RequestFuture[T any](tp *TestProbe, target *actor.PID, message any, timeout time.Duration) (T, error) {
 	var zero T
 	res, err := tp.Context().RequestFuture(target, message, timeout).Result()
 	if err != nil {

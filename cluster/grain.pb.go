@@ -251,7 +251,7 @@ func file_grain_proto_rawDescGZIP() []byte {
 }
 
 var file_grain_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_grain_proto_goTypes = []interface{}{
+var file_grain_proto_goTypes = []any{
 	(*GrainRequest)(nil),       // 0: cluster.GrainRequest
 	(*GrainResponse)(nil),      // 1: cluster.GrainResponse
 	(*GrainErrorResponse)(nil), // 2: cluster.GrainErrorResponse
@@ -272,7 +272,7 @@ func file_grain_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_grain_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_grain_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*GrainRequest); i {
 			case 0:
 				return &v.state
@@ -284,7 +284,7 @@ func file_grain_proto_init() {
 				return nil
 			}
 		}
-		file_grain_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_grain_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*GrainResponse); i {
 			case 0:
 				return &v.state
@@ -296,7 +296,7 @@ func file_grain_proto_init() {
 				return nil
 			}
 		}
-		file_grain_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_grain_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*GrainErrorResponse); i {
 			case 0:
 				return &v.state

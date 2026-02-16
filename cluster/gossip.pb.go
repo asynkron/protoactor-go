@@ -419,7 +419,7 @@ func file_gossip_proto_rawDescGZIP() []byte {
 }
 
 var file_gossip_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_gossip_proto_goTypes = []interface{}{
+var file_gossip_proto_goTypes = []any{
 	(*GossipRequest)(nil),     // 0: cluster.GossipRequest
 	(*GossipResponse)(nil),    // 1: cluster.GossipResponse
 	(*GossipState)(nil),       // 2: cluster.GossipState
@@ -454,7 +454,7 @@ func file_gossip_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_gossip_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_gossip_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*GossipRequest); i {
 			case 0:
 				return &v.state
@@ -466,7 +466,7 @@ func file_gossip_proto_init() {
 				return nil
 			}
 		}
-		file_gossip_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_gossip_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*GossipResponse); i {
 			case 0:
 				return &v.state
@@ -478,7 +478,7 @@ func file_gossip_proto_init() {
 				return nil
 			}
 		}
-		file_gossip_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_gossip_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*GossipState); i {
 			case 0:
 				return &v.state
@@ -490,7 +490,7 @@ func file_gossip_proto_init() {
 				return nil
 			}
 		}
-		file_gossip_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_gossip_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*GossipMemberState); i {
 			case 0:
 				return &v.state
@@ -502,7 +502,7 @@ func file_gossip_proto_init() {
 				return nil
 			}
 		}
-		file_gossip_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_gossip_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*GossipKeyValue); i {
 			case 0:
 				return &v.state
@@ -514,7 +514,7 @@ func file_gossip_proto_init() {
 				return nil
 			}
 		}
-		file_gossip_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_gossip_proto_msgTypes[5].Exporter = func(v any, i int) any {
 			switch v := v.(*GossipMap); i {
 			case 0:
 				return &v.state

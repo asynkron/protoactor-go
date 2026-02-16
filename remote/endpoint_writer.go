@@ -172,7 +172,7 @@ func (state *endpointWriter) initializeInternal() error {
 	return nil
 }
 
-func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context) {
+func (state *endpointWriter) sendEnvelopes(msg []any, ctx actor.Context) {
 	batchSize := len(msg)
 	envelopes := make([]*MessageEnvelope, 0, batchSize)
 
@@ -358,7 +358,7 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 	case *restartAfterConnectFailure:
 		state.remote.Logger().Debug("EndpointWriter initiating self-restart after failing to connect and a delay", slog.String("address", state.address))
 		panic(msg.err)
-	case []interface{}:
+	case []any:
 		state.sendEnvelopes(msg, ctx)
 	case actor.SystemMessage, actor.AutoReceiveMessage:
 		// ignore

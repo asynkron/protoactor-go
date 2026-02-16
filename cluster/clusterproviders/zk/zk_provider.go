@@ -269,7 +269,7 @@ func (p *Provider) addWatcher(ctx context.Context, clusterKey string) (<-chan zk
 }
 
 func (p *Provider) isChildrenChanged(_ context.Context, stat *zk.Stat) bool {
-        return stat.Cversion != int32(p.revision)
+	return stat.Cversion != int32(p.revision)
 }
 
 func (p *Provider) _keepWatching(registerSelf bool, stream <-chan zk.Event) error {

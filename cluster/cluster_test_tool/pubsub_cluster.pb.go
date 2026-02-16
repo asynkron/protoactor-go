@@ -134,7 +134,7 @@ func file_pubsub_cluster_proto_rawDescGZIP() []byte {
 }
 
 var file_pubsub_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_pubsub_cluster_proto_goTypes = []interface{}{
+var file_pubsub_cluster_proto_goTypes = []any{
 	(*DataPublished)(nil), // 0: cluster_test_tool.DataPublished
 	(*Response)(nil),      // 1: cluster_test_tool.Response
 }
@@ -152,7 +152,7 @@ func file_pubsub_cluster_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_pubsub_cluster_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_pubsub_cluster_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*DataPublished); i {
 			case 0:
 				return &v.state
@@ -164,7 +164,7 @@ func file_pubsub_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_pubsub_cluster_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_pubsub_cluster_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*Response); i {
 			case 0:
 				return &v.state

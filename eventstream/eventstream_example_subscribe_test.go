@@ -9,12 +9,12 @@ import (
 // Subscribe subscribes to events
 func ExampleEventStream_Subscribe() {
 	es := eventstream.NewEventStream()
-	handler := func(event interface{}) {
+	handler := func(event any) {
 		fmt.Println(event)
 	}
 
 	// only allow strings
-	predicate := func(event interface{}) bool {
+	predicate := func(event any) bool {
 		_, ok := event.(string)
 		return ok
 	}

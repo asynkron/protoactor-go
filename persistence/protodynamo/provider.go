@@ -63,7 +63,7 @@ func (p *DynamoDBProvider) GetSnapshotInterval() int {
 // GetEvents queries the events table for the given actor and invokes callback
 // for each event in ascending order by EventIndex. When eventIndexEnd is 0 it
 // means "return all events from eventIndexStart onward".
-func (p *DynamoDBProvider) GetEvents(actorName string, eventIndexStart int, eventIndexEnd int, callback func(e interface{})) {
+func (p *DynamoDBProvider) GetEvents(actorName string, eventIndexStart int, eventIndexEnd int, callback func(e any)) {
 	ctx := context.Background()
 
 	endIndex := eventIndexEnd
@@ -159,7 +159,7 @@ func (p *DynamoDBProvider) DeleteEvents(actorName string, inclusiveToIndex int) 
 
 // GetSnapshot retrieves the latest snapshot for the given actor. It queries
 // the snapshots table in reverse sort-key order with Limit=1.
-func (p *DynamoDBProvider) GetSnapshot(actorName string) (snapshot interface{}, eventIndex int, ok bool) {
+func (p *DynamoDBProvider) GetSnapshot(actorName string) (snapshot any, eventIndex int, ok bool) {
 	ctx := context.Background()
 
 	input := &dynamodb.QueryInput{
@@ -285,10 +285,10 @@ func (p *DynamoDBProvider) marshalItem(actorName, sortKeyName string, sortKeyVal
 	}
 
 	return map[string]types.AttributeValue{
-		"ActorName":  &types.AttributeValueMemberS{Value: actorName},
-		sortKeyName:  &types.AttributeValueMemberN{Value: strconv.Itoa(sortKeyValue)},
-		"Data":       &types.AttributeValueMemberB{Value: data},
-		"DataType":   &types.AttributeValueMemberS{Value: typeName},
+		"ActorName": &types.AttributeValueMemberS{Value: actorName},
+		sortKeyName: &types.AttributeValueMemberN{Value: strconv.Itoa(sortKeyValue)},
+		"Data":      &types.AttributeValueMemberB{Value: data},
+		"DataType":  &types.AttributeValueMemberS{Value: typeName},
 	}, nil
 }
 

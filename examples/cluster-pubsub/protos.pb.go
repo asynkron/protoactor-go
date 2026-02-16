@@ -145,7 +145,7 @@ func file_protos_proto_rawDescGZIP() []byte {
 }
 
 var file_protos_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_protos_proto_goTypes = []interface{}{
+var file_protos_proto_goTypes = []any{
 	(*ChatMessage)(nil), // 0: main.ChatMessage
 	(*Empty)(nil),       // 1: main.Empty
 }
@@ -165,7 +165,7 @@ func file_protos_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_protos_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*ChatMessage); i {
 			case 0:
 				return &v.state
@@ -177,7 +177,7 @@ func file_protos_proto_init() {
 				return nil
 			}
 		}
-		file_protos_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*Empty); i {
 			case 0:
 				return &v.state

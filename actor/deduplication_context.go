@@ -7,7 +7,7 @@ import (
 
 // Deduplicator extracts a deduplication key from a message.
 // Messages yielding the same key within the TTL are treated as duplicates.
-type Deduplicator func(interface{}) string
+type Deduplicator func(any) string
 
 // DeduplicationContext returns a context decorator that ignores duplicate messages
 // as determined by the provided Deduplicator function. Keys expire after the

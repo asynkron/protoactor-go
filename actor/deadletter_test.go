@@ -9,7 +9,7 @@ import (
 func TestDeadLetterAfterStop(t *testing.T) {
 	a := rootContext.Spawn(PropsFromProducer(NewBlackHoleActor))
 	done := false
-	sub := system.EventStream.Subscribe(func(msg interface{}) {
+	sub := system.EventStream.Subscribe(func(msg any) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			if deadLetter.PID == a {
 				done = true

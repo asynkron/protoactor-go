@@ -78,7 +78,7 @@ func publish(cluster *cluster.Cluster) (cancel func()) {
 }
 
 func subscribe(cluster *cluster.Cluster) (cancel func()) {
-	subscription := cluster.ActorSystem.EventStream.Subscribe(func(evt interface{}) {
+	subscription := cluster.ActorSystem.EventStream.Subscribe(func(evt any) {
 		if event, ok := evt.(*MyEvent); ok {
 			fmt.Printf("<<== Subscriber received event: %s\n", event.Description)
 		}

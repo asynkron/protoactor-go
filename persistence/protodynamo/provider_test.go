@@ -81,8 +81,8 @@ func TestPersistAndGetEvent(t *testing.T) {
 	msg := wrapperspb.String("hello")
 	p.PersistEvent("actor-1", 0, msg)
 
-	var collected []interface{}
-	p.GetEvents("actor-1", 0, 0, func(e interface{}) {
+	var collected []any
+	p.GetEvents("actor-1", 0, 0, func(e any) {
 		collected = append(collected, e)
 	})
 
@@ -122,7 +122,7 @@ func TestGetEventsRange(t *testing.T) {
 
 	t.Run("AllEvents", func(t *testing.T) {
 		var collected []string
-		p.GetEvents("actor-1", 0, 0, func(e interface{}) {
+		p.GetEvents("actor-1", 0, 0, func(e any) {
 			collected = append(collected, e.(*wrapperspb.StringValue).GetValue())
 		})
 		assert.Equal(t, []string{"e0", "e1", "e2", "e3", "e4"}, collected)
@@ -130,7 +130,7 @@ func TestGetEventsRange(t *testing.T) {
 
 	t.Run("SpecificRange", func(t *testing.T) {
 		var collected []string
-		p.GetEvents("actor-1", 1, 3, func(e interface{}) {
+		p.GetEvents("actor-1", 1, 3, func(e any) {
 			collected = append(collected, e.(*wrapperspb.StringValue).GetValue())
 		})
 		assert.Equal(t, []string{"e1", "e2"}, collected)
@@ -138,7 +138,7 @@ func TestGetEventsRange(t *testing.T) {
 
 	t.Run("FromMiddleToEnd", func(t *testing.T) {
 		var collected []string
-		p.GetEvents("actor-1", 3, 0, func(e interface{}) {
+		p.GetEvents("actor-1", 3, 0, func(e any) {
 			collected = append(collected, e.(*wrapperspb.StringValue).GetValue())
 		})
 		assert.Equal(t, []string{"e3", "e4"}, collected)
@@ -146,7 +146,7 @@ func TestGetEventsRange(t *testing.T) {
 
 	t.Run("EmptyRange", func(t *testing.T) {
 		var collected []string
-		p.GetEvents("actor-1", 2, 2, func(e interface{}) {
+		p.GetEvents("actor-1", 2, 2, func(e any) {
 			collected = append(collected, e.(*wrapperspb.StringValue).GetValue())
 		})
 		assert.Empty(t, collected)
@@ -164,7 +164,7 @@ func TestDeleteEvents(t *testing.T) {
 	p.DeleteEvents("actor-1", 2)
 
 	var collected []string
-	p.GetEvents("actor-1", 0, 0, func(e interface{}) {
+	p.GetEvents("actor-1", 0, 0, func(e any) {
 		collected = append(collected, e.(*wrapperspb.StringValue).GetValue())
 	})
 	assert.Equal(t, []string{"e3", "e4"}, collected)
@@ -194,13 +194,13 @@ func TestMultipleActors(t *testing.T) {
 	p.PersistSnapshot("bob", 0, wrapperspb.String("bob-snap"))
 
 	var aliceEvents []string
-	p.GetEvents("alice", 0, 0, func(e interface{}) {
+	p.GetEvents("alice", 0, 0, func(e any) {
 		aliceEvents = append(aliceEvents, e.(*wrapperspb.StringValue).GetValue())
 	})
 	assert.Equal(t, []string{"alice-e0", "alice-e1"}, aliceEvents)
 
 	var bobEvents []string
-	p.GetEvents("bob", 0, 0, func(e interface{}) {
+	p.GetEvents("bob", 0, 0, func(e any) {
 		bobEvents = append(bobEvents, e.(*wrapperspb.StringValue).GetValue())
 	})
 	assert.Equal(t, []string{"bob-e0"}, bobEvents)
@@ -216,7 +216,7 @@ func TestMultipleActors(t *testing.T) {
 	assert.Equal(t, "bob-snap", snap.(*wrapperspb.StringValue).GetValue())
 
 	var charlieEvents []string
-	p.GetEvents("charlie", 0, 0, func(e interface{}) {
+	p.GetEvents("charlie", 0, 0, func(e any) {
 		charlieEvents = append(charlieEvents, e.(*wrapperspb.StringValue).GetValue())
 	})
 	assert.Empty(t, charlieEvents)
@@ -247,7 +247,7 @@ func TestRestart(t *testing.T) {
 	p.Restart()
 
 	var events []string
-	p.GetEvents("actor-1", 0, 0, func(e interface{}) {
+	p.GetEvents("actor-1", 0, 0, func(e any) {
 		events = append(events, e.(*wrapperspb.StringValue).GetValue())
 	})
 	assert.Equal(t, []string{"e0", "e1"}, events)

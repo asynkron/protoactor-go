@@ -15,10 +15,10 @@ import (
 // In that specific case, both MessageBatch and AutoRespond are required
 
 type myMessageBatch struct {
-	messages []interface{}
+	messages []any
 }
 
-func (m myMessageBatch) GetMessages() []interface{} {
+func (m myMessageBatch) GetMessages() []any {
 	return m.messages
 }
 
@@ -31,7 +31,7 @@ func main() {
 	})
 	pid := system.Root.Spawn(props)
 
-	messages := make([]interface{}, 0)
+	messages := make([]any, 0)
 
 	for i := 0; i < 100; i++ {
 		messages = append(messages, "Hello"+strconv.Itoa(i))

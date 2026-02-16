@@ -104,7 +104,7 @@ type actorContext struct {
 	parent            *PID
 	self              *PID
 	receiveTimeout    time.Duration
-	messageOrEnvelope interface{}
+	messageOrEnvelope any
 	state             int32
 }
 
@@ -181,7 +181,7 @@ func (ctx *actorContext) Children() []*PID {
 	return ctx.extras.children.Values()
 }
 
-func (ctx *actorContext) Respond(response interface{}) {
+func (ctx *actorContext) Respond(response any) {
 	// If the message is addressed to nil forward it to the dead letter channel
 	if ctx.Sender() == nil {
 		ctx.actorSystem.DeadLetter.SendUserMessage(nil, response)
@@ -264,7 +264,7 @@ func (ctx *actorContext) Forward(pid *PID) {
 	ctx.sendUserMessage(pid, ctx.messageOrEnvelope)
 }
 
-func (ctx *actorContext) ReenterAfter(f Future, cont func(res interface{}, err error)) {
+func (ctx *actorContext) ReenterAfter(f Future, cont func(res any, err error)) {
 	concrete, ok := f.(*future)
 	if !ok {
 		ctx.Logger().Error("ReenterAfter called with unsupported Future implementation", slog.String("type", fmt.Sprintf("%T", f)))
@@ -276,7 +276,7 @@ func (ctx *actorContext) ReenterAfter(f Future, cont func(res interface{}, err e
 
 	message := ctx.messageOrEnvelope
 	// invoke the callback when the future completes
-	concrete.continueWith(func(_ interface{}, _ error) {
+	concrete.continueWith(func(_ any, _ error) {
 		// send the wrapped callback as a continuation message to self
 		ctx.self.sendSystemMessage(ctx.actorSystem, &continuation{
 			f:       wrapper,
@@ -300,7 +300,7 @@ func (ctx *actorContext) Apply(captured *CapturedContext) {
 // Interface: sender
 //
 
-func (ctx *actorContext) Message() interface{} {
+func (ctx *actorContext) Message() any {
 	return UnwrapEnvelopeMessage(ctx.messageOrEnvelope)
 }
 
@@ -308,11 +308,11 @@ func (ctx *actorContext) MessageHeader() ReadonlyMessageHeader {
 	return UnwrapEnvelopeHeader(ctx.messageOrEnvelope)
 }
 
-func (ctx *actorContext) Send(pid *PID, message interface{}) {
+func (ctx *actorContext) Send(pid *PID, message any) {
 	ctx.sendUserMessage(pid, message)
 }
 
-func (ctx *actorContext) sendUserMessage(pid *PID, message interface{}) {
+func (ctx *actorContext) sendUserMessage(pid *PID, message any) {
 	if ctx.props.senderMiddlewareChain != nil {
 		ctx.props.senderMiddlewareChain(ctx.ensureExtras().context, pid, WrapEnvelope(message))
 	} else {
@@ -320,7 +320,7 @@ func (ctx *actorContext) sendUserMessage(pid *PID, message interface{}) {
 	}
 }
 
-func (ctx *actorContext) Request(pid *PID, message interface{}) {
+func (ctx *actorContext) Request(pid *PID, message any) {
 	env := &MessageEnvelope{
 		Header:  nil,
 		Message: message,
@@ -330,7 +330,7 @@ func (ctx *actorContext) Request(pid *PID, message interface{}) {
 	ctx.sendUserMessage(pid, env)
 }
 
-func (ctx *actorContext) RequestWithCustomSender(pid *PID, message interface{}, sender *PID) {
+func (ctx *actorContext) RequestWithCustomSender(pid *PID, message any, sender *PID) {
 	env := &MessageEnvelope{
 		Header:  nil,
 		Message: message,
@@ -339,7 +339,7 @@ func (ctx *actorContext) RequestWithCustomSender(pid *PID, message interface{}, 
 	ctx.sendUserMessage(pid, env)
 }
 
-func (ctx *actorContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) Future {
+func (ctx *actorContext) RequestFuture(pid *PID, message any, timeout time.Duration) Future {
 	future := NewFuture(ctx.actorSystem, timeout)
 	env := &MessageEnvelope{
 		Header:  nil,
@@ -494,7 +494,7 @@ func (ctx *actorContext) PoisonFuture(pid *PID) Future {
 // Interface: MessageInvoker
 //
 
-func (ctx *actorContext) InvokeUserMessage(md interface{}) {
+func (ctx *actorContext) InvokeUserMessage(md any) {
 	if atomic.LoadInt32(&ctx.state) == stateStopped {
 		// already stopped
 		return
@@ -540,7 +540,7 @@ func (ctx *actorContext) InvokeUserMessage(md interface{}) {
 	}
 }
 
-func (ctx *actorContext) processMessage(m interface{}) {
+func (ctx *actorContext) processMessage(m any) {
 	if ctx.props.receiverMiddlewareChain != nil {
 		ctx.props.receiverMiddlewareChain(ctx.ensureExtras().context, WrapEnvelope(m))
 
@@ -573,7 +573,7 @@ func (ctx *actorContext) incarnateActor() {
 	}
 }
 
-func (ctx *actorContext) InvokeSystemMessage(message interface{}) {
+func (ctx *actorContext) InvokeSystemMessage(message any) {
 	//goland:noinspection GrazieInspection
 	switch msg := message.(type) {
 	case *continuation:
@@ -736,7 +736,7 @@ func (ctx *actorContext) finalizeStop() {
 // Interface: Supervisor
 //
 
-func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {
+func (ctx *actorContext) EscalateFailure(reason any, message any) {
 	ctx.Logger().Info("[ACTOR] Recovering", slog.Any("self", ctx.self), slog.Any("reason", reason))
 	// debug setting, allows to output supervision failures in console/error level
 	if ctx.actorSystem.Config.DeveloperSupervisionLogging {

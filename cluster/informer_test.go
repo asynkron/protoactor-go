@@ -126,10 +126,10 @@ func TestInformer_SendState(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 
-        sendState := func(memberStateDelta *MemberStateDelta, _ *Member) {
-                fmt.Printf("%+v\n", memberStateDelta) //nolint:forbidigo
-                wg.Done()
-        }
+	sendState := func(memberStateDelta *MemberStateDelta, _ *Member) {
+		fmt.Printf("%+v\n", memberStateDelta) //nolint:forbidigo
+		wg.Done()
+	}
 
 	s := &MemberHeartbeat{
 		ActorStatistics: &ActorStatistics{},

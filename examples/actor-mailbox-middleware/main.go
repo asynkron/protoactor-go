@@ -16,11 +16,11 @@ func (m *mailboxLogger) MailboxStarted() {
 	m.logger.Info("Mailbox started")
 }
 
-func (m *mailboxLogger) MessagePosted(msg interface{}) {
+func (m *mailboxLogger) MessagePosted(msg any) {
 	m.logger.Info("Message posted", slog.Any("message", msg))
 }
 
-func (m *mailboxLogger) MessageReceived(msg interface{}) {
+func (m *mailboxLogger) MessageReceived(msg any) {
 	m.logger.Info("Message received", slog.Any("message", msg))
 }
 

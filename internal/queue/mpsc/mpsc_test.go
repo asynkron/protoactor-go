@@ -50,7 +50,7 @@ func TestQueue_PushPopOneProducer(_ *testing.T) {
 		}
 	}()
 
-	var val interface{} = "foo"
+	var val any = "foo"
 
 	for i := 0; i < expCount; i++ {
 		q.Push(val)
@@ -139,7 +139,7 @@ func benchmarkPushPop(count, c int) {
 		}
 	}()
 
-	var val interface{} = "foo"
+	var val any = "foo"
 
 	for i := 0; i < c; i++ {
 		go func(n int) {
@@ -156,7 +156,7 @@ func benchmarkPushPop(count, c int) {
 func benchmarkChannelPushPop(count, c int) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	ch := make(chan interface{}, 100)
+	ch := make(chan any, 100)
 	go func() {
 		i := 0
 		for {
@@ -169,7 +169,7 @@ func benchmarkChannelPushPop(count, c int) {
 		}
 	}()
 
-	var val interface{} = "foo"
+	var val any = "foo"
 
 	for i := 0; i < c; i++ {
 		go func(n int) {

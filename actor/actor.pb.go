@@ -547,7 +547,7 @@ func file_actor_proto_rawDescGZIP() []byte {
 
 var file_actor_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_actor_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_actor_proto_goTypes = []interface{}{
+var file_actor_proto_goTypes = []any{
 	(TerminatedReason)(0),      // 0: actor.TerminatedReason
 	(*PID)(nil),                // 1: actor.PID
 	(*PoisonPill)(nil),         // 2: actor.PoisonPill
@@ -579,7 +579,7 @@ func file_actor_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_actor_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_actor_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*PID); i {
 			case 0:
 				return &v.state
@@ -591,7 +591,7 @@ func file_actor_proto_init() {
 				return nil
 			}
 		}
-		file_actor_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_actor_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*PoisonPill); i {
 			case 0:
 				return &v.state
@@ -603,7 +603,7 @@ func file_actor_proto_init() {
 				return nil
 			}
 		}
-		file_actor_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_actor_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*DeadLetterResponse); i {
 			case 0:
 				return &v.state
@@ -615,7 +615,7 @@ func file_actor_proto_init() {
 				return nil
 			}
 		}
-		file_actor_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_actor_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*Watch); i {
 			case 0:
 				return &v.state
@@ -627,7 +627,7 @@ func file_actor_proto_init() {
 				return nil
 			}
 		}
-		file_actor_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_actor_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*Unwatch); i {
 			case 0:
 				return &v.state
@@ -639,7 +639,7 @@ func file_actor_proto_init() {
 				return nil
 			}
 		}
-		file_actor_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_actor_proto_msgTypes[5].Exporter = func(v any, i int) any {
 			switch v := v.(*Terminated); i {
 			case 0:
 				return &v.state
@@ -651,7 +651,7 @@ func file_actor_proto_init() {
 				return nil
 			}
 		}
-		file_actor_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_actor_proto_msgTypes[6].Exporter = func(v any, i int) any {
 			switch v := v.(*Stop); i {
 			case 0:
 				return &v.state
@@ -663,7 +663,7 @@ func file_actor_proto_init() {
 				return nil
 			}
 		}
-		file_actor_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_actor_proto_msgTypes[7].Exporter = func(v any, i int) any {
 			switch v := v.(*Touch); i {
 			case 0:
 				return &v.state
@@ -675,7 +675,7 @@ func file_actor_proto_init() {
 				return nil
 			}
 		}
-		file_actor_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+		file_actor_proto_msgTypes[8].Exporter = func(v any, i int) any {
 			switch v := v.(*Touched); i {
 			case 0:
 				return &v.state

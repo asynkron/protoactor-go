@@ -111,7 +111,7 @@ func (rc *RootContext) Actor() Actor {
 //
 
 // Message always returns nil for RootContext since it is not processing a message.
-func (rc *RootContext) Message() interface{} {
+func (rc *RootContext) Message() any {
 	return nil
 }
 
@@ -121,17 +121,17 @@ func (rc *RootContext) MessageHeader() ReadonlyMessageHeader {
 }
 
 // Send delivers a message to the given PID using the configured middleware chain.
-func (rc *RootContext) Send(pid *PID, message interface{}) {
+func (rc *RootContext) Send(pid *PID, message any) {
 	rc.sendUserMessage(pid, message)
 }
 
 // Request sends a message to the given PID expecting a response.
-func (rc *RootContext) Request(pid *PID, message interface{}) {
+func (rc *RootContext) Request(pid *PID, message any) {
 	rc.sendUserMessage(pid, message)
 }
 
 // RequestWithCustomSender sends a message on behalf of the provided sender PID.
-func (rc *RootContext) RequestWithCustomSender(pid *PID, message interface{}, sender *PID) {
+func (rc *RootContext) RequestWithCustomSender(pid *PID, message any, sender *PID) {
 	env := &MessageEnvelope{
 		Header:  nil,
 		Message: message,
@@ -141,7 +141,7 @@ func (rc *RootContext) RequestWithCustomSender(pid *PID, message interface{}, se
 }
 
 // RequestFuture sends a message to a given PID and returns a Future.
-func (rc *RootContext) RequestFuture(pid *PID, message interface{}, timeout time.Duration) Future {
+func (rc *RootContext) RequestFuture(pid *PID, message any, timeout time.Duration) Future {
 	future := NewFuture(rc.actorSystem, timeout)
 	env := &MessageEnvelope{
 		Header:  nil,
@@ -153,7 +153,7 @@ func (rc *RootContext) RequestFuture(pid *PID, message interface{}, timeout time
 	return future
 }
 
-func (rc *RootContext) sendUserMessage(pid *PID, message interface{}) {
+func (rc *RootContext) sendUserMessage(pid *PID, message any) {
 	if rc.senderMiddleware != nil {
 		// Request based middleware
 		rc.senderMiddleware(rc, pid, WrapEnvelope(message))

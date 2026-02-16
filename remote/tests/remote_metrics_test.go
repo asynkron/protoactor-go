@@ -41,7 +41,7 @@ func TestRemoteMetrics(t *testing.T) {
 	system2 := newSystem(provider)
 	remote2 := remote.NewRemote(system2, remote.Configure("127.0.0.1", 0))
 	// collect mailbox stats to determine when the request is handled
-	stats := testkit.NewTestMailboxStats(func(m interface{}) bool {
+	stats := testkit.NewTestMailboxStats(func(m any) bool {
 		_, ok := m.(*remote.ActorPidRequest)
 		return ok
 	})

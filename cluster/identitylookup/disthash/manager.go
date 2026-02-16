@@ -42,7 +42,7 @@ func (pm *Manager) Start() {
 	pm.cluster.Logger().Info("Started partition placement actor")
 
 	pm.topologySub = system.EventStream.
-		Subscribe(func(ev interface{}) {
+		Subscribe(func(ev any) {
 			if topology, ok := ev.(*clustering.ClusterTopology); ok {
 				pm.onClusterTopology(topology)
 			}

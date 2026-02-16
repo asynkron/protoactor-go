@@ -10,22 +10,22 @@ import (
 // MailboxMiddleware is an interface for intercepting messages and events in the mailbox
 type MailboxMiddleware interface {
 	MailboxStarted()
-	MessagePosted(message interface{})
-	MessageReceived(message interface{})
+	MessagePosted(message any)
+	MessageReceived(message any)
 	MailboxEmpty()
 }
 
 // MessageInvoker is the interface used by a mailbox to forward messages for processing
 type MessageInvoker interface {
-	InvokeSystemMessage(interface{})
-	InvokeUserMessage(interface{})
-	EscalateFailure(reason interface{}, message interface{})
+	InvokeSystemMessage(any)
+	InvokeUserMessage(any)
+	EscalateFailure(reason any, message any)
 }
 
 // Mailbox interface is used to enqueue messages to the mailbox
 type Mailbox interface {
-	PostUserMessage(message interface{})
-	PostSystemMessage(message interface{})
+	PostUserMessage(message any)
+	PostSystemMessage(message any)
 	RegisterHandlers(invoker MessageInvoker, dispatcher Dispatcher)
 	Start()
 	UserMessageCount() int
@@ -51,7 +51,7 @@ type defaultMailbox struct {
 	middlewares     []MailboxMiddleware
 }
 
-func (m *defaultMailbox) PostUserMessage(message interface{}) {
+func (m *defaultMailbox) PostUserMessage(message any) {
 	// is it a raw batch message?
 	if batch, ok := message.(MessageBatch); ok {
 		messages := batch.GetMessages()
@@ -80,7 +80,7 @@ func (m *defaultMailbox) PostUserMessage(message interface{}) {
 	m.schedule()
 }
 
-func (m *defaultMailbox) PostSystemMessage(message interface{}) {
+func (m *defaultMailbox) PostSystemMessage(message any) {
 	for _, ms := range m.middlewares {
 		ms.MessagePosted(message)
 	}
@@ -125,7 +125,7 @@ process:
 }
 
 func (m *defaultMailbox) run() {
-	var msg interface{}
+	var msg any
 
 	defer func() {
 		if r := recover(); r != nil {

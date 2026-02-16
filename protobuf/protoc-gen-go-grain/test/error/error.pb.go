@@ -95,7 +95,7 @@ func file_test_error_error_proto_rawDescGZIP() []byte {
 }
 
 var file_test_error_error_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_test_error_error_proto_goTypes = []interface{}{
+var file_test_error_error_proto_goTypes = []any{
 	(ErrorReason)(0), // 0: hello.ErrorReason
 }
 var file_test_error_error_proto_depIdxs = []int32{

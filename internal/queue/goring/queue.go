@@ -6,7 +6,7 @@ import (
 )
 
 type ringBuffer struct {
-	buffer []interface{}
+	buffer []any
 	head   int64
 	tail   int64
 	mod    int64
@@ -21,7 +21,7 @@ type Queue struct {
 func New(initialSize int64) *Queue {
 	return &Queue{
 		content: &ringBuffer{
-			buffer: make([]interface{}, initialSize),
+			buffer: make([]any, initialSize),
 			head:   0,
 			tail:   0,
 			mod:    initialSize,
@@ -30,7 +30,7 @@ func New(initialSize int64) *Queue {
 	}
 }
 
-func (q *Queue) Push(item interface{}) {
+func (q *Queue) Push(item any) {
 	q.lock.Lock()
 	c := q.content
 	c.tail = (c.tail + 1) % c.mod
@@ -39,7 +39,7 @@ func (q *Queue) Push(item interface{}) {
 		// we need to resize
 
 		newLen := c.mod * fillFactor
-		newBuff := make([]interface{}, newLen)
+		newBuff := make([]any, newLen)
 
 		for i := int64(0); i < c.mod; i++ {
 			buffIndex := (c.tail + i) % c.mod
@@ -68,7 +68,7 @@ func (q *Queue) Empty() bool {
 }
 
 // single consumer
-func (q *Queue) Pop() (interface{}, bool) {
+func (q *Queue) Pop() (any, bool) {
 	if q.Empty() {
 		return nil, false
 	}
@@ -84,7 +84,7 @@ func (q *Queue) Pop() (interface{}, bool) {
 	return res, true
 }
 
-func (q *Queue) PopMany(count int64) ([]interface{}, bool) {
+func (q *Queue) PopMany(count int64) ([]any, bool) {
 	if q.Empty() {
 		return nil, false
 	}
@@ -97,7 +97,7 @@ func (q *Queue) PopMany(count int64) ([]interface{}, bool) {
 	}
 	atomic.AddInt64(&q.len, -count)
 
-	buffer := make([]interface{}, count)
+	buffer := make([]any, count)
 	for i := int64(0); i < count; i++ {
 		pos := (c.head + 1 + i) % c.mod
 		buffer[i] = c.buffer[pos]

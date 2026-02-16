@@ -41,7 +41,7 @@ type ReadonlyMessageHeader interface {
 // MessageEnvelope wraps a message along with optional headers and sender.
 type MessageEnvelope struct {
 	Header  messageHeader
-	Message interface{}
+	Message any
 	Sender  *PID
 }
 
@@ -65,7 +65,7 @@ func (envelope *MessageEnvelope) SetHeader(key string, value string) {
 var EmptyMessageHeader = make(messageHeader)
 
 // WrapEnvelope ensures the message is inside a MessageEnvelope.
-func WrapEnvelope(message interface{}) *MessageEnvelope {
+func WrapEnvelope(message any) *MessageEnvelope {
 	if e, ok := message.(*MessageEnvelope); ok {
 		return e
 	}
@@ -73,7 +73,7 @@ func WrapEnvelope(message interface{}) *MessageEnvelope {
 }
 
 // UnwrapEnvelope extracts header, message and sender from an envelope.
-func UnwrapEnvelope(message interface{}) (ReadonlyMessageHeader, interface{}, *PID) {
+func UnwrapEnvelope(message any) (ReadonlyMessageHeader, any, *PID) {
 	if env, ok := message.(*MessageEnvelope); ok {
 		return env.Header, env.Message, env.Sender
 	}
@@ -81,7 +81,7 @@ func UnwrapEnvelope(message interface{}) (ReadonlyMessageHeader, interface{}, *P
 }
 
 // UnwrapEnvelopeHeader returns the header from an envelope.
-func UnwrapEnvelopeHeader(message interface{}) ReadonlyMessageHeader {
+func UnwrapEnvelopeHeader(message any) ReadonlyMessageHeader {
 	if env, ok := message.(*MessageEnvelope); ok {
 		return env.Header
 	}
@@ -89,7 +89,7 @@ func UnwrapEnvelopeHeader(message interface{}) ReadonlyMessageHeader {
 }
 
 // UnwrapEnvelopeMessage returns the message from an envelope.
-func UnwrapEnvelopeMessage(message interface{}) interface{} {
+func UnwrapEnvelopeMessage(message any) any {
 	if env, ok := message.(*MessageEnvelope); ok {
 		return env.Message
 	}
@@ -97,7 +97,7 @@ func UnwrapEnvelopeMessage(message interface{}) interface{} {
 }
 
 // UnwrapEnvelopeSender returns the sender from an envelope.
-func UnwrapEnvelopeSender(message interface{}) *PID {
+func UnwrapEnvelopeSender(message any) *PID {
 	if env, ok := message.(*MessageEnvelope); ok {
 		return env.Sender
 	}

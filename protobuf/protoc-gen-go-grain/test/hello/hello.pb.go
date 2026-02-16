@@ -103,7 +103,7 @@ func file_test_hello_hello_proto_rawDescGZIP() []byte {
 }
 
 var file_test_hello_hello_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_test_hello_hello_proto_goTypes = []interface{}{
+var file_test_hello_hello_proto_goTypes = []any{
 	(*SayHelloResponse)(nil), // 0: hello.SayHelloResponse
 	(*emptypb.Empty)(nil),    // 1: google.protobuf.Empty
 }
@@ -123,7 +123,7 @@ func file_test_hello_hello_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_test_hello_hello_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_test_hello_hello_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*SayHelloResponse); i {
 			case 0:
 				return &v.state

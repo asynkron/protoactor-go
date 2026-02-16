@@ -304,7 +304,7 @@ func file_protos_proto_rawDescGZIP() []byte {
 
 var file_protos_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_protos_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_protos_proto_goTypes = []interface{}{
+var file_protos_proto_goTypes = []any{
 	(ErrorReason)(0),            // 0: reentrancy.ErrorReason
 	(*ReenterableRequest)(nil),  // 1: reentrancy.ReenterableRequest
 	(*ReenterableResponse)(nil), // 2: reentrancy.ReenterableResponse
@@ -329,7 +329,7 @@ func file_protos_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_protos_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*ReenterableRequest); i {
 			case 0:
 				return &v.state
@@ -341,7 +341,7 @@ func file_protos_proto_init() {
 				return nil
 			}
 		}
-		file_protos_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*ReenterableResponse); i {
 			case 0:
 				return &v.state
@@ -353,7 +353,7 @@ func file_protos_proto_init() {
 				return nil
 			}
 		}
-		file_protos_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*HelloRequest); i {
 			case 0:
 				return &v.state
@@ -365,7 +365,7 @@ func file_protos_proto_init() {
 				return nil
 			}
 		}
-		file_protos_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*HelloResponse); i {
 			case 0:
 				return &v.state

@@ -60,7 +60,7 @@ func (state *consistentHashRouterState) GetRoutees() *actor.PIDSet {
 	return &routees
 }
 
-func (state *consistentHashRouterState) RouteMessage(message interface{}) {
+func (state *consistentHashRouterState) RouteMessage(message any) {
 	_, uwpMsg, _ := actor.UnwrapEnvelope(message)
 	switch msg := uwpMsg.(type) {
 	case Hasher:

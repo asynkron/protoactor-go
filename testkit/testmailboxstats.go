@@ -8,17 +8,17 @@ import (
 
 // TestMailboxStats collects mailbox events for tests.
 type TestMailboxStats struct {
-	waitForReceived func(interface{}) bool
+	waitForReceived func(any) bool
 	Reset           chan struct{}
-	Stats           []interface{}
-	Posted          []interface{}
-	Received        []interface{}
+	Stats           []any
+	Posted          []any
+	Received        []any
 
 	mu sync.Mutex
 }
 
 // NewTestMailboxStats creates a new stats collector.
-func NewTestMailboxStats(wait func(interface{}) bool) *TestMailboxStats {
+func NewTestMailboxStats(wait func(any) bool) *TestMailboxStats {
 	return &TestMailboxStats{
 		waitForReceived: wait,
 		Reset:           make(chan struct{}, 1),
@@ -33,7 +33,7 @@ func (t *TestMailboxStats) MailboxStarted() {
 }
 
 // MessagePosted records a posted message.
-func (t *TestMailboxStats) MessagePosted(message interface{}) {
+func (t *TestMailboxStats) MessagePosted(message any) {
 	t.mu.Lock()
 	t.Stats = append(t.Stats, message)
 	t.Posted = append(t.Posted, message)
@@ -41,7 +41,7 @@ func (t *TestMailboxStats) MessagePosted(message interface{}) {
 }
 
 // MessageReceived records a received message and signals if predicate matches.
-func (t *TestMailboxStats) MessageReceived(message interface{}) {
+func (t *TestMailboxStats) MessageReceived(message any) {
 	t.mu.Lock()
 	t.Stats = append(t.Stats, message)
 	t.Received = append(t.Received, message)

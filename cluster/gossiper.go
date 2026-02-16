@@ -33,7 +33,7 @@ type GossipUpdate struct {
 // note: this is equivalent to (for future go v1.18):
 //
 //	type ConsensusChecker[T] func(GossipState, map[string]empty) (bool, T)
-type ConsensusChecker func(*GossipState, map[string]empty) (bool, interface{})
+type ConsensusChecker func(*GossipState, map[string]empty) (bool, any)
 
 // Gossiper manages gossip data and dissemination within the cluster.
 type Gossiper struct {
@@ -293,7 +293,7 @@ func (g *Gossiper) StartGossiping() error {
 		return err
 	}
 
-	g.topologySub = g.cluster.ActorSystem.EventStream.Subscribe(func(evt interface{}) {
+	g.topologySub = g.cluster.ActorSystem.EventStream.Subscribe(func(evt any) {
 		if topology, ok := evt.(*ClusterTopology); ok {
 			g.cluster.ActorSystem.Root.Send(g.pid, topology)
 		}

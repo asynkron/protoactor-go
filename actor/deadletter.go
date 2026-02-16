@@ -25,7 +25,7 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 	})
 
 	actorSystem.ProcessRegistry.Add(dp, "deadletter")
-	_ = actorSystem.EventStream.Subscribe(func(msg interface{}) {
+	_ = actorSystem.EventStream.Subscribe(func(msg any) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 
 			// send back a response instead of timeout, including the target PID.
@@ -49,7 +49,7 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 	// this subscriber may not be deactivated.
 	// it ensures that Watch commands that reach a stopped actor gets a Terminated message back.
 	// This can happen if one actor tries to Watch a PID, while another thread sends a Stop message.
-	actorSystem.EventStream.Subscribe(func(msg interface{}) {
+	actorSystem.EventStream.Subscribe(func(msg any) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			if watchMsg, ok := deadLetter.Message.(*Watch); ok {
 				// we know that this is a local actor since we get it on our own event stream, thus the address is not terminated
@@ -66,12 +66,12 @@ func NewDeadLetter(actorSystem *ActorSystem) *deadLetterProcess {
 
 // A DeadLetterEvent is published via event.Publish when a message is sent to a nonexistent PID
 type DeadLetterEvent struct {
-	PID     *PID        // The invalid process, to which the message was sent
-	Message interface{} // The message that could not be delivered
-	Sender  *PID        // the process that sent the Message
+	PID     *PID // The invalid process, to which the message was sent
+	Message any  // The message that could not be delivered
+	Sender  *PID // the process that sent the Message
 }
 
-func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
+func (dp *deadLetterProcess) SendUserMessage(pid *PID, message any) {
 	// unwrap the incoming envelope to access the actual message and sender
 	_, msg, sender := UnwrapEnvelope(message)
 
@@ -96,7 +96,7 @@ func (dp *deadLetterProcess) SendUserMessage(pid *PID, message interface{}) {
 	})
 }
 
-func (dp *deadLetterProcess) SendSystemMessage(pid *PID, message interface{}) {
+func (dp *deadLetterProcess) SendSystemMessage(pid *PID, message any) {
 	dp.actorSystem.EventStream.Publish(&DeadLetterEvent{
 		PID:     pid,
 		Message: message,

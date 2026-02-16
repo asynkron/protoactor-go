@@ -26,7 +26,7 @@ type Future interface {
 	// PipeTo forwards the result or error of the future to the specified PIDs.
 	PipeTo(pids ...*PID)
 	// Result waits for the future to resolve and returns the result or error.
-	Result() (interface{}, error)
+	Result() (any, error)
 	// Wait blocks until the future resolves and returns the error, if any.
 	Wait() error
 }
@@ -85,11 +85,11 @@ type future struct {
 	cond        *sync.Cond
 	// protected by cond
 	done        bool
-	result      interface{}
+	result      any
 	err         error
 	t           *time.Timer
 	pipes       []*PID
-	completions []func(res interface{}, err error)
+	completions []func(res any, err error)
 }
 
 // PID to the backing actor for the Future result.
@@ -113,7 +113,7 @@ func (f *future) sendToPipes() {
 		return
 	}
 
-	var m interface{}
+	var m any
 	if f.err != nil {
 		m = f.err
 	} else {
@@ -136,7 +136,7 @@ func (f *future) wait() {
 }
 
 // Result waits for the future to resolve.
-func (f *future) Result() (interface{}, error) {
+func (f *future) Result() (any, error) {
 	f.wait()
 
 	return f.result, f.err
@@ -148,7 +148,7 @@ func (f *future) Wait() error {
 	return f.err
 }
 
-func (f *future) continueWith(continuation func(res interface{}, err error)) {
+func (f *future) continueWith(continuation func(res any, err error)) {
 	f.cond.L.Lock()
 	defer f.cond.L.Unlock() // use defer as the continuation co
 	// uld blow up
@@ -166,7 +166,7 @@ type futureProcess struct {
 
 var _ Process = &futureProcess{}
 
-func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}) {
+func (ref *futureProcess) SendUserMessage(pid *PID, message any) {
 	defer ref.instrument()
 
 	_, msg, _ := UnwrapEnvelope(message)
@@ -181,7 +181,7 @@ func (ref *futureProcess) SendUserMessage(pid *PID, message interface{}) {
 	ref.Stop(pid)
 }
 
-func (ref *futureProcess) SendSystemMessage(pid *PID, message interface{}) {
+func (ref *futureProcess) SendSystemMessage(pid *PID, message any) {
 	defer ref.instrument()
 	ref.result = message
 	ref.Stop(pid)

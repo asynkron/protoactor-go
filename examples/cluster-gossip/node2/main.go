@@ -38,7 +38,7 @@ func coloredConsoleLogging(system *actor.ActorSystem) *slog.Logger {
 
 func startNode() *cluster.Cluster {
 	system := actor.NewActorSystem(actor.WithLoggerFactory(coloredConsoleLogging))
-	system.EventStream.Subscribe(func(evt interface{}) {
+	system.EventStream.Subscribe(func(evt any) {
 		switch msg := evt.(type) {
 
 		//subscribe to Cluster Topology changes

@@ -2,11 +2,11 @@ package cluster
 
 // MemberStrategy describes how the cluster selects members for routing and partitioning.
 type MemberStrategy interface {
-        GetAllMembers() Members
-        AddMember(member *Member)
-        RemoveMember(member *Member)
-        GetPartition(key string) string
-        GetActivator(senderAddress string) string
+	GetAllMembers() Members
+	AddMember(member *Member)
+	RemoveMember(member *Member)
+	GetPartition(key string) string
+	GetActivator(senderAddress string) string
 }
 
 type simpleMemberStrategy struct {
@@ -55,5 +55,5 @@ func (m *simpleMemberStrategy) GetPartition(key string) string {
 }
 
 func (m *simpleMemberStrategy) GetActivator(_ string) string {
-        return m.rr.GetByRoundRobin()
+	return m.rr.GetByRoundRobin()
 }

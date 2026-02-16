@@ -146,15 +146,15 @@ func (b *PubSubAutoRespondBatch) Serialize() (remote.RootSerialized, error) {
 }
 
 // GetAutoResponse returns a PublishResponse.
-func (b *PubSubAutoRespondBatch) GetAutoResponse(_ actor.Context) interface{} {
+func (b *PubSubAutoRespondBatch) GetAutoResponse(_ actor.Context) any {
 	return &PublishResponse{
 		Status: PublishStatus_Ok,
 	}
 }
 
 // GetMessages returns the message.
-func (b *PubSubAutoRespondBatch) GetMessages() []interface{} {
-	var messages []interface{}
+func (b *PubSubAutoRespondBatch) GetMessages() []any {
+	var messages []any
 	for _, envelope := range b.Envelopes {
 		messages = append(messages, envelope)
 	}

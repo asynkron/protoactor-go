@@ -49,7 +49,7 @@ func (provider *InMemoryProvider) GetSnapshotInterval() int {
 	return provider.snapshotInterval
 }
 
-func (provider *InMemoryProvider) GetSnapshot(actorName string) (snapshot interface{}, eventIndex int, ok bool) {
+func (provider *InMemoryProvider) GetSnapshot(actorName string) (snapshot any, eventIndex int, ok bool) {
 	entry, loaded := provider.loadOrInit(actorName)
 	if !loaded || entry.snapshot == nil {
 		return nil, 0, false
@@ -66,7 +66,7 @@ func (provider *InMemoryProvider) PersistSnapshot(actorName string, eventIndex i
 func (provider *InMemoryProvider) DeleteSnapshots(actorName string, inclusiveToIndex int) {
 }
 
-func (provider *InMemoryProvider) GetEvents(actorName string, eventIndexStart int, eventIndexEnd int, callback func(e interface{})) {
+func (provider *InMemoryProvider) GetEvents(actorName string, eventIndexStart int, eventIndexEnd int, callback func(e any)) {
 	entry, _ := provider.loadOrInit(actorName)
 	if eventIndexEnd == 0 {
 		eventIndexEnd = len(entry.events)

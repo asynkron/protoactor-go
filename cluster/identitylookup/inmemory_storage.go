@@ -14,8 +14,8 @@ import (
 // the StorageConformanceSuite. It is NOT suitable for production use.
 type InMemoryStorageLookup struct {
 	mu          sync.Mutex
-	locks       map[string]*cluster.SpawnLock            // identityKey -> SpawnLock
-	activations map[string]*cluster.StoredActivation     // identityKey -> StoredActivation
+	locks       map[string]*cluster.SpawnLock               // identityKey -> SpawnLock
+	activations map[string]*cluster.StoredActivation        // identityKey -> StoredActivation
 	waiters     map[string][]chan *cluster.StoredActivation // identityKey -> waiting channels
 }
 

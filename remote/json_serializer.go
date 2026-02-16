@@ -21,7 +21,7 @@ func newJSONSerializer() Serializer {
 	}
 }
 
-func (j *jsonSerializer) Serialize(msg interface{}) ([]byte, error) {
+func (j *jsonSerializer) Serialize(msg any) ([]byte, error) {
 	if message, ok := msg.(*JSONMessage); ok {
 		return []byte(message.JSON), nil
 	} else if message, ok := msg.(proto.Message); ok {
@@ -35,7 +35,7 @@ func (j *jsonSerializer) Serialize(msg interface{}) ([]byte, error) {
 	return nil, fmt.Errorf("msg must be proto.Message")
 }
 
-func (j *jsonSerializer) Deserialize(typeName string, b []byte) (interface{}, error) {
+func (j *jsonSerializer) Deserialize(typeName string, b []byte) (any, error) {
 	mt, err := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(typeName))
 	if err != nil {
 		// Type not found in the proto registry; wrap in a JSONMessage.
@@ -54,7 +54,7 @@ func (j *jsonSerializer) Deserialize(typeName string, b []byte) (interface{}, er
 	return instance, nil
 }
 
-func (j *jsonSerializer) GetTypeName(msg interface{}) (string, error) {
+func (j *jsonSerializer) GetTypeName(msg any) (string, error) {
 	if message, ok := msg.(*JSONMessage); ok {
 		return message.TypeName, nil
 	} else if message, ok := msg.(proto.Message); ok {

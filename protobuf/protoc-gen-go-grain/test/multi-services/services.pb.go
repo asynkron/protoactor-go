@@ -206,7 +206,7 @@ func file_test_multi_services_services_proto_rawDescGZIP() []byte {
 }
 
 var file_test_multi_services_services_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_test_multi_services_services_proto_goTypes = []interface{}{
+var file_test_multi_services_services_proto_goTypes = []any{
 	(*SayHelloResponse)(nil), // 0: hello.SayHelloResponse
 	(*DoWorkRequest)(nil),    // 1: hello.DoWorkRequest
 	(*DoWorkResponse)(nil),   // 2: hello.DoWorkResponse
@@ -230,7 +230,7 @@ func file_test_multi_services_services_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_test_multi_services_services_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_test_multi_services_services_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*SayHelloResponse); i {
 			case 0:
 				return &v.state
@@ -242,7 +242,7 @@ func file_test_multi_services_services_proto_init() {
 				return nil
 			}
 		}
-		file_test_multi_services_services_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_test_multi_services_services_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*DoWorkRequest); i {
 			case 0:
 				return &v.state
@@ -254,7 +254,7 @@ func file_test_multi_services_services_proto_init() {
 				return nil
 			}
 		}
-		file_test_multi_services_services_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_test_multi_services_services_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*DoWorkResponse); i {
 			case 0:
 				return &v.state

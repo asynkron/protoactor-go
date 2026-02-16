@@ -112,7 +112,7 @@ func TestActorContext_SendMessage_WithSenderMiddleware(t *testing.T) {
 }
 
 func BenchmarkActorContext_ProcessMessageNoMiddleware(b *testing.B) {
-	var m interface{} = 1
+	var m any = 1
 
 	ctx := newActorContext(system, PropsFromFunc(nullReceive), nil)
 	for i := 0; i < b.N; i++ {
@@ -138,7 +138,7 @@ func TestActorContext_Respond(t *testing.T) {
 	// Be prepared to catch a response that the responder will send to nil
 	var gotResponseToNil bool
 
-	deadLetterSubscriber := system.EventStream.Subscribe(func(msg interface{}) {
+	deadLetterSubscriber := system.EventStream.Subscribe(func(msg any) {
 		if deadLetter, ok := msg.(*DeadLetterEvent); ok {
 			if deadLetter.PID == nil {
 				gotResponseToNil = true
@@ -203,7 +203,7 @@ func TestActorContext_Forward(t *testing.T) {
 }
 
 func BenchmarkActorContext_ProcessMessageWithMiddleware(b *testing.B) {
-	var m interface{} = 1
+	var m any = 1
 
 	fn := func(next ReceiverFunc) ReceiverFunc {
 		return func(ctx ReceiverContext, env *MessageEnvelope) {
@@ -264,7 +264,7 @@ func TestActorContinueFutureInActor(t *testing.T) {
 		}
 		if ctx.Message() == "start" {
 			f := ctx.RequestFuture(ctx.Self(), "request", 5*time.Second)
-			ctx.ReenterAfter(f, func(res interface{}, err error) {
+			ctx.ReenterAfter(f, func(res any, err error) {
 				ctx.Respond(res)
 			})
 		}
@@ -276,7 +276,7 @@ func TestActorContinueFutureInActor(t *testing.T) {
 
 type dummyAutoRespond struct{}
 
-func (*dummyAutoRespond) GetAutoResponse(_ Context) interface{} {
+func (*dummyAutoRespond) GetAutoResponse(_ Context) any {
 	return &dummyResponse{}
 }
 

@@ -24,7 +24,7 @@ type remoteUnwatch struct {
 
 type remoteDeliver struct {
 	header       actor.ReadonlyMessageHeader
-	message      interface{}
+	message      any
 	target       *actor.PID
 	sender       *actor.PID
 	serializerID int32
@@ -41,15 +41,15 @@ type JSONMessage struct {
 	JSON     string
 }
 
-var stopMessage interface{} = &actor.Stop{}
+var stopMessage any = &actor.Stop{}
 
 var (
 	// ActorPidRespErr is returned when spawning an actor results in an error.
-	ActorPidRespErr interface{} = &ActorPidResponse{StatusCode: ResponseStatusCodeERROR.ToInt32()}
+	ActorPidRespErr any = &ActorPidResponse{StatusCode: ResponseStatusCodeERROR.ToInt32()}
 	// ActorPidRespTimeout is returned when spawning an actor times out.
-	ActorPidRespTimeout interface{} = &ActorPidResponse{StatusCode: ResponseStatusCodeTIMEOUT.ToInt32()}
+	ActorPidRespTimeout any = &ActorPidResponse{StatusCode: ResponseStatusCodeTIMEOUT.ToInt32()}
 	// ActorPidRespUnavailable is returned when the activator is unavailable.
-	ActorPidRespUnavailable interface{} = &ActorPidResponse{StatusCode: ResponseStatusCodeUNAVAILABLE.ToInt32()}
+	ActorPidRespUnavailable any = &ActorPidResponse{StatusCode: ResponseStatusCodeUNAVAILABLE.ToInt32()}
 )
 
 type (

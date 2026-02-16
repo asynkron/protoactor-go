@@ -15,7 +15,7 @@ func newProtoSerializer() *protoSerializer {
 }
 
 // Serialize converts a protobuf message into its binary form.
-func (p *protoSerializer) Serialize(msg interface{}) ([]byte, error) {
+func (p *protoSerializer) Serialize(msg any) ([]byte, error) {
 	if message, ok := msg.(proto.Message); ok {
 		bytes, err := proto.Marshal(message)
 		if err != nil {
@@ -28,7 +28,7 @@ func (p *protoSerializer) Serialize(msg interface{}) ([]byte, error) {
 }
 
 // Deserialize creates a protobuf message of the given type and fills it with the provided bytes.
-func (p *protoSerializer) Deserialize(typeName string, bytes []byte) (interface{}, error) {
+func (p *protoSerializer) Deserialize(typeName string, bytes []byte) (any, error) {
 	mt, err := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(typeName))
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func (p *protoSerializer) Deserialize(typeName string, bytes []byte) (interface{
 }
 
 // GetTypeName returns the fully qualified name of a protobuf message.
-func (protoSerializer) GetTypeName(msg interface{}) (string, error) {
+func (protoSerializer) GetTypeName(msg any) (string, error) {
 	if message, ok := msg.(proto.Message); ok {
 		typeName := proto.MessageName(message)
 

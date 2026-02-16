@@ -22,7 +22,7 @@ type oneForOneStrategy struct {
 
 var _ SupervisorStrategy = &oneForOneStrategy{}
 
-func (strategy *oneForOneStrategy) HandleFailure(actorSystem *ActorSystem, supervisor Supervisor, child *PID, rs *RestartStatistics, reason interface{}, message interface{}) {
+func (strategy *oneForOneStrategy) HandleFailure(actorSystem *ActorSystem, supervisor Supervisor, child *PID, rs *RestartStatistics, reason any, message any) {
 	directive := strategy.decider(reason)
 
 	switch directive {

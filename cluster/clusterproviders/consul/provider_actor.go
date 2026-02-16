@@ -81,7 +81,7 @@ func (pa *providerActor) running(ctx actor.Context) {
 }
 
 func (pa *providerActor) startWatch(ctx actor.Context) error {
-	params := make(map[string]interface{})
+	params := make(map[string]any)
 	params["type"] = "service"
 	params["service"] = pa.clusterName
 	params["passingonly"] = false
@@ -90,7 +90,7 @@ func (pa *providerActor) startWatch(ctx actor.Context) error {
 		ctx.Logger().Error("Failed to parse consul watch definition", slog.Any("error", err))
 		return err
 	}
-	plan.Handler = func(index uint64, result interface{}) {
+	plan.Handler = func(index uint64, result any) {
 		pa.processConsulUpdate(index, result, ctx)
 	}
 
@@ -104,7 +104,7 @@ func (pa *providerActor) startWatch(ctx actor.Context) error {
 	return nil
 }
 
-func (pa *providerActor) processConsulUpdate(index uint64, result interface{}, ctx actor.Context) {
+func (pa *providerActor) processConsulUpdate(index uint64, result any, ctx actor.Context) {
 	serviceEntries, ok := result.([]*api.ServiceEntry)
 	if !ok {
 		ctx.Logger().Warn("Didn't get expected data from consul watch")

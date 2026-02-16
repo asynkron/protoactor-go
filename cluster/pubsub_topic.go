@@ -58,7 +58,7 @@ func (t *TopicActor) Receive(c actor.Context) {
 
 func (t *TopicActor) onStarted(c actor.Context) {
 	t.topic = GetClusterIdentity(c).Identity
-	t.topologySubscription = c.ActorSystem().EventStream.Subscribe(func(evt interface{}) {
+	t.topologySubscription = c.ActorSystem().EventStream.Subscribe(func(evt any) {
 		if clusterTopology, ok := evt.(*ClusterTopology); ok {
 			c.Send(c.Self(), clusterTopology)
 		}

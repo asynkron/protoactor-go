@@ -17,7 +17,7 @@ type invoker struct {
 	wg    *sync.WaitGroup
 }
 
-func (i *invoker) InvokeSystemMessage(interface{}) {
+func (i *invoker) InvokeSystemMessage(any) {
 	i.count++
 	if i.count == i.max {
 		i.wg.Done()
@@ -27,7 +27,7 @@ func (i *invoker) InvokeSystemMessage(interface{}) {
 	}
 }
 
-func (i *invoker) InvokeUserMessage(interface{}) {
+func (i *invoker) InvokeUserMessage(any) {
 	i.count++
 	if i.count == i.max {
 		i.wg.Done()
@@ -37,7 +37,7 @@ func (i *invoker) InvokeUserMessage(interface{}) {
 	}
 }
 
-func (*invoker) EscalateFailure(_ interface{}, _ interface{}) {}
+func (*invoker) EscalateFailure(_ any, _ any) {}
 
 func TestUnboundedLockfreeMailboxUsermessageConsistency(t *testing.T) {
 	max := 1000000

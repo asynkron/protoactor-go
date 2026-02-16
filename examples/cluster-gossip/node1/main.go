@@ -3,7 +3,6 @@ package main
 import (
 	"cluster-gossip/shared"
 	"fmt"
-	"log"
 	console "github.com/asynkron/goconsole"
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
@@ -11,6 +10,7 @@ import (
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
 	"github.com/lmittmann/tint"
+	"log"
 	"log/slog"
 	"os"
 	"time"
@@ -57,7 +57,7 @@ func coloredConsoleLogging(system *actor.ActorSystem) *slog.Logger {
 func startNode() *cluster.Cluster {
 	system := actor.NewActorSystem(actor.WithLoggerFactory(coloredConsoleLogging))
 
-	system.EventStream.Subscribe(func(evt interface{}) {
+	system.EventStream.Subscribe(func(evt any) {
 		switch msg := evt.(type) {
 
 		//subscribe to Cluster Topology changes

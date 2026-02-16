@@ -194,7 +194,7 @@ func file_protos_proto_rawDescGZIP() []byte {
 }
 
 var file_protos_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_protos_proto_goTypes = []interface{}{
+var file_protos_proto_goTypes = []any{
 	(*Void)(nil),          // 0: shared.Void
 	(*NumberRequest)(nil), // 1: shared.NumberRequest
 	(*CountResponse)(nil), // 2: shared.CountResponse
@@ -219,7 +219,7 @@ func file_protos_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_protos_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*Void); i {
 			case 0:
 				return &v.state
@@ -231,7 +231,7 @@ func file_protos_proto_init() {
 				return nil
 			}
 		}
-		file_protos_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*NumberRequest); i {
 			case 0:
 				return &v.state
@@ -243,7 +243,7 @@ func file_protos_proto_init() {
 				return nil
 			}
 		}
-		file_protos_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*CountResponse); i {
 			case 0:
 				return &v.state

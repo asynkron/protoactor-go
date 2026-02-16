@@ -45,12 +45,12 @@ func (pid *PID) ref(actorSystem *ActorSystem) Process {
 // sendUserMessage sends a messages asynchronously to the PID.
 //
 //goland:noinspection GoReceiverNames
-func (pid *PID) sendUserMessage(actorSystem *ActorSystem, message interface{}) {
+func (pid *PID) sendUserMessage(actorSystem *ActorSystem, message any) {
 	pid.ref(actorSystem).SendUserMessage(pid, message)
 }
 
 //goland:noinspection GoReceiverNames.
-func (pid *PID) sendSystemMessage(actorSystem *ActorSystem, message interface{}) {
+func (pid *PID) sendSystemMessage(actorSystem *ActorSystem, message any) {
 	pid.ref(actorSystem).SendSystemMessage(pid, message)
 }
 

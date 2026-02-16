@@ -9,7 +9,7 @@ type EsTestMsg struct{}
 func TestSendsMessagesToEventStream(t *testing.T) {
 	testCases := []struct {
 		name    string
-		message interface{}
+		message any
 	}{
 		{name: "plain", message: &EsTestMsg{}},
 		{name: "envelope", message: WrapEnvelope(&EsTestMsg{})},
@@ -21,7 +21,7 @@ func TestSendsMessagesToEventStream(t *testing.T) {
 
 			gotMessageChan := make(chan struct{}, 1)
 
-			subscription := system.EventStream.Subscribe(func(evt interface{}) {
+			subscription := system.EventStream.Subscribe(func(evt any) {
 				if _, ok := evt.(*EsTestMsg); ok {
 					gotMessageChan <- struct{}{}
 				}

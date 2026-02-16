@@ -15,12 +15,12 @@ type consensusResult struct {
 	sync.Mutex
 
 	consensus bool
-	value     interface{}
+	value     any
 }
 
 type ConsensusHandler interface {
 	GetID() string
-	TryGetConsensus(context.Context) (interface{}, bool)
+	TryGetConsensus(context.Context) (any, bool)
 }
 
 type gossipConsensusHandler struct {
@@ -42,7 +42,7 @@ func NewGossipConsensusHandler() *gossipConsensusHandler {
 
 func (hdl *gossipConsensusHandler) GetID() string { return hdl.ID }
 
-func (hdl *gossipConsensusHandler) TryGetConsensus(context.Context) (interface{}, bool) {
+func (hdl *gossipConsensusHandler) TryGetConsensus(context.Context) (any, bool) {
 	// wait until our result is available
 	hdl.result.Lock()
 	defer hdl.result.Unlock()
@@ -50,7 +50,7 @@ func (hdl *gossipConsensusHandler) TryGetConsensus(context.Context) (interface{}
 	return hdl.result.value, hdl.result.consensus
 }
 
-func (hdl *gossipConsensusHandler) TrySetConsensus(consensus interface{}) {
+func (hdl *gossipConsensusHandler) TrySetConsensus(consensus any) {
 	hdl.result.Lock()
 	defer hdl.result.Unlock()
 

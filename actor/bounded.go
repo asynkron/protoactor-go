@@ -11,7 +11,7 @@ type boundedMailboxQueue struct {
 	dropping    bool
 }
 
-func (q *boundedMailboxQueue) Push(m interface{}) {
+func (q *boundedMailboxQueue) Push(m any) {
 	if q.dropping {
 		if q.userMailbox.Len() > 0 && q.userMailbox.Cap()-1 == q.userMailbox.Len() {
 			if _, err := q.userMailbox.Get(); err != nil {
@@ -25,7 +25,7 @@ func (q *boundedMailboxQueue) Push(m interface{}) {
 	}
 }
 
-func (q *boundedMailboxQueue) Pop() interface{} {
+func (q *boundedMailboxQueue) Pop() any {
 	if q.userMailbox.Len() > 0 {
 		m, err := q.userMailbox.Get()
 		if err != nil {

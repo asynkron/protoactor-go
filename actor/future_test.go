@@ -84,7 +84,7 @@ func TestNewFuture_TimeoutNoRace(t *testing.T) {
 	_, _ = future.Result()
 }
 
-func assertFutureSuccess(future Future, t *testing.T) interface{} {
+func assertFutureSuccess(future Future, t *testing.T) any {
 	res, err := future.Result()
 	assert.NoError(t, err, "timed out")
 	return res

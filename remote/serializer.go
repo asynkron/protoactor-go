@@ -20,14 +20,14 @@ func RegisterSerializer(serializer Serializer) {
 
 // Serializer defines how messages are encoded and decoded.
 type Serializer interface {
-	Serialize(msg interface{}) ([]byte, error)
-	Deserialize(typeName string, bytes []byte) (interface{}, error)
-	GetTypeName(msg interface{}) (string, error)
+	Serialize(msg any) ([]byte, error)
+	Deserialize(typeName string, bytes []byte) (any, error)
+	GetTypeName(msg any) (string, error)
 }
 
 // Serialize encodes a message using the specified serializer.
 // An error is returned if the serializerID is out of range or serialization fails.
-func Serialize(message interface{}, serializerID int32) ([]byte, string, error) {
+func Serialize(message any, serializerID int32) ([]byte, string, error) {
 	index := int(serializerID)
 	if index < 0 || index >= len(serializers) {
 		return nil, "", fmt.Errorf("serializerID %d out of range", serializerID)
@@ -46,7 +46,7 @@ func Serialize(message interface{}, serializerID int32) ([]byte, string, error) 
 
 // Deserialize decodes a message using the specified serializer.
 // An error is returned if the serializerID is out of range or deserialization fails.
-func Deserialize(message []byte, typeName string, serializerID int32) (interface{}, error) {
+func Deserialize(message []byte, typeName string, serializerID int32) (any, error) {
 	index := int(serializerID)
 	if index < 0 || index >= len(serializers) {
 		return nil, fmt.Errorf("serializerID %d out of range", serializerID)

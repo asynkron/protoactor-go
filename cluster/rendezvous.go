@@ -107,4 +107,3 @@ func (r *Rendezvous) UpdateMembers(members Members) {
 		})
 	}
 }
-

@@ -18,7 +18,7 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 	child, p := spawnMockProcess("child")
 	defer removeMockProcess(child)
 
-	p.On("SendUserMessage", mock.Anything, mock.MatchedBy(func(env interface{}) bool {
+	p.On("SendUserMessage", mock.Anything, mock.MatchedBy(func(env any) bool {
 		_, msg, _ := actor.UnwrapEnvelope(env)
 		return msg.(string) == "hello"
 	}))
@@ -29,7 +29,7 @@ func TestRouterSendsUserMessageToChild(t *testing.T) {
 	rs := new(testRouterState)
 	rs.On("SetSender", mock.Anything)
 	rs.On("SetRoutees", s1)
-	rs.On("RouteMessage", mock.MatchedBy(func(env interface{}) bool {
+	rs.On("RouteMessage", mock.MatchedBy(func(env any) bool {
 		_, msg, _ := actor.UnwrapEnvelope(env)
 		return msg.(string) == "hello"
 	}))
@@ -79,7 +79,7 @@ func (m *testRouterState) SetRoutees(routees *actor.PIDSet) {
 	m.routees = routees
 }
 
-func (m *testRouterState) RouteMessage(message interface{}) {
+func (m *testRouterState) RouteMessage(message any) {
 	m.Called(message)
 	m.routees.ForEach(func(i int, pid *actor.PID) {
 		system.Root.Send(pid, message)

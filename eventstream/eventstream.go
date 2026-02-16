@@ -7,10 +7,10 @@ import (
 )
 
 // Handler defines a callback function that must be passed when subscribing.
-type Handler func(interface{})
+type Handler func(any)
 
 // Predicate is a function used to filter messages before being forwarded to a subscriber.
-type Predicate func(evt interface{}) bool
+type Predicate func(evt any) bool
 
 // EventStream is a threadsafe publish-subscribe message bus.
 type EventStream struct {
@@ -90,7 +90,7 @@ func (es *EventStream) Unsubscribe(sub *Subscription) {
 }
 
 // Publish sends the event to all active subscribers.
-func (es *EventStream) Publish(evt interface{}) {
+func (es *EventStream) Publish(evt any) {
 	subs := make([]*Subscription, 0, es.Length())
 	es.RLock()
 	for _, sub := range es.subscriptions {

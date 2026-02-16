@@ -144,7 +144,7 @@ func TestDeadLetterMetrics(t *testing.T) {
 	defer system.Shutdown()
 
 	ch := make(chan struct{}, 1)
-	sub := system.EventStream.Subscribe(func(evt interface{}) {
+	sub := system.EventStream.Subscribe(func(evt any) {
 		if _, ok := evt.(*DeadLetterEvent); ok {
 			ch <- struct{}{}
 		}

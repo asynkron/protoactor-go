@@ -15,16 +15,16 @@ import (
 //
 //goland:noinspection GoNameStartsWithPackageName
 type ActorSystem struct {
-	ProcessRegistry        *ProcessRegistryValue
-	Root                   *RootContext
-	EventStream            *eventstream.EventStream
-	Guardians              *guardiansValue
-	DeadLetter             *deadLetterProcess
-	Extensions             *extensions.Extensions
-	Config                 *Config
-	ID                     string
-	stopper                chan struct{}
-	logger                 *slog.Logger
+	ProcessRegistry         *ProcessRegistryValue
+	Root                    *RootContext
+	EventStream             *eventstream.EventStream
+	Guardians               *guardiansValue
+	DeadLetter              *deadLetterProcess
+	Extensions              *extensions.Extensions
+	Config                  *Config
+	ID                      string
+	stopper                 chan struct{}
+	logger                  *slog.Logger
 	supervisionSubscription *eventstream.Subscription
 }
 

@@ -95,7 +95,7 @@ func (l *IdentityStorageLookup) Setup(c *cluster.Cluster, kinds []string, isClie
 	l.memberID = c.ActorSystem.ID
 
 	// Subscribe to topology events to remove activations when members leave.
-	c.ActorSystem.EventStream.Subscribe(func(evt interface{}) {
+	c.ActorSystem.EventStream.Subscribe(func(evt any) {
 		if topology, ok := evt.(*cluster.ClusterTopology); ok {
 			for _, member := range topology.Left {
 				l.storage.RemoveMemberId(member.Id)

@@ -43,7 +43,7 @@ func TestUsingTestMailboxStats(t *testing.T) {
 	system := actor.NewActorSystem()
 
 	// Collect mailbox events and signal when "done" is received.
-	stats := testkit.NewTestMailboxStats(func(msg interface{}) bool { return msg == "done" })
+	stats := testkit.NewTestMailboxStats(func(msg any) bool { return msg == "done" })
 	// Attach the collector directly to the mailbox via props.
 	props := actor.PropsFromFunc(func(ctx actor.Context) {}, testkit.WithMailboxStats(stats))
 	pid := system.Root.Spawn(props)
@@ -71,7 +71,7 @@ func TestMailboxStatsAsReceiverMiddleware(t *testing.T) {
 	system := actor.NewActorSystem()
 
 	// Signal when "done" is observed by the middleware.
-	stats := testkit.NewTestMailboxStats(func(msg interface{}) bool { return msg == "done" })
+	stats := testkit.NewTestMailboxStats(func(msg any) bool { return msg == "done" })
 	props := actor.PropsFromFunc(func(ctx actor.Context) {}, testkit.WithReceiveStats(stats))
 	pid := system.Root.Spawn(props)
 

@@ -19,13 +19,13 @@ type ProviderState interface {
 }
 
 type SnapshotStore interface {
-	GetSnapshot(actorName string) (snapshot interface{}, eventIndex int, ok bool)
+	GetSnapshot(actorName string) (snapshot any, eventIndex int, ok bool)
 	PersistSnapshot(actorName string, snapshotIndex int, snapshot proto.Message)
 	DeleteSnapshots(actorName string, inclusiveToIndex int)
 }
 
 type EventStore interface {
-	GetEvents(actorName string, eventIndexStart int, eventIndexEnd int, callback func(e interface{}))
+	GetEvents(actorName string, eventIndexStart int, eventIndexEnd int, callback func(e any))
 	PersistEvent(actorName string, eventIndex int, event proto.Message)
 	DeleteEvents(actorName string, inclusiveToIndex int)
 }

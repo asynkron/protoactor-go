@@ -95,7 +95,7 @@ func BenchmarkRendezvousUpdateMembers(b *testing.B) {
 func BenchmarkEventStreamPublish(b *testing.B) {
 	es := eventstream.NewEventStream()
 	received := 0
-	es.Subscribe(func(evt interface{}) {
+	es.Subscribe(func(evt any) {
 		received++
 	})
 
@@ -112,7 +112,7 @@ func BenchmarkEventStreamPublish(b *testing.B) {
 func BenchmarkEventStreamPublish_10Subscribers(b *testing.B) {
 	es := eventstream.NewEventStream()
 	for i := 0; i < 10; i++ {
-		es.Subscribe(func(evt interface{}) {})
+		es.Subscribe(func(evt any) {})
 	}
 
 	evt := "test-event"
@@ -128,8 +128,8 @@ func BenchmarkEventStreamPublish_10Subscribers(b *testing.B) {
 func BenchmarkEventStreamPublish_WithPredicate(b *testing.B) {
 	es := eventstream.NewEventStream()
 	es.SubscribeWithPredicate(
-		func(evt interface{}) {},
-		func(evt interface{}) bool {
+		func(evt any) {},
+		func(evt any) bool {
 			_, ok := evt.(string)
 			return ok
 		},

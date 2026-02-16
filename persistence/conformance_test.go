@@ -41,8 +41,8 @@ func (s *ConformanceSuite) TestPersistAndGetEvent(t *testing.T) {
 	msg := newMessage("hello")
 	provider.PersistEvent("actor-1", 0, msg)
 
-	var collected []interface{}
-	provider.GetEvents("actor-1", 0, 0, func(e interface{}) {
+	var collected []any
+	provider.GetEvents("actor-1", 0, 0, func(e any) {
 		collected = append(collected, e)
 	})
 
@@ -84,7 +84,7 @@ func (s *ConformanceSuite) TestGetEventsRange(t *testing.T) {
 	// Sub-test: get all events (eventIndexEnd=0 means "all").
 	t.Run("AllEvents", func(t *testing.T) {
 		var collected []string
-		provider.GetEvents("actor-1", 0, 0, func(e interface{}) {
+		provider.GetEvents("actor-1", 0, 0, func(e any) {
 			collected = append(collected, e.(*Message).state)
 		})
 		assert.Equal(t, []string{"e0", "e1", "e2", "e3", "e4"}, collected)
@@ -93,7 +93,7 @@ func (s *ConformanceSuite) TestGetEventsRange(t *testing.T) {
 	// Sub-test: specific range [1, 3).
 	t.Run("SpecificRange", func(t *testing.T) {
 		var collected []string
-		provider.GetEvents("actor-1", 1, 3, func(e interface{}) {
+		provider.GetEvents("actor-1", 1, 3, func(e any) {
 			collected = append(collected, e.(*Message).state)
 		})
 		assert.Equal(t, []string{"e1", "e2"}, collected)
@@ -102,7 +102,7 @@ func (s *ConformanceSuite) TestGetEventsRange(t *testing.T) {
 	// Sub-test: range from middle to end.
 	t.Run("FromMiddleToEnd", func(t *testing.T) {
 		var collected []string
-		provider.GetEvents("actor-1", 3, 0, func(e interface{}) {
+		provider.GetEvents("actor-1", 3, 0, func(e any) {
 			collected = append(collected, e.(*Message).state)
 		})
 		assert.Equal(t, []string{"e3", "e4"}, collected)
@@ -111,7 +111,7 @@ func (s *ConformanceSuite) TestGetEventsRange(t *testing.T) {
 	// Sub-test: empty range (start == end).
 	t.Run("EmptyRange", func(t *testing.T) {
 		var collected []string
-		provider.GetEvents("actor-1", 2, 2, func(e interface{}) {
+		provider.GetEvents("actor-1", 2, 2, func(e any) {
 			collected = append(collected, e.(*Message).state)
 		})
 		assert.Empty(t, collected)
@@ -140,7 +140,7 @@ func (s *ConformanceSuite) TestDeleteEvents(t *testing.T) {
 
 	// For providers that support delete, verify events 0-2 are gone.
 	var collected []string
-	provider.GetEvents("actor-1", 0, 0, func(e interface{}) {
+	provider.GetEvents("actor-1", 0, 0, func(e any) {
 		collected = append(collected, e.(*Message).state)
 	})
 	assert.Equal(t, []string{"e3", "e4"}, collected,
@@ -185,14 +185,14 @@ func (s *ConformanceSuite) TestMultipleActors(t *testing.T) {
 
 	// Verify alice's events.
 	var aliceEvents []string
-	provider.GetEvents("alice", 0, 0, func(e interface{}) {
+	provider.GetEvents("alice", 0, 0, func(e any) {
 		aliceEvents = append(aliceEvents, e.(*Message).state)
 	})
 	assert.Equal(t, []string{"alice-e0", "alice-e1"}, aliceEvents)
 
 	// Verify bob's events.
 	var bobEvents []string
-	provider.GetEvents("bob", 0, 0, func(e interface{}) {
+	provider.GetEvents("bob", 0, 0, func(e any) {
 		bobEvents = append(bobEvents, e.(*Message).state)
 	})
 	assert.Equal(t, []string{"bob-e0"}, bobEvents)
@@ -211,7 +211,7 @@ func (s *ConformanceSuite) TestMultipleActors(t *testing.T) {
 
 	// Verify a third actor has nothing.
 	var charlieEvents []string
-	provider.GetEvents("charlie", 0, 0, func(e interface{}) {
+	provider.GetEvents("charlie", 0, 0, func(e any) {
 		charlieEvents = append(charlieEvents, e.(*Message).state)
 	})
 	assert.Empty(t, charlieEvents)
@@ -245,7 +245,7 @@ func (s *ConformanceSuite) TestRestart(t *testing.T) {
 
 	// Verify events survive restart.
 	var events []string
-	provider.GetEvents("actor-1", 0, 0, func(e interface{}) {
+	provider.GetEvents("actor-1", 0, 0, func(e any) {
 		events = append(events, e.(*Message).state)
 	})
 	assert.Equal(t, []string{"e0", "e1"}, events)

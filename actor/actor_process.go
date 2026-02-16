@@ -22,12 +22,12 @@ func NewActorProcess(mailbox Mailbox) *ActorProcess {
 }
 
 // SendUserMessage posts a user message to the actor's mailbox.
-func (ref *ActorProcess) SendUserMessage(_ *PID, message interface{}) {
+func (ref *ActorProcess) SendUserMessage(_ *PID, message any) {
 	ref.mailbox.PostUserMessage(message)
 }
 
 // SendSystemMessage posts a system message to the actor's mailbox.
-func (ref *ActorProcess) SendSystemMessage(_ *PID, message interface{}) {
+func (ref *ActorProcess) SendSystemMessage(_ *PID, message any) {
 	ref.mailbox.PostSystemMessage(message)
 }
 

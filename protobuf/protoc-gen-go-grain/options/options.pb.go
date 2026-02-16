@@ -134,7 +134,7 @@ func file_options_options_proto_rawDescGZIP() []byte {
 }
 
 var file_options_options_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_options_options_proto_goTypes = []interface{}{
+var file_options_options_proto_goTypes = []any{
 	(*MethodOptions)(nil),              // 0: options.MethodOptions
 	(*descriptorpb.MethodOptions)(nil), // 1: google.protobuf.MethodOptions
 }
@@ -154,7 +154,7 @@ func file_options_options_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_options_options_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_options_options_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*MethodOptions); i {
 			case 0:
 				return &v.state

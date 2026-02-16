@@ -67,18 +67,18 @@ type Restart struct{}
 // Failure message is sent to an actor parent when an exception is thrown by one of its methods
 type Failure struct {
 	Who          *PID
-	Reason       interface{}
+	Reason       any
 	RestartStats *RestartStatistics
-	Message      interface{}
+	Message      any
 }
 
 type continuation struct {
-	message interface{}
+	message any
 	f       func()
 }
 
 // GetAutoResponse returns the auto-response for a Touch message.
-func (*Touch) GetAutoResponse(ctx Context) interface{} {
+func (*Touch) GetAutoResponse(ctx Context) any {
 	return &Touched{
 		Who: ctx.Self(),
 	}
@@ -125,7 +125,7 @@ var (
 	stoppingMessage       AutoReceiveMessage = &Stopping{}
 	stoppedMessage        AutoReceiveMessage = &Stopped{}
 	poisonPillMessage     AutoReceiveMessage = &PoisonPill{}
-	receiveTimeoutMessage interface{}        = &ReceiveTimeout{}
+	receiveTimeoutMessage any                = &ReceiveTimeout{}
 	restartMessage        SystemMessage      = &Restart{}
 	startedMessage        SystemMessage      = &Started{}
 	stopMessage           SystemMessage      = &Stop{}

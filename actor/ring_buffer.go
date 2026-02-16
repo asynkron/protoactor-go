@@ -28,7 +28,7 @@ func roundUpPowerOf2(v int) int {
 // The capacity is rounded up to the next power of 2, matching the behavior
 // of the original implementation.
 type ringBuffer struct {
-	buf  []interface{}
+	buf  []any
 	head int
 	tail int
 	size int
@@ -40,7 +40,7 @@ type ringBuffer struct {
 func newRingBuffer(capacity int) *ringBuffer {
 	capacity = roundUpPowerOf2(capacity)
 	rb := &ringBuffer{
-		buf: make([]interface{}, capacity),
+		buf: make([]any, capacity),
 		cap: capacity,
 	}
 	rb.cond = sync.NewCond(&rb.mu)
@@ -49,7 +49,7 @@ func newRingBuffer(capacity int) *ringBuffer {
 
 // Put adds an item to the ring buffer. If the buffer is full, it blocks until
 // space becomes available.
-func (rb *ringBuffer) Put(item interface{}) error {
+func (rb *ringBuffer) Put(item any) error {
 	rb.mu.Lock()
 	defer rb.mu.Unlock()
 	for rb.size == rb.cap {
@@ -64,7 +64,7 @@ func (rb *ringBuffer) Put(item interface{}) error {
 
 // Get removes and returns the oldest item. If the buffer is empty, it returns
 // an error. Callers should check Len() before calling Get() to avoid errors.
-func (rb *ringBuffer) Get() (interface{}, error) {
+func (rb *ringBuffer) Get() (any, error) {
 	rb.mu.Lock()
 	defer rb.mu.Unlock()
 	if rb.size == 0 {

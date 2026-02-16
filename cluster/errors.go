@@ -32,7 +32,7 @@ func NewGrainErrorResponse(reason, message string) *GrainErrorResponse {
 	}
 }
 
-func NewGrainErrorResponsef(reason, format string, args ...interface{}) *GrainErrorResponse {
+func NewGrainErrorResponsef(reason, format string, args ...any) *GrainErrorResponse {
 	return &GrainErrorResponse{
 		Reason:  reason,
 		Message: fmt.Sprintf(format, args...),
@@ -50,7 +50,7 @@ func (m *GrainErrorResponse) Is(err error) bool {
 	return false
 }
 
-func (m *GrainErrorResponse) Errorf(format string, args ...interface{}) error {
+func (m *GrainErrorResponse) Errorf(format string, args ...any) error {
 	return NewGrainErrorResponse(m.Reason, fmt.Sprintf(format, args...))
 }
 

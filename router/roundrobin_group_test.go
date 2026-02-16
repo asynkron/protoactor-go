@@ -21,7 +21,7 @@ func spawnRoutee(id int) *actor.PID {
 }
 
 // request sends msg to pid and waits for an int response.
-func request(t *testing.T, pid *actor.PID, msg interface{}) int {
+func request(t *testing.T, pid *actor.PID, msg any) int {
 	f := system.Root.RequestFuture(pid, msg, testTimeout)
 	res, err := f.Result()
 	if err != nil {

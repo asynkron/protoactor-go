@@ -44,7 +44,7 @@ func NewPriorityQueue(queueProducer func() queue) *priorityQueue {
 	return q
 }
 
-func (q *priorityQueue) Push(item interface{}) {
+func (q *priorityQueue) Push(item any) {
 	itemPriority := DefaultPriority
 
 	if priorityItem, ok := item.(PriorityMessage); ok {
@@ -60,7 +60,7 @@ func (q *priorityQueue) Push(item interface{}) {
 	q.priorityQueues[itemPriority].Push(item)
 }
 
-func (q *priorityQueue) Pop() interface{} {
+func (q *priorityQueue) Pop() any {
 	for p := priorityLevels - 1; p >= 0; p-- {
 		if item := q.priorityQueues[p].Pop(); item != nil {
 			return item

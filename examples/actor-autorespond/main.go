@@ -19,7 +19,7 @@ type myAutoResponder struct {
 	name string
 }
 
-func (m myAutoResponder) GetAutoResponse(context actor.Context) interface{} {
+func (m myAutoResponder) GetAutoResponse(context actor.Context) any {
 	// return some response-message
 	// you have full access to the actor context
 

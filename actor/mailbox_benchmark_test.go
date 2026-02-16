@@ -12,11 +12,11 @@ type benchInvoker struct {
 	wg *sync.WaitGroup
 }
 
-func (bi *benchInvoker) InvokeSystemMessage(interface{}) {}
-func (bi *benchInvoker) InvokeUserMessage(interface{}) {
+func (bi *benchInvoker) InvokeSystemMessage(any) {}
+func (bi *benchInvoker) InvokeUserMessage(any) {
 	bi.wg.Done()
 }
-func (bi *benchInvoker) EscalateFailure(_ interface{}, _ interface{}) {}
+func (bi *benchInvoker) EscalateFailure(_ any, _ any) {}
 
 // BenchmarkUnboundedMailbox_PostAndProcess measures the throughput of the
 // unbounded (goring) mailbox: posting messages from a single producer and

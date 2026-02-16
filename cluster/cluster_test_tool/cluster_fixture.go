@@ -89,7 +89,7 @@ func NewBaseClusterFixture(clusterSize int, opts ...ClusterFixtureOption) *BaseC
 		GetClusterKinds:    func() []*cluster.Kind { return make([]*cluster.Kind, 0) },
 		GetClusterProvider: func() cluster.ClusterProvider { return test.NewTestProvider(test.NewInMemAgent()) },
 		Configure:          func(c *cluster.Config) *cluster.Config { return c },
-                GetIdentityLookup:  func(string) cluster.IdentityLookup { return disthash.New() },
+		GetIdentityLookup:  func(string) cluster.IdentityLookup { return disthash.New() },
 		OnDeposing:         func() {},
 	}
 	for _, opt := range opts {

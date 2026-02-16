@@ -31,13 +31,13 @@ type endpointWriterMailbox struct {
 	suspended       bool
 }
 
-func (m *endpointWriterMailbox) PostUserMessage(message interface{}) {
+func (m *endpointWriterMailbox) PostUserMessage(message any) {
 	// batching mailbox only use the message part
 	m.userMailbox.Push(message)
 	m.schedule()
 }
 
-func (m *endpointWriterMailbox) PostSystemMessage(message interface{}) {
+func (m *endpointWriterMailbox) PostSystemMessage(message any) {
 	m.systemMailbox.Push(message)
 	m.schedule()
 }
@@ -76,7 +76,7 @@ process:
 }
 
 func (m *endpointWriterMailbox) run() {
-	var msg interface{}
+	var msg any
 	defer func() {
 		if r := recover(); r != nil {
 			m.invoker.EscalateFailure(r, msg)

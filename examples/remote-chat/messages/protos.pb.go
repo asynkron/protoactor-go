@@ -385,7 +385,7 @@ func file_protos_proto_rawDescGZIP() []byte {
 }
 
 var file_protos_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_protos_proto_goTypes = []interface{}{
+var file_protos_proto_goTypes = []any{
 	(*Connect)(nil),      // 0: messages.Connect
 	(*Connected)(nil),    // 1: messages.Connected
 	(*SayRequest)(nil),   // 2: messages.SayRequest
@@ -409,7 +409,7 @@ func file_protos_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_protos_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*Connect); i {
 			case 0:
 				return &v.state
@@ -421,7 +421,7 @@ func file_protos_proto_init() {
 				return nil
 			}
 		}
-		file_protos_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*Connected); i {
 			case 0:
 				return &v.state
@@ -433,7 +433,7 @@ func file_protos_proto_init() {
 				return nil
 			}
 		}
-		file_protos_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*SayRequest); i {
 			case 0:
 				return &v.state
@@ -445,7 +445,7 @@ func file_protos_proto_init() {
 				return nil
 			}
 		}
-		file_protos_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*SayResponse); i {
 			case 0:
 				return &v.state
@@ -457,7 +457,7 @@ func file_protos_proto_init() {
 				return nil
 			}
 		}
-		file_protos_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*NickRequest); i {
 			case 0:
 				return &v.state
@@ -469,7 +469,7 @@ func file_protos_proto_init() {
 				return nil
 			}
 		}
-		file_protos_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_protos_proto_msgTypes[5].Exporter = func(v any, i int) any {
 			switch v := v.(*NickResponse); i {
 			case 0:
 				return &v.state

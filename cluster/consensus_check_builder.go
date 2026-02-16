@@ -96,7 +96,7 @@ func (ccb *ConsensusCheckBuilder[T]) build() ConsensusChecker {
 		}
 	}
 
-	return func(state *GossipState, ids map[string]empty) (bool, interface{}) {
+	return func(state *GossipState, ids map[string]empty) (bool, any) {
 		var values []T
 		for id := range ids {
 			memberState, ok := state.Members[id]

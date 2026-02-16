@@ -21,7 +21,7 @@ func TestDeduplicationContext(t *testing.T) {
 	ttl := 50 * time.Millisecond
 	ch := make(chan string, 6)
 	props := PropsFromProducer(func() Actor { return &collectingActor{ch: ch} },
-		WithContextDecorator(DeduplicationContext(func(msg interface{}) string {
+		WithContextDecorator(DeduplicationContext(func(msg any) string {
 			if s, ok := msg.(string); ok {
 				return s
 			}

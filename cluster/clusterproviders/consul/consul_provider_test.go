@@ -47,8 +47,8 @@ func TestStartMember(t *testing.T) {
 
 	c := newClusterForTest("mycluster", "127.0.0.1:8000", p)
 	eventstream := c.ActorSystem.EventStream
-	ch := make(chan interface{}, 16)
-	eventstream.Subscribe(func(m interface{}) {
+	ch := make(chan any, 16)
+	eventstream.Subscribe(func(m any) {
 		if _, ok := m.(*cluster.ClusterTopology); ok {
 			ch <- m
 		}

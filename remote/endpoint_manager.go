@@ -87,7 +87,7 @@ func newEndpointManager(r *Remote) *endpointManager {
 func (em *endpointManager) start() error {
 	eventStream := em.remote.actorSystem.EventStream
 	em.endpointSub = eventStream.
-		SubscribeWithPredicate(em.endpointEvent, func(m interface{}) bool {
+		SubscribeWithPredicate(em.endpointEvent, func(m any) bool {
 			switch m.(type) {
 			case *EndpointTerminatedEvent, *EndpointConnectedEvent:
 				return true
@@ -130,7 +130,7 @@ func (em *endpointManager) stop() {
 	em.endpointSub = nil
 	em.connections = nil
 	if em.endpointReaderConnections != nil {
-		em.endpointReaderConnections.Range(func(key interface{}, value interface{}) bool {
+		em.endpointReaderConnections.Range(func(key any, value any) bool {
 			if channel, ok := value.(chan bool); ok {
 				channel <- true
 			}
@@ -178,7 +178,7 @@ func (em *endpointManager) stopSupervisor() error {
 	return r.actorSystem.Root.StopFuture(em.endpointSupervisor).Wait()
 }
 
-func (em *endpointManager) endpointEvent(evn interface{}) {
+func (em *endpointManager) endpointEvent(evn any) {
 	switch msg := evn.(type) {
 	case *EndpointTerminatedEvent:
 		em.remote.Logger().Debug("EndpointManager received endpoint terminated event, removing endpoint", slog.Any("message", evn))
@@ -347,7 +347,7 @@ func (state *endpointSupervisor) Receive(ctx actor.Context) {
 	}
 }
 
-func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, supervisor actor.Supervisor, child *actor.PID, _ *actor.RestartStatistics, reason interface{}, message interface{}) {
+func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, supervisor actor.Supervisor, child *actor.PID, _ *actor.RestartStatistics, reason any, message any) {
 	actorSystem.Logger().Debug("EndpointSupervisor handling failure", slog.Any("reason", reason), slog.Any("message", message))
 	// use restart will cause a start loop, just stop it for now
 	// supervisor.RestartChildren(child)

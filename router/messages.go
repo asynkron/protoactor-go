@@ -5,7 +5,7 @@ type ManagementMessage interface {
 }
 
 type BroadcastMessage struct {
-	Message interface{}
+	Message any
 }
 
 func (*AddRoutee) ManagementMessage()        {}

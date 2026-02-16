@@ -10,12 +10,12 @@ func NewEventStreamProcess(actorSystem *ActorSystem) *EventStreamProcess {
 	return &EventStreamProcess{system: actorSystem}
 }
 
-func (e *EventStreamProcess) SendUserMessage(_ *PID, message interface{}) {
+func (e *EventStreamProcess) SendUserMessage(_ *PID, message any) {
 	_, msg, _ := UnwrapEnvelope(message)
 	e.system.EventStream.Publish(msg)
 }
 
-func (e *EventStreamProcess) SendSystemMessage(_ *PID, _ interface{}) {
+func (e *EventStreamProcess) SendSystemMessage(_ *PID, _ any) {
 	// pass
 }
 

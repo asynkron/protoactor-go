@@ -145,7 +145,7 @@ func (r *Remote) Shutdown(graceful bool) {
 }
 
 // SendMessage delivers the given message to the target PID using remoting.
-func (r *Remote) SendMessage(pid *actor.PID, header actor.ReadonlyMessageHeader, message interface{}, sender *actor.PID, serializerID int32) {
+func (r *Remote) SendMessage(pid *actor.PID, header actor.ReadonlyMessageHeader, message any, sender *actor.PID, serializerID int32) {
 	rd := &remoteDeliver{
 		header:       header,
 		message:      message,

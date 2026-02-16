@@ -21,7 +21,7 @@ type process struct {
 
 var _ actor.Process = &process{}
 
-func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
+func (ref *process) SendUserMessage(pid *actor.PID, message any) {
 	_, msg, _ := actor.UnwrapEnvelope(message)
 
 	// Add support for PoisonPill. Originally only Stop is supported.
@@ -39,7 +39,7 @@ func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
 	}
 }
 
-func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
+func (ref *process) SendSystemMessage(pid *actor.PID, message any) {
 	switch msg := message.(type) {
 	case *actor.Watch:
 		if atomic.LoadInt32(&ref.stopping) == 1 {

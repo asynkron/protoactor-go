@@ -283,7 +283,7 @@ func file_routercontracts_proto_rawDescGZIP() []byte {
 }
 
 var file_routercontracts_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_routercontracts_proto_goTypes = []interface{}{
+var file_routercontracts_proto_goTypes = []any{
 	(*AddRoutee)(nil),      // 0: router.AddRoutee
 	(*RemoveRoutee)(nil),   // 1: router.RemoveRoutee
 	(*AdjustPoolSize)(nil), // 2: router.AdjustPoolSize
@@ -308,7 +308,7 @@ func file_routercontracts_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_routercontracts_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_routercontracts_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*AddRoutee); i {
 			case 0:
 				return &v.state
@@ -320,7 +320,7 @@ func file_routercontracts_proto_init() {
 				return nil
 			}
 		}
-		file_routercontracts_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_routercontracts_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*RemoveRoutee); i {
 			case 0:
 				return &v.state
@@ -332,7 +332,7 @@ func file_routercontracts_proto_init() {
 				return nil
 			}
 		}
-		file_routercontracts_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_routercontracts_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*AdjustPoolSize); i {
 			case 0:
 				return &v.state
@@ -344,7 +344,7 @@ func file_routercontracts_proto_init() {
 				return nil
 			}
 		}
-		file_routercontracts_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_routercontracts_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*GetRoutees); i {
 			case 0:
 				return &v.state
@@ -356,7 +356,7 @@ func file_routercontracts_proto_init() {
 				return nil
 			}
 		}
-		file_routercontracts_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_routercontracts_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*Routees); i {
 			case 0:
 				return &v.state

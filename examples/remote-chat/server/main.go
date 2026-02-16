@@ -12,7 +12,7 @@ import (
 
 // define root context
 
-func notifyAll(context actor.Context, clients *actor.PIDSet, message interface{}) {
+func notifyAll(context actor.Context, clients *actor.PIDSet, message any) {
 	for _, client := range clients.Values() {
 		context.Send(client, message)
 	}

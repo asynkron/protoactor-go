@@ -74,7 +74,7 @@ type basePart interface {
 
 	// Respond sends a response to the current `Sender`
 	// If the Sender is nil, the actor will panic
-	Respond(response interface{})
+	Respond(response any)
 
 	// Stash stashes the current message on a stack for reprocessing when the actor restarts
 	Stash()
@@ -97,7 +97,7 @@ type basePart interface {
 	// Forward forwards current message to the given PID
 	Forward(pid *PID)
 
-	ReenterAfter(f Future, continuation func(res interface{}, err error))
+	ReenterAfter(f Future, continuation func(res any, err error))
 
 	// Capture captures the current MessageEnvelope for the context.
 	// Use the returned CapturedContext to reprocess messages later.
@@ -109,7 +109,7 @@ type basePart interface {
 
 type messagePart interface {
 	// Message returns the current message to be processed
-	Message() interface{}
+	Message() any
 
 	// MessageHeader returns the meta information for the currently processed message
 	MessageHeader() ReadonlyMessageHeader
@@ -120,16 +120,16 @@ type senderPart interface {
 	Sender() *PID
 
 	// Send sends a message to the given PID
-	Send(pid *PID, message interface{})
+	Send(pid *PID, message any)
 
 	// Request sends a message to the given PID
-	Request(pid *PID, message interface{})
+	Request(pid *PID, message any)
 
 	// RequestWithCustomSender sends a message to the given PID and also provides a Sender PID
-	RequestWithCustomSender(pid *PID, message interface{}, sender *PID)
+	RequestWithCustomSender(pid *PID, message any, sender *PID)
 
 	// RequestFuture sends a message to a given PID and returns a Future
-	RequestFuture(pid *PID, message interface{}, timeout time.Duration) Future
+	RequestFuture(pid *PID, message any, timeout time.Duration) Future
 }
 
 type receiverPart interface {

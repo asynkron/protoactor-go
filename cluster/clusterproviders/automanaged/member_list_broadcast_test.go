@@ -48,7 +48,7 @@ func startNode() *cluster.Cluster {
 func subscribe(c *cluster.Cluster) (events <-chan *cluster.GrainRequest, cancel func()) {
 	eventChan := make(chan *cluster.GrainRequest, 1)
 
-	subscription := c.ActorSystem.EventStream.Subscribe(func(evt interface{}) {
+	subscription := c.ActorSystem.EventStream.Subscribe(func(evt any) {
 		if event, ok := evt.(*cluster.GrainRequest); ok {
 			eventChan <- event
 		}

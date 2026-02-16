@@ -17,12 +17,12 @@ import (
 // where a rebooted node receives a new system ID and must be treated as a
 // completely new member.
 type testProvider struct {
-        mu sync.Mutex
-        // members are keyed by ActorSystem ID to emulate node identity in the
-        // production provider. A restarted node gets a new ID, so using the ID
-        // as the map key prevents accidental reuse of stale memberships.
-        members  map[string]*Member
-        clusters []*Cluster
+	mu sync.Mutex
+	// members are keyed by ActorSystem ID to emulate node identity in the
+	// production provider. A restarted node gets a new ID, so using the ID
+	// as the map key prevents accidental reuse of stale memberships.
+	members  map[string]*Member
+	clusters []*Cluster
 }
 
 // newTestProvider constructs a fresh testProvider for unit tests.

@@ -32,7 +32,7 @@ func (state *roundRobinState) GetRoutees() *actor.PIDSet {
 	return state.routees
 }
 
-func (state *roundRobinState) RouteMessage(message interface{}) {
+func (state *roundRobinState) RouteMessage(message any) {
 	pid := roundRobinRoutee(&state.index, state.routees)
 	state.sender.Send(pid, message)
 }

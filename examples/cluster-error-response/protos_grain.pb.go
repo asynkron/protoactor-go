@@ -15,7 +15,7 @@ import (
 	time "time"
 )
 
-func ErrUserNotFound(format string, args ...interface{}) *cluster.GrainErrorResponse {
+func ErrUserNotFound(format string, args ...any) *cluster.GrainErrorResponse {
 	return cluster.NewGrainErrorResponse(ErrorReason_USER_NOT_FOUND.String(), fmt.Sprintf(format, args...))
 }
 

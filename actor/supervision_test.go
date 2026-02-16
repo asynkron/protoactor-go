@@ -19,7 +19,7 @@ func (a *actorWithSupervisor) Receive(ctx Context) {
 	}
 }
 
-func (a *actorWithSupervisor) HandleFailure(*ActorSystem, Supervisor, *PID, *RestartStatistics, interface{}, interface{}) {
+func (a *actorWithSupervisor) HandleFailure(*ActorSystem, Supervisor, *PID, *RestartStatistics, any, any) {
 	a.wg.Done()
 }
 
@@ -41,7 +41,7 @@ func TestActorWithOwnSupervisorCanHandleFailure(t *testing.T) {
 }
 
 func NewObserver() (func(ReceiverFunc) ReceiverFunc, *Expector) {
-	c := make(chan interface{})
+	c := make(chan any)
 	e := &Expector{C: c}
 	f := func(next ReceiverFunc) ReceiverFunc {
 		fn := func(context ReceiverContext, env *MessageEnvelope) {
@@ -56,10 +56,10 @@ func NewObserver() (func(ReceiverFunc) ReceiverFunc, *Expector) {
 }
 
 type Expector struct {
-	C <-chan interface{}
+	C <-chan any
 }
 
-func (e *Expector) ExpectMsg(expected interface{}, t *testing.T) {
+func (e *Expector) ExpectMsg(expected any, t *testing.T) {
 	actual := <-e.C
 	if actual == expected {
 	} else {

@@ -9,7 +9,7 @@ import (
 
 func TestEventStream_Subscribe(t *testing.T) {
 	es := &eventstream.EventStream{}
-	s := es.Subscribe(func(interface{}) {})
+	s := es.Subscribe(func(any) {})
 	assert.NotNil(t, s)
 	assert.Equal(t, es.Length(), int32(1))
 }
@@ -18,8 +18,8 @@ func TestEventStream_Unsubscribe(t *testing.T) {
 	es := &eventstream.EventStream{}
 	var c1, c2 int
 
-	s1 := es.Subscribe(func(interface{}) { c1++ })
-	s2 := es.Subscribe(func(interface{}) { c2++ })
+	s1 := es.Subscribe(func(any) { c1++ })
+	s2 := es.Subscribe(func(any) { c2++ })
 	assert.Equal(t, es.Length(), int32(2))
 
 	es.Unsubscribe(s2)
@@ -40,7 +40,7 @@ func TestEventStream_Publish(t *testing.T) {
 	es := &eventstream.EventStream{}
 
 	var v int
-	es.Subscribe(func(m interface{}) { v = m.(int) })
+	es.Subscribe(func(m any) { v = m.(int) })
 
 	es.Publish(1)
 	assert.Equal(t, 1, v)
@@ -53,8 +53,8 @@ func TestEventStream_Subscribe_WithPredicate_IsCalled(t *testing.T) {
 	called := false
 	es := &eventstream.EventStream{}
 	es.SubscribeWithPredicate(
-		func(interface{}) { called = true },
-		func(_ interface{}) bool { return true },
+		func(any) { called = true },
+		func(_ any) bool { return true },
 	)
 	es.Publish("")
 
@@ -65,8 +65,8 @@ func TestEventStream_Subscribe_WithPredicate_IsNotCalled(t *testing.T) {
 	called := false
 	es := &eventstream.EventStream{}
 	es.SubscribeWithPredicate(
-		func(interface{}) { called = true },
-		func(_ interface{}) bool { return false },
+		func(any) { called = true },
+		func(_ any) bool { return false },
 	)
 	es.Publish("")
 
@@ -82,7 +82,7 @@ func BenchmarkEventStream(b *testing.B) {
 	subs := make([]*eventstream.Subscription, 10)
 	for i := 0; i < b.N; i++ {
 		for j := 0; j < 10; j++ {
-			sub := es.Subscribe(func(evt interface{}) {
+			sub := es.Subscribe(func(evt any) {
 				if e := evt.(*Event); e.i != i {
 					b.Fatalf("expected i to be %d but its value is %d", i, e.i)
 				}

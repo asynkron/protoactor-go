@@ -1599,7 +1599,7 @@ func file_cluster_proto_rawDescGZIP() []byte {
 
 var file_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
-var file_cluster_proto_goTypes = []interface{}{
+var file_cluster_proto_goTypes = []any{
 	(IdentityHandoverAck_State)(0),           // 0: cluster.IdentityHandoverAck.State
 	(*IdentityHandoverRequest)(nil),          // 1: cluster.IdentityHandoverRequest
 	(*IdentityHandover)(nil),                 // 2: cluster.IdentityHandover
@@ -1663,7 +1663,7 @@ func file_cluster_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_cluster_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*IdentityHandoverRequest); i {
 			case 0:
 				return &v.state
@@ -1675,7 +1675,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*IdentityHandover); i {
 			case 0:
 				return &v.state
@@ -1687,7 +1687,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*RemoteIdentityHandover); i {
 			case 0:
 				return &v.state
@@ -1699,7 +1699,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*PackedActivations); i {
 			case 0:
 				return &v.state
@@ -1711,7 +1711,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*IdentityHandoverAck); i {
 			case 0:
 				return &v.state
@@ -1723,7 +1723,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[5].Exporter = func(v any, i int) any {
 			switch v := v.(*ClusterIdentity); i {
 			case 0:
 				return &v.state
@@ -1735,7 +1735,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[6].Exporter = func(v any, i int) any {
 			switch v := v.(*Activation); i {
 			case 0:
 				return &v.state
@@ -1747,7 +1747,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[7].Exporter = func(v any, i int) any {
 			switch v := v.(*ActivationTerminating); i {
 			case 0:
 				return &v.state
@@ -1759,7 +1759,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[8].Exporter = func(v any, i int) any {
 			switch v := v.(*ActivationTerminated); i {
 			case 0:
 				return &v.state
@@ -1771,7 +1771,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[9].Exporter = func(v any, i int) any {
 			switch v := v.(*ActivationRequest); i {
 			case 0:
 				return &v.state
@@ -1783,7 +1783,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[10].Exporter = func(v any, i int) any {
 			switch v := v.(*ProxyActivationRequest); i {
 			case 0:
 				return &v.state
@@ -1795,7 +1795,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[11].Exporter = func(v any, i int) any {
 			switch v := v.(*ActivationResponse); i {
 			case 0:
 				return &v.state
@@ -1807,7 +1807,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[12].Exporter = func(v any, i int) any {
 			switch v := v.(*ReadyForRebalance); i {
 			case 0:
 				return &v.state
@@ -1819,7 +1819,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[13].Exporter = func(v any, i int) any {
 			switch v := v.(*RebalanceCompleted); i {
 			case 0:
 				return &v.state
@@ -1831,7 +1831,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[14].Exporter = func(v any, i int) any {
 			switch v := v.(*Member); i {
 			case 0:
 				return &v.state
@@ -1843,7 +1843,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[15].Exporter = func(v any, i int) any {
 			switch v := v.(*ClusterTopology); i {
 			case 0:
 				return &v.state
@@ -1855,7 +1855,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[16].Exporter = func(v any, i int) any {
 			switch v := v.(*ClusterTopologyNotification); i {
 			case 0:
 				return &v.state
@@ -1867,7 +1867,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[17].Exporter = func(v any, i int) any {
 			switch v := v.(*MemberHeartbeat); i {
 			case 0:
 				return &v.state
@@ -1879,7 +1879,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[18].Exporter = func(v any, i int) any {
 			switch v := v.(*ActorStatistics); i {
 			case 0:
 				return &v.state
@@ -1891,7 +1891,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[19].Exporter = func(v any, i int) any {
 			switch v := v.(*IdentityHandoverRequest_Topology); i {
 			case 0:
 				return &v.state
@@ -1903,7 +1903,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[20].Exporter = func(v any, i int) any {
 			switch v := v.(*PackedActivations_Kind); i {
 			case 0:
 				return &v.state
@@ -1915,7 +1915,7 @@ func file_cluster_proto_init() {
 				return nil
 			}
 		}
-		file_cluster_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
+		file_cluster_proto_msgTypes[21].Exporter = func(v any, i int) any {
 			switch v := v.(*PackedActivations_Activation); i {
 			case 0:
 				return &v.state

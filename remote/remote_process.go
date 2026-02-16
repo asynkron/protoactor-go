@@ -18,12 +18,12 @@ func newProcess(pid *actor.PID, r *Remote) actor.Process {
 
 var _ actor.Process = &process{}
 
-func (ref *process) SendUserMessage(pid *actor.PID, message interface{}) {
+func (ref *process) SendUserMessage(pid *actor.PID, message any) {
 	header, msg, sender := actor.UnwrapEnvelope(message)
 	ref.remote.SendMessage(pid, header, msg, sender, -1)
 }
 
-func (ref *process) SendSystemMessage(pid *actor.PID, message interface{}) {
+func (ref *process) SendSystemMessage(pid *actor.PID, message any) {
 	// intercept any Watch messages and direct them to the endpoint manager
 	switch msg := message.(type) {
 	case *actor.Watch:

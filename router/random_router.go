@@ -31,7 +31,7 @@ func (state *randomRouterState) GetRoutees() *actor.PIDSet {
 	return state.routees
 }
 
-func (state *randomRouterState) RouteMessage(message interface{}) {
+func (state *randomRouterState) RouteMessage(message any) {
 	pid := randomRoutee(state.routees)
 	state.sender.Send(pid, message)
 }

@@ -49,7 +49,7 @@ func newChildActor() actor.Actor {
 
 func main() {
 	system := actor.NewActorSystem()
-	decider := func(reason interface{}) actor.Directive {
+	decider := func(reason any) actor.Directive {
 		fmt.Println("handling failure for child")
 		return actor.StopDirective
 	}

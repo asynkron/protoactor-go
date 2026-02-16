@@ -22,10 +22,10 @@ func (m *requestWorkBehavior) MailboxStarted() {
 	m.requestMore()
 }
 
-func (m *requestWorkBehavior) MessagePosted(msg interface{}) {
+func (m *requestWorkBehavior) MessagePosted(msg any) {
 }
 
-func (m *requestWorkBehavior) MessageReceived(msg interface{}) {
+func (m *requestWorkBehavior) MessageReceived(msg any) {
 	atomic.AddInt64(&m.tokens, -1)
 	if m.tokens == 0 {
 		m.requestMore()

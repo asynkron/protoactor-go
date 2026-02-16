@@ -72,7 +72,7 @@ func doRequestsAsync(c *cluster.Cluster, callopts ...cluster.GrainCallOption) {
 func setupLogger(c *cluster.Cluster) {
 	system := c.ActorSystem
 	// Subscribe
-	system.EventStream.Subscribe(func(event interface{}) {
+	system.EventStream.Subscribe(func(event any) {
 		switch msg := event.(type) {
 		case *cluster.MemberJoinedEvent:
 			log.Printf("Member Joined " + msg.Name())

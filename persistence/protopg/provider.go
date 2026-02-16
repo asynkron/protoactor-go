@@ -84,7 +84,7 @@ func (p *PostgresProvider) GetSnapshotInterval() int {
 
 // GetSnapshot retrieves the latest snapshot for the given actor. If no
 // snapshot exists, ok is false.
-func (p *PostgresProvider) GetSnapshot(actorName string) (snapshot interface{}, eventIndex int, ok bool) {
+func (p *PostgresProvider) GetSnapshot(actorName string) (snapshot any, eventIndex int, ok bool) {
 	query := fmt.Sprintf(
 		`SELECT data, data_type, snapshot_index FROM %s WHERE actor_name = $1 ORDER BY snapshot_index DESC LIMIT 1`,
 		p.config.SnapshotsTable,
@@ -148,7 +148,7 @@ func (p *PostgresProvider) DeleteSnapshots(actorName string, inclusiveToIndex in
 // GetEvents retrieves events for the given actor within the specified index
 // range. If eventIndexEnd is 0, all events from eventIndexStart onward are
 // returned. Each event is passed to the callback in order.
-func (p *PostgresProvider) GetEvents(actorName string, eventIndexStart int, eventIndexEnd int, callback func(e interface{})) {
+func (p *PostgresProvider) GetEvents(actorName string, eventIndexStart int, eventIndexEnd int, callback func(e any)) {
 	query := fmt.Sprintf(
 		`SELECT data, data_type FROM %s WHERE actor_name = $1 AND event_index >= $2 AND ($3 = 0 OR event_index < $3) ORDER BY event_index ASC`,
 		p.config.EventsTable,

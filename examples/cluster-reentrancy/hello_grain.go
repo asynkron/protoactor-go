@@ -34,7 +34,7 @@ func (g *HelloGrain) InvokeService(req *InvokeServiceRequest, respond func(*Invo
 
 		client := GetHelloGrainClient(ctx.Cluster(), "1")
 		f, err := client.InvokeServiceFuture(&InvokeServiceRequest{Name: "Bob"})
-		ctx.ReenterAfter(f, func(resp interface{}, err error) {
+		ctx.ReenterAfter(f, func(resp any, err error) {
 			if err != nil {
 				onError(err)
 				return
@@ -63,7 +63,7 @@ func (g *HelloGrain) InvokeService(req *InvokeServiceRequest, respond func(*Invo
 			return err
 		}
 
-		ctx.ReenterAfter(f, func(resp interface{}, err error) {
+		ctx.ReenterAfter(f, func(resp any, err error) {
 			if err != nil {
 				onError(err)
 			}

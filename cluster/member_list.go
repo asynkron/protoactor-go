@@ -31,7 +31,7 @@ func NewMemberList(cluster *Cluster) *MemberList {
 		memberStrategyByKind: make(map[string]MemberStrategy),
 		eventSteam:           cluster.ActorSystem.EventStream,
 	}
-	memberList.eventSteam.Subscribe(func(evt interface{}) {
+	memberList.eventSteam.Subscribe(func(evt any) {
 		switch t := evt.(type) {
 		case *GossipUpdate:
 			if t.Key != "topology" {
@@ -200,7 +200,7 @@ func (ml *MemberList) TerminateMember(m *Member) {
 	})
 }
 
-func (ml *MemberList) BroadcastEvent(message interface{}, includeSelf bool) {
+func (ml *MemberList) BroadcastEvent(message any, includeSelf bool) {
 	for _, m := range ml.members.members {
 		if !includeSelf && m.Id == ml.cluster.ActorSystem.ID {
 			continue

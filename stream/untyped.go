@@ -8,14 +8,14 @@ import (
 
 // UntypedStream converts all actor messages into a channel of empty interface.
 type UntypedStream struct {
-	c           chan interface{}
+	c           chan any
 	pid         *actor.PID
 	actorSystem *actor.ActorSystem
 	closed      atomic.Bool
 }
 
 // C returns the underlying receive-only channel.
-func (s *UntypedStream) C() <-chan interface{} {
+func (s *UntypedStream) C() <-chan any {
 	return s.c
 }
 
@@ -33,7 +33,7 @@ func (s *UntypedStream) Close() {
 
 // NewUntypedStream spawns an actor that forwards all messages to a channel.
 func NewUntypedStream(actorSystem *actor.ActorSystem) *UntypedStream {
-	c := make(chan interface{})
+	c := make(chan any)
 
 	s := &UntypedStream{
 		c:           c,

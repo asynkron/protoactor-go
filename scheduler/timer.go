@@ -74,7 +74,7 @@ func NewTimerScheduler(sender actor.SenderContext, opts ...timerOptionFunc) *Tim
 }
 
 // SendOnce waits for the duration to elapse and then calls actor.SenderContext.Send to forward the message to pid.
-func (s *TimerScheduler) SendOnce(delay time.Duration, pid *actor.PID, message interface{}) CancelFunc {
+func (s *TimerScheduler) SendOnce(delay time.Duration, pid *actor.PID, message any) CancelFunc {
 	t := time.AfterFunc(delay, func() {
 		s.ctx.Send(pid, message)
 	})
@@ -84,7 +84,7 @@ func (s *TimerScheduler) SendOnce(delay time.Duration, pid *actor.PID, message i
 
 // SendRepeatedly waits for the initial duration to elapse and then calls Send to forward the message to pid
 // repeatedly for each interval.
-func (s *TimerScheduler) SendRepeatedly(initial, interval time.Duration, pid *actor.PID, message interface{}) CancelFunc {
+func (s *TimerScheduler) SendRepeatedly(initial, interval time.Duration, pid *actor.PID, message any) CancelFunc {
 	return startTimer(initial, interval, func() {
 		s.ctx.Send(pid, message)
 	})
@@ -92,7 +92,7 @@ func (s *TimerScheduler) SendRepeatedly(initial, interval time.Duration, pid *ac
 
 // RequestOnce waits for the duration to elapse and then calls actor.SenderContext.Request to forward the message to
 // pid.
-func (s *TimerScheduler) RequestOnce(delay time.Duration, pid *actor.PID, message interface{}) CancelFunc {
+func (s *TimerScheduler) RequestOnce(delay time.Duration, pid *actor.PID, message any) CancelFunc {
 	t := time.AfterFunc(delay, func() {
 		s.ctx.Request(pid, message)
 	})
@@ -102,7 +102,7 @@ func (s *TimerScheduler) RequestOnce(delay time.Duration, pid *actor.PID, messag
 
 // RequestRepeatedly waits for the initial duration to elapse and then calls Request to forward the message to pid
 // repeatedly for each interval.
-func (s *TimerScheduler) RequestRepeatedly(delay, interval time.Duration, pid *actor.PID, message interface{}) CancelFunc {
+func (s *TimerScheduler) RequestRepeatedly(delay, interval time.Duration, pid *actor.PID, message any) CancelFunc {
 	return startTimer(delay, interval, func() {
 		s.ctx.Request(pid, message)
 	})

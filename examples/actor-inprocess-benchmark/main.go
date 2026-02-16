@@ -39,7 +39,7 @@ func (state *pingActor) sendBatch(context actor.Context, sender *actor.PID) bool
 		return false
 	}
 
-	var m interface{} = &Msg{
+	var m any = &Msg{
 		Sender: context.Self(),
 	}
 
