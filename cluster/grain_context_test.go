@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/testkit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,18 +12,17 @@ import (
 // context extension and also obtain the Cluster instance.
 func TestVirtualActorContextHasClusterIdentity(t *testing.T) {
 	cp := newInmemoryProvider()
-	probe := testkit.NewTestProbe()
 
 	kindName := "kind"
 	actorID := "myactor"
 
-	// Actor stores the ClusterIdentity and Cluster when it receives the
-	// system generated ClusterInit message.
+	resultCh := make(chan any, 10)
+
 	kind := NewKind(kindName, actor.PropsFromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
 		case *ClusterInit:
-			probe.Context().Send(probe.Context().Self(), GetClusterIdentity(ctx))
-			probe.Context().Send(probe.Context().Self(), GetCluster(ctx.ActorSystem()))
+			resultCh <- GetClusterIdentity(ctx)
+			resultCh <- GetCluster(ctx.ActorSystem())
 		}
 	}))
 
@@ -33,19 +31,25 @@ func TestVirtualActorContextHasClusterIdentity(t *testing.T) {
 	assert.NoError(t, err)
 	cp.publishClusterTopologyEvent()
 
-	c.ActorSystem.Root.Spawn(actor.PropsFromProducer(func() actor.Actor { return probe }))
-
 	pid := c.Get(actorID, kindName)
 	assert.NotNil(t, pid)
 
-	ci, err := testkit.GetNextMessageOf[*ClusterIdentity](probe, time.Second)
-	assert.NoError(t, err)
-	assert.NotNil(t, ci)
-	assert.Equal(t, actorID, ci.Identity)
-	assert.Equal(t, kindName, ci.Kind)
+	select {
+	case val := <-resultCh:
+		ci, ok := val.(*ClusterIdentity)
+		assert.True(t, ok)
+		assert.Equal(t, actorID, ci.Identity)
+		assert.Equal(t, kindName, ci.Kind)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for ClusterIdentity")
+	}
 
-	cl, err := testkit.GetNextMessageOf[*Cluster](probe, time.Second)
-	assert.NoError(t, err)
-	assert.NotNil(t, cl)
-	assert.Equal(t, c, cl)
+	select {
+	case val := <-resultCh:
+		cl, ok := val.(*Cluster)
+		assert.True(t, ok)
+		assert.Equal(t, c, cl)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for Cluster")
+	}
 }
