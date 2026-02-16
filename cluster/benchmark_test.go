@@ -143,6 +143,23 @@ func BenchmarkEventStreamPublish_WithPredicate(b *testing.B) {
 	}
 }
 
+// BenchmarkRendezvousHashing_Concurrent benchmarks GetByClusterIdentity under
+// parallel goroutine pressure to measure lock contention on the shared hasher.
+func BenchmarkRendezvousHashing_Concurrent(b *testing.B) {
+	members := newMembersForTest(10)
+	r := NewRendezvous()
+	r.UpdateMembers(members)
+
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			identity := &ClusterIdentity{Kind: "kind", Identity: fmt.Sprintf("key-%d", i)}
+			r.GetByClusterIdentity(identity)
+			i++
+		}
+	})
+}
+
 // BenchmarkTopologyHash benchmarks the TopologyHash computation, which is used
 // to detect topology changes efficiently.
 func BenchmarkTopologyHash(b *testing.B) {

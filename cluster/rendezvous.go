@@ -5,7 +5,6 @@ package cluster
 // https://github.com/tysonmote/rendezvous/blob/master/rendezvous.go
 
 import (
-	"hash"
 	"hash/fnv"
 	"strings"
 	"sync"
@@ -18,16 +17,13 @@ type memberData struct {
 
 // Rendezvous implements rendezvous hashing for distributing identities across cluster members.
 type Rendezvous struct {
-	mutex      sync.RWMutex
-	hasher     hash.Hash32
-	hasherLock sync.Mutex
-	members    []*memberData
+	mutex   sync.RWMutex
+	members []*memberData
 }
 
 // NewRendezvous creates a new rendezvous hashing instance.
 func NewRendezvous() *Rendezvous {
 	return &Rendezvous{
-		hasher:  fnv.New32a(),
 		members: make([]*memberData, 0),
 	}
 }
@@ -35,10 +31,8 @@ func NewRendezvous() *Rendezvous {
 // GetByClusterIdentity returns the member address responsible for the given identity.
 func (r *Rendezvous) GetByClusterIdentity(ci *ClusterIdentity) string {
 	r.mutex.RLock()
-	defer r.mutex.RUnlock()
-
-	identity := ci.Identity
 	m := r.memberDataByKind(ci.Kind)
+	r.mutex.RUnlock()
 
 	l := len(m)
 
@@ -50,14 +44,21 @@ func (r *Rendezvous) GetByClusterIdentity(ci *ClusterIdentity) string {
 		return m[0].member.Address()
 	}
 
+	identity := ci.Identity
 	keyBytes := []byte(identity)
+
+	// Use a per-call hasher to avoid lock contention on the shared hasher.
+	h := fnv.New32a()
 
 	var maxScore uint32
 	var maxMember *memberData
 	var score uint32
 
 	for _, node := range m {
-		score = r.hash(node.hashBytes, keyBytes)
+		h.Reset()
+		h.Write(keyBytes)
+		h.Write(node.hashBytes)
+		score = h.Sum32()
 		if score > maxScore {
 			maxScore = score
 			maxMember = node
@@ -107,12 +108,3 @@ func (r *Rendezvous) UpdateMembers(members Members) {
 	}
 }
 
-func (r *Rendezvous) hash(node, key []byte) uint32 {
-	r.hasherLock.Lock()
-	defer r.hasherLock.Unlock()
-
-	r.hasher.Reset()
-	r.hasher.Write(key)
-	r.hasher.Write(node)
-	return r.hasher.Sum32()
-}
