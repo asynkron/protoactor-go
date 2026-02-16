@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/asynkron/protoactor-go/cluster"
@@ -39,7 +40,7 @@ type Provider struct {
 	clusterName         string
 	clusterKey          string
 	deregistered        bool
-	shutdown            bool
+	shutdown            atomic.Bool
 	self                *Node
 	members             map[string]*Node // all, contains self.
 	clusterError        error
@@ -64,7 +65,6 @@ func New(endpoints []string, opts ...Option) (*Provider, error) {
 		clusterKey:          "",
 		clusterName:         "",
 		deregistered:        false,
-		shutdown:            false,
 		self:                &Node{},
 		members:             map[string]*Node{},
 		revision:            0,
@@ -164,7 +164,7 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 
 // Shutdown deregisters the node and stops background processing.
 func (p *Provider) Shutdown(_ bool) error {
-	p.shutdown = true
+	p.shutdown.Store(true)
 	if !p.deregistered {
 		p.updateLeadership(nil)
 		if err := p.deregisterService(); err != nil {
@@ -328,7 +328,7 @@ func (p *Provider) containSelf(ns []*Node) bool {
 
 func (p *Provider) startRoleChangedNotifyLoop() {
 	go func() {
-		for !p.shutdown {
+		for !p.shutdown.Load() {
 			role := <-p.roleChangedChan
 			if lis := p.roleChangedListener; lis != nil {
 				safeRun(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
@@ -384,7 +384,7 @@ func (p *Provider) isLeaderOf(ns []*Node) bool {
 func (p *Provider) startWatching(registerSelf bool) {
 	ctx := context.TODO()
 	go func() {
-		for !p.shutdown {
+		for !p.shutdown.Load() {
 			if err := p.keepWatching(ctx, registerSelf); err != nil {
 				p.cluster.Logger().Error("Failed to keepWatching.", slog.Any("error", err))
 				p.clusterError = err
