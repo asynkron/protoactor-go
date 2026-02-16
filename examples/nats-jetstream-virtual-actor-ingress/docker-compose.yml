@@ -1,0 +1,13 @@
+version: "3"
+services:
+  nats:
+    image: nats:2-alpine
+    ports:
+      - "4222:4222"
+    command: ["-js"]
+
+  consul:
+    image: hashicorp/consul:1.19
+    ports:
+      - "8500:8500"
+    command: ["agent", "-dev", "-client=0.0.0.0"]

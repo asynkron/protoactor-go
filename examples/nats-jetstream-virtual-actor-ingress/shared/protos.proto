@@ -1,0 +1,18 @@
+syntax = "proto3";
+package shared;
+option go_package = "github.com/asynkron/protoactor-go/examples/nats-jetstream-virtual-actor-ingress/shared";
+
+message DeviceMessage {
+  string data = 1;
+}
+
+message Ack {}
+
+message DeviceState {
+  string data = 1;
+  int32 message_count = 2;
+}
+
+service Device {
+  rpc HandleMessage (DeviceMessage) returns (Ack) {}
+}
