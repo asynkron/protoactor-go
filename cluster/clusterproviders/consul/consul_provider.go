@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -24,8 +25,8 @@ var ProviderShuttingDownError = ErrProviderShuttingDown
 // Provider integrates Consul as a cluster provider for Proto.Actor.
 type Provider struct {
 	cluster            *cluster.Cluster
-	deregistered       bool
-	shutdown           bool
+	deregistered       atomic.Bool
+	shutdown           atomic.Bool
 	id                 string
 	clusterName        string
 	address            string
@@ -122,16 +123,15 @@ func (p *Provider) DeregisterMember() error {
 		p.cluster.Logger().Error("failed to deregister consul service", slog.Any("error", err))
 		return err
 	}
-	p.deregistered = true
+	p.deregistered.Store(true)
 	return nil
 }
 
 // Shutdown stops the provider and its internal actor.
 func (p *Provider) Shutdown(_ bool) error {
-	if p.shutdown {
+	if !p.shutdown.CompareAndSwap(false, true) {
 		return nil
 	}
-	p.shutdown = true
 	if p.pid != nil {
 		if err := p.cluster.ActorSystem.Root.StopFuture(p.pid).Wait(); err != nil {
 			p.cluster.Logger().Error("Failed to stop consul-provider actor", slog.Any("error", err))
@@ -213,7 +213,7 @@ func (p *Provider) notifyStatuses() {
 
 func (p *Provider) monitorMemberStatusChanges() {
 	go func() {
-		for !p.shutdown {
+		for !p.shutdown.Load() {
 			p.notifyStatuses()
 		}
 	}()
