@@ -1,0 +1,222 @@
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mQJXSkNZ9Ta8bFYBRpaWuFH [2mid=[0mQJXSkNZ9Ta8bFYBRpaWuFH
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mYSwZEZ6mtMxhtiAUJPmBbb [2mid=[0mYSwZEZ6mtMxhtiAUJPmBbb
+goos: linux
+goarch: amd64
+pkg: github.com/asynkron/protoactor-go/actor
+cpu: VirtualApple @ 2.50GHz
+BenchmarkActorContext_ProcessMessageNoMiddleware-12      	127659811	         9.795 ns/op	       0 B/op	       0 allocs/op
+BenchmarkActorContext_ProcessMessageNoMiddleware-12      	126884559	        10.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkActorContext_ProcessMessageNoMiddleware-12      	100000000	        10.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkActorContext_ProcessMessageWithMiddleware-12    	10200109	       101.4 ns/op	      32 B/op	       1 allocs/op
+BenchmarkActorContext_ProcessMessageWithMiddleware-12    	20467050	        53.81 ns/op	      32 B/op	       1 allocs/op
+BenchmarkActorContext_ProcessMessageWithMiddleware-12    	20849666	        50.04 ns/op	      32 B/op	       1 allocs/op
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0me4MSrRKdKtQuhwMi3iNzWh [2mid=[0me4MSrRKdKtQuhwMi3iNzWh
+BenchmarkActorContext_SpawnWithMiddleware0-12            	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mCPWTbDwhpGtNNs7k53siRs [2mid=[0mCPWTbDwhpGtNNs7k53siRs
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mnyPBVihbFXKTkworuhhCLt [2mid=[0mnyPBVihbFXKTkworuhhCLt
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mW6SqBqeJcf4ebWFzgmLzbU [2mid=[0mW6SqBqeJcf4ebWFzgmLzbU
+  486058	      3057 ns/op	    1000 B/op	      13 allocs/op
+BenchmarkActorContext_SpawnWithMiddleware0-12            	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mKCJEAHuWqaPnNCgDSBmFPv [2mid=[0mKCJEAHuWqaPnNCgDSBmFPv
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mBNxy7Mwo2rzgwrf5b9wfq9 [2mid=[0mBNxy7Mwo2rzgwrf5b9wfq9
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mXUXFPJZsdgRRdk64LcJMJH [2mid=[0mXUXFPJZsdgRRdk64LcJMJH
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mWgaqa8G6JMon6gPKjuJaHP [2mid=[0mWgaqa8G6JMon6gPKjuJaHP
+  825846	      2550 ns/op	     920 B/op	      13 allocs/op
+BenchmarkActorContext_SpawnWithMiddleware0-12            	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mbEk7eV7ZXTCArMJzxBN9PW [2mid=[0mbEk7eV7ZXTCArMJzxBN9PW
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mNVGwfFWRwrHnEdKSANXY5Y [2mid=[0mNVGwfFWRwrHnEdKSANXY5Y
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mCfbG6yHTs857tELbQC9rMm [2mid=[0mCfbG6yHTs857tELbQC9rMm
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mSnLBsXpSWN8T8FFe53TuFy [2mid=[0mSnLBsXpSWN8T8FFe53TuFy
+  859880	      2195 ns/op	     918 B/op	      13 allocs/op
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mMyv43o69Bm33ii7mDdDZPq [2mid=[0mMyv43o69Bm33ii7mDdDZPq
+BenchmarkActorContext_SpawnWithMiddleware1-12            	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mEgQsqbvQ2SQgF4fTCmGWgN [2mid=[0mEgQsqbvQ2SQgF4fTCmGWgN
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mYxdAPCGpkmZQvWqLSVHL8Z [2mid=[0mYxdAPCGpkmZQvWqLSVHL8Z
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mFwULiWhdYioquqJBrmo9iU [2mid=[0mFwULiWhdYioquqJBrmo9iU
+  855584	      2309 ns/op	     918 B/op	      13 allocs/op
+BenchmarkActorContext_SpawnWithMiddleware1-12            	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mAUVAjqyCSRWnp7P8qneUP2 [2mid=[0mAUVAjqyCSRWnp7P8qneUP2
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m7gJoHJcjzQ2VxuFwudHCpp [2mid=[0m7gJoHJcjzQ2VxuFwudHCpp
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mkUr8P6KjRi4vRk2ENjuV74 [2mid=[0mkUr8P6KjRi4vRk2ENjuV74
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mAkLr9JgBYBy4XQmsysSvA5 [2mid=[0mAkLr9JgBYBy4XQmsysSvA5
+  873462	      2262 ns/op	     922 B/op	      13 allocs/op
+BenchmarkActorContext_SpawnWithMiddleware1-12            	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mMny7RUVujmv6d8VhsD4Pw8 [2mid=[0mMny7RUVujmv6d8VhsD4Pw8
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mnWYbiQQPYaeVfmXq2UzWRE [2mid=[0mnWYbiQQPYaeVfmXq2UzWRE
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mGWwtKxBiQFYDKFqD7rf6NX [2mid=[0mGWwtKxBiQFYDKFqD7rf6NX
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mcTY53prb4zDf5edvpzRNFM [2mid=[0mcTY53prb4zDf5edvpzRNFM
+  768415	      2040 ns/op	     929 B/op	      13 allocs/op
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m3uKpW3WkHbkyTcwGzNBGPn [2mid=[0m3uKpW3WkHbkyTcwGzNBGPn
+BenchmarkActorContext_SpawnWithMiddleware2-12            	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mLdyByBN7zbhzKHmQwqSoPL [2mid=[0mLdyByBN7zbhzKHmQwqSoPL
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mAKidzXhRUPbgHhJABuTssf [2mid=[0mAKidzXhRUPbgHhJABuTssf
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mTvH6s7qE5ethEz29prGHbC [2mid=[0mTvH6s7qE5ethEz29prGHbC
+  919724	      2371 ns/op	     976 B/op	      13 allocs/op
+BenchmarkActorContext_SpawnWithMiddleware2-12            	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mjUK7U7Bbfn5iUrQ4Gxr4Ed [2mid=[0mjUK7U7Bbfn5iUrQ4Gxr4Ed
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mLbdqJfdmAFBCNvpbMNMhue [2mid=[0mLbdqJfdmAFBCNvpbMNMhue
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mdHoPDgViqSTKkMuw2PT9e7 [2mid=[0mdHoPDgViqSTKkMuw2PT9e7
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mcYGJDxsjdyhcnNfhQfsuoH [2mid=[0mcYGJDxsjdyhcnNfhQfsuoH
+  839461	      2131 ns/op	     918 B/op	      13 allocs/op
+BenchmarkActorContext_SpawnWithMiddleware2-12            	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mgRWDt8Nmt9jG4YocUdNZDA [2mid=[0mgRWDt8Nmt9jG4YocUdNZDA
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mEMLhkpnr34eWitMtdDfCkV [2mid=[0mEMLhkpnr34eWitMtdDfCkV
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mRXPeJsBywL3Vza9tDLanXq [2mid=[0mRXPeJsBywL3Vza9tDLanXq
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m78Dc7jpLEhqJc4yQbSKRKS [2mid=[0m78Dc7jpLEhqJc4yQbSKRKS
+  848923	      2100 ns/op	     918 B/op	      13 allocs/op
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mTqjNbeVnLNEPBrWjQPNjSQ [2mid=[0mTqjNbeVnLNEPBrWjQPNjSQ
+BenchmarkActorContext_SpawnWithMiddleware5-12            	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mCx6y4ANMbVzLqDvCRBFCuA [2mid=[0mCx6y4ANMbVzLqDvCRBFCuA
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m563LB2bAWF4ED9quBw8zdz [2mid=[0m563LB2bAWF4ED9quBw8zdz
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mKa6P4dkRXuoUQ6cWcMLpBR [2mid=[0mKa6P4dkRXuoUQ6cWcMLpBR
+ 1000000	      2342 ns/op	    1011 B/op	      13 allocs/op
+BenchmarkActorContext_SpawnWithMiddleware5-12            	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mQZRHishcuvW9bkn3oMecGr [2mid=[0mQZRHishcuvW9bkn3oMecGr
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mLHiAY3u525aaWymn4iXfgv [2mid=[0mLHiAY3u525aaWymn4iXfgv
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mKjyFVk9o6dyVeCWQbr2kPi [2mid=[0mKjyFVk9o6dyVeCWQbr2kPi
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mdZ2e3wT3dHaioqBtqGhYUJ [2mid=[0mdZ2e3wT3dHaioqBtqGhYUJ
+  828037	      2123 ns/op	     920 B/op	      13 allocs/op
+BenchmarkActorContext_SpawnWithMiddleware5-12            	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mYqvL6bjHvpaYkNESLVrpQE [2mid=[0mYqvL6bjHvpaYkNESLVrpQE
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mnb7CG28K7oHzgny7NvfiNH [2mid=[0mnb7CG28K7oHzgny7NvfiNH
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mDEfXNQ6u4MWE472Qk73Mw2 [2mid=[0mDEfXNQ6u4MWE472Qk73Mw2
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m6vvE5cLsU5eN4txiT8dvfJ [2mid=[0m6vvE5cLsU5eN4txiT8dvfJ
+  905298	      2262 ns/op	     948 B/op	      13 allocs/op
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0meLzksVQM4etFiqVKjLyL37 [2mid=[0meLzksVQM4etFiqVKjLyL37
+BenchmarkProto-12                                        	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m4S4saTktnyHfhQufiw9Sj8 [2mid=[0m4S4saTktnyHfhQufiw9Sj8
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mdTAJXsfJb9Z3SZZcspvgad [2mid=[0mdTAJXsfJb9Z3SZZcspvgad
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mFLrQzHVU8neELAwCguo5RL [2mid=[0mFLrQzHVU8neELAwCguo5RL
+  279151	      4058 ns/op	     556 B/op	      10 allocs/op
+BenchmarkProto-12                                        	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m4rTgSYft3vF8BJEyEMdDZq [2mid=[0m4rTgSYft3vF8BJEyEMdDZq
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mPVWTnb35gM7jqotKjBwAtP [2mid=[0mPVWTnb35gM7jqotKjBwAtP
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mevt9c4VVistpi83fHsjn8C [2mid=[0mevt9c4VVistpi83fHsjn8C
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0ma6wv4uy8ijmwhKQGD5Fvno [2mid=[0ma6wv4uy8ijmwhKQGD5Fvno
+  299910	      4063 ns/op	     553 B/op	      10 allocs/op
+BenchmarkProto-12                                        	[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mdAr8ApZy4Q5kUKWLFPTvGE [2mid=[0mdAr8ApZy4Q5kUKWLFPTvGE
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m3meZjZE5YkNx24noiU9zRE [2mid=[0m3meZjZE5YkNx24noiU9zRE
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mh7R9eXqNnM3qnRJjtqntCK [2mid=[0mh7R9eXqNnM3qnRJjtqntCK
+[2m3:59PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m4ssKsRySKjYQWQNgQna9uL [2mid=[0m4ssKsRySKjYQWQNgQna9uL
+  270870	      4453 ns/op	     557 B/op	      10 allocs/op
+BenchmarkUnboundedMailbox_PostAndProcess-12              	12294488	       127.2 ns/op	      54 B/op	       0 allocs/op
+BenchmarkUnboundedMailbox_PostAndProcess-12              	12446200	        90.07 ns/op	      53 B/op	       0 allocs/op
+BenchmarkUnboundedMailbox_PostAndProcess-12              	15242442	       101.4 ns/op	      44 B/op	       0 allocs/op
+BenchmarkBoundedMailbox_PostAndProcess-12                	15210932	        68.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkBoundedMailbox_PostAndProcess-12                	17341760	        91.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkBoundedMailbox_PostAndProcess-12                	14155909	        91.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkUnboundedLockfreeMailbox_PostAndProcess-12      	10961244	       103.7 ns/op	      24 B/op	       1 allocs/op
+BenchmarkUnboundedLockfreeMailbox_PostAndProcess-12      	13757707	       100.4 ns/op	      24 B/op	       1 allocs/op
+BenchmarkUnboundedLockfreeMailbox_PostAndProcess-12      	13544246	       106.7 ns/op	      24 B/op	       1 allocs/op
+BenchmarkMPSCQueue_PushPop-12                            	31463064	        38.61 ns/op	      24 B/op	       1 allocs/op
+BenchmarkMPSCQueue_PushPop-12                            	33296457	        35.46 ns/op	      24 B/op	       1 allocs/op
+BenchmarkMPSCQueue_PushPop-12                            	30555808	        40.26 ns/op	      24 B/op	       1 allocs/op
+BenchmarkMPSCQueue_Push-12                               	14871262	        69.71 ns/op	      24 B/op	       1 allocs/op
+BenchmarkMPSCQueue_Push-12                               	27069093	        57.69 ns/op	      24 B/op	       1 allocs/op
+BenchmarkMPSCQueue_Push-12                               	27211269	        51.94 ns/op	      24 B/op	       1 allocs/op
+BenchmarkPIDSet_Add/len_1-12                             	 6117447	       193.3 ns/op	     408 B/op	       3 allocs/op
+BenchmarkPIDSet_Add/len_1-12                             	 5087013	       209.4 ns/op	     408 B/op	       3 allocs/op
+BenchmarkPIDSet_Add/len_1-12                             	 5926587	       347.1 ns/op	     408 B/op	       3 allocs/op
+BenchmarkPIDSet_Add/len_5-12                             	 1000000	      1072 ns/op	     520 B/op	       6 allocs/op
+BenchmarkPIDSet_Add/len_5-12                             	 1620915	       635.4 ns/op	     520 B/op	       6 allocs/op
+BenchmarkPIDSet_Add/len_5-12                             	 2165599	       546.2 ns/op	     520 B/op	       6 allocs/op
+BenchmarkPIDSet_Add/len_20-12                            	  349610	      2959 ns/op	    3088 B/op	      13 allocs/op
+BenchmarkPIDSet_Add/len_20-12                            	  428470	      2799 ns/op	    3088 B/op	      13 allocs/op
+BenchmarkPIDSet_Add/len_20-12                            	  362923	      2808 ns/op	    3088 B/op	      13 allocs/op
+BenchmarkPIDSet_Add/len_500-12                           	   13802	     83543 ns/op	  101936 B/op	      27 allocs/op
+BenchmarkPIDSet_Add/len_500-12                           	   14080	     84655 ns/op	  101936 B/op	      27 allocs/op
+BenchmarkPIDSet_Add/len_500-12                           	   14329	     86983 ns/op	  101936 B/op	      27 allocs/op
+BenchmarkPIDSet_AddRemove/len_1-12                       	 4189690	       281.5 ns/op	     408 B/op	       3 allocs/op
+BenchmarkPIDSet_AddRemove/len_1-12                       	 4269907	       274.7 ns/op	     408 B/op	       3 allocs/op
+BenchmarkPIDSet_AddRemove/len_1-12                       	 4347907	       273.7 ns/op	     408 B/op	       3 allocs/op
+BenchmarkPIDSet_AddRemove/len_5-12                       	 1000000	      1031 ns/op	     520 B/op	       6 allocs/op
+BenchmarkPIDSet_AddRemove/len_5-12                       	 1000000	      1028 ns/op	     520 B/op	       6 allocs/op
+BenchmarkPIDSet_AddRemove/len_5-12                       	 1000000	      1029 ns/op	     520 B/op	       6 allocs/op
+BenchmarkPIDSet_AddRemove/len_20-12                      	  215587	      5122 ns/op	    3088 B/op	      13 allocs/op
+BenchmarkPIDSet_AddRemove/len_20-12                      	  219452	      5005 ns/op	    3088 B/op	      13 allocs/op
+BenchmarkPIDSet_AddRemove/len_20-12                      	  210189	      5074 ns/op	    3088 B/op	      13 allocs/op
+BenchmarkPIDSet_AddRemove/len_500-12                     	    9822	    134828 ns/op	  101936 B/op	      27 allocs/op
+BenchmarkPIDSet_AddRemove/len_500-12                     	    9596	    133909 ns/op	  101936 B/op	      27 allocs/op
+BenchmarkPIDSet_AddRemove/len_500-12                     	    7706	    133279 ns/op	  101936 B/op	      27 allocs/op
+BenchmarkPIDSet/len_1-12                                 	 4935790	       226.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_1-12                                 	 4759723	       228.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_1-12                                 	 5017461	       230.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_5-12                                 	 5131435	       225.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_5-12                                 	 5116746	       216.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_5-12                                 	 4524904	       254.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_20-12                                	 4913468	       233.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_20-12                                	 4512606	       241.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_20-12                                	 5296956	       219.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_500-12                               	 4372088	       239.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_500-12                               	 4646755	       225.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_500-12                               	 4702838	       254.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_1000-12                              	 4066516	       261.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_1000-12                              	 4507018	       256.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_1000-12                              	 5196668	       232.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_10000-12                             	 4613301	       296.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_10000-12                             	 3591084	       577.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_10000-12                             	 3391575	       415.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_100000-12                            	 2282362	       473.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_100000-12                            	 2819660	       383.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPIDSet/len_100000-12                            	 2580321	       407.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkUint64ToId-12                                   	60141782	        19.78 ns/op	       7 B/op	       1 allocs/op
+BenchmarkUint64ToId-12                                   	60691312	        19.38 ns/op	       7 B/op	       1 allocs/op
+BenchmarkUint64ToId-12                                   	57366600	        19.42 ns/op	       7 B/op	       1 allocs/op
+BenchmarkUint64ToString2-12                              	18001034	        62.14 ns/op	      47 B/op	       2 allocs/op
+BenchmarkUint64ToString2-12                              	17337688	        62.97 ns/op	      47 B/op	       2 allocs/op
+BenchmarkUint64ToString2-12                              	17573533	        62.56 ns/op	      47 B/op	       2 allocs/op
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mZ3QPBGk4PKsHmw5dxzurBA [2mid=[0mZ3QPBGk4PKsHmw5dxzurBA
+BenchmarkActorSendMessage-12                             	[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mGjpiwdkM3732uZyTKXFuHx [2mid=[0mGjpiwdkM3732uZyTKXFuHx
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m3YXokk7ACi7tXWDv8eC7NU [2mid=[0m3YXokk7ACi7tXWDv8eC7NU
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mJYnhpKcZAsD2YBEiuTFTUG [2mid=[0mJYnhpKcZAsD2YBEiuTFTUG
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0moNQfe2n4U88TPLyfZeZNEB [2mid=[0moNQfe2n4U88TPLyfZeZNEB
+ 9750709	       116.3 ns/op	      34 B/op	       0 allocs/op
+BenchmarkActorSendMessage-12                             	[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mmu8qfjR5rKpiEAoaiyPoee [2mid=[0mmu8qfjR5rKpiEAoaiyPoee
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mMLHfPh5Ku3GxQb6NgMHwkc [2mid=[0mMLHfPh5Ku3GxQb6NgMHwkc
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0maLThUUneJ6At3uZnFZDZLq [2mid=[0maLThUUneJ6At3uZnFZDZLq
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mHMKrBF5Q5g62MrCJukttBy [2mid=[0mHMKrBF5Q5g62MrCJukttBy
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mdCzaN6jwwAZknaPQky36cN [2mid=[0mdCzaN6jwwAZknaPQky36cN
+11178522	        94.63 ns/op	      30 B/op	       0 allocs/op
+BenchmarkActorSendMessage-12                             	[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mjv4ZazEYVYzk2Kx2KmonuF [2mid=[0mjv4ZazEYVYzk2Kx2KmonuF
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mJbagrEhLZcLriAgkjh7pKd [2mid=[0mJbagrEhLZcLriAgkjh7pKd
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mmPaMLzQKJWnFDytU8BZd9G [2mid=[0mmPaMLzQKJWnFDytU8BZd9G
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mEu9rFmghGtyUuawNxQU3uE [2mid=[0mEu9rFmghGtyUuawNxQU3uE
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mo4wry5uTiWskHvuW33TpBe [2mid=[0mo4wry5uTiWskHvuW33TpBe
+12330144	       110.5 ns/op	      54 B/op	       0 allocs/op
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m9Dma5ya8DJfLQFPdomo3UB [2mid=[0m9Dma5ya8DJfLQFPdomo3UB
+BenchmarkActorRequestResponse-12                         	[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mKfjP7kJLunnygMLGpmFmcc [2mid=[0mKfjP7kJLunnygMLGpmFmcc
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0meJ9y7UkDnCZYKZocg3H354 [2mid=[0meJ9y7UkDnCZYKZocg3H354
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mgk3M42BRF893yziTm75Gfy [2mid=[0mgk3M42BRF893yziTm75Gfy
+  298413	      4058 ns/op	     543 B/op	      10 allocs/op
+BenchmarkActorRequestResponse-12                         	[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m3dzoQQV9jpQbV4c8msmMnt [2mid=[0m3dzoQQV9jpQbV4c8msmMnt
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m4wnZ9jTqVge5ooaWUcLy4z [2mid=[0m4wnZ9jTqVge5ooaWUcLy4z
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mCCqMz7WsYSFCaaMm7Zzhig [2mid=[0mCCqMz7WsYSFCaaMm7Zzhig
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m3QexsCrc9aqHgknJB4b57Y [2mid=[0m3QexsCrc9aqHgknJB4b57Y
+  309626	      4020 ns/op	     542 B/op	      10 allocs/op
+BenchmarkActorRequestResponse-12                         	[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mVxtNXEcCavZjjhRgG5c5EH [2mid=[0mVxtNXEcCavZjjhRgG5c5EH
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mCVmFcEtF59jKnYAC8MB82B [2mid=[0mCVmFcEtF59jKnYAC8MB82B
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mUAK9bzsLzpgBXF6H9tdBRd [2mid=[0mUAK9bzsLzpgBXF6H9tdBRd
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0maVALVLBAMJv6RpL45U2GgA [2mid=[0maVALVLBAMJv6RpL45U2GgA
+  319326	      3990 ns/op	     541 B/op	      10 allocs/op
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0miGw3mefverFdNWpws6EuqU [2mid=[0miGw3mefverFdNWpws6EuqU
+BenchmarkSpawnAndStop-12                                 	[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mci7cL8BrdK4MnLJYGRkohn [2mid=[0mci7cL8BrdK4MnLJYGRkohn
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mZZYBQaucEfswMVXBpQGS7B [2mid=[0mZZYBQaucEfswMVXBpQGS7B
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0maQXKziPCZri537YTzMFUGR [2mid=[0maQXKziPCZri537YTzMFUGR
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m5WyeR2Kk6D3oxUHumgqP9B [2mid=[0m5WyeR2Kk6D3oxUHumgqP9B
+  357325	      3241 ns/op	    1898 B/op	      32 allocs/op
+BenchmarkSpawnAndStop-12                                 	[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mG9Y5mTRvQHDiUQr5VbN578 [2mid=[0mG9Y5mTRvQHDiUQr5VbN578
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mnvAoGsgn7o6o4JwmWuk5Ry [2mid=[0mnvAoGsgn7o6o4JwmWuk5Ry
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mZnZrLFgPatRXRVW2QZYbSM [2mid=[0mZnZrLFgPatRXRVW2QZYbSM
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mhaQiGMxb7S87MtJxxLmzux [2mid=[0mhaQiGMxb7S87MtJxxLmzux
+  344997	      3212 ns/op	    1899 B/op	      32 allocs/op
+BenchmarkSpawnAndStop-12                                 	[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mVgokBPmn6wATh8aKDXPwfw [2mid=[0mVgokBPmn6wATh8aKDXPwfw
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mZNf5MGWLuuVYtMd3NYLwrf [2mid=[0mZNf5MGWLuuVYtMd3NYLwrf
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m4w7Gmjfv3EFo4xQz8oKmUP [2mid=[0m4w7Gmjfv3EFo4xQz8oKmUP
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mds3dYc5wyfAwfrCLGAJb7K [2mid=[0mds3dYc5wyfAwfrCLGAJb7K
+  363936	      3224 ns/op	    1897 B/op	      32 allocs/op
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m2WyAY4gHpNPbaGaWHjVqLT [2mid=[0m2WyAY4gHpNPbaGaWHjVqLT
+BenchmarkActorSendMessage_Parallel-12                    	[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mPt2SDbuCoqNXQCX9uvNAuS [2mid=[0mPt2SDbuCoqNXQCX9uvNAuS
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m4GQcYLobmBrKo9vxMsp4wm [2mid=[0m4GQcYLobmBrKo9vxMsp4wm
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mfkL97jzSVDp25vAH7w8VT5 [2mid=[0mfkL97jzSVDp25vAH7w8VT5
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0m5dT7AUSBRjqCH9aKUgMvQu [2mid=[0m5dT7AUSBRjqCH9aKUgMvQu
+ 6665152	       158.0 ns/op	      50 B/op	       0 allocs/op
+BenchmarkActorSendMessage_Parallel-12                    	[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mTNa3EWM9ABwCDtnEemXhER [2mid=[0mTNa3EWM9ABwCDtnEemXhER
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mNNuwFq2QUwBA4NKqUmjmSn [2mid=[0mNNuwFq2QUwBA4NKqUmjmSn
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mLtXYmxKDkui3FqqJAaDSz6 [2mid=[0mLtXYmxKDkui3FqqJAaDSz6
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mbZiRG8JwRgQq8XNS6iv3Pq [2mid=[0mbZiRG8JwRgQq8XNS6iv3Pq
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mM9ww6yNvSNCNMQyDnnEVR9 [2mid=[0mM9ww6yNvSNCNMQyDnnEVR9
+ 7744562	       154.6 ns/op	      43 B/op	       0 allocs/op
+BenchmarkActorSendMessage_Parallel-12                    	[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mhuandwo6RfvzcBKfjTRZmw [2mid=[0mhuandwo6RfvzcBKfjTRZmw
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0maKBsJamJYszeyt2jrjABSf [2mid=[0maKBsJamJYszeyt2jrjABSf
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mhMQDfusxVdJyXvuepKTgnv [2mid=[0mhMQDfusxVdJyXvuepKTgnv
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mUsZhacCkf9bpaYncV3kZfk [2mid=[0mUsZhacCkf9bpaYncV3kZfk
+[2m4:01PM[0m [92mINF[0m actor system started [2mlib=[0mProto.Actor [2msystem=[0mYzznNaWXuPJB9vK3HZKLYn [2mid=[0mYzznNaWXuPJB9vK3HZKLYn
+ 8833024	       155.4 ns/op	      37 B/op	       0 allocs/op
+PASS
+ok  	github.com/asynkron/protoactor-go/actor	162.568s

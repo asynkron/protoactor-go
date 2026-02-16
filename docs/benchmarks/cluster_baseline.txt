@@ -1,0 +1,54 @@
+goos: linux
+goarch: amd64
+pkg: github.com/asynkron/protoactor-go/cluster
+cpu: VirtualApple @ 2.50GHz
+BenchmarkRendezvousHashing_10Members-12            	 1979781	       606.4 ns/op	     232 B/op	       4 allocs/op
+BenchmarkRendezvousHashing_10Members-12            	 1996770	       596.2 ns/op	     232 B/op	       4 allocs/op
+BenchmarkRendezvousHashing_10Members-12            	 1987768	       599.1 ns/op	     232 B/op	       4 allocs/op
+BenchmarkRendezvousHashing_100Members-12           	  244305	      5027 ns/op	    2152 B/op	       7 allocs/op
+BenchmarkRendezvousHashing_100Members-12           	  241045	      5127 ns/op	    2152 B/op	       7 allocs/op
+BenchmarkRendezvousHashing_100Members-12           	  239017	      4968 ns/op	    2152 B/op	       7 allocs/op
+BenchmarkRendezvousHashing_VaryingIdentities-12    	 2117493	       570.7 ns/op	     224 B/op	       4 allocs/op
+BenchmarkRendezvousHashing_VaryingIdentities-12    	 2129144	       567.7 ns/op	     224 B/op	       4 allocs/op
+BenchmarkRendezvousHashing_VaryingIdentities-12    	 2071699	       569.3 ns/op	     224 B/op	       4 allocs/op
+BenchmarkRendezvousUpdateMembers-12                	  296301	      3740 ns/op	    2392 B/op	      46 allocs/op
+BenchmarkRendezvousUpdateMembers-12                	  307459	      4141 ns/op	    2392 B/op	      46 allocs/op
+BenchmarkRendezvousUpdateMembers-12                	  294222	      3881 ns/op	    2392 B/op	      46 allocs/op
+BenchmarkEventStreamPublish-12                     	51479313	        23.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEventStreamPublish-12                     	55781415	        22.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEventStreamPublish-12                     	53198367	        21.95 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEventStreamPublish_10Subscribers-12       	14631736	        83.46 ns/op	      80 B/op	       1 allocs/op
+BenchmarkEventStreamPublish_10Subscribers-12       	15586886	        81.28 ns/op	      80 B/op	       1 allocs/op
+BenchmarkEventStreamPublish_10Subscribers-12       	15486734	        87.18 ns/op	      80 B/op	       1 allocs/op
+BenchmarkEventStreamPublish_WithPredicate-12       	52549375	        22.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEventStreamPublish_WithPredicate-12       	53379498	        22.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEventStreamPublish_WithPredicate-12       	53736156	        22.12 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTopologyHash-12                           	 1753220	       674.7 ns/op	     848 B/op	      13 allocs/op
+BenchmarkTopologyHash-12                           	 1607766	       700.0 ns/op	     848 B/op	      13 allocs/op
+BenchmarkTopologyHash-12                           	 1754300	       672.9 ns/op	     848 B/op	      13 allocs/op
+Benchmark_Rendezvous_Get/member*1-12               	12367870	        95.71 ns/op	      48 B/op	       2 allocs/op
+Benchmark_Rendezvous_Get/member*1-12               	12597338	       102.5 ns/op	      48 B/op	       2 allocs/op
+Benchmark_Rendezvous_Get/member*1-12               	11982570	        97.65 ns/op	      48 B/op	       2 allocs/op
+Benchmark_Rendezvous_Get/member*2-12               	 5231236	       228.2 ns/op	      96 B/op	       3 allocs/op
+Benchmark_Rendezvous_Get/member*2-12               	 5277862	       247.9 ns/op	      96 B/op	       3 allocs/op
+Benchmark_Rendezvous_Get/member*2-12               	 4432576	       249.1 ns/op	      96 B/op	       3 allocs/op
+Benchmark_Rendezvous_Get/member*3-12               	 2461632	       599.9 ns/op	      96 B/op	       3 allocs/op
+Benchmark_Rendezvous_Get/member*3-12               	 4005969	       327.7 ns/op	      96 B/op	       3 allocs/op
+Benchmark_Rendezvous_Get/member*3-12               	 3810793	       296.7 ns/op	      96 B/op	       3 allocs/op
+Benchmark_Rendezvous_Get/member*5-12               	 2713204	       440.3 ns/op	     160 B/op	       4 allocs/op
+Benchmark_Rendezvous_Get/member*5-12               	 2736433	       449.3 ns/op	     160 B/op	       4 allocs/op
+Benchmark_Rendezvous_Get/member*5-12               	 2722940	       435.6 ns/op	     160 B/op	       4 allocs/op
+Benchmark_Rendezvous_Get/member*10-12              	 1565746	       780.6 ns/op	     288 B/op	       5 allocs/op
+Benchmark_Rendezvous_Get/member*10-12              	 1537974	       789.9 ns/op	     288 B/op	       5 allocs/op
+Benchmark_Rendezvous_Get/member*10-12              	 1553821	       798.8 ns/op	     288 B/op	       5 allocs/op
+Benchmark_Rendezvous_Get/member*100-12             	  192338	      6153 ns/op	    2208 B/op	       8 allocs/op
+Benchmark_Rendezvous_Get/member*100-12             	  185434	      6151 ns/op	    2208 B/op	       8 allocs/op
+Benchmark_Rendezvous_Get/member*100-12             	  189860	      6076 ns/op	    2208 B/op	       8 allocs/op
+Benchmark_Rendezvous_Get/member*1000-12            	   20034	     59529 ns/op	   17568 B/op	      12 allocs/op
+Benchmark_Rendezvous_Get/member*1000-12            	   20254	     59761 ns/op	   17568 B/op	      12 allocs/op
+Benchmark_Rendezvous_Get/member*1000-12            	   20371	     59866 ns/op	   17568 B/op	      12 allocs/op
+Benchmark_Rendezvous_Get/member*2000-12            	    9700	    128116 ns/op	   48293 B/op	      14 allocs/op
+Benchmark_Rendezvous_Get/member*2000-12            	    9208	    123063 ns/op	   48292 B/op	      14 allocs/op
+Benchmark_Rendezvous_Get/member*2000-12            	    9542	    125767 ns/op	   48292 B/op	      14 allocs/op
+PASS
+ok  	github.com/asynkron/protoactor-go/cluster	80.733s

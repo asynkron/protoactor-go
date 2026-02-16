@@ -1,0 +1,27 @@
+goos: linux
+goarch: amd64
+pkg: github.com/asynkron/protoactor-go/remote
+cpu: VirtualApple @ 2.50GHz
+BenchmarkProtoSerializer_Serialize-12       	 6624934	       181.0 ns/op	      32 B/op	       1 allocs/op
+BenchmarkProtoSerializer_Serialize-12       	 6477784	       180.6 ns/op	      32 B/op	       1 allocs/op
+BenchmarkProtoSerializer_Serialize-12       	 6587505	       182.1 ns/op	      32 B/op	       1 allocs/op
+BenchmarkProtoSerializer_Deserialize-12     	 3394815	       361.3 ns/op	     192 B/op	       4 allocs/op
+BenchmarkProtoSerializer_Deserialize-12     	 3434554	       379.7 ns/op	     192 B/op	       4 allocs/op
+BenchmarkProtoSerializer_Deserialize-12     	 3133461	       438.5 ns/op	     192 B/op	       4 allocs/op
+BenchmarkProtoSerializer_RoundTrip-12       	 1821924	       580.4 ns/op	     224 B/op	       5 allocs/op
+BenchmarkProtoSerializer_RoundTrip-12       	 2104455	       564.1 ns/op	     224 B/op	       5 allocs/op
+BenchmarkProtoSerializer_RoundTrip-12       	 2209192	       560.6 ns/op	     224 B/op	       5 allocs/op
+BenchmarkJsonSerializer_Serialize-12        	  834228	      1232 ns/op	     616 B/op	      17 allocs/op
+BenchmarkJsonSerializer_Serialize-12        	  882595	      1224 ns/op	     616 B/op	      17 allocs/op
+BenchmarkJsonSerializer_Serialize-12        	  944534	      1263 ns/op	     616 B/op	      17 allocs/op
+BenchmarkJsonSerializer_Deserialize-12      	  621904	      1668 ns/op	     448 B/op	      13 allocs/op
+BenchmarkJsonSerializer_Deserialize-12      	  637626	      2745 ns/op	     448 B/op	      13 allocs/op
+BenchmarkJsonSerializer_Deserialize-12      	  732931	      1601 ns/op	     448 B/op	      13 allocs/op
+BenchmarkMessageBatch_Serialization-12      	  104779	     11128 ns/op	    3456 B/op	       1 allocs/op
+BenchmarkMessageBatch_Serialization-12      	  105732	     11009 ns/op	    3456 B/op	       1 allocs/op
+BenchmarkMessageBatch_Serialization-12      	  106263	     10972 ns/op	    3456 B/op	       1 allocs/op
+BenchmarkMessageBatch_Deserialization-12    	   60679	     19842 ns/op	   17248 B/op	     245 allocs/op
+BenchmarkMessageBatch_Deserialization-12    	   59989	     22666 ns/op	   17248 B/op	     245 allocs/op
+BenchmarkMessageBatch_Deserialization-12    	   60796	     20426 ns/op	   17248 B/op	     245 allocs/op
+PASS
+ok  	github.com/asynkron/protoactor-go/remote	30.987s
