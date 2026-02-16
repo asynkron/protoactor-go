@@ -173,17 +173,18 @@ func (state *endpointWriter) initializeInternal() error {
 }
 
 func (state *endpointWriter) sendEnvelopes(msg []interface{}, ctx actor.Context) {
-	envelopes := make([]*MessageEnvelope, 0)
+	batchSize := len(msg)
+	envelopes := make([]*MessageEnvelope, 0, batchSize)
 
 	// type name uniqueness map name string to type index
-	typeNames := make(map[string]int32)
-	typeNamesArr := make([]string, 0)
+	typeNames := make(map[string]int32, 16)
+	typeNamesArr := make([]string, 0, 16)
 
-	targetNames := make(map[string]int32)
-	targetNamesArr := make([]string, 0)
+	targetNames := make(map[string]int32, batchSize/2+1)
+	targetNamesArr := make([]string, 0, batchSize/2+1)
 
-	senderNames := make(map[string]int32)
-	senderNamesArr := make([]*actor.PID, 0)
+	senderNames := make(map[string]int32, batchSize/4+1)
+	senderNamesArr := make([]*actor.PID, 0, batchSize/4+1)
 
 	var (
 		header       *MessageHeader

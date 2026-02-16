@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -101,6 +102,147 @@ func BenchmarkJsonSerializer_Deserialize(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+	}
+}
+
+// BenchmarkBatchAssembly benchmarks the batch assembly logic used in sendEnvelopes,
+// which builds lookup maps and slices for type names, targets, and senders.
+// This is the code path optimized by pre-allocating slices and maps with capacity hints.
+func BenchmarkBatchAssembly(b *testing.B) {
+	for _, size := range []int{10, 100, 500} {
+		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
+			// Pre-build messages to isolate the assembly logic
+			type testMsg struct {
+				data     []byte
+				typeName string
+				target   *actor.PID
+				sender   *actor.PID
+			}
+			msgs := make([]testMsg, size)
+			for i := 0; i < size; i++ {
+				innerMsg := &ActorPidRequest{Name: "test-actor", Kind: "testKind"}
+				data, err := proto.Marshal(innerMsg)
+				if err != nil {
+					b.Fatal(err)
+				}
+				msgs[i] = testMsg{
+					data:     data,
+					typeName: fmt.Sprintf("type/%d", i%5),
+					target:   &actor.PID{Address: "127.0.0.1:8080", Id: fmt.Sprintf("target/%d", i%20)},
+					sender:   &actor.PID{Address: "127.0.0.1:8080", Id: fmt.Sprintf("sender/%d", i%10)},
+				}
+			}
+
+			b.ResetTimer()
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				batchSize := len(msgs)
+				envelopes := make([]*MessageEnvelope, 0, batchSize)
+
+				typeNames := make(map[string]int32, 16)
+				typeNamesArr := make([]string, 0, 16)
+
+				targetNames := make(map[string]int32, batchSize/2+1)
+				targetNamesArr := make([]string, 0, batchSize/2+1)
+
+				senderNames := make(map[string]int32, batchSize/4+1)
+				senderNamesArr := make([]*actor.PID, 0, batchSize/4+1)
+
+				for _, m := range msgs {
+					typeID, arr := addToLookup(typeNames, m.typeName, typeNamesArr)
+					typeNamesArr = arr
+
+					targetID, tarr := addToTargetLookup(targetNames, m.target, targetNamesArr)
+					targetNamesArr = tarr
+
+					senderID, sarr := addToSenderLookup(senderNames, m.sender, senderNamesArr)
+					senderNamesArr = sarr
+
+					envelopes = append(envelopes, &MessageEnvelope{
+						TypeId:      typeID,
+						MessageData: m.data,
+						Target:      targetID,
+						Sender:      senderID,
+					})
+				}
+
+				_ = &MessageBatch{
+					TypeNames: typeNamesArr,
+					Targets:   targetNamesArr,
+					Senders:   senderNamesArr,
+					Envelopes: envelopes,
+				}
+			}
+		})
+	}
+}
+
+// BenchmarkBatchAssembly_NoPrealloc benchmarks the same batch assembly logic
+// without pre-allocation, providing a comparison baseline for the optimization.
+func BenchmarkBatchAssembly_NoPrealloc(b *testing.B) {
+	for _, size := range []int{10, 100, 500} {
+		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
+			type testMsg struct {
+				data     []byte
+				typeName string
+				target   *actor.PID
+				sender   *actor.PID
+			}
+			msgs := make([]testMsg, size)
+			for i := 0; i < size; i++ {
+				innerMsg := &ActorPidRequest{Name: "test-actor", Kind: "testKind"}
+				data, err := proto.Marshal(innerMsg)
+				if err != nil {
+					b.Fatal(err)
+				}
+				msgs[i] = testMsg{
+					data:     data,
+					typeName: fmt.Sprintf("type/%d", i%5),
+					target:   &actor.PID{Address: "127.0.0.1:8080", Id: fmt.Sprintf("target/%d", i%20)},
+					sender:   &actor.PID{Address: "127.0.0.1:8080", Id: fmt.Sprintf("sender/%d", i%10)},
+				}
+			}
+
+			b.ResetTimer()
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				envelopes := make([]*MessageEnvelope, 0)
+
+				typeNames := make(map[string]int32)
+				typeNamesArr := make([]string, 0)
+
+				targetNames := make(map[string]int32)
+				targetNamesArr := make([]string, 0)
+
+				senderNames := make(map[string]int32)
+				senderNamesArr := make([]*actor.PID, 0)
+
+				for _, m := range msgs {
+					typeID, arr := addToLookup(typeNames, m.typeName, typeNamesArr)
+					typeNamesArr = arr
+
+					targetID, tarr := addToTargetLookup(targetNames, m.target, targetNamesArr)
+					targetNamesArr = tarr
+
+					senderID, sarr := addToSenderLookup(senderNames, m.sender, senderNamesArr)
+					senderNamesArr = sarr
+
+					envelopes = append(envelopes, &MessageEnvelope{
+						TypeId:      typeID,
+						MessageData: m.data,
+						Target:      targetID,
+						Sender:      senderID,
+					})
+				}
+
+				_ = &MessageBatch{
+					TypeNames: typeNamesArr,
+					Targets:   targetNamesArr,
+					Senders:   senderNamesArr,
+					Envelopes: envelopes,
+				}
+			}
+		})
 	}
 }
 
