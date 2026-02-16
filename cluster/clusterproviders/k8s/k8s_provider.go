@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -47,7 +48,7 @@ type Provider struct {
 	port           int
 	client         *kubernetes.Clientset
 	clusterMonitor *actor.PID
-	shutdown       bool
+	shutdown       atomic.Bool
 	cancelWatch    context.CancelFunc
 }
 
@@ -134,12 +135,10 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 
 // Shutdown stops the provider. The argument is kept for API compatibility.
 func (p *Provider) Shutdown(_ bool) error {
-	if p.shutdown {
+	if !p.shutdown.CompareAndSwap(false, true) {
 		// we are already shut down or shutting down
 		return nil
 	}
-
-	p.shutdown = true
 
 	p.cluster.Logger().Info("Shutting down k8s cluster provider")
 	if p.clusterMonitor != nil {
