@@ -246,6 +246,15 @@ func (c *Cluster) initKinds() {
 	c.ensureTopicKindRegistered()
 }
 
+// InitKindsForTest builds and registers the given kinds without starting
+// the full cluster. This is intended for unit tests that exercise
+// individual components (e.g. the placement actor) in isolation.
+func (c *Cluster) InitKindsForTest(kinds ...*Kind) {
+	for _, kind := range kinds {
+		c.kinds[kind.Kind] = kind.Build(c)
+	}
+}
+
 // ensureTopicKindRegistered ensures that the topic kind is registered in the cluster
 // if topic kind is not registered, it will be registered automatically
 func (c *Cluster) ensureTopicKindRegistered() {

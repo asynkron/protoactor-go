@@ -21,6 +21,10 @@ type placementActor struct {
 	cluster          *clustering.Cluster
 	partitionManager *Manager
 	actors           map[string]GrainMeta
+	// spawning tracks identity keys that have a spawn in progress.
+	// Because the actor processes messages sequentially, no mutex is
+	// needed -- all access happens inside Receive.
+	spawning map[string]bool
 }
 
 func newPlacementActor(c *clustering.Cluster, pm *Manager) *placementActor {
@@ -28,6 +32,7 @@ func newPlacementActor(c *clustering.Cluster, pm *Manager) *placementActor {
 		cluster:          c,
 		partitionManager: pm,
 		actors:           map[string]GrainMeta{},
+		spawning:         map[string]bool{},
 	}
 }
 
@@ -90,12 +95,25 @@ func (p *placementActor) onStopping(ctx actor.Context) {
 
 func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, ctx actor.Context) {
 	key := msg.ClusterIdentity.AsKey()
+
+	// If the actor already exists, return the existing PID.
 	meta, found := p.actors[key]
 	if found {
 		response := &clustering.ActivationResponse{
 			Pid: meta.PID,
 		}
 		ctx.Respond(response)
+		return
+	}
+
+	// If a spawn is already in progress for this identity+kind, skip to
+	// prevent duplicate actors.  The caller will retry or the first spawn
+	// will satisfy the request.
+	if p.spawning[key] {
+		ctx.Logger().Warn("Duplicate activation request ignored; spawn already in progress",
+			slog.String("identity", msg.ClusterIdentity.Identity),
+			slog.String("kind", msg.ClusterIdentity.Kind))
+		ctx.Respond(&clustering.ActivationResponse{Failed: true})
 		return
 	}
 
@@ -108,10 +126,17 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 		return
 	}
 
+	// Mark the identity as spawning before we begin.
+	p.spawning[key] = true
+
 	props := clustering.WithClusterIdentity(clusterKind.Props, msg.ClusterIdentity)
 
 	start := time.Now()
 	pid := ctx.SpawnPrefix(props, msg.ClusterIdentity.Identity)
+
+	// Spawn complete -- remove the in-progress marker.
+	delete(p.spawning, key)
+
 	clusterKind.Inc()
 	if p.cluster.MetricsEnabled() {
 		_ctx := context.Background()

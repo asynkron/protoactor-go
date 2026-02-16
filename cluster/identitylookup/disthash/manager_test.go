@@ -249,6 +249,115 @@ func TestGetDoesNotBlockTopologyUpdate(t *testing.T) {
 	getWg.Wait()
 }
 
+// TestPlacementActorDeduplicatesSpawns verifies that sending multiple
+// activation requests for the same identity+kind returns the same PID
+// rather than spawning duplicate actors.
+func TestPlacementActorDeduplicatesSpawns(t *testing.T) {
+	system := actor.NewActorSystem()
+	provider := test.NewTestProvider(test.NewInMemAgent())
+	lookup := New()
+
+	// Register a kind so the placement actor can spawn it.
+	kind := cluster.NewKind("test-kind", actor.PropsFromFunc(func(ctx actor.Context) {}))
+	config := cluster.Configure("test-cluster", provider, lookup,
+		remote.Configure("127.0.0.1", 0),
+		cluster.WithKinds(kind),
+	)
+	c := cluster.NewCluster(system, config)
+
+	// initKinds is called during StartMember, but we are testing the
+	// placement actor in isolation. Manually build the kind so
+	// GetClusterKind returns a non-nil value.
+	c.InitKindsForTest(kind)
+
+	manager := newPartitionManager(c)
+	manager.Start()
+	defer manager.Stop()
+
+	identity := &cluster.ClusterIdentity{Identity: "actor-1", Kind: "test-kind"}
+	req := &cluster.ActivationRequest{ClusterIdentity: identity}
+
+	// First request should spawn a new actor.
+	future1 := system.Root.RequestFuture(manager.placementActor, req, time.Second)
+	res1, err := future1.Result()
+	assert.NoError(t, err)
+	resp1, ok := res1.(*cluster.ActivationResponse)
+	assert.True(t, ok)
+	assert.False(t, resp1.Failed, "first activation should succeed")
+	assert.NotNil(t, resp1.Pid, "first activation should return a PID")
+
+	// Second request for the same identity should return the same PID
+	// (looked up from the actors map, not re-spawned).
+	future2 := system.Root.RequestFuture(manager.placementActor, req, time.Second)
+	res2, err := future2.Result()
+	assert.NoError(t, err)
+	resp2, ok := res2.(*cluster.ActivationResponse)
+	assert.True(t, ok)
+	assert.False(t, resp2.Failed, "second activation should succeed")
+	assert.Equal(t, resp1.Pid, resp2.Pid, "both activations should return the same PID")
+}
+
+// TestPlacementActorConcurrentSameIdentity sends many concurrent
+// activation requests for the same identity and verifies all responses
+// reference the same PID (no duplicates spawned).
+func TestPlacementActorConcurrentSameIdentity(t *testing.T) {
+	system := actor.NewActorSystem()
+	provider := test.NewTestProvider(test.NewInMemAgent())
+	lookup := New()
+
+	kind := cluster.NewKind("test-kind", actor.PropsFromFunc(func(ctx actor.Context) {}))
+	config := cluster.Configure("test-cluster", provider, lookup,
+		remote.Configure("127.0.0.1", 0),
+		cluster.WithKinds(kind),
+	)
+	c := cluster.NewCluster(system, config)
+	c.InitKindsForTest(kind)
+
+	manager := newPartitionManager(c)
+	manager.Start()
+	defer manager.Stop()
+
+	identity := &cluster.ClusterIdentity{Identity: "actor-concurrent", Kind: "test-kind"}
+	const concurrency = 20
+
+	// Fire off many requests concurrently.
+	futures := make([]actor.Future, concurrency)
+	for i := 0; i < concurrency; i++ {
+		req := &cluster.ActivationRequest{ClusterIdentity: identity}
+		futures[i] = system.Root.RequestFuture(manager.placementActor, req, 2*time.Second)
+	}
+
+	// Collect results.
+	var firstPid *actor.PID
+	successCount := 0
+	for i, f := range futures {
+		res, err := f.Result()
+		assert.NoError(t, err, "request %d should not error", i)
+		resp, ok := res.(*cluster.ActivationResponse)
+		assert.True(t, ok, "request %d should return ActivationResponse", i)
+
+		if resp.Failed {
+			// A "failed" response from the spawning-guard is acceptable
+			// for concurrent duplicates -- the caller will retry.
+			continue
+		}
+
+		successCount++
+		if firstPid == nil {
+			firstPid = resp.Pid
+		} else {
+			assert.Equal(t, firstPid, resp.Pid,
+				"request %d returned a different PID; duplicate spawn detected", i)
+		}
+	}
+
+	assert.NotNil(t, firstPid, "at least one activation should succeed")
+	// The first request always succeeds; subsequent ones either find it
+	// in the actors map (success, same PID) or hit the spawning guard.
+	assert.GreaterOrEqual(t, successCount, 1,
+		"at least one activation should succeed")
+}
+
 func TestDistHashManager(t *testing.T) {
 	suite.Run(t, new(DistHashManagerTestSuite))
 }
