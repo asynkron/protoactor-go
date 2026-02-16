@@ -3,7 +3,7 @@
 package actor
 
 import (
-	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/asynkron/protoactor-go/extensions"
@@ -14,6 +14,13 @@ import (
 )
 
 var extensionID = extensions.NextExtensionID()
+
+// Cached attribute keys to avoid repeated allocation in label constructors.
+var (
+	attrKeyAddress   = attribute.Key("address")
+	attrKeyID        = attribute.Key("id")
+	attrKeyActorType = attribute.Key("actortype")
+)
 
 // Metrics provides access to system-wide metric instrumentation.
 type Metrics struct {
@@ -59,8 +66,8 @@ func NewMetrics(system *ActorSystem, provider metric.MeterProvider) *Metrics {
 // consistency in OpenTelemetry reporting.
 func SystemLabels(system *ActorSystem) []attribute.KeyValue {
 	return []attribute.KeyValue{
-		attribute.String("address", system.Address()),
-		attribute.String("id", system.ID),
+		attrKeyAddress.String(system.Address()),
+		attrKeyID.String(system.ID),
 	}
 }
 
@@ -68,6 +75,6 @@ func SystemLabels(system *ActorSystem) []attribute.KeyValue {
 // system-wide labels and the specific actor type.
 func (m *Metrics) CommonLabels(ctx Context) []attribute.KeyValue {
 	return append(SystemLabels(ctx.ActorSystem()),
-		attribute.String("actortype", strings.Replace(fmt.Sprintf("%T", ctx.Actor()), "*", "", 1)),
+		attrKeyActorType.String(strings.Replace(reflect.TypeOf(ctx.Actor()).String(), "*", "", 1)),
 	)
 }
