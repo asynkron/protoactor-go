@@ -1,0 +1,16 @@
+syntax = "proto3";
+package shared;
+option go_package = "github.com/asynkron/protoactor-go/examples/nats-forwarder/shared";
+
+message Command {
+  string action = 1;
+  bytes payload = 2;
+  string reply_subject = 3;
+}
+
+message CommandResult {
+  string worker = 1;
+  string action = 2;
+  bool success = 3;
+  string result = 4;
+}
