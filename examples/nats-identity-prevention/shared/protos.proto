@@ -1,0 +1,18 @@
+syntax = "proto3";
+package shared;
+option go_package = "github.com/asynkron/protoactor-go/examples/nats-identity-prevention/shared";
+
+message IncrementRequest {
+  int32 amount = 1;
+}
+
+message GetCountRequest {}
+
+message CountResponse {
+  int32 count = 1;
+}
+
+service Counter {
+  rpc Increment (IncrementRequest) returns (CountResponse) {}
+  rpc GetCount (GetCountRequest) returns (CountResponse) {}
+}
