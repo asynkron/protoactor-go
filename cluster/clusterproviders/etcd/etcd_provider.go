@@ -23,11 +23,13 @@ type Provider struct {
 	baseKey       string
 	clusterName   string
 	deregistered  bool
-	shutdown      bool
+	shutdown      atomic.Bool
 	self          *Node
 	members       map[string]*Node // all, contains self.
 	clusterError  error
 	client        *clientv3.Client
+	ctx           context.Context
+	cancel        context.CancelFunc
 	cancelWatch   func()
 	cancelWatchCh chan bool
 	keepAliveTTL  time.Duration
@@ -102,6 +104,8 @@ func (p *Provider) init(c *cluster.Cluster) error {
 
 // StartMember registers the node in etcd and starts watching for updates.
 func (p *Provider) StartMember(c *cluster.Cluster) error {
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+
 	if err := p.init(c); err != nil {
 		return err
 	}
@@ -121,14 +125,15 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 	p.publishClusterTopologyEvent()
 	p.startWatching()
 
-	ctx := context.TODO()
-	p.startKeepAlive(ctx)
+	p.startKeepAlive(p.ctx)
 	p.updateLeadership()
 	return nil
 }
 
 // StartClient initializes the provider without registering the node.
 func (p *Provider) StartClient(c *cluster.Cluster) error {
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+
 	if err := p.init(c); err != nil {
 		return err
 	}
@@ -145,7 +150,12 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 
 // Shutdown deregisters the node and stops background tasks.
 func (p *Provider) Shutdown(_ bool) error {
-	p.shutdown = true
+	if !p.shutdown.CompareAndSwap(false, true) {
+		return nil
+	}
+	if p.cancel != nil {
+		p.cancel()
+	}
 	if !p.deregistered {
 		p.updateLeadership()
 		err := p.deregisterService()
@@ -183,11 +193,11 @@ func (p *Provider) keepAliveForever(_ context.Context) error {
 	if leaseID <= 0 {
 		return fmt.Errorf("grant lease failed. leaseID=%d", leaseID)
 	}
-	_, err = p.client.Put(context.TODO(), fullKey, string(data), clientv3.WithLease(leaseID))
+	_, err = p.client.Put(p.ctx, fullKey, string(data), clientv3.WithLease(leaseID))
 	if err != nil {
 		return err
 	}
-	kaRespCh, err := p.client.KeepAlive(context.TODO(), leaseID)
+	kaRespCh, err := p.client.KeepAlive(p.ctx, leaseID)
 	if err != nil {
 		return err
 	}
@@ -197,7 +207,7 @@ func (p *Provider) keepAliveForever(_ context.Context) error {
 			return fmt.Errorf("keep alive failed. resp=%s", resp.String())
 		}
 		// plog.Infof("keep alive %s ttl=%d", p.getID(), resp.TTL)
-		if p.shutdown {
+		if p.shutdown.Load() {
 			return nil
 		}
 	}
@@ -206,7 +216,7 @@ func (p *Provider) keepAliveForever(_ context.Context) error {
 
 func (p *Provider) startKeepAlive(ctx context.Context) {
 	go func() {
-		for !p.shutdown {
+		for !p.shutdown.Load() {
 			if err := ctx.Err(); err != nil {
 				p.cluster.Logger().Info("Keepalive was stopped.", slog.Any("error", err))
 				return
@@ -246,7 +256,7 @@ func (p *Provider) registerService() error {
 		leaseID = _leaseID
 		p.setLeaseID(leaseID)
 	}
-	_, err = p.client.Put(context.TODO(), fullKey, string(data), clientv3.WithLease(leaseID))
+	_, err = p.client.Put(p.ctx, fullKey, string(data), clientv3.WithLease(leaseID))
 	if err != nil {
 		return err
 	}
@@ -255,7 +265,10 @@ func (p *Provider) registerService() error {
 
 func (p *Provider) deregisterService() error {
 	fullKey := p.getEtcdKey()
-	_, err := p.client.Delete(context.TODO(), fullKey)
+	// Use a fresh context for deregistration since p.ctx may already be cancelled
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := p.client.Delete(ctx, fullKey)
 	return err
 }
 
@@ -337,8 +350,7 @@ func (p *Provider) _keepWatching(stream clientv3.WatchChan) error {
 }
 
 func (p *Provider) startWatching() {
-	ctx := context.TODO()
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(p.ctx)
 	p.cancelWatch = cancel
 	go func() {
 		//recover
@@ -352,7 +364,7 @@ func (p *Provider) startWatching() {
 			}
 			p.cancelWatch = nil
 		}()
-		for !p.shutdown {
+		for !p.shutdown.Load() {
 			if err := p.keepWatching(ctx); err != nil {
 				p.cluster.Logger().Error("Failed to keepWatching.", slog.Any("error", err))
 				p.clusterError = err
@@ -378,7 +390,7 @@ func (p *Provider) buildKey(names ...string) string {
 
 func (p *Provider) fetchNodes() ([]*Node, error) {
 	key := p.buildKey(p.clusterName)
-	resp, err := p.client.Get(context.TODO(), key, clientv3.WithPrefix())
+	resp, err := p.client.Get(p.ctx, key, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -455,7 +467,7 @@ func (p *Provider) newLeaseID() (clientv3.LeaseID, error) {
 	if ttlSecs < 1 {
 		ttlSecs = 1
 	}
-	resp, err := p.client.Grant(context.TODO(), ttlSecs)
+	resp, err := p.client.Grant(p.ctx, ttlSecs)
 	if err != nil {
 		return 0, err
 	}
@@ -553,7 +565,7 @@ func (p *Provider) isLeaderOf(ns []*Node) bool {
 
 func (p *Provider) startRoleChangedNotifyLoop() {
 	go func() {
-		for !p.shutdown {
+		for !p.shutdown.Load() {
 			role := <-p.roleChangedChan
 			if lis := p.roleChangedListener; lis != nil {
 				safeRun(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
