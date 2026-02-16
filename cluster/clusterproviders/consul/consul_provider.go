@@ -119,7 +119,7 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 func (p *Provider) DeregisterMember() error {
 	err := p.deregisterService()
 	if err != nil {
-		fmt.Println(err)
+		p.cluster.Logger().Error("failed to deregister consul service", slog.Any("error", err))
 		return err
 	}
 	p.deregistered = true

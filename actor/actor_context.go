@@ -740,9 +740,11 @@ func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}
 	ctx.Logger().Info("[ACTOR] Recovering", slog.Any("self", ctx.self), slog.Any("reason", reason))
 	// debug setting, allows to output supervision failures in console/error level
 	if ctx.actorSystem.Config.DeveloperSupervisionLogging {
-		fmt.Printf("debug.Stack(): %s\n", debug.Stack())
-		fmt.Println("[Supervision] Actor:", ctx.self, " failed with message:", message, " exception:", reason)
-		ctx.Logger().Error("[Supervision]", slog.Any("actor", ctx.self), slog.Any("message", message), slog.Any("exception", reason))
+		ctx.Logger().Error("[Supervision] actor failed",
+			slog.Any("actor", ctx.self),
+			slog.Any("message", message),
+			slog.Any("exception", reason),
+			slog.String("stack", string(debug.Stack())))
 	}
 
 	if ctx.actorSystem.Config.MetricsEnabled {

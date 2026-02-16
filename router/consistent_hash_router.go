@@ -1,7 +1,7 @@
 package router
 
 import (
-	"log"
+	"log/slog"
 	"sync/atomic"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -72,16 +72,16 @@ func (state *consistentHashRouterState) RouteMessage(message interface{}) {
 
 		node, ok := hmc.hashring.GetNode(key)
 		if !ok {
-			log.Printf("[ROUTING] Consistent has router failed to derminate routee: %v", key)
+			slog.Warn("consistent hash router failed to determine routee", slog.String("key", key))
 			return
 		}
 		if routee, ok := hmc.routeeMap[node]; ok {
 			state.sender.Send(routee, message)
 		} else {
-			log.Println("[ROUTING] Consistent router failed to resolve node", node)
+			slog.Warn("consistent hash router failed to resolve node", slog.String("node", node))
 		}
 	default:
-		log.Println("[ROUTING] Message must implement router.Hasher", msg)
+		slog.Warn("message must implement router.Hasher", slog.Any("message", msg))
 	}
 }
 
