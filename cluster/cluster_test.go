@@ -197,3 +197,28 @@ func TestCluster_Get(t *testing.T) {
 		assert.NotNil(pid)
 	})
 }
+
+func TestCluster_Shutdown_Graceful(t *testing.T) {
+	cp := newInmemoryProvider()
+	c := newClusterForTest("test-shutdown", cp)
+
+	err := c.StartMember()
+	assert.NoError(t, err)
+
+	// Should not panic
+	assert.NotPanics(t, func() {
+		c.Shutdown(true)
+	})
+}
+
+func TestCluster_Shutdown_NotGraceful(t *testing.T) {
+	cp := newInmemoryProvider()
+	c := newClusterForTest("test-shutdown-fast", cp)
+
+	err := c.StartMember()
+	assert.NoError(t, err)
+
+	assert.NotPanics(t, func() {
+		c.Shutdown(false)
+	})
+}
