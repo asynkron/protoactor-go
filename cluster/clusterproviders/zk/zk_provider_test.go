@@ -1,6 +1,11 @@
+//go:build integration
+
 package zk
 
 import (
+	"context"
+	"fmt"
+	"os"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -10,23 +15,67 @@ import (
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
 	"github.com/stretchr/testify/suite"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
+
+var zkEndpoint string
+
+func TestMain(m *testing.M) {
+	endpoint := os.Getenv("ZK_ENDPOINT")
+	if endpoint != "" {
+		zkEndpoint = endpoint
+		os.Exit(m.Run())
+	}
+
+	ctx := context.Background()
+
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        "zookeeper:3.9",
+			ExposedPorts: []string{"2181/tcp"},
+			WaitingFor:   wait.ForLog("PrepRequestProcessor (sid:0) started").WithStartupTimeout(30 * time.Second),
+		},
+		Started: true,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to start zookeeper container: %v\n", err)
+		os.Exit(1)
+	}
+
+	host, err := container.Host(ctx)
+	if err != nil {
+		_ = container.Terminate(ctx)
+		fmt.Fprintf(os.Stderr, "failed to get container host: %v\n", err)
+		os.Exit(1)
+	}
+
+	port, err := container.MappedPort(ctx, "2181")
+	if err != nil {
+		_ = container.Terminate(ctx)
+		fmt.Fprintf(os.Stderr, "failed to get container port: %v\n", err)
+		os.Exit(1)
+	}
+
+	zkEndpoint = fmt.Sprintf("%s:%s", host, port.Port())
+
+	code := m.Run()
+
+	_ = container.Terminate(ctx)
+	os.Exit(code)
+}
 
 type ZookeeperTestSuite struct {
 	suite.Suite
 }
 
 func (suite *ZookeeperTestSuite) SetupTest() {
-
 }
 
 func (suite *ZookeeperTestSuite) TearDownTest() {
 }
 
 func TestZookeeperTestSuite(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping Zookeeper integration test in short mode")
-	}
 	suite.Run(t, new(ZookeeperTestSuite))
 }
 
@@ -40,7 +89,7 @@ func (cs *ClusterAndSystem) Shutdown() {
 }
 
 func (suite *ZookeeperTestSuite) start(name string, opts ...cluster.ConfigOption) *ClusterAndSystem {
-	cp, _ := New([]string{`localhost:8000`})
+	cp, _ := New([]string{zkEndpoint})
 	remoteConfig := remote.Configure("localhost", 0)
 	config := cluster.Configure(name, cp, disthash.New(), remoteConfig, opts...)
 	system := actor.NewActorSystem()

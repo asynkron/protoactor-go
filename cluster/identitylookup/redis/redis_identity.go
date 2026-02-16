@@ -169,9 +169,17 @@ func (s *RedisIdentityStorage) WaitForActivation(clusterIdentity *cluster.Cluste
 		result, err = s.client.HGetAll(ctx, key).Result()
 		s.release()
 
-		if err != nil || len(result) == 0 {
-			// Key was deleted (stale lock cleanup or error).
+		if err != nil {
 			return nil
+		}
+
+		if len(result) == 0 {
+			if initialLockID != "" {
+				// Key was deleted (stale lock cleanup) — let caller retry.
+				return nil
+			}
+			// Key doesn't exist yet — keep waiting for the lock to be acquired.
+			continue
 		}
 
 		currentLockID := result["lid"]
@@ -179,6 +187,12 @@ func (s *RedisIdentityStorage) WaitForActivation(clusterIdentity *cluster.Cluste
 		// If the lock field is empty, the activation is complete.
 		if currentLockID == "" {
 			return s.parseActivation(result)
+		}
+
+		// If we didn't have a lock ID before, capture the one we just saw.
+		if initialLockID == "" {
+			initialLockID = currentLockID
+			continue
 		}
 
 		// If the lock ID changed, another node took over; let caller retry.

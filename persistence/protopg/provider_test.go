@@ -11,22 +11,64 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/asynkron/protoactor-go/persistence/protopg"
 )
 
-// getTestConnectionString returns a PostgreSQL connection string for
-// integration tests. It reads from the PROTOPG_TEST_DSN environment variable
-// or falls back to a sensible default for local Docker-based testing.
-func getTestConnectionString(t *testing.T) string {
-	t.Helper()
-	dsn := os.Getenv("PROTOPG_TEST_DSN")
-	if dsn == "" {
-		dsn = "postgres://postgres:postgres@localhost:5432/protoactor_test?sslmode=disable"
+var testDSN string
+
+func TestMain(m *testing.M) {
+	if dsn := os.Getenv("PROTOPG_TEST_DSN"); dsn != "" {
+		testDSN = dsn
+		os.Exit(m.Run())
 	}
-	return dsn
+
+	ctx := context.Background()
+
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        "postgres:16-alpine",
+			ExposedPorts: []string{"5432/tcp"},
+			Env: map[string]string{
+				"POSTGRES_USER":     "postgres",
+				"POSTGRES_PASSWORD": "postgres",
+				"POSTGRES_DB":       "protoactor_test",
+			},
+			WaitingFor: wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(2).
+				WithStartupTimeout(60 * time.Second),
+		},
+		Started: true,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to start postgres container: %v\n", err)
+		os.Exit(1)
+	}
+
+	host, err := container.Host(ctx)
+	if err != nil {
+		_ = container.Terminate(ctx)
+		fmt.Fprintf(os.Stderr, "failed to get container host: %v\n", err)
+		os.Exit(1)
+	}
+
+	port, err := container.MappedPort(ctx, "5432")
+	if err != nil {
+		_ = container.Terminate(ctx)
+		fmt.Fprintf(os.Stderr, "failed to get container port: %v\n", err)
+		os.Exit(1)
+	}
+
+	testDSN = fmt.Sprintf("postgres://postgres:postgres@%s:%s/protoactor_test?sslmode=disable", host, port.Port())
+
+	code := m.Run()
+
+	_ = container.Terminate(ctx)
+	os.Exit(code)
 }
 
 // newTestProvider creates a fresh provider with unique table names so tests
@@ -38,7 +80,7 @@ func newTestProvider(t *testing.T, snapshotInterval int) *protopg.PostgresProvid
 	snapshotsTable := "snapshots" + suffix
 
 	p, err := protopg.New(
-		protopg.WithConnectionString(getTestConnectionString(t)),
+		protopg.WithConnectionString(testDSN),
 		protopg.WithSnapshotInterval(snapshotInterval),
 		protopg.WithEventsTable(eventsTable),
 		protopg.WithSnapshotsTable(snapshotsTable),
@@ -59,10 +101,19 @@ func newTestProvider(t *testing.T, snapshotInterval int) *protopg.PostgresProvid
 }
 
 func TestGetSnapshotInterval(t *testing.T) {
-	for _, interval := range []int{0, 1, 5, 100} {
-		t.Run(fmt.Sprintf("interval-%d", interval), func(t *testing.T) {
-			p := newTestProvider(t, interval)
-			assert.Equal(t, interval, p.GetSnapshotInterval())
+	tests := []struct {
+		input    int
+		expected int
+	}{
+		{0, 1},   // 0 is replaced by the default of 1
+		{1, 1},
+		{5, 5},
+		{100, 100},
+	}
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("interval-%d", tc.input), func(t *testing.T) {
+			p := newTestProvider(t, tc.input)
+			assert.Equal(t, tc.expected, p.GetSnapshotInterval())
 		})
 	}
 }

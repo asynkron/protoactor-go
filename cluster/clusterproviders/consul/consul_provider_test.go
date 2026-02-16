@@ -1,19 +1,72 @@
+//go:build integration
+
 package consul
 
 import (
+	"context"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
+	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/assert"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
+
+var consulAddr string
+
+func TestMain(m *testing.M) {
+	addr := os.Getenv("CONSUL_ADDR")
+	if addr != "" {
+		consulAddr = addr
+		os.Exit(m.Run())
+	}
+
+	ctx := context.Background()
+
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        "hashicorp/consul:1.20",
+			ExposedPorts: []string{"8500/tcp"},
+			Cmd:          []string{"agent", "-dev", "-client", "0.0.0.0"},
+			WaitingFor:   wait.ForHTTP("/v1/status/leader").WithPort("8500/tcp").WithStartupTimeout(30 * time.Second),
+		},
+		Started: true,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to start consul container: %v\n", err)
+		os.Exit(1)
+	}
+
+	host, err := container.Host(ctx)
+	if err != nil {
+		_ = container.Terminate(ctx)
+		fmt.Fprintf(os.Stderr, "failed to get container host: %v\n", err)
+		os.Exit(1)
+	}
+
+	port, err := container.MappedPort(ctx, "8500")
+	if err != nil {
+		_ = container.Terminate(ctx)
+		fmt.Fprintf(os.Stderr, "failed to get container port: %v\n", err)
+		os.Exit(1)
+	}
+
+	consulAddr = fmt.Sprintf("%s:%s", host, port.Port())
+
+	code := m.Run()
+
+	_ = container.Terminate(ctx)
+	os.Exit(code)
+}
 
 func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cluster.Cluster {
 	host, _port, err := net.SplitHostPort(addr)
@@ -24,7 +77,6 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 	remoteConfig := remote.Configure(host, port)
 	lookup := disthash.New()
 	config := cluster.Configure(name, cp, lookup, remoteConfig)
-	// return cluster.NewForTest(system, config)
 
 	system := actor.NewActorSystem()
 	c := cluster.NewCluster(system, config)
@@ -37,12 +89,9 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 }
 
 func TestStartMember(t *testing.T) {
-	if testing.Short() {
-		return
-	}
 	a := assert.New(t)
 
-	p, _ := New()
+	p, _ := NewWithConfig(&api.Config{Address: consulAddr})
 	defer func() { _ = p.Shutdown(true) }()
 
 	c := newClusterForTest("mycluster", "127.0.0.1:8000", p)
@@ -66,7 +115,6 @@ func TestStartMember(t *testing.T) {
 		// member joined
 		members := []*cluster.Member{
 			{
-				// Id:    "mycluster@127.0.0.1:8000",
 				Id:    c.ActorSystem.ID,
 				Host:  "127.0.0.1",
 				Port:  8000,
@@ -85,9 +133,6 @@ func TestStartMember(t *testing.T) {
 }
 
 func TestRegisterMultipleMembers(t *testing.T) {
-	if testing.Short() {
-		return
-	}
 	a := assert.New(t)
 
 	members := []struct {
@@ -100,11 +145,11 @@ func TestRegisterMultipleMembers(t *testing.T) {
 		{"mycluster2", "127.0.0.1", 8003},
 	}
 
-	p, _ := New()
+	p, _ := NewWithConfig(&api.Config{Address: consulAddr})
 	defer func() { _ = p.Shutdown(true) }()
 	for _, member := range members {
 		addr := fmt.Sprintf("%s:%d", member.host, member.port)
-		_p, _ := New()
+		_p, _ := NewWithConfig(&api.Config{Address: consulAddr})
 		c := newClusterForTest(member.cluster, addr, _p)
 		err := p.StartMember(c)
 		a.NoError(err)
@@ -130,12 +175,9 @@ func TestRegisterMultipleMembers(t *testing.T) {
 }
 
 func TestUpdateTTL_DoesNotReregisterAfterShutdown(t *testing.T) {
-	if testing.Short() {
-		return
-	}
 	a := assert.New(t)
 
-	p, _ := New()
+	p, _ := NewWithConfig(&api.Config{Address: consulAddr})
 	c := newClusterForTest("mycluster5", "127.0.0.1:8001", p)
 
 	shutdownShouldHaveResolved := make(chan bool, 1)

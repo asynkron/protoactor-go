@@ -3,40 +3,84 @@
 package redis_test
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	goredis "github.com/redis/go-redis/v9"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup"
 	redisidentity "github.com/asynkron/protoactor-go/cluster/identitylookup/redis"
 )
 
-// TestRedisConformance runs the full StorageLookup conformance suite against
-// a real Redis instance. Requires a running Redis at REDIS_ADDR (default localhost:6379).
-//
-// Run with: go test -tags integration -v ./...
-func TestRedisConformance(t *testing.T) {
+var testClient *goredis.Client
+
+func TestMain(m *testing.M) {
 	addr := os.Getenv("REDIS_ADDR")
+
 	if addr == "" {
-		addr = "localhost:6379"
+		ctx := context.Background()
+		container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+			ContainerRequest: testcontainers.ContainerRequest{
+				Image:        "redis:7-alpine",
+				ExposedPorts: []string{"6379/tcp"},
+				WaitingFor:   wait.ForLog("Ready to accept connections").WithStartupTimeout(30 * time.Second),
+			},
+			Started: true,
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to start redis container: %v\n", err)
+			os.Exit(1)
+		}
+
+		host, err := container.Host(ctx)
+		if err != nil {
+			_ = container.Terminate(ctx)
+			fmt.Fprintf(os.Stderr, "failed to get container host: %v\n", err)
+			os.Exit(1)
+		}
+
+		port, err := container.MappedPort(ctx, "6379")
+		if err != nil {
+			_ = container.Terminate(ctx)
+			fmt.Fprintf(os.Stderr, "failed to get container port: %v\n", err)
+			os.Exit(1)
+		}
+
+		addr = fmt.Sprintf("%s:%s", host, port.Port())
+
+		defer func() {
+			_ = container.Terminate(ctx)
+		}()
 	}
 
-	client := goredis.NewClient(&goredis.Options{
+	testClient = goredis.NewClient(&goredis.Options{
 		Addr: addr,
 	})
 
+	os.Exit(m.Run())
+}
+
+// TestRedisConformance runs the full StorageLookup conformance suite against
+// a real Redis instance started via testcontainers.
+//
+// Run with: go test -tags integration -v ./...
+func TestRedisConformance(t *testing.T) {
 	suite := &identitylookup.StorageConformanceSuite{
 		NewStorage: func() cluster.StorageLookup {
-			return redisidentity.New("test-cluster", client)
+			return redisidentity.New("test-cluster", testClient)
 		},
 		Cleanup: func() {
 			// Clean up all test keys after each test.
-			ctx := client.Context()
-			iter := client.Scan(ctx, 0, "test-cluster:*", 0).Iterator()
+			ctx := context.Background()
+			iter := testClient.Scan(ctx, 0, "test-cluster:*", 0).Iterator()
 			for iter.Next(ctx) {
-				client.Del(ctx, iter.Val())
+				testClient.Del(ctx, iter.Val())
 			}
 		},
 	}

@@ -211,7 +211,7 @@ func (inf *Informer) GetMemberStateDelta(targetMemberID string) *MemberStateDelt
 		}
 	}
 
-	hasState := maps.Equal(inf.committedOffsets, pendingOffsets)
+	hasState := !maps.Equal(inf.committedOffsets, pendingOffsets)
 	memberState := &MemberStateDelta{
 		TargetMemberID: targetMemberID,
 		HasState:       hasState,

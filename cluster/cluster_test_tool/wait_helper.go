@@ -16,8 +16,8 @@ func WaitUntil(t testing.TB, cond func() bool, errorMsg string, timeout time.Dur
 	for {
 		select {
 		case <-after:
-			t.Error(errorMsg)
-			debug.PrintStack()
+			t.Fatalf("%s\n%s", errorMsg, debug.Stack())
+			return
 		default:
 			if cond() {
 				return

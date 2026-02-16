@@ -1,8 +1,12 @@
+//go:build integration
+
 package etcd
 
 import (
+	"context"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -12,7 +16,64 @@ import (
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
+
+var etcdEndpoint string
+
+func TestMain(m *testing.M) {
+	endpoint := os.Getenv("ETCD_ENDPOINT")
+	if endpoint != "" {
+		etcdEndpoint = endpoint
+		os.Exit(m.Run())
+	}
+
+	ctx := context.Background()
+
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        "quay.io/coreos/etcd:v3.5.17",
+			ExposedPorts: []string{"2379/tcp"},
+			Cmd:          []string{"etcd", "--advertise-client-urls", "http://0.0.0.0:2379", "--listen-client-urls", "http://0.0.0.0:2379"},
+			WaitingFor:   wait.ForLog("ready to serve client requests").WithStartupTimeout(30 * time.Second),
+		},
+		Started: true,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to start etcd container: %v\n", err)
+		os.Exit(1)
+	}
+
+	host, err := container.Host(ctx)
+	if err != nil {
+		_ = container.Terminate(ctx)
+		fmt.Fprintf(os.Stderr, "failed to get container host: %v\n", err)
+		os.Exit(1)
+	}
+
+	port, err := container.MappedPort(ctx, "2379")
+	if err != nil {
+		_ = container.Terminate(ctx)
+		fmt.Fprintf(os.Stderr, "failed to get container port: %v\n", err)
+		os.Exit(1)
+	}
+
+	etcdEndpoint = fmt.Sprintf("%s:%s", host, port.Port())
+
+	code := m.Run()
+
+	_ = container.Terminate(ctx)
+	os.Exit(code)
+}
+
+func newEtcdProvider(opts ...Option) (*Provider, error) {
+	return NewWithConfig("/protoactor", clientv3.Config{
+		Endpoints:   []string{etcdEndpoint},
+		DialTimeout: 5 * time.Second,
+	}, opts...)
+}
 
 func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cluster.Cluster {
 	host, _port, err := net.SplitHostPort(addr)
@@ -34,13 +95,9 @@ func newClusterForTest(name string, addr string, cp cluster.ClusterProvider) *cl
 }
 
 func TestStartMember(t *testing.T) {
-	if testing.Short() {
-		return
-	}
-
 	a := assert.New(t)
 
-	p, err := New()
+	p, err := newEtcdProvider()
 	a.NoError(err)
 	defer func() { _ = p.Shutdown(true) }()
 
@@ -67,7 +124,6 @@ func TestStartMember(t *testing.T) {
 
 		members := []*cluster.Member{
 			{
-				// Id:    "test_etcd_provider@127.0.0.1:8000",
 				Id:    fmt.Sprintf("test_etcd_provider@%s", c.ActorSystem.ID),
 				Host:  "127.0.0.1",
 				Port:  8000,
@@ -87,10 +143,6 @@ func TestStartMember(t *testing.T) {
 }
 
 func TestStartMember_Multiple(t *testing.T) {
-	if testing.Short() {
-		return
-	}
-
 	a := assert.New(t)
 	members := []struct {
 		cluster string
@@ -114,7 +166,7 @@ func TestStartMember_Multiple(t *testing.T) {
 
 	for i, member := range members {
 		addr := fmt.Sprintf("%s:%d", member.host, member.port)
-		p[i], err = New()
+		p[i], err = newEtcdProvider()
 		a.NoError(err)
 
 		c := newClusterForTest(member.cluster, addr, p[i])
@@ -142,50 +194,3 @@ func TestStartMember_Multiple(t *testing.T) {
 		a.Truef(flag, "Member not found - %+v", p[i].self)
 	}
 }
-
-// TODO: TestUpdateMemberState and TestUpdateMemberState_DoesNotReregisterAfterShutdown
-// are disabled because they use cluster.ClusterState and UpdateClusterState which are
-// commented out / removed from the cluster provider interface. These require an etcd
-// instance to run. To re-enable, the ClusterState API needs to be restored first.
-//func TestUpdateMemberState(t *testing.T) {
-//	if testing.Short() {
-//		return
-//	}
-//	assert := assert.New(t)
-//
-//	p, _ := New()
-//	defer p.Shutdown(true)
-//
-//	c := newClusterForTest("mycluster3", "127.0.0.1:8000", p)
-//	err := p.StartMember(c)
-//	assert.NoError(err)
-//
-//	state := cluster.ClusterState{[]string{"yes"}}
-//	err = p.UpdateClusterState(state)
-//	assert.NoError(err)
-//}
-//
-//func TestUpdateMemberState_DoesNotReregisterAfterShutdown(t *testing.T) {
-//	if testing.Short() {
-//		return
-//	}
-//	assert := assert.New(t)
-//
-//	p, _ := New()
-//	c := newClusterForTest("mycluster4", "127.0.0.1:8001", p)
-//	err := p.StartMember(c)
-//	assert.NoError(err)
-//	t.Cleanup(func() {
-//		p.Shutdown(true)
-//	})
-//
-//	state := cluster.ClusterState{[]string{"yes"}}
-//	err = p.UpdateClusterState(state)
-//	assert.NoError(err)
-//
-//	err = p.Shutdown(true)
-//	assert.NoError(err)
-//
-//	err = p.UpdateClusterState(state)
-//	assert.Error(err)
-//}
