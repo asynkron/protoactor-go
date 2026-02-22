@@ -361,6 +361,14 @@ func (p *Provider) consumeStream() error {
 	}
 	defer iter.Stop()
 
+	// Stop the iterator when the context is cancelled so that iter.Next()
+	// unblocks. Without this, iter.Next() can block indefinitely since it
+	// does not natively check a context.
+	go func() {
+		<-p.ctx.Done()
+		iter.Stop()
+	}()
+
 	// Track whether we've done the initial replay.
 	// After processing all existing messages, publish initial topology.
 	initialPublished := false
@@ -411,6 +419,11 @@ func (p *Provider) handleStreamMessage(msg jetstream.Msg) {
 
 // handleHeartbeatMessage processes a heartbeat message from a member.
 func (p *Provider) handleHeartbeatMessage(msg jetstream.Msg) {
+	// Skip empty messages (e.g. delete markers from TTL expiry).
+	if len(msg.Data()) == 0 {
+		return
+	}
+
 	node, err := NewNodeFromBytes(msg.Data())
 	if err != nil {
 		p.logger().Error("Invalid heartbeat data",
