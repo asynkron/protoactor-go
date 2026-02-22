@@ -1,0 +1,47 @@
+version: "3"
+services:
+  nats:
+    image: nats:2-alpine
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["-js", "-m", "8222"]
+
+  node1:
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+    environment:
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - nats
+
+  node2:
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+    environment:
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - nats
+
+  node3:
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+    environment:
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - nats
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    environment:
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - nats
+      - node1
+      - node2
+      - node3
