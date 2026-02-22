@@ -43,8 +43,8 @@ type Provider struct {
 	schedulers          []*SingletonScheduler
 	isLeader            atomic.Bool
 
-	// Integrated identity lookup (will be wired in Task 7)
-	identity interface{}
+	// Integrated identity lookup
+	identity *IdentityLookup
 }
 
 // New creates a Provider using a NATS connection. It creates a JetStream
@@ -73,12 +73,13 @@ func NewFromJetStream(js jetstream.JetStream, opts ...Option) (*Provider, error)
 		roleChangedListener: cfg.RoleChanged,
 	}
 
+	p.identity = newIdentityLookup(p)
+
 	return p, nil
 }
 
-// IdentityLookup returns the integrated identity lookup. This is a placeholder
-// that returns nil until Task 7 wires in the real IdentityLookup type.
-func (p *Provider) IdentityLookup() interface{} {
+// IdentityLookup returns the integrated identity lookup.
+func (p *Provider) IdentityLookup() *IdentityLookup {
 	return p.identity
 }
 
