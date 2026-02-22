@@ -4,6 +4,7 @@ go 1.25.3
 
 require (
 	github.com/asynkron/protoactor-go v0.0.0
+	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats-server/v2 v2.12.4
 	github.com/nats-io/nats.go v1.48.0
 	github.com/stretchr/testify v1.11.1
@@ -18,7 +19,6 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/go-tpm v0.9.8 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/grafana/regexp v0.0.0-20250905093917-f7b3be9d1853 // indirect
 	github.com/klauspost/compress v1.18.3 // indirect
 	github.com/lithammer/shortuuid/v4 v4.2.0 // indirect
