@@ -27,7 +27,9 @@ type Provider struct {
 	config       *config
 	js           jetstream.JetStream
 	memberBucket jetstream.KeyValue
+	leaderBucket jetstream.KeyValue
 	self         *Node
+	isMember     bool
 	members      map[string]*Node
 	membersMu    sync.RWMutex
 	shutdown     atomic.Bool
@@ -38,6 +40,7 @@ type Provider struct {
 
 	// Leader election
 	role                RoleType
+	roleMu              sync.Mutex
 	roleChangedChan     chan RoleType
 	roleChangedListener RoleChangedListener
 	schedulers          []*SingletonScheduler
@@ -89,6 +92,7 @@ func (p *Provider) GetHealthStatus() error {
 }
 
 // RegisterSingletonScheduler adds a singleton scheduler to be notified on role changes.
+// Must be called before StartMember.
 func (p *Provider) RegisterSingletonScheduler(scheduler *SingletonScheduler) {
 	p.schedulers = append(p.schedulers, scheduler)
 }
@@ -113,12 +117,17 @@ func (p *Provider) init(c *cluster.Cluster) error {
 // StartMember registers the node in NATS KV and starts watching for updates.
 func (p *Provider) StartMember(c *cluster.Cluster) error {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
+	p.isMember = true
 
 	if err := p.init(c); err != nil {
 		return err
 	}
 
 	if err := p.createMemberBucket(); err != nil {
+		return err
+	}
+
+	if err := p.createLeaderBucket(); err != nil {
 		return err
 	}
 
@@ -135,6 +144,7 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 
 	p.publishClusterTopologyEvent()
 	p.startWatching()
+	p.startLeaderWatching()
 	p.startRefresh()
 	p.attemptLeaderElection()
 
@@ -183,8 +193,8 @@ func (p *Provider) Shutdown(_ bool) error {
 		_ = p.memberBucket.Delete(ctx, key)
 
 		// If leader, delete leader key
-		if p.isLeader.Load() {
-			_ = p.memberBucket.Delete(ctx, p.leaderKey())
+		if p.isLeader.Load() && p.leaderBucket != nil {
+			_ = p.leaderBucket.Delete(ctx, p.leaderKey())
 		}
 	}
 
@@ -211,6 +221,26 @@ func (p *Provider) createMemberBucket() error {
 	}
 
 	p.memberBucket = kv
+	return nil
+}
+
+// createLeaderBucket creates a separate KV bucket for leader election with
+// its own TTL (LeaderTTL), so the leader key can have a different TTL than
+// member keys.
+func (p *Provider) createLeaderBucket() error {
+	bucketName := p.config.memberBucketName(p.clusterName) + "_leader"
+
+	kv, err := p.js.CreateOrUpdateKeyValue(p.ctx, jetstream.KeyValueConfig{
+		Bucket:         bucketName,
+		Replicas:       p.config.Replicas,
+		TTL:            p.config.LeaderTTL,
+		LimitMarkerTTL: p.config.LeaderTTL,
+	})
+	if err != nil {
+		return fmt.Errorf("natskv: create leader bucket %q: %w", bucketName, err)
+	}
+
+	p.leaderBucket = kv
 	return nil
 }
 
@@ -312,8 +342,8 @@ func (p *Provider) publishClusterTopologyEvent() {
 	}
 	p.membersMu.RUnlock()
 
-	// Include self if registered
-	if p.self != nil {
+	// Include self if registered as a member (not client).
+	if p.self != nil && p.isMember {
 		members = append(members, p.self.MemberStatus())
 	}
 
@@ -397,6 +427,69 @@ func (p *Provider) keepWatching() error {
 	return nil
 }
 
+// startLeaderWatching starts a KV watcher goroutine that monitors the leader key.
+// When the leader key is deleted or expires (TTL), followers re-attempt election.
+func (p *Provider) startLeaderWatching() {
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		defer func() {
+			if r := recover(); r != nil {
+				p.logger().Error("Recovered from panic in leader watcher",
+					slog.String("provider", "natskv"),
+					slog.Any("error", r))
+			}
+		}()
+
+		for !p.shutdown.Load() {
+			if err := p.keepWatchingLeader(); err != nil {
+				if p.shutdown.Load() {
+					return
+				}
+				p.logger().Error("Leader watcher failed, retrying",
+					slog.String("provider", "natskv"),
+					slog.Any("error", err))
+
+				select {
+				case <-time.After(p.config.RetryInterval):
+				case <-p.ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+}
+
+// keepWatchingLeader watches the leader key for delete/expiry events and triggers
+// re-election when the leader key disappears.
+func (p *Provider) keepWatchingLeader() error {
+	key := p.leaderKey()
+	watcher, err := p.leaderBucket.Watch(p.ctx, key, jetstream.UpdatesOnly())
+	if err != nil {
+		return fmt.Errorf("natskv: start leader watcher: %w", err)
+	}
+	defer watcher.Stop()
+
+	for entry := range watcher.Updates() {
+		if entry == nil {
+			continue
+		}
+
+		switch entry.Operation() {
+		case jetstream.KeyValueDelete, jetstream.KeyValuePurge:
+			// Leader key was deleted or expired. If we are not the current
+			// leader, attempt to claim leadership.
+			if !p.isLeader.Load() {
+				p.attemptLeaderElection()
+			}
+		case jetstream.KeyValuePut:
+			// Leader key was refreshed or claimed by another member. Normal operation.
+		}
+	}
+
+	return nil
+}
+
 // startRefresh starts the goroutine that periodically re-puts the member key
 // and leader key (if leader) to keep them alive within the bucket TTL.
 func (p *Provider) startRefresh() {
@@ -463,7 +556,7 @@ func (p *Provider) refreshLeaderKey() error {
 	data := []byte(fmt.Sprintf(`{"memberID":"%s","electedAt":"%s"}`,
 		p.self.ID, time.Now().UTC().Format(time.RFC3339)))
 	key := p.leaderKey()
-	_, err := p.memberBucket.Put(p.ctx, key, data)
+	_, err := p.leaderBucket.Put(p.ctx, key, data)
 	if err != nil {
 		// Lost leader key -- re-attempt election
 		p.isLeader.Store(false)
@@ -481,7 +574,7 @@ func (p *Provider) attemptLeaderElection() {
 	data := []byte(fmt.Sprintf(`{"memberID":"%s","electedAt":"%s"}`,
 		p.self.ID, time.Now().UTC().Format(time.RFC3339)))
 
-	_, err := p.memberBucket.Create(p.ctx, key, data)
+	_, err := p.leaderBucket.Create(p.ctx, key, data)
 	if err != nil {
 		// Another member is already leader or NATS error
 		return
@@ -494,18 +587,19 @@ func (p *Provider) attemptLeaderElection() {
 
 // setRole updates the role and notifies listeners.
 func (p *Provider) setRole(role RoleType) {
+	p.roleMu.Lock()
 	if role == p.role {
+		p.roleMu.Unlock()
 		return
 	}
 
-	if p.cluster != nil {
-		p.cluster.Logger().Info("Role changed",
-			slog.String("provider", "natskv"),
-			slog.String("from", p.role.String()),
-			slog.String("to", role.String()))
-	}
+	p.logger().Info("Role changed",
+		slog.String("provider", "natskv"),
+		slog.String("from", p.role.String()),
+		slog.String("to", role.String()))
 
 	p.role = role
+	p.roleMu.Unlock()
 
 	// Non-blocking send to role changed channel
 	select {

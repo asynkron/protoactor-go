@@ -353,7 +353,12 @@ func (il *IdentityLookup) addKeyToMember(ctx context.Context, memberID, key stri
 		if errors.Is(err, jetstream.ErrKeyNotFound) {
 			// Create a new member record.
 			mrec := memberRecord{Keys: []string{key}}
-			data, _ := json.Marshal(&mrec)
+			data, err := json.Marshal(&mrec)
+			if err != nil {
+				slog.Error("natskv identity: addKeyToMember marshal failed",
+					slog.String("memberID", memberID), slog.Any("error", err))
+				return
+			}
 			_, err = il.memberTracker.Create(ctx, memberID, data)
 			if err == nil {
 				return
@@ -387,7 +392,12 @@ func (il *IdentityLookup) addKeyToMember(ctx context.Context, memberID, key stri
 		}
 
 		mrec.Keys = append(mrec.Keys, key)
-		data, _ := json.Marshal(&mrec)
+		data, err := json.Marshal(&mrec)
+		if err != nil {
+			slog.Error("natskv identity: addKeyToMember marshal failed",
+				slog.String("memberID", memberID), slog.Any("error", err))
+			return
+		}
 
 		_, err = il.memberTracker.Update(ctx, memberID, data, entry.Revision())
 		if err == nil {
@@ -399,28 +409,44 @@ func (il *IdentityLookup) addKeyToMember(ctx context.Context, memberID, key stri
 }
 
 // removeKeyFromMember removes an identity key from a member's tracking record.
+// Uses a CAS-loop with retry on conflict.
 func (il *IdentityLookup) removeKeyFromMember(ctx context.Context, memberID, key string) {
-	entry, err := il.memberTracker.Get(ctx, memberID)
-	if err != nil {
-		return
-	}
-
-	var mrec memberRecord
-	if err := json.Unmarshal(entry.Value(), &mrec); err != nil {
-		return
-	}
-
-	// Filter out the key.
-	filtered := mrec.Keys[:0]
-	for _, k := range mrec.Keys {
-		if k != key {
-			filtered = append(filtered, k)
+	for i := 0; i < 3; i++ {
+		entry, err := il.memberTracker.Get(ctx, memberID)
+		if err != nil {
+			return
 		}
-	}
-	mrec.Keys = filtered
 
-	data, _ := json.Marshal(&mrec)
-	_, _ = il.memberTracker.Update(ctx, memberID, data, entry.Revision())
+		var mrec memberRecord
+		if err := json.Unmarshal(entry.Value(), &mrec); err != nil {
+			slog.Error("natskv identity: removeKeyFromMember unmarshal failed",
+				slog.String("memberID", memberID), slog.Any("error", err))
+			return
+		}
+
+		// Filter out the key.
+		filtered := make([]string, 0, len(mrec.Keys))
+		for _, k := range mrec.Keys {
+			if k != key {
+				filtered = append(filtered, k)
+			}
+		}
+		mrec.Keys = filtered
+
+		data, err := json.Marshal(&mrec)
+		if err != nil {
+			slog.Error("natskv identity: removeKeyFromMember marshal failed",
+				slog.String("memberID", memberID), slog.Any("error", err))
+			return
+		}
+
+		_, err = il.memberTracker.Update(ctx, memberID, data, entry.Revision())
+		if err == nil {
+			return
+		}
+		// CAS conflict -- retry.
+		time.Sleep(10 * time.Millisecond)
+	}
 }
 
 // spawnActivation attempts to spawn an actor for the given cluster identity,
@@ -452,6 +478,8 @@ func (il *IdentityLookup) spawnActivation(ci *cluster.ClusterIdentity, lockID st
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.Any("error", storeErr))
+		// Poison the spawned actor to prevent orphaned processes.
+		il.cluster.ActorSystem.Root.Poison(pid)
 		return nil
 	}
 
@@ -459,6 +487,14 @@ func (il *IdentityLookup) spawnActivation(ci *cluster.ClusterIdentity, lockID st
 	il.cluster.PidCache.Set(ci.Identity, ci.Kind, pid)
 
 	return pid
+}
+
+// identityLogger returns the cluster logger if available, otherwise the default logger.
+func (il *IdentityLookup) identityLogger() *slog.Logger {
+	if il.cluster != nil {
+		return il.cluster.Logger()
+	}
+	return slog.Default()
 }
 
 // pidFromRecord converts an activationRecord into an actor.PID.
