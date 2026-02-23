@@ -3,9 +3,11 @@ package natskv
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stretchr/testify/assert"
@@ -356,4 +358,42 @@ func TestIdentityLookup_RemoveKeyFromMember(t *testing.T) {
 	var mrec memberRecord
 	require.NoError(t, json.Unmarshal(entry.Value(), &mrec))
 	assert.Equal(t, []string{"TestKind.id2"}, mrec.Keys)
+}
+
+func TestIdentityLookup_SetupError_GetReturnsNil(t *testing.T) {
+	il := &IdentityLookup{
+		config:    newDefaultConfig(),
+		semaphore: make(chan struct{}, 1),
+		setupErr:  fmt.Errorf("simulated setup failure"),
+	}
+
+	assert.NotPanics(t, func() {
+		result := il.Get(&cluster.ClusterIdentity{Kind: "test", Identity: "1"})
+		assert.Nil(t, result)
+	})
+}
+
+func TestIdentityLookup_SetupError_RemovePidDoesNotPanic(t *testing.T) {
+	il := &IdentityLookup{
+		config:    newDefaultConfig(),
+		semaphore: make(chan struct{}, 1),
+		setupErr:  fmt.Errorf("simulated setup failure"),
+	}
+
+	assert.NotPanics(t, func() {
+		il.RemovePid(&cluster.ClusterIdentity{Kind: "test", Identity: "1"}, actor.NewPID("addr", "id"))
+	})
+}
+
+func TestIdentityLookup_SetupError_ShutdownDoesNotPanic(t *testing.T) {
+	il := &IdentityLookup{
+		config:    newDefaultConfig(),
+		semaphore: make(chan struct{}, 1),
+		setupErr:  fmt.Errorf("simulated setup failure"),
+		memberID:  "test-member",
+	}
+
+	assert.NotPanics(t, func() {
+		il.Shutdown()
+	})
 }

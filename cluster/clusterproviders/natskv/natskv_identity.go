@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 	"time"
@@ -28,6 +29,7 @@ type IdentityLookup struct {
 	memberTracker jetstream.KeyValue
 	config        *config
 	semaphore     chan struct{}
+	setupErr      error
 }
 
 // activationRecord is the JSON-encoded value stored in the identities KV bucket.
@@ -69,6 +71,7 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 		Replicas: il.config.Replicas,
 	})
 	if err != nil {
+		il.setupErr = fmt.Errorf("natskv identity setup failed: create identities bucket: %w", err)
 		slog.Error("natskv identity: failed to create identities bucket",
 			slog.Any("error", err))
 		return
@@ -81,6 +84,7 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 		Replicas: il.config.Replicas,
 	})
 	if err != nil {
+		il.setupErr = fmt.Errorf("natskv identity setup failed: create tracking bucket: %w", err)
 		slog.Error("natskv identity: failed to create tracking bucket",
 			slog.Any("error", err))
 		return
@@ -106,6 +110,10 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 //  4. If lock acquired, spawn the actor and store the activation.
 //  5. If lock not acquired, wait for activation.
 func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
+	if il.setupErr != nil {
+		slog.Error("natskv identity: cannot Get, setup failed", slog.Any("error", il.setupErr))
+		return nil
+	}
 	il.acquire()
 	defer il.release()
 
@@ -150,6 +158,10 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 
 // RemovePid removes the activation for a cluster identity.
 func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID) {
+	if il.setupErr != nil {
+		slog.Error("natskv identity: cannot RemovePid, setup failed", slog.Any("error", il.setupErr))
+		return
+	}
 	ctx := context.Background()
 	key := kvKey(ci)
 
@@ -171,6 +183,9 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 // Shutdown performs cleanup when the cluster is shutting down.
 // It removes all activations belonging to this member.
 func (il *IdentityLookup) Shutdown() {
+	if il.setupErr != nil {
+		return
+	}
 	if il.memberID != "" {
 		il.removeMemberID(context.Background(), il.memberID)
 	}
