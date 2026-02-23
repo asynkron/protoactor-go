@@ -21,8 +21,7 @@ type endpointReader struct {
 }
 
 func (s *endpointReader) mustEmbedUnimplementedRemotingServer() {
-	// TODO implement me
-	panic("implement me")
+	// Required for gRPC forward-compatibility. No-op by design.
 }
 
 func (s *endpointReader) ListProcesses(_ context.Context, _ *ListProcessesRequest) (*ListProcessesResponse, error) {

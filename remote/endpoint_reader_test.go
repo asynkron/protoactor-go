@@ -167,3 +167,14 @@ func TestOnMessageBatch_TargetOutOfBounds(t *testing.T) {
 	err := reader.onMessageBatch(batch)
 	assert.Error(t, err, "out-of-bounds target index should return error, not panic")
 }
+
+func TestEndpointReader_MustEmbedDoesNotPanic(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	assert.NotPanics(t, func() {
+		reader.mustEmbedUnimplementedRemotingServer()
+	})
+}
