@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"regexp"
+	"strings"
 	"sync/atomic"
 
 	"google.golang.org/protobuf/proto"
@@ -24,8 +26,42 @@ func (s *endpointReader) mustEmbedUnimplementedRemotingServer() {
 	// Required for gRPC forward-compatibility. No-op by design.
 }
 
-func (s *endpointReader) ListProcesses(_ context.Context, _ *ListProcessesRequest) (*ListProcessesResponse, error) {
-	panic("implement me")
+func (s *endpointReader) ListProcesses(_ context.Context, request *ListProcessesRequest) (*ListProcessesResponse, error) {
+	registry := s.remote.actorSystem.ProcessRegistry
+
+	var matchFn func(id string) bool
+	pattern := request.GetPattern()
+
+	if pattern == "" {
+		matchFn = func(string) bool { return true }
+	} else {
+		switch request.GetType() {
+		case ListProcessesMatchType_MatchExactString:
+			matchFn = func(id string) bool { return id == pattern }
+		case ListProcessesMatchType_MatchRegex:
+			re, err := regexp.Compile(pattern)
+			if err != nil {
+				return nil, fmt.Errorf("invalid regex pattern: %w", err)
+			}
+			matchFn = re.MatchString
+		default: // MatchPartOfString
+			matchFn = func(id string) bool { return strings.Contains(id, pattern) }
+		}
+	}
+
+	var pids []*actor.PID
+	for _, shard := range registry.LocalPIDs.LocalPIDs {
+		for _, id := range shard.Keys() {
+			if matchFn(id) {
+				pids = append(pids, &actor.PID{
+					Address: registry.Address,
+					Id:      id,
+				})
+			}
+		}
+	}
+
+	return &ListProcessesResponse{Pids: pids}, nil
 }
 
 func (s *endpointReader) GetProcessDiagnostics(_ context.Context, _ *GetProcessDiagnosticsRequest) (*GetProcessDiagnosticsResponse, error) {

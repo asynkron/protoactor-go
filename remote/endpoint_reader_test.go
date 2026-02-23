@@ -1,10 +1,12 @@
 package remote
 
 import (
+	"context"
 	"testing"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDeserializeSender_ValidIndex(t *testing.T) {
@@ -177,4 +179,146 @@ func TestEndpointReader_MustEmbedDoesNotPanic(t *testing.T) {
 	assert.NotPanics(t, func() {
 		reader.mustEmbedUnimplementedRemotingServer()
 	})
+}
+
+func TestListProcesses_ReturnsSpawnedActors(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	props := actor.PropsFromFunc(func(ctx actor.Context) {})
+	pid, err := system.Root.SpawnNamed(props, "test-list-actor")
+	require.NoError(t, err)
+	defer system.Root.Stop(pid)
+
+	resp, err := reader.ListProcesses(context.Background(), &ListProcessesRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	found := false
+	for _, p := range resp.Pids {
+		if p.Id == "test-list-actor" {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "ListProcesses should return the spawned actor")
+}
+
+func TestListProcesses_FilterByPattern(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	props := actor.PropsFromFunc(func(ctx actor.Context) {})
+	pid1, _ := system.Root.SpawnNamed(props, "alpha-actor")
+	pid2, _ := system.Root.SpawnNamed(props, "beta-actor")
+	defer system.Root.Stop(pid1)
+	defer system.Root.Stop(pid2)
+
+	resp, err := reader.ListProcesses(context.Background(), &ListProcessesRequest{
+		Pattern: "alpha",
+		Type:    ListProcessesMatchType_MatchPartOfString,
+	})
+	require.NoError(t, err)
+
+	foundAlpha := false
+	foundBeta := false
+	for _, p := range resp.Pids {
+		if p.Id == "alpha-actor" {
+			foundAlpha = true
+		}
+		if p.Id == "beta-actor" {
+			foundBeta = true
+		}
+	}
+	assert.True(t, foundAlpha, "should find alpha-actor with partial match")
+	assert.False(t, foundBeta, "should not find beta-actor with alpha filter")
+}
+
+func TestListProcesses_FilterByExactMatch(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	props := actor.PropsFromFunc(func(ctx actor.Context) {})
+	pid1, _ := system.Root.SpawnNamed(props, "exact-match-actor")
+	defer system.Root.Stop(pid1)
+
+	resp, err := reader.ListProcesses(context.Background(), &ListProcessesRequest{
+		Pattern: "exact-match-actor",
+		Type:    ListProcessesMatchType_MatchExactString,
+	})
+	require.NoError(t, err)
+
+	found := false
+	for _, p := range resp.Pids {
+		if p.Id == "exact-match-actor" {
+			found = true
+		}
+	}
+	assert.True(t, found, "exact match should find the actor")
+
+	resp, err = reader.ListProcesses(context.Background(), &ListProcessesRequest{
+		Pattern: "exact-match",
+		Type:    ListProcessesMatchType_MatchExactString,
+	})
+	require.NoError(t, err)
+
+	found = false
+	for _, p := range resp.Pids {
+		if p.Id == "exact-match-actor" {
+			found = true
+		}
+	}
+	assert.False(t, found, "partial string should not match with exact match type")
+}
+
+func TestListProcesses_FilterByRegex(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	props := actor.PropsFromFunc(func(ctx actor.Context) {})
+	pid1, _ := system.Root.SpawnNamed(props, "regex-test-123")
+	pid2, _ := system.Root.SpawnNamed(props, "regex-test-abc")
+	defer system.Root.Stop(pid1)
+	defer system.Root.Stop(pid2)
+
+	resp, err := reader.ListProcesses(context.Background(), &ListProcessesRequest{
+		Pattern: `regex-test-\d+`,
+		Type:    ListProcessesMatchType_MatchRegex,
+	})
+	require.NoError(t, err)
+
+	found123 := false
+	foundAbc := false
+	for _, p := range resp.Pids {
+		if p.Id == "regex-test-123" {
+			found123 = true
+		}
+		if p.Id == "regex-test-abc" {
+			foundAbc = true
+		}
+	}
+	assert.True(t, found123, "regex should match digits suffix")
+	assert.False(t, foundAbc, "regex should not match alpha suffix")
+}
+
+func TestListProcesses_InvalidRegex(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	resp, err := reader.ListProcesses(context.Background(), &ListProcessesRequest{
+		Pattern: "[invalid",
+		Type:    ListProcessesMatchType_MatchRegex,
+	})
+	assert.Error(t, err, "invalid regex should return error")
+	assert.Nil(t, resp)
 }
