@@ -48,11 +48,17 @@ type PubSubConfig struct {
 	// This value gets rounded to seconds for optimization of cancellation token creation. Note that internally,
 	// cluster request is used to deliver messages to ClusterIdentity subscribers.
 	SubscriberTimeout time.Duration
+
+	// SubscriptionStoreTimeout is the timeout for subscription store Get/Set operations.
+	// If the store does not respond within this duration, the operation fails gracefully.
+	// Default is 5s.
+	SubscriptionStoreTimeout time.Duration
 }
 
 func newPubSubConfig() *PubSubConfig {
 	return &PubSubConfig{
-		SubscriberTimeout: 5 * time.Second,
+		SubscriberTimeout:        5 * time.Second,
+		SubscriptionStoreTimeout: 5 * time.Second,
 	}
 }
 

@@ -56,7 +56,7 @@ func NewPubSubClusterFixture(t testing.TB, clusterSize int, useDefaultTopicRegis
 			}
 			if !fixture.useDefaultTopicRegistration {
 				kinds = append(kinds, cluster.NewKind(cluster.TopicActorKind, actor.PropsFromProducer(func() actor.Actor {
-					return cluster.NewTopicActor(store, slog.Default())
+					return cluster.NewTopicActor(store, slog.Default(), 5*time.Second)
 				})))
 			}
 			return kinds

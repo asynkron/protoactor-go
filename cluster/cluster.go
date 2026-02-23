@@ -267,9 +267,10 @@ func (c *Cluster) ensureTopicKindRegistered() {
 	}
 	if !hasTopicKind {
 		store := &EmptyKeyValueStore[*Subscribers]{}
+		storeTimeout := c.Config.PubSubConfig.SubscriptionStoreTimeout
 
 		c.kinds[TopicActorKind] = NewKind(TopicActorKind, actor.PropsFromProducer(func() actor.Actor {
-			return NewTopicActor(store, c.Logger())
+			return NewTopicActor(store, c.Logger(), storeTimeout)
 		})).Build(c)
 	}
 }

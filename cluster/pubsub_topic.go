@@ -14,18 +14,20 @@ const TopicActorKind = "prototopic"
 
 // TopicActor manages subscriptions and publishes messages for a topic.
 type TopicActor struct {
-	topic                string
-	subscribers          map[subscribeIdentityStruct]*SubscriberIdentity
-	subscriptionStore    KeyValueStore[*Subscribers]
-	topologySubscription *eventstream.Subscription
-	shouldThrottle       actor.ShouldThrottle
+	topic                    string
+	subscribers              map[subscribeIdentityStruct]*SubscriberIdentity
+	subscriptionStore        KeyValueStore[*Subscribers]
+	subscriptionStoreTimeout time.Duration
+	topologySubscription     *eventstream.Subscription
+	shouldThrottle           actor.ShouldThrottle
 }
 
 // NewTopicActor creates a new TopicActor using the provided store and logger.
-func NewTopicActor(store KeyValueStore[*Subscribers], logger *slog.Logger) *TopicActor {
+func NewTopicActor(store KeyValueStore[*Subscribers], logger *slog.Logger, subscriptionStoreTimeout time.Duration) *TopicActor {
 	return &TopicActor{
-		subscriptionStore: store,
-		subscribers:       make(map[subscribeIdentityStruct]*SubscriberIdentity),
+		subscriptionStore:        store,
+		subscriptionStoreTimeout: subscriptionStoreTimeout,
+		subscribers:              make(map[subscribeIdentityStruct]*SubscriberIdentity),
 		shouldThrottle: actor.NewThrottleWithLogger(logger, 10, time.Second, func(logger *slog.Logger, count int32) {
 			logger.Info("[TopicActor] Throttled logs", slog.Int("count", int(count)))
 		}),
@@ -244,10 +246,21 @@ func (t *TopicActor) removeSubscribers(subscribersThatLeft []subscribeIdentitySt
 	}
 }
 
+// storeTimeout returns the configured subscription store timeout,
+// falling back to 5 seconds when no timeout has been set.
+func (t *TopicActor) storeTimeout() time.Duration {
+	if t.subscriptionStoreTimeout == 0 {
+		return 5 * time.Second
+	}
+	return t.subscriptionStoreTimeout
+}
+
 // loadSubscriptions loads the subscriptions for the topic from the subscription store
 func (t *TopicActor) loadSubscriptions(topic string, logger *slog.Logger) *Subscribers {
-	// TODO: cancellation logic config?
-	state, err := t.subscriptionStore.Get(context.Background(), topic)
+	ctx, cancel := context.WithTimeout(context.Background(), t.storeTimeout())
+	defer cancel()
+
+	state, err := t.subscriptionStore.Get(ctx, topic)
 	if err != nil {
 		if t.shouldThrottle() == actor.Open {
 			logger.Error("Error when loading subscriptions", slog.String("topic", topic), slog.Any("error", err))
@@ -265,9 +278,11 @@ func (t *TopicActor) loadSubscriptions(topic string, logger *slog.Logger) *Subsc
 func (t *TopicActor) saveSubscriptionsInTopicActor(logger *slog.Logger) {
 	subscribers := &Subscribers{Subscribers: maps.Values(t.subscribers)}
 
-	// TODO: cancellation logic config?
+	ctx, cancel := context.WithTimeout(context.Background(), t.storeTimeout())
+	defer cancel()
+
 	logger.Debug("Saving subscriptions for topic", slog.String("topic", t.topic), slog.Any("subscriptions", subscribers))
-	err := t.subscriptionStore.Set(context.Background(), t.topic, subscribers)
+	err := t.subscriptionStore.Set(ctx, t.topic, subscribers)
 	if err != nil && t.shouldThrottle() == actor.Open {
 		logger.Error("Error when saving subscriptions", slog.String("topic", t.topic), slog.Any("error", err))
 	}
