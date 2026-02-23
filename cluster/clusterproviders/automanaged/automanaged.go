@@ -149,6 +149,14 @@ func (p *AutoManagedProvider) Shutdown(_ bool) error {
 	return nil
 }
 
+// UpdateKinds updates the known kinds for this node. The updated kinds
+// will be returned in the next /_health response, which other nodes
+// poll periodically.
+func (p *AutoManagedProvider) UpdateKinds(kinds []string) error {
+	p.knownKinds = kinds
+	return nil
+}
+
 // UpdateTTL sets up an endpoint to respond to other members
 func (p *AutoManagedProvider) UpdateTTL() {
 	p.activeProviderRunningMutex.Lock()
