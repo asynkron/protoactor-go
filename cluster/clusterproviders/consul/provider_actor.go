@@ -97,7 +97,7 @@ func (pa *providerActor) startWatch(ctx actor.Context) error {
 	go func() {
 		if err = plan.RunWithConfig(pa.consulConfig.Address, pa.consulConfig); err != nil {
 			ctx.Logger().Error("Failed to start consul watch", slog.Any("error", err))
-			panic(err)
+			ctx.Poison(ctx.Self())
 		}
 	}()
 
