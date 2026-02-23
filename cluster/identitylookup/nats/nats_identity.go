@@ -369,7 +369,12 @@ func (s *NatsIdentityStorage) addKeyToMember(ctx context.Context, memberID, key 
 		if errors.Is(err, jetstream.ErrKeyNotFound) {
 			// Create a new member record.
 			mrec := memberRecord{Keys: []string{key}}
-			data, _ := json.Marshal(&mrec)
+			data, err := json.Marshal(&mrec)
+			if err != nil {
+				slog.Error("NATS identity: addKeyToMember marshal failed",
+					slog.String("memberID", memberID), slog.Any("error", err))
+				return
+			}
 			_, err = s.members.Create(ctx, memberID, data)
 			if err == nil {
 				return
@@ -403,7 +408,12 @@ func (s *NatsIdentityStorage) addKeyToMember(ctx context.Context, memberID, key 
 		}
 
 		mrec.Keys = append(mrec.Keys, key)
-		data, _ := json.Marshal(&mrec)
+		data, err := json.Marshal(&mrec)
+		if err != nil {
+			slog.Error("NATS identity: addKeyToMember marshal failed",
+				slog.String("memberID", memberID), slog.Any("error", err))
+			return
+		}
 
 		_, err = s.members.Update(ctx, memberID, data, entry.Revision())
 		if err == nil {
@@ -435,6 +445,14 @@ func (s *NatsIdentityStorage) removeKeyFromMember(ctx context.Context, memberID,
 	}
 	mrec.Keys = filtered
 
-	data, _ := json.Marshal(&mrec)
-	_, _ = s.members.Update(ctx, memberID, data, entry.Revision())
+	data, err := json.Marshal(&mrec)
+	if err != nil {
+		slog.Error("NATS identity: removeKeyFromMember marshal failed",
+			slog.String("memberID", memberID), slog.Any("error", err))
+		return
+	}
+	if _, err := s.members.Update(ctx, memberID, data, entry.Revision()); err != nil {
+		slog.Warn("NATS identity: removeKeyFromMember CAS update failed, will be cleaned up on member leave",
+			slog.String("memberID", memberID), slog.Any("error", err))
+	}
 }
