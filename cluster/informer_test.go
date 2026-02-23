@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/asynkron/gofun/set"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -208,4 +209,58 @@ func TestInformer_GetMemberStateDelta(t *testing.T) {
 	if m == nil {
 		t.Error("member state delta is nil")
 	}
+}
+
+func TestInformer_purgeStaleMembers(t *testing.T) {
+	t.Parallel()
+
+	logger := slog.Default()
+	inf := newInformer("self", nil, 3, 50, logger)
+
+	// Simulate gossip state with 3 members: self, alive, stale
+	inf.state.Members["self"] = &GossipMemberState{
+		Values: map[string]*GossipKeyValue{},
+	}
+	inf.state.Members["alive-member"] = &GossipMemberState{
+		Values: map[string]*GossipKeyValue{},
+	}
+	inf.state.Members["stale-member"] = &GossipMemberState{
+		Values: map[string]*GossipKeyValue{},
+	}
+
+	// otherMembers only contains "alive-member" -- "stale-member" has left
+	inf.otherMembers = []*Member{
+		{Id: "alive-member", Host: "h1", Port: 1},
+	}
+
+	inf.purgeStaleMembers()
+
+	// self is preserved
+	assert.Contains(t, inf.state.Members, "self")
+	// alive member is preserved
+	assert.Contains(t, inf.state.Members, "alive-member")
+	// stale member is purged
+	assert.NotContains(t, inf.state.Members, "stale-member")
+}
+
+func TestInformer_purgeStaleMembers_noOtherMembers(t *testing.T) {
+	t.Parallel()
+
+	logger := slog.Default()
+	inf := newInformer("self", nil, 3, 50, logger)
+
+	inf.state.Members["self"] = &GossipMemberState{
+		Values: map[string]*GossipKeyValue{},
+	}
+	inf.state.Members["orphan"] = &GossipMemberState{
+		Values: map[string]*GossipKeyValue{},
+	}
+
+	// No other members -- all non-self members should be purged
+	inf.otherMembers = []*Member{}
+
+	inf.purgeStaleMembers()
+
+	assert.Contains(t, inf.state.Members, "self")
+	assert.NotContains(t, inf.state.Members, "orphan")
 }

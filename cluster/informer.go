@@ -109,7 +109,7 @@ func (inf *Informer) SetState(key string, message proto.Message) {
 // from the slice of other members known by this informer until gossipFanOut
 // number of sent has been reached
 func (inf *Informer) SendState(sendStateToMember LocalStateSender) {
-	// inf.purgeBannedMembers()  // TODO
+	inf.purgeStaleMembers()
 	for _, member := range inf.otherMembers {
 		ensureMemberStateExists(inf.state, member.Id)
 	}
@@ -138,6 +138,27 @@ func (inf *Informer) SendState(sendStateToMember LocalStateSender) {
 		// we reached our limit, break
 		if fanOutCount >= inf.gossipFanOut {
 			break
+		}
+	}
+}
+
+// purgeStaleMembers removes gossip state entries for members that are no
+// longer in the otherMembers list (i.e., they have left the cluster).
+// Self is always preserved.
+func (inf *Informer) purgeStaleMembers() {
+	known := make(map[string]struct{}, len(inf.otherMembers))
+	for _, m := range inf.otherMembers {
+		known[m.Id] = struct{}{}
+	}
+
+	for memberID := range inf.state.Members {
+		if memberID == inf.myID {
+			continue
+		}
+		if _, ok := known[memberID]; !ok {
+			inf.logger.Debug("Purging departed member from gossip state",
+				slog.String("memberID", memberID))
+			delete(inf.state.Members, memberID)
 		}
 	}
 }
