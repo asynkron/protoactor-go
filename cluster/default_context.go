@@ -21,7 +21,9 @@ type ContextProducer func(*Cluster) Context
 
 // Defines a default cluster context hashBytes structure.
 type DefaultContext struct {
-	cluster *Cluster
+	cluster                   *Cluster
+	requestTimeoutLogThrottle actor.ShouldThrottle
+	futureTimeoutLogThrottle  actor.ShouldThrottle
 }
 
 var _ Context = (*DefaultContext)(nil)
@@ -31,6 +33,14 @@ var _ Context = (*DefaultContext)(nil)
 func newDefaultClusterContext(cluster *Cluster) Context {
 	clusterContext := DefaultContext{
 		cluster: cluster,
+		requestTimeoutLogThrottle: actor.NewThrottle(5, 10*time.Second, func(count int32) {
+			cluster.Logger().Warn("Cluster request timeout logging throttled",
+				slog.Int("suppressed", int(count)))
+		}),
+		futureTimeoutLogThrottle: actor.NewThrottle(5, 10*time.Second, func(count int32) {
+			cluster.Logger().Warn("Cluster future request timeout logging throttled",
+				slog.Int("suppressed", int(count)))
+		}),
 	}
 
 	return &clusterContext
@@ -69,9 +79,15 @@ selectloop:
 	for {
 		select {
 		case <-ctx.Done():
-			// TODO: handler throttling and messaging here
 			err = fmt.Errorf("request failed: %w", ctx.Err())
-
+			// Log on first timeout signal, before retry loop exits.
+			// A separate throttle (cfg.requestLogThrottle) fires after
+			// all retries are exhausted, logging total duration.
+			if dcc.requestTimeoutLogThrottle() == actor.Open {
+				dcc.cluster.Logger().Warn("Cluster request timed out",
+					slog.String("identity", identity),
+					slog.String("kind", kind))
+			}
 			break selectloop
 		default:
 			if counter >= callConfig.RetryCount {
@@ -166,8 +182,12 @@ func (dcc *DefaultContext) RequestFuture(identity string, kind string, message a
 	for {
 		select {
 		case <-ctx.Done():
-			// TODO: handler throttling and messaging here
 			err := fmt.Errorf("request failed: %w", ctx.Err())
+			if dcc.futureTimeoutLogThrottle() == actor.Open {
+				dcc.cluster.Logger().Warn("Cluster future request timed out",
+					slog.String("identity", identity),
+					slog.String("kind", kind))
+			}
 			return nil, err
 		default:
 			if counter >= callConfig.RetryCount {
