@@ -30,6 +30,7 @@ type Cluster struct {
 	IdentityLookup IdentityLookup
 	kindsMu        sync.RWMutex
 	kinds          map[string]*ActivatedKind
+	provider       ClusterProvider
 	context        Context
 
 	metrics        *clustermetrics.ClusterMetrics
@@ -126,6 +127,7 @@ func (c *Cluster) GetBlockedMembers() set.Set[string] {
 
 func (c *Cluster) StartMember() error {
 	cfg := c.Config
+	c.provider = cfg.ClusterProvider
 	c.Remote = remote.NewRemote(c.ActorSystem, c.Config.RemoteConfig)
 
 	c.initKinds()
@@ -272,6 +274,71 @@ func (c *Cluster) InitKindsForTest(kinds ...*Kind) {
 	defer c.kindsMu.Unlock()
 	for name, ak := range activated {
 		c.kinds[name] = ak
+	}
+}
+
+// RegisterKind registers a new Kind with the cluster at runtime.
+// The Kind becomes available for local activation immediately.
+// Other cluster members discover the new Kind on the next topology
+// update cycle (typically within one heartbeat interval).
+//
+// Returns an error if a Kind with the same name is already registered.
+func (c *Cluster) RegisterKind(kind *Kind) error {
+	// Build outside the lock — Build may call StrategyBuilder(c)
+	// which may acquire kindsMu.RLock via TryGetClusterKind.
+	activated := kind.Build(c)
+
+	c.kindsMu.Lock()
+	defer c.kindsMu.Unlock()
+
+	if _, exists := c.kinds[kind.Kind]; exists {
+		return fmt.Errorf("kind %q is already registered", kind.Kind)
+	}
+
+	c.kinds[kind.Kind] = activated
+	c.notifyKindUpdate()
+	return nil
+}
+
+// DeregisterKind removes a Kind from the cluster. Returns an error if
+// the Kind doesn't exist. The TopicActorKind cannot be deregistered.
+func (c *Cluster) DeregisterKind(kindName string) error {
+	c.kindsMu.Lock()
+	defer c.kindsMu.Unlock()
+
+	if kindName == TopicActorKind {
+		return fmt.Errorf("kind %q is reserved and cannot be deregistered", kindName)
+	}
+
+	if _, exists := c.kinds[kindName]; !exists {
+		return fmt.Errorf("kind %q is not registered", kindName)
+	}
+
+	delete(c.kinds, kindName)
+	c.notifyKindUpdate()
+	return nil
+}
+
+// getClusterKindsLocked returns kind names. Caller must hold kindsMu.
+func (c *Cluster) getClusterKindsLocked() []string {
+	keys := make([]string, 0, len(c.kinds))
+	for k := range c.kinds {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func (c *Cluster) notifyKindUpdate() {
+	// kindsMu must be held by caller.
+	if c.provider == nil {
+		return
+	}
+	if updater, ok := c.provider.(KindUpdater); ok {
+		kinds := c.getClusterKindsLocked()
+		if err := updater.UpdateKinds(kinds); err != nil {
+			c.Logger().Error("Failed to notify provider of kind update",
+				slog.Any("error", err))
+		}
 	}
 }
 
