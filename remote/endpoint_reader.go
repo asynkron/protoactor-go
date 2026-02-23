@@ -63,9 +63,19 @@ func (s *endpointReader) ListProcesses(_ context.Context, request *ListProcesses
 
 	return &ListProcessesResponse{Pids: pids}, nil
 }
+func (s *endpointReader) GetProcessDiagnostics(_ context.Context, request *GetProcessDiagnosticsRequest) (*GetProcessDiagnosticsResponse, error) {
+	pid := request.GetPid()
+	if pid == nil {
+		return nil, fmt.Errorf("pid is required")
+	}
 
-func (s *endpointReader) GetProcessDiagnostics(_ context.Context, _ *GetProcessDiagnosticsRequest) (*GetProcessDiagnosticsResponse, error) {
-	panic("implement me")
+	process, ok := s.remote.actorSystem.ProcessRegistry.GetLocal(pid.Id)
+	if !ok {
+		return nil, fmt.Errorf("process not found: %s", pid.Id)
+	}
+
+	diagnostics := fmt.Sprintf("process_type:%T", process)
+	return &GetProcessDiagnosticsResponse{DiagnosticsString: diagnostics}, nil
 }
 
 func newEndpointReader(r *Remote) *endpointReader {

@@ -322,3 +322,48 @@ func TestListProcesses_InvalidRegex(t *testing.T) {
 	assert.Error(t, err, "invalid regex should return error")
 	assert.Nil(t, resp)
 }
+
+func TestGetProcessDiagnostics_ExistingProcess(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	props := actor.PropsFromFunc(func(ctx actor.Context) {})
+	pid, err := system.Root.SpawnNamed(props, "diag-actor")
+	require.NoError(t, err)
+	defer system.Root.Stop(pid)
+
+	resp, err := reader.GetProcessDiagnostics(context.Background(), &GetProcessDiagnosticsRequest{
+		Pid: pid,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.NotEmpty(t, resp.DiagnosticsString, "should return diagnostics for existing process")
+}
+
+func TestGetProcessDiagnostics_NonExistentProcess(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	resp, err := reader.GetProcessDiagnostics(context.Background(), &GetProcessDiagnosticsRequest{
+		Pid: actor.NewPID("nonhost", "nonexistent"),
+	})
+	assert.Error(t, err, "should return error for non-existent process")
+	assert.Nil(t, resp)
+}
+
+func TestGetProcessDiagnostics_NilPid(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	resp, err := reader.GetProcessDiagnostics(context.Background(), &GetProcessDiagnosticsRequest{
+		Pid: nil,
+	})
+	assert.Error(t, err, "should return error for nil pid")
+	assert.Nil(t, resp)
+}
