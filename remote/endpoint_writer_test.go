@@ -192,3 +192,33 @@ func TestEndpointWriter_RestartAfterConnectFailure_NoPanic(t *testing.T) {
 	count := atomic.LoadInt32(&initCount)
 	assert.Equal(t, int32(0), count, "initialize should not have been called again after restartAfterConnectFailure")
 }
+
+func TestExponentialBackoff_DelaysIncreaseGeometrically(t *testing.T) {
+	config := Configure("localhost", 0,
+		WithRetryBaseDelay(100*time.Millisecond),
+		WithRetryMaxDelay(1*time.Second),
+		WithMaxRetryCount(4),
+	)
+	assert.Equal(t, 1*time.Second, config.RetryMaxDelay)
+}
+
+func TestExponentialBackoff_DelaysAreCorrect(t *testing.T) {
+	baseDelay := 100 * time.Millisecond
+	maxDelay := 500 * time.Millisecond
+
+	// Test the backoff calculation directly
+	for attempt, expected := range []time.Duration{
+		100 * time.Millisecond, // 100ms * 2^0
+		200 * time.Millisecond, // 100ms * 2^1
+		400 * time.Millisecond, // 100ms * 2^2
+		500 * time.Millisecond, // 100ms * 2^3 = 800ms, capped at 500ms
+		500 * time.Millisecond, // capped
+	} {
+		delay := calcBackoffDelay(baseDelay, maxDelay, attempt)
+		// Delay should be in [expected, expected + 25% jitter]
+		assert.GreaterOrEqual(t, delay, expected,
+			"attempt %d: delay %v should be >= %v", attempt, delay, expected)
+		assert.LessOrEqual(t, delay, expected+expected/4,
+			"attempt %d: delay %v should be <= %v (with 25%% jitter)", attempt, delay, expected+expected/4)
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"math/rand"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -37,6 +38,23 @@ type restartAfterConnectFailure struct {
 	err error
 }
 
+// calcBackoffDelay computes an exponential backoff delay with jitter.
+// delay = min(baseDelay * 2^attempt, maxDelay) + rand(0, delay/4)
+func calcBackoffDelay(baseDelay, maxDelay time.Duration, attempt int) time.Duration {
+	delay := baseDelay
+	if attempt < 63 {
+		delay = baseDelay * time.Duration(1<<uint(attempt))
+	}
+	if delay <= 0 || delay > maxDelay {
+		delay = maxDelay
+	}
+	// Add 0-25% jitter to prevent thundering herd
+	if quarter := int64(delay / 4); quarter > 0 {
+		delay += time.Duration(rand.Int63n(quarter))
+	}
+	return delay
+}
+
 func (state *endpointWriter) initialize(_ actor.Context) {
 	now := time.Now()
 
@@ -47,10 +65,10 @@ func (state *endpointWriter) initialize(_ actor.Context) {
 	for i := 0; i < state.remote.config.MaxRetryCount; i++ {
 		err = state.initializeInternal()
 		if err != nil {
-			state.remote.Logger().Error("EndpointWriter failed to connect", slog.String("address", state.address), slog.Any("error", err), slog.Int("retry", i))
-			// Wait before retrying connection
-			// TODO: Replace with Exponential Backoff
-			time.Sleep(state.config.RetryBaseDelay)
+			state.remote.Logger().Error("EndpointWriter failed to connect",
+				slog.String("address", state.address), slog.Any("error", err), slog.Int("retry", i))
+			delay := calcBackoffDelay(state.config.RetryBaseDelay, state.config.RetryMaxDelay, i)
+			time.Sleep(delay)
 			continue
 		}
 

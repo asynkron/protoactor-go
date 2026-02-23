@@ -20,6 +20,7 @@ func defaultConfig() *Config {
 		Kinds:                    make(map[string]*actor.Props),
 		MaxRetryCount:            5,
 		RetryBaseDelay:           2 * time.Second,
+		RetryMaxDelay:            10 * time.Second,
 		ShutdownTimeout:          10 * time.Second,
 	}
 }
@@ -60,6 +61,12 @@ func (c *Config) validate() error {
 	}
 	if c.RetryBaseDelay <= 0 {
 		return fmt.Errorf("RetryBaseDelay must be > 0, got %v", c.RetryBaseDelay)
+	}
+	if c.RetryMaxDelay <= 0 {
+		return fmt.Errorf("RetryMaxDelay must be > 0, got %v", c.RetryMaxDelay)
+	}
+	if c.RetryMaxDelay < c.RetryBaseDelay {
+		return fmt.Errorf("RetryMaxDelay must be >= RetryBaseDelay, got %v < %v", c.RetryMaxDelay, c.RetryBaseDelay)
 	}
 	if c.ShutdownTimeout <= 0 {
 		return fmt.Errorf("ShutdownTimeout must be > 0, got %v", c.ShutdownTimeout)
@@ -108,6 +115,9 @@ type Config struct {
 	MaxRetryCount            int
 	// RetryBaseDelay is the base delay between connection retry attempts.
 	RetryBaseDelay time.Duration
+	// RetryMaxDelay is the maximum delay between connection retry attempts.
+	// Delays increase exponentially from RetryBaseDelay up to this cap.
+	RetryMaxDelay time.Duration
 	// ShutdownTimeout is the maximum time to wait for a graceful shutdown
 	// before forcing a hard stop.
 	ShutdownTimeout time.Duration

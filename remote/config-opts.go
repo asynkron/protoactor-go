@@ -82,6 +82,14 @@ func WithRetryBaseDelay(d time.Duration) ConfigOption {
 	}
 }
 
+// WithRetryMaxDelay sets the maximum delay between connection retry attempts.
+// Delays increase exponentially from RetryBaseDelay up to this cap.
+func WithRetryMaxDelay(d time.Duration) ConfigOption {
+	return func(config *Config) {
+		config.RetryMaxDelay = d
+	}
+}
+
 // WithShutdownTimeout sets the maximum time to wait for a graceful shutdown
 // before forcing a hard stop.
 func WithShutdownTimeout(d time.Duration) ConfigOption {
