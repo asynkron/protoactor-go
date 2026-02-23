@@ -259,6 +259,9 @@ func deserializeSender(index int32, requestID uint32, arr []*actor.PID) *actor.P
 		return nil
 	}
 	pid := arr[index-1]
+	if pid == nil {
+		return nil
+	}
 
 	// if request id is used, clone the PID first so we don't corrupt the lookup
 	if requestID > 0 {

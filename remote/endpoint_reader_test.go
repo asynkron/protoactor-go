@@ -425,3 +425,13 @@ func TestOnConnectRequest_ClientConnection_Blocked(t *testing.T) {
 	assert.True(t, connectResp.Blocked)
 	assert.Equal(t, system.ID, connectResp.MemberId)
 }
+
+func TestDeserializeSender_NilPidInArray(t *testing.T) {
+	arr := []*actor.PID{nil}
+
+	// index=1 (1-based) with requestID > 0 triggers the Clone path
+	assert.NotPanics(t, func() {
+		result := deserializeSender(1, 42, arr)
+		assert.Nil(t, result, "nil pid in array should return nil")
+	})
+}
