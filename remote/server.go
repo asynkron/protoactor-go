@@ -118,29 +118,35 @@ func (r *Remote) Start() error {
 // requests to finish.
 func (r *Remote) Shutdown(graceful bool) {
 	if graceful {
-		// TODO: need more graceful
+		// Phase 1: Stop processing new messages on incoming streams.
+		// Messages already received and being processed are unaffected;
+		// GracefulStop in Phase 2 drains those.
 		r.edpReader.suspend(true)
-		r.edpManager.stop()
 
-		// For some reason GRPC doesn't want to stop
-		// Setup timeout as workaround but need to figure out in the future.
-		// TODO: grpc not stopping
-		c := make(chan bool, 1)
+		// Phase 2: Drain in-flight RPCs with timeout
+		done := make(chan struct{})
 		go func() {
 			r.s.GracefulStop()
-			c <- true
+			close(done)
 		}()
 
 		select {
-		case <-c:
-			r.Logger().Info("Stopped Proto.Actor server")
+		case <-done:
+			r.Logger().Info("gRPC server stopped gracefully")
 		case <-time.After(r.config.ShutdownTimeout):
+			r.Logger().Warn("gRPC graceful shutdown timed out, forcing stop",
+				slog.Duration("timeout", r.config.ShutdownTimeout))
+			// Stop is synchronous — waits for all RPCs to terminate before
+			// returning, so Phase 3 ordering is preserved on the timeout path.
 			r.s.Stop()
-			r.Logger().Info("Stopped Proto.Actor server", slog.String("err", "timeout"))
 		}
+
+		// Phase 3: Stop endpoint management after gRPC is done
+		r.edpManager.stop()
 	} else {
 		r.s.Stop()
-		r.Logger().Info("Killed Proto.Actor server")
+		r.edpManager.stop()
+		r.Logger().Info("gRPC server force-stopped")
 	}
 }
 

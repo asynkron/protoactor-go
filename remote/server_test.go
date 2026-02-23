@@ -6,6 +6,7 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStart(t *testing.T) {
@@ -74,6 +75,22 @@ func TestRemote_RegisterViaStruct(t *testing.T) {
 	sort.Strings(kinds)
 	assert.Equal(t, "someKind", kinds[0])
 	assert.Equal(t, "someOther", kinds[1])
+}
+
+func TestRemote_GracefulShutdown_ManagerStopsAfterGRPC(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("127.0.0.1", 0)
+	r := NewRemote(system, config)
+	err := r.Start()
+	require.NoError(t, err)
+
+	// Verify the endpoint manager is not stopped before gRPC shutdown
+	assert.False(t, r.edpManager.stopped.Load(), "endpoint manager should not be stopped before shutdown")
+
+	r.Shutdown(true)
+
+	// After shutdown, endpoint manager should be stopped
+	assert.True(t, r.edpManager.stopped.Load(), "endpoint manager should be stopped after shutdown")
 }
 
 // TODO: The following tests were disabled because they rely on a test-suite style
