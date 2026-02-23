@@ -367,3 +367,61 @@ func TestGetProcessDiagnostics_NilPid(t *testing.T) {
 	assert.Error(t, err, "should return error for nil pid")
 	assert.Nil(t, resp)
 }
+
+type mockReceiveServer struct {
+	Remoting_ReceiveServer
+	sentMessages []*RemoteMessage
+}
+
+func (m *mockReceiveServer) Send(msg *RemoteMessage) error {
+	m.sentMessages = append(m.sentMessages, msg)
+	return nil
+}
+
+func TestOnConnectRequest_ClientConnection(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	stream := &mockReceiveServer{}
+	_, err := reader.OnConnectRequest(stream, &ConnectRequest{
+		ConnectionType: &ConnectRequest_ClientConnection{
+			ClientConnection: &ClientConnection{
+				MemberId: "client-1",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	require.Len(t, stream.sentMessages, 1, "should send a ConnectResponse")
+	connectResp := stream.sentMessages[0].GetConnectResponse()
+	require.NotNil(t, connectResp, "response should be a ConnectResponse")
+	assert.Equal(t, system.ID, connectResp.MemberId)
+	assert.False(t, connectResp.Blocked)
+}
+
+func TestOnConnectRequest_ClientConnection_Blocked(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	r.BlockList().Block("blocked-client")
+
+	stream := &mockReceiveServer{}
+	_, err := reader.OnConnectRequest(stream, &ConnectRequest{
+		ConnectionType: &ConnectRequest_ClientConnection{
+			ClientConnection: &ClientConnection{
+				MemberId: "blocked-client",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	require.Len(t, stream.sentMessages, 1)
+	connectResp := stream.sentMessages[0].GetConnectResponse()
+	require.NotNil(t, connectResp)
+	assert.True(t, connectResp.Blocked)
+	assert.Equal(t, system.ID, connectResp.MemberId)
+}

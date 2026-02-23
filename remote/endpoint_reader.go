@@ -158,8 +158,8 @@ func (s *endpointReader) OnConnectRequest(stream Remoting_ReceiveServer, c *Conn
 		}
 	case *ConnectRequest_ClientConnection:
 		{
-			// TODO implement me
-			s.remote.Logger().Error("ClientConnection not implemented")
+			cc := connType.ClientConnection
+			s.onClientConnection(stream, cc)
 		}
 	default:
 		s.remote.Logger().Error("EndpointReader received unknown connection type")
@@ -314,6 +314,22 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 		if err != nil {
 			s.remote.Logger().Error("EndpointReader failed to send ConnectResponse message", slog.Any("error", err))
 		}
+	}
+}
+
+
+func (s *endpointReader) onClientConnection(stream Remoting_ReceiveServer, cc *ClientConnection) {
+	blocked := s.remote.BlockList().IsBlocked(cc.MemberId)
+	err := stream.Send(&RemoteMessage{
+		MessageType: &RemoteMessage_ConnectResponse{
+			ConnectResponse: &ConnectResponse{
+				Blocked:  blocked,
+				MemberId: s.remote.actorSystem.ID,
+			},
+		},
+	})
+	if err != nil {
+		s.remote.Logger().Error("EndpointReader failed to send ConnectResponse for client", slog.Any("error", err))
 	}
 }
 
