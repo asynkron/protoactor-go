@@ -62,8 +62,8 @@ func defaultConfig() *Config {
 func defaultPrometheusProvider(port int) metric.MeterProvider {
 	exporter, err := prometheus.New()
 	if err != nil {
-		// TODO: handle initialization error appropriately
-		// plog.Error("failed to initialize prometheus exporter", slog.Any("error", err))
+		slog.Error("Failed to initialize Prometheus exporter, metrics will be disabled",
+			slog.Any("error", err))
 		return nil
 	}
 
