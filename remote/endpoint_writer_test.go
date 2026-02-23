@@ -1,7 +1,9 @@
 package remote
 
 import (
+	"fmt"
 	"runtime"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -107,4 +109,86 @@ func TestEndpointWriter_CloseClientConnNilCancel(t *testing.T) {
 	assert.NotPanics(t, func() {
 		writer.closeClientConn()
 	})
+}
+
+func TestEndpointWriter_RestartAfterConnectFailure_NoPanic(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0,
+		WithMaxRetryCount(1),
+		WithRetryBaseDelay(10*time.Millisecond),
+	)
+	r := NewRemote(system, config)
+
+	terminated := make(chan string, 10)
+	system.EventStream.Subscribe(func(evt any) {
+		if e, ok := evt.(*EndpointTerminatedEvent); ok {
+			terminated <- e.Address
+		}
+	})
+
+	// Track whether the actor restarts (which would indicate a panic was recovered)
+	restarted := make(chan struct{}, 10)
+	initCount := int32(0)
+
+	address := "127.0.0.1:99999"
+
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &endpointWriter{
+			address: address,
+			config:  config,
+			remote:  r,
+		}
+	})
+
+	// Wrap the actor to intercept Restarting messages
+	wrappedProps := props.Configure(actor.WithReceiverMiddleware(func(next actor.ReceiverFunc) actor.ReceiverFunc {
+		return func(ctx actor.ReceiverContext, envelope *actor.MessageEnvelope) {
+			switch envelope.Message.(type) {
+			case *actor.Started:
+				atomic.AddInt32(&initCount, 1)
+			case *actor.Restarting:
+				restarted <- struct{}{}
+			}
+			next(ctx, envelope)
+		}
+	}))
+
+	pid := system.Root.Spawn(wrappedProps)
+
+	// Drain the EndpointTerminatedEvent published by initialize() on actor start
+	select {
+	case <-terminated:
+		// expected - initialize failed and published EndpointTerminatedEvent
+	case <-time.After(5 * time.Second):
+		t.Fatal("expected EndpointTerminatedEvent from initialize, got timeout")
+	}
+
+	// Reset initCount after initial startup
+	atomic.StoreInt32(&initCount, 0)
+
+	// Now send the restartAfterConnectFailure message
+	system.Root.Send(pid, &restartAfterConnectFailure{err: fmt.Errorf("connection refused")})
+
+	// Wait for the EndpointTerminatedEvent from the handler
+	select {
+	case addr := <-terminated:
+		assert.Equal(t, address, addr)
+	case <-time.After(5 * time.Second):
+		t.Fatal("expected EndpointTerminatedEvent from restartAfterConnectFailure handler, got timeout")
+	}
+
+	// Give time for any restart to occur
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify the actor did NOT restart (no panic was recovered by the supervisor)
+	select {
+	case <-restarted:
+		t.Fatal("actor should not have restarted - restartAfterConnectFailure should terminate gracefully, not panic")
+	default:
+		// Good - no restart means no panic
+	}
+
+	// Verify initialize was not called again (which would happen on restart)
+	count := atomic.LoadInt32(&initCount)
+	assert.Equal(t, int32(0), count, "initialize should not have been called again after restartAfterConnectFailure")
 }

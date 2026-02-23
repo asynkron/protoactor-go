@@ -356,8 +356,11 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 		state.remote.Logger().Info("EndpointWriter received EndpointTerminatedEvent, stopping", slog.String("address", state.address))
 		ctx.Stop(ctx.Self())
 	case *restartAfterConnectFailure:
-		state.remote.Logger().Debug("EndpointWriter initiating self-restart after failing to connect and a delay", slog.String("address", state.address))
-		panic(msg.err)
+		state.remote.Logger().Error("EndpointWriter connect failure, terminating endpoint",
+			slog.String("address", state.address), slog.Any("error", msg.err))
+		terminated := &EndpointTerminatedEvent{Address: state.address}
+		state.remote.actorSystem.EventStream.Publish(terminated)
+		ctx.Stop(ctx.Self())
 	case []any:
 		state.sendEnvelopes(msg, ctx)
 	case actor.SystemMessage, actor.AutoReceiveMessage:
