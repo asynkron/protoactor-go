@@ -126,7 +126,10 @@ func (s *PostgresIdentityStorage) TryAcquireLock(clusterIdentity *cluster.Cluste
 		`DELETE FROM %s WHERE key = $1 AND lock_id != '' AND pid_id = '' AND lock_expires_at < NOW()`,
 		s.tableName,
 	)
-	_, _ = s.db.ExecContext(ctx, cleanQuery, key)
+	if _, err := s.db.ExecContext(ctx, cleanQuery, key); err != nil {
+		slog.Warn("Postgres identity: cleanup query failed",
+			slog.String("key", key), slog.Any("error", err))
+	}
 
 	// Try to insert a new lock row. ON CONFLICT DO NOTHING means if the key
 	// already exists (locked or activated), the insert is a no-op.
@@ -273,7 +276,11 @@ func (s *PostgresIdentityStorage) StoreActivation(memberID string, spawnLock *cl
 		return
 	}
 
-	rows, _ := result.RowsAffected()
+	rows, err := result.RowsAffected()
+	if err != nil {
+		slog.Warn("Postgres identity: RowsAffected failed",
+			slog.String("key", key), slog.Any("error", err))
+	}
 	if rows == 0 {
 		slog.Warn("Postgres StoreActivation lock mismatch -- lock was lost",
 			slog.String("key", key), slog.String("lockID", spawnLock.LockID))
