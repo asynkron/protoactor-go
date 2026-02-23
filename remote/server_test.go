@@ -3,10 +3,12 @@ package remote
 import (
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func TestStart(t *testing.T) {
@@ -93,156 +95,100 @@ func TestRemote_GracefulShutdown_ManagerStopsAfterGRPC(t *testing.T) {
 	assert.True(t, r.edpManager.stopped.Load(), "endpoint manager should be stopped after shutdown")
 }
 
-// TODO: The following tests were disabled because they rely on a test-suite style
-// with direct access to internal fields (edpReader, activatorPid, endpointManager,
-// endpointSupervisor) and mock processes (spawnMockProcess/removeMockProcess) that
-// no longer exist in the remote package. To re-enable, these tests need to be
-// rewritten to use the current Remote API.
-//
-//func (suite *ServerTestSuite) TestStart_AdvertisedAddress() {
-//	// Find available Port
-//	lis, err := net.Listen("tcp", "127.0.0.1:0") // use :0 to choose available Port
-//	if err != nil {
-//		panic(err)
-//	}
-//	//address := lis.Addr()
-//	_ = lis.Close()
-//
-//	AdvertisedHost := "192.0.2.1:1234"
-//	remote.StartMember()
-//
-//	suite.NotEmpty(system.ProcessRegistry.RemoteHandlers, "AddressResolver should be registered on server start")
-//	suite.Equal(AdvertisedHost, system.ProcessRegistry.Address, "WithAdvertisedHost should have higher priority")
-//	suite.NotNil(activatorPid, "Activator actor should be initialized on server start")
-//	suite.NotNil(endpointManager, "EndpointManager should be initialized on server start")
-//	suite.Equal(AdvertisedHost, remote.config.AdvertisedHost, "Passed configuration option should be used")
-//	suite.NotNil(remote.edpReader, "EndpointReader should be initialized on server start")
-//	suite.NotNil(remote.s, "gRPC server should be started on server start")
-//}
-//
-//func (suite *ServerTestSuite) TestShutdown_Graceful() {
-//	remote.edpReader = &endpointReader{}
-//	suite.False(remote.edpReader.suspended, "EndpointReader should not be suspended at beginning")
-//
-//	endpointSupervisor, endpointSupervisorProcess := spawnMockProcess("EndpointSupervisor")
-//	defer removeMockProcess(endpointSupervisor)
-//	endpointSupervisorProcess.On("SendSystemMessage", mock.Anything, mock.Anything).
-//		Run(func(args mock.Arguments) {
-//			if suite.IsType(&actor.PID{}, args.Get(0)) {
-//				pid := args.Get(0).(*actor.PID)
-//				suite.Equal(endpointSupervisor, pid)
-//			}
-//			if suite.IsType(&actor.Watch{}, args.Get(1)) {
-//				watch := args.Get(1).(*actor.Watch)
-//				system.Root.Send(watch.Watcher, &actor.Terminated{
-//					Who:               endpointSupervisor,
-//					AddressTerminated: false,
-//				})
-//			}
-//		}).
-//		Once()
-//	endpointSupervisorProcess.On("Stop", endpointSupervisor).Once()
-//
-//	endpointManager = &endpointManagerValue{
-//		connections:        &sync.Map{},
-//		remote:             remote,
-//		endpointSupervisor: endpointSupervisor,
-//		endpointSub:        system.EventStream.Subscribe(func(evt interface{}) {}),
-//	}
-//
-//	var activatorProcess *mockProcess
-//	activatorPid, activatorProcess = spawnMockProcess("activator")
-//	defer removeMockProcess(activatorPid)
-//	activatorProcess.On("SendSystemMessage", mock.Anything, mock.Anything).
-//		Run(func(args mock.Arguments) {
-//			if suite.IsType(&actor.PID{}, args.Get(0)) {
-//				pid := args.Get(0).(*actor.PID)
-//				suite.Equal(activatorPid, pid)
-//			}
-//			if suite.IsType(&actor.Watch{}, args.Get(1)) {
-//				watch := args.Get(1).(*actor.Watch)
-//				system.Root.Send(watch.Watcher, &actor.Terminated{
-//					Who:               activatorPid,
-//					AddressTerminated: false,
-//				})
-//			}
-//		}).
-//		Once()
-//	activatorProcess.On("Stop", activatorPid).Once()
-//
-//	lis, err := net.Listen("tcp", "127.0.0.1:0") // use :0 to choose available Port
-//	if err != nil {
-//		panic(err)
-//	}
-//	defer lis.Close()
-//
-//	grpcStopped := make(chan struct{}, 1)
-//	remote.s = grpc.NewServer()
-//	go func() {
-//		remote.s.Serve(lis)
-//		grpcStopped <- struct{}{}
-//	}()
-//
-//	remote.Shutdown(true)
-//
-//	suite.Nil(endpointManager.endpointSub, "Subscription should reset on shutdown")
-//	suite.Nil(endpointManager.connections, "Connections should reset on shutdown")
-//
-//	select {
-//	case <-time.NewTimer(15 * time.Second).C:
-//		suite.FailNow("gRPC server did not stop")
-//	case <-grpcStopped:
-//		// O.K.
-//	}
-//
-//	endpointSupervisorProcess.AssertExpectations(suite.T())
-//}
-//
-//func (suite *ServerTestSuite) TestShutdown() {
-//	remote.edpReader = &endpointReader{}
-//	suite.False(remote.edpReader.suspended, "EndpointReader should not be suspended at beginning")
-//
-//	endpointSupervisor, endpointSupervisorProcess := spawnMockProcess("EndpointSupervisor")
-//	defer removeMockProcess(endpointSupervisor)
-//
-//	var activatorProcess *mockProcess
-//	activatorPid, activatorProcess = spawnMockProcess("activator")
-//	defer removeMockProcess(activatorPid)
-//
-//	endpointManager = &endpointManagerValue{
-//		connections:        &sync.Map{},
-//		remote:             nil,
-//		endpointSupervisor: endpointSupervisor,
-//		endpointSub:        system.EventStream.Subscribe(func(evt interface{}) {}),
-//	}
-//
-//	lis, err := net.Listen("tcp", "127.0.0.1:0") // use :0 to choose available Port
-//	if err != nil {
-//		panic(err)
-//	}
-//	defer lis.Close()
-//
-//	grpcStopped := make(chan struct{}, 1)
-//	remote.s = grpc.NewServer()
-//	go func() {
-//		remote.s.Serve(lis)
-//		grpcStopped <- struct{}{}
-//	}()
-//
-//	remote.Shutdown(false)
-//
-//	suite.NotNil(endpointManager.endpointSub, "Subscription should not reset on non-graceful shutdown")
-//	suite.NotNil(endpointManager.connections, "Connections should not reset on non-graceful shutdown")
-//
-//	select {
-//	case <-time.NewTimer(1 * time.Second).C:
-//		suite.FailNow("gRPC server did not stop")
-//	case <-grpcStopped:
-//		// O.K.
-//	}
-//
-//	activatorProcess.AssertNotCalled(suite.T(), "SendSystemMessage", mock.Anything, mock.Anything)
-//	activatorProcess.AssertExpectations(suite.T())
-//	endpointSupervisorProcess.AssertNotCalled(suite.T(), "SendSystemMessage", mock.Anything, mock.Anything)
-//	endpointSupervisorProcess.AssertExpectations(suite.T())
-//}
+func TestRemote_GracefulShutdownTimeout(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("127.0.0.1", 0,
+		WithShutdownTimeout(500*time.Millisecond))
+	r := NewRemote(system, config)
+
+	err := r.Start()
+	require.NoError(t, err)
+
+	start := time.Now()
+	r.Shutdown(true)
+	elapsed := time.Since(start)
+
+	// Should complete (either gracefully or via timeout)
+	assert.Less(t, elapsed, 5*time.Second)
+}
+
+func TestRemote_ForceShutdown(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("127.0.0.1", 0)
+	r := NewRemote(system, config)
+
+	err := r.Start()
+	require.NoError(t, err)
+
+	start := time.Now()
+	r.Shutdown(false)
+	elapsed := time.Since(start)
+
+	// Force shutdown should be near-instant
+	assert.Less(t, elapsed, 2*time.Second)
+}
+
+func TestRemote_TwoNodesCommunicate(t *testing.T) {
+	// Start node A
+	systemA := actor.NewActorSystem()
+	remoteA := NewRemote(systemA, Configure("127.0.0.1", 0))
+	err := remoteA.Start()
+	require.NoError(t, err)
+	defer remoteA.Shutdown(true)
+
+	// Start node B with an echo actor
+	systemB := actor.NewActorSystem()
+	remoteB := NewRemote(systemB, Configure("127.0.0.1", 0))
+	err = remoteB.Start()
+	require.NoError(t, err)
+	defer remoteB.Shutdown(true)
+
+	props := actor.PropsFromFunc(func(ctx actor.Context) {
+		if _, ok := ctx.Message().(*emptypb.Empty); ok {
+			ctx.Respond(&emptypb.Empty{})
+		}
+	})
+	_, err = systemB.Root.SpawnNamed(props, "echo")
+	require.NoError(t, err)
+
+	// Send from A to B
+	remotePID := actor.NewPID(systemB.Address(), "echo")
+	fut := systemA.Root.RequestFuture(remotePID, &emptypb.Empty{}, 5*time.Second)
+	result, err := fut.Result()
+	require.NoError(t, err)
+	assert.IsType(t, &emptypb.Empty{}, result)
+}
+
+func TestRemote_ConnectionFailureTriggersTerminatedEvent(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("127.0.0.1", 0,
+		WithMaxRetryCount(1),
+		WithRetryBaseDelay(10*time.Millisecond),
+		WithRetryMaxDelay(10*time.Millisecond),
+	)
+	r := NewRemote(system, config)
+	err := r.Start()
+	require.NoError(t, err)
+	defer r.Shutdown(true)
+
+	terminated := make(chan string, 1)
+	system.EventStream.Subscribe(func(evt any) {
+		if e, ok := evt.(*EndpointTerminatedEvent); ok {
+			terminated <- e.Address
+		}
+	})
+
+	// Send to a non-existent remote address
+	badPID := actor.NewPID("127.0.0.1:59999", "nonexistent")
+	system.Root.Send(badPID, &emptypb.Empty{})
+
+	select {
+	case addr := <-terminated:
+		assert.Equal(t, "127.0.0.1:59999", addr)
+	case <-time.After(30 * time.Second):
+		t.Fatal("expected EndpointTerminatedEvent for unreachable address")
+	}
+}
+
+// Legacy tests (TestStart_AdvertisedAddress, TestShutdown_Graceful, TestShutdown)
+// were removed and replaced with the black-box tests above.
