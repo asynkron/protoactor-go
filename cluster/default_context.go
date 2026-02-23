@@ -111,9 +111,18 @@ selectloop:
 				continue
 			}
 
-			// TODO: why is err != nil when res != nil?
+			// RequestFuture.Result() can return both a response and an error when the
+			// target actor processes the message but the response delivery encounters
+			// an issue (e.g., DeadLetterResponse). When we have a valid response,
+			// we use it regardless of the error, since the actor did produce a result.
 			resp, err = _context.RequestFuture(pid, message, ttl).Result()
 			if resp != nil {
+				if err != nil {
+					dcc.cluster.Logger().Debug("Cluster request returned both response and error",
+						slog.String("identity", identity),
+						slog.String("kind", kind),
+						slog.Any("error", err))
+				}
 				break selectloop
 			}
 			if err != nil {
