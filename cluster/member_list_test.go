@@ -197,75 +197,36 @@ func TestMemberList_UpdateClusterTopology2(t *testing.T) {
 	a.Equal(m1, m2)
 }
 
-func TestMemberList_getPartitionMember(t *testing.T) {
+func TestMemberList_GetActivatorMember(t *testing.T) {
 	t.Parallel()
 
-	c := newClusterForTest("test-memberlist", newInmemoryProvider())
+	c := newClusterForTest("test-activator", newInmemoryProvider())
 	obj := NewMemberList(c)
 
-	for _, v := range []int{1, 2, 10, 100, 1000} {
-		members := newMembersForTest(v)
-		obj.UpdateClusterTopology(members)
+	members := newMembersForTest(3) // these have kind "kind" by default
+	obj.UpdateClusterTopology(members)
 
-		testName := fmt.Sprintf("member*%d", v)
-		t.Run(testName, func(_ *testing.T) {
-			//assert := assert.New(t)
-			//
-			//identity := NewClusterIdentity("name", "kind")
-			////	address := obj.getPartitionMemberV2(identity)
-			////	assert.NotEmpty(address)
-			//
-			//identity = NewClusterIdentity("name", "nonkind")
-			////		address = obj.getPartitionMemberV2(identity)
-			////	assert.Empty(address)
-		})
-	}
+	t.Run("known kind returns a member", func(t *testing.T) {
+		activator := obj.GetActivatorMember("kind", "some-source")
+		assert.NotEmpty(t, activator)
+	})
+
+	t.Run("round-robin distributes across members", func(t *testing.T) {
+		seen := make(map[string]struct{})
+		// Call enough times to guarantee all members are visited regardless of counter position
+		for i := 0; i < 3*3; i++ {
+			addr := obj.GetActivatorMember("kind", "test-identity")
+			assert.NotEmpty(t, addr)
+			seen[addr] = struct{}{}
+		}
+		assert.Equal(t, 3, len(seen), "round-robin should distribute across all 3 members")
+	})
+
+	t.Run("unknown kind returns empty", func(t *testing.T) {
+		activator := obj.GetActivatorMember("nonexistent-kind", "some-source")
+		assert.Empty(t, activator)
+	})
 }
-
-//func BenchmarkMemberList_getPartitionMemberV2(b *testing.B) {
-//	SetLogLevel(log.ErrorLevel)
-//	actorSystem := actor.NewActorSystem()
-//	c := New(actorSystem, Configure("mycluster", nil, nil, remote.Configure("127.0.0.1", 0)))
-//	obj := NewMemberList(c)
-//	for i, v := range []int{1, 2, 3, 5, 10, 100, 1000, 2000} {
-//		members := _newTopologyEventForTest(v)
-//		obj.UpdateClusterTopology(members)
-//		testName := fmt.Sprintf("member*%d", v)
-//		runtime.GC()
-//
-//		identity := &ClusterIdentity{Identity: fmt.Sprintf("name-%d", rand.Int()), Kind: "kind"}
-//		b.Run(testName, func(b *testing.B) {
-//			for i := 0; i < b.N; i++ {
-//				address := obj.getPartitionMemberV2(identity)
-//				if address == "" {
-//					b.Fatalf("empty address membersByMemberId=%d", v)
-//				}
-//			}
-//		})
-//	}
-//}
-
-// TODO: TestMemberList_getPartitionMemberV2 is disabled because the getPartitionMemberV2
-// method no longer exists. To re-enable, rewrite using the current member list API.
-//func TestMemberList_getPartitionMemberV2(t *testing.T) {
-//	assert := assert.New(t)
-//
-//	tplg := _newTopologyEventForTest(10)
-//	c := _newClusterForTest("test-memberlist")
-//	obj := NewMemberList(c)
-//	obj.UpdateClusterTopology(tplg, 1)
-//
-//	assert.Contains(obj.memberStrategyByKind, "kind")
-//	addr := obj.getPartitionMemberV2(&ClusterIdentity{Kind: "kind", Identity: "name"})
-//	assert.NotEmpty(addr)
-//
-//	// consistent
-//	for i := 0; i < 10; i++ {
-//		addr2 := obj.getPartitionMemberV2(&ClusterIdentity{Kind: "kind", Identity: "name"})
-//		assert.NotEmpty(addr2)
-//		assert.Equal(addr, addr2)
-//	}
-//}
 
 func TestMemberList_newMemberStrategies(t *testing.T) {
 	t.Parallel()
