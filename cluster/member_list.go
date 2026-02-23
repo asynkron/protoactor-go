@@ -120,6 +120,11 @@ func (ml *MemberList) UpdateClusterTopology(members Members) {
 		ml.cluster.Remote.BlockList().Block(m.Id)
 	}
 
+	// Detect kind changes for members present in both old and new sets.
+	// This MUST run BEFORE ml.members is overwritten so we can compare
+	// old kinds (from ml.members) against new kinds (from active).
+	ml.processKindChangesForStayingMembers(active)
+
 	ml.members = active
 
 	// notify that these members left
@@ -176,7 +181,11 @@ func (ml *MemberList) getTopologyChanges(members Members) (topology *ClusterTopo
 	active = memberSet.ExceptIds(blocked)
 
 	// nothing changed? exit
-	if active.Equals(ml.members) {
+	// Note: MemberSet.Equals only compares TopologyHash which is based on
+	// member IDs alone. We must also check for kind changes so that a
+	// topology update where only a member's Kinds changed is not silently
+	// dropped.
+	if active.Equals(ml.members) && !ml.hasKindChanges(active) {
 		return nil, true, nil, nil, nil
 	}
 
@@ -232,4 +241,89 @@ func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {
 	}
 
 	return newDefaultMemberStrategy(ml.cluster, kind)
+}
+
+// kindsEqual reports whether two kind slices contain the same elements,
+// regardless of order.
+func kindsEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	if len(a) == 0 {
+		return true
+	}
+	aSet := make(map[string]struct{}, len(a))
+	for _, k := range a {
+		aSet[k] = struct{}{}
+	}
+	for _, k := range b {
+		if _, ok := aSet[k]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// hasKindChanges checks whether any member in the new set has different
+// Kinds compared to the same member (by ID) in ml.members.
+func (ml *MemberList) hasKindChanges(newActive *MemberSet) bool {
+	for _, newM := range newActive.Members() {
+		if oldM := ml.members.GetMemberById(newM.Id); oldM != nil {
+			if !kindsEqual(oldM.Kinds, newM.Kinds) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// processKindChangesForStayingMembers detects and applies Kind changes
+// for members present in both old (ml.members) and new (newActive) sets.
+// Must be called BEFORE ml.members is overwritten with the new set.
+func (ml *MemberList) processKindChangesForStayingMembers(newActive *MemberSet) {
+	for _, newM := range newActive.Members() {
+		oldM := ml.members.GetMemberById(newM.Id)
+		if oldM == nil {
+			continue // new member, handled by memberJoin
+		}
+		if kindsEqual(oldM.Kinds, newM.Kinds) {
+			continue // no change
+		}
+		ml.memberKindsChanged(oldM, newM)
+	}
+}
+
+func (ml *MemberList) memberKindsChanged(oldMember, newMember *Member) {
+	ml.cluster.Logger().Info("Member kinds changed",
+		slog.String("member", newMember.Id),
+		slog.Any("old", oldMember.Kinds),
+		slog.Any("new", newMember.Kinds))
+
+	oldKindSet := make(map[string]struct{}, len(oldMember.Kinds))
+	for _, k := range oldMember.Kinds {
+		oldKindSet[k] = struct{}{}
+	}
+	newKindSet := make(map[string]struct{}, len(newMember.Kinds))
+	for _, k := range newMember.Kinds {
+		newKindSet[k] = struct{}{}
+	}
+
+	// Remove member from strategies for removed kinds
+	for _, kind := range oldMember.Kinds {
+		if _, inNew := newKindSet[kind]; !inNew {
+			if strategy, ok := ml.memberStrategyByKind[kind]; ok {
+				strategy.RemoveMember(newMember)
+			}
+		}
+	}
+
+	// Add member to strategies for added kinds
+	for _, kind := range newMember.Kinds {
+		if _, inOld := oldKindSet[kind]; !inOld {
+			if ml.memberStrategyByKind[kind] == nil {
+				ml.memberStrategyByKind[kind] = ml.getMemberStrategyByKind(kind)
+			}
+			ml.memberStrategyByKind[kind].AddMember(newMember)
+		}
+	}
 }
