@@ -266,3 +266,84 @@ func TestExponentialBackoff_DelaysAreCorrect(t *testing.T) {
 			"attempt %d: delay %v should be <= %v (with 25%% jitter)", attempt, delay, expected+expected/4)
 	}
 }
+
+// TestEndpointWriter_FullRecoveryFlow verifies the complete self-healing flow:
+// 1. Two nodes communicate successfully
+// 2. One node goes down — the other detects termination
+// 3. The downed node restarts — communication resumes
+func TestEndpointWriter_FullRecoveryFlow(t *testing.T) {
+	// Start node A (persistent)
+	systemA := actor.NewActorSystem()
+	configA := Configure("127.0.0.1", 0,
+		WithRetryBaseDelay(50*time.Millisecond),
+		WithRetryMaxDelay(200*time.Millisecond),
+		WithMaxRetryCount(3),
+	)
+	remoteA := NewRemote(systemA, configA)
+	err := remoteA.Start()
+	require.NoError(t, err)
+	defer remoteA.Shutdown(true)
+
+	// Start node B (will be killed and restarted)
+	systemB := actor.NewActorSystem()
+	configB := Configure("127.0.0.1", 0)
+	remoteB := NewRemote(systemB, configB)
+	err = remoteB.Start()
+	require.NoError(t, err)
+
+	// Spawn echo actor on B
+	echoProps := actor.PropsFromFunc(func(ctx actor.Context) {
+		if _, ok := ctx.Message().(*emptypb.Empty); ok {
+			ctx.Respond(&emptypb.Empty{})
+		}
+	})
+	_, err = systemB.Root.SpawnNamed(echoProps, "echo")
+	require.NoError(t, err)
+
+	addressB := systemB.Address()
+
+	// Step 1: Verify communication works
+	remotePID := actor.NewPID(addressB, "echo")
+	fut := systemA.Root.RequestFuture(remotePID, &emptypb.Empty{}, 5*time.Second)
+	_, err = fut.Result()
+	require.NoError(t, err, "initial communication should succeed")
+
+	// Step 2: Kill node B
+	terminated := make(chan struct{}, 1)
+	systemA.EventStream.Subscribe(func(evt any) {
+		if _, ok := evt.(*EndpointTerminatedEvent); ok {
+			select {
+			case terminated <- struct{}{}:
+			default:
+			}
+		}
+	})
+
+	remoteB.Shutdown(true)
+
+	// Wait for A to detect termination
+	select {
+	case <-terminated:
+		// expected
+	case <-time.After(10 * time.Second):
+		t.Fatal("node A did not detect termination of node B")
+	}
+
+	// Step 3: Restart node B on a new address (port 0 = random)
+	systemB2 := actor.NewActorSystem()
+	configB2 := Configure("127.0.0.1", 0)
+	remoteB2 := NewRemote(systemB2, configB2)
+	err = remoteB2.Start()
+	require.NoError(t, err)
+	defer remoteB2.Shutdown(true)
+
+	// Spawn echo on new B
+	_, err = systemB2.Root.SpawnNamed(echoProps, "echo")
+	require.NoError(t, err)
+
+	// Step 4: Verify A can communicate with new B
+	newPID := actor.NewPID(systemB2.Address(), "echo")
+	fut = systemA.Root.RequestFuture(newPID, &emptypb.Empty{}, 5*time.Second)
+	_, err = fut.Result()
+	require.NoError(t, err, "communication with restarted node should succeed")
+}
