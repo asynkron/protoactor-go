@@ -4,6 +4,7 @@ package cluster
 import (
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -27,6 +28,7 @@ type Cluster struct {
 	PidCache       *PidCacheValue
 	MemberList     *MemberList
 	IdentityLookup IdentityLookup
+	kindsMu        sync.RWMutex
 	kinds          map[string]*ActivatedKind
 	context        Context
 
@@ -92,6 +94,8 @@ func (c *Cluster) MetricsEnabled() bool { return c.metricsEnabled }
 func (c *Cluster) Metrics() *clustermetrics.ClusterMetrics { return c.metrics }
 
 func (c *Cluster) VirtualActorCount() int64 {
+	c.kindsMu.RLock()
+	defer c.kindsMu.RUnlock()
 	var total int64
 	for _, k := range c.kinds {
 		total += int64(k.Count())
@@ -156,11 +160,12 @@ func (c *Cluster) StartMember() error {
 }
 
 func (c *Cluster) GetClusterKinds() []string {
+	c.kindsMu.RLock()
+	defer c.kindsMu.RUnlock()
 	keys := make([]string, 0, len(c.kinds))
 	for k := range c.kinds {
 		keys = append(keys, k)
 	}
-
 	return keys
 }
 
@@ -223,41 +228,56 @@ func (c *Cluster) RequestFuture(identity string, kind string, message any, optio
 }
 
 func (c *Cluster) GetClusterKind(kind string) *ActivatedKind {
+	c.kindsMu.RLock()
+	defer c.kindsMu.RUnlock()
 	k, ok := c.kinds[kind]
 	if !ok {
 		c.Logger().Error("Invalid kind", slog.String("kind", kind))
-
 		return nil
 	}
-
 	return k
 }
 
 func (c *Cluster) TryGetClusterKind(kind string) (*ActivatedKind, bool) {
+	c.kindsMu.RLock()
+	defer c.kindsMu.RUnlock()
 	k, ok := c.kinds[kind]
-
 	return k, ok
 }
 
 func (c *Cluster) initKinds() {
+	activated := make(map[string]*ActivatedKind, len(c.Config.Kinds))
 	for name, kind := range c.Config.Kinds {
-		c.kinds[name] = kind.Build(c)
+		activated[name] = kind.Build(c)
 	}
-	c.ensureTopicKindRegistered()
+
+	c.kindsMu.Lock()
+	defer c.kindsMu.Unlock()
+	for name, ak := range activated {
+		c.kinds[name] = ak
+	}
+	c.ensureTopicKindRegisteredLocked()
 }
 
 // InitKindsForTest builds and registers the given kinds without starting
 // the full cluster. This is intended for unit tests that exercise
 // individual components (e.g. the placement actor) in isolation.
 func (c *Cluster) InitKindsForTest(kinds ...*Kind) {
+	activated := make(map[string]*ActivatedKind, len(kinds))
 	for _, kind := range kinds {
-		c.kinds[kind.Kind] = kind.Build(c)
+		activated[kind.Kind] = kind.Build(c)
+	}
+
+	c.kindsMu.Lock()
+	defer c.kindsMu.Unlock()
+	for name, ak := range activated {
+		c.kinds[name] = ak
 	}
 }
 
-// ensureTopicKindRegistered ensures that the topic kind is registered in the cluster
-// if topic kind is not registered, it will be registered automatically
-func (c *Cluster) ensureTopicKindRegistered() {
+// ensureTopicKindRegisteredLocked ensures that the topic kind is registered.
+// Caller must hold kindsMu.Lock.
+func (c *Cluster) ensureTopicKindRegisteredLocked() {
 	hasTopicKind := false
 	for name := range c.kinds {
 		if name == TopicActorKind {
