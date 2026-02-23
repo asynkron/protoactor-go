@@ -2,6 +2,7 @@ package remote
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"math/rand"
@@ -147,8 +148,15 @@ func (state *endpointWriter) initializeInternal() error {
 
 	switch connection.MessageType.(type) {
 	case *RemoteMessage_ConnectResponse:
-		state.remote.Logger().Debug("Received connect response", slog.String("fromAddress", state.address))
-		// TODO: handle blocked status received from remote server
+		connectResponse := connection.GetConnectResponse()
+		state.remote.Logger().Debug("Received connect response",
+			slog.String("fromAddress", state.address),
+			slog.Bool("blocked", connectResponse.GetBlocked()))
+		if connectResponse.GetBlocked() {
+			state.remote.Logger().Warn("EndpointWriter blocked by remote server",
+				slog.String("address", state.address))
+			return fmt.Errorf("blocked by remote server %s", state.address)
+		}
 	default:
 		state.remote.Logger().Error("EndpointWriter got invalid connect response", slog.String("address", state.address), slog.Any("type", connection.MessageType))
 		return errors.New("invalid connect response")

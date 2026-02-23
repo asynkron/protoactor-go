@@ -193,6 +193,50 @@ func TestEndpointWriter_RestartAfterConnectFailure_NoPanic(t *testing.T) {
 	assert.Equal(t, int32(0), count, "initialize should not have been called again after restartAfterConnectFailure")
 }
 
+func TestEndpointWriter_BlockedByRemoteServer(t *testing.T) {
+	// Start node A (the one that will be blocked)
+	systemA := actor.NewActorSystem()
+	configA := Configure("127.0.0.1", 0,
+		WithMaxRetryCount(1),
+		WithRetryBaseDelay(10*time.Millisecond),
+	)
+	remoteA := NewRemote(systemA, configA)
+	err := remoteA.Start()
+	require.NoError(t, err)
+	defer remoteA.Shutdown(true)
+
+	// Start node B and add A to its block list
+	systemB := actor.NewActorSystem()
+	configB := Configure("127.0.0.1", 0)
+	remoteB := NewRemote(systemB, configB)
+	err = remoteB.Start()
+	require.NoError(t, err)
+	defer remoteB.Shutdown(true)
+
+	// Block A's member ID
+	remoteB.BlockList().Block(systemA.ID)
+
+	// Subscribe to terminated events on A
+	terminated := make(chan string, 1)
+	systemA.EventStream.Subscribe(func(evt any) {
+		if e, ok := evt.(*EndpointTerminatedEvent); ok {
+			terminated <- e.Address
+		}
+	})
+
+	// Create a target PID on B and try to send from A
+	targetPID := actor.NewPID(systemB.Address(), "nonexistent")
+	systemA.Root.Send(targetPID, &emptypb.Empty{})
+
+	// A should receive EndpointTerminatedEvent because B blocked it
+	select {
+	case addr := <-terminated:
+		assert.Contains(t, addr, "127.0.0.1")
+	case <-time.After(10 * time.Second):
+		t.Fatal("expected EndpointTerminatedEvent when blocked by remote server")
+	}
+}
+
 func TestExponentialBackoff_DelaysIncreaseGeometrically(t *testing.T) {
 	config := Configure("localhost", 0,
 		WithRetryBaseDelay(100*time.Millisecond),
