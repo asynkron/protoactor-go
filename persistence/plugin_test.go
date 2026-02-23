@@ -2,8 +2,8 @@ package persistence
 
 import (
 	"fmt"
-	"sync"
 	"testing"
+	"time"
 
 	"google.golang.org/protobuf/proto"
 
@@ -82,32 +82,19 @@ func makeActor() actor.Actor {
 	return &myActor{}
 }
 
-var (
-	queryWg    sync.WaitGroup
-	queryState string
-)
-
 func (a *myActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *RequestSnapshot:
-		// PersistSnapshot when requested
 		a.PersistSnapshot(newSnapshot(a.state))
 	case *Snapshot:
-		// Restore from Snapshot
 		a.state = msg.state
 	case *Message:
-		// Persist all events received outside of recovery
 		if !a.Recovering() {
 			a.PersistReceive(msg)
 		}
-		// Set state to whatever message says
 		a.state = msg.state
 	case *Query:
-		// TODO: this is poorly writen...
-		// I have no idea how to synchronously block on the
-		// receipt of a message for test cases.
-		queryState = a.state
-		queryWg.Done()
+		ctx.Respond(newMessage(a.state))
 	}
 }
 
@@ -149,13 +136,11 @@ func TestRecovery(t *testing.T) {
 				rootContext.Send(pid, newMessage(msg))
 			}
 
-			// ugly way to block on a response....
-			// TODO: I need some help here
-			queryWg.Add(1)
-			rootContext.Send(pid, &Query{})
-			queryWg.Wait()
-			// check the state after all these messages
-			assert.Equal(t, tc.afterMsgs, queryState)
+			resp, err := rootContext.RequestFuture(pid, &Query{}, 5*time.Second).Result()
+			require.NoError(t, err)
+			result, ok := resp.(*Message)
+			require.True(t, ok)
+			assert.Equal(t, tc.afterMsgs, result.state)
 
 			// wait for shutdown
 			_ = rootContext.PoisonFuture(pid).Wait()
@@ -163,13 +148,11 @@ func TestRecovery(t *testing.T) {
 			pid, err = rootContext.SpawnNamed(props, ActorName)
 			require.NoError(t, err)
 
-			// ugly way to block on a response....
-			// TODO: I need some help here
-			queryWg.Add(1)
-			rootContext.Send(pid, &Query{})
-			queryWg.Wait()
-			// check the state after all these messages
-			assert.Equal(t, tc.afterMsgs, queryState)
+			resp, err = rootContext.RequestFuture(pid, &Query{}, 5*time.Second).Result()
+			require.NoError(t, err)
+			result, ok = resp.(*Message)
+			require.True(t, ok)
+			assert.Equal(t, tc.afterMsgs, result.state)
 
 			// shutdown at end of test for cleanup
 			_ = rootContext.PoisonFuture(pid).Wait()
