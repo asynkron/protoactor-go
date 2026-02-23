@@ -162,7 +162,6 @@ func (em *endpointManager) startSupervisor() error {
 		return newEndpointSupervisor(r)
 	},
 		actor.WithGuardian(actor.RestartingSupervisorStrategy()),
-		actor.WithSupervisor(actor.RestartingSupervisorStrategy()),
 		actor.WithDispatcher(actor.NewSynchronizedDispatcher(300)))
 
 	pid, err := r.actorSystem.Root.SpawnNamed(props, "EndpointSupervisor")
@@ -326,12 +325,14 @@ func (em *endpointManager) removeEndpoint(msg *EndpointTerminatedEvent) {
 }
 
 type endpointSupervisor struct {
-	remote *Remote
+	remote         *Remote
+	childAddresses map[string]string // PID.Id -> remote address
 }
 
 func newEndpointSupervisor(remote *Remote) actor.Actor {
 	return &endpointSupervisor{
-		remote: remote,
+		remote:         remote,
+		childAddresses: make(map[string]string),
 	}
 }
 
@@ -342,18 +343,31 @@ func (state *endpointSupervisor) Receive(ctx actor.Context) {
 			writer:  state.spawnEndpointWriter(state.remote, address, ctx),
 			watcher: state.spawnEndpointWatcher(state.remote, address, ctx),
 		}
+		state.childAddresses[e.writer.Id] = address
+		state.childAddresses[e.watcher.Id] = address
 		ctx.Logger().Debug("id", slog.String("ewr", e.writer.Id), slog.String("ewa", e.watcher.Id))
 		ctx.Respond(e)
 	}
 }
 
-func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, supervisor actor.Supervisor, child *actor.PID, _ *actor.RestartStatistics, reason any, message any) {
-	actorSystem.Logger().Debug("EndpointSupervisor handling failure", slog.Any("reason", reason), slog.Any("message", message))
-	// use restart will cause a start loop, just stop it for now
-	// supervisor.RestartChildren(child)
+func (state *endpointSupervisor) HandleFailure(actorSystem *actor.ActorSystem, supervisor actor.Supervisor, child *actor.PID, rs *actor.RestartStatistics, reason any, message any) {
+	actorSystem.Logger().Debug("EndpointSupervisor handling failure",
+		slog.Any("reason", reason), slog.Any("message", message))
 
-	// TODO: an extra stop is sent to the deadletter caused by EndpointTerminatedEvent
-	supervisor.StopChildren(child)
+	if rs.NumberOfFailures(state.remote.config.SupervisorRestartWindow) > state.remote.config.SupervisorMaxRestarts {
+		actorSystem.Logger().Warn("EndpointSupervisor stopping child after too many failures",
+			slog.String("child", child.Id))
+		supervisor.StopChildren(child)
+
+		// Publish termination so the endpoint manager removes this entry
+		if address, ok := state.childAddresses[child.Id]; ok {
+			actorSystem.EventStream.Publish(&EndpointTerminatedEvent{Address: address})
+			delete(state.childAddresses, child.Id)
+		}
+		return
+	}
+
+	supervisor.RestartChildren(child)
 }
 
 func (state *endpointSupervisor) spawnEndpointWriter(remote *Remote, address string, ctx actor.Context) *actor.PID {

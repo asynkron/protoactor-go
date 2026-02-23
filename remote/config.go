@@ -22,6 +22,8 @@ func defaultConfig() *Config {
 		RetryBaseDelay:           2 * time.Second,
 		RetryMaxDelay:            10 * time.Second,
 		ShutdownTimeout:          10 * time.Second,
+		SupervisorRestartWindow: 60 * time.Second,
+		SupervisorMaxRestarts:   5,
 	}
 }
 
@@ -70,6 +72,12 @@ func (c *Config) validate() error {
 	}
 	if c.ShutdownTimeout <= 0 {
 		return fmt.Errorf("ShutdownTimeout must be > 0, got %v", c.ShutdownTimeout)
+	}
+	if c.SupervisorRestartWindow <= 0 {
+		return fmt.Errorf("SupervisorRestartWindow must be > 0, got %v", c.SupervisorRestartWindow)
+	}
+	if c.SupervisorMaxRestarts <= 0 {
+		return fmt.Errorf("SupervisorMaxRestarts must be > 0, got %d", c.SupervisorMaxRestarts)
 	}
 	return nil
 }
@@ -121,4 +129,9 @@ type Config struct {
 	// ShutdownTimeout is the maximum time to wait for a graceful shutdown
 	// before forcing a hard stop.
 	ShutdownTimeout time.Duration
+	// SupervisorRestartWindow is the time window for counting child failures.
+	SupervisorRestartWindow time.Duration
+	// SupervisorMaxRestarts is the maximum number of child restarts allowed
+	// within SupervisorRestartWindow before the supervisor stops the child.
+	SupervisorMaxRestarts int
 }

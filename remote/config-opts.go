@@ -104,3 +104,17 @@ func WithMaxRetryCount(count int) ConfigOption {
 		config.MaxRetryCount = count
 	}
 }
+
+// WithSupervisorRestartWindow sets the time window for counting endpoint child failures.
+func WithSupervisorRestartWindow(d time.Duration) ConfigOption {
+	return func(config *Config) {
+		config.SupervisorRestartWindow = d
+	}
+}
+
+// WithSupervisorMaxRestarts sets the max restart count within the window before stopping.
+func WithSupervisorMaxRestarts(count int) ConfigOption {
+	return func(config *Config) {
+		config.SupervisorMaxRestarts = count
+	}
+}
