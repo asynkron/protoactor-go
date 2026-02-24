@@ -312,7 +312,7 @@ func (ml *MemberList) memberKindsChanged(oldMember, newMember *Member) {
 	for _, kind := range oldMember.Kinds {
 		if _, inNew := newKindSet[kind]; !inNew {
 			if strategy, ok := ml.memberStrategyByKind[kind]; ok {
-				strategy.RemoveMember(newMember)
+				strategy.RemoveMember(oldMember)
 			}
 		}
 	}
