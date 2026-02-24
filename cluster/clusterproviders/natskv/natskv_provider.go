@@ -204,6 +204,16 @@ func (p *Provider) Shutdown(_ bool) error {
 	return nil
 }
 
+// UpdateKinds updates the node's kind list and re-registers in the KV
+// bucket so other nodes see the change on the next watch event.
+func (p *Provider) UpdateKinds(kinds []string) error {
+	p.membersMu.Lock()
+	p.self.Kinds = kinds
+	p.membersMu.Unlock()
+
+	return p.registerSelf()
+}
+
 // createMemberBucket creates or binds the member KV bucket.
 // The bucket is configured with a TTL so that keys expire if not refreshed,
 // and LimitMarkerTTL so that watchers receive delete notifications on expiry.
@@ -257,7 +267,9 @@ func (p *Provider) leaderKey() string {
 // registerSelf writes the member key to the KV bucket. The bucket-level TTL
 // handles expiration; startRefresh re-puts the key periodically to keep it alive.
 func (p *Provider) registerSelf() error {
+	p.membersMu.RLock()
 	data, err := p.self.Serialize()
+	p.membersMu.RUnlock()
 	if err != nil {
 		return fmt.Errorf("natskv: serialize self: %w", err)
 	}
@@ -538,7 +550,9 @@ func (p *Provider) startRefresh() {
 
 // refreshMemberKey re-puts the member key to reset the bucket-level TTL.
 func (p *Provider) refreshMemberKey() error {
+	p.membersMu.RLock()
 	data, err := p.self.Serialize()
+	p.membersMu.RUnlock()
 	if err != nil {
 		return err
 	}

@@ -15,6 +15,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Compile-time check that Provider implements KindUpdater.
+var _ cluster.KindUpdater = (*Provider)(nil)
+
 // mockRoleListener records role changes via a callback.
 type mockRoleListener struct {
 	callback func(RoleType)
@@ -376,4 +379,38 @@ func TestSingletonScheduler_SpawnOnLeader(t *testing.T) {
 	assert.Len(t, scheduler.pids, 1, "scheduler should have exactly one spawned PID")
 	assert.NotNil(t, scheduler.pids[0], "spawned PID should not be nil")
 	scheduler.Unlock()
+}
+
+// --- Task 5: KindUpdater ---
+
+func TestProvider_UpdateKinds(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+	p, c := setupCluster(t, srv, "test-updatekinds")
+
+	err := p.StartMember(c)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = p.Shutdown(true) })
+
+	originalKinds := p.self.Kinds
+
+	// Update kinds
+	newKinds := append([]string{}, originalKinds...)
+	newKinds = append(newKinds, "dynamicKind")
+	err = p.UpdateKinds(newKinds)
+	require.NoError(t, err)
+
+	// Verify self.Kinds is updated
+	assert.ElementsMatch(t, newKinds, p.self.Kinds)
+
+	// Verify the KV bucket reflects the update
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	key := p.memberKey(p.self.ID)
+	entry, err := p.memberBucket.Get(ctx, key)
+	require.NoError(t, err)
+
+	var node Node
+	require.NoError(t, json.Unmarshal(entry.Value(), &node))
+	assert.ElementsMatch(t, newKinds, node.Kinds)
 }
