@@ -12,6 +12,20 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// Compile-time check: Provider must implement KindUpdater.
+var _ cluster.KindUpdater = (*Provider)(nil)
+
+func TestProvider_UpdateKinds_UpdatesKnownKinds(t *testing.T) {
+	p := &Provider{
+		knownKinds: []string{"kindA"},
+	}
+
+	err := p.UpdateKinds([]string{"kindA", "kindB"})
+	// We expect an error because there's no K8s client, but knownKinds should be updated.
+	_ = err
+	assert.ElementsMatch(t, []string{"kindA", "kindB"}, p.knownKinds)
+}
+
 func TestProvider_New_FieldDefaults(t *testing.T) {
 	p := &Provider{
 		clusterPods: make(map[types.UID]*v1.Pod),

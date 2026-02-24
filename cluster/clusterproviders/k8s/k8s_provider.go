@@ -188,6 +188,22 @@ func (p *Provider) startClusterMonitor(c *cluster.Cluster) error {
 	return nil
 }
 
+// UpdateKinds updates the provider's known kinds and re-registers the pod
+// labels so that the cluster sees the updated kind list.
+func (p *Provider) UpdateKinds(kinds []string) error {
+	p.knownKinds = kinds
+
+	if p.cluster == nil || p.podName == "" {
+		return nil
+	}
+
+	timeout := p.cluster.Config.RequestTimeoutTime
+	if timeout == 0 {
+		timeout = 5 * time.Second
+	}
+	return p.registerMember(timeout)
+}
+
 // registers itself as a member asynchronously using an actor
 func (p *Provider) registerMemberAsync(c *cluster.Cluster) {
 	msg := RegisterMember{}
@@ -220,8 +236,11 @@ func (p *Provider) registerMember(timeout time.Duration) error {
 		labels[labelkey] = "true"
 	}
 
-	// add existing labels back
+	// add existing labels back, but skip old proto.actor kind labels
 	for key, value := range pod.Labels {
+		if strings.HasPrefix(key, LabelKind+"-") {
+			continue // skip old kind labels; current kinds were set above
+		}
 		labels[key] = value
 	}
 	pod.SetLabels(labels)
