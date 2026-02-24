@@ -194,6 +194,17 @@ func (p *Provider) Shutdown(_ bool) error {
 	return nil
 }
 
+// UpdateKinds updates the node's kind list and publishes an immediate
+// heartbeat so other nodes see the change without waiting for the next
+// heartbeat cycle.
+func (p *Provider) UpdateKinds(kinds []string) error {
+	p.membersMu.Lock()
+	p.self.Kinds = kinds
+	p.membersMu.Unlock()
+
+	return p.publishHeartbeat()
+}
+
 // createClusterStream creates or binds the cluster membership stream.
 func (p *Provider) createClusterStream() error {
 	name := p.config.streamName(p.clusterName)
@@ -246,7 +257,9 @@ func (p *Provider) publishJoin() error {
 
 // publishHeartbeat publishes a heartbeat message with per-message TTL.
 func (p *Provider) publishHeartbeat() error {
+	p.membersMu.RLock()
 	data, err := p.self.Serialize()
+	p.membersMu.RUnlock()
 	if err != nil {
 		return fmt.Errorf("natsstream: serialize self: %w", err)
 	}

@@ -8,9 +8,13 @@ import (
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// Compile-time check that Provider implements KindUpdater.
+var _ cluster.KindUpdater = (*Provider)(nil)
 
 func TestNew_ReturnsProvider(t *testing.T) {
 	srv := startEmbeddedNATS(t)
@@ -365,4 +369,25 @@ func TestSingletonScheduler_SpawnOnLeader(t *testing.T) {
 	assert.Len(t, scheduler.pids, 1)
 	assert.NotNil(t, scheduler.pids[0])
 	scheduler.Unlock()
+}
+
+func TestProvider_UpdateKinds(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+	p, c := setupCluster(t, srv, "test-updatekinds")
+
+	err := p.StartMember(c)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = p.Shutdown(true) })
+
+	originalKinds := p.self.Kinds
+
+	newKinds := append([]string{}, originalKinds...)
+	newKinds = append(newKinds, "dynamicKind")
+	err = p.UpdateKinds(newKinds)
+	require.NoError(t, err)
+
+	// Verify self.Kinds is updated
+	p.membersMu.RLock()
+	assert.ElementsMatch(t, newKinds, p.self.Kinds)
+	p.membersMu.RUnlock()
 }
