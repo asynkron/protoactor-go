@@ -476,7 +476,7 @@ func (p *Provider) createClusterTopologyEvent() []*cluster.Member {
 
 func (p *Provider) publishClusterTopologyEvent() {
 	res := p.createClusterTopologyEvent()
-	p.cluster.Logger().Info("Update cluster.", slog.Int("members", len(res)))
+	p.cluster.Logger().Debug("Update cluster.", slog.Int("members", len(res)))
 	p.cluster.MemberList.UpdateClusterTopology(res)
 }
 

@@ -688,7 +688,7 @@ func (p *Provider) publishClusterTopologyEvent() {
 	}
 
 	if p.cluster != nil {
-		p.cluster.Logger().Info("Update cluster topology",
+		p.cluster.Logger().Debug("Update cluster topology",
 			slog.String("provider", "natsstream"),
 			slog.Int("members", len(members)))
 		p.cluster.MemberList.UpdateClusterTopology(members)

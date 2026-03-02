@@ -341,7 +341,7 @@ func (p *Provider) processPodEvent(event watch.Event, pod *v1.Pod) {
 
 	members := mapPodsToMembers(p.clusterPods, p.cluster.Logger())
 
-	p.cluster.Logger().Info("Topology received from Kubernetes", slog.Any("members", members))
+	p.cluster.Logger().Debug("Topology received from Kubernetes", slog.Any("members", members))
 	p.cluster.MemberList.UpdateClusterTopology(members)
 }
 
