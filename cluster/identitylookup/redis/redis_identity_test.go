@@ -87,3 +87,25 @@ func TestRedisConformance(t *testing.T) {
 
 	suite.RunAll(t)
 }
+
+// TestRedisEnumeratorConformance runs the StorageGrainEnumerator conformance
+// suite against a real Redis instance started via testcontainers.
+func TestRedisEnumeratorConformance(t *testing.T) {
+	counter := 0
+	suite := &identitylookup.EnumeratorConformanceSuite{
+		NewStorage: func() identitylookup.EnumerableStorage {
+			counter++
+			return redisidentity.New(fmt.Sprintf("test-enum-%d", counter), testClient)
+		},
+		Cleanup: func() {
+			// Clean up all test keys after each test.
+			ctx := context.Background()
+			iter := testClient.Scan(ctx, 0, "test-enum-*", 0).Iterator()
+			for iter.Next(ctx) {
+				testClient.Del(ctx, iter.Val())
+			}
+		},
+	}
+
+	suite.RunAll(t)
+}

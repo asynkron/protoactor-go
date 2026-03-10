@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -43,6 +44,9 @@ type RedisIdentityStorage struct {
 
 // Compile-time check that RedisIdentityStorage implements cluster.StorageLookup.
 var _ cluster.StorageLookup = (*RedisIdentityStorage)(nil)
+
+// Compile-time check that RedisIdentityStorage implements cluster.StorageGrainEnumerator.
+var _ cluster.StorageGrainEnumerator = (*RedisIdentityStorage)(nil)
 
 // New creates a new RedisIdentityStorage with the given cluster name, Redis client,
 // and optional configuration overrides.
@@ -330,6 +334,120 @@ func (s *RedisIdentityStorage) parseActivation(fields map[string]string) *cluste
 	// Format the PID as "address/id" to match actor.PID.String() output,
 	// which is what StoredActivation.Pid stores.
 	return &cluster.StoredActivation{
+		Pid:      fmt.Sprintf("%s/%s", pidAddr, pidID),
+		MemberID: memberID,
+	}
+}
+
+// ListActivations returns all stored activations by scanning identity keys.
+// Lock-only entries (no completed activation) are excluded.
+func (s *RedisIdentityStorage) ListActivations() ([]*cluster.StoredActivationInfo, error) {
+	s.acquire()
+	defer s.release()
+
+	ctx := context.Background()
+	pattern := s.ciPrefix + "*"
+
+	var keys []string
+	iter := s.client.Scan(ctx, 0, pattern, 0).Iterator()
+	for iter.Next(ctx) {
+		keys = append(keys, iter.Val())
+	}
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("redis scan: %w", err)
+	}
+
+	if len(keys) == 0 {
+		return nil, nil
+	}
+
+	// Pipeline HGETALL on all keys.
+	pipe := s.client.Pipeline()
+	cmds := make([]*goredis.MapStringStringCmd, len(keys))
+	for i, key := range keys {
+		cmds[i] = pipe.HGetAll(ctx, key)
+	}
+	if _, err := pipe.Exec(ctx); err != nil {
+		return nil, fmt.Errorf("redis pipeline exec: %w", err)
+	}
+
+	var result []*cluster.StoredActivationInfo
+	for i, cmd := range cmds {
+		fields, err := cmd.Result()
+		if err != nil || len(fields) == 0 {
+			continue
+		}
+
+		info := s.parseActivationInfo(keys[i], fields)
+		if info != nil {
+			result = append(result, info)
+		}
+	}
+
+	return result, nil
+}
+
+// ListActivationsByMember returns activations belonging to a specific member.
+func (s *RedisIdentityStorage) ListActivationsByMember(memberID string) ([]*cluster.StoredActivationInfo, error) {
+	s.acquire()
+	defer s.release()
+
+	ctx := context.Background()
+	mbKey := s.memberKey(memberID)
+
+	keys, err := s.client.SMembers(ctx, mbKey).Result()
+	if err != nil {
+		return nil, fmt.Errorf("redis smembers: %w", err)
+	}
+
+	if len(keys) == 0 {
+		return nil, nil
+	}
+
+	// Pipeline HGETALL on each identity key.
+	pipe := s.client.Pipeline()
+	cmds := make([]*goredis.MapStringStringCmd, len(keys))
+	for i, key := range keys {
+		cmds[i] = pipe.HGetAll(ctx, key)
+	}
+	if _, err := pipe.Exec(ctx); err != nil {
+		return nil, fmt.Errorf("redis pipeline exec: %w", err)
+	}
+
+	var result []*cluster.StoredActivationInfo
+	for i, cmd := range cmds {
+		fields, err := cmd.Result()
+		if err != nil || len(fields) == 0 {
+			continue
+		}
+
+		info := s.parseActivationInfo(keys[i], fields)
+		if info != nil {
+			result = append(result, info)
+		}
+	}
+
+	return result, nil
+}
+
+// parseActivationInfo extracts a StoredActivationInfo from a Redis hash result
+// map and the full key. Returns nil if the entry is lock-only (no activation).
+func (s *RedisIdentityStorage) parseActivationInfo(key string, fields map[string]string) *cluster.StoredActivationInfo {
+	pidID := fields["pid"]
+	pidAddr := fields["adr"]
+	memberID := fields["mid"]
+
+	if pidID == "" || pidAddr == "" || memberID == "" {
+		return nil
+	}
+
+	// Strip the ciPrefix to get "kind/identity".
+	stripped := strings.TrimPrefix(key, s.ciPrefix)
+	kind, identity := cluster.ParseStoredActivationInfoKey(stripped)
+
+	return &cluster.StoredActivationInfo{
+		Identity: identity,
+		Kind:     kind,
 		Pid:      fmt.Sprintf("%s/%s", pidAddr, pidID),
 		MemberID: memberID,
 	}
