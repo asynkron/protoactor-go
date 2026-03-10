@@ -104,3 +104,25 @@ func TestNatsConformance(t *testing.T) {
 
 	suite.RunAll(t)
 }
+
+// TestNatsEnumeratorConformance runs the StorageGrainEnumerator conformance
+// suite against a real NATS JetStream instance.
+func TestNatsEnumeratorConformance(t *testing.T) {
+	ctx := context.Background()
+
+	suite := &identitylookup.EnumeratorConformanceSuite{
+		NewStorage: func() identitylookup.EnumerableStorage {
+			storage, err := natsidentity.New(testCluster, testJS)
+			if err != nil {
+				t.Fatalf("New failed: %v", err)
+			}
+			return storage
+		},
+		Cleanup: func() {
+			_ = testJS.DeleteKeyValue(ctx, testCluster+"_identities")
+			_ = testJS.DeleteKeyValue(ctx, testCluster+"_members")
+		},
+	}
+
+	suite.RunAll(t)
+}

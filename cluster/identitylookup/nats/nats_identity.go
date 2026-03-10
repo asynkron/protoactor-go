@@ -424,6 +424,106 @@ func (s *NatsIdentityStorage) addKeyToMember(ctx context.Context, memberID, key 
 	}
 }
 
+// Compile-time check that NatsIdentityStorage implements cluster.StorageGrainEnumerator.
+var _ cluster.StorageGrainEnumerator = (*NatsIdentityStorage)(nil)
+
+// ListActivations returns all stored activations across all members.
+func (s *NatsIdentityStorage) ListActivations() ([]*cluster.StoredActivationInfo, error) {
+	s.acquire()
+	defer s.release()
+
+	ctx := context.Background()
+
+	memberKeys, err := s.members.Keys(ctx)
+	if errors.Is(err, jetstream.ErrNoKeysFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("nats identity: list member keys: %w", err)
+	}
+
+	var result []*cluster.StoredActivationInfo
+	for _, memberID := range memberKeys {
+		entry, err := s.members.Get(ctx, memberID)
+		if err != nil {
+			continue
+		}
+
+		var mrec memberRecord
+		if err := json.Unmarshal(entry.Value(), &mrec); err != nil {
+			continue
+		}
+
+		for _, key := range mrec.Keys {
+			info, err := s.readActivation(ctx, key, memberID)
+			if err != nil || info == nil {
+				continue
+			}
+			result = append(result, info)
+		}
+	}
+
+	return result, nil
+}
+
+// ListActivationsByMember returns all stored activations belonging to a specific member.
+func (s *NatsIdentityStorage) ListActivationsByMember(memberID string) ([]*cluster.StoredActivationInfo, error) {
+	s.acquire()
+	defer s.release()
+
+	ctx := context.Background()
+
+	entry, err := s.members.Get(ctx, memberID)
+	if errors.Is(err, jetstream.ErrKeyNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("nats identity: get member %s: %w", memberID, err)
+	}
+
+	var mrec memberRecord
+	if err := json.Unmarshal(entry.Value(), &mrec); err != nil {
+		return nil, fmt.Errorf("nats identity: unmarshal member %s: %w", memberID, err)
+	}
+
+	var result []*cluster.StoredActivationInfo
+	for _, key := range mrec.Keys {
+		info, err := s.readActivation(ctx, key, memberID)
+		if err != nil || info == nil {
+			continue
+		}
+		result = append(result, info)
+	}
+
+	return result, nil
+}
+
+// readActivation reads a single activation record from the identities bucket and
+// returns a StoredActivationInfo. Returns nil if the entry is lock-only (no PidID).
+func (s *NatsIdentityStorage) readActivation(ctx context.Context, key, memberID string) (*cluster.StoredActivationInfo, error) {
+	entry, err := s.identities.Get(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+
+	var rec activationRecord
+	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
+		return nil, err
+	}
+
+	if rec.PidID == "" {
+		return nil, nil
+	}
+
+	kind, identity := cluster.ParseDotSeparatedKey(key)
+	return &cluster.StoredActivationInfo{
+		Identity: identity,
+		Kind:     kind,
+		Pid:      fmt.Sprintf("%s/%s", rec.PidAddress, rec.PidID),
+		MemberID: memberID,
+	}, nil
+}
+
 // removeKeyFromMember removes an identity key from a member's tracking record.
 func (s *NatsIdentityStorage) removeKeyFromMember(ctx context.Context, memberID, key string) {
 	entry, err := s.members.Get(ctx, memberID)
