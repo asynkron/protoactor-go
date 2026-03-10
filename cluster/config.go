@@ -143,18 +143,24 @@ func withClusterReceiveMiddleware() actor.PropsOption {
 }
 
 func handleStopped(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *actor.MessageEnvelope) {
-	/*
-	   clusterKind.Dec();
-	*/
 	cl := GetCluster(c.ActorSystem())
 	identity := GetClusterIdentity(c)
 
 	if identity != nil {
+		// Existing event — kept for backward compatibility.
 		cl.ActorSystem.EventStream.Publish(&ActivationTerminating{
 			Pid:             c.Self(),
 			ClusterIdentity: identity,
 		})
 		cl.PidCache.RemoveByValue(identity.Identity, identity.Kind, c.Self())
+
+		// New enriched event with deactivation reason.
+		reason := cl.deactivationReasons.Pop(c.Self())
+		cl.ActorSystem.EventStream.Publish(&GrainDeactivated{
+			ClusterIdentity: identity,
+			PID:             c.Self(),
+			Reason:          reason,
+		})
 	}
 
 	next(c, envelope)
@@ -172,4 +178,11 @@ func handleStarted(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *a
 
 	ge := actor.WrapEnvelope(grainInit)
 	next(c, ge)
+
+	if identity != nil {
+		cl.ActorSystem.EventStream.Publish(&GrainActivated{
+			ClusterIdentity: identity,
+			PID:             c.Self(),
+		})
+	}
 }

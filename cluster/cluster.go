@@ -33,8 +33,9 @@ type Cluster struct {
 	provider       ClusterProvider
 	context        Context
 
-	metrics        *clustermetrics.ClusterMetrics
-	metricsEnabled bool
+	metrics              *clustermetrics.ClusterMetrics
+	metricsEnabled       bool
+	deactivationReasons  *deactivationReasons
 }
 
 var _ extensions.Extension = &Cluster{}
@@ -55,6 +56,7 @@ func NewCluster(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 
 	c.context = config.ClusterContextProducer(c)
 	c.PidCache = NewPidCache()
+	c.deactivationReasons = newDeactivationReasons()
 	c.MemberList = NewMemberList(c)
 	c.subscribeToTopologyEvents()
 
@@ -364,4 +366,11 @@ func (c *Cluster) ensureTopicKindRegisteredLocked() {
 
 func (c *Cluster) Logger() *slog.Logger {
 	return c.ActorSystem.Logger()
+}
+
+// SetDeactivationReason records why a grain is being deactivated.
+// This must be called before stopping the grain actor. The reason is
+// consumed by the handleStopped middleware and published in GrainDeactivated.
+func (c *Cluster) SetDeactivationReason(pid *actor.PID, reason DeactivationReason) {
+	c.deactivationReasons.Set(pid, reason)
 }
