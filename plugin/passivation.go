@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
 )
 
 type PassivationAware interface {
@@ -36,6 +37,10 @@ func (state *PassivationHolder) Init(actorSystem *actor.ActorSystem, pid *actor.
 	go func() {
 		select {
 		case <-state.timer.C:
+			// Set passivation reason if this is a cluster grain.
+			if cl := cluster.GetCluster(actorSystem); cl != nil {
+				cl.SetDeactivationReason(pid, cluster.DeactivationReasonPassivation)
+			}
 			actorSystem.Root.Stop(pid)
 			atomic.StoreInt32(&state.done, 1)
 		case <-state.doneCh:
