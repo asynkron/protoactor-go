@@ -399,6 +399,94 @@ func (il *IdentityLookup) spawnActivation(ci *cluster.ClusterIdentity, lockID st
 	return pid
 }
 
+// Compile-time check that IdentityLookup implements cluster.GrainEnumerator.
+var _ cluster.GrainEnumerator = (*IdentityLookup)(nil)
+
+// ListGrains returns all known grain activations across all members.
+func (il *IdentityLookup) ListGrains() ([]*cluster.GrainInfo, error) {
+	il.memberKeysMu.Lock()
+	allSubjects := make(map[string]string) // subject -> memberID
+	for memberID, subjects := range il.memberKeys {
+		for _, subject := range subjects {
+			allSubjects[subject] = memberID
+		}
+	}
+	il.memberKeysMu.Unlock()
+
+	ctx := context.Background()
+	var result []*cluster.GrainInfo
+	for subject, memberID := range allSubjects {
+		gi := il.lookupSubject(ctx, subject, memberID)
+		if gi != nil {
+			result = append(result, gi)
+		}
+	}
+	return result, nil
+}
+
+// ListGrainsByKind returns grain activations filtered by kind.
+func (il *IdentityLookup) ListGrainsByKind(kind string) ([]*cluster.GrainInfo, error) {
+	all, err := il.ListGrains()
+	if err != nil {
+		return nil, err
+	}
+	var result []*cluster.GrainInfo
+	for _, g := range all {
+		if g.Kind == kind {
+			result = append(result, g)
+		}
+	}
+	return result, nil
+}
+
+// ListGrainsByMember returns grain activations owned by a specific member.
+func (il *IdentityLookup) ListGrainsByMember(memberID string) ([]*cluster.GrainInfo, error) {
+	il.memberKeysMu.Lock()
+	subjects := make([]string, len(il.memberKeys[memberID]))
+	copy(subjects, il.memberKeys[memberID])
+	il.memberKeysMu.Unlock()
+
+	ctx := context.Background()
+	var result []*cluster.GrainInfo
+	for _, subject := range subjects {
+		gi := il.lookupSubject(ctx, subject, memberID)
+		if gi != nil {
+			result = append(result, gi)
+		}
+	}
+	return result, nil
+}
+
+// lookupSubject fetches the activation record for a single identity subject
+// and converts it into a GrainInfo.
+func (il *IdentityLookup) lookupSubject(ctx context.Context, subject string, memberID string) *cluster.GrainInfo {
+	msg, err := il.identityStream.GetLastMsgForSubject(ctx, subject)
+	if err != nil {
+		return nil
+	}
+
+	var rec activationRecord
+	if err := json.Unmarshal(msg.Data, &rec); err != nil {
+		return nil
+	}
+
+	// Skip entries that are only locks (no completed activation).
+	if rec.PidID == "" || rec.PidAddress == "" {
+		return nil
+	}
+
+	// Strip the subject prefix to get "kind.identity".
+	key := strings.TrimPrefix(subject, il.identitySubjectPrefix+".")
+	kind, identity := cluster.ParseDotSeparatedKey(key)
+
+	return &cluster.GrainInfo{
+		Identity: identity,
+		Kind:     kind,
+		PID:      pidFromRecord(&rec),
+		MemberID: memberID,
+	}
+}
+
 // pidFromRecord converts an activationRecord into an actor.PID.
 func pidFromRecord(rec *activationRecord) *actor.PID {
 	return actor.NewPID(rec.PidAddress, rec.PidID)
