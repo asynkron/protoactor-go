@@ -37,6 +37,7 @@ type Cluster struct {
 	metricsEnabled       bool
 	deactivationReasons  *deactivationReasons
 	grainMetrics         *grainMetricsStore // nil unless WithGrainMetrics() is set
+	grainReg             *GrainRegistry
 }
 
 var _ extensions.Extension = &Cluster{}
@@ -61,6 +62,7 @@ func NewCluster(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	if config.GrainMetricsEnabled {
 		c.grainMetrics = newGrainMetricsStore()
 	}
+	c.grainReg = &GrainRegistry{cluster: c}
 	c.MemberList = NewMemberList(c)
 	c.subscribeToTopologyEvents()
 
@@ -377,4 +379,9 @@ func (c *Cluster) Logger() *slog.Logger {
 // consumed by the handleStopped middleware and published in GrainDeactivated.
 func (c *Cluster) SetDeactivationReason(pid *actor.PID, reason DeactivationReason) {
 	c.deactivationReasons.Set(pid, reason)
+}
+
+// GrainRegistry returns the cluster's grain registry for introspection.
+func (c *Cluster) GrainRegistry() *GrainRegistry {
+	return c.grainReg
 }
