@@ -516,3 +516,98 @@ func (il *IdentityLookup) identityLogger() *slog.Logger {
 func pidFromRecord(rec *activationRecord) *actor.PID {
 	return actor.NewPID(rec.PidAddress, rec.PidID)
 }
+
+// Compile-time check that IdentityLookup implements cluster.GrainEnumerator.
+var _ cluster.GrainEnumerator = (*IdentityLookup)(nil)
+
+// ListGrains returns all known grain activations across all members.
+func (il *IdentityLookup) ListGrains() ([]*cluster.GrainInfo, error) {
+	if il.setupErr != nil {
+		return nil, il.setupErr
+	}
+
+	ctx := context.Background()
+
+	memberKeys, err := il.memberTracker.Keys(ctx)
+	if errors.Is(err, jetstream.ErrNoKeysFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("natskv identity: list member keys: %w", err)
+	}
+
+	var result []*cluster.GrainInfo
+	for _, memberID := range memberKeys {
+		grains, err := il.listMemberGrains(ctx, memberID)
+		if err != nil {
+			continue
+		}
+		result = append(result, grains...)
+	}
+
+	return result, nil
+}
+
+// ListGrainsByKind returns grain activations filtered by kind.
+func (il *IdentityLookup) ListGrainsByKind(kind string) ([]*cluster.GrainInfo, error) {
+	all, err := il.ListGrains()
+	if err != nil {
+		return nil, err
+	}
+	var result []*cluster.GrainInfo
+	for _, g := range all {
+		if g.Kind == kind {
+			result = append(result, g)
+		}
+	}
+	return result, nil
+}
+
+// ListGrainsByMember returns grain activations owned by a specific member.
+func (il *IdentityLookup) ListGrainsByMember(memberID string) ([]*cluster.GrainInfo, error) {
+	if il.setupErr != nil {
+		return nil, il.setupErr
+	}
+	return il.listMemberGrains(context.Background(), memberID)
+}
+
+// listMemberGrains reads all activation records belonging to a specific member
+// from the member tracker and identities buckets.
+func (il *IdentityLookup) listMemberGrains(ctx context.Context, memberID string) ([]*cluster.GrainInfo, error) {
+	entry, err := il.memberTracker.Get(ctx, memberID)
+	if err != nil {
+		return nil, err
+	}
+
+	var mrec memberRecord
+	if err := json.Unmarshal(entry.Value(), &mrec); err != nil {
+		return nil, err
+	}
+
+	var result []*cluster.GrainInfo
+	for _, key := range mrec.Keys {
+		idEntry, err := il.identities.Get(ctx, key)
+		if err != nil {
+			continue
+		}
+
+		var rec activationRecord
+		if err := json.Unmarshal(idEntry.Value(), &rec); err != nil {
+			continue
+		}
+
+		if rec.PidID == "" {
+			continue
+		}
+
+		kind, identity := cluster.ParseDotSeparatedKey(key)
+		result = append(result, &cluster.GrainInfo{
+			Identity: identity,
+			Kind:     kind,
+			PID:      pidFromRecord(&rec),
+			MemberID: memberID,
+		})
+	}
+
+	return result, nil
+}
