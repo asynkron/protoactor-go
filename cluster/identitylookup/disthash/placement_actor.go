@@ -13,8 +13,17 @@ import (
 
 // GrainMeta tracks the PID associated with a cluster identity.
 type GrainMeta struct {
-	ID  *clustering.ClusterIdentity
-	PID *actor.PID
+	ID          *clustering.ClusterIdentity
+	PID         *actor.PID
+	ActivatedAt time.Time
+}
+
+// ListGrainsRequest asks the placement actor to return all active grains.
+type ListGrainsRequest struct{}
+
+// ListGrainsResponse contains all active grains on this placement actor.
+type ListGrainsResponse struct {
+	Grains []*clustering.GrainInfo
 }
 
 type placementActor struct {
@@ -51,6 +60,8 @@ func (p *placementActor) Receive(ctx actor.Context) {
 		p.onActivationRequest(msg, ctx)
 	case *clustering.ClusterTopology:
 		p.onClusterTopology(msg, ctx)
+	case *ListGrainsRequest:
+		p.onListGrains(ctx)
 	default:
 		ctx.Logger().Error("Invalid message", slog.Any("message", msg), slog.Any("sender", ctx.Sender()))
 	}
@@ -150,8 +161,9 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 	}
 
 	p.actors[key] = GrainMeta{
-		ID:  msg.ClusterIdentity,
-		PID: pid,
+		ID:          msg.ClusterIdentity,
+		PID:         pid,
+		ActivatedAt: time.Now(),
 	}
 
 	response := &clustering.ActivationResponse{
@@ -159,6 +171,21 @@ func (p *placementActor) onActivationRequest(msg *clustering.ActivationRequest, 
 	}
 
 	ctx.Respond(response)
+}
+
+func (p *placementActor) onListGrains(ctx actor.Context) {
+	grains := make([]*clustering.GrainInfo, 0, len(p.actors))
+	memberID := p.cluster.ActorSystem.ID
+	for _, meta := range p.actors {
+		grains = append(grains, &clustering.GrainInfo{
+			Identity:    meta.ID.Identity,
+			Kind:        meta.ID.Kind,
+			PID:         meta.PID,
+			MemberID:    memberID,
+			ActivatedAt: meta.ActivatedAt,
+		})
+	}
+	ctx.Respond(&ListGrainsResponse{Grains: grains})
 }
 
 func (p *placementActor) updateVirtualActorsGauge() {
