@@ -136,7 +136,7 @@ func withClusterReceiveMiddleware() actor.PropsOption {
 			case *actor.Stopped:
 				handleStopped(c, next, envelope)
 			default:
-				handleGrainMetrics(c)
+				handleGrainMetrics(c, envelope.Message)
 				next(c, envelope)
 			}
 
@@ -173,7 +173,14 @@ func handleStopped(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *a
 	next(c, envelope)
 }
 
-func handleGrainMetrics(c actor.ReceiverContext) {
+func handleGrainMetrics(c actor.ReceiverContext, msg any) {
+	// Skip system and auto-receive messages (Stopping, Restarting, etc.)
+	// and cluster-internal messages (ClusterInit). Only count user messages.
+	switch msg.(type) {
+	case actor.AutoReceiveMessage, *ClusterInit:
+		return
+	}
+
 	cl := GetCluster(c.ActorSystem())
 	if cl == nil || cl.grainMetrics == nil {
 		return

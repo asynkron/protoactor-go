@@ -87,6 +87,8 @@ func (r *GrainRegistry) ByMember(memberID string) ([]*GrainInfo, error) {
 
 // Get returns a single grain activation by identity and kind. Returns
 // ErrEnumerationNotSupported if the IdentityLookup does not implement GrainEnumerator.
+// Note: This is O(N) in the number of grains of the given kind, as it fetches
+// all grains and filters. Intended for admin/diagnostic use, not hot paths.
 func (r *GrainRegistry) Get(identity, kind string) (*GrainInfo, bool, error) {
 	enum, err := r.enumerator()
 	if err != nil {
