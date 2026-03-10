@@ -148,6 +148,55 @@ func (l *IdentityStorageLookup) spawnActivation(ci *cluster.ClusterIdentity, loc
 	return pid
 }
 
+// Compile-time check that IdentityStorageLookup implements cluster.GrainEnumerator.
+var _ cluster.GrainEnumerator = (*IdentityStorageLookup)(nil)
+
+func (l *IdentityStorageLookup) ListGrains() ([]*cluster.GrainInfo, error) {
+	enum, ok := l.storage.(cluster.StorageGrainEnumerator)
+	if !ok {
+		return nil, cluster.ErrEnumerationNotSupported
+	}
+	infos, err := enum.ListActivations()
+	if err != nil {
+		return nil, err
+	}
+	return convertStoredToGrainInfos(infos), nil
+}
+
+func (l *IdentityStorageLookup) ListGrainsByKind(kind string) ([]*cluster.GrainInfo, error) {
+	all, err := l.ListGrains()
+	if err != nil {
+		return nil, err
+	}
+	var result []*cluster.GrainInfo
+	for _, g := range all {
+		if g.Kind == kind {
+			result = append(result, g)
+		}
+	}
+	return result, nil
+}
+
+func (l *IdentityStorageLookup) ListGrainsByMember(memberID string) ([]*cluster.GrainInfo, error) {
+	enum, ok := l.storage.(cluster.StorageGrainEnumerator)
+	if !ok {
+		return nil, cluster.ErrEnumerationNotSupported
+	}
+	infos, err := enum.ListActivationsByMember(memberID)
+	if err != nil {
+		return nil, err
+	}
+	return convertStoredToGrainInfos(infos), nil
+}
+
+func convertStoredToGrainInfos(infos []*cluster.StoredActivationInfo) []*cluster.GrainInfo {
+	result := make([]*cluster.GrainInfo, len(infos))
+	for i, info := range infos {
+		result[i] = cluster.StoredActivationInfoToGrainInfo(info)
+	}
+	return result
+}
+
 // pidFromStored converts a StoredActivation into an actor.PID.
 // The StoredActivation.Pid field is formatted as "address/id".
 func (l *IdentityStorageLookup) pidFromStored(stored *cluster.StoredActivation) *actor.PID {
