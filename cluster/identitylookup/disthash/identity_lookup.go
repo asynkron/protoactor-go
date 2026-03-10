@@ -2,9 +2,15 @@
 package disthash
 
 import (
+	"log/slog"
+	"time"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 )
+
+// Compile-time check that IdentityLookup implements cluster.GrainEnumerator.
+var _ cluster.GrainEnumerator = (*IdentityLookup)(nil)
 
 // IdentityLookup resolves cluster identities to actor PIDs using a partition manager.
 type IdentityLookup struct {
@@ -39,4 +45,71 @@ func (p *IdentityLookup) Shutdown() {
 // New creates a new distributed hash identity lookup implementation.
 func New() cluster.IdentityLookup {
 	return &IdentityLookup{}
+}
+
+// ListGrains returns all known grain activations across the cluster.
+func (p *IdentityLookup) ListGrains() ([]*cluster.GrainInfo, error) {
+	return p.fanOutListGrains("")
+}
+
+// ListGrainsByKind returns grain activations filtered by kind.
+func (p *IdentityLookup) ListGrainsByKind(kind string) ([]*cluster.GrainInfo, error) {
+	all, err := p.fanOutListGrains("")
+	if err != nil {
+		return nil, err
+	}
+	var result []*cluster.GrainInfo
+	for _, g := range all {
+		if g.Kind == kind {
+			result = append(result, g)
+		}
+	}
+	return result, nil
+}
+
+// ListGrainsByMember returns grain activations filtered by member ID.
+func (p *IdentityLookup) ListGrainsByMember(memberID string) ([]*cluster.GrainInfo, error) {
+	return p.fanOutListGrains(memberID)
+}
+
+func (p *IdentityLookup) fanOutListGrains(memberID string) ([]*cluster.GrainInfo, error) {
+	c := p.partitionManager.cluster
+	memberSet := c.MemberList.Members()
+	if memberSet == nil {
+		return nil, nil
+	}
+
+	members := memberSet.Members()
+	if len(members) == 0 {
+		return nil, nil
+	}
+
+	type futureEntry struct {
+		future actor.Future
+	}
+
+	var futures []futureEntry
+	for _, m := range members {
+		if memberID != "" && m.Id != memberID {
+			continue
+		}
+		placementPID := p.partitionManager.PidOfActivatorActor(m.Address())
+		future := c.ActorSystem.Root.RequestFuture(placementPID, &ListGrainsRequest{}, 5*time.Second)
+		futures = append(futures, futureEntry{future: future})
+	}
+
+	var result []*cluster.GrainInfo
+	for _, fe := range futures {
+		res, err := fe.future.Result()
+		if err != nil {
+			c.Logger().Warn("ListGrains: failed to query member placement actor", slog.Any("error", err))
+			continue
+		}
+		typed, ok := res.(*ListGrainsResponse)
+		if !ok {
+			continue
+		}
+		result = append(result, typed.Grains...)
+	}
+	return result, nil
 }

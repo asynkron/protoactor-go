@@ -25,6 +25,11 @@ type Manager struct {
 	rdv            *clustering.Rendezvous
 }
 
+// PlacementActorPID returns the local placement actor PID.
+func (pm *Manager) PlacementActorPID() *actor.PID {
+	return pm.placementActor
+}
+
 func newPartitionManager(c *clustering.Cluster) *Manager {
 	return &Manager{
 		cluster: c,
