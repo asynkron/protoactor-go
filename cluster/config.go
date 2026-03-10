@@ -30,6 +30,7 @@ type Config struct {
 	GossipMaxSend                                int
 	HeartbeatExpiration                          time.Duration // Gossip heartbeat timeout. If the member does not update its heartbeat within this period, it will be added to the BlockList
 	PubSubConfig                                 *PubSubConfig
+	GrainMetricsEnabled                          bool
 }
 
 // validate checks the cluster configuration for invalid values and returns an

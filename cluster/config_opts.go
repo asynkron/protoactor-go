@@ -97,3 +97,10 @@ func WithMemberStrategyBuilder(b func(cluster *Cluster, kind string) MemberStrat
 		c.MemberStrategyBuilder = b
 	}
 }
+
+// WithGrainMetrics enables per-grain metrics tracking (LastMessageAt, MessageCount).
+func WithGrainMetrics() ConfigOption {
+	return func(c *Config) {
+		c.GrainMetricsEnabled = true
+	}
+}

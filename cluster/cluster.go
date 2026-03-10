@@ -36,6 +36,7 @@ type Cluster struct {
 	metrics              *clustermetrics.ClusterMetrics
 	metricsEnabled       bool
 	deactivationReasons  *deactivationReasons
+	grainMetrics         *grainMetricsStore // nil unless WithGrainMetrics() is set
 }
 
 var _ extensions.Extension = &Cluster{}
@@ -57,6 +58,9 @@ func NewCluster(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	c.context = config.ClusterContextProducer(c)
 	c.PidCache = NewPidCache()
 	c.deactivationReasons = newDeactivationReasons()
+	if config.GrainMetricsEnabled {
+		c.grainMetrics = newGrainMetricsStore()
+	}
 	c.MemberList = NewMemberList(c)
 	c.subscribeToTopologyEvents()
 
