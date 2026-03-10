@@ -136,3 +136,52 @@ func (s *InMemoryStorageLookup) RemoveMemberId(memberID string) {
 		}
 	}
 }
+
+// Compile-time check that InMemoryStorageLookup implements StorageGrainEnumerator.
+var _ cluster.StorageGrainEnumerator = (*InMemoryStorageLookup)(nil)
+
+func (s *InMemoryStorageLookup) ListActivations() ([]*cluster.StoredActivationInfo, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	result := make([]*cluster.StoredActivationInfo, 0, len(s.activations))
+	for key, act := range s.activations {
+		kind, identity := parseIdentityKey(key)
+		result = append(result, &cluster.StoredActivationInfo{
+			Identity: identity,
+			Kind:     kind,
+			Pid:      act.Pid,
+			MemberID: act.MemberID,
+		})
+	}
+	return result, nil
+}
+
+func (s *InMemoryStorageLookup) ListActivationsByMember(memberID string) ([]*cluster.StoredActivationInfo, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var result []*cluster.StoredActivationInfo
+	for key, act := range s.activations {
+		if act.MemberID == memberID {
+			kind, identity := parseIdentityKey(key)
+			result = append(result, &cluster.StoredActivationInfo{
+				Identity: identity,
+				Kind:     kind,
+				Pid:      act.Pid,
+				MemberID: act.MemberID,
+			})
+		}
+	}
+	return result, nil
+}
+
+// parseIdentityKey splits a "kind/identity" key into its components.
+func parseIdentityKey(key string) (string, string) {
+	for i := 0; i < len(key); i++ {
+		if key[i] == '/' {
+			return key[:i], key[i+1:]
+		}
+	}
+	return key, ""
+}

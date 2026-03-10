@@ -17,3 +17,14 @@ func TestInMemoryConformance(t *testing.T) {
 	}
 	suite.RunAll(t)
 }
+
+// TestInMemoryEnumeratorConformance runs the StorageGrainEnumerator
+// conformance suite against the in-memory implementation.
+func TestInMemoryEnumeratorConformance(t *testing.T) {
+	suite := &identitylookup.EnumeratorConformanceSuite{
+		NewStorage: func() identitylookup.EnumerableStorage {
+			return identitylookup.NewInMemoryStorageLookup()
+		},
+	}
+	suite.RunAll(t)
+}
