@@ -136,6 +136,7 @@ func withClusterReceiveMiddleware() actor.PropsOption {
 			case *actor.Stopped:
 				handleStopped(c, next, envelope)
 			default:
+				handleGrainMetrics(c)
 				next(c, envelope)
 			}
 
@@ -162,9 +163,26 @@ func handleStopped(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *a
 			PID:             c.Self(),
 			Reason:          reason,
 		})
+
+		// Clean up grain metrics entry.
+		if cl.grainMetrics != nil {
+			cl.grainMetrics.Remove(identity.AsKey())
+		}
 	}
 
 	next(c, envelope)
+}
+
+func handleGrainMetrics(c actor.ReceiverContext) {
+	cl := GetCluster(c.ActorSystem())
+	if cl == nil || cl.grainMetrics == nil {
+		return
+	}
+	identity := GetClusterIdentity(c)
+	if identity == nil {
+		return
+	}
+	cl.grainMetrics.Record(identity.AsKey())
 }
 
 func handleStarted(c actor.ReceiverContext, next actor.ReceiverFunc, envelope *actor.MessageEnvelope) {
