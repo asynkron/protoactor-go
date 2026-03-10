@@ -82,6 +82,7 @@ func (p *placementActor) onStopping(ctx actor.Context) {
 	futures := make(map[string]actor.Future, len(p.actors))
 
 	for key, meta := range p.actors {
+		p.cluster.SetDeactivationReason(meta.PID, clustering.DeactivationReasonShutdown)
 		futures[key] = ctx.PoisonFuture(meta.PID)
 	}
 
@@ -190,6 +191,7 @@ func (p *placementActor) onClusterTopology(msg *clustering.ClusterTopology, ctx 
 
 		ctx.Logger().Debug("Actor moved", slog.String("identity", identity), slog.String("owner", ownerAddress), slog.String("me", myAddress))
 
+		p.cluster.SetDeactivationReason(meta.PID, clustering.DeactivationReasonTopologyChange)
 		ctx.Poison(meta.PID)
 	}
 }
