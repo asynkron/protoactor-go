@@ -304,6 +304,79 @@ func (s *PostgresIdentityStorage) RemoveActivation(spawnLock *cluster.SpawnLock)
 	}
 }
 
+// Compile-time check that PostgresIdentityStorage implements cluster.StorageGrainEnumerator.
+var _ cluster.StorageGrainEnumerator = (*PostgresIdentityStorage)(nil)
+
+// ListActivations returns all stored activations.
+func (s *PostgresIdentityStorage) ListActivations() ([]*cluster.StoredActivationInfo, error) {
+	s.acquire()
+	defer s.release()
+
+	ctx := context.Background()
+
+	query := fmt.Sprintf(
+		`SELECT key, pid_id, pid_address, member_id FROM %s WHERE pid_id != ''`,
+		s.tableName,
+	)
+
+	rows, err := s.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("postgres ListActivations: %w", err)
+	}
+	defer rows.Close()
+
+	var result []*cluster.StoredActivationInfo
+	for rows.Next() {
+		var key, pidID, pidAddr, memberID string
+		if err := rows.Scan(&key, &pidID, &pidAddr, &memberID); err != nil {
+			return nil, fmt.Errorf("postgres ListActivations scan: %w", err)
+		}
+		kind, identity := cluster.ParseStoredActivationInfoKey(key)
+		result = append(result, &cluster.StoredActivationInfo{
+			Identity: identity,
+			Kind:     kind,
+			Pid:      fmt.Sprintf("%s/%s", pidAddr, pidID),
+			MemberID: memberID,
+		})
+	}
+	return result, rows.Err()
+}
+
+// ListActivationsByMember returns activations belonging to a specific member.
+func (s *PostgresIdentityStorage) ListActivationsByMember(memberID string) ([]*cluster.StoredActivationInfo, error) {
+	s.acquire()
+	defer s.release()
+
+	ctx := context.Background()
+
+	query := fmt.Sprintf(
+		`SELECT key, pid_id, pid_address, member_id FROM %s WHERE pid_id != '' AND member_id = $1`,
+		s.tableName,
+	)
+
+	rows, err := s.db.QueryContext(ctx, query, memberID)
+	if err != nil {
+		return nil, fmt.Errorf("postgres ListActivationsByMember: %w", err)
+	}
+	defer rows.Close()
+
+	var result []*cluster.StoredActivationInfo
+	for rows.Next() {
+		var key, pidID, pidAddr, mID string
+		if err := rows.Scan(&key, &pidID, &pidAddr, &mID); err != nil {
+			return nil, fmt.Errorf("postgres ListActivationsByMember scan: %w", err)
+		}
+		kind, identity := cluster.ParseStoredActivationInfoKey(key)
+		result = append(result, &cluster.StoredActivationInfo{
+			Identity: identity,
+			Kind:     kind,
+			Pid:      fmt.Sprintf("%s/%s", pidAddr, pidID),
+			MemberID: mID,
+		})
+	}
+	return result, rows.Err()
+}
+
 // RemoveMemberId removes all activations belonging to the given member.
 func (s *PostgresIdentityStorage) RemoveMemberId(memberID string) {
 	s.acquire()

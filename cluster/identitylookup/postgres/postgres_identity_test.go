@@ -100,3 +100,24 @@ func TestPostgresConformance(t *testing.T) {
 
 	suite.RunAll(t)
 }
+
+// TestPostgresEnumeratorConformance runs the StorageGrainEnumerator conformance
+// suite against a real PostgreSQL instance started via testcontainers.
+func TestPostgresEnumeratorConformance(t *testing.T) {
+	ctx := context.Background()
+
+	suite := &identitylookup.EnumeratorConformanceSuite{
+		NewStorage: func() identitylookup.EnumerableStorage {
+			storage := pgidentity.New("test_cluster", testDB)
+			if err := storage.EnsureSchema(ctx); err != nil {
+				t.Fatalf("EnsureSchema failed: %v", err)
+			}
+			return storage
+		},
+		Cleanup: func() {
+			_, _ = testDB.ExecContext(ctx, "DELETE FROM test_cluster_identities")
+		},
+	}
+
+	suite.RunAll(t)
+}
