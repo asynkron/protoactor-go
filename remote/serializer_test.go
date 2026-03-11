@@ -75,3 +75,34 @@ func TestProtobufSerializer_Deserialize_InvalidType(t *testing.T) {
 	_, err := Deserialize([]byte{}, "unknown.Type", 0)
 	assert.Error(t, err)
 }
+
+// TestProtobufSerializer_Serialize_NonProtoMessage verifies that attempting to
+// serialize a non-protobuf type returns an error.
+func TestProtobufSerializer_Serialize_NonProtoMessage(t *testing.T) {
+	_, _, err := Serialize("plain string", 0)
+	assert.Error(t, err, "non-proto.Message should fail serialization")
+}
+
+// TestProtobufSerializer_Serialize_NilMessage verifies behavior with nil.
+func TestProtobufSerializer_Serialize_NilMessage(t *testing.T) {
+	_, _, err := Serialize(nil, 0)
+	assert.Error(t, err, "nil message should fail serialization")
+}
+
+// TestSerialize_NegativeSerializerID verifies bounds checking.
+func TestSerialize_NegativeSerializerID(t *testing.T) {
+	_, _, err := Serialize(&ActorPidRequest{}, -1)
+	assert.Error(t, err, "negative serializer ID should fail")
+}
+
+// TestDeserialize_NegativeSerializerID verifies bounds checking.
+func TestDeserialize_NegativeSerializerID(t *testing.T) {
+	_, err := Deserialize([]byte{}, "actor.PID", -1)
+	assert.Error(t, err, "negative serializer ID should fail")
+}
+
+// TestDeserialize_CorruptedData verifies that corrupted protobuf data returns error.
+func TestDeserialize_CorruptedData(t *testing.T) {
+	_, err := Deserialize([]byte{0xFF, 0xFE, 0xFD, 0xFC}, "actor.PID", 0)
+	assert.Error(t, err, "corrupted protobuf data should fail deserialization")
+}
