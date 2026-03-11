@@ -528,6 +528,48 @@ func TestOnMessageBatch_DeserializationFailure_NotifiesSender(t *testing.T) {
 		"sender should receive ErrDeadLetter when deserialization fails")
 }
 
+// TestOnMessageBatch_EmptyBatch verifies that an empty batch succeeds.
+func TestOnMessageBatch_EmptyBatch(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	batch := &MessageBatch{
+		TypeNames: []string{},
+		Targets:   []string{},
+		Senders:   []*actor.PID{},
+		Envelopes: []*MessageEnvelope{},
+	}
+
+	err := reader.onMessageBatch(batch)
+	assert.NoError(t, err, "empty batch should succeed")
+}
+
+// TestOnMessageBatch_NegativeTypeId verifies negative type IDs are handled.
+func TestOnMessageBatch_NegativeTypeId(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	batch := &MessageBatch{
+		TypeNames: []string{"actor.PID"},
+		Targets:   []string{"someActor"},
+		Senders:   []*actor.PID{},
+		Envelopes: []*MessageEnvelope{
+			{
+				TypeId: -1,
+				Target: 0,
+				Sender: 0,
+			},
+		},
+	}
+
+	err := reader.onMessageBatch(batch)
+	assert.Error(t, err, "negative type ID should return error")
+}
+
 func TestDeserializeSender_NilPidInArray(t *testing.T) {
 	arr := []*actor.PID{nil}
 
