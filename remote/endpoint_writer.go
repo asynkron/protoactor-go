@@ -248,6 +248,11 @@ func (state *endpointWriter) sendEnvelopes(msg []any, ctx actor.Context) {
 			message, err = v.Serialize()
 			if err != nil {
 				state.remote.Logger().Error("EndpointWriter failed to serialize message", slog.String("address", state.address), slog.Any("error", err), slog.Any("message", v))
+				if rd.sender != nil {
+					state.remote.actorSystem.Root.Send(rd.sender, &actor.DeadLetterResponse{Target: rd.target})
+				} else {
+					state.remote.actorSystem.EventStream.Publish(&actor.DeadLetterEvent{Message: rd.message, Sender: rd.sender, PID: rd.target})
+				}
 				continue
 			}
 		}
@@ -255,6 +260,11 @@ func (state *endpointWriter) sendEnvelopes(msg []any, ctx actor.Context) {
 		bytes, typeName, err := Serialize(message, serializerID)
 		if err != nil {
 			state.remote.Logger().Error("EndpointWriter failed to serialize message", slog.String("address", state.address), slog.Any("error", err), slog.Any("message", message))
+			if rd.sender != nil {
+				state.remote.actorSystem.Root.Send(rd.sender, &actor.DeadLetterResponse{Target: rd.target})
+			} else {
+				state.remote.actorSystem.EventStream.Publish(&actor.DeadLetterEvent{Message: rd.message, Sender: rd.sender, PID: rd.target})
+			}
 			continue
 		}
 

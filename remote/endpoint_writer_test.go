@@ -237,6 +237,98 @@ func TestEndpointWriter_BlockedByRemoteServer(t *testing.T) {
 	}
 }
 
+// TestEndpointWriter_SerializationFailure_NotifiesSender verifies that when
+// serialization fails, the sender receives a DeadLetterResponse instead of
+// the future hanging until timeout.
+func TestEndpointWriter_SerializationFailure_NotifiesSender(t *testing.T) {
+	systemA := actor.NewActorSystem()
+	configA := Configure("127.0.0.1", 0)
+	remoteA := NewRemote(systemA, configA)
+	err := remoteA.Start()
+	require.NoError(t, err)
+	defer remoteA.Shutdown(true)
+
+	systemB := actor.NewActorSystem()
+	configB := Configure("127.0.0.1", 0)
+	remoteB := NewRemote(systemB, configB)
+	err = remoteB.Start()
+	require.NoError(t, err)
+	defer remoteB.Shutdown(true)
+
+	// Spawn an echo actor on B so we have a valid remote target
+	echoProps := actor.PropsFromFunc(func(ctx actor.Context) {
+		if _, ok := ctx.Message().(*emptypb.Empty); ok {
+			ctx.Respond(&emptypb.Empty{})
+		}
+	})
+	_, err = systemB.Root.SpawnNamed(echoProps, "echo")
+	require.NoError(t, err)
+
+	// First verify normal communication works
+	remotePID := actor.NewPID(systemB.Address(), "echo")
+	fut := systemA.Root.RequestFuture(remotePID, &emptypb.Empty{}, 5*time.Second)
+	_, err = fut.Result()
+	require.NoError(t, err, "normal communication should work")
+
+	// Now send a non-protobuf message (a plain string) which will fail serialization.
+	// With the fix, the sender should get ErrDeadLetter quickly instead of timing out.
+	fut = systemA.Root.RequestFuture(remotePID, "not-a-protobuf-message", 5*time.Second)
+	_, err = fut.Result()
+	require.Error(t, err, "non-protobuf message should return an error")
+	assert.ErrorIs(t, err, actor.ErrDeadLetter,
+		"sender should receive ErrDeadLetter on serialization failure, not ErrTimeout")
+}
+
+// TestEndpointWriter_SerializationFailure_FireAndForget_PublishesDeadLetter verifies
+// that when a fire-and-forget message (no sender) fails serialization, a DeadLetterEvent
+// is published so the failure is observable.
+func TestEndpointWriter_SerializationFailure_FireAndForget_PublishesDeadLetter(t *testing.T) {
+	systemA := actor.NewActorSystem()
+	configA := Configure("127.0.0.1", 0)
+	remoteA := NewRemote(systemA, configA)
+	err := remoteA.Start()
+	require.NoError(t, err)
+	defer remoteA.Shutdown(true)
+
+	systemB := actor.NewActorSystem()
+	configB := Configure("127.0.0.1", 0)
+	remoteB := NewRemote(systemB, configB)
+	err = remoteB.Start()
+	require.NoError(t, err)
+	defer remoteB.Shutdown(true)
+
+	// Spawn an actor on B so we have a valid remote target
+	echoProps := actor.PropsFromFunc(func(ctx actor.Context) {})
+	_, err = systemB.Root.SpawnNamed(echoProps, "echo-ff")
+	require.NoError(t, err)
+
+	// Establish the connection first with a valid message
+	remotePID := actor.NewPID(systemB.Address(), "echo-ff")
+	fut := systemA.Root.RequestFuture(remotePID, &emptypb.Empty{}, 5*time.Second)
+	_, _ = fut.Result()
+
+	// Subscribe to DeadLetterEvent on A
+	deadLetterReceived := make(chan struct{}, 1)
+	systemA.EventStream.Subscribe(func(evt any) {
+		if _, ok := evt.(*actor.DeadLetterEvent); ok {
+			select {
+			case deadLetterReceived <- struct{}{}:
+			default:
+			}
+		}
+	})
+
+	// Fire-and-forget a non-serializable message (no sender)
+	systemA.Root.Send(remotePID, "not-a-protobuf-message")
+
+	select {
+	case <-deadLetterReceived:
+		// good — DeadLetterEvent was published
+	case <-time.After(5 * time.Second):
+		t.Fatal("expected DeadLetterEvent for fire-and-forget serialization failure")
+	}
+}
+
 func TestExponentialBackoff_DelaysIncreaseGeometrically(t *testing.T) {
 	config := Configure("localhost", 0,
 		WithRetryBaseDelay(100*time.Millisecond),
