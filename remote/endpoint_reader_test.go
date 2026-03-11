@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
@@ -424,6 +425,107 @@ func TestOnConnectRequest_ClientConnection_Blocked(t *testing.T) {
 	require.NotNil(t, connectResp)
 	assert.True(t, connectResp.Blocked)
 	assert.Equal(t, system.ID, connectResp.MemberId)
+}
+
+// TestOnMessageBatch_DeserializationFailure_ContinuesProcessing verifies that
+// a deserialization failure for one envelope doesn't kill the entire batch.
+func TestOnMessageBatch_DeserializationFailure_ContinuesProcessing(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	// Spawn a local actor that will receive the good message
+	received := make(chan any, 1)
+	props := actor.PropsFromFunc(func(ctx actor.Context) {
+		switch ctx.Message().(type) {
+		case *actor.Started, *actor.Stopping, *actor.Stopped:
+			// ignore lifecycle
+		default:
+			received <- ctx.Message()
+		}
+	})
+	pid, err := system.Root.SpawnNamed(props, "batch-test-target")
+	require.NoError(t, err)
+	defer system.Root.Stop(pid)
+
+	batch := &MessageBatch{
+		TypeNames: []string{
+			"totally.bogus.NonExistentType", // index 0: will fail deserialization
+			"actor.PID",                     // index 1: valid type
+		},
+		Targets: []string{pid.Id},
+		Senders: []*actor.PID{},
+		Envelopes: []*MessageEnvelope{
+			{
+				TypeId:      0, // bogus type
+				Target:      0,
+				Sender:      0,
+				MessageData: []byte{0x01, 0x02}, // garbage data
+			},
+			{
+				TypeId:      1, // valid type (actor.PID)
+				Target:      0,
+				Sender:      0,
+				MessageData: []byte{}, // empty PID
+			},
+		},
+	}
+
+	err = reader.onMessageBatch(batch)
+	assert.NoError(t, err, "batch should succeed even with one bad envelope")
+
+	// The good message should have been delivered
+	select {
+	case <-received:
+		// good — the second envelope was delivered
+	case <-time.After(2 * time.Second):
+		t.Fatal("good message in batch should still be delivered after bad envelope is skipped")
+	}
+}
+
+// TestOnMessageBatch_DeserializationFailure_NotifiesSender verifies that when
+// deserialization fails and the envelope has a sender, a DeadLetterResponse
+// is sent back.
+func TestOnMessageBatch_DeserializationFailure_NotifiesSender(t *testing.T) {
+	system := actor.NewActorSystem()
+	config := Configure("localhost", 0)
+	r := NewRemote(system, config)
+	reader := newEndpointReader(r)
+
+	// Create a future to act as the sender
+	fut := actor.NewFuture(system, 5*time.Second)
+
+	// Spawn a dummy target
+	props := actor.PropsFromFunc(func(ctx actor.Context) {})
+	pid, err := system.Root.SpawnNamed(props, "deser-notify-target")
+	require.NoError(t, err)
+	defer system.Root.Stop(pid)
+
+	senderPID := fut.PID()
+
+	batch := &MessageBatch{
+		TypeNames: []string{"totally.bogus.NonExistentType"},
+		Targets:   []string{pid.Id},
+		Senders:   []*actor.PID{senderPID},
+		Envelopes: []*MessageEnvelope{
+			{
+				TypeId:          0,
+				Target:          0,
+				Sender:          1, // 1-based index into Senders
+				SenderRequestId: senderPID.RequestId,
+				MessageData:     []byte{0x01, 0x02},
+			},
+		},
+	}
+
+	err = reader.onMessageBatch(batch)
+	assert.NoError(t, err, "batch should not return error for deserialization failure")
+
+	// The sender's future should resolve with ErrDeadLetter
+	_, futErr := fut.Result()
+	assert.ErrorIs(t, futErr, actor.ErrDeadLetter,
+		"sender should receive ErrDeadLetter when deserialization fails")
 }
 
 func TestDeserializeSender_NilPidInArray(t *testing.T) {

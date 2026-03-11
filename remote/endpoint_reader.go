@@ -197,8 +197,13 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 
 		message, err := Deserialize(data, typeName, envelope.SerializerId)
 		if err != nil {
-			s.remote.Logger().Error("EndpointReader failed to deserialize", slog.Any("error", err))
-			return err
+			s.remote.Logger().Error("EndpointReader failed to deserialize, skipping envelope",
+				slog.String("typeName", typeName),
+				slog.Any("error", err))
+			if sender != nil {
+				s.remote.actorSystem.Root.Send(sender, &actor.DeadLetterResponse{Target: target})
+			}
+			continue
 		}
 
 		// translate from on-the-wire representation to in-process representation
@@ -206,8 +211,13 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 		if v, ok := message.(RootSerialized); ok {
 			message, err = v.Deserialize()
 			if err != nil {
-				s.remote.Logger().Error("EndpointReader failed to deserialize", slog.Any("error", err))
-				return err
+				s.remote.Logger().Error("EndpointReader failed to deserialize root serialized, skipping envelope",
+					slog.String("typeName", typeName),
+					slog.Any("error", err))
+				if sender != nil {
+					s.remote.actorSystem.Root.Send(sender, &actor.DeadLetterResponse{Target: target})
+				}
+				continue
 			}
 		}
 
