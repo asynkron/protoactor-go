@@ -308,6 +308,48 @@ func (c *Cluster) RegisterKind(kind *Kind) error {
 	return nil
 }
 
+// RegisterKinds registers multiple Kinds with the cluster in a single
+// batch, triggering only one topology notification at the end. This
+// avoids the topology churn that occurs when registering kinds one by
+// one, which can cause singleton re-placement during the update window.
+//
+// Returns an error if any Kind name is already registered; in that case
+// no kinds from the batch are registered (all-or-nothing).
+func (c *Cluster) RegisterKinds(kinds []*Kind) error {
+	if len(kinds) == 0 {
+		return nil
+	}
+
+	// Build all kinds outside the lock.
+	type built struct {
+		name      string
+		activated *ActivatedKind
+	}
+	activated := make([]built, len(kinds))
+	for i, k := range kinds {
+		activated[i] = built{name: k.Kind, activated: k.Build(c)}
+	}
+
+	c.kindsMu.Lock()
+	defer c.kindsMu.Unlock()
+
+	// Check for duplicates first (all-or-nothing).
+	for _, b := range activated {
+		if _, exists := c.kinds[b.name]; exists {
+			return fmt.Errorf("kind %q is already registered", b.name)
+		}
+	}
+
+	// Register all.
+	for _, b := range activated {
+		c.kinds[b.name] = b.activated
+	}
+
+	// Single topology notification.
+	c.notifyKindUpdate()
+	return nil
+}
+
 // DeregisterKind removes a Kind from the cluster. Returns an error if
 // the Kind doesn't exist. The TopicActorKind cannot be deregistered.
 func (c *Cluster) DeregisterKind(kindName string) error {
