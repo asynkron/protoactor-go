@@ -98,13 +98,14 @@ func (a *activator) Receive(context actor.Context) {
 	case *ActorPidRequest:
 		props, exist := a.remote.kinds[msg.Kind]
 
-		// if props not exist, return error and panic
+		// if props don't exist, return error without panicking
 		if !exist {
 			response := &ActorPidResponse{
 				StatusCode: ResponseStatusCodeERROR.ToInt32(),
 			}
 			context.Respond(response)
-			panic(fmt.Errorf("no Props found for kind %s", msg.Kind))
+			context.Logger().Error("Activator got request for unknown kind", slog.String("kind", msg.Kind))
+			return
 		}
 
 		name := msg.Name
@@ -144,7 +145,10 @@ func (a *activator) Receive(context actor.Context) {
 				StatusCode: ResponseStatusCodeERROR.ToInt32(),
 			}
 			context.Respond(response)
-			panic(err)
+			context.Logger().Error("Activator failed to spawn actor",
+				slog.String("kind", msg.Kind),
+				slog.String("name", name),
+				slog.Any("error", err))
 		}
 	case actor.SystemMessage, actor.AutoReceiveMessage:
 		// ignore
