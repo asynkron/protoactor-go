@@ -26,6 +26,7 @@ type Provider struct {
 	clusterName  string
 	config       *config
 	js           jetstream.JetStream
+	nc           *nats.Conn // raw NATS connection; nil when created via NewFromJetStream
 	memberBucket jetstream.KeyValue
 	leaderBucket jetstream.KeyValue
 	self         *Node
@@ -57,7 +58,12 @@ func New(conn *nats.Conn, opts ...Option) (*Provider, error) {
 	if err != nil {
 		return nil, fmt.Errorf("natskv: create JetStream context: %w", err)
 	}
-	return NewFromJetStream(js, opts...)
+	p, err := NewFromJetStream(js, opts...)
+	if err != nil {
+		return nil, err
+	}
+	p.nc = conn
+	return p, nil
 }
 
 // NewFromJetStream creates a Provider using an existing JetStream handle.

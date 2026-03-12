@@ -12,6 +12,7 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )
 
@@ -21,15 +22,16 @@ var _ cluster.IdentityLookup = (*IdentityLookup)(nil)
 // IdentityLookup implements cluster.IdentityLookup directly using NATS JetStream KV
 // for lock acquisition, activation storage, and member tracking.
 type IdentityLookup struct {
-	provider      *Provider
-	cluster       *cluster.Cluster
-	memberID      string
-	isClient      bool
-	identities    jetstream.KeyValue
-	memberTracker jetstream.KeyValue
-	config        *config
-	semaphore     chan struct{}
-	setupErr      error
+	provider       *Provider
+	cluster        *cluster.Cluster
+	memberID       string
+	isClient       bool
+	identities     jetstream.KeyValue
+	memberTracker  jetstream.KeyValue
+	config         *config
+	semaphore      chan struct{}
+	setupErr       error
+	activationSub  *nats.Subscription // member-side subscription for client activation requests
 }
 
 // activationRecord is the JSON-encoded value stored in the identities KV bucket.
@@ -43,6 +45,25 @@ type activationRecord struct {
 // memberRecord is the JSON-encoded value stored in the member tracking KV bucket.
 type memberRecord struct {
 	Keys []string `json:"keys"`
+}
+
+// activationReq is sent by cluster clients to members via NATS request/reply
+// to trigger remote grain activation.
+type activationReq struct {
+	Kind     string `json:"k"`
+	Identity string `json:"i"`
+}
+
+// activationResp is the response from a member after handling an activation request.
+type activationResp struct {
+	PidID      string `json:"pid,omitempty"`
+	PidAddress string `json:"adr,omitempty"`
+	Error      string `json:"err,omitempty"`
+}
+
+// activateSubject returns the NATS subject used for client-to-member activation requests.
+func activateSubject(clusterName string) string {
+	return "_protoactor." + clusterName + ".activate"
 }
 
 // newIdentityLookup creates a new IdentityLookup associated with the given provider.
@@ -99,6 +120,21 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 			}
 		}
 	})
+
+	// Members subscribe to activation requests from cluster clients.
+	// Clients cannot spawn actors, so they publish NATS requests that
+	// members handle by performing the full Get() (spawn) protocol.
+	if !isClient && il.provider.nc != nil {
+		subject := activateSubject(c.Config.Name)
+		queueGroup := c.Config.Name + "_activators"
+		sub, err := il.provider.nc.QueueSubscribe(subject, queueGroup, il.handleActivationRequest)
+		if err != nil {
+			slog.Error("natskv identity: failed to subscribe to activation requests",
+				slog.Any("error", err))
+		} else {
+			il.activationSub = sub
+		}
+	}
 }
 
 // Get resolves a cluster identity to an actor PID.
@@ -125,9 +161,10 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 		return pidFromRecord(rec)
 	}
 
-	// Step 2: If client, wait for a member to spawn the actor.
+	// Step 2: If client, request remote activation from a member via NATS.
+	// Clients cannot spawn actors, so they delegate to a member.
 	if il.isClient {
-		rec = il.waitForActivation(ctx, ci)
+		rec = il.requestRemoteActivation(ctx, ci)
 		if rec != nil {
 			return pidFromRecord(rec)
 		}
@@ -183,6 +220,9 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 // Shutdown performs cleanup when the cluster is shutting down.
 // It removes all activations belonging to this member.
 func (il *IdentityLookup) Shutdown() {
+	if il.activationSub != nil {
+		_ = il.activationSub.Unsubscribe()
+	}
 	if il.setupErr != nil {
 		return
 	}
@@ -502,6 +542,76 @@ func (il *IdentityLookup) spawnActivation(ci *cluster.ClusterIdentity, lockID st
 	il.cluster.PidCache.Set(ci.Identity, ci.Kind, pid)
 
 	return pid
+}
+
+// handleActivationRequest is the NATS subscription handler for client-initiated
+// activation requests. It runs on member nodes and performs the full Get()
+// (spawn) protocol, then responds with the resulting PID.
+func (il *IdentityLookup) handleActivationRequest(msg *nats.Msg) {
+	var req activationReq
+	if err := json.Unmarshal(msg.Data, &req); err != nil {
+		resp, _ := json.Marshal(activationResp{Error: "bad request"})
+		_ = msg.Respond(resp)
+		return
+	}
+
+	ci := &cluster.ClusterIdentity{Kind: req.Kind, Identity: req.Identity}
+	pid := il.Get(ci)
+	if pid == nil {
+		resp, _ := json.Marshal(activationResp{Error: "activation failed"})
+		_ = msg.Respond(resp)
+		return
+	}
+
+	resp, _ := json.Marshal(activationResp{PidID: pid.Id, PidAddress: pid.Address})
+	_ = msg.Respond(resp)
+}
+
+// requestRemoteActivation sends a NATS request to a cluster member asking it
+// to activate the given grain. This is used by cluster clients which cannot
+// spawn actors themselves. Returns the activation record on success, nil on failure.
+func (il *IdentityLookup) requestRemoteActivation(ctx context.Context, ci *cluster.ClusterIdentity) *activationRecord {
+	nc := il.provider.nc
+	if nc == nil {
+		// No raw NATS connection available; fall back to passive wait.
+		return il.waitForActivation(ctx, ci)
+	}
+
+	subject := activateSubject(il.cluster.Config.Name)
+	data, err := json.Marshal(activationReq{Kind: ci.Kind, Identity: ci.Identity})
+	if err != nil {
+		return nil
+	}
+
+	reqCtx, cancel := context.WithTimeout(ctx, il.config.LockTTL)
+	defer cancel()
+
+	resp, err := nc.RequestWithContext(reqCtx, subject, data)
+	if err != nil {
+		slog.Error("natskv identity: remote activation request failed",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity),
+			slog.Any("error", err))
+		return nil
+	}
+
+	var aresp activationResp
+	if err := json.Unmarshal(resp.Data, &aresp); err != nil {
+		return nil
+	}
+
+	if aresp.Error != "" || aresp.PidID == "" {
+		return nil
+	}
+
+	// Populate the local PID cache so subsequent requests skip the remote call.
+	pid := actor.NewPID(aresp.PidAddress, aresp.PidID)
+	il.cluster.PidCache.Set(ci.Identity, ci.Kind, pid)
+
+	return &activationRecord{
+		PidID:      aresp.PidID,
+		PidAddress: aresp.PidAddress,
+	}
 }
 
 // identityLogger returns the cluster logger if available, otherwise the default logger.
