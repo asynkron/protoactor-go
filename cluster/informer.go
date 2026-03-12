@@ -21,9 +21,6 @@ const (
 	GracefullyLeftKey string = "left"
 )
 
-// create and seed a pseudo random numbers generator
-var rnd = rand.New(rand.NewSource(time.Now().UnixMicro()))
-
 // The Informer data structure implements the Gossip interface
 type Informer struct {
 	myID              string
@@ -38,6 +35,7 @@ type Informer struct {
 	gossipMaxSend     int
 	throttler         actor.ShouldThrottle
 	logger            *slog.Logger
+	rnd               *rand.Rand
 }
 
 // makes sure Informer complies with the Gossip interface
@@ -59,6 +57,7 @@ func newInformer(myID string, getBlockedMembers func() set.Set[string], fanOut i
 		gossipFanOut:      fanOut,
 		gossipMaxSend:     maxSend,
 		logger:            logger,
+		rnd:               rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	informer.throttler = actor.NewThrottle(3, 60*time.Second, informer.throttledLog)
 	return &informer
@@ -119,7 +118,7 @@ func (inf *Informer) SendState(sendStateToMember LocalStateSender) {
 	copy(otherMembers, inf.otherMembers)
 
 	// shuffles the order of the slice elements
-	rnd.Shuffle(len(otherMembers), func(i, j int) {
+	inf.rnd.Shuffle(len(otherMembers), func(i, j int) {
 		otherMembers[i], otherMembers[j] = otherMembers[j], otherMembers[i]
 	})
 
