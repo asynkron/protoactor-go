@@ -228,6 +228,84 @@ func TestMemberList_GetActivatorMember(t *testing.T) {
 	})
 }
 
+// TestConcurrentMemberListAccess exercises concurrent reads via ContainsMemberID,
+// Length, and Members while UpdateClusterTopology is writing. This test is
+// designed to trigger the race detector if any of the reader methods fail to
+// acquire the mutex before accessing ml.members.
+func TestConcurrentMemberListAccess(t *testing.T) {
+	t.Parallel()
+
+	c := newClusterForTest("test-concurrent-memberlist", newInmemoryProvider())
+	ml := NewMemberList(c)
+
+	const iterations = 500
+	var wg sync.WaitGroup
+
+	// Writer goroutine: alternates between two different topologies.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		twoMembers := newMembersForTest(2)
+		threeMembers := newMembersForTest(3)
+		for i := 0; i < iterations; i++ {
+			if i%2 == 0 {
+				ml.UpdateClusterTopology(twoMembers)
+			} else {
+				ml.UpdateClusterTopology(threeMembers)
+			}
+		}
+	}()
+
+	// Reader goroutine 1: ContainsMemberID
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < iterations; i++ {
+			_ = ml.ContainsMemberID("memberId-0")
+		}
+	}()
+
+	// Reader goroutine 2: Length
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < iterations; i++ {
+			_ = ml.Length()
+		}
+	}()
+
+	// Reader goroutine 3: Members
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < iterations; i++ {
+			_ = ml.Members()
+		}
+	}()
+
+	// Reader goroutine 4: GetActivatorMember
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < iterations; i++ {
+			_ = ml.GetActivatorMember("kind", "source")
+		}
+	}()
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// All goroutines completed without race detector complaints.
+	case <-time.After(30 * time.Second):
+		t.Fatal("timed out waiting for concurrent member list access test")
+	}
+}
+
 func TestMemberList_newMemberStrategies(t *testing.T) {
 	t.Parallel()
 	a := assert.New(t)
