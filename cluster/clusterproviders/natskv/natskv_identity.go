@@ -79,7 +79,11 @@ func newIdentityLookup(p *Provider) *IdentityLookup {
 // required KV buckets, and subscribes to topology events for member cleanup.
 func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient bool) {
 	il.cluster = c
-	il.memberID = c.ActorSystem.ID
+	// Use the full node name (clusterName_systemID) as memberID to match
+	// the Member.Id format returned by Node.MemberStatus(). This ensures
+	// the memberTracker KV entries are keyed consistently with the member
+	// IDs used by ByMember() lookups and removeMemberID() cleanup.
+	il.memberID = fmt.Sprintf("%s_%s", c.Config.Name, c.ActorSystem.ID)
 	il.isClient = isClient
 
 	ctx := context.Background()

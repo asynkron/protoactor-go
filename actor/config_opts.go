@@ -110,3 +110,12 @@ func WithRequestTimeout(d time.Duration) ConfigOption {
 		config.RequestTimeout = d
 	}
 }
+
+// WithSystemID sets a custom system ID for the actor system, overriding
+// the default random short UUID. This enables human-readable cluster
+// member names (e.g., "agg-node-1" instead of "C2UAuL74WkCNhAsGcEWqJx").
+func WithSystemID(id string) ConfigOption {
+	return func(config *Config) {
+		config.SystemID = id
+	}
+}

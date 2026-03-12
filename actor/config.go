@@ -31,6 +31,10 @@ type Config struct {
 	StopTimeout time.Duration
 	// RequestTimeout is the default timeout used for request operations.
 	RequestTimeout time.Duration
+	// SystemID overrides the auto-generated short UUID for the actor system.
+	// When set, this value is used as ActorSystem.ID instead of generating
+	// a random shortuuid. This enables human-readable cluster member names.
+	SystemID string
 }
 
 func defaultConfig() *Config {
