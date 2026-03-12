@@ -94,10 +94,14 @@ func (ml *MemberList) GetActivatorMember(kind string, requestSourceAddress strin
 }
 
 func (ml *MemberList) Length() int {
+	ml.mutex.RLock()
+	defer ml.mutex.RUnlock()
 	return ml.members.Len()
 }
 
 func (ml *MemberList) Members() *MemberSet {
+	ml.mutex.RLock()
+	defer ml.mutex.RUnlock()
 	return ml.members
 }
 
@@ -221,6 +225,8 @@ func (ml *MemberList) BroadcastEvent(message any, includeSelf bool) {
 }
 
 func (ml *MemberList) ContainsMemberID(memberID string) bool {
+	ml.mutex.RLock()
+	defer ml.mutex.RUnlock()
 	return ml.members.ContainsID(memberID)
 }
 

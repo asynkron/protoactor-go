@@ -352,12 +352,13 @@ func (p *Provider) publishClusterTopologyEvent() {
 			members = append(members, m.MemberStatus())
 		}
 	}
-	p.membersMu.RUnlock()
-
 	// Include self if registered as a member (not client).
+	// Must be inside membersMu scope because MemberStatus() reads p.self.Kinds
+	// which is written by UpdateKinds() under membersMu.Lock().
 	if p.self != nil && p.isMember {
 		members = append(members, p.self.MemberStatus())
 	}
+	p.membersMu.RUnlock()
 
 	if p.cluster != nil {
 		p.cluster.Logger().Debug("Update cluster topology",
