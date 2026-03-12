@@ -397,3 +397,176 @@ func TestIdentityLookup_SetupError_ShutdownDoesNotPanic(t *testing.T) {
 		il.Shutdown()
 	})
 }
+
+// --- Graceful shutdown cleanup tests ---
+//
+// These tests verify that IdentityLookup.Shutdown() properly cleans up
+// all identity activations belonging to the shutting-down member.
+
+func TestIdentityLookup_Shutdown_CleansUpOwnActivations(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+	_, js := connectNATS(t, srv)
+
+	ctx := context.Background()
+	identities, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_shutdown_cleanup_identities",
+	})
+	require.NoError(t, err)
+
+	tracking, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_shutdown_cleanup_tracking",
+	})
+	require.NoError(t, err)
+
+	memberID := "member-shutting-down"
+	il := &IdentityLookup{
+		identities:    identities,
+		memberTracker: tracking,
+		config:        newDefaultConfig(),
+		semaphore:     make(chan struct{}, 200),
+		memberID:      memberID,
+	}
+
+	// Create several activations via the normal lock+store path.
+	grains := []*cluster.ClusterIdentity{
+		{Kind: "Agg", Identity: "bet-1"},
+		{Kind: "Proj", Identity: "market-list"},
+		{Kind: "PM", Identity: "settlement-1"},
+	}
+
+	for _, ci := range grains {
+		lockID, rev, ok := il.tryAcquireLock(ctx, ci)
+		require.True(t, ok, "lock for %s", kvKey(ci))
+		err := il.storeActivation(ctx, ci, lockID, rev, memberID, "127.0.0.1:8080", ci.Kind+"/"+ci.Identity)
+		require.NoError(t, err, "store activation for %s", kvKey(ci))
+	}
+
+	// Verify all activations exist.
+	for _, ci := range grains {
+		rec := il.getExistingActivation(ctx, ci)
+		require.NotNil(t, rec, "activation for %s should exist before shutdown", kvKey(ci))
+	}
+
+	// Graceful shutdown.
+	il.Shutdown()
+
+	// All activations should be cleaned up.
+	for _, ci := range grains {
+		_, err := identities.Get(ctx, kvKey(ci))
+		assert.ErrorIs(t, err, jetstream.ErrKeyNotFound,
+			"activation for %s should be deleted after shutdown", kvKey(ci))
+	}
+
+	// Member tracking record should be deleted.
+	_, err = tracking.Get(ctx, memberID)
+	assert.ErrorIs(t, err, jetstream.ErrKeyNotFound,
+		"member tracking record should be deleted after shutdown")
+}
+
+func TestIdentityLookup_Shutdown_DoesNotAffectOtherMembers(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+	_, js := connectNATS(t, srv)
+
+	ctx := context.Background()
+	identities, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_shutdown_other_identities",
+	})
+	require.NoError(t, err)
+
+	tracking, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_shutdown_other_tracking",
+	})
+	require.NoError(t, err)
+
+	// Set up two "members", each with their own IdentityLookup.
+	il1 := &IdentityLookup{
+		identities:    identities,
+		memberTracker: tracking,
+		config:        newDefaultConfig(),
+		semaphore:     make(chan struct{}, 200),
+		memberID:      "member-1",
+	}
+	il2 := &IdentityLookup{
+		identities:    identities,
+		memberTracker: tracking,
+		config:        newDefaultConfig(),
+		semaphore:     make(chan struct{}, 200),
+		memberID:      "member-2",
+	}
+
+	// member-1 activates a grain.
+	ci1 := &cluster.ClusterIdentity{Kind: "Agg", Identity: "bet-1"}
+	lockID1, rev1, ok := il1.tryAcquireLock(ctx, ci1)
+	require.True(t, ok)
+	require.NoError(t, il1.storeActivation(ctx, ci1, lockID1, rev1, "member-1", "h1:8080", "Agg/bet-1"))
+
+	// member-2 activates a different grain.
+	ci2 := &cluster.ClusterIdentity{Kind: "Agg", Identity: "bet-2"}
+	lockID2, rev2, ok := il2.tryAcquireLock(ctx, ci2)
+	require.True(t, ok)
+	require.NoError(t, il2.storeActivation(ctx, ci2, lockID2, rev2, "member-2", "h2:8080", "Agg/bet-2"))
+
+	// Shutdown member-1 only.
+	il1.Shutdown()
+
+	// member-1's activation should be gone.
+	_, err = identities.Get(ctx, kvKey(ci1))
+	assert.ErrorIs(t, err, jetstream.ErrKeyNotFound, "member-1 activation should be deleted")
+
+	// member-2's activation should still exist.
+	rec := il2.getExistingActivation(ctx, ci2)
+	require.NotNil(t, rec, "member-2 activation should survive member-1 shutdown")
+	assert.Equal(t, "Agg/bet-2", rec.PidID)
+}
+
+// TestIdentityLookup_GetExistingActivation_ReturnsActivationFromOtherMember
+// verifies that getExistingActivation returns activations stored by other
+// members without proactively deleting them. Stale PID cleanup is handled
+// by the normal topology event path (ClusterTopology.Left → removeMemberID)
+// and by graceful shutdown (IdentityLookup.Shutdown → removeMemberID).
+// Proactive deletion based on MemberList liveness would be unsafe because
+// MemberList is eventually-consistent and could lag behind reality, causing
+// double-activations during network partitions or slow member refreshes.
+func TestIdentityLookup_GetExistingActivation_ReturnsActivationFromOtherMember(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+	_, js := connectNATS(t, srv)
+
+	ctx := context.Background()
+	identities, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_other_member_identities",
+	})
+	require.NoError(t, err)
+
+	il := &IdentityLookup{
+		identities: identities,
+		config:     newDefaultConfig(),
+		semaphore:  make(chan struct{}, 200),
+		memberID:   "member-A",
+	}
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "id1"}
+
+	// Write an activation belonging to a different member.
+	rec := activationRecord{
+		PidID:      "TestKind/id1",
+		PidAddress: "other-host:8080",
+		MemberID:   "member-B",
+	}
+	data, err := json.Marshal(&rec)
+	require.NoError(t, err)
+	_, err = identities.Put(ctx, kvKey(ci), data)
+	require.NoError(t, err)
+
+	// getExistingActivation must return the activation as-is, even though
+	// the owning member may or may not be alive. The caller (DefaultContext)
+	// will get a DeadLetter if the PID is stale and retry via RemovePid.
+	result := il.getExistingActivation(ctx, ci)
+	require.NotNil(t, result, "must return activation from other member without proactive deletion")
+	assert.Equal(t, "TestKind/id1", result.PidID)
+	assert.Equal(t, "other-host:8080", result.PidAddress)
+	assert.Equal(t, "member-B", result.MemberID)
+
+	// Verify the KV entry was NOT deleted.
+	_, err = identities.Get(ctx, kvKey(ci))
+	assert.NoError(t, err, "KV entry must not be deleted by getExistingActivation")
+}
