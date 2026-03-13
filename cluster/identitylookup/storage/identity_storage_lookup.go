@@ -1,10 +1,14 @@
 package storage
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // IdentityStorageLookup adapts a cluster.StorageLookup into a
@@ -42,6 +46,18 @@ func New(storage cluster.StorageLookup) *IdentityStorageLookup {
 //
 // Returns nil if the identity could not be resolved (caller should retry).
 func (l *IdentityStorageLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
+	// Note: identity spans are root spans because the IdentityLookup.Get()
+	// interface does not accept context.Context. A future interface change
+	// could parent these under cluster.resolve_pid.
+	ctx, span := otel.Tracer("protoactor/identity").Start(context.Background(), "identity.lookup",
+		trace.WithAttributes(
+			attribute.String("kind", ci.Kind),
+			attribute.String("identity", ci.Identity),
+			attribute.String("provider", "storage"),
+		),
+	)
+	defer span.End()
+
 	// Step 1: Check for an existing activation.
 	existing := l.storage.TryGetExistingActivation(ci)
 	if existing != nil {
@@ -58,7 +74,15 @@ func (l *IdentityStorageLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 	}
 
 	// Step 2: Try to acquire the spawn lock.
+	_, lockSpan := otel.Tracer("protoactor/identity").Start(ctx, "identity.lock_acquire",
+		trace.WithAttributes(
+			attribute.String("kind", ci.Kind),
+			attribute.String("identity", ci.Identity),
+		),
+	)
 	lock := l.storage.TryAcquireLock(ci)
+	lockSpan.End()
+
 	if lock == nil {
 		// Another node is spawning this actor. Wait for it.
 		activation := l.storage.WaitForActivation(ci)
@@ -69,7 +93,7 @@ func (l *IdentityStorageLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 	}
 
 	// Step 3: We hold the lock — spawn the actor.
-	pid := l.spawnActivation(ci, lock)
+	pid := l.spawnActivation(ctx, ci, lock)
 	if pid == nil {
 		// Spawn failed; release the lock so another node can try.
 		l.storage.RemoveLock(*lock)
@@ -120,7 +144,7 @@ func (l *IdentityStorageLookup) Shutdown() {
 // approach that creates the actor via the cluster's registered kinds.
 // For production use with remote placement, this should be integrated with
 // the placement actor protocol.
-func (l *IdentityStorageLookup) spawnActivation(ci *cluster.ClusterIdentity, lock *cluster.SpawnLock) *actor.PID {
+func (l *IdentityStorageLookup) spawnActivation(ctx context.Context, ci *cluster.ClusterIdentity, lock *cluster.SpawnLock) *actor.PID {
 	kind, ok := l.cluster.TryGetClusterKind(ci.Kind)
 	if !ok {
 		slog.Error("IdentityStorageLookup: unknown kind",
@@ -140,7 +164,15 @@ func (l *IdentityStorageLookup) spawnActivation(ci *cluster.ClusterIdentity, loc
 	}
 
 	// Store the activation and release the lock.
+	_, storeSpan := otel.Tracer("protoactor/identity").Start(ctx, "identity.store_placement",
+		trace.WithAttributes(
+			attribute.String("kind", ci.Kind),
+			attribute.String("identity", ci.Identity),
+			attribute.String("address", pid.Address),
+		),
+	)
 	l.storage.StoreActivation(l.memberID, lock, pid)
+	storeSpan.End()
 
 	// Also populate the local PID cache.
 	l.cluster.PidCache.Set(ci.Identity, ci.Kind, pid)
