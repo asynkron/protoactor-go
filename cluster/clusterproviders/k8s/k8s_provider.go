@@ -14,7 +14,9 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
+	k8smetrics "github.com/asynkron/protoactor-go/cluster/clusterproviders/k8s/metrics"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/metric"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,9 +50,11 @@ type Provider struct {
 	port           int
 	client         *kubernetes.Clientset
 	clusterMonitor *actor.PID
-	shutdown       atomic.Bool
-	cancelWatch    context.CancelFunc
-	watchDone      chan struct{}
+	shutdown        atomic.Bool
+	cancelWatch     context.CancelFunc
+	watchDone       chan struct{}
+	providerMetrics *k8smetrics.K8sMetrics
+	metricsEnabled  bool
 }
 
 // make sure our Provider complies with the ClusterProvider interface
@@ -101,6 +105,8 @@ func (p *Provider) init(c *cluster.Cluster) error {
 	p.host = host
 	p.port = port
 	p.address = fmt.Sprintf("%s:%d", host, port)
+	p.providerMetrics = k8smetrics.NewK8sMetrics(c.Logger())
+	p.metricsEnabled = c.MetricsEnabled()
 	return nil
 }
 
@@ -273,6 +279,13 @@ func (p *Provider) startWatchingCluster() error {
 			default:
 				if err := p.watchPods(ctx, selector); err != nil {
 					p.cluster.Logger().Error("Error watching pods, will retry", slog.Any("error", err))
+					if p.metricsEnabled {
+						p.providerMetrics.PodWatcherRestartCount.Add(
+							context.Background(),
+							1,
+							metric.WithAttributes(actor.SystemLabels(p.cluster.ActorSystem)...),
+						)
+					}
 					time.Sleep(5 * time.Second)
 				}
 			}
@@ -314,6 +327,7 @@ func (p *Provider) watchPods(ctx context.Context, selector string) error {
 }
 
 func (p *Provider) processPodEvent(event watch.Event, pod *v1.Pod) {
+	start := time.Now()
 	p.cluster.Logger().Debug("Watcher reported event for pod", slog.Any("eventType", event.Type), slog.String("podName", pod.Name))
 
 	podClusterName, hasClusterName := pod.Labels[LabelCluster]
@@ -343,6 +357,21 @@ func (p *Provider) processPodEvent(event watch.Event, pod *v1.Pod) {
 
 	p.cluster.Logger().Debug("Topology received from Kubernetes", slog.Any("members", members))
 	p.cluster.MemberList.UpdateClusterTopology(members)
+
+	if p.metricsEnabled {
+		elapsed := time.Since(start).Seconds()
+		attrs := metric.WithAttributes(actor.SystemLabels(p.cluster.ActorSystem)...)
+		p.providerMetrics.TopologyUpdateDuration.Record(
+			context.Background(),
+			elapsed,
+			attrs,
+		)
+		p.providerMetrics.PodReadinessDuration.Record(
+			context.Background(),
+			elapsed,
+			attrs,
+		)
+	}
 }
 
 func logCurrentPods(clusterPods map[types.UID]*v1.Pod, logger *slog.Logger) {
