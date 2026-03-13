@@ -163,6 +163,11 @@ selectloop:
 		dcc.cluster.metrics.ClusterRequestDuration.Record(_ctx, totalTime.Seconds(), metric.WithAttributes(attrs...))
 	}
 
+	if dcc.cluster.metricsEnabled && err == nil {
+		_ctx := context.Background()
+		dcc.cluster.metrics.ClusterMessageSentCount.Add(_ctx, 1, metric.WithAttributes(attribute.String("kind", kind)))
+	}
+
 	if contextError := ctx.Err(); contextError != nil && cfg.requestLogThrottle() == actor.Open {
 		// context timeout exceeded, report and return
 		dcc.cluster.Logger().Warn("Request retried but failed", slog.String("identity", identity), slog.String("kind", kind), slog.Duration("duration", totalTime))
@@ -229,7 +234,16 @@ func (dcc *DefaultContext) RequestFuture(identity string, kind string, message a
 // it can return nil if none is found.
 func (dcc *DefaultContext) getPid(identity, kind string) (*actor.PID, bool) {
 	if pid, ok := dcc.cluster.PidCache.Get(identity, kind); ok {
+		if dcc.cluster.metricsEnabled {
+			_ctx := context.Background()
+			dcc.cluster.metrics.IdentityCacheHitCount.Add(_ctx, 1, metric.WithAttributes(actor.SystemLabels(dcc.cluster.ActorSystem)...))
+		}
 		return pid, true
+	}
+
+	if dcc.cluster.metricsEnabled {
+		_ctx := context.Background()
+		dcc.cluster.metrics.IdentityCacheMissCount.Add(_ctx, 1, metric.WithAttributes(actor.SystemLabels(dcc.cluster.ActorSystem)...))
 	}
 
 	var pid *actor.PID
@@ -246,6 +260,10 @@ func (dcc *DefaultContext) getPid(identity, kind string) (*actor.PID, bool) {
 			attribute.String("clusterkind", kind),
 		)
 		dcc.cluster.metrics.ClusterResolvePidDuration.Record(_ctx, elapsed.Seconds(), metric.WithAttributes(attrs...))
+		dcc.cluster.metrics.IdentityLookupDuration.Record(_ctx, elapsed.Seconds(), metric.WithAttributes(attribute.String("kind", kind)))
+		if pid == nil {
+			dcc.cluster.metrics.IdentityLookupFailureCount.Add(_ctx, 1, metric.WithAttributes(attribute.String("kind", kind)))
+		}
 	} else {
 		pid = dcc.cluster.Get(identity, kind)
 		if pid != nil {
