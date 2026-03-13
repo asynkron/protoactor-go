@@ -32,6 +32,7 @@ func (strategy *exponentialBackoffStrategy) HandleFailure(actorSystem *ActorSyst
 	time.AfterFunc(dur, func() {
 		logFailure(actorSystem, child, reason, RestartDirective)
 		supervisor.RestartChildren(child)
+		recordSupervisionMetric(actorSystem, child, "ExponentialBackoff", "restart")
 	})
 }
 

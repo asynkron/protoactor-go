@@ -12,4 +12,5 @@ func (strategy *restartingStrategy) HandleFailure(actorSystem *ActorSystem, supe
 	// always restart
 	logFailure(actorSystem, child, reason, RestartDirective)
 	supervisor.RestartChildren(child)
+	recordSupervisionMetric(actorSystem, child, "Restarting", "restart")
 }

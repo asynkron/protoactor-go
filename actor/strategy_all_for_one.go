@@ -36,20 +36,24 @@ func (strategy *allForOneStrategy) HandleFailure(actorSystem *ActorSystem, super
 		if strategy.shouldStop(rs) {
 			logFailure(actorSystem, child, reason, StopDirective)
 			supervisor.StopChildren(children...)
+			recordSupervisionMetric(actorSystem, child, "AllForOne", "stop")
 		} else {
 			logFailure(actorSystem, child, reason, RestartDirective)
 			supervisor.RestartChildren(children...)
+			recordSupervisionMetric(actorSystem, child, "AllForOne", "restart")
 		}
 	case StopDirective:
 		children := supervisor.Children()
 		// stop all the children, no need to involve the crs
 		logFailure(actorSystem, child, reason, directive)
 		supervisor.StopChildren(children...)
+		recordSupervisionMetric(actorSystem, child, "AllForOne", "stop")
 	case EscalateDirective:
 		// send failure to parent
 		// supervisor mailbox
 		// do not log here, log in the parent handling the error
 		supervisor.EscalateFailure(reason, message)
+		recordSupervisionMetric(actorSystem, child, "AllForOne", "escalate")
 	}
 }
 
