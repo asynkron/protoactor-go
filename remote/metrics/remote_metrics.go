@@ -19,6 +19,11 @@ type RemoteMetrics struct {
 	RemoteDeserializedMessageCount  metric.Int64Counter
 	RemoteEndpointConnectedCount    metric.Int64Counter
 	RemoteEndpointDisconnectedCount metric.Int64Counter
+	RemoteMessageBatchSize          metric.Int64Histogram
+	RemoteMessageSizeBytes          metric.Int64Histogram
+	RemoteInflightRequests          metric.Int64UpDownCounter
+	RemoteMessageSentTotal          metric.Int64Counter
+	RemoteMessageReceivedTotal      metric.Int64Counter
 }
 
 // NewRemoteMetrics creates all metric instruments required for reporting remote
@@ -74,6 +79,47 @@ func NewRemoteMetrics(logger *slog.Logger) *RemoteMetrics {
 		metric.WithDescription("Number of endpoint disconnects"),
 	); err != nil {
 		err = fmt.Errorf("failed to create RemoteEndpointDisconnectedCount instrument, %w", err)
+		logger.Error(err.Error(), slog.Any("error", err))
+	}
+
+	if m.RemoteMessageBatchSize, err = meter.Int64Histogram(
+		"protoremote_message_batch_size",
+		metric.WithDescription("Envelopes per batch on remote writes"),
+	); err != nil {
+		err = fmt.Errorf("failed to create RemoteMessageBatchSize instrument, %w", err)
+		logger.Error(err.Error(), slog.Any("error", err))
+	}
+
+	if m.RemoteMessageSizeBytes, err = meter.Int64Histogram(
+		"protoremote_message_size_bytes",
+		metric.WithDescription("Serialized payload size in bytes"),
+		metric.WithUnit("By"),
+	); err != nil {
+		err = fmt.Errorf("failed to create RemoteMessageSizeBytes instrument, %w", err)
+		logger.Error(err.Error(), slog.Any("error", err))
+	}
+
+	if m.RemoteInflightRequests, err = meter.Int64UpDownCounter(
+		"protoremote_inflight_requests",
+		metric.WithDescription("Currently pending remote requests/futures"),
+	); err != nil {
+		err = fmt.Errorf("failed to create RemoteInflightRequests instrument, %w", err)
+		logger.Error(err.Error(), slog.Any("error", err))
+	}
+
+	if m.RemoteMessageSentTotal, err = meter.Int64Counter(
+		"protoremote_message_sent_total",
+		metric.WithDescription("Per-destination message counts (opt-in, O(n^2) cardinality)"),
+	); err != nil {
+		err = fmt.Errorf("failed to create RemoteMessageSentTotal instrument, %w", err)
+		logger.Error(err.Error(), slog.Any("error", err))
+	}
+
+	if m.RemoteMessageReceivedTotal, err = meter.Int64Counter(
+		"protoremote_message_received_total",
+		metric.WithDescription("Per-source message counts (opt-in, O(n^2) cardinality)"),
+	); err != nil {
+		err = fmt.Errorf("failed to create RemoteMessageReceivedTotal instrument, %w", err)
 		logger.Error(err.Error(), slog.Any("error", err))
 	}
 

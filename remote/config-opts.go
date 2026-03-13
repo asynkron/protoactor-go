@@ -118,3 +118,11 @@ func WithSupervisorMaxRestarts(count int) ConfigOption {
 		config.SupervisorMaxRestarts = count
 	}
 }
+
+// WithPerEndpointMetrics enables per-destination/source address metrics.
+// WARNING: Cardinality scales O(n^2) with cluster size. See Config.EnablePerEndpointMetrics.
+func WithPerEndpointMetrics() ConfigOption {
+	return func(config *Config) {
+		config.EnablePerEndpointMetrics = true
+	}
+}

@@ -134,4 +134,15 @@ type Config struct {
 	// SupervisorMaxRestarts is the maximum number of child restarts allowed
 	// within SupervisorRestartWindow before the supervisor stops the child.
 	SupervisorMaxRestarts int
+	// EnablePerEndpointMetrics enables per-destination/source address
+	// metrics (protoremote_message_sent_total, protoremote_message_received_total).
+	//
+	// WARNING: Cardinality scales O(n^2) with cluster size because each node
+	// records a separate time series for every peer it communicates with.
+	// For a 10-node cluster this produces ~100 series per metric; at 50 nodes
+	// it becomes ~2500. Not recommended for clusters larger than ~20 nodes
+	// unless your metrics backend handles high cardinality well.
+	//
+	// Default: false (disabled).
+	EnablePerEndpointMetrics bool
 }
