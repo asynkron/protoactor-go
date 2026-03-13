@@ -286,6 +286,7 @@ func (g *Gossiper) StartGossiping() error {
 			g.cluster.Config.GossipFanOut,
 			g.cluster.Config.GossipMaxSend,
 			system,
+			g.cluster,
 		)
 	}), g.GossipActorName)
 	if err != nil {

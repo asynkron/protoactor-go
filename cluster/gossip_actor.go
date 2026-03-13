@@ -3,11 +3,14 @@
 package cluster
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
 	"github.com/asynkron/gofun/set"
 	"github.com/asynkron/protoactor-go/actor"
+	"go.opentelemetry.io/otel/metric"
+	"google.golang.org/protobuf/proto"
 )
 
 // convenience customary type to represent an empty value
@@ -18,19 +21,21 @@ type empty struct{}
 type GossipActor struct {
 	gossipRequestTimeout time.Duration
 	gossip               Gossip
+	cluster              *Cluster
 
 	/// Message throttler
 	throttler actor.ShouldThrottle
 }
 
 // Creates a new GossipActor and returns a pointer to its location in the heap
-func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int, system *actor.ActorSystem) *GossipActor {
+func NewGossipActor(requestTimeout time.Duration, myID string, getBlockedMembers func() set.Set[string], fanOut int, maxSend int, system *actor.ActorSystem, cluster *Cluster) *GossipActor {
 
 	logger := system.Logger()
 	informer := newInformer(myID, getBlockedMembers, fanOut, maxSend, logger)
 	gossipActor := GossipActor{
 		gossipRequestTimeout: requestTimeout,
 		gossip:               informer,
+		cluster:              cluster,
 	}
 
 	gossipActor.throttler = actor.NewThrottleWithLogger(logger, 3, 60*time.Second, func(logger *slog.Logger, counter int32) {
@@ -151,6 +156,11 @@ func (ga *GossipActor) onSendGossipState(ctx actor.Context) {
 }
 
 func (ga *GossipActor) ReceiveState(remoteState *GossipState, ctx actor.Context) {
+	if ga.cluster != nil && ga.cluster.metricsEnabled {
+		_ctx := context.Background()
+		attrs := actor.SystemLabels(ga.cluster.ActorSystem)
+		ga.cluster.metrics.GossipReceivedCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
+	}
 	// stream our updates
 	updates := ga.gossip.ReceiveState(remoteState)
 	for _, update := range updates {
@@ -171,12 +181,29 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 		FromMemberId: member.Id,
 		State:        memberStateDelta.State,
 	}
+
+	if ga.cluster != nil && ga.cluster.metricsEnabled {
+		_ctx := context.Background()
+		attrs := actor.SystemLabels(ga.cluster.ActorSystem)
+		ga.cluster.metrics.GossipSentCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
+		if size := proto.Size(memberStateDelta.State); size > 0 {
+			ga.cluster.metrics.GossipMessageSizeBytes.Record(_ctx, int64(size), metric.WithAttributes(attrs...))
+		}
+	}
+
+	start := time.Now()
 	future := ctx.RequestFuture(pid, &msg, ga.gossipRequestTimeout)
 
 	ctx.ReenterAfter(future, func(res any, err error) {
 		if err != nil {
 			ctx.Logger().Warn("sendGossipForMember failed", slog.String("MemberId", member.Id), slog.Any("error", err))
 			return
+		}
+
+		if ga.cluster != nil && ga.cluster.metricsEnabled {
+			_ctx := context.Background()
+			attrs := actor.SystemLabels(ga.cluster.ActorSystem)
+			ga.cluster.metrics.GossipRoundtripDuration.Record(_ctx, time.Since(start).Seconds(), metric.WithAttributes(attrs...))
 		}
 
 		resp, ok := res.(*GossipResponse)
