@@ -15,4 +15,7 @@ func TestNewClusterMetrics(t *testing.T) {
 	if m.VirtualActorsCount == nil || m.ClusterMembersCount == nil {
 		t.Fatalf("expected gauges to be initialized")
 	}
+	if m.ClusterMessageSentCount == nil || m.GossipSentCount == nil || m.IdentityLookupDuration == nil {
+		t.Fatalf("expected new instruments to be initialized")
+	}
 }
