@@ -26,6 +26,7 @@ func (a *poolRouterActor) Receive(context actor.Context) {
 			return
 		}
 		context.Watch(m.PID)
+		r = r.Clone()
 		r.Add(m.PID)
 		a.state.SetRoutees(r)
 
@@ -36,6 +37,7 @@ func (a *poolRouterActor) Receive(context actor.Context) {
 		}
 
 		context.Unwatch(m.PID)
+		r = r.Clone()
 		r.Remove(m.PID)
 		a.state.SetRoutees(r)
 		// sleep for 1ms before sending the poison pill
@@ -66,7 +68,9 @@ func (a *poolRouterActor) Receive(context actor.Context) {
 		context.Respond(&Routees{PIDs: routees})
 	case *actor.Terminated:
 		r := a.state.GetRoutees()
-		if r.Remove(m.Who) {
+		if r.Contains(m.Who) {
+			r = r.Clone()
+			r.Remove(m.Who)
 			a.state.SetRoutees(r)
 		}
 	}

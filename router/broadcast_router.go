@@ -1,6 +1,8 @@
 package router
 
 import (
+	"sync/atomic"
+
 	"github.com/asynkron/protoactor-go/actor"
 )
 
@@ -13,7 +15,7 @@ type broadcastPoolRouter struct {
 }
 
 type broadcastRouterState struct {
-	routees *actor.PIDSet
+	routees atomic.Pointer[actor.PIDSet]
 	sender  actor.SenderContext
 }
 
@@ -22,15 +24,23 @@ func (state *broadcastRouterState) SetSender(sender actor.SenderContext) {
 }
 
 func (state *broadcastRouterState) SetRoutees(routees *actor.PIDSet) {
-	state.routees = routees
+	state.routees.Store(routees)
 }
 
 func (state *broadcastRouterState) GetRoutees() *actor.PIDSet {
-	return state.routees
+	r := state.routees.Load()
+	if r == nil {
+		return actor.NewPIDSet()
+	}
+	return r
 }
 
 func (state *broadcastRouterState) RouteMessage(message any) {
-	state.routees.ForEach(func(_ int, pid *actor.PID) {
+	r := state.routees.Load()
+	if r == nil {
+		return
+	}
+	r.ForEach(func(_ int, pid *actor.PID) {
 		state.sender.Send(pid, message)
 	})
 }

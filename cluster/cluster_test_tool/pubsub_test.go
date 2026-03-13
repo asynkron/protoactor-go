@@ -88,12 +88,12 @@ func (suite *PubSubTestSuite) TestUnsubscribedActorDoesNotReceiveMessages() {
 func (suite *PubSubTestSuite) TestCanSubscribeWithPid() {
 	const topic = "pid-subscribe"
 
-	var deliveredMessage *DataPublished
+	var deliveredMessage atomic.Pointer[DataPublished]
 
 	props := actor.PropsFromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *DataPublished:
-			deliveredMessage = msg
+			deliveredMessage.Store(msg)
 		}
 	})
 	member := suite.fixture.GetMembers()[0]
@@ -105,9 +105,9 @@ func (suite *PubSubTestSuite) TestCanSubscribeWithPid() {
 	suite.Assert().NoError(err, "PublishData should not has error")
 
 	WaitUntil(suite.T(), func() bool {
-		return deliveredMessage != nil
+		return deliveredMessage.Load() != nil
 	}, "message should be delivered", DefaultWaitTimeout)
-	suite.Assert().EqualValues(1, deliveredMessage.Data)
+	suite.Assert().EqualValues(1, deliveredMessage.Load().Data)
 }
 
 func (suite *PubSubTestSuite) TestCanUnsubscribeWithPid() {

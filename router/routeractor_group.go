@@ -25,6 +25,7 @@ func (a *groupRouterActor) Receive(context actor.Context) {
 			return
 		}
 		context.Watch(m.PID)
+		r = r.Clone()
 		r.Add(m.PID)
 		a.state.SetRoutees(r)
 
@@ -35,6 +36,7 @@ func (a *groupRouterActor) Receive(context actor.Context) {
 		}
 
 		context.Unwatch(m.PID)
+		r = r.Clone()
 		r.Remove(m.PID)
 		a.state.SetRoutees(r)
 

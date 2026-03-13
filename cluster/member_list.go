@@ -214,7 +214,11 @@ func (ml *MemberList) TerminateMember(m *Member) {
 }
 
 func (ml *MemberList) BroadcastEvent(message any, includeSelf bool) {
-	for _, m := range ml.members.members {
+	ml.mutex.RLock()
+	members := ml.members
+	ml.mutex.RUnlock()
+
+	for _, m := range members.members {
 		if !includeSelf && m.Id == ml.cluster.ActorSystem.ID {
 			continue
 		}

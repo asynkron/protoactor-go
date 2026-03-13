@@ -2,6 +2,7 @@ package router
 
 import (
 	"math/rand"
+	"sync/atomic"
 
 	"github.com/asynkron/protoactor-go/actor"
 )
@@ -15,7 +16,7 @@ type randomPoolRouter struct {
 }
 
 type randomRouterState struct {
-	routees *actor.PIDSet
+	routees atomic.Pointer[actor.PIDSet]
 	sender  actor.SenderContext
 }
 
@@ -24,15 +25,23 @@ func (state *randomRouterState) SetSender(sender actor.SenderContext) {
 }
 
 func (state *randomRouterState) SetRoutees(routees *actor.PIDSet) {
-	state.routees = routees
+	state.routees.Store(routees)
 }
 
 func (state *randomRouterState) GetRoutees() *actor.PIDSet {
-	return state.routees
+	r := state.routees.Load()
+	if r == nil {
+		return actor.NewPIDSet()
+	}
+	return r
 }
 
 func (state *randomRouterState) RouteMessage(message any) {
-	pid := randomRoutee(state.routees)
+	r := state.routees.Load()
+	if r == nil || r.Len() == 0 {
+		return
+	}
+	pid := randomRoutee(r)
 	state.sender.Send(pid, message)
 }
 
