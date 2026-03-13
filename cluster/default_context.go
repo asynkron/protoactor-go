@@ -12,8 +12,10 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Defines a type to provide DefaultContext configurations / implementations.
@@ -64,6 +66,15 @@ func (dcc *DefaultContext) Request(identity, kind string, message any, opts ...G
 
 	start := time.Now()
 
+	traceCtx, span := otel.Tracer("protoactor/cluster").Start(context.Background(), "cluster.request",
+		trace.WithAttributes(
+			attribute.String("kind", kind),
+			attribute.String("identity", identity),
+			attribute.String("messagetype", reflect.TypeOf(message).String()),
+		),
+	)
+	defer span.End()
+
 	dcc.cluster.Logger().Debug("Requesting", slog.String("identity", identity), slog.String("kind", kind), slog.String("type", reflect.TypeOf(message).String()), slog.Any("message", message))
 
 	// crate a new Timeout Context
@@ -95,7 +106,7 @@ selectloop:
 
 				break selectloop
 			}
-			pid, fromCache = dcc.getPid(identity, kind)
+			pid, fromCache = dcc.getPid(traceCtx, identity, kind)
 			if pid == nil {
 				dcc.cluster.Logger().Debug("Requesting PID from IdentityLookup but got nil", slog.String("identity", identity), slog.String("kind", kind))
 				counter = callConfig.RetryAction(counter)
@@ -185,6 +196,15 @@ func (dcc *DefaultContext) RequestFuture(identity string, kind string, message a
 
 	_context := callConfig.Context
 
+	traceCtx, span := otel.Tracer("protoactor/cluster").Start(context.Background(), "cluster.request",
+		trace.WithAttributes(
+			attribute.String("kind", kind),
+			attribute.String("identity", identity),
+			attribute.String("messagetype", reflect.TypeOf(message).String()),
+		),
+	)
+	defer span.End()
+
 	dcc.cluster.Logger().Debug("Requesting future", slog.String("identity", identity), slog.String("kind", kind), slog.String("type", reflect.TypeOf(message).String()), slog.Any("message", message))
 
 	// crate a new Timeout Context
@@ -208,7 +228,7 @@ func (dcc *DefaultContext) RequestFuture(identity string, kind string, message a
 				return nil, fmt.Errorf("have reached max retries: %v", callConfig.RetryCount)
 			}
 
-			pid, _ := dcc.getPid(identity, kind)
+			pid, _ := dcc.getPid(traceCtx, identity, kind)
 			if pid == nil {
 				dcc.cluster.Logger().Debug("Requesting PID from IdentityLookup but got nil", slog.String("identity", identity), slog.String("kind", kind))
 				counter = callConfig.RetryAction(counter)
@@ -232,7 +252,7 @@ func (dcc *DefaultContext) RequestFuture(identity string, kind string, message a
 
 // gets the cached PID for the given identity
 // it can return nil if none is found.
-func (dcc *DefaultContext) getPid(identity, kind string) (*actor.PID, bool) {
+func (dcc *DefaultContext) getPid(traceCtx context.Context, identity, kind string) (*actor.PID, bool) {
 	if pid, ok := dcc.cluster.PidCache.Get(identity, kind); ok {
 		if dcc.cluster.metricsEnabled {
 			_ctx := context.Background()
@@ -240,6 +260,14 @@ func (dcc *DefaultContext) getPid(identity, kind string) (*actor.PID, bool) {
 		}
 		return pid, true
 	}
+
+	_, resolveSpan := otel.Tracer("protoactor/cluster").Start(traceCtx, "cluster.resolve_pid",
+		trace.WithAttributes(
+			attribute.String("kind", kind),
+			attribute.String("identity", identity),
+		),
+	)
+	defer resolveSpan.End()
 
 	if dcc.cluster.metricsEnabled {
 		_ctx := context.Background()
