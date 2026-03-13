@@ -196,8 +196,9 @@ Spans added directly in cluster code for operations that don't flow through acto
 
 | Span Name | Parent | Attributes |
 |-----------|--------|------------|
-| `gossip.send` | None (root span) | `target_member_id` |
-| `gossip.receive` | None (root span) | `source_member_id` |
+| `gossip.send_round` | None (root span) | — | Orchestrating send round in `gossiper.go` (SendState) |
+| `gossip.send` | `gossip.send_round` | `target_member_id` | Per-member send in `gossip_actor.go` (sendGossipForMember) |
+| `gossip.receive` | None (root span) | `source_member_id` | Processing incoming gossip in `gossip_actor.go` (ReceiveState) |
 
 ### Tracer Naming Convention
 
