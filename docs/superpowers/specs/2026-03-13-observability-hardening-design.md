@@ -54,7 +54,7 @@ Added to `cluster/metrics/cluster_metrics.go`.
 | `protocluster_topology_update_total` | Counter | system labels | Topology changes observed by this node |
 | `protocluster_member_join_total` | Counter | system labels | Members joined |
 | `protocluster_member_leave_total` | Counter | system labels | Members left |
-| `protocluster_activation_count` | UpDownCounter | `kind` | Currently active virtual actor activations on this node |
+| `protocluster_activation_count` | UpDownCounter | `kind` | Currently active virtual actor activations on this node, broken down by kind. Complements the existing `protocluster_virtualactors` ObservableGauge (which reports total count without kind breakdown). |
 
 ### Gossip Metrics
 
@@ -149,6 +149,8 @@ These metrics are created unconditionally (so the instrument exists), but record
 
 All metrics follow the existing pattern: instruments are created via `otel.Meter()`, but values are only recorded when `metricsEnabled` is true on the relevant subsystem (Remote, Cluster). When no OTEL MeterProvider is configured, the global no-op meter is used and all record calls are no-ops at near-zero cost.
 
+**System labels** refers to the `actor.SystemLabels()` function which returns `[]attribute.KeyValue` containing the node's `address` and `id` attributes. These are included on all metrics that are node-scoped to allow per-node filtering and aggregation.
+
 ## Tracing
 
 ### Existing Middleware (unchanged)
@@ -168,7 +170,7 @@ Trace context already flows across nodes through the existing wire protocol:
 3. `endpointReader` deserializes `HeaderData` back into a `messageHeader` on the `localEnvelope`
 4. ReceiverMiddleware on the receiving node extracts span context from the envelope headers
 
-This works because `messageHeader` is `type messageHeader map[string]string` with `Get`/`Set`/`Keys` methods satisfying the `propagation.TextMapCarrier` interface. No changes needed to the transport layer.
+This works because the existing `messageEnvelopeCarrier` in `actor/middleware/opentelemetry/envelope.go` wraps `*MessageEnvelope` and delegates to its `messageHeader` (which is `type messageHeader map[string]string` with `Get`/`Set`/`Keys` methods). The carrier satisfies `propagation.TextMapCarrier` and is what the middleware uses for injection/extraction. No changes needed to the transport layer.
 
 ### New Direct Instrumentation (cluster internals)
 
@@ -182,7 +184,7 @@ Spans added directly in cluster code for operations that don't flow through acto
 | `cluster.resolve_pid` | `cluster.request` | `kind`, `identity` |
 | `cluster.activation` | `cluster.resolve_pid` | `kind`, `identity`, `address` |
 
-**Identity Lookup** (`cluster/identitylookup/`):
+**Identity Lookup** — spans added in the storage-based identity lookup base layer (`cluster/identitylookup/storage/identity_storage_lookup.go`) which is used by Redis, Postgres, NATS, and in-memory identity implementations. The `disthash` identity lookup uses a placement actor pattern instead and gets tracing through the existing actor middleware, so it does not need direct span instrumentation.
 
 | Span Name | Parent | Attributes |
 |-----------|--------|------------|
@@ -190,7 +192,7 @@ Spans added directly in cluster code for operations that don't flow through acto
 | `identity.lock_acquire` | `identity.lookup` | `kind`, `identity` |
 | `identity.store_placement` | `identity.lookup` | `kind`, `identity`, `address` |
 
-**Gossip** (`cluster/gossip.go` or equivalent):
+**Gossip** — spans added in `cluster/gossiper.go` (for `SendState`) and `cluster/gossip_actor.go` (for `sendGossipForMember` and `ReceiveState`):
 
 | Span Name | Parent | Attributes |
 |-----------|--------|------------|
@@ -268,13 +270,17 @@ Metrics assertions added to existing test files where operations already occur. 
 
 ### Existing files (tracing additions):
 - `cluster/default_context.go` - `cluster.request`, `cluster.resolve_pid`, `cluster.activation` spans
-- `cluster/identitylookup/` - `identity.lookup`, `identity.lock_acquire`, `identity.store_placement` spans
-- Gossip implementation file(s) - `gossip.send`, `gossip.receive` spans
+- `cluster/identitylookup/storage/identity_storage_lookup.go` - `identity.lookup`, `identity.lock_acquire`, `identity.store_placement` spans
+- `cluster/gossiper.go` - `gossip.send` spans (SendState)
+- `cluster/gossip_actor.go` - `gossip.send` spans (sendGossipForMember), `gossip.receive` spans (ReceiveState)
 
 ### Existing files (metrics recording):
 - `remote/endpoint_writer.go` - batch size, message size, opt-in per-endpoint sent
 - `remote/endpoint_reader.go` - opt-in per-endpoint received
-- Supervisor strategy files - supervision metrics recording
+- `actor/strategy_one_for_one.go` - supervision escalation/restart/stop metrics
+- `actor/strategy_all_for_one.go` - supervision escalation/restart/stop metrics
+- `actor/strategy_exponential_backoff.go` - supervision restart metrics
+- `actor/strategy_restarting.go` - supervision restart metrics
 - Provider files for NATS KV, NATS Stream, K8s - provider metric recording
 
 ### New files:
