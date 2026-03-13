@@ -2,11 +2,13 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel/metric"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/asynkron/gofun/set"
@@ -92,7 +94,12 @@ func (c *Cluster) subscribeToTopologyEvents() {
 				c.PidCache.RemoveByMember(member)
 			}
 			if c.metricsEnabled {
+				_ctx := context.Background()
+				attrs := actor.SystemLabels(c.ActorSystem)
 				c.metrics.ClusterMembersCount.Set(int64(len(clusterTopology.Members)))
+				c.metrics.ClusterTopologyUpdateCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
+				c.metrics.ClusterMemberJoinCount.Add(_ctx, int64(len(clusterTopology.Joined)), metric.WithAttributes(attrs...))
+				c.metrics.ClusterMemberLeaveCount.Add(_ctx, int64(len(clusterTopology.Left)), metric.WithAttributes(attrs...))
 			}
 		}
 	})
