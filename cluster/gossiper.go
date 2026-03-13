@@ -3,6 +3,7 @@
 package cluster
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -12,6 +13,7 @@ import (
 	"github.com/asynkron/protoactor-go/remote"
 
 	"github.com/asynkron/gofun/set"
+	"go.opentelemetry.io/otel"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -250,6 +252,9 @@ func (g *Gossiper) SendState() {
 	if g.pid == nil {
 		return
 	}
+
+	_, span := otel.Tracer("protoactor/gossip").Start(context.Background(), "gossip.send_round")
+	defer span.End()
 
 	r, err := g.cluster.ActorSystem.Root.RequestFuture(g.pid, &SendGossipStateRequest{}, 5*time.Second).Result()
 	if err != nil {

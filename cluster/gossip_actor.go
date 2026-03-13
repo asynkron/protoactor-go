@@ -9,7 +9,10 @@ import (
 
 	"github.com/asynkron/gofun/set"
 	"github.com/asynkron/protoactor-go/actor"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -98,6 +101,11 @@ func (ga *GossipActor) onGetGossipStateKey(r *GetGossipStateRequest, ctx actor.C
 }
 
 func (ga *GossipActor) onGossipRequest(r *GossipRequest, ctx actor.Context) {
+	_, span := otel.Tracer("protoactor/gossip").Start(context.Background(), "gossip.receive",
+		trace.WithAttributes(attribute.String("source_member_id", r.FromMemberId)),
+	)
+	defer span.End()
+
 	if ga.throttler() == actor.Open {
 		ctx.Logger().Debug("OnGossipRequest", slog.Any("sender", ctx.Sender()))
 	}
@@ -169,6 +177,10 @@ func (ga *GossipActor) ReceiveState(remoteState *GossipState, ctx actor.Context)
 }
 
 func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *MemberStateDelta, ctx actor.Context) {
+	_, span := otel.Tracer("protoactor/gossip").Start(context.Background(), "gossip.send",
+		trace.WithAttributes(attribute.String("target_member_id", member.Id)),
+	)
+
 	pid := actor.NewPID(member.Address(), DefaultGossipActorName)
 	if ga.throttler() == actor.Open {
 		ctx.Logger().Debug("Sending GossipRequest", slog.String("MemberId", member.Id))
@@ -195,6 +207,7 @@ func (ga *GossipActor) sendGossipForMember(member *Member, memberStateDelta *Mem
 	future := ctx.RequestFuture(pid, &msg, ga.gossipRequestTimeout)
 
 	ctx.ReenterAfter(future, func(res any, err error) {
+		defer span.End()
 		if err != nil {
 			ctx.Logger().Warn("sendGossipForMember failed", slog.String("MemberId", member.Id), slog.Any("error", err))
 			return
