@@ -18,8 +18,9 @@ import (
 )
 
 type endpointReader struct {
-	suspended atomic.Bool
-	remote    *Remote
+	suspended        atomic.Bool
+	remote           *Remote
+	connectedAddress string
 }
 
 func (s *endpointReader) mustEmbedUnimplementedRemotingServer() {
@@ -195,6 +196,12 @@ func (s *endpointReader) onMessageBatch(m *MessageBatch) error {
 			s.remote.metrics.RemoteDeserializedMessageCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
 		}
 
+		if s.remote.metricsEnabled && s.remote.config.EnablePerEndpointMetrics && s.connectedAddress != "" {
+			_ctx := context.Background()
+			attrs := append(actor.SystemLabels(s.remote.actorSystem), attribute.String("sourceaddress", s.connectedAddress))
+			s.remote.metrics.RemoteMessageReceivedTotal.Add(_ctx, 1, metric.WithAttributes(attrs...))
+		}
+
 		message, err := Deserialize(data, typeName, envelope.SerializerId)
 		if err != nil {
 			s.remote.Logger().Error("EndpointReader failed to deserialize, skipping envelope",
@@ -327,6 +334,7 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 		if err != nil {
 			s.remote.Logger().Error("EndpointReader failed to send ConnectResponse message", slog.Any("error", err))
 		}
+		s.connectedAddress = sc.Address
 	}
 }
 

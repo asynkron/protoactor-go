@@ -272,6 +272,7 @@ func (state *endpointWriter) sendEnvelopes(msg []any, ctx actor.Context) {
 			_ctx := context.Background()
 			attrs := append(actor.SystemLabels(state.remote.actorSystem), attribute.String("messagetype", typeName))
 			state.remote.metrics.RemoteSerializedMessageCount.Add(_ctx, 1, metric.WithAttributes(attrs...))
+			state.remote.metrics.RemoteMessageSizeBytes.Record(_ctx, int64(len(bytes)), metric.WithAttributes(attrs...))
 		}
 
 		typeID, typeNamesArr = addToLookup(typeNames, typeName, typeNamesArr)
@@ -300,6 +301,12 @@ func (state *endpointWriter) sendEnvelopes(msg []any, ctx actor.Context) {
 		return
 	}
 
+	if state.remote.metricsEnabled {
+		_ctx := context.Background()
+		attrs := append(actor.SystemLabels(state.remote.actorSystem), attribute.String("destinationaddress", state.address))
+		state.remote.metrics.RemoteMessageBatchSize.Record(_ctx, int64(len(envelopes)), metric.WithAttributes(attrs...))
+	}
+
 	start := time.Now()
 	err := state.stream.Send(&RemoteMessage{
 		MessageType: &RemoteMessage_MessageBatch{
@@ -316,6 +323,12 @@ func (state *endpointWriter) sendEnvelopes(msg []any, ctx actor.Context) {
 		_ctx := context.Background()
 		attrs := append(actor.SystemLabels(state.remote.actorSystem), attribute.String("destinationaddress", state.address))
 		state.remote.metrics.RemoteWriteDuration.Record(_ctx, time.Since(start).Seconds(), metric.WithAttributes(attrs...))
+	}
+
+	if state.remote.metricsEnabled && state.remote.config.EnablePerEndpointMetrics {
+		_ctx := context.Background()
+		attrs := append(actor.SystemLabels(state.remote.actorSystem), attribute.String("destinationaddress", state.address))
+		state.remote.metrics.RemoteMessageSentTotal.Add(_ctx, int64(len(envelopes)), metric.WithAttributes(attrs...))
 	}
 
 	if err != nil {
