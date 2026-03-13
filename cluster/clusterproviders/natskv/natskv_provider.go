@@ -11,9 +11,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
+	natskvmetrics "github.com/asynkron/protoactor-go/cluster/clusterproviders/natskv/metrics"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // Compile-time interface check.
@@ -49,6 +52,10 @@ type Provider struct {
 
 	// Integrated identity lookup
 	identity *IdentityLookup
+
+	// Metrics
+	providerMetrics *natskvmetrics.NatsKVMetrics
+	metricsEnabled  bool
 }
 
 // New creates a Provider using a NATS connection. It creates a JetStream
@@ -129,6 +136,9 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 		return err
 	}
 
+	p.providerMetrics = natskvmetrics.NewNatsKVMetrics(c.Logger())
+	p.metricsEnabled = c.MetricsEnabled()
+
 	if err := p.createMemberBucket(); err != nil {
 		return err
 	}
@@ -166,6 +176,9 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 	if err := p.init(c); err != nil {
 		return err
 	}
+
+	p.providerMetrics = natskvmetrics.NewNatsKVMetrics(c.Logger())
+	p.metricsEnabled = c.MetricsEnabled()
 
 	if err := p.createMemberBucket(); err != nil {
 		return err
@@ -351,6 +364,8 @@ func (p *Provider) handleMemberDelete(entry jetstream.KeyValueEntry) {
 // publishClusterTopologyEvent converts internal state to cluster.Member list
 // and notifies the cluster's MemberList.
 func (p *Provider) publishClusterTopologyEvent() {
+	start := time.Now()
+
 	p.membersMu.RLock()
 	members := make([]*cluster.Member, 0, len(p.members)+1)
 	for _, m := range p.members {
@@ -371,6 +386,14 @@ func (p *Provider) publishClusterTopologyEvent() {
 			slog.String("provider", "natskv"),
 			slog.Int("members", len(members)))
 		p.cluster.MemberList.UpdateClusterTopology(members)
+
+		if p.metricsEnabled {
+			p.providerMetrics.TopologyUpdateDuration.Record(
+				context.Background(),
+				time.Since(start).Seconds(),
+				metric.WithAttributes(actor.SystemLabels(p.cluster.ActorSystem)...),
+			)
+		}
 	}
 }
 
@@ -401,6 +424,12 @@ func (p *Provider) startWatching() {
 						slog.Any("error", err))
 				}
 				p.clusterError = err
+				if p.metricsEnabled {
+					p.providerMetrics.WatchReconnectCount.Add(
+						context.Background(), 1,
+						metric.WithAttributes(actor.SystemLabels(p.cluster.ActorSystem)...),
+					)
+				}
 
 				select {
 				case <-time.After(p.config.RetryInterval):
@@ -540,12 +569,24 @@ func (p *Provider) startRefresh() {
 							slog.String("provider", "natskv"),
 							slog.Any("error", err))
 					}
+					if p.metricsEnabled {
+						p.providerMetrics.KeyRefreshFailureCount.Add(
+							context.Background(), 1,
+							metric.WithAttributes(actor.SystemLabels(p.cluster.ActorSystem)...),
+						)
+					}
 				}
 				if err := p.refreshLeaderKey(); err != nil {
 					if p.cluster != nil {
 						p.cluster.Logger().Warn("Failed to refresh leader key",
 							slog.String("provider", "natskv"),
 							slog.Any("error", err))
+					}
+					if p.metricsEnabled {
+						p.providerMetrics.KeyRefreshFailureCount.Add(
+							context.Background(), 1,
+							metric.WithAttributes(actor.SystemLabels(p.cluster.ActorSystem)...),
+						)
 					}
 				}
 			case <-p.ctx.Done():
@@ -604,6 +645,12 @@ func (p *Provider) attemptLeaderElection() {
 	// Successfully created -- we are leader
 	p.isLeader.Store(true)
 	p.setRole(Leader)
+	if p.metricsEnabled {
+		p.providerMetrics.LeaderElectionCount.Add(
+			context.Background(), 1,
+			metric.WithAttributes(actor.SystemLabels(p.cluster.ActorSystem)...),
+		)
+	}
 }
 
 // setRole updates the role and notifies listeners.
