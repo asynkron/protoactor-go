@@ -31,6 +31,15 @@ type ActorMetrics struct {
 	FuturesStartedCount   metric.Int64Counter
 	FuturesCompletedCount metric.Int64Counter
 	FuturesTimedOutCount  metric.Int64Counter
+
+	// Messages
+	ActorMessageSentCount     metric.Int64Counter
+	ActorMessageReceivedCount metric.Int64Counter
+
+	// Supervision
+	SupervisionEscalationCount metric.Int64Counter
+	SupervisionRestartCount    metric.Int64Counter
+	SupervisionStopCount       metric.Int64Counter
 }
 
 // NewActorMetrics creates a new ActorMetrics value and returns a pointer to it
@@ -125,6 +134,46 @@ func newInstruments(logger *slog.Logger) *ActorMetrics {
 		metric.WithDescription("Number of futures that timed out"),
 	); err != nil {
 		err = fmt.Errorf("failed to create FuturesTimedOutCount instrument, %w", err)
+		logger.Error(err.Error(), slog.Any("error", err))
+	}
+
+	if instruments.ActorMessageSentCount, err = meter.Int64Counter(
+		"protoactor_actor_message_sent_total",
+		metric.WithDescription("Messages sent by actors"),
+	); err != nil {
+		err = fmt.Errorf("failed to create ActorMessageSentCount instrument, %w", err)
+		logger.Error(err.Error(), slog.Any("error", err))
+	}
+
+	if instruments.ActorMessageReceivedCount, err = meter.Int64Counter(
+		"protoactor_actor_message_received_total",
+		metric.WithDescription("Messages received by actors"),
+	); err != nil {
+		err = fmt.Errorf("failed to create ActorMessageReceivedCount instrument, %w", err)
+		logger.Error(err.Error(), slog.Any("error", err))
+	}
+
+	if instruments.SupervisionEscalationCount, err = meter.Int64Counter(
+		"protoactor_supervision_escalation_total",
+		metric.WithDescription("Failures escalated to parent"),
+	); err != nil {
+		err = fmt.Errorf("failed to create SupervisionEscalationCount instrument, %w", err)
+		logger.Error(err.Error(), slog.Any("error", err))
+	}
+
+	if instruments.SupervisionRestartCount, err = meter.Int64Counter(
+		"protoactor_supervision_restart_total",
+		metric.WithDescription("Restarts triggered by supervisor strategy"),
+	); err != nil {
+		err = fmt.Errorf("failed to create SupervisionRestartCount instrument, %w", err)
+		logger.Error(err.Error(), slog.Any("error", err))
+	}
+
+	if instruments.SupervisionStopCount, err = meter.Int64Counter(
+		"protoactor_supervision_stop_total",
+		metric.WithDescription("Actors stopped by supervisor strategy"),
+	); err != nil {
+		err = fmt.Errorf("failed to create SupervisionStopCount instrument, %w", err)
 		logger.Error(err.Error(), slog.Any("error", err))
 	}
 
