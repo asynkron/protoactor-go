@@ -127,14 +127,17 @@ func (em *endpointManager) stop() {
 	if err := em.stopSupervisor(); err != nil {
 		em.remote.Logger().Error("stop endpoint supervisor failed", slog.Any("error", err))
 	}
-	em.endpointSub = nil
-	em.connections = nil
 	if em.endpointReaderConnections != nil {
 		em.endpointReaderConnections.Range(func(key any, value any) bool {
-			if channel, ok := value.(chan bool); ok {
-				channel <- true
-			}
 			em.endpointReaderConnections.Delete(key)
+			if channel, ok := value.(chan bool); ok {
+				// The endpointReader's Receive defer may have already closed
+				// this channel, so protect against "send on closed channel".
+				func() {
+					defer func() { recover() }()
+					channel <- true
+				}()
+			}
 			return true
 		})
 	}

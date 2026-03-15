@@ -90,6 +90,9 @@ func (s *endpointReader) Receive(stream Remoting_ReceiveServer) error {
 	s.remote.edpManager.endpointReaderConnections.Store(stream, disconnectChan)
 	defer func() {
 		s.remote.Logger().Info("EndpointReader is closing")
+		// Delete before closing so endpointManager.stop() won't find and
+		// send on this channel after it's been closed.
+		s.remote.edpManager.endpointReaderConnections.Delete(stream)
 		close(disconnectChan)
 	}()
 
