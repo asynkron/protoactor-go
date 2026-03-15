@@ -141,14 +141,29 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 	return pid
 }
 
-// RemovePid removes the activation for a cluster identity.
+// RemovePid removes the activation for a cluster identity, but only if
+// the currently stored PID matches the one being removed. This prevents
+// a TOCTOU race where a concurrent activation could be wiped out by a
+// stale RemovePid call.
 func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID) {
 	ctx := context.Background()
 	subject := il.identitySubject(ci)
 
-	// Read the record to find the memberID for tracking cleanup.
+	// Read the record to validate the PID before purging.
 	rec := il.getExistingActivation(ctx, ci)
-	if rec != nil && rec.MemberID != "" {
+	if rec == nil {
+		return // Not found, nothing to remove.
+	}
+
+	// Only purge if the stored PID matches the one being removed.
+	// This guards against the TOCTOU race: if another node stored a fresh
+	// activation between our caller detecting a dead letter and this
+	// RemovePid call, we must not wipe the fresh activation.
+	if rec.PidID != pid.Id || rec.PidAddress != pid.Address {
+		return
+	}
+
+	if rec.MemberID != "" {
 		il.removeKeyFromMember(rec.MemberID, subject)
 	}
 

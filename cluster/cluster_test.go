@@ -101,7 +101,7 @@ func (l *fakeIdentityLookup) Get(identity *ClusterIdentity) *actor.PID {
 }
 
 func (l *fakeIdentityLookup) RemovePid(identity *ClusterIdentity, pid *actor.PID) {
-	if existPid := l.Get(identity); existPid.Equal(pid) {
+	if existPid := l.Get(identity); existPid != nil && existPid.Equal(pid) {
 		l.m.Delete(identity.Identity)
 	}
 }

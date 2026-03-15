@@ -197,7 +197,12 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 	return pid
 }
 
-// RemovePid removes the activation for a cluster identity.
+// RemovePid removes the activation for a cluster identity, but only if
+// the currently stored PID matches the one being removed AND the key
+// revision has not changed since we read it (CAS). This prevents the
+// TOCTOU race where concurrent goroutines both read the stale entry,
+// both pass PID validation, but by the time the second Delete executes,
+// a fresh activation has been stored at the same key.
 func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID) {
 	if il.setupErr != nil {
 		slog.Error("natskv identity: cannot RemovePid, setup failed", slog.Any("error", il.setupErr))
@@ -206,18 +211,38 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 	ctx := context.Background()
 	key := kvKey(ci)
 
-	// Read the entry to find the member ID for tracking cleanup.
+	// Read the entry to validate the PID before deleting.
 	entry, err := il.identities.Get(ctx, key)
-	if err == nil {
-		var rec activationRecord
-		if err := json.Unmarshal(entry.Value(), &rec); err == nil && rec.MemberID != "" {
-			il.removeKeyFromMember(ctx, rec.MemberID, key)
-		}
+	if err != nil {
+		return // Not found, nothing to remove.
 	}
 
-	if err := il.identities.Delete(ctx, key); err != nil && !errors.Is(err, jetstream.ErrKeyNotFound) {
-		slog.Error("natskv identity: RemovePid delete failed",
-			slog.String("key", key), slog.Any("error", err))
+	var rec activationRecord
+	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
+		return
+	}
+
+	// Only delete if the stored PID matches the one being removed.
+	if rec.PidID != pid.Id || rec.PidAddress != pid.Address {
+		return
+	}
+
+	if rec.MemberID != "" {
+		il.removeKeyFromMember(ctx, rec.MemberID, key)
+	}
+
+	// Use CAS delete (LastRevision) so the delete only succeeds if the
+	// key hasn't been modified since we read it. If another goroutine
+	// deleted the stale entry and stored a fresh activation between our
+	// Get and this Delete, the revision won't match and the delete is
+	// safely skipped.
+	if err := il.identities.Delete(ctx, key, jetstream.LastRevision(entry.Revision())); err != nil {
+		// CAS mismatch (ErrKeyExists/wrong last sequence) or key already
+		// gone (ErrKeyNotFound) — both are expected and acceptable.
+		if !errors.Is(err, jetstream.ErrKeyNotFound) && !errors.Is(err, jetstream.ErrKeyExists) {
+			slog.Error("natskv identity: RemovePid delete failed",
+				slog.String("key", key), slog.Any("error", err))
+		}
 	}
 }
 

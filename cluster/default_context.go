@@ -142,6 +142,9 @@ selectloop:
 					errors.Is(err, actor.ErrDeadLetter) || errors.Is(err, remote.ErrDeadLetter) {
 					counter = callConfig.RetryAction(counter)
 					dcc.cluster.PidCache.Remove(identity, kind)
+					dcc.cluster.IdentityLookup.RemovePid(
+						NewClusterIdentity(identity, kind), pid,
+					)
 					if dcc.cluster.metricsEnabled {
 						_ctx := context.Background()
 						attrs := append(
