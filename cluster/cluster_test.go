@@ -222,3 +222,16 @@ func TestCluster_Shutdown_NotGraceful(t *testing.T) {
 		c.Shutdown(false)
 	})
 }
+
+func TestNewCluster_DefaultPidCacheTTL_NoExpiry(t *testing.T) {
+	c := newClusterForTest("test-default-ttl", newInmemoryProvider())
+
+	pid := actor.NewPID("localhost:8080", "test/grain-1")
+	c.PidCache.Set("grain-1", "test", pid)
+
+	// With zero TTL, entry should persist indefinitely.
+	time.Sleep(50 * time.Millisecond)
+	got, ok := c.PidCache.Get("grain-1", "test")
+	assert.True(t, ok, "entry should still exist with zero TTL (default)")
+	assert.True(t, pid.Equal(got), "cached PID should match")
+}
