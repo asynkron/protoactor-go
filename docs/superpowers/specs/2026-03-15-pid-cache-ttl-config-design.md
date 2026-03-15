@@ -16,6 +16,9 @@ Three changes:
 
 1. **`cluster/config.go`** — Add field:
    ```go
+   // PidCacheTTL sets the time-to-live for PID cache entries. Expiration is
+   // lazy (on-read): stale entries are evicted when Get() is called after the
+   // TTL has elapsed, not by a background reaper. Zero means no expiry.
    PidCacheTTL time.Duration
    ```
 
@@ -58,6 +61,9 @@ Three changes:
 - Confirms the config option wires through to cache construction
 
 #### Integration Test (`cluster/clusterproviders/natskv/`)
+
+**Prerequisite: Update `startFullCluster` helper**
+- The existing `startFullCluster` in `natskv_identity_reactivation_integration_test.go` hardcodes `cluster.Configure` with only `cluster.WithKinds(kinds...)`. Add variadic `cluster.ConfigOption` parameters so the integration test can pass `WithPidCacheTTL`.
 
 **Test 4: `TestPidCacheTTL_ExpiresStaleActivation`**
 - Start NATS via testcontainers
