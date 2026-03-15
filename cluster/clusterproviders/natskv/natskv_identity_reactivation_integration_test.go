@@ -32,7 +32,7 @@ func echoKind() *cluster.Kind {
 // startFullCluster creates and starts a complete cluster node including
 // remote (gRPC), gossip, pubsub, identity lookup, and provider.
 // This is a real cluster node that can communicate with other nodes.
-func startFullCluster(t *testing.T, natsURL, clusterName string, kinds []*cluster.Kind, opts ...Option) (*Provider, *cluster.Cluster) {
+func startFullCluster(t *testing.T, natsURL, clusterName string, kinds []*cluster.Kind, opts []Option, clusterOpts ...cluster.ConfigOption) (*Provider, *cluster.Cluster) {
 	t.Helper()
 
 	nc, err := nats.Connect(natsURL)
@@ -44,9 +44,8 @@ func startFullCluster(t *testing.T, natsURL, clusterName string, kinds []*cluste
 
 	system := actor.NewActorSystem()
 	remoteCfg := remote.Configure("127.0.0.1", 0)
-	clusterCfg := cluster.Configure(clusterName, p, p.IdentityLookup(), remoteCfg,
-		cluster.WithKinds(kinds...),
-	)
+	allClusterOpts := append([]cluster.ConfigOption{cluster.WithKinds(kinds...)}, clusterOpts...)
+	clusterCfg := cluster.Configure(clusterName, p, p.IdentityLookup(), remoteCfg, allClusterOpts...)
 	c := cluster.NewCluster(system, clusterCfg)
 
 	err = c.StartMember()
@@ -118,12 +117,12 @@ func TestIntegration_CrashReactivation_FullCluster(t *testing.T) {
 
 	echo := echoKind()
 
-	p1, c1 := startFullCluster(t, natsURL, "integ-crash-react", []*cluster.Kind{echo}, opts...)
+	p1, c1 := startFullCluster(t, natsURL, "integ-crash-react", []*cluster.Kind{echo}, opts)
 	t.Cleanup(func() { c1.Shutdown(true) })
 
 	time.Sleep(1 * time.Second)
 
-	p2, c2 := startFullCluster(t, natsURL, "integ-crash-react", []*cluster.Kind{echo}, opts...)
+	p2, c2 := startFullCluster(t, natsURL, "integ-crash-react", []*cluster.Kind{echo}, opts)
 	// No Cleanup for c2 — we crash it manually below.
 
 	waitForMutualDiscovery(t, p1, p2)
@@ -204,12 +203,12 @@ func TestIntegration_ConcurrentRequests_AfterCrash_NoDoubleActivation(t *testing
 
 	echo := echoKind()
 
-	p1, c1 := startFullCluster(t, natsURL, "integ-concurrent-crash", []*cluster.Kind{echo}, opts...)
+	p1, c1 := startFullCluster(t, natsURL, "integ-concurrent-crash", []*cluster.Kind{echo}, opts)
 	t.Cleanup(func() { c1.Shutdown(true) })
 
 	time.Sleep(1 * time.Second)
 
-	p2, c2 := startFullCluster(t, natsURL, "integ-concurrent-crash", []*cluster.Kind{echo}, opts...)
+	p2, c2 := startFullCluster(t, natsURL, "integ-concurrent-crash", []*cluster.Kind{echo}, opts)
 
 	waitForMutualDiscovery(t, p1, p2)
 
@@ -346,12 +345,12 @@ func TestIntegration_GracefulShutdown_Reactivation(t *testing.T) {
 
 	echo := echoKind()
 
-	p1, c1 := startFullCluster(t, natsURL, "integ-graceful-react", []*cluster.Kind{echo}, opts...)
+	p1, c1 := startFullCluster(t, natsURL, "integ-graceful-react", []*cluster.Kind{echo}, opts)
 	t.Cleanup(func() { c1.Shutdown(true) })
 
 	time.Sleep(1 * time.Second)
 
-	p2, c2 := startFullCluster(t, natsURL, "integ-graceful-react", []*cluster.Kind{echo}, opts...)
+	p2, c2 := startFullCluster(t, natsURL, "integ-graceful-react", []*cluster.Kind{echo}, opts)
 
 	waitForMutualDiscovery(t, p1, p2)
 	_ = p2 // used only for discovery
@@ -402,7 +401,7 @@ func TestIntegration_RemovePid_PidMismatch_PreservesFreshActivation(t *testing.T
 
 	echo := echoKind()
 
-	p1, c1 := startFullCluster(t, natsURL, "integ-pid-mismatch", []*cluster.Kind{echo}, opts...)
+	p1, c1 := startFullCluster(t, natsURL, "integ-pid-mismatch", []*cluster.Kind{echo}, opts)
 	t.Cleanup(func() { c1.Shutdown(true) })
 
 	time.Sleep(2 * time.Second)
