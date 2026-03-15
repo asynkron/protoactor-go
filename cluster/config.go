@@ -31,6 +31,10 @@ type Config struct {
 	HeartbeatExpiration                          time.Duration // Gossip heartbeat timeout. If the member does not update its heartbeat within this period, it will be added to the BlockList
 	PubSubConfig                                 *PubSubConfig
 	GrainMetricsEnabled                          bool
+	// PidCacheTTL sets the time-to-live for PID cache entries. Expiration is
+	// lazy (on-read): stale entries are evicted when Get() is called after the
+	// TTL has elapsed, not by a background reaper. Zero means no expiry.
+	PidCacheTTL time.Duration
 }
 
 // validate checks the cluster configuration for invalid values and returns an

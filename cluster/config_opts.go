@@ -104,3 +104,11 @@ func WithGrainMetrics() ConfigOption {
 		c.GrainMetricsEnabled = true
 	}
 }
+
+// WithPidCacheTTL sets the time-to-live for PID cache entries.
+// Zero (the default) means entries never expire.
+func WithPidCacheTTL(ttl time.Duration) ConfigOption {
+	return func(c *Config) {
+		c.PidCacheTTL = ttl
+	}
+}

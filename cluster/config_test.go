@@ -167,3 +167,13 @@ func TestClusterConfig_WithMemberStrategyBuilder(t *testing.T) {
 	)
 	assert.NotNil(t, config.MemberStrategyBuilder)
 }
+
+func TestClusterConfig_WithPidCacheTTL(t *testing.T) {
+	provider := newInmemoryProvider()
+	lookup := &fakeIdentityLookup{}
+	rc := remote.Configure("localhost", 0)
+	config := Configure("test-cluster", provider, lookup, rc,
+		WithPidCacheTTL(30*time.Second),
+	)
+	assert.Equal(t, 30*time.Second, config.PidCacheTTL)
+}
