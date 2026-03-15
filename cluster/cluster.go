@@ -59,7 +59,7 @@ func NewCluster(actorSystem *actor.ActorSystem, config *Config) *Cluster {
 	}
 
 	c.context = config.ClusterContextProducer(c)
-	c.PidCache = NewPidCache()
+	c.PidCache = NewPidCacheWithTTL(config.PidCacheTTL)
 	c.deactivationReasons = newDeactivationReasons()
 	if config.GrainMetricsEnabled {
 		c.grainMetrics = newGrainMetricsStore()

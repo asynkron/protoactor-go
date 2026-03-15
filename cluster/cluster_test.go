@@ -235,3 +235,22 @@ func TestNewCluster_DefaultPidCacheTTL_NoExpiry(t *testing.T) {
 	assert.True(t, ok, "entry should still exist with zero TTL (default)")
 	assert.True(t, pid.Equal(got), "cached PID should match")
 }
+
+func TestNewCluster_WithPidCacheTTL_ExpiresCachedEntries(t *testing.T) {
+	c := newClusterForTest("test-ttl-expiry", newInmemoryProvider(),
+		WithPidCacheTTL(100*time.Millisecond),
+	)
+
+	pid := actor.NewPID("localhost:8080", "test/grain-1")
+	c.PidCache.Set("grain-1", "test", pid)
+
+	// Entry should exist immediately.
+	got, ok := c.PidCache.Get("grain-1", "test")
+	assert.True(t, ok, "entry should exist before TTL")
+	assert.True(t, pid.Equal(got))
+
+	// After TTL elapses, entry should be gone.
+	time.Sleep(150 * time.Millisecond)
+	_, ok = c.PidCache.Get("grain-1", "test")
+	assert.False(t, ok, "entry should have expired after TTL")
+}
