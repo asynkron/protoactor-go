@@ -3,6 +3,7 @@ package natsstream
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -327,6 +328,13 @@ func (il *IdentityLookup) waitForActivation(ctx context.Context, ci *cluster.Clu
 
 // removeMemberID removes all activations belonging to the given member
 // by purging their subjects from the identity stream.
+//
+// The local memberKeys map only tracks identities spawned by THIS node, so
+// when a REMOTE member departs, the map will be empty. In that case we fall
+// back to scanning the NATS identity stream for all subjects and purging
+// any activation record whose MemberID matches the departed member. This
+// ensures stale activations are cleaned up regardless of which node
+// originally spawned them.
 func (il *IdentityLookup) removeMemberID(ctx context.Context, memberID string) {
 	if il.identityStream == nil {
 		return
@@ -337,10 +345,58 @@ func (il *IdentityLookup) removeMemberID(ctx context.Context, memberID string) {
 	delete(il.memberKeys, memberID)
 	il.memberKeysMu.Unlock()
 
-	for _, subject := range keys {
-		if err := il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject)); err != nil {
-			slog.Error("natsstream identity: removeMemberID purge failed",
-				slog.String("subject", subject), slog.Any("error", err))
+	// Fast path: the local map has keys for this member (it was spawned locally).
+	if len(keys) > 0 {
+		for _, subject := range keys {
+			if err := il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject)); err != nil {
+				slog.Error("natsstream identity: removeMemberID purge failed",
+					slog.String("subject", subject), slog.Any("error", err))
+			}
+		}
+		return
+	}
+
+	// Slow path: scan the stream for activations belonging to the departed
+	// member. This handles the common case where a remote member departs and
+	// the local node has no knowledge of which identities it owned.
+	il.purgeActivationsForMember(ctx, memberID)
+}
+
+// purgeActivationsForMember scans all subjects in the identity stream and
+// purges any activation record whose MemberID matches the given member.
+// This is the slow path used when the local memberKeys map has no entries
+// for the departed member (i.e., it was a remote member).
+func (il *IdentityLookup) purgeActivationsForMember(ctx context.Context, memberID string) {
+	// Use SubjectFilter to enumerate all identity subjects in the stream.
+	info, err := il.identityStream.Info(ctx, jetstream.WithSubjectFilter(il.identitySubjectPrefix+".>"))
+	if err != nil {
+		slog.Error("natsstream identity: purgeActivationsForMember stream info failed",
+			slog.Any("error", err))
+		return
+	}
+
+	for subject := range info.State.Subjects {
+		msg, err := il.identityStream.GetLastMsgForSubject(ctx, subject)
+		if err != nil {
+			continue
+		}
+
+		var rec activationRecord
+		if err := json.Unmarshal(msg.Data, &rec); err != nil {
+			continue
+		}
+
+		if rec.MemberID == memberID {
+			if err := il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject)); err != nil {
+				slog.Error("natsstream identity: purgeActivationsForMember purge failed",
+					slog.String("subject", subject),
+					slog.String("memberID", memberID),
+					slog.Any("error", err))
+			} else {
+				slog.Info("natsstream identity: purged stale activation for departed member",
+					slog.String("subject", subject),
+					slog.String("memberID", memberID))
+			}
 		}
 	}
 }
@@ -388,11 +444,22 @@ func (il *IdentityLookup) spawnActivation(ci *cluster.ClusterIdentity, lockID st
 	props := cluster.WithClusterIdentity(kind.Props, ci)
 	pid, err := il.cluster.ActorSystem.Root.SpawnNamed(props, ci.Kind+"/"+ci.Identity)
 	if err != nil {
-		slog.Error("natsstream identity: failed to spawn actor",
-			slog.String("kind", ci.Kind),
-			slog.String("identity", ci.Identity),
-			slog.Any("error", err))
-		return nil
+		if errors.Is(err, actor.ErrNameExists) && pid != nil {
+			// The actor was already spawned locally (e.g., by a supervisor
+			// after failover) but the identity stream record was purged.
+			// Re-register the existing PID in the identity stream so future
+			// lookups resolve without re-spawning.
+			slog.Info("natsstream identity: actor already exists locally, re-registering",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity),
+				slog.String("pid", pid.String()))
+		} else {
+			slog.Error("natsstream identity: failed to spawn actor",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity),
+				slog.Any("error", err))
+			return nil
+		}
 	}
 
 	// Store the activation (CAS update with sequence from lock creation).
