@@ -147,19 +147,26 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 // a TOCTOU race where a concurrent activation could be wiped out by a
 // stale RemovePid call.
 func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID) {
+	// If the actor is running locally, do NOT delete its identity record.
+	if il.cluster != nil && pid.Address == il.cluster.ActorSystem.Address() {
+		_, exists := il.cluster.ActorSystem.ProcessRegistry.GetLocal(pid.Id)
+		if exists {
+			slog.Debug("natsstream identity: RemovePid skipped, actor is alive locally",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity),
+				slog.String("pid", pid.String()))
+			return
+		}
+	}
+
 	ctx := context.Background()
 	subject := il.identitySubject(ci)
 
-	// Read the record to validate the PID before purging.
 	rec := il.getExistingActivation(ctx, ci)
 	if rec == nil {
-		return // Not found, nothing to remove.
+		return
 	}
 
-	// Only purge if the stored PID matches the one being removed.
-	// This guards against the TOCTOU race: if another node stored a fresh
-	// activation between our caller detecting a dead letter and this
-	// RemovePid call, we must not wipe the fresh activation.
 	if rec.PidID != pid.Id || rec.PidAddress != pid.Address {
 		return
 	}
