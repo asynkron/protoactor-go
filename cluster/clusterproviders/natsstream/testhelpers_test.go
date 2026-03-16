@@ -54,6 +54,28 @@ func connectNATS(t *testing.T, srv *server.Server) (*nats.Conn, jetstream.JetStr
 	return nc, js
 }
 
+// setupClusterWithKindsEmbedded is like setupCluster but also registers kinds
+// via cluster.WithKinds. This is needed for unit tests that call
+// spawnActivation (which requires TryGetClusterKind to succeed).
+func setupClusterWithKindsEmbedded(t *testing.T, srv *server.Server, clusterName string, kinds []*cluster.Kind, opts ...Option) (*Provider, *cluster.Cluster) {
+	t.Helper()
+
+	nc, _ := connectNATS(t, srv)
+
+	p, err := New(nc, opts...)
+	require.NoError(t, err)
+
+	system := actor.NewActorSystem()
+	remoteConfig := remote.Configure("127.0.0.1", 0)
+	clusterConfig := cluster.Configure(clusterName, p, p.IdentityLookup(), remoteConfig,
+		cluster.WithKinds(kinds...),
+	)
+	c := cluster.NewCluster(system, clusterConfig)
+	c.Remote = remote.NewRemote(system, remoteConfig)
+
+	return p, c
+}
+
 // setupCluster creates a provider, actor system, and cluster for testing.
 func setupCluster(t *testing.T, srv *server.Server, clusterName string, opts ...Option) (*Provider, *cluster.Cluster) {
 	t.Helper()

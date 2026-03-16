@@ -2,6 +2,7 @@ package natsstream
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -204,6 +205,74 @@ func TestRemovePid_DeletesWhenActorRemote(t *testing.T) {
 	assert.Nil(t, rec, "RemovePid must purge stream record for remote actors")
 }
 
+// TestRemoveMemberID_ScansStreamForRemoteMember verifies that when a remote
+// member departs, removeMemberID falls back to scanning the NATS identity
+// stream to purge stale activations. This covers the code path added in
+// commit 4b0a3586 where the local memberKeys map has no entries for the
+// departed member.
+func TestRemoveMemberID_ScansStreamForRemoteMember(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+	p, c := setupCluster(t, srv, "test-scan-remote-member")
+
+	err := p.StartMember(c)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = p.Shutdown(true) })
+
+	il := p.IdentityLookup()
+	il.Setup(c, []string{"TestKind"}, false)
+	time.Sleep(500 * time.Millisecond)
+
+	ctx := context.Background()
+
+	// Simulate a remote member's activations by publishing directly to the
+	// identity stream (bypassing local memberKeys tracking).
+	remoteMemberID := "remote-member-departed"
+	ci1 := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "remote-grain-1"}
+	ci2 := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "remote-grain-2"}
+
+	for _, ci := range []*cluster.ClusterIdentity{ci1, ci2} {
+		rec := activationRecord{
+			PidID:      ci.Kind + "/" + ci.Identity,
+			PidAddress: "remote-host:9999",
+			MemberID:   remoteMemberID,
+		}
+		data, err := json.Marshal(&rec)
+		require.NoError(t, err)
+		_, err = p.js.Publish(ctx, il.identitySubject(ci), data)
+		require.NoError(t, err)
+	}
+
+	// Also add a local member's activation that should NOT be purged.
+	ciLocal := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "local-grain"}
+	lockID, seq, ok := il.tryAcquireLock(ctx, ciLocal)
+	require.True(t, ok)
+	require.NoError(t, il.storeActivation(ctx, ciLocal, lockID, seq, il.memberID, "127.0.0.1:8080", "TestKind/local-grain"))
+
+	// Verify all three activations exist.
+	require.NotNil(t, il.getExistingActivation(ctx, ci1))
+	require.NotNil(t, il.getExistingActivation(ctx, ci2))
+	require.NotNil(t, il.getExistingActivation(ctx, ciLocal))
+
+	// Verify local memberKeys has NO entries for the remote member.
+	il.memberKeysMu.Lock()
+	remoteKeys := il.memberKeys[remoteMemberID]
+	il.memberKeysMu.Unlock()
+	require.Empty(t, remoteKeys, "local node should not track remote member's keys")
+
+	// Remove the remote member — should trigger stream scan fallback.
+	il.removeMemberID(ctx, remoteMemberID)
+
+	// Remote member's activations should be purged.
+	assert.Nil(t, il.getExistingActivation(ctx, ci1),
+		"remote member's activation should be purged via stream scan")
+	assert.Nil(t, il.getExistingActivation(ctx, ci2),
+		"remote member's activation should be purged via stream scan")
+
+	// Local member's activation should be untouched.
+	assert.NotNil(t, il.getExistingActivation(ctx, ciLocal),
+		"local member's activation must NOT be purged when removing a different member")
+}
+
 func TestIdentityLookup_RemoveMember_PurgesActivations(t *testing.T) {
 	srv := startEmbeddedNATS(t)
 	p, c := setupCluster(t, srv, "test-identity-remove")
@@ -235,4 +304,47 @@ func TestIdentityLookup_RemoveMember_PurgesActivations(t *testing.T) {
 	// Verify it's gone.
 	rec = il.getExistingActivation(ctx, ci)
 	assert.Nil(t, rec, "activation should be purged after removeMemberID")
+}
+
+// TestSpawnActivation_ErrNameExists_ReRegisters verifies that when
+// SpawnNamed returns ErrNameExists, spawnActivation re-registers the
+// existing PID in the identity stream.
+func TestSpawnActivation_ErrNameExists_ReRegisters(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+	kindProps := actor.PropsFromFunc(func(ctx actor.Context) {})
+	p, c := setupClusterWithKindsEmbedded(t, srv, "test-errname-reregister",
+		[]*cluster.Kind{cluster.NewKind("TestKind", kindProps)})
+	c.InitKindsForTest(cluster.NewKind("TestKind", kindProps))
+
+	err := p.StartMember(c)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = p.Shutdown(true) })
+
+	il := p.IdentityLookup()
+	il.Setup(c, []string{"TestKind"}, false)
+	time.Sleep(500 * time.Millisecond)
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "grain-exists"}
+	ctx := context.Background()
+
+	// Pre-spawn the actor so SpawnNamed will return ErrNameExists.
+	props := cluster.WithClusterIdentity(kindProps, ci)
+	existingPid, err := c.ActorSystem.Root.SpawnNamed(props, "TestKind/grain-exists")
+	require.NoError(t, err)
+	t.Cleanup(func() { c.ActorSystem.Root.Poison(existingPid) })
+
+	// Acquire lock.
+	lockID, seq, ok := il.tryAcquireLock(ctx, ci)
+	require.True(t, ok)
+
+	// spawnActivation should detect ErrNameExists and re-register.
+	pid := il.spawnActivation(ci, lockID, seq)
+	require.NotNil(t, pid, "should return existing PID, not nil")
+	assert.Equal(t, existingPid.Id, pid.Id)
+	assert.Equal(t, existingPid.Address, pid.Address)
+
+	// Activation should be in the stream.
+	rec := il.getExistingActivation(ctx, ci)
+	require.NotNil(t, rec, "activation must be stored after ErrNameExists recovery")
+	assert.Equal(t, existingPid.Id, rec.PidID)
 }
