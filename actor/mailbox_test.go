@@ -146,7 +146,12 @@ func TestMailboxUserMessageCount(t *testing.T) {
 	for j := 0; j < c; j++ {
 		q.PostUserMessage(fmt.Sprintf("%v", j))
 	}
-	assert.Equal(t, c, q.UserMessageCount())
+
+	// Wait for all messages to be processed, then verify the count
+	// has been drained to zero. We cannot assert the count is exactly
+	// c immediately after posting because the dispatcher goroutine
+	// starts consuming messages as soon as they are enqueued.
 	wg.Wait()
 	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, 0, q.UserMessageCount())
 }
