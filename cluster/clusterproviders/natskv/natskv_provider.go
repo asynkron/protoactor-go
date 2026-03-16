@@ -48,6 +48,7 @@ type Provider struct {
 	roleChangedChan     chan RoleType
 	roleChangedListener RoleChangedListener
 	schedulers          []*SingletonScheduler
+	leaderFuncs         []func(isLeader bool)
 	isLeader            atomic.Bool
 
 	// Integrated identity lookup
@@ -108,6 +109,16 @@ func (p *Provider) GetHealthStatus() error {
 // Must be called before StartMember.
 func (p *Provider) RegisterSingletonScheduler(scheduler *SingletonScheduler) {
 	p.schedulers = append(p.schedulers, scheduler)
+}
+
+// RegisterLeaderFunc registers a callback function that is invoked when
+// the node's leadership role changes. The callback receives true when the
+// node becomes leader and false when it becomes follower. This provides a
+// provider-agnostic way to react to leadership changes without importing
+// provider-specific types like RoleType or SingletonScheduler.
+// Must be called before StartMember.
+func (p *Provider) RegisterLeaderFunc(fn func(isLeader bool)) {
+	p.leaderFuncs = append(p.leaderFuncs, fn)
 }
 
 // init extracts host, port, memberID, and kinds from the cluster and builds the self node.
@@ -679,6 +690,15 @@ func (p *Provider) setRole(role RoleType) {
 	for _, scheduler := range p.schedulers {
 		safeRun(p.logger(), func() {
 			scheduler.OnRoleChanged(role)
+		})
+	}
+
+	// Notify all registered leader functions
+	isLeader := role == Leader
+	for _, fn := range p.leaderFuncs {
+		capturedFn := fn
+		safeRun(p.logger(), func() {
+			capturedFn(isLeader)
 		})
 	}
 }
