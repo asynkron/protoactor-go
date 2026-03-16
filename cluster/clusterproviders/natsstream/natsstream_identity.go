@@ -167,6 +167,10 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 		return
 	}
 
+	// Only purge if the stored PID matches the one being removed.
+	// This guards against the TOCTOU race: if another node stored a fresh
+	// activation between our caller detecting a dead letter and this
+	// RemovePid call, we must not wipe the fresh activation.
 	if rec.PidID != pid.Id || rec.PidAddress != pid.Address {
 		return
 	}

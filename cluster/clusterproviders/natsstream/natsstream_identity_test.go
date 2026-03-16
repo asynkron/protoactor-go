@@ -314,6 +314,9 @@ func TestSpawnActivation_ErrNameExists_ReRegisters(t *testing.T) {
 	kindProps := actor.PropsFromFunc(func(ctx actor.Context) {})
 	p, c := setupClusterWithKindsEmbedded(t, srv, "test-errname-reregister",
 		[]*cluster.Kind{cluster.NewKind("TestKind", kindProps)})
+	// InitKindsForTest is needed because p.StartMember(c) only starts the
+	// provider, not the full cluster — so c.initKinds() is never called.
+	// Without this, TryGetClusterKind("TestKind") returns false.
 	c.InitKindsForTest(cluster.NewKind("TestKind", kindProps))
 
 	err := p.StartMember(c)

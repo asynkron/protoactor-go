@@ -241,7 +241,14 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 		il.removeKeyFromMember(ctx, rec.MemberID, key)
 	}
 
+	// Use CAS delete (LastRevision) so the delete only succeeds if the
+	// key hasn't been modified since we read it. If another goroutine
+	// deleted the stale entry and stored a fresh activation between our
+	// Get and this Delete, the revision won't match and the delete is
+	// safely skipped — preventing a TOCTOU race.
 	if err := il.identities.Delete(ctx, key, jetstream.LastRevision(entry.Revision())); err != nil {
+		// CAS mismatch (ErrKeyExists/wrong last sequence) or key already
+		// gone (ErrKeyNotFound) — both are expected and acceptable.
 		if !errors.Is(err, jetstream.ErrKeyNotFound) && !errors.Is(err, jetstream.ErrKeyExists) {
 			slog.Error("natskv identity: RemovePid delete failed",
 				slog.String("key", key), slog.Any("error", err))
