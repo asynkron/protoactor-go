@@ -519,6 +519,167 @@ func TestIdentityLookup_Shutdown_DoesNotAffectOtherMembers(t *testing.T) {
 	assert.Equal(t, "Agg/bet-2", rec.PidID)
 }
 
+// TestRemovePid_SkipsDeleteWhenActorAliveLocally verifies that RemovePid
+// does NOT delete the KV record when the actor is still running in the
+// local process registry. This prevents the orphaned-actor bug where a
+// timeout triggers RemovePid but the actor is just slow, not dead.
+func TestRemovePid_SkipsDeleteWhenActorAliveLocally(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+	_, js := connectNATS(t, srv)
+
+	ctx := context.Background()
+	identities, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_liveness_skip_identities",
+	})
+	require.NoError(t, err)
+
+	tracking, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_liveness_skip_tracking",
+	})
+	require.NoError(t, err)
+
+	// Create a real actor system so we have a process registry.
+	system := actor.NewActorSystem()
+
+	// Spawn a real actor that stays alive.
+	pid, err := system.Root.SpawnNamed(actor.PropsFromFunc(func(ctx actor.Context) {}), "TestKind/grain-alive")
+	require.NoError(t, err)
+	t.Cleanup(func() { system.Root.Poison(pid) })
+
+	il := &IdentityLookup{
+		identities:    identities,
+		memberTracker: tracking,
+		config:        newDefaultConfig(),
+		semaphore:     make(chan struct{}, 200),
+		memberID:      "member-local",
+		cluster:       &cluster.Cluster{ActorSystem: system},
+	}
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "grain-alive"}
+
+	// Store an activation record pointing to the local actor.
+	lockID, rev, ok := il.tryAcquireLock(ctx, ci)
+	require.True(t, ok)
+	err = il.storeActivation(ctx, ci, lockID, rev, "member-local", pid.Address, pid.Id)
+	require.NoError(t, err)
+
+	// Call RemovePid — should be a no-op because actor is alive locally.
+	il.RemovePid(ci, pid)
+
+	// KV record must still exist.
+	rec := il.getExistingActivation(ctx, ci)
+	require.NotNil(t, rec,
+		"RemovePid must NOT delete the KV record when the actor is alive locally")
+	assert.Equal(t, pid.Id, rec.PidID)
+}
+
+// TestRemovePid_DeletesWhenActorNotAliveLocally verifies that RemovePid
+// DOES delete the KV record when the PID points to a local address but
+// the actor is no longer in the process registry (it was stopped/crashed).
+func TestRemovePid_DeletesWhenActorNotAliveLocally(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+	_, js := connectNATS(t, srv)
+
+	ctx := context.Background()
+	identities, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_liveness_dead_identities",
+	})
+	require.NoError(t, err)
+
+	tracking, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_liveness_dead_tracking",
+	})
+	require.NoError(t, err)
+
+	system := actor.NewActorSystem()
+
+	// Spawn and immediately stop the actor so it's in the registry briefly then gone.
+	pid, err := system.Root.SpawnNamed(actor.PropsFromFunc(func(ctx actor.Context) {}), "TestKind/grain-dead")
+	require.NoError(t, err)
+	system.Root.Poison(pid)
+	time.Sleep(200 * time.Millisecond) // wait for actor to fully stop
+
+	il := &IdentityLookup{
+		identities:    identities,
+		memberTracker: tracking,
+		config:        newDefaultConfig(),
+		semaphore:     make(chan struct{}, 200),
+		memberID:      "member-local",
+		cluster:       &cluster.Cluster{ActorSystem: system},
+	}
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "grain-dead"}
+
+	// Plant activation record pointing to the dead local actor.
+	rec := activationRecord{
+		PidID:      pid.Id,
+		PidAddress: pid.Address,
+		MemberID:   "member-local",
+	}
+	data, err := json.Marshal(&rec)
+	require.NoError(t, err)
+	_, err = identities.Put(ctx, kvKey(ci), data)
+	require.NoError(t, err)
+
+	// RemovePid should succeed — actor is dead.
+	il.RemovePid(ci, pid)
+
+	result := il.getExistingActivation(ctx, ci)
+	assert.Nil(t, result,
+		"RemovePid must delete the KV record when the local actor is dead")
+}
+
+// TestRemovePid_DeletesWhenActorRemote verifies that RemovePid deletes the
+// KV record when the PID points to a remote address. We can't check remote
+// liveness, so we trust the caller (DefaultContext confirmed dead letter).
+func TestRemovePid_DeletesWhenActorRemote(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+	_, js := connectNATS(t, srv)
+
+	ctx := context.Background()
+	identities, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_liveness_remote_identities",
+	})
+	require.NoError(t, err)
+
+	tracking, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_liveness_remote_tracking",
+	})
+	require.NoError(t, err)
+
+	system := actor.NewActorSystem()
+
+	il := &IdentityLookup{
+		identities:    identities,
+		memberTracker: tracking,
+		config:        newDefaultConfig(),
+		semaphore:     make(chan struct{}, 200),
+		memberID:      "member-local",
+		cluster:       &cluster.Cluster{ActorSystem: system},
+	}
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "grain-remote"}
+	remotePid := actor.NewPID("remote-host:9999", "TestKind/grain-remote")
+
+	// Plant activation record pointing to a remote host.
+	rec := activationRecord{
+		PidID:      remotePid.Id,
+		PidAddress: remotePid.Address,
+		MemberID:   "member-remote",
+	}
+	data, err := json.Marshal(&rec)
+	require.NoError(t, err)
+	_, err = identities.Put(ctx, kvKey(ci), data)
+	require.NoError(t, err)
+
+	// RemovePid should delete — we can't verify remote liveness.
+	il.RemovePid(ci, remotePid)
+
+	result := il.getExistingActivation(ctx, ci)
+	assert.Nil(t, result,
+		"RemovePid must delete the KV record for remote actors (can't check liveness)")
+}
+
 // TestIdentityLookup_GetExistingActivation_ReturnsActivationFromOtherMember
 // verifies that getExistingActivation returns activations stored by other
 // members without proactively deleting them. Stale PID cleanup is handled

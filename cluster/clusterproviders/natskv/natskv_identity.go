@@ -197,17 +197,27 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 	return pid
 }
 
-// RemovePid removes the activation for a cluster identity, but only if
-// the currently stored PID matches the one being removed AND the key
-// revision has not changed since we read it (CAS). This prevents the
-// TOCTOU race where concurrent goroutines both read the stale entry,
-// both pass PID validation, but by the time the second Delete executes,
-// a fresh activation has been stored at the same key.
 func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID) {
 	if il.setupErr != nil {
 		slog.Error("natskv identity: cannot RemovePid, setup failed", slog.Any("error", il.setupErr))
 		return
 	}
+
+	// If the actor is running locally, do NOT delete its identity record.
+	// This prevents the orphan bug: a timeout triggers RemovePid, but the
+	// actor is alive (just slow). Deleting the KV record would leave the
+	// process alive but unresolvable.
+	if il.cluster != nil && pid.Address == il.cluster.ActorSystem.Address() {
+		_, exists := il.cluster.ActorSystem.ProcessRegistry.GetLocal(pid.Id)
+		if exists {
+			slog.Debug("natskv identity: RemovePid skipped, actor is alive locally",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity),
+				slog.String("pid", pid.String()))
+			return
+		}
+	}
+
 	ctx := context.Background()
 	key := kvKey(ci)
 
@@ -231,14 +241,7 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 		il.removeKeyFromMember(ctx, rec.MemberID, key)
 	}
 
-	// Use CAS delete (LastRevision) so the delete only succeeds if the
-	// key hasn't been modified since we read it. If another goroutine
-	// deleted the stale entry and stored a fresh activation between our
-	// Get and this Delete, the revision won't match and the delete is
-	// safely skipped.
 	if err := il.identities.Delete(ctx, key, jetstream.LastRevision(entry.Revision())); err != nil {
-		// CAS mismatch (ErrKeyExists/wrong last sequence) or key already
-		// gone (ErrKeyNotFound) — both are expected and acceptable.
 		if !errors.Is(err, jetstream.ErrKeyNotFound) && !errors.Is(err, jetstream.ErrKeyExists) {
 			slog.Error("natskv identity: RemovePid delete failed",
 				slog.String("key", key), slog.Any("error", err))
