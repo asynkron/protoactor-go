@@ -116,9 +116,19 @@ func (p *Provider) RegisterSingletonScheduler(scheduler *SingletonScheduler) {
 // node becomes leader and false when it becomes follower. This provides a
 // provider-agnostic way to react to leadership changes without importing
 // provider-specific types like RoleType or SingletonScheduler.
-// Must be called before StartMember.
+// May be called before or after StartMember. If called after StartMember
+// and the provider is already the leader, use IsLeader() to check and
+// manually invoke the callback.
 func (p *Provider) RegisterLeaderFunc(fn func(isLeader bool)) {
 	p.leaderFuncs = append(p.leaderFuncs, fn)
+}
+
+// IsLeader returns true if this provider currently holds the leader role.
+// This is useful when RegisterLeaderFunc is called after StartMember —
+// the caller can check IsLeader() and manually trigger the callback if
+// the leader election already occurred.
+func (p *Provider) IsLeader() bool {
+	return p.isLeader.Load()
 }
 
 // init extracts host, port, memberID, and kinds from the cluster and builds the self node.
