@@ -9,6 +9,7 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/remote"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -678,6 +679,76 @@ func TestRemovePid_DeletesWhenActorRemote(t *testing.T) {
 	result := il.getExistingActivation(ctx, ci)
 	assert.Nil(t, result,
 		"RemovePid must delete the KV record for remote actors (can't check liveness)")
+}
+
+// TestSpawnActivation_ErrNameExists_ReRegisters verifies that when
+// SpawnNamed returns ErrNameExists (actor already running locally but
+// KV record was deleted), spawnActivation re-registers the existing PID
+// in the identity store rather than returning nil.
+func TestSpawnActivation_ErrNameExists_ReRegisters(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+	nc, js := connectNATS(t, srv)
+
+	ctx := context.Background()
+	identities, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_errname_reregister_identities",
+	})
+	require.NoError(t, err)
+
+	tracking, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+		Bucket: "test_errname_reregister_tracking",
+	})
+	require.NoError(t, err)
+
+	// Build a real cluster with the natskv provider so TryGetClusterKind works.
+	kindProps := actor.PropsFromFunc(func(ctx actor.Context) {})
+	provider, err := New(nc)
+	require.NoError(t, err)
+
+	system := actor.NewActorSystem()
+	remoteConfig := remote.Configure("127.0.0.1", 0)
+	clusterConfig := cluster.Configure("test-errname", provider, provider.IdentityLookup(),
+		remoteConfig,
+		cluster.WithKinds(cluster.NewKind("TestKind", kindProps)),
+	)
+	c := cluster.NewCluster(system, clusterConfig)
+	c.Remote = remote.NewRemote(system, remoteConfig)
+	require.NoError(t, c.StartMember())
+	t.Cleanup(func() { c.Shutdown(true) })
+
+	// Create a test IdentityLookup pointing at our test KV buckets
+	// but using the real cluster (so TryGetClusterKind works).
+	il := &IdentityLookup{
+		identities:    identities,
+		memberTracker: tracking,
+		config:        newDefaultConfig(),
+		semaphore:     make(chan struct{}, 200),
+		memberID:      "member-local",
+		cluster:       c,
+	}
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "grain-exists"}
+
+	// Pre-spawn the actor so SpawnNamed will return ErrNameExists.
+	props := cluster.WithClusterIdentity(kindProps, ci)
+	existingPid, err := system.Root.SpawnNamed(props, "TestKind/grain-exists")
+	require.NoError(t, err)
+	t.Cleanup(func() { system.Root.Poison(existingPid) })
+
+	// Acquire lock (simulates what Get() does before calling spawnActivation).
+	lockID, rev, ok := il.tryAcquireLock(ctx, ci)
+	require.True(t, ok)
+
+	// spawnActivation should detect ErrNameExists and re-register.
+	pid := il.spawnActivation(ci, lockID, rev)
+	require.NotNil(t, pid, "spawnActivation should return the existing PID, not nil")
+	assert.Equal(t, existingPid.Id, pid.Id)
+	assert.Equal(t, existingPid.Address, pid.Address)
+
+	// The activation should be stored in the KV.
+	rec := il.getExistingActivation(ctx, ci)
+	require.NotNil(t, rec, "activation must be stored in KV after ErrNameExists recovery")
+	assert.Equal(t, existingPid.Id, rec.PidID)
 }
 
 // TestIdentityLookup_GetExistingActivation_ReturnsActivationFromOtherMember
