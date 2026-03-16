@@ -138,13 +138,23 @@ selectloop:
 			}
 			if err != nil {
 				dcc.cluster.Logger().Error("cluster.RequestFuture failed", slog.Any("error", err), slog.Any("pid", pid))
-				if errors.Is(err, actor.ErrTimeout) || errors.Is(err, remote.ErrTimeout) ||
-					errors.Is(err, actor.ErrDeadLetter) || errors.Is(err, remote.ErrDeadLetter) {
+
+				isDeadLetter := errors.Is(err, actor.ErrDeadLetter) || errors.Is(err, remote.ErrDeadLetter)
+				isTimeout := errors.Is(err, actor.ErrTimeout) || errors.Is(err, remote.ErrTimeout)
+
+				if isDeadLetter || isTimeout {
 					counter = callConfig.RetryAction(counter)
 					dcc.cluster.PidCache.Remove(identity, kind)
-					dcc.cluster.IdentityLookup.RemovePid(
-						NewClusterIdentity(identity, kind), pid,
-					)
+
+					// Only call RemovePid on dead letter — the actor process
+					// is confirmed gone. Timeouts may indicate a slow-but-alive
+					// actor; deleting its identity record would orphan the
+					// process (alive locally but unresolvable via identity lookup).
+					if isDeadLetter {
+						dcc.cluster.IdentityLookup.RemovePid(
+							NewClusterIdentity(identity, kind), pid,
+						)
+					}
 					if dcc.cluster.metricsEnabled {
 						_ctx := context.Background()
 						attrs := append(
