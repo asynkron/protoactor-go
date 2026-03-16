@@ -547,11 +547,24 @@ func (il *IdentityLookup) spawnActivation(ci *cluster.ClusterIdentity, lockID st
 	props := cluster.WithClusterIdentity(kind.Props, ci)
 	pid, err := il.cluster.ActorSystem.Root.SpawnNamed(props, ci.Kind+"/"+ci.Identity)
 	if err != nil {
-		slog.Error("natskv identity: failed to spawn actor",
-			slog.String("kind", ci.Kind),
-			slog.String("identity", ci.Identity),
-			slog.Any("error", err))
-		return nil
+		if errors.Is(err, actor.ErrNameExists) && pid != nil {
+			// The actor is already running locally. This happens when the
+			// NATS KV identity record was deleted (e.g., by RemovePid during
+			// a request timeout retry) but the local actor process is still
+			// alive. Re-register the existing PID in the identity store
+			// rather than failing — the actor is healthy, only the KV record
+			// was lost.
+			slog.Info("natskv identity: actor already exists locally, re-registering",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity),
+				slog.String("pid", pid.String()))
+		} else {
+			slog.Error("natskv identity: failed to spawn actor",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity),
+				slog.Any("error", err))
+			return nil
+		}
 	}
 
 	// Store the activation (CAS update with revision from lock creation).
