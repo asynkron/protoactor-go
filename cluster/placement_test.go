@@ -152,7 +152,7 @@ func TestPlacementActor_PersistActivationSuccess(t *testing.T) {
 
 	var persisted atomic.Bool
 	cfg := PlacementConfig{
-		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID) error {
+		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID, requestID string) error {
 			persisted.Store(true)
 			return nil
 		},
@@ -181,7 +181,7 @@ func TestPlacementActor_PersistActivationFailure_PoisonsActor(t *testing.T) {
 	c := newTestClusterWithKind(t, "testKind", echoProps())
 
 	cfg := PlacementConfig{
-		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID) error {
+		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID, requestID string) error {
 			return errors.New("storage unavailable")
 		},
 		PersistenceRetries:    1,
@@ -211,7 +211,7 @@ func TestPlacementActor_PersistActivationRetrySuccess(t *testing.T) {
 
 	var callCount atomic.Int32
 	cfg := PlacementConfig{
-		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID) error {
+		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID, requestID string) error {
 			n := callCount.Add(1)
 			if n <= 1 {
 				return errors.New("transient error")
@@ -246,7 +246,7 @@ func TestPlacementActor_PersistActivationLockNotHeld_NoRetry(t *testing.T) {
 
 	var callCount atomic.Int32
 	cfg := PlacementConfig{
-		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID) error {
+		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID, requestID string) error {
 			callCount.Add(1)
 			return fmt.Errorf("lock lost: %w", ErrLockNotHeld)
 		},
@@ -276,7 +276,7 @@ func TestPlacementActor_PersistActivationPanic_Recovers(t *testing.T) {
 	c := newTestClusterWithKind(t, "testKind", echoProps())
 
 	cfg := PlacementConfig{
-		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID) error {
+		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID, requestID string) error {
 			panic("unexpected panic in persistence")
 		},
 		PersistenceRetries:    1,
@@ -700,7 +700,7 @@ func TestPlacementActor_SpawnThenImmediateCrash_WithPersistence(t *testing.T) {
 	var persistCalled atomic.Bool
 	var removeCalled atomic.Bool
 	cfg := PlacementConfig{
-		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID) error {
+		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID, requestID string) error {
 			persistCalled.Store(true)
 			// Simulate slow persistence — the actor may already be dead.
 			time.Sleep(100 * time.Millisecond)

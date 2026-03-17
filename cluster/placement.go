@@ -19,7 +19,9 @@ type PlacementConfig struct {
 	// ReenterAfter — the placement actor does not respond until this
 	// completes (or fails after retries). Nil means no persistence (disthash).
 	// A LockNotHeld sentinel error signals the lock was stolen — no retry.
-	PersistActivation func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID) error
+	// The requestID parameter is the ActivationRequest.RequestId, which
+	// identity lookups set to the spawn lock ID for CAS verification.
+	PersistActivation func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID, requestID string) error
 
 	// RemoveActivation cleans storage when an actor terminates. Called
 	// from the Terminated handler. Errors are logged but do not block
@@ -369,7 +371,7 @@ func (p *placementActor) persistAndRespond(ctx actor.Context, msg *ActivationReq
 			}
 
 			persistCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			lastErr = p.config.PersistActivation(persistCtx, ci, pid)
+			lastErr = p.config.PersistActivation(persistCtx, ci, pid, msg.RequestId)
 			cancel()
 
 			if lastErr == nil {
