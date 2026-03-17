@@ -86,23 +86,21 @@ func (s *GossipStrategy) handleEvent(evt any) {
 }
 
 func (s *GossipStrategy) GetActivator(ci *ClusterIdentity, senderAddress string) *Member {
+	// Hold a single RLock for the entire method to provide a consistent
+	// snapshot of both the member list and the actor counts.
 	s.mu.RLock()
-	candidates := membersForKind(s.members, ci.Kind)
-	hasGossipData := len(s.actorCounts) > 0
-	s.mu.RUnlock()
+	defer s.mu.RUnlock()
 
+	candidates := membersForKind(s.members, ci.Kind)
 	if len(candidates) == 0 {
 		return nil
 	}
 
 	// Cold start fallback: round-robin when no gossip data is available.
-	if !hasGossipData {
+	if len(s.actorCounts) == 0 {
 		idx := atomic.AddUint32(&s.counter, 1)
 		return candidates[int(idx)%len(candidates)]
 	}
-
-	s.mu.RLock()
-	defer s.mu.RUnlock()
 
 	var best *Member
 	bestScore := math.MaxFloat64
