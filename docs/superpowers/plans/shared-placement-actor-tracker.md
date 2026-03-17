@@ -19,7 +19,7 @@ Each batch: write plans → execute → verify → then write next batch's plans
 | Sub-project | Plan File | Plan Status | Execution Status |
 |-------------|-----------|-------------|------------------|
 | 1a: Foundation (proto, Kind, utilities) | `2026-03-17-sp1a-foundation.md` | Complete | Complete |
-| 1b: ActivatorStrategy + 4 implementations | `2026-03-17-sp1b-strategies.md` | Complete | Not started |
+| 1b: ActivatorStrategy + 4 implementations | `2026-03-17-sp1b-strategies.md` | Complete | Complete |
 | 1c: Placement Actor + Activator Proxy | `2026-03-17-sp1c-placement-actor.md` | Complete | Not started |
 | 2: Integrate into IdentityStorageLookup | `2026-03-17-sp2-storage-lookup.md` | Not started | Not started |
 | 3: Integrate into natskv | `2026-03-17-sp3-natskv.md` | Not started | Not started |
