@@ -57,6 +57,8 @@ func (pm *Manager) Start() {
 
 	// RebalanceOnTopology callback: uses rendezvous hashing to identify
 	// actors whose owner changed after a topology update.
+	// Map keys are ClusterIdentity.AsKey() = "kind/identity", which
+	// GetByIdentity parses by splitting on the first "/".
 	rebalance := func(topology *clustering.ClusterTopology, actors map[string]*clustering.GrainMeta) []string {
 		rdv := clustering.NewRendezvous()
 		rdv.UpdateMembers(topology.Members)
@@ -131,7 +133,8 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 // Returns nil if the cluster kind is unknown or activation failed.
 func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
 	// Snapshot the rendezvous under the read lock, then release before
-	// making the blocking RPC call.
+	// making the blocking RPC call. Holding the RLock across the 5s
+	// RequestFuture would block topology updates (which need a write lock).
 	pm.rdvMutex.RLock()
 	rdv := pm.rdv
 	pm.rdvMutex.RUnlock()
