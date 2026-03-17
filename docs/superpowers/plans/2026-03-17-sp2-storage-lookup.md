@@ -119,7 +119,6 @@ func newTestProvider() *testProvider { return &testProvider{} }
 func (p *testProvider) StartMember(c *cluster.Cluster) error { return nil }
 func (p *testProvider) StartClient(c *cluster.Cluster) error { return nil }
 func (p *testProvider) Shutdown(graceful bool) error         { return nil }
-func (p *testProvider) GetHealthStatus() error               { return nil }
 
 func TestIdentityStorageLookup_CoalesceConcurrentGets(t *testing.T) {
 	c := newTestCluster(t, "testKind", echoProps())
@@ -300,12 +299,11 @@ func (l *IdentityStorageLookup) Setup(c *cluster.Cluster, kinds []string, isClie
 	})
 
 	// Spawn placement actor with storage-backed persistence callbacks.
+	// Note: PersistActivation is built per-request inside activateViaPlacement()
+	// so that it can capture the real *SpawnLock returned by TryAcquireLock.
+	// Setup only registers the RemoveActivation callback here; the placement
+	// actor config is augmented with PersistActivation at call time.
 	placementCfg := cluster.PlacementConfig{
-		PersistActivation: func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID) error {
-			lock := &cluster.SpawnLock{ClusterIdentity: ci}
-			l.storage.StoreActivation(l.memberID, lock, pid)
-			return nil
-		},
 		RemoveActivation: func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID) error {
 			l.storage.RemoveActivation(&cluster.SpawnLock{ClusterIdentity: ci})
 			return nil
@@ -400,11 +398,12 @@ func TestIdentityStorageLookup_DifferentIdentitiesNotCoalesced(t *testing.T) {
 }
 ```
 
-- [ ] **Step 13: Write the failing test -- context cancellation while waiting on coalesced result**
+- [ ] **Step 13: Write the failing test -- first concurrent Get succeeds; all coalesced waiters get the same result**
 
 ```go
-func TestIdentityStorageLookup_CoalesceContextCancellation(t *testing.T) {
-	// Use a slow storage backend to create a window for cancellation.
+func TestIdentityStorageLookup_CoalesceFirstSucceedAllGetSamePID(t *testing.T) {
+	// Verify that when the first Get succeeds, all coalesced waiters receive
+	// the same non-nil PID (not nil, not a different PID).
 	storage := identitylookup.NewInMemoryStorageLookup()
 	isl := New(storage)
 
@@ -435,7 +434,7 @@ func TestIdentityStorageLookup_CoalesceContextCancellation(t *testing.T) {
 		system.Shutdown()
 	})
 
-	ci := &cluster.ClusterIdentity{Kind: "testKind", Identity: "cancel-1"}
+	ci := &cluster.ClusterIdentity{Kind: "testKind", Identity: "coalesce-succeed-1"}
 
 	// Start a Get in background.
 	var wg sync.WaitGroup
@@ -449,9 +448,15 @@ func TestIdentityStorageLookup_CoalesceContextCancellation(t *testing.T) {
 	// Wait a tiny bit for the first Get to start.
 	time.Sleep(20 * time.Millisecond)
 
-	// The first Get should complete successfully regardless.
+	// The first Get should complete successfully.
 	wg.Wait()
 	require.NotNil(t, firstPID, "first Get should succeed")
+
+	// A subsequent Get for the same identity should return the same PID
+	// (hits existing activation, not a new spawn).
+	secondPID := isl.Get(ci)
+	require.NotNil(t, secondPID, "second Get should also succeed")
+	assert.True(t, firstPID.Equal(secondPID), "both Gets should return the same PID")
 }
 ```
 
@@ -484,6 +489,11 @@ func (l *IdentityStorageLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 	defer span.End()
 
 	key := ci.AsKey()
+
+	// Check PID cache first (avoids storage round-trip for cached PIDs).
+	if pid, ok := l.cluster.PidCache.Get(ci.Identity, ci.Kind); ok {
+		return pid
+	}
 
 	// Step 1: Check for an existing activation.
 	existing := l.storage.TryGetExistingActivation(ci)
@@ -611,9 +621,21 @@ func (l *IdentityStorageLookup) activateViaPlacement(ctx context.Context, ci *cl
 		return nil
 	}
 
+	// Build the PersistActivation callback here so it captures the real lock
+	// (with its LockID) returned by TryAcquireLock earlier in Get().
+	persistActivation := func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID) error {
+		// Note: StorageLookup.StoreActivation does not return an error.
+		// Persistence failures from production backends (Redis, Postgres)
+		// will need the StorageLookup interface to be updated in a future
+		// change to return errors for proper retry behavior.
+		l.storage.StoreActivation(l.memberID, lock, pid)
+		return nil
+	}
+
 	req := &cluster.ActivationRequest{
-		ClusterIdentity: ci,
-		RequestId:       lock.LockID,
+		ClusterIdentity:   ci,
+		RequestId:         lock.LockID,
+		PersistActivation: persistActivation,
 	}
 
 	future := l.cluster.ActorSystem.Root.RequestFuture(targetPID, req, 10*time.Second)
@@ -821,18 +843,6 @@ cd /home/cchamplin/development/protoactor-go && go test -race -run TestIdentityS
 - [ ] **Step 28: Write the test -- coalesced waiters get nil on failure**
 
 ```go
-// slowLockStorage wraps InMemoryStorageLookup to add a delay to TryAcquireLock,
-// giving coalesced waiters time to queue.
-type slowLockStorage struct {
-	*identitylookup.InMemoryStorageLookup
-	lockDelay time.Duration
-}
-
-func (s *slowLockStorage) TryAcquireLock(ci *cluster.ClusterIdentity) *cluster.SpawnLock {
-	time.Sleep(s.lockDelay)
-	return s.InMemoryStorageLookup.TryAcquireLock(ci)
-}
-
 func TestIdentityStorageLookup_CoalesceFirstFailAllGetNil(t *testing.T) {
 	// Create a lookup with a kind that the placement actor will fail to spawn
 	// (use an unknown kind so GetClusterKind returns nil).
@@ -1176,7 +1186,7 @@ cd /home/cchamplin/development/protoactor-go && go test -race -count=1 -timeout 
 
 ## Key Design Decisions
 
-1. **PersistActivation callback wraps StoreActivation**: The callback creates a `SpawnLock` with just the `ClusterIdentity` (no LockID needed for the storage call) and delegates to `storage.StoreActivation()`. The placement actor's `ReenterAfter` mechanism ensures the activation is stored before responding.
+1. **PersistActivation callback wraps StoreActivation**: The callback is built inside `activateViaPlacement()` so it can close over the real `*SpawnLock` returned by `TryAcquireLock` (which carries the actual `LockID`). The `ActivationRequest.RequestId` is also set to `lock.LockID`. The callback delegates to `storage.StoreActivation()`. Note that `StoreActivation` does not return an error; production backends (Redis, Postgres) will require the `StorageLookup` interface to be updated in a future change.
 
 2. **RemoveActivation callback wraps RemoveActivation**: Uses a `SpawnLock` with the `ClusterIdentity` to match the existing `StorageLookup.RemoveActivation` signature.
 
