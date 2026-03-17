@@ -25,7 +25,7 @@ Each batch: write plans → execute → verify → then write next batch's plans
 | 3: Integrate into natskv | `2026-03-17-sp3-natskv.md` | Complete | Complete |
 | 4: Integrate into natsstream | `2026-03-17-sp4-natsstream.md` | Complete | Complete |
 | 5: Refactor disthash | `2026-03-17-sp5-disthash.md` | Complete | Complete |
-| 6: Conformance + Cross-Node Safety | `2026-03-17-sp6-conformance.md` | Not started | Not started |
+| 6: Conformance + Cross-Node Safety | `2026-03-17-sp6-conformance.md` | Complete | Complete |
 
 ## Dependencies
 
