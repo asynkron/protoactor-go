@@ -8,6 +8,7 @@ import (
 	"github.com/asynkron/protoactor-go/eventstream"
 )
 
+
 // GossipStrategy selects the member with the fewest active grains for the
 // requested kind, using per-kind actor counts from gossip heartbeats.
 // When no gossip data is available (cold start), it falls back to round-robin.
@@ -15,15 +16,16 @@ type GossipStrategy struct {
 	mu          sync.RWMutex
 	members     []*Member
 	actorCounts map[string]map[string]int64 // memberID -> kind -> count
-	counter     uint32
+	counter     atomic.Uint32             // round-robin fallback counter (independent of mutex)
 
 	// ScoreMember is an optional callback that allows custom scoring of members.
 	// Lower scores are preferred. When nil, the per-kind actor count is used.
-	// The function receives the member and its per-kind actor counts.
+	// The counts map may be nil if no gossip data exists for the member yet.
 	ScoreMember func(member *Member, kind string, counts map[string]int64) float64
 
 	eventStream *eventstream.EventStream
 	sub         *eventstream.Subscription
+	closeOnce   sync.Once
 }
 
 var _ ActivatorStrategy = (*GossipStrategy)(nil)
@@ -98,7 +100,7 @@ func (s *GossipStrategy) GetActivator(ci *ClusterIdentity, senderAddress string)
 
 	// Cold start fallback: round-robin when no gossip data is available.
 	if len(s.actorCounts) == 0 {
-		idx := atomic.AddUint32(&s.counter, 1)
+		idx := s.counter.Add(1)
 		return candidates[int(idx)%len(candidates)]
 	}
 
@@ -115,6 +117,10 @@ func (s *GossipStrategy) GetActivator(ci *ClusterIdentity, senderAddress string)
 				score = float64(counts[ci.Kind])
 			}
 		}
+		// On tie, the first member in insertion order wins. This is deterministic
+		// per-node (same insertion order) but may differ across nodes if members
+		// joined in different order. For production fairness, consider adding
+		// tie-breaking by member ID if this becomes an issue.
 		if score < bestScore {
 			bestScore = score
 			best = m
@@ -143,8 +149,9 @@ func (s *GossipStrategy) RemoveMember(member *Member) {
 }
 
 func (s *GossipStrategy) Close() {
-	if s.eventStream != nil && s.sub != nil {
-		s.eventStream.Unsubscribe(s.sub)
-		s.sub = nil
-	}
+	s.closeOnce.Do(func() {
+		if s.eventStream != nil && s.sub != nil {
+			s.eventStream.Unsubscribe(s.sub)
+		}
+	})
 }
