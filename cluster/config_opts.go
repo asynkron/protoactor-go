@@ -112,3 +112,12 @@ func WithPidCacheTTL(ttl time.Duration) ConfigOption {
 		c.PidCacheTTL = ttl
 	}
 }
+
+// WithDefaultActivatorStrategy sets the default placement strategy for kinds
+// that don't specify their own via WithActivatorStrategy. If not set,
+// RoundRobinStrategy is used (once implemented in sub-project 1b).
+func WithDefaultActivatorStrategy(builder func(*Cluster) ActivatorStrategy) ConfigOption {
+	return func(c *Config) {
+		c.DefaultActivatorStrategy = builder
+	}
+}

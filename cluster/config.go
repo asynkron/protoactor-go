@@ -22,6 +22,7 @@ type Config struct {
 	MaxNumberOfEventsInRequestLogThrottledPeriod int
 	ClusterContextProducer                       ContextProducer
 	MemberStrategyBuilder                        func(cluster *Cluster, kind string) MemberStrategy
+	DefaultActivatorStrategy                     func(*Cluster) ActivatorStrategy
 	Kinds                                        map[string]*Kind
 	TimeoutTime                                  time.Duration
 	GossipInterval                               time.Duration
