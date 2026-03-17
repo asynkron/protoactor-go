@@ -128,23 +128,26 @@ func (p *placementActor) onStopping(ctx actor.Context) {
 	}
 
 	// Wait for all poisons to complete, up to ShutdownTimeout.
-	deadline := time.After(p.config.ShutdownTimeout)
-	for key, future := range futures {
-		select {
-		case <-deadline:
-			ctx.Logger().Warn("Shutdown timeout reached, force-stopping remaining grains",
-				slog.Int("remaining", len(futures)))
-			// Force-stop remaining — stop waiting for them.
-			for _, meta := range p.actors {
-				ctx.Stop(meta.PID)
-			}
-			return
-		default:
+	// Drain futures via a goroutine so we can race against the deadline.
+	done := make(chan struct{})
+	go func() {
+		for key, future := range futures {
 			err := future.Wait()
 			if err != nil {
 				ctx.Logger().Error("Failed to poison actor during shutdown",
 					slog.String("identity", key), slog.Any("error", err))
 			}
+		}
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// All grains stopped gracefully.
+	case <-time.After(p.config.ShutdownTimeout):
+		ctx.Logger().Warn("Shutdown timeout reached, force-stopping remaining grains")
+		for _, meta := range p.actors {
+			ctx.Stop(meta.PID)
 		}
 	}
 }
@@ -299,7 +302,12 @@ func (p *placementActor) spawnActor(ctx actor.Context, msg *ActivationRequest, c
 
 	props := WithClusterIdentity(clusterKind.Props, msg.ClusterIdentity)
 
-	pid, spawnErr := ctx.SpawnNamed(props, msg.ClusterIdentity.Kind+"/"+msg.ClusterIdentity.Identity)
+	// Spawn as a top-level actor (not a child of the placement actor) for
+	// backward compatibility with existing PID formats in identity stores.
+	// Use Root.SpawnNamed + explicit Watch instead of ctx.SpawnNamed (which
+	// would make grains children of the placement actor, changing PID paths
+	// and supervision semantics).
+	pid, spawnErr := p.cluster.ActorSystem.Root.SpawnNamed(props, msg.ClusterIdentity.Kind+"/"+msg.ClusterIdentity.Identity)
 	if spawnErr != nil {
 		delete(p.spawning, key)
 		ctx.Logger().Error("Failed to spawn actor",
