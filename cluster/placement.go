@@ -63,8 +63,17 @@ func (c *PlacementConfig) defaults() {
 
 // GrainMeta tracks the PID and identity of a locally-spawned grain.
 type GrainMeta struct {
-	ID  *ClusterIdentity
-	PID *actor.PID
+	ID          *ClusterIdentity
+	PID         *actor.PID
+	ActivatedAt time.Time
+}
+
+// ListGrainsRequest asks the placement actor to return all active grains.
+type ListGrainsRequest struct{}
+
+// ListGrainsResponse contains all active grains on this placement actor.
+type ListGrainsResponse struct {
+	Grains []*GrainInfo
 }
 
 // placementActor is the shared default placement actor. It handles
@@ -108,6 +117,8 @@ func (p *placementActor) Receive(ctx actor.Context) {
 		p.onActivationRequest(ctx, msg)
 	case *ClusterTopology:
 		p.onClusterTopology(ctx, msg)
+	case *ListGrainsRequest:
+		p.onListGrains(ctx)
 	default:
 		ctx.Logger().Error("Placement actor received unknown message",
 			slog.Any("message", msg), slog.Any("sender", ctx.Sender()))
@@ -173,6 +184,10 @@ func (p *placementActor) onTerminated(ctx actor.Context, msg *actor.Terminated) 
 	// Update kind counter.
 	if clusterKind := p.cluster.GetClusterKind(meta.ID.Kind); clusterKind != nil {
 		clusterKind.Dec()
+	}
+
+	if p.cluster.MetricsEnabled() {
+		p.cluster.Metrics().VirtualActorsCount.Set(p.cluster.VirtualActorCount())
 	}
 
 	// Clean up local map first.
@@ -329,6 +344,10 @@ func (p *placementActor) spawnActor(ctx actor.Context, msg *ActivationRequest, c
 
 	clusterKind.Inc()
 
+	if p.cluster.MetricsEnabled() {
+		p.cluster.Metrics().VirtualActorsCount.Set(p.cluster.VirtualActorCount())
+	}
+
 	// 7. If PersistActivation is set, call it via ReenterAfter with retry.
 	if p.config.PersistActivation != nil {
 		p.persistAndRespond(ctx, msg, pid, clusterKind)
@@ -337,7 +356,7 @@ func (p *placementActor) spawnActor(ctx actor.Context, msg *ActivationRequest, c
 
 	// 8. No persistence — add to map immediately, respond with PID.
 	delete(p.spawning, key)
-	p.actors[key] = &GrainMeta{ID: msg.ClusterIdentity, PID: pid}
+	p.actors[key] = &GrainMeta{ID: msg.ClusterIdentity, PID: pid, ActivatedAt: time.Now()}
 	ctx.Respond(&ActivationResponse{Pid: pid})
 }
 
@@ -433,7 +452,7 @@ func (p *placementActor) persistAndRespond(ctx actor.Context, msg *ActivationReq
 		}
 
 		// Persistence succeeded — add to map, respond with PID.
-		p.actors[key] = &GrainMeta{ID: ci, PID: pid}
+		p.actors[key] = &GrainMeta{ID: ci, PID: pid, ActivatedAt: time.Now()}
 		ctx.Respond(&ActivationResponse{Pid: pid})
 	})
 }
@@ -454,6 +473,22 @@ func (p *placementActor) onClusterTopology(ctx actor.Context, msg *ClusterTopolo
 		p.cluster.SetDeactivationReason(meta.PID, DeactivationReasonTopologyChange)
 		ctx.Poison(meta.PID)
 	}
+}
+
+// onListGrains returns all locally tracked grains.
+func (p *placementActor) onListGrains(ctx actor.Context) {
+	grains := make([]*GrainInfo, 0, len(p.actors))
+	memberID := p.cluster.ActorSystem.ID
+	for _, meta := range p.actors {
+		grains = append(grains, &GrainInfo{
+			Identity:    meta.ID.Identity,
+			Kind:        meta.ID.Kind,
+			PID:         meta.PID,
+			MemberID:    memberID,
+			ActivatedAt: meta.ActivatedAt,
+		})
+	}
+	ctx.Respond(&ListGrainsResponse{Grains: grains})
 }
 
 // pidToKey finds the identity key for a PID in the actors map.

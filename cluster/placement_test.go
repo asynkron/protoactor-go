@@ -682,6 +682,40 @@ func TestPlacementActor_TopologyRebalance_PoisonsRebalancedActors(t *testing.T) 
 	assert.Error(t, err, "rebalanced actor should be dead")
 }
 
+// Task: ListGrains returns active grains with ActivatedAt
+
+func TestPlacementActor_ListGrainsReturnsActiveGrains(t *testing.T) {
+	c := newTestClusterWithKind(t, "test-kind", echoProps())
+
+	cfg := PlacementConfig{}
+	placementProps := NewPlacementActorProps(c, cfg)
+	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$test-placement-listgrains")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(placementPID)
+
+	// Activate a grain.
+	ci := &ClusterIdentity{Kind: "test-kind", Identity: "grain-1"}
+	req := &ActivationRequest{ClusterIdentity: ci}
+	future := c.ActorSystem.Root.RequestFuture(placementPID, req, 2*time.Second)
+	res, err := future.Result()
+	require.NoError(t, err)
+	resp := res.(*ActivationResponse)
+	require.False(t, resp.Failed)
+	require.NotNil(t, resp.Pid)
+
+	// List grains.
+	listFuture := c.ActorSystem.Root.RequestFuture(placementPID, &ListGrainsRequest{}, 2*time.Second)
+	listRes, err := listFuture.Result()
+	require.NoError(t, err)
+	listResp, ok := listRes.(*ListGrainsResponse)
+	require.True(t, ok)
+	require.Len(t, listResp.Grains, 1)
+	assert.Equal(t, "grain-1", listResp.Grains[0].Identity)
+	assert.Equal(t, "test-kind", listResp.Grains[0].Kind)
+	assert.Equal(t, resp.Pid, listResp.Grains[0].PID)
+	assert.False(t, listResp.Grains[0].ActivatedAt.IsZero(), "ActivatedAt should be set")
+}
+
 // Task 9: Spawn-then-immediate-crash edge case test
 
 func TestPlacementActor_SpawnThenImmediateCrash_WithPersistence(t *testing.T) {
