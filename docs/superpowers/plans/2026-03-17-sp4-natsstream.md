@@ -255,7 +255,12 @@ func setupClusterWithTopology(t *testing.T, srv *server.Server, clusterName stri
 		c.InitKindsForTest(k)
 	}
 
-	err := p.StartMember(c)
+	// Remote must be started so the actor system can send/receive messages
+	// across addresses (required by the placement actor's remote activation path).
+	err := c.Remote.Start()
+	require.NoError(t, err)
+
+	err = p.StartMember(c)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = p.Shutdown(true) })
 
@@ -293,11 +298,11 @@ Edit `cluster/clusterproviders/natsstream/natsstream_identity.go`. Replace the e
 
 The `PersistActivation` callback captures the identity lookup and calls `il.storeActivation()`. Since `storeActivation` requires `lockID` and `lockSeq` which the placement actor doesn't have, we need to adapt: the placement actor's `PersistActivation` callback signature is `func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID) error`. The lock is already held at this point (acquired by the Get() path), and `storeActivation` uses the lock's sequence for CAS. However, since the placement actor doesn't know the lock details, the persistence callback must capture them from the Get() caller.
 
-**Design decision:** The placement actor's `PersistActivation` callback does NOT have access to lock IDs or sequences. Instead, the natsstream callback will publish the activation record directly (bypassing the CAS check), since the placement actor already prevents duplicate spawns via its in-flight tracking set. The lock's CAS check is no longer needed because the placement actor serializes all ActivationRequests for the same identity.
+**Design decision:** The `PersistActivation` callback receives `requestID string` (which equals the `lockID` returned by `tryAcquireLock` and passed via `ActivationRequest.RequestId`). The callback must NOT discard the `lockSeq` captured from `tryAcquireLock` — it uses `WithExpectLastSequencePerSubject(lockSeq)` to publish the activation record as a CAS-safe operation. If the publish fails with a sequence mismatch, it returns `cluster.ErrLockNotHeld`.
 
-The callback:
+The callback (defined inside `Setup` so it can close over `lockSeq` via a per-activation captured variable — see `activateViaPlacement` for how `lockSeq` is threaded through):
 ```go
-PersistActivation: func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID) error {
+PersistActivation: func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID, requestID string) error {
     subject := il.identitySubject(ci)
     rec := activationRecord{
         PidID:      pid.Id,
@@ -308,14 +313,23 @@ PersistActivation: func(ctx context.Context, ci *cluster.ClusterIdentity, pid *a
     if err != nil {
         return fmt.Errorf("natsstream identity: PersistActivation marshal: %w", err)
     }
-    _, err = il.provider.js.Publish(ctx, subject, data)
+    // lockSeq is captured from the tryAcquireLock call in Get(); use it for
+    // CAS-safe publish so a stale or lost lock causes an immediate error.
+    seq := il.getLockSeqForRequest(requestID)
+    _, err = il.provider.js.Publish(ctx, subject, data,
+        jetstream.WithExpectLastSequencePerSubject(seq))
     if err != nil {
+        if errors.Is(err, jetstream.ErrWrongLastSequence) {
+            return cluster.ErrLockNotHeld
+        }
         return fmt.Errorf("natsstream identity: PersistActivation publish: %w", err)
     }
     il.addKeyToMember(il.memberID, subject)
     return nil
 },
 ```
+
+**Note:** `getLockSeqForRequest` is a helper that looks up the `lockSeq` stored in a per-identity map (`inflightLockSeqs map[string]uint64`) keyed by `requestID`. The `activateViaPlacement` call stores `lockSeq` into this map before sending the request, and the callback retrieves it. This is the mechanism for threading `lockSeq` from the `Get()` call-site into the closure.
 
 The `RemoveActivation` callback:
 ```go
@@ -395,7 +409,7 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 
 	// Spawn placement actor with natsstream persistence callbacks.
 	placementCfg := cluster.PlacementConfig{
-		PersistActivation: func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID) error {
+		PersistActivation: func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID, requestID string) error {
 			subject := il.identitySubject(ci)
 			rec := activationRecord{
 				PidID:      pid.Id,
@@ -406,8 +420,16 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 			if mErr != nil {
 				return fmt.Errorf("natsstream identity: PersistActivation marshal: %w", mErr)
 			}
-			_, pErr := il.provider.js.Publish(ctx, subject, data)
+			// Use CAS publish with the lockSeq captured during lock acquisition.
+			// This ensures we only store the activation if the lock we acquired
+			// is still the current sequence — guarding against a lost lock race.
+			seq := il.getLockSeqForRequest(requestID)
+			_, pErr := il.provider.js.Publish(ctx, subject, data,
+				jetstream.WithExpectLastSequencePerSubject(seq))
 			if pErr != nil {
+				if errors.Is(pErr, jetstream.ErrWrongLastSequence) {
+					return cluster.ErrLockNotHeld
+				}
 				return fmt.Errorf("natsstream identity: PersistActivation publish: %w", pErr)
 			}
 			il.addKeyToMember(il.memberID, subject)
@@ -639,7 +661,7 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 	}
 
 	// Step 5: Try to acquire the spawn lock.
-	_, _, ok := il.tryAcquireLock(ctx, ci)
+	lockID, lockSeq, ok := il.tryAcquireLock(ctx, ci)
 	if !ok {
 		// Another node is spawning. Wait for it.
 		rec = il.waitForActivation(ctx, ci)
@@ -652,11 +674,12 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 	}
 
 	// Step 6+7: Select target member via strategy and send ActivationRequest.
-	pid := il.activateViaPlacement(ctx, ci)
+	pid := il.activateViaPlacement(ctx, ci, lockID, lockSeq)
 	if pid == nil {
-		// Activation failed; purge the lock subject so another node can try.
-		subject := il.identitySubject(ci)
-		_ = il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject))
+		// Do NOT purge the lock subject on failure — the remote node may have
+		// succeeded (e.g. remote placement timeout). Let the lock expire
+		// naturally so it is not deleted while a concurrent activation is
+		// still in progress.
 		return nil
 	}
 
@@ -670,7 +693,10 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 
 // activateViaPlacement sends an ActivationRequest to the appropriate
 // placement actor (local or remote) based on the strategy selection.
-func (il *IdentityLookup) activateViaPlacement(ctx context.Context, ci *cluster.ClusterIdentity) *actor.PID {
+// lockID is set as the RequestId so the placement actor passes it through
+// to the PersistActivation callback; lockSeq is captured in the closure
+// for CAS-safe publication.
+func (il *IdentityLookup) activateViaPlacement(ctx context.Context, ci *cluster.ClusterIdentity, lockID string, lockSeq uint64) *actor.PID {
 	localAddress := il.cluster.ActorSystem.Address()
 	var targetPID *actor.PID
 
@@ -703,7 +729,7 @@ func (il *IdentityLookup) activateViaPlacement(ctx context.Context, ci *cluster.
 
 	req := &cluster.ActivationRequest{
 		ClusterIdentity: ci,
-		RequestId:       il.memberID, // used for logging; lock is already held
+		RequestId:       lockID, // placement actor passes this to PersistActivation as requestID
 	}
 
 	future := il.cluster.ActorSystem.Root.RequestFuture(targetPID, req, 10*time.Second)
@@ -1255,20 +1281,22 @@ cd /home/cchamplin/development/protoactor-go && go test -race -tags integration 
 
 | File | Change |
 |------|--------|
-| `cluster/clusterproviders/natsstream/natsstream_identity.go` | Add `inflight` struct, `placementPID`/`proxyPID`/`strategyMgr`/`inflights` fields; refactor `Setup()` to spawn placement actor + proxy with natsstream persistence callbacks (stream publish for persist, stream purge for remove); refactor `Get()` with stale member validation, coalescing, strategy selection, placement actor routing via `activateViaPlacement()`; refactor `Shutdown()` to stop actors first, close strategies, then remove member; remove `spawnActivation()` |
+| `cluster/clusterproviders/natsstream/natsstream_identity.go` | Add `inflight` struct, `placementPID`/`proxyPID`/`strategyMgr`/`inflights`/`inflightLockSeqs` fields; refactor `Setup()` to spawn placement actor + proxy with natsstream persistence callbacks (`PersistActivation` uses `requestID string` parameter and CAS publish with captured `lockSeq` via `getLockSeqForRequest`; stream purge for remove); refactor `Get()` to capture `lockID`/`lockSeq` from `tryAcquireLock`, pass them to `activateViaPlacement(ctx, ci, lockID, lockSeq)`, and NOT purge lock on remote failure; add `getLockSeqForRequest` helper; refactor `Shutdown()` to stop actors first, close strategies, then remove member; remove `spawnActivation()` |
 | `cluster/clusterproviders/natsstream/natsstream_identity_test.go` | Remove `TestSpawnActivation_ErrNameExists_ReRegisters`; add 12 new tests: `SetupSpawnsPlacementAndProxy`, `ClientSetupSkipsPlacementActor`, `StaleActivationCleaned`, `DifferentIdentitiesNotCoalesced`, `CoalesceFirstFailAllGetNil`, `CoalesceConcurrentGets`, `ShutdownStopsPlacementFirst`, `ShutdownCleansStrategy`, `EndToEnd_ActivateAndRetrieve`, `StrategySelectsLocal`, `ShutdownPoisonsLocalGrains`, `ListGrainsAfterPlacementActivation`, `ListGrainsByKindAfterPlacement` |
 | `cluster/clusterproviders/natsstream/testhelpers_test.go` | Add `setupClusterWithTopology` helper and `kindNames` utility |
 
 ## Key Design Decisions
 
-1. **PersistActivation bypasses CAS sequence check**: The placement actor's `PersistActivation` callback publishes the activation record directly (no `WithExpectLastSequencePerSubject`). This is safe because the placement actor serializes all `ActivationRequest`s for the same identity via its in-flight set, and the lock is already held from the `Get()` path. The CAS check was only needed when `spawnActivation` could race with concurrent calls -- the placement actor eliminates that race.
+1. **PersistActivation uses CAS sequence check**: The `PersistActivation` callback receives `requestID string` (the `lockID` from `tryAcquireLock`). A per-request `lockSeq` is stored in `inflightLockSeqs` before the `ActivationRequest` is sent, then retrieved inside the callback via `getLockSeqForRequest(requestID)`. The callback publishes with `WithExpectLastSequencePerSubject(lockSeq)`, so publication fails (returning `ErrLockNotHeld`) if the lock subject has been overwritten since we acquired it. This provides distributed CAS safety even when multiple nodes race to activate the same identity.
 
 2. **RemoveActivation uses stream purge**: The callback purges the identity subject from the stream and removes it from the in-memory member tracking map, matching the existing `removeKeyFromMember` pattern.
 
-3. **Lock acquisition still used in Get()**: Even though the placement actor handles spawn serialization, we still acquire the NATS stream lock in `Get()` before sending the `ActivationRequest`. This provides distributed coordination across nodes -- without it, multiple nodes could simultaneously send `ActivationRequest` to the same placement actor, and the actor would reject all but the first. The lock ensures only one node enters the activation path.
+3. **Lock acquisition still used in Get()**: Even though the placement actor handles spawn serialization, we still acquire the NATS stream lock in `Get()` before sending the `ActivationRequest`. This provides distributed coordination across nodes -- without it, multiple nodes could simultaneously send `ActivationRequest` to the same placement actor, and the actor would reject all but the first. The lock ensures only one node enters the activation path. On activation failure (e.g. remote placement timeout), the lock is NOT purged — the remote node may have succeeded, and purging would delete an already-committed activation. The lock must expire naturally (or be overwritten by the next successful activation).
 
-4. **No client activation handler changes**: Unlike natskv, natsstream doesn't have a `handleActivationRequest` NATS subscription for clients. Client mode still uses `waitForActivation` (ordered consumer watching the stream). No changes needed here.
+4. **Lock subject is NOT purged on remote placement failure**: If `activateViaPlacement` returns nil (timeout, rejection), `Get()` simply returns nil without purging the lock subject. The reason: a remote placement timeout does not guarantee the remote node failed — it may have successfully spawned the actor and the response was lost. Purging would corrupt live state. The lock expires naturally at the stream's `MaxAge`, after which a fresh `Get()` can acquire a new lock.
 
-5. **Strategy manager subscribes to topology events**: The identity lookup subscribes to `ClusterTopology` events and calls `AddMember`/`RemoveMember` on the strategy manager. This is identical to the SP2 pattern.
+5. **No client activation handler changes**: Unlike natskv, natsstream doesn't have a `handleActivationRequest` NATS subscription for clients. Client mode still uses `waitForActivation` (ordered consumer watching the stream). No changes needed here.
 
-6. **Coalescing includes panic recovery**: The inflight `defer` includes a `recover()` to ensure the `done` channel is always closed, even if the first caller panics. This prevents permanent blocking of coalesced waiters.
+6. **Strategy manager subscribes to topology events**: The identity lookup subscribes to `ClusterTopology` events and calls `AddMember`/`RemoveMember` on the strategy manager. This is identical to the SP2 pattern.
+
+7. **Coalescing includes panic recovery**: The inflight `defer` includes a `recover()` to ensure the `done` channel is always closed, even if the first caller panics. This prevents permanent blocking of coalesced waiters.
