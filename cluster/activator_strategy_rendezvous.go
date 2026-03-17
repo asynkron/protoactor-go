@@ -30,11 +30,11 @@ func (s *RendezvousStrategy) GetActivator(ci *ClusterIdentity, senderAddress str
 	}
 
 	var best *Member
-	var bestHash uint32
+	var bestHash uint64
 
 	for _, m := range candidates {
 		h := rdvHashIdentity(ci.Kind, ci.Identity, m.Address())
-		if best == nil || h > bestHash {
+		if best == nil || h > bestHash || (h == bestHash && m.Address() > best.Address()) {
 			best = m
 			bestHash = h
 		}
@@ -44,16 +44,17 @@ func (s *RendezvousStrategy) GetActivator(ci *ClusterIdentity, senderAddress str
 }
 
 // rdvHashIdentity computes a rendezvous hash for the given kind, identity,
-// and member address. Fields are separated by NUL bytes to prevent hash
-// collisions when identity strings contain '/'.
-func rdvHashIdentity(kind, identity, address string) uint32 {
-	h := fnv.New32a()
+// and member address using FNV-1a 64-bit. Fields are separated by NUL bytes
+// to prevent hash collisions when identity strings contain '/'. 64-bit hash
+// reduces collision probability (birthday bound ~5 billion vs ~77K for 32-bit).
+func rdvHashIdentity(kind, identity, address string) uint64 {
+	h := fnv.New64a()
 	_, _ = h.Write([]byte(kind))
 	_, _ = h.Write([]byte{0x00})
 	_, _ = h.Write([]byte(identity))
 	_, _ = h.Write([]byte{0x00})
 	_, _ = h.Write([]byte(address))
-	return h.Sum32()
+	return h.Sum64()
 }
 
 func (s *RendezvousStrategy) AddMember(member *Member) {
