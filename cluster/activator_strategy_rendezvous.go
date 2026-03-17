@@ -29,12 +29,11 @@ func (s *RendezvousStrategy) GetActivator(ci *ClusterIdentity, senderAddress str
 		return nil
 	}
 
-	key := ci.Kind + "/" + ci.Identity
 	var best *Member
 	var bestHash uint32
 
 	for _, m := range candidates {
-		h := rdvHash(key, m.Address())
+		h := rdvHashIdentity(ci.Kind, ci.Identity, m.Address())
 		if best == nil || h > bestHash {
 			best = m
 			bestHash = h
@@ -44,10 +43,15 @@ func (s *RendezvousStrategy) GetActivator(ci *ClusterIdentity, senderAddress str
 	return best
 }
 
-// rdvHash computes a rendezvous hash for the given key and member address.
-func rdvHash(key, address string) uint32 {
+// rdvHashIdentity computes a rendezvous hash for the given kind, identity,
+// and member address. Fields are separated by NUL bytes to prevent hash
+// collisions when identity strings contain '/'.
+func rdvHashIdentity(kind, identity, address string) uint32 {
 	h := fnv.New32a()
-	_, _ = h.Write([]byte(key))
+	_, _ = h.Write([]byte(kind))
+	_, _ = h.Write([]byte{0x00})
+	_, _ = h.Write([]byte(identity))
+	_, _ = h.Write([]byte{0x00})
 	_, _ = h.Write([]byte(address))
 	return h.Sum32()
 }
