@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -397,54 +396,95 @@ func TestPlacementActor_Stopping_PoisonsAllLocalGrains(t *testing.T) {
 	}
 }
 
-func TestPlacementActor_ActivationRequestDuringStopping_RespondsFailed(t *testing.T) {
-	c := newTestClusterWithKind(t, "testKind", echoProps())
-
-	// Use a slow-stop actor so we have time to send requests during stopping.
-	var stoppingStarted sync.WaitGroup
-	stoppingStarted.Add(1)
-	var stoppingNotified atomic.Bool
+func TestPlacementActor_Stopping_Timeout_ForceStopsRemainingGrains(t *testing.T) {
+	// Use a kind with a slow-stopping actor (5s stop delay).
+	c := newTestClusterWithKind(t, "slowKind", slowStopProps(5*time.Second))
 
 	cfg := PlacementConfig{
-		ShutdownTimeout: 5 * time.Second,
+		ShutdownTimeout: 200 * time.Millisecond, // Very short timeout.
 	}
 	placementProps := NewPlacementActorProps(c, cfg)
-	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$test-placement-stopping-req")
+	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$test-placement-timeout")
 	require.NoError(t, err)
 
-	// Spawn one actor so the stopping handler has work to do.
+	// Spawn a slow-stopping grain.
 	req := &ActivationRequest{
-		ClusterIdentity: &ClusterIdentity{Kind: "testKind", Identity: "actor1"},
+		ClusterIdentity: &ClusterIdentity{Kind: "slowKind", Identity: "slow1"},
 		RequestId:       "req-1",
 	}
 	future := c.ActorSystem.Root.RequestFuture(placementPID, req, 5*time.Second)
-	_, err = future.Result()
+	res, err := future.Result()
 	require.NoError(t, err)
+	resp := res.(*ActivationResponse)
+	require.NotNil(t, resp.Pid)
+	grainPID := resp.Pid
 
-	// Poison the placement actor (triggers Stopping).
+	// Poison the placement actor — onStopping should timeout after 200ms
+	// and force-stop the grain (which would normally take 5s to stop).
 	c.ActorSystem.Root.Poison(placementPID)
 
-	// Send another request immediately — it should fail because the
-	// placement actor should check the stopping flag.
-	time.Sleep(10 * time.Millisecond) // small delay to let Stopping begin
-	req2 := &ActivationRequest{
-		ClusterIdentity: &ClusterIdentity{Kind: "testKind", Identity: "actor2"},
+	// Wait for the grain to be force-stopped. It should be dead within
+	// ~500ms (200ms timeout + overhead), not 5s.
+	time.Sleep(500 * time.Millisecond)
+
+	// Verify the grain is dead by trying to send it a message.
+	probe := c.ActorSystem.Root.RequestFuture(grainPID, "ping", 500*time.Millisecond)
+	_, err = probe.Result()
+	assert.Error(t, err, "grain should be force-stopped after shutdown timeout")
+}
+
+func TestPlacementActor_ActivationRequestDuringStopping_RespondsFailed(t *testing.T) {
+	// Use a slow-stopping kind so the placement actor stays in Stopping
+	// long enough for a concurrent ActivationRequest to arrive.
+	c := newTestClusterWithKind(t, "slowKind", slowStopProps(2*time.Second))
+
+	cfg := PlacementConfig{
+		ShutdownTimeout: 5 * time.Second, // Long enough that timeout doesn't interfere.
+	}
+	placementProps := NewPlacementActorProps(c, cfg)
+	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$test-placement-stopping-reject")
+	require.NoError(t, err)
+
+	// Spawn a grain so there's something to stop during Stopping.
+	req := &ActivationRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "slowKind", Identity: "grain1"},
+		RequestId:       "req-1",
+	}
+	future := c.ActorSystem.Root.RequestFuture(placementPID, req, 5*time.Second)
+	res, err := future.Result()
+	require.NoError(t, err)
+	resp := res.(*ActivationResponse)
+	require.NotNil(t, resp.Pid)
+
+	// Start poisoning the placement actor (it will enter Stopping and
+	// block while waiting for the slow grain to stop).
+	go func() {
+		c.ActorSystem.Root.Poison(placementPID)
+	}()
+
+	// Give the placement actor time to enter Stopping handler.
+	time.Sleep(200 * time.Millisecond)
+
+	// Send a new activation request while placement actor is stopping.
+	// The placement actor's onStopping blocks in a goroutine, but the
+	// stopping flag is set synchronously before it starts waiting. Any
+	// ActivationRequest arriving after the flag is set should get Failed.
+	newReq := &ActivationRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "slowKind", Identity: "grain2"},
 		RequestId:       "req-2",
 	}
-	future2 := c.ActorSystem.Root.RequestFuture(placementPID, req2, 1*time.Second)
+	future2 := c.ActorSystem.Root.RequestFuture(placementPID, newReq, 3*time.Second)
 	res2, err := future2.Result()
 
-	// The placement actor may already be fully stopped, in which case
-	// we get a dead letter/timeout error. Either outcome is acceptable.
 	if err != nil {
-		// Dead letter — placement actor already stopped. That's fine.
-		_ = stoppingNotified
-		_ = stoppingStarted
+		// The placement actor may have already fully stopped — acceptable.
+		t.Logf("Request during stopping returned error (actor may have stopped): %v", err)
 		return
 	}
 
 	resp2 := res2.(*ActivationResponse)
-	assert.True(t, resp2.Failed, "request during stopping should return Failed")
+	assert.True(t, resp2.Failed,
+		"ActivationRequest during Stopping should be rejected with Failed: true")
 }
 
 func TestPlacementActor_Stopping_OnlyPoisonsLocalActors(t *testing.T) {
