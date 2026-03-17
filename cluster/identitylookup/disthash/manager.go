@@ -1,19 +1,21 @@
 package disthash
 
 import (
-	"github.com/asynkron/protoactor-go/actor"
-	clustering "github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/eventstream"
+	"context"
 	"log/slog"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/asynkron/protoactor-go/actor"
+	clustering "github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/eventstream"
 )
 
 const (
-	// PartitionActivatorActorName is the name used for the partition activator actor.
-	PartitionActivatorActorName = "partition-activator"
+	// PlacementActorName is the well-known name for the shared placement actor.
+	PlacementActorName = "partition-activator"
 )
 
 // Manager coordinates partition ownership and routing for virtual actors.
@@ -42,8 +44,41 @@ func (pm *Manager) Start() {
 	pm.cluster.Logger().Info("Started partition manager")
 	system := pm.cluster.ActorSystem
 
-	activatorProps := actor.PropsFromProducer(func() actor.Actor { return newPlacementActor(pm.cluster, pm) })
-	pm.placementActor, _ = system.Root.SpawnNamed(activatorProps, PartitionActivatorActorName)
+	// RemoveActivation callback: broadcast ActivationTerminated to all
+	// members so remote PID caches are invalidated.
+	removeActivation := func(_ context.Context, ci *clustering.ClusterIdentity, pid *actor.PID) error {
+		activationTerminated := &clustering.ActivationTerminated{
+			Pid:             pid,
+			ClusterIdentity: ci,
+		}
+		pm.cluster.MemberList.BroadcastEvent(activationTerminated, true)
+		return nil
+	}
+
+	// RebalanceOnTopology callback: uses rendezvous hashing to identify
+	// actors whose owner changed after a topology update.
+	rebalance := func(topology *clustering.ClusterTopology, actors map[string]*clustering.GrainMeta) []string {
+		rdv := clustering.NewRendezvous()
+		rdv.UpdateMembers(topology.Members)
+		myAddress := pm.cluster.ActorSystem.Address()
+
+		var keys []string
+		for key := range actors {
+			ownerAddress := rdv.GetByIdentity(key)
+			if ownerAddress != myAddress {
+				keys = append(keys, key)
+			}
+		}
+		return keys
+	}
+
+	config := clustering.PlacementConfig{
+		RemoveActivation:    removeActivation,
+		RebalanceOnTopology: rebalance,
+	}
+
+	activatorProps := clustering.NewPlacementActorProps(pm.cluster, config)
+	pm.placementActor, _ = system.Root.SpawnNamed(activatorProps, PlacementActorName)
 	pm.cluster.Logger().Info("Started partition placement actor")
 
 	pm.topologySub = system.EventStream.
@@ -67,9 +102,9 @@ func (pm *Manager) Stop() {
 	pm.cluster.Logger().Info("Stopped PartitionManager")
 }
 
-// PidOfActivatorActor returns the PID of the partition activator on the given node.
+// PidOfActivatorActor returns the PID of the placement actor on the given node.
 func (pm *Manager) PidOfActivatorActor(addr string) *actor.PID {
-	return actor.NewPID(addr, PartitionActivatorActorName)
+	return actor.NewPID(addr, PlacementActorName)
 }
 
 func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
@@ -96,11 +131,7 @@ func (pm *Manager) onClusterTopology(tplg *clustering.ClusterTopology) {
 // Returns nil if the cluster kind is unknown or activation failed.
 func (pm *Manager) Get(identity *clustering.ClusterIdentity) *actor.PID {
 	// Snapshot the rendezvous under the read lock, then release before
-	// making the blocking RPC call.  The previous implementation held the
-	// RLock for the entire duration of the request (up to 5 s), which
-	// blocked topology updates and created a TOCTOU window where the lock
-	// prevented forward progress while the looked-up address could already
-	// be stale.
+	// making the blocking RPC call.
 	pm.rdvMutex.RLock()
 	rdv := pm.rdv
 	pm.rdvMutex.RUnlock()

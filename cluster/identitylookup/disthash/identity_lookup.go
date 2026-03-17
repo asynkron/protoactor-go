@@ -94,7 +94,7 @@ func (p *IdentityLookup) fanOutListGrains(memberID string) ([]*cluster.GrainInfo
 			continue
 		}
 		placementPID := p.partitionManager.PidOfActivatorActor(m.Address())
-		future := c.ActorSystem.Root.RequestFuture(placementPID, &ListGrainsRequest{}, 5*time.Second)
+		future := c.ActorSystem.Root.RequestFuture(placementPID, &cluster.ListGrainsRequest{}, 5*time.Second)
 		futures = append(futures, futureEntry{future: future})
 	}
 
@@ -105,7 +105,7 @@ func (p *IdentityLookup) fanOutListGrains(memberID string) ([]*cluster.GrainInfo
 			c.Logger().Warn("ListGrains: failed to query member placement actor", slog.Any("error", err))
 			continue
 		}
-		typed, ok := res.(*ListGrainsResponse)
+		typed, ok := res.(*cluster.ListGrainsResponse)
 		if !ok {
 			continue
 		}
