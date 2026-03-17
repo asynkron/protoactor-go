@@ -8,14 +8,17 @@ import "sync"
 // use the cluster-default (set via WithDefaultActivatorStrategy).
 type StrategyManager struct {
 	mu              sync.RWMutex
-	cluster         *Cluster
 	kindStrategies  map[string]ActivatorStrategy // kind name -> strategy
-	defaultStrategy ActivatorStrategy
+	defaultStrategy ActivatorStrategy            // immutable after construction
 }
 
 // NewStrategyManager creates a new StrategyManager for the given cluster.
-// If the cluster has no DefaultActivatorStrategy configured, a
-// RoundRobinStrategy is used as the fallback.
+// It seeds per-kind strategies from ActivatedKind.ActivatorStrategy for
+// all kinds already registered in the cluster. If the cluster has no
+// DefaultActivatorStrategy configured, RoundRobinStrategy is used.
+//
+// The defaultStrategy field is immutable after construction — no lock needed
+// when reading it in GetActivator.
 func NewStrategyManager(cluster *Cluster) *StrategyManager {
 	var defaultStrategy ActivatorStrategy
 	if cluster.Config.DefaultActivatorStrategy != nil {
@@ -24,9 +27,19 @@ func NewStrategyManager(cluster *Cluster) *StrategyManager {
 		defaultStrategy = NewRoundRobinStrategy()
 	}
 
+	kindStrategies := make(map[string]ActivatorStrategy)
+
+	// Seed per-kind strategies from already-registered kinds.
+	cluster.kindsMu.RLock()
+	for kindName, ak := range cluster.kinds {
+		if ak.ActivatorStrategy != nil {
+			kindStrategies[kindName] = ak.ActivatorStrategy
+		}
+	}
+	cluster.kindsMu.RUnlock()
+
 	return &StrategyManager{
-		cluster:         cluster,
-		kindStrategies:  make(map[string]ActivatorStrategy),
+		kindStrategies:  kindStrategies,
 		defaultStrategy: defaultStrategy,
 	}
 }
