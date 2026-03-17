@@ -7,6 +7,7 @@ import (
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/test"
 	"github.com/asynkron/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"sync"
 	"testing"
@@ -356,6 +357,123 @@ func TestPlacementActorConcurrentSameIdentity(t *testing.T) {
 	// in the actors map (success, same PID) or hit the spawning guard.
 	assert.GreaterOrEqual(t, successCount, 1,
 		"at least one activation should succeed")
+}
+
+func TestPlacementActorRebalancesOnTopology(t *testing.T) {
+	system := actor.NewActorSystem()
+	provider := test.NewTestProvider(test.NewInMemAgent())
+	lookup := New()
+
+	kind := cluster.NewKind("test-kind", actor.PropsFromFunc(func(ctx actor.Context) {}))
+	config := cluster.Configure("test-cluster", provider, lookup,
+		remote.Configure("127.0.0.1", 0),
+		cluster.WithKinds(kind),
+	)
+	c := cluster.NewCluster(system, config)
+	c.InitKindsForTest(kind)
+
+	manager := newPartitionManager(c)
+	manager.Start()
+	defer manager.Stop()
+
+	// Seed topology with a single member (this node) so all actors are local.
+	// The rebalance callback compares rdv.GetByIdentity(key) against
+	// pm.cluster.ActorSystem.Address(). Use GetHostPort to match exactly.
+	host, port, _ := c.ActorSystem.GetHostPort()
+	manager.onClusterTopology(&cluster.ClusterTopology{
+		Members: []*cluster.Member{
+			{Id: "node-1", Host: host, Port: int32(port), Kinds: []string{"test-kind"}},
+		},
+		TopologyHash: 1,
+	})
+
+	// Activate some grains.
+	for i := 0; i < 5; i++ {
+		ci := &cluster.ClusterIdentity{Kind: "test-kind", Identity: fmt.Sprintf("grain-%d", i)}
+		req := &cluster.ActivationRequest{ClusterIdentity: ci}
+		future := system.Root.RequestFuture(manager.placementActor, req, 2*time.Second)
+		res, err := future.Result()
+		require.NoError(t, err)
+		resp := res.(*cluster.ActivationResponse)
+		require.False(t, resp.Failed, "grain %d activation should succeed", i)
+	}
+
+	// Verify all 5 grains exist.
+	listFuture := system.Root.RequestFuture(manager.placementActor, &cluster.ListGrainsRequest{}, 2*time.Second)
+	listRes, err := listFuture.Result()
+	require.NoError(t, err)
+	listResp := listRes.(*cluster.ListGrainsResponse)
+	require.Len(t, listResp.Grains, 5)
+
+	// Add a second member — some grains' rendezvous owner will change.
+	// The placement actor should poison those grains.
+	manager.onClusterTopology(&cluster.ClusterTopology{
+		Members: []*cluster.Member{
+			{Id: "node-1", Host: host, Port: int32(port), Kinds: []string{"test-kind"}},
+			{Id: "node-2", Host: "10.0.0.2", Port: 8080, Kinds: []string{"test-kind"}},
+		},
+		TopologyHash: 2,
+	})
+
+	// Wait for poisons to process.
+	time.Sleep(500 * time.Millisecond)
+
+	// List grains again — some should have been rebalanced (poisoned).
+	listFuture2 := system.Root.RequestFuture(manager.placementActor, &cluster.ListGrainsRequest{}, 2*time.Second)
+	listRes2, err := listFuture2.Result()
+	require.NoError(t, err)
+	listResp2 := listRes2.(*cluster.ListGrainsResponse)
+
+	// At least one grain should have been removed (rebalanced to node-2).
+	assert.Less(t, len(listResp2.Grains), 5,
+		"some grains should have been rebalanced away after topology change")
+}
+
+func TestPlacementActorCleansUpOnTermination(t *testing.T) {
+	system := actor.NewActorSystem()
+	provider := test.NewTestProvider(test.NewInMemAgent())
+	lookup := New()
+
+	kind := cluster.NewKind("test-kind", actor.PropsFromFunc(func(ctx actor.Context) {}))
+	config := cluster.Configure("test-cluster", provider, lookup,
+		remote.Configure("127.0.0.1", 0),
+		cluster.WithKinds(kind),
+	)
+	c := cluster.NewCluster(system, config)
+	c.InitKindsForTest(kind)
+
+	manager := newPartitionManager(c)
+	manager.Start()
+	defer manager.Stop()
+
+	// Activate a grain.
+	ci := &cluster.ClusterIdentity{Kind: "test-kind", Identity: "cleanup-1"}
+	req := &cluster.ActivationRequest{ClusterIdentity: ci}
+	future := system.Root.RequestFuture(manager.placementActor, req, 2*time.Second)
+	res, err := future.Result()
+	require.NoError(t, err)
+	resp := res.(*cluster.ActivationResponse)
+	require.False(t, resp.Failed)
+	require.NotNil(t, resp.Pid)
+
+	// Verify the grain is tracked.
+	listFuture := system.Root.RequestFuture(manager.placementActor, &cluster.ListGrainsRequest{}, 2*time.Second)
+	listRes, err := listFuture.Result()
+	require.NoError(t, err)
+	listResp := listRes.(*cluster.ListGrainsResponse)
+	require.Len(t, listResp.Grains, 1)
+
+	// Stop the grain — this should trigger the Terminated handler,
+	// which calls RemoveActivation and removes from the local map.
+	system.Root.Poison(resp.Pid)
+	time.Sleep(500 * time.Millisecond)
+
+	// Verify the grain was removed from the placement actor's tracking.
+	listFuture2 := system.Root.RequestFuture(manager.placementActor, &cluster.ListGrainsRequest{}, 2*time.Second)
+	listRes2, err := listFuture2.Result()
+	require.NoError(t, err)
+	listResp2 := listRes2.(*cluster.ListGrainsResponse)
+	assert.Empty(t, listResp2.Grains, "grain should be removed after termination")
 }
 
 func TestDistHashManager(t *testing.T) {
