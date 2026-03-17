@@ -9,7 +9,6 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/remote"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -526,42 +525,29 @@ func TestIdentityLookup_Shutdown_DoesNotAffectOtherMembers(t *testing.T) {
 // timeout triggers RemovePid but the actor is just slow, not dead.
 func TestRemovePid_SkipsDeleteWhenActorAliveLocally(t *testing.T) {
 	srv := startEmbeddedNATS(t)
-	_, js := connectNATS(t, srv)
+	p, c := setupCluster(t, srv, "test-liveness-skip")
 
-	ctx := context.Background()
-	identities, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
-		Bucket: "test_liveness_skip_identities",
-	})
+	err := p.StartMember(c)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = p.Shutdown(true) })
 
-	tracking, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
-		Bucket: "test_liveness_skip_tracking",
-	})
-	require.NoError(t, err)
-
-	// Create a real actor system so we have a process registry.
-	system := actor.NewActorSystem()
+	il := p.IdentityLookup()
+	il.Setup(c, []string{"TestKind"}, false)
+	time.Sleep(500 * time.Millisecond)
 
 	// Spawn a real actor that stays alive.
+	system := c.ActorSystem
 	pid, err := system.Root.SpawnNamed(actor.PropsFromFunc(func(ctx actor.Context) {}), "TestKind/grain-alive")
 	require.NoError(t, err)
 	t.Cleanup(func() { system.Root.Poison(pid) })
 
-	il := &IdentityLookup{
-		identities:    identities,
-		memberTracker: tracking,
-		config:        newDefaultConfig(),
-		semaphore:     make(chan struct{}, 200),
-		memberID:      "member-local",
-		cluster:       &cluster.Cluster{ActorSystem: system},
-	}
-
 	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "grain-alive"}
+	ctx := context.Background()
 
-	// Store an activation record pointing to the local actor.
+	// Store activation pointing to the live local actor.
 	lockID, rev, ok := il.tryAcquireLock(ctx, ci)
 	require.True(t, ok)
-	err = il.storeActivation(ctx, ci, lockID, rev, "member-local", pid.Address, pid.Id)
+	err = il.storeActivation(ctx, ci, lockID, rev, il.memberID, pid.Address, pid.Id)
 	require.NoError(t, err)
 
 	// Call RemovePid — should be a no-op because actor is alive locally.
@@ -579,47 +565,31 @@ func TestRemovePid_SkipsDeleteWhenActorAliveLocally(t *testing.T) {
 // the actor is no longer in the process registry (it was stopped/crashed).
 func TestRemovePid_DeletesWhenActorNotAliveLocally(t *testing.T) {
 	srv := startEmbeddedNATS(t)
-	_, js := connectNATS(t, srv)
+	p, c := setupCluster(t, srv, "test-liveness-dead")
 
-	ctx := context.Background()
-	identities, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
-		Bucket: "test_liveness_dead_identities",
-	})
+	err := p.StartMember(c)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = p.Shutdown(true) })
 
-	tracking, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
-		Bucket: "test_liveness_dead_tracking",
-	})
-	require.NoError(t, err)
+	il := p.IdentityLookup()
+	il.Setup(c, []string{"TestKind"}, false)
+	time.Sleep(500 * time.Millisecond)
 
-	system := actor.NewActorSystem()
+	system := c.ActorSystem
 
-	// Spawn and immediately stop the actor so it's in the registry briefly then gone.
+	// Spawn and immediately stop the actor.
 	pid, err := system.Root.SpawnNamed(actor.PropsFromFunc(func(ctx actor.Context) {}), "TestKind/grain-dead")
 	require.NoError(t, err)
 	system.Root.Poison(pid)
 	time.Sleep(200 * time.Millisecond) // wait for actor to fully stop
 
-	il := &IdentityLookup{
-		identities:    identities,
-		memberTracker: tracking,
-		config:        newDefaultConfig(),
-		semaphore:     make(chan struct{}, 200),
-		memberID:      "member-local",
-		cluster:       &cluster.Cluster{ActorSystem: system},
-	}
-
 	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "grain-dead"}
+	ctx := context.Background()
 
-	// Plant activation record pointing to the dead local actor.
-	rec := activationRecord{
-		PidID:      pid.Id,
-		PidAddress: pid.Address,
-		MemberID:   "member-local",
-	}
-	data, err := json.Marshal(&rec)
-	require.NoError(t, err)
-	_, err = identities.Put(ctx, kvKey(ci), data)
+	// Store activation pointing to the dead local actor.
+	lockID, rev, ok := il.tryAcquireLock(ctx, ci)
+	require.True(t, ok)
+	err = il.storeActivation(ctx, ci, lockID, rev, il.memberID, pid.Address, pid.Id)
 	require.NoError(t, err)
 
 	// RemovePid should succeed — actor is dead.
@@ -635,42 +605,24 @@ func TestRemovePid_DeletesWhenActorNotAliveLocally(t *testing.T) {
 // liveness, so we trust the caller (DefaultContext confirmed dead letter).
 func TestRemovePid_DeletesWhenActorRemote(t *testing.T) {
 	srv := startEmbeddedNATS(t)
-	_, js := connectNATS(t, srv)
+	p, c := setupCluster(t, srv, "test-liveness-remote")
 
-	ctx := context.Background()
-	identities, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
-		Bucket: "test_liveness_remote_identities",
-	})
+	err := p.StartMember(c)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = p.Shutdown(true) })
 
-	tracking, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
-		Bucket: "test_liveness_remote_tracking",
-	})
-	require.NoError(t, err)
-
-	system := actor.NewActorSystem()
-
-	il := &IdentityLookup{
-		identities:    identities,
-		memberTracker: tracking,
-		config:        newDefaultConfig(),
-		semaphore:     make(chan struct{}, 200),
-		memberID:      "member-local",
-		cluster:       &cluster.Cluster{ActorSystem: system},
-	}
+	il := p.IdentityLookup()
+	il.Setup(c, []string{"TestKind"}, false)
+	time.Sleep(500 * time.Millisecond)
 
 	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "grain-remote"}
+	ctx := context.Background()
 	remotePid := actor.NewPID("remote-host:9999", "TestKind/grain-remote")
 
-	// Plant activation record pointing to a remote host.
-	rec := activationRecord{
-		PidID:      remotePid.Id,
-		PidAddress: remotePid.Address,
-		MemberID:   "member-remote",
-	}
-	data, err := json.Marshal(&rec)
-	require.NoError(t, err)
-	_, err = identities.Put(ctx, kvKey(ci), data)
+	// Store activation pointing to a remote host.
+	lockID, rev, ok := il.tryAcquireLock(ctx, ci)
+	require.True(t, ok)
+	err = il.storeActivation(ctx, ci, lockID, rev, "member-remote", remotePid.Address, remotePid.Id)
 	require.NoError(t, err)
 
 	// RemovePid should delete — we can't verify remote liveness.
@@ -687,53 +639,30 @@ func TestRemovePid_DeletesWhenActorRemote(t *testing.T) {
 // in the identity store rather than returning nil.
 func TestSpawnActivation_ErrNameExists_ReRegisters(t *testing.T) {
 	srv := startEmbeddedNATS(t)
-	nc, js := connectNATS(t, srv)
-
-	ctx := context.Background()
-	identities, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
-		Bucket: "test_errname_reregister_identities",
-	})
-	require.NoError(t, err)
-
-	tracking, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
-		Bucket: "test_errname_reregister_tracking",
-	})
-	require.NoError(t, err)
-
-	// Build a real cluster with the natskv provider so TryGetClusterKind works.
 	kindProps := actor.PropsFromFunc(func(ctx actor.Context) {})
-	provider, err := New(nc)
+	p, c := setupClusterWithKindsEmbedded(t, srv, "test-errname-reregister",
+		[]*cluster.Kind{cluster.NewKind("TestKind", kindProps)})
+	// InitKindsForTest is needed because p.StartMember(c) only starts the
+	// provider, not the full cluster — so c.initKinds() is never called.
+	// Without this, TryGetClusterKind("TestKind") returns false.
+	c.InitKindsForTest(cluster.NewKind("TestKind", kindProps))
+
+	err := p.StartMember(c)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = p.Shutdown(true) })
 
-	system := actor.NewActorSystem()
-	remoteConfig := remote.Configure("127.0.0.1", 0)
-	clusterConfig := cluster.Configure("test-errname", provider, provider.IdentityLookup(),
-		remoteConfig,
-		cluster.WithKinds(cluster.NewKind("TestKind", kindProps)),
-	)
-	c := cluster.NewCluster(system, clusterConfig)
-	c.Remote = remote.NewRemote(system, remoteConfig)
-	require.NoError(t, c.StartMember())
-	t.Cleanup(func() { c.Shutdown(true) })
-
-	// Create a test IdentityLookup pointing at our test KV buckets
-	// but using the real cluster (so TryGetClusterKind works).
-	il := &IdentityLookup{
-		identities:    identities,
-		memberTracker: tracking,
-		config:        newDefaultConfig(),
-		semaphore:     make(chan struct{}, 200),
-		memberID:      "member-local",
-		cluster:       c,
-	}
+	il := p.IdentityLookup()
+	il.Setup(c, []string{"TestKind"}, false)
+	time.Sleep(500 * time.Millisecond)
 
 	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "grain-exists"}
+	ctx := context.Background()
 
 	// Pre-spawn the actor so SpawnNamed will return ErrNameExists.
 	props := cluster.WithClusterIdentity(kindProps, ci)
-	existingPid, err := system.Root.SpawnNamed(props, "TestKind/grain-exists")
+	existingPid, err := c.ActorSystem.Root.SpawnNamed(props, "TestKind/grain-exists")
 	require.NoError(t, err)
-	t.Cleanup(func() { system.Root.Poison(existingPid) })
+	t.Cleanup(func() { c.ActorSystem.Root.Poison(existingPid) })
 
 	// Acquire lock (simulates what Get() does before calling spawnActivation).
 	lockID, rev, ok := il.tryAcquireLock(ctx, ci)
