@@ -5,6 +5,11 @@ import (
 	"fmt"
 )
 
+// ErrLockNotHeld is returned by PersistActivation callbacks when the spawn
+// lock has been stolen by another node. The placement actor should NOT retry
+// — the lock is irrecoverably lost. The spawned actor is poisoned immediately.
+var ErrLockNotHeld = errors.New("spawn lock is no longer held")
+
 const (
 	ErrorReason_OK                  = "OK"
 	ErrorReason_CANCELLED           = "CANCELLED"
