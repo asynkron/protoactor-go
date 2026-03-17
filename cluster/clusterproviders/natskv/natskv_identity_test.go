@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -633,51 +634,141 @@ func TestRemovePid_DeletesWhenActorRemote(t *testing.T) {
 		"RemovePid must delete the KV record for remote actors (can't check liveness)")
 }
 
-// TestSpawnActivation_ErrNameExists_ReRegisters verifies that when
-// SpawnNamed returns ErrNameExists (actor already running locally but
-// KV record was deleted), spawnActivation re-registers the existing PID
-// in the identity store rather than returning nil.
-func TestSpawnActivation_ErrNameExists_ReRegisters(t *testing.T) {
+// --- SP3: Placement actor integration tests ---
+
+// setupPlacementTestCluster creates a cluster with a placement actor, proxy,
+// strategy manager, and a single member topology — ready for testing Get().
+func setupPlacementTestCluster(t *testing.T, clusterName string) (*Provider, *cluster.Cluster, *IdentityLookup) {
+	t.Helper()
+
 	srv := startEmbeddedNATS(t)
 	kindProps := actor.PropsFromFunc(func(ctx actor.Context) {})
-	p, c := setupClusterWithKindsEmbedded(t, srv, "test-errname-reregister",
-		[]*cluster.Kind{cluster.NewKind("TestKind", kindProps)})
-	// InitKindsForTest is needed because p.StartMember(c) only starts the
-	// provider, not the full cluster — so c.initKinds() is never called.
-	// Without this, TryGetClusterKind("TestKind") returns false.
-	c.InitKindsForTest(cluster.NewKind("TestKind", kindProps))
+	kind := cluster.NewKind("TestKind", kindProps)
 
-	err := p.StartMember(c)
+	p, c := setupClusterWithKindsEmbedded(t, srv, clusterName,
+		[]*cluster.Kind{kind})
+
+	// Start remote so ActorSystem.Address() returns a real host:port.
+	err := c.Remote.Start()
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = p.Shutdown(true) })
+
+	// Initialize kinds so the placement actor can look them up.
+	c.InitKindsForTest(kind)
 
 	il := p.IdentityLookup()
 	il.Setup(c, []string{"TestKind"}, false)
-	time.Sleep(500 * time.Millisecond)
 
-	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "grain-exists"}
+	// Publish a self-only topology so the strategy manager and
+	// ValidateActivationMember know about this member.
+	host, port, err := c.ActorSystem.GetHostPort()
+	require.NoError(t, err)
+	self := &cluster.Member{
+		Host:  host,
+		Port:  int32(port),
+		Id:    il.memberID,
+		Kinds: []string{"TestKind"},
+	}
+	c.MemberList.UpdateClusterTopology(cluster.Members{self})
+
+	t.Cleanup(func() {
+		il.Shutdown()
+		c.Remote.Shutdown(true)
+	})
+
+	return p, c, il
+}
+
+func TestIdentityLookup_SetupSpawnsPlacementAndProxy(t *testing.T) {
+	_, _, il := setupPlacementTestCluster(t, "test-sp3-setup")
+
+	require.NotNil(t, il.placementPID, "placementPID should be set after Setup()")
+	require.NotNil(t, il.proxyPID, "proxyPID should be set after Setup()")
+	require.NotNil(t, il.strategyMgr, "strategyMgr should be set after Setup()")
+
+	// Get() should work end-to-end.
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "setup-test"}
+	pid := il.Get(ci)
+	require.NotNil(t, pid, "Get() should return a PID after Setup()")
+}
+
+func TestIdentityLookup_CoalesceConcurrentGets(t *testing.T) {
+	_, _, il := setupPlacementTestCluster(t, "test-sp3-coalesce")
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "coalesce-1"}
+	const concurrency = 10
+
+	var wg sync.WaitGroup
+	pids := make([]*actor.PID, concurrency)
+
+	wg.Add(concurrency)
+	for i := 0; i < concurrency; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			pids[idx] = il.Get(ci)
+		}(i)
+	}
+	wg.Wait()
+
+	// All should have returned a non-nil PID.
+	for i, pid := range pids {
+		require.NotNil(t, pid, "goroutine %d returned nil PID", i)
+	}
+
+	// All should be the same PID (coalesced).
+	for i := 1; i < concurrency; i++ {
+		assert.True(t, pids[0].Equal(pids[i]),
+			"PID[0]=%v != PID[%d]=%v — concurrent Gets should coalesce", pids[0], i, pids[i])
+	}
+}
+
+func TestIdentityLookup_StaleActivationCleaned(t *testing.T) {
+	_, c, il := setupPlacementTestCluster(t, "test-sp3-stale")
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "stale-1"}
 	ctx := context.Background()
 
-	// Pre-spawn the actor so SpawnNamed will return ErrNameExists.
-	props := cluster.WithClusterIdentity(kindProps, ci)
-	existingPid, err := c.ActorSystem.Root.SpawnNamed(props, "TestKind/grain-exists")
+	// Insert a stale activation from a dead member directly into KV.
+	staleRec := activationRecord{
+		PidID:      "TestKind/stale-1",
+		PidAddress: "dead-host:9999",
+		MemberID:   "dead-member-xyz",
+	}
+	data, _ := json.Marshal(&staleRec)
+	_, err := il.identities.Put(ctx, kvKey(ci), data)
 	require.NoError(t, err)
-	t.Cleanup(func() { c.ActorSystem.Root.Poison(existingPid) })
 
-	// Acquire lock (simulates what Get() does before calling spawnActivation).
-	lockID, rev, ok := il.tryAcquireLock(ctx, ci)
-	require.True(t, ok)
-
-	// spawnActivation should detect ErrNameExists and re-register.
-	pid := il.spawnActivation(ci, lockID, rev)
-	require.NotNil(t, pid, "spawnActivation should return the existing PID, not nil")
-	assert.Equal(t, existingPid.Id, pid.Id)
-	assert.Equal(t, existingPid.Address, pid.Address)
-
-	// The activation should be stored in the KV.
+	// Verify the stale activation exists.
 	rec := il.getExistingActivation(ctx, ci)
-	require.NotNil(t, rec, "activation must be stored in KV after ErrNameExists recovery")
-	assert.Equal(t, existingPid.Id, rec.PidID)
+	require.NotNil(t, rec, "stale activation should exist before Get()")
+
+	// Get() should detect the stale member, clean it up, and re-activate.
+	pid := il.Get(ci)
+	require.NotNil(t, pid, "Get() should return a PID after cleaning stale activation")
+
+	// The new PID should be on this node, not the dead one.
+	assert.Equal(t, c.ActorSystem.Address(), pid.Address,
+		"new activation should be on the local node, not the dead member")
+}
+
+func TestIdentityLookup_EndToEnd_ActivateAndRetrieve(t *testing.T) {
+	_, _, il := setupPlacementTestCluster(t, "test-sp3-e2e")
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "order-123"}
+
+	// First Get — should activate via placement actor.
+	pid1 := il.Get(ci)
+	require.NotNil(t, pid1, "first Get should return PID")
+
+	// Second Get — should find existing activation (no new spawn).
+	pid2 := il.Get(ci)
+	require.NotNil(t, pid2, "second Get should return PID")
+	assert.True(t, pid1.Equal(pid2), "second Get should return same PID")
+
+	// Verify the activation is stored in the KV.
+	ctx := context.Background()
+	rec := il.getExistingActivation(ctx, ci)
+	require.NotNil(t, rec, "activation should be persisted in KV")
+	assert.Equal(t, il.memberID, rec.MemberID, "member ID should be ours")
 }
 
 // TestIdentityLookup_GetExistingActivation_ReturnsActivationFromOtherMember
