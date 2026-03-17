@@ -75,6 +75,11 @@ func New(storage cluster.StorageLookup) *IdentityStorageLookup {
 //
 // Returns nil if the identity could not be resolved (caller should retry).
 func (l *IdentityStorageLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
+	// Check PID cache first (avoids storage round-trip for cached PIDs).
+	if pid, ok := l.cluster.PidCache.Get(ci.Identity, ci.Kind); ok {
+		return pid
+	}
+
 	key := ci.AsKey()
 
 	// Step 0: Inflight coalescing — if another goroutine is resolving this
@@ -137,29 +142,8 @@ func (l *IdentityStorageLookup) resolveIdentity(ci *cluster.ClusterIdentity) *ac
 		return nil
 	}
 
-	// Step 2: Select target member via strategy manager.
-	senderAddress := l.cluster.ActorSystem.Address()
-	targetMember := l.strategyManager.GetActivator(ci, senderAddress)
-	if targetMember == nil {
-		slog.Warn("IdentityStorageLookup: no available member for activation",
-			slog.String("kind", ci.Kind),
-			slog.String("identity", ci.Identity))
-		return nil
-	}
-
-	// Step 3: Route activation request.
-	if targetMember.Id == l.memberID {
-		// This node is the target — acquire lock and activate locally.
-		return l.activateLocal(ctx, ci)
-	}
-
-	// Another node is the target — send activation request to its proxy.
-	return l.activateRemote(ctx, ci, targetMember)
-}
-
-// activateLocal acquires a storage lock, sends an ActivationRequest to the
-// local placement actor, and persists the result.
-func (l *IdentityStorageLookup) activateLocal(ctx context.Context, ci *cluster.ClusterIdentity) *actor.PID {
+	// Step 2: Acquire the spawn lock before selecting a target. The lock
+	// is a distributed coordination mechanism — only one node can hold it.
 	_, lockSpan := otel.Tracer("protoactor/identity").Start(ctx, "identity.lock_acquire",
 		trace.WithAttributes(
 			attribute.String("kind", ci.Kind),
@@ -178,6 +162,32 @@ func (l *IdentityStorageLookup) activateLocal(ctx context.Context, ci *cluster.C
 		return nil
 	}
 
+	// Step 3: Select target member via strategy manager.
+	senderAddress := l.cluster.ActorSystem.Address()
+	targetMember := l.strategyManager.GetActivator(ci, senderAddress)
+	if targetMember == nil {
+		slog.Warn("IdentityStorageLookup: no available member for activation",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity))
+		l.storage.RemoveLock(*lock)
+		return nil
+	}
+
+	// Step 4: Route activation request.
+	if targetMember.Id == l.memberID {
+		return l.activateLocal(ctx, ci, lock)
+	}
+
+	// Another node is the target — send request to its proxy. The remote
+	// placement actor spawns but does NOT persist (empty requestID → no-op
+	// in PersistActivation). This node persists after getting the PID back.
+	return l.activateRemote(ctx, ci, lock, targetMember)
+}
+
+// activateLocal sends an ActivationRequest to the local placement actor.
+// The lock is stored in pendingLocks so the PersistActivation callback can
+// find it via requestID. The placement actor spawns, persists, and responds.
+func (l *IdentityStorageLookup) activateLocal(ctx context.Context, ci *cluster.ClusterIdentity, lock *cluster.SpawnLock) *actor.PID {
 	// Store the lock so PersistActivation callback can find it.
 	l.pendingLocksMu.Lock()
 	l.pendingLocks[lock.LockID] = lock
@@ -214,14 +224,20 @@ func (l *IdentityStorageLookup) activateLocal(ctx context.Context, ci *cluster.C
 		return nil
 	}
 
+	// Populate the local PID cache.
+	l.cluster.PidCache.Set(ci.Identity, ci.Kind, activationResp.Pid)
+
 	return activationResp.Pid
 }
 
 // activateRemote sends an ActivationRequest to a remote node's proxy actor.
-func (l *IdentityStorageLookup) activateRemote(ctx context.Context, ci *cluster.ClusterIdentity, member *cluster.Member) *actor.PID {
-	// Build a PID for the remote proxy actor.
+// The remote placement actor spawns the actor but does NOT persist (empty
+// requestID causes PersistActivation to no-op). This node holds the storage
+// lock and persists the activation after getting the PID back.
+func (l *IdentityStorageLookup) activateRemote(ctx context.Context, ci *cluster.ClusterIdentity, lock *cluster.SpawnLock, member *cluster.Member) *actor.PID {
 	proxyPID := actor.NewPID(member.Address(), "$proxy-activator")
 
+	// Empty RequestId tells the remote PersistActivation to skip persistence.
 	req := &cluster.ActivationRequest{
 		ClusterIdentity: ci,
 	}
@@ -233,6 +249,7 @@ func (l *IdentityStorageLookup) activateRemote(ctx context.Context, ci *cluster.
 			slog.String("identity", ci.Identity),
 			slog.String("targetMember", member.Id),
 			slog.Any("error", err))
+		l.storage.RemoveLock(*lock)
 		return nil
 	}
 
@@ -242,8 +259,15 @@ func (l *IdentityStorageLookup) activateRemote(ctx context.Context, ci *cluster.
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("targetMember", member.Id))
+		l.storage.RemoveLock(*lock)
 		return nil
 	}
+
+	// Persist the activation locally — we hold the storage lock.
+	l.storage.StoreActivation(l.memberID, lock, activationResp.Pid)
+
+	// Populate the local PID cache.
+	l.cluster.PidCache.Set(ci.Identity, ci.Kind, activationResp.Pid)
 
 	return activationResp.Pid
 }
@@ -266,7 +290,14 @@ func (l *IdentityStorageLookup) Setup(c *cluster.Cluster, kinds []string, isClie
 
 	if !isClient {
 		// Create the PersistActivation callback that bridges requestID -> SpawnLock.
+		// Empty requestID means a remote-initiated request where the requesting
+		// node holds the lock and will persist — skip persistence here.
 		persistActivation := func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID, requestID string) error {
+			if requestID == "" {
+				// Remote-initiated activation: the requesting node holds the
+				// storage lock and persists after receiving our response.
+				return nil
+			}
 			l.pendingLocksMu.Lock()
 			lock, ok := l.pendingLocks[requestID]
 			l.pendingLocksMu.Unlock()
