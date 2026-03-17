@@ -95,6 +95,7 @@ message ActivationResponse {
   actor.PID pid = 1;
   bool failed = 2;
   uint64 topology_hash = 3;
+  bool invalid_identity = 4;
 }
 
 message ReadyForRebalance {
