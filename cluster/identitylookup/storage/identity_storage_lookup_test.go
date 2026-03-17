@@ -173,6 +173,158 @@ func TestIdentityStorageLookup_ShutdownStopsPlacementFirst(t *testing.T) {
 	assert.Error(t, err, "placement actor should be stopped after Shutdown")
 }
 
+func TestIdentityStorageLookup_RemovePidCleansStorage(t *testing.T) {
+	_, isl, storageLookup := setupTestCluster(t)
+
+	ci := &cluster.ClusterIdentity{Kind: testKind, Identity: "remove-1"}
+
+	// Activate an actor via Get().
+	pid := isl.Get(ci)
+	require.NotNil(t, pid)
+
+	// Verify activation exists in storage.
+	existing := storageLookup.TryGetExistingActivation(ci)
+	require.NotNil(t, existing, "activation should be in storage after Get()")
+
+	// RemovePid should remove it.
+	isl.RemovePid(ci, pid)
+
+	// Verify it's gone.
+	gone := storageLookup.TryGetExistingActivation(ci)
+	assert.Nil(t, gone, "activation should be removed after RemovePid")
+}
+
+func TestIdentityStorageLookup_CoalesceFirstFailAllGetNil(t *testing.T) {
+	_, isl, _ := setupTestCluster(t)
+
+	// Use a kind that doesn't exist in the cluster -> placement actor returns Failed.
+	ci := &cluster.ClusterIdentity{Kind: "nonExistentKind", Identity: "fail-1"}
+
+	const concurrency = 5
+	var wg sync.WaitGroup
+	pids := make([]*actor.PID, concurrency)
+
+	wg.Add(concurrency)
+	for i := 0; i < concurrency; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			pids[idx] = isl.Get(ci)
+		}(i)
+	}
+	wg.Wait()
+
+	// All should return nil since the kind is unknown.
+	for i := 0; i < concurrency; i++ {
+		assert.Nil(t, pids[i], "PID %d should be nil for unknown kind", i)
+	}
+}
+
+func TestIdentityStorageLookup_StrategySelectsLocal(t *testing.T) {
+	c, isl, _ := setupTestCluster(t)
+
+	ci := &cluster.ClusterIdentity{Kind: testKind, Identity: "strategy-local-1"}
+
+	// With only one member (ourselves), strategy must select local.
+	pid := isl.Get(ci)
+	require.NotNil(t, pid, "should activate successfully")
+
+	// The PID should be on the local address.
+	localAddr := c.ActorSystem.Address()
+	assert.Equal(t, localAddr, pid.Address,
+		"activation should be on local member")
+}
+
+func TestIdentityStorageLookup_ClientWaitsForActivation(t *testing.T) {
+	storageLookup := identitylookup.NewInMemoryStorageLookup()
+	isl := storage.New(storageLookup)
+
+	system := actor.NewActorSystem()
+	kind := cluster.NewKind(testKind, actor.PropsFromFunc(func(ctx actor.Context) {}))
+	provider := &testClusterProvider{}
+	remoteCfg := remote.Configure("127.0.0.1", 0)
+	cfg := cluster.Configure("test-cluster", provider, isl, remoteCfg, cluster.WithKinds(kind))
+	c := cluster.NewCluster(system, cfg)
+	c.Remote = remote.NewRemote(system, c.Config.RemoteConfig)
+	err := c.Remote.Start()
+	require.NoError(t, err)
+
+	// Setup as CLIENT.
+	isl.Setup(c, []string{testKind}, true)
+
+	t.Cleanup(func() {
+		isl.Shutdown()
+		c.Remote.Shutdown(true)
+	})
+
+	ci := &cluster.ClusterIdentity{Kind: testKind, Identity: "client-wait-1"}
+
+	// Start Get in background — it will block on WaitForActivation.
+	var wg sync.WaitGroup
+	wg.Add(1)
+	var result *actor.PID
+	go func() {
+		defer wg.Done()
+		result = isl.Get(ci)
+	}()
+
+	// Give it time to start waiting.
+	time.Sleep(50 * time.Millisecond)
+
+	// Simulate another node storing the activation.
+	lock := storageLookup.TryAcquireLock(ci)
+	require.NotNil(t, lock)
+	storedPid := actor.NewPID("other-node:9999", testKind+"/client-wait-1")
+	storageLookup.StoreActivation("other-member", lock, storedPid)
+
+	// Wait for result with timeout.
+	done := make(chan struct{})
+	go func() { wg.Wait(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("client Get() did not return within 5 seconds")
+	}
+
+	require.NotNil(t, result, "client should get PID after activation is stored")
+}
+
+func TestIdentityStorageLookup_EndToEnd_ActivateAndRetrieve(t *testing.T) {
+	c, isl, storageLookup := setupTestCluster(t)
+
+	ci := &cluster.ClusterIdentity{Kind: testKind, Identity: "order-123"}
+
+	// First Get — should activate via placement actor.
+	pid1 := isl.Get(ci)
+	require.NotNil(t, pid1, "first Get should return PID")
+
+	// Verify the activation is stored in the backend.
+	stored := storageLookup.TryGetExistingActivation(ci)
+	require.NotNil(t, stored, "activation should be persisted in storage")
+	assert.Equal(t, c.ActorSystem.ID, stored.MemberID, "member ID should be ours")
+
+	// Second Get — should find existing activation (no new spawn).
+	pid2 := isl.Get(ci)
+	require.NotNil(t, pid2, "second Get should return PID")
+	assert.True(t, pid1.Equal(pid2), "second Get should return same PID")
+}
+
+func TestIdentityStorageLookup_ListGrainsAfterActivation(t *testing.T) {
+	_, isl, _ := setupTestCluster(t)
+
+	// Activate two grains.
+	ci1 := &cluster.ClusterIdentity{Kind: testKind, Identity: "list-a"}
+	ci2 := &cluster.ClusterIdentity{Kind: testKind, Identity: "list-b"}
+	pid1 := isl.Get(ci1)
+	pid2 := isl.Get(ci2)
+	require.NotNil(t, pid1)
+	require.NotNil(t, pid2)
+
+	// ListGrains should return both.
+	grains, err := isl.ListGrains()
+	require.NoError(t, err)
+	assert.Len(t, grains, 2, "should list 2 grains")
+}
+
 func TestIdentityStorageLookup_DifferentIdentitiesNotCoalesced(t *testing.T) {
 	_, isl, _ := setupTestCluster(t)
 
