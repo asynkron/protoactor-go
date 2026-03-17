@@ -21,9 +21,9 @@ Each batch: write plans → execute → verify → then write next batch's plans
 | 1a: Foundation (proto, Kind, utilities) | `2026-03-17-sp1a-foundation.md` | Complete | Complete |
 | 1b: ActivatorStrategy + 4 implementations | `2026-03-17-sp1b-strategies.md` | Complete | Complete |
 | 1c: Placement Actor + Activator Proxy | `2026-03-17-sp1c-placement-actor.md` | Complete | Complete |
-| 2: Integrate into IdentityStorageLookup | `2026-03-17-sp2-storage-lookup.md` | Not started | Not started |
-| 3: Integrate into natskv | `2026-03-17-sp3-natskv.md` | Not started | Not started |
-| 4: Integrate into natsstream | `2026-03-17-sp4-natsstream.md` | Not started | Not started |
+| 2: Integrate into IdentityStorageLookup | `2026-03-17-sp2-storage-lookup.md` | Complete | Not started |
+| 3: Integrate into natskv | `2026-03-17-sp3-natskv.md` | Complete | Not started |
+| 4: Integrate into natsstream | `2026-03-17-sp4-natsstream.md` | Complete | Not started |
 | 5: Refactor disthash | `2026-03-17-sp5-disthash.md` | Not started | Not started |
 | 6: Conformance + Cross-Node Safety | `2026-03-17-sp6-conformance.md` | Not started | Not started |
 
