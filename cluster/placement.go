@@ -129,12 +129,16 @@ func (p *placementActor) onStopping(ctx actor.Context) {
 
 	// Wait for all poisons to complete, up to ShutdownTimeout.
 	// Drain futures via a goroutine so we can race against the deadline.
+	// Capture logger and root before goroutine — ctx methods must not be
+	// called from outside the actor's mailbox goroutine.
+	log := ctx.Logger()
+	root := p.cluster.ActorSystem.Root
 	done := make(chan struct{})
 	go func() {
 		for key, future := range futures {
 			err := future.Wait()
 			if err != nil {
-				ctx.Logger().Error("Failed to poison actor during shutdown",
+				log.Error("Failed to poison actor during shutdown",
 					slog.String("identity", key), slog.Any("error", err))
 			}
 		}
@@ -145,9 +149,9 @@ func (p *placementActor) onStopping(ctx actor.Context) {
 	case <-done:
 		// All grains stopped gracefully.
 	case <-time.After(p.config.ShutdownTimeout):
-		ctx.Logger().Warn("Shutdown timeout reached, force-stopping remaining grains")
+		log.Warn("Shutdown timeout reached, force-stopping remaining grains")
 		for _, meta := range p.actors {
-			ctx.Stop(meta.PID)
+			root.Stop(meta.PID)
 		}
 	}
 }
@@ -345,6 +349,9 @@ func (p *placementActor) persistAndRespond(ctx actor.Context, msg *ActivationReq
 	future := actor.NewFuture(ctx.ActorSystem(), 30*time.Second)
 
 	root := p.cluster.ActorSystem.Root
+	// Capture logger before goroutine — ctx methods must not be called
+	// from outside the actor's mailbox goroutine.
+	log := ctx.Logger()
 
 	go func() {
 		defer func() {
@@ -377,7 +384,7 @@ func (p *placementActor) persistAndRespond(ctx actor.Context, msg *ActivationReq
 			}
 
 			// Other error — retry.
-			ctx.Logger().Warn("PersistActivation failed, retrying",
+			log.Warn("PersistActivation failed, retrying",
 				slog.String("identity", ci.Identity),
 				slog.String("kind", ci.Kind),
 				slog.Int("attempt", attempt+1),
@@ -394,32 +401,32 @@ func (p *placementActor) persistAndRespond(ctx actor.Context, msg *ActivationReq
 			delete(p.spawning, key)
 		}()
 
-		// Future-level error (timeout, etc.)
-		if err != nil {
-			ctx.Logger().Error("Persistence future error",
+		// Helper to clean up on persistence failure: unwatch (to avoid
+		// spurious "Terminated not found" warnings), poison, decrement.
+		failAndPoison := func(reason string, e error) {
+			ctx.Logger().Error(reason,
 				slog.String("identity", ci.Identity),
-				slog.Any("error", err))
+				slog.Any("error", e))
+			ctx.Unwatch(pid)
 			ctx.Poison(pid)
 			clusterKind.Dec()
 			ctx.Respond(&ActivationResponse{Failed: true})
+		}
+
+		// Future-level error (timeout, etc.)
+		if err != nil {
+			failAndPoison("Persistence future error", err)
 			return
 		}
 
 		pr, ok := res.(*persistenceResult)
 		if !ok {
-			ctx.Poison(pid)
-			clusterKind.Dec()
-			ctx.Respond(&ActivationResponse{Failed: true})
+			failAndPoison("Unexpected persistence result type", fmt.Errorf("got %T", res))
 			return
 		}
 
 		if pr.err != nil {
-			ctx.Logger().Error("PersistActivation failed after retries",
-				slog.String("identity", ci.Identity),
-				slog.Any("error", pr.err))
-			ctx.Poison(pid)
-			clusterKind.Dec()
-			ctx.Respond(&ActivationResponse{Failed: true})
+			failAndPoison("PersistActivation failed after retries", pr.err)
 			return
 		}
 
