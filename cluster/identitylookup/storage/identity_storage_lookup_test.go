@@ -3,6 +3,7 @@ package storage_test
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
@@ -147,6 +148,29 @@ func TestIdentityStorageLookup_StaleActivationCleaned(t *testing.T) {
 		"new activation should be on the local node, not the dead member")
 	assert.NotEqual(t, stalePID.Address, pid.Address,
 		"PID should not be the stale one")
+}
+
+func TestIdentityStorageLookup_ShutdownStopsPlacementFirst(t *testing.T) {
+	c, isl, _ := setupTestCluster(t)
+
+	ci := &cluster.ClusterIdentity{Kind: testKind, Identity: "shutdown-1"}
+
+	// Activate an actor.
+	pid := isl.Get(ci)
+	require.NotNil(t, pid, "should get a PID")
+
+	// Shutdown the lookup. This should stop placement/proxy first.
+	isl.Shutdown()
+
+	// The placement actor should be stopped after Shutdown.
+	// Sending a request should timeout or return DeadLetterResponse.
+	req := &cluster.ActivationRequest{
+		ClusterIdentity: &cluster.ClusterIdentity{Kind: testKind, Identity: "post-shutdown"},
+		RequestId:       "post-shutdown-req",
+	}
+	future := c.ActorSystem.Root.RequestFuture(actor.NewPID(c.ActorSystem.Address(), "$placement-activator"), req, 1*time.Second)
+	_, err := future.Result()
+	assert.Error(t, err, "placement actor should be stopped after Shutdown")
 }
 
 func TestIdentityStorageLookup_DifferentIdentitiesNotCoalesced(t *testing.T) {

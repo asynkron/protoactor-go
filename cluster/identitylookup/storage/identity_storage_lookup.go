@@ -359,14 +359,39 @@ func (l *IdentityStorageLookup) Setup(c *cluster.Cluster, kinds []string, isClie
 	})
 }
 
-// Shutdown performs cleanup when the cluster is shutting down.
-// It removes all activations belonging to this member from the storage backend.
+// Shutdown performs graceful cleanup when the cluster is shutting down.
+// It stops the placement actor first (which triggers graceful shutdown of all
+// locally tracked grains), then stops the proxy activator, closes the strategy
+// manager, and finally removes member records from storage.
 func (l *IdentityStorageLookup) Shutdown() {
-	if l.memberID != "" {
-		l.storage.RemoveMemberId(l.memberID)
+	// Stop placement actor first — this triggers graceful shutdown of all
+	// locally tracked grains (poisons them with DeactivationReasonShutdown).
+	if l.placementPID != nil {
+		if err := l.cluster.ActorSystem.Root.PoisonFuture(l.placementPID).Wait(); err != nil {
+			slog.Error("IdentityStorageLookup: failed to stop placement actor",
+				slog.Any("error", err))
+		}
+		l.placementPID = nil
 	}
+
+	// Stop proxy activator.
+	if l.proxyPID != nil {
+		if err := l.cluster.ActorSystem.Root.PoisonFuture(l.proxyPID).Wait(); err != nil {
+			slog.Error("IdentityStorageLookup: failed to stop proxy activator",
+				slog.Any("error", err))
+		}
+		l.proxyPID = nil
+	}
+
+	// Close strategy manager.
 	if l.strategyManager != nil {
 		l.strategyManager.Close()
+		l.strategyManager = nil
+	}
+
+	// Remove all activations belonging to this member from storage.
+	if l.memberID != "" {
+		l.storage.RemoveMemberId(l.memberID)
 	}
 }
 
