@@ -186,12 +186,13 @@ func (p *placementActor) onTerminated(ctx actor.Context, msg *actor.Terminated) 
 		clusterKind.Dec()
 	}
 
+	// Clean up local map first.
+	delete(p.actors, key)
+
+	// Update metrics gauge after cleanup.
 	if p.cluster.MetricsEnabled() {
 		p.cluster.Metrics().VirtualActorsCount.Set(p.cluster.VirtualActorCount())
 	}
-
-	// Clean up local map first.
-	delete(p.actors, key)
 
 	// Call RemoveActivation callback if set. Errors are logged, not fatal.
 	if p.config.RemoveActivation != nil {
