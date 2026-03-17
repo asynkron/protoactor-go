@@ -3,11 +3,11 @@ package natsstream
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
@@ -17,6 +17,13 @@ import (
 
 // Compile-time check that IdentityLookup implements cluster.IdentityLookup.
 var _ cluster.IdentityLookup = (*IdentityLookup)(nil)
+
+// inflight tracks an in-progress Get() call so that concurrent callers
+// for the same identity can coalesce on a single result.
+type inflight struct {
+	done chan struct{}
+	pid  *actor.PID
+}
 
 // IdentityLookup implements cluster.IdentityLookup directly using NATS JetStream
 // streams for lock acquisition, activation storage, and member tracking.
@@ -31,6 +38,21 @@ type IdentityLookup struct {
 	semaphore             chan struct{}
 	memberKeys            map[string][]string // memberID -> list of identity subject keys
 	memberKeysMu          sync.Mutex
+
+	// Placement actor and proxy PIDs (non-client only).
+	placementPID *actor.PID
+	proxyPID     *actor.PID
+
+	// Strategy manager for member selection.
+	strategyMgr *cluster.StrategyManager
+
+	// Inflight coalescing map.
+	inflightMu sync.Mutex
+	inflights  map[string]*inflight
+
+	// lockRevisions maps lockID -> NATS stream sequence from tryAcquireLock.
+	// Used to bridge the sequence into the PersistActivation callback.
+	lockRevisions sync.Map
 }
 
 // activationRecord is the JSON-encoded value stored in the identity stream.
@@ -57,6 +79,7 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	il.cluster = c
 	il.memberID = c.ActorSystem.ID
 	il.isClient = isClient
+	il.inflights = make(map[string]*inflight)
 
 	ctx := context.Background()
 	js := il.provider.js
@@ -82,14 +105,135 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	}
 	il.identityStream = s
 
-	// Subscribe to ClusterTopology events to clean up when members leave.
+	// Non-client members: create the strategy manager before subscribing to
+	// topology events. This avoids a data race where the subscription handler
+	// reads il.strategyMgr while setupPlacementActor is writing it.
+	if !isClient {
+		il.strategyMgr = cluster.NewStrategyManager(c)
+	}
+
+	// Subscribe to ClusterTopology events to clean up when members leave
+	// and to update the strategy manager.
 	c.ActorSystem.EventStream.Subscribe(func(evt any) {
 		if topology, ok := evt.(*cluster.ClusterTopology); ok {
 			for _, member := range topology.Left {
 				il.removeMemberID(context.Background(), member.Id)
+				if il.strategyMgr != nil {
+					il.strategyMgr.RemoveMember(member)
+				}
+			}
+			for _, member := range topology.Joined {
+				if il.strategyMgr != nil {
+					il.strategyMgr.AddMember(member)
+				}
 			}
 		}
 	})
+
+	// Non-client members: spawn placement actor and proxy.
+	if !isClient {
+		il.setupPlacementActor(c)
+	}
+}
+
+// setupPlacementActor spawns the placement actor, proxy actor, and creates
+// the strategy manager for non-client members.
+func (il *IdentityLookup) setupPlacementActor(c *cluster.Cluster) {
+	// Create the PersistActivation callback that bridges lockID -> NATS stream sequence.
+	// Empty requestID means a remote-initiated request where the requesting
+	// node holds the lock and will persist — skip persistence here.
+	persistActivation := func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID, requestID string) error {
+		if requestID == "" {
+			// Remote-initiated activation: the requesting node holds the
+			// lock and persists after receiving our response.
+			return nil
+		}
+
+		// Consume the sequence stored by activateLocal().
+		seqVal, ok := il.lockRevisions.LoadAndDelete(requestID)
+		if !ok {
+			return cluster.ErrLockNotHeld
+		}
+		seq := seqVal.(uint64)
+
+		// Build the activation record and CAS publish.
+		subject := il.identitySubject(ci)
+		updated := activationRecord{
+			PidID:      pid.Id,
+			PidAddress: pid.Address,
+			MemberID:   il.memberID,
+		}
+		data, err := json.Marshal(&updated)
+		if err != nil {
+			return fmt.Errorf("natsstream persist: marshal failed: %w", err)
+		}
+
+		_, err = il.provider.js.Publish(ctx, subject, data,
+			jetstream.WithExpectLastSequencePerSubject(seq))
+		if err != nil {
+			return cluster.ErrLockNotHeld
+		}
+
+		// Track this identity subject under the member.
+		il.addKeyToMember(il.memberID, subject)
+		return nil
+	}
+
+	// Create the RemoveActivation callback.
+	removeActivation := func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID) error {
+		subject := il.identitySubject(ci)
+
+		// Read the entry to validate the PID before purging.
+		msg, err := il.identityStream.GetLastMsgForSubject(ctx, subject)
+		if err != nil {
+			// Not found — nothing to remove.
+			return nil
+		}
+
+		var rec activationRecord
+		if err := json.Unmarshal(msg.Data, &rec); err != nil {
+			return err
+		}
+
+		// Only purge if the stored PID matches.
+		if rec.PidID != pid.Id || rec.PidAddress != pid.Address {
+			return nil
+		}
+
+		if rec.MemberID != "" {
+			il.removeKeyFromMember(rec.MemberID, subject)
+		}
+
+		// Purge the subject.
+		if err := il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject)); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	config := cluster.PlacementConfig{
+		PersistActivation: persistActivation,
+		RemoveActivation:  removeActivation,
+	}
+
+	// Spawn the placement actor.
+	placementProps := cluster.NewPlacementActorProps(c, config)
+	var err error
+	il.placementPID, err = c.ActorSystem.Root.SpawnNamed(placementProps, "$placement-activator")
+	if err != nil {
+		slog.Error("natsstream identity: failed to spawn placement actor",
+			slog.Any("error", err))
+	}
+
+	// Spawn the proxy actor.
+	proxyProps := cluster.NewActivatorProxyProps(il.placementPID, il)
+	il.proxyPID, err = c.ActorSystem.Root.SpawnNamed(proxyProps, "$proxy-activator")
+	if err != nil {
+		slog.Error("natsstream identity: failed to spawn proxy actor",
+			slog.Any("error", err))
+	}
+
+	// Strategy manager is already created in Setup() before the event subscription.
 }
 
 // identitySubject returns the NATS subject for a given cluster identity.
@@ -98,48 +242,204 @@ func (il *IdentityLookup) identitySubject(ci *cluster.ClusterIdentity) string {
 }
 
 // Get resolves a cluster identity to an actor PID.
+//
+// The resolution protocol:
+//  1. Check PID cache.
+//  2. Inflight coalescing — if another goroutine is resolving this identity, wait.
+//  3. Check for an existing activation with stale member validation.
+//  4. If client, wait for a member to spawn the actor.
+//  5. Acquire lock, select target via strategy, route to placement actor.
 func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
+	// Step 1: Check PID cache.
+	if pid, ok := il.cluster.PidCache.Get(ci.Identity, ci.Kind); ok {
+		return pid
+	}
+
+	key := ci.AsKey()
+
+	// Step 2: Inflight coalescing.
+	il.inflightMu.Lock()
+	if inf, ok := il.inflights[key]; ok {
+		il.inflightMu.Unlock()
+		<-inf.done
+		return inf.pid
+	}
+	inf := &inflight{done: make(chan struct{})}
+	il.inflights[key] = inf
+	il.inflightMu.Unlock()
+
+	defer func() {
+		close(inf.done)
+		il.inflightMu.Lock()
+		delete(il.inflights, key)
+		il.inflightMu.Unlock()
+	}()
+
+	pid := il.resolveIdentity(ci)
+	inf.pid = pid
+	return pid
+}
+
+// resolveIdentity performs the actual identity resolution logic.
+func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PID {
 	il.acquire()
 	defer il.release()
 
 	ctx := context.Background()
 
-	// Step 1: Check for existing activation.
+	// Step 3: Check for existing activation with stale validation.
 	rec := il.getExistingActivation(ctx, ci)
 	if rec != nil {
-		return pidFromRecord(rec)
+		if cluster.ValidateActivationMember(il.cluster.MemberList, rec.MemberID) {
+			pid := pidFromRecord(rec)
+			il.cluster.PidCache.Set(ci.Identity, ci.Kind, pid)
+			return pid
+		}
+		// Stale activation from a dead member — clean it up.
+		slog.Info("natsstream identity: cleaning stale activation",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity),
+			slog.String("staleMember", rec.MemberID))
+		subject := il.identitySubject(ci)
+		_ = il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject))
+		if rec.MemberID != "" {
+			il.removeKeyFromMember(rec.MemberID, subject)
+		}
 	}
 
-	// Step 2: If client, wait for a member to spawn the actor.
+	// Step 4: If client, wait for a member to spawn the actor.
 	if il.isClient {
-		rec = il.waitForActivation(ctx, ci)
-		if rec != nil {
-			return pidFromRecord(rec)
+		arec := il.waitForActivation(ctx, ci)
+		if arec != nil {
+			return pidFromRecord(arec)
 		}
 		return nil
 	}
 
-	// Step 3: Try to acquire the spawn lock.
+	// Step 5: Try to acquire the spawn lock.
 	lockID, seq, ok := il.tryAcquireLock(ctx, ci)
 	if !ok {
 		// Another node is spawning. Wait for it.
-		rec = il.waitForActivation(ctx, ci)
-		if rec != nil {
-			return pidFromRecord(rec)
+		arec := il.waitForActivation(ctx, ci)
+		if arec != nil {
+			return pidFromRecord(arec)
 		}
 		return nil
 	}
 
-	// Step 4: Lock acquired -- spawn and store activation.
-	pid := il.spawnActivation(ci, lockID, seq)
-	if pid == nil {
-		// Spawn failed; purge the lock subject so another node can try.
+	// Step 6: Select target member via strategy manager.
+	senderAddress := il.cluster.ActorSystem.Address()
+	targetMember := il.strategyMgr.GetActivator(ci, senderAddress)
+	if targetMember == nil {
+		slog.Warn("natsstream identity: no available member for activation",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity))
 		subject := il.identitySubject(ci)
 		_ = il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject))
 		return nil
 	}
 
-	return pid
+	// Step 7: Route activation request.
+	if targetMember.Id == il.memberID {
+		return il.activateLocal(ctx, ci, lockID, seq)
+	}
+
+	return il.activateRemote(ctx, ci, lockID, seq, targetMember)
+}
+
+// activateLocal sends an ActivationRequest to the local placement actor.
+// The lock sequence is stored in lockRevisions so PersistActivation can use it.
+func (il *IdentityLookup) activateLocal(ctx context.Context, ci *cluster.ClusterIdentity, lockID string, seq uint64) *actor.PID {
+	// Store the sequence so PersistActivation callback can find it.
+	il.lockRevisions.Store(lockID, seq)
+
+	defer func() {
+		il.lockRevisions.Delete(lockID)
+	}()
+
+	req := &cluster.ActivationRequest{
+		ClusterIdentity: ci,
+		RequestId:       lockID,
+	}
+
+	resp, err := il.cluster.ActorSystem.Root.RequestFuture(il.placementPID, req, 10*time.Second).Result()
+	if err != nil {
+		slog.Error("natsstream identity: placement actor request failed",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity),
+			slog.Any("error", err))
+		subject := il.identitySubject(ci)
+		_ = il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject))
+		return nil
+	}
+
+	activationResp, ok := resp.(*cluster.ActivationResponse)
+	if !ok || activationResp.Failed || activationResp.Pid == nil {
+		slog.Warn("natsstream identity: placement actor returned failure",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity))
+		subject := il.identitySubject(ci)
+		_ = il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject))
+		return nil
+	}
+
+	// Populate the local PID cache.
+	il.cluster.PidCache.Set(ci.Identity, ci.Kind, activationResp.Pid)
+
+	return activationResp.Pid
+}
+
+// activateRemote sends an ActivationRequest to a remote node's proxy actor.
+// The remote placement actor spawns the actor but does NOT persist (empty
+// requestID causes PersistActivation to no-op). This node holds the lock
+// and persists the activation after getting the PID back.
+func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.ClusterIdentity, lockID string, seq uint64, member *cluster.Member) *actor.PID {
+	proxyPID := actor.NewPID(member.Address(), "$proxy-activator")
+
+	// Empty RequestId tells the remote PersistActivation to skip persistence.
+	req := &cluster.ActivationRequest{
+		ClusterIdentity: ci,
+	}
+
+	resp, err := il.cluster.ActorSystem.Root.RequestFuture(proxyPID, req, 10*time.Second).Result()
+	if err != nil {
+		slog.Error("natsstream identity: remote activation request failed",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity),
+			slog.String("targetMember", member.Id),
+			slog.Any("error", err))
+		subject := il.identitySubject(ci)
+		_ = il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject))
+		return nil
+	}
+
+	activationResp, ok := resp.(*cluster.ActivationResponse)
+	if !ok || activationResp.Failed || activationResp.Pid == nil {
+		slog.Warn("natsstream identity: remote activation returned failure",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity),
+			slog.String("targetMember", member.Id))
+		subject := il.identitySubject(ci)
+		_ = il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject))
+		return nil
+	}
+
+	// Persist the activation locally — we hold the lock.
+	storeErr := il.storeActivation(ctx, ci, lockID, seq, il.memberID, activationResp.Pid.Address, activationResp.Pid.Id)
+	if storeErr != nil {
+		slog.Error("natsstream identity: failed to store remote activation",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity),
+			slog.Any("error", storeErr))
+		subject := il.identitySubject(ci)
+		_ = il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject))
+		return nil
+	}
+
+	// Populate the local PID cache.
+	il.cluster.PidCache.Set(ci.Identity, ci.Kind, activationResp.Pid)
+
+	return activationResp.Pid
 }
 
 // RemovePid removes the activation for a cluster identity, but only if
@@ -186,7 +486,34 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 }
 
 // Shutdown performs cleanup when the cluster is shutting down.
+// It stops the placement actor first (graceful grain shutdown), then
+// stops the proxy, closes the strategy manager, and removes member records.
 func (il *IdentityLookup) Shutdown() {
+	// Stop placement actor first — this triggers graceful shutdown of all
+	// locally tracked grains (poisons them with DeactivationReasonShutdown).
+	if il.placementPID != nil {
+		if err := il.cluster.ActorSystem.Root.PoisonFuture(il.placementPID).Wait(); err != nil {
+			slog.Error("natsstream identity: failed to stop placement actor",
+				slog.Any("error", err))
+		}
+		il.placementPID = nil
+	}
+
+	// Stop proxy activator.
+	if il.proxyPID != nil {
+		if err := il.cluster.ActorSystem.Root.PoisonFuture(il.proxyPID).Wait(); err != nil {
+			slog.Error("natsstream identity: failed to stop proxy activator",
+				slog.Any("error", err))
+		}
+		il.proxyPID = nil
+	}
+
+	// Close strategy manager.
+	if il.strategyMgr != nil {
+		il.strategyMgr.Close()
+		il.strategyMgr = nil
+	}
+
 	if il.memberID != "" {
 		il.removeMemberID(context.Background(), il.memberID)
 	}
@@ -439,57 +766,6 @@ func (il *IdentityLookup) removeKeyFromMember(memberID, subject string) {
 		}
 	}
 	il.memberKeys[memberID] = filtered
-}
-
-// spawnActivation attempts to spawn an actor for the given cluster identity,
-// stores the activation, and populates the PID cache.
-func (il *IdentityLookup) spawnActivation(ci *cluster.ClusterIdentity, lockID string, lockSeq uint64) *actor.PID {
-	kind, ok := il.cluster.TryGetClusterKind(ci.Kind)
-	if !ok {
-		slog.Error("natsstream identity: unknown kind",
-			slog.String("kind", ci.Kind),
-			slog.String("identity", ci.Identity))
-		return nil
-	}
-
-	props := cluster.WithClusterIdentity(kind.Props, ci)
-	pid, err := il.cluster.ActorSystem.Root.SpawnNamed(props, ci.Kind+"/"+ci.Identity)
-	if err != nil {
-		if errors.Is(err, actor.ErrNameExists) && pid != nil {
-			// The actor was already spawned locally (e.g., by a supervisor
-			// after failover) but the identity stream record was purged.
-			// Re-register the existing PID in the identity stream so future
-			// lookups resolve without re-spawning.
-			slog.Info("natsstream identity: actor already exists locally, re-registering",
-				slog.String("kind", ci.Kind),
-				slog.String("identity", ci.Identity),
-				slog.String("pid", pid.String()))
-		} else {
-			slog.Error("natsstream identity: failed to spawn actor",
-				slog.String("kind", ci.Kind),
-				slog.String("identity", ci.Identity),
-				slog.Any("error", err))
-			return nil
-		}
-	}
-
-	// Store the activation (CAS update with sequence from lock creation).
-	ctx := context.Background()
-	storeErr := il.storeActivation(ctx, ci, lockID, lockSeq, il.memberID, pid.Address, pid.Id)
-	if storeErr != nil {
-		slog.Error("natsstream identity: failed to store activation",
-			slog.String("kind", ci.Kind),
-			slog.String("identity", ci.Identity),
-			slog.Any("error", storeErr))
-		// Poison the spawned actor to prevent orphaned processes.
-		il.cluster.ActorSystem.Root.Poison(pid)
-		return nil
-	}
-
-	// Populate the local PID cache.
-	il.cluster.PidCache.Set(ci.Identity, ci.Kind, pid)
-
-	return pid
 }
 
 // Compile-time check that IdentityLookup implements cluster.GrainEnumerator.
