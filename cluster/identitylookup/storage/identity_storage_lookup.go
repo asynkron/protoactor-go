@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"log/slog"
+	"sync"
+	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
@@ -11,15 +13,39 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// inflight tracks an in-progress Get() call so that concurrent callers
+// for the same identity can coalesce on a single result.
+type inflight struct {
+	done chan struct{}
+	pid  *actor.PID
+}
+
 // IdentityStorageLookup adapts a cluster.StorageLookup into a
 // cluster.IdentityLookup. It uses the storage backend to manage identity
-// activations and spawn locks, bridging the external storage to the
-// cluster's identity resolution protocol.
+// activations and spawn locks, and routes activation requests through the
+// shared placement actor for proper lifecycle management.
 type IdentityStorageLookup struct {
 	storage  cluster.StorageLookup
 	cluster  *cluster.Cluster
 	memberID string
 	isClient bool
+
+	// placementPID and proxyPID are the local placement and proxy actors
+	// spawned during Setup(). They are nil for client-only nodes.
+	placementPID *actor.PID
+	proxyPID     *actor.PID
+
+	// strategyManager selects which member should host a given identity.
+	strategyManager *cluster.StrategyManager
+
+	// inflightMu protects the inflights map for concurrent Get() coalescing.
+	inflightMu sync.Mutex
+	inflights  map[string]*inflight
+
+	// pendingLocksMu protects the pendingLocks map that bridges
+	// requestID -> *SpawnLock for the PersistActivation callback.
+	pendingLocksMu sync.Mutex
+	pendingLocks   map[string]*cluster.SpawnLock
 }
 
 // Compile-time check that IdentityStorageLookup implements cluster.IdentityLookup.
@@ -29,26 +55,55 @@ var _ cluster.IdentityLookup = (*IdentityStorageLookup)(nil)
 // to the provided StorageLookup backend.
 func New(storage cluster.StorageLookup) *IdentityStorageLookup {
 	return &IdentityStorageLookup{
-		storage: storage,
+		storage:      storage,
+		inflights:    make(map[string]*inflight),
+		pendingLocks: make(map[string]*cluster.SpawnLock),
 	}
 }
 
 // Get resolves a cluster identity to an actor PID.
 //
-// The resolution protocol follows these steps:
-//  1. Check for an existing activation in the storage backend.
-//  2. If no activation exists, attempt to acquire a spawn lock.
-//  3. If the lock is acquired (this node should spawn the actor), attempt to
-//     spawn the actor and store the activation. If spawning fails, the lock
-//     is removed so another node can retry.
-//  4. If the lock could not be acquired (another node is spawning), wait for
-//     that node to complete the activation and return the result.
+// The resolution protocol:
+//  1. Check inflight coalescing — if another goroutine is already resolving
+//     the same identity, wait for its result.
+//  2. Check for an existing activation in the storage backend. If the owning
+//     member has left the cluster (stale), clean up and proceed to spawn.
+//  3. Select a target member via the strategy manager. If this node is
+//     selected, acquire a storage lock, route through the local placement
+//     actor, and persist the activation. If another node is selected, send
+//     the activation request to that node's proxy actor.
 //
 // Returns nil if the identity could not be resolved (caller should retry).
 func (l *IdentityStorageLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
-	// Note: identity spans are root spans because the IdentityLookup.Get()
-	// interface does not accept context.Context. A future interface change
-	// could parent these under cluster.resolve_pid.
+	key := ci.AsKey()
+
+	// Step 0: Inflight coalescing — if another goroutine is resolving this
+	// identity, wait for its result instead of issuing a duplicate request.
+	l.inflightMu.Lock()
+	if inf, ok := l.inflights[key]; ok {
+		l.inflightMu.Unlock()
+		<-inf.done
+		return inf.pid
+	}
+	inf := &inflight{done: make(chan struct{})}
+	l.inflights[key] = inf
+	l.inflightMu.Unlock()
+
+	// When we're done, publish the result and remove from inflights.
+	defer func() {
+		close(inf.done)
+		l.inflightMu.Lock()
+		delete(l.inflights, key)
+		l.inflightMu.Unlock()
+	}()
+
+	pid := l.resolveIdentity(ci)
+	inf.pid = pid
+	return pid
+}
+
+// resolveIdentity performs the actual identity resolution logic.
+func (l *IdentityStorageLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PID {
 	ctx, span := otel.Tracer("protoactor/identity").Start(context.Background(), "identity.lookup",
 		trace.WithAttributes(
 			attribute.String("kind", ci.Kind),
@@ -61,7 +116,16 @@ func (l *IdentityStorageLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 	// Step 1: Check for an existing activation.
 	existing := l.storage.TryGetExistingActivation(ci)
 	if existing != nil {
-		return l.pidFromStored(existing)
+		// Validate that the owning member is still alive.
+		if cluster.ValidateActivationMember(l.cluster.MemberList, existing.MemberID) {
+			return l.pidFromStored(existing)
+		}
+		// Stale activation from a dead member — clean it up.
+		slog.Info("IdentityStorageLookup: cleaning stale activation",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity),
+			slog.String("staleMember", existing.MemberID))
+		l.storage.RemoveActivation(&cluster.SpawnLock{ClusterIdentity: ci})
 	}
 
 	// Clients cannot spawn actors, so they must wait for a member to do it.
@@ -73,7 +137,29 @@ func (l *IdentityStorageLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 		return nil
 	}
 
-	// Step 2: Try to acquire the spawn lock.
+	// Step 2: Select target member via strategy manager.
+	senderAddress := l.cluster.ActorSystem.Address()
+	targetMember := l.strategyManager.GetActivator(ci, senderAddress)
+	if targetMember == nil {
+		slog.Warn("IdentityStorageLookup: no available member for activation",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity))
+		return nil
+	}
+
+	// Step 3: Route activation request.
+	if targetMember.Id == l.memberID {
+		// This node is the target — acquire lock and activate locally.
+		return l.activateLocal(ctx, ci)
+	}
+
+	// Another node is the target — send activation request to its proxy.
+	return l.activateRemote(ctx, ci, targetMember)
+}
+
+// activateLocal acquires a storage lock, sends an ActivationRequest to the
+// local placement actor, and persists the result.
+func (l *IdentityStorageLookup) activateLocal(ctx context.Context, ci *cluster.ClusterIdentity) *actor.PID {
 	_, lockSpan := otel.Tracer("protoactor/identity").Start(ctx, "identity.lock_acquire",
 		trace.WithAttributes(
 			attribute.String("kind", ci.Kind),
@@ -92,15 +178,74 @@ func (l *IdentityStorageLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 		return nil
 	}
 
-	// Step 3: We hold the lock — spawn the actor.
-	pid := l.spawnActivation(ctx, ci, lock)
-	if pid == nil {
-		// Spawn failed; release the lock so another node can try.
+	// Store the lock so PersistActivation callback can find it.
+	l.pendingLocksMu.Lock()
+	l.pendingLocks[lock.LockID] = lock
+	l.pendingLocksMu.Unlock()
+
+	defer func() {
+		l.pendingLocksMu.Lock()
+		delete(l.pendingLocks, lock.LockID)
+		l.pendingLocksMu.Unlock()
+	}()
+
+	// Send ActivationRequest to the local placement actor.
+	req := &cluster.ActivationRequest{
+		ClusterIdentity: ci,
+		RequestId:       lock.LockID,
+	}
+
+	resp, err := l.cluster.ActorSystem.Root.RequestFuture(l.placementPID, req, 10*time.Second).Result()
+	if err != nil {
+		slog.Error("IdentityStorageLookup: placement actor request failed",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity),
+			slog.Any("error", err))
 		l.storage.RemoveLock(*lock)
 		return nil
 	}
 
-	return pid
+	activationResp, ok := resp.(*cluster.ActivationResponse)
+	if !ok || activationResp.Failed || activationResp.Pid == nil {
+		slog.Warn("IdentityStorageLookup: placement actor returned failure",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity))
+		l.storage.RemoveLock(*lock)
+		return nil
+	}
+
+	return activationResp.Pid
+}
+
+// activateRemote sends an ActivationRequest to a remote node's proxy actor.
+func (l *IdentityStorageLookup) activateRemote(ctx context.Context, ci *cluster.ClusterIdentity, member *cluster.Member) *actor.PID {
+	// Build a PID for the remote proxy actor.
+	proxyPID := actor.NewPID(member.Address(), "$proxy-activator")
+
+	req := &cluster.ActivationRequest{
+		ClusterIdentity: ci,
+	}
+
+	resp, err := l.cluster.ActorSystem.Root.RequestFuture(proxyPID, req, 10*time.Second).Result()
+	if err != nil {
+		slog.Error("IdentityStorageLookup: remote activation request failed",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity),
+			slog.String("targetMember", member.Id),
+			slog.Any("error", err))
+		return nil
+	}
+
+	activationResp, ok := resp.(*cluster.ActivationResponse)
+	if !ok || activationResp.Failed || activationResp.Pid == nil {
+		slog.Warn("IdentityStorageLookup: remote activation returned failure",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity),
+			slog.String("targetMember", member.Id))
+		return nil
+	}
+
+	return activationResp.Pid
 }
 
 // RemovePid removes the activation for a cluster identity from the storage
@@ -111,18 +256,73 @@ func (l *IdentityStorageLookup) RemovePid(ci *cluster.ClusterIdentity, pid *acto
 	})
 }
 
-// Setup initializes the lookup with the cluster context. It subscribes to
-// topology events to clean up activations when members leave.
+// Setup initializes the lookup with the cluster context. On non-client
+// nodes it spawns the placement actor and proxy actor, creates the
+// strategy manager, and subscribes to topology events.
 func (l *IdentityStorageLookup) Setup(c *cluster.Cluster, kinds []string, isClient bool) {
 	l.cluster = c
 	l.isClient = isClient
 	l.memberID = c.ActorSystem.ID
 
-	// Subscribe to topology events to remove activations when members leave.
+	if !isClient {
+		// Create the PersistActivation callback that bridges requestID -> SpawnLock.
+		persistActivation := func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID, requestID string) error {
+			l.pendingLocksMu.Lock()
+			lock, ok := l.pendingLocks[requestID]
+			l.pendingLocksMu.Unlock()
+			if !ok {
+				return cluster.ErrLockNotHeld
+			}
+			l.storage.StoreActivation(l.memberID, lock, pid)
+			return nil
+		}
+
+		// Create the RemoveActivation callback.
+		removeActivation := func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID) error {
+			l.storage.RemoveActivation(&cluster.SpawnLock{ClusterIdentity: ci})
+			return nil
+		}
+
+		config := cluster.PlacementConfig{
+			PersistActivation: persistActivation,
+			RemoveActivation:  removeActivation,
+		}
+
+		// Spawn the placement actor.
+		placementProps := cluster.NewPlacementActorProps(c, config)
+		var err error
+		l.placementPID, err = c.ActorSystem.Root.SpawnNamed(placementProps, "$placement-activator")
+		if err != nil {
+			slog.Error("IdentityStorageLookup: failed to spawn placement actor",
+				slog.Any("error", err))
+		}
+
+		// Spawn the proxy actor.
+		proxyProps := cluster.NewActivatorProxyProps(l.placementPID, l)
+		l.proxyPID, err = c.ActorSystem.Root.SpawnNamed(proxyProps, "$proxy-activator")
+		if err != nil {
+			slog.Error("IdentityStorageLookup: failed to spawn proxy actor",
+				slog.Any("error", err))
+		}
+
+		// Create the strategy manager.
+		l.strategyManager = cluster.NewStrategyManager(c)
+	}
+
+	// Subscribe to topology events to clean up activations when members
+	// leave, and to update the strategy manager.
 	c.ActorSystem.EventStream.Subscribe(func(evt any) {
 		if topology, ok := evt.(*cluster.ClusterTopology); ok {
 			for _, member := range topology.Left {
 				l.storage.RemoveMemberId(member.Id)
+				if l.strategyManager != nil {
+					l.strategyManager.RemoveMember(member)
+				}
+			}
+			for _, member := range topology.Joined {
+				if l.strategyManager != nil {
+					l.strategyManager.AddMember(member)
+				}
 			}
 		}
 	})
@@ -134,50 +334,9 @@ func (l *IdentityStorageLookup) Shutdown() {
 	if l.memberID != "" {
 		l.storage.RemoveMemberId(l.memberID)
 	}
-}
-
-// spawnActivation attempts to spawn an actor for the given cluster identity
-// and store its activation in the backend.
-//
-// TODO: Full spawn integration requires invoking the cluster's kind-specific
-// activator (placement actor). The current implementation uses a simplified
-// approach that creates the actor via the cluster's registered kinds.
-// For production use with remote placement, this should be integrated with
-// the placement actor protocol.
-func (l *IdentityStorageLookup) spawnActivation(ctx context.Context, ci *cluster.ClusterIdentity, lock *cluster.SpawnLock) *actor.PID {
-	kind, ok := l.cluster.TryGetClusterKind(ci.Kind)
-	if !ok {
-		slog.Error("IdentityStorageLookup: unknown kind",
-			slog.String("kind", ci.Kind),
-			slog.String("identity", ci.Identity))
-		return nil
+	if l.strategyManager != nil {
+		l.strategyManager.Close()
 	}
-
-	props := cluster.WithClusterIdentity(kind.Props, ci)
-	pid, err := l.cluster.ActorSystem.Root.SpawnNamed(props, ci.Kind+"/"+ci.Identity)
-	if err != nil {
-		slog.Error("IdentityStorageLookup: failed to spawn actor",
-			slog.String("kind", ci.Kind),
-			slog.String("identity", ci.Identity),
-			slog.Any("error", err))
-		return nil
-	}
-
-	// Store the activation and release the lock.
-	_, storeSpan := otel.Tracer("protoactor/identity").Start(ctx, "identity.store_placement",
-		trace.WithAttributes(
-			attribute.String("kind", ci.Kind),
-			attribute.String("identity", ci.Identity),
-			attribute.String("address", pid.Address),
-		),
-	)
-	l.storage.StoreActivation(l.memberID, lock, pid)
-	storeSpan.End()
-
-	// Also populate the local PID cache.
-	l.cluster.PidCache.Set(ci.Identity, ci.Kind, pid)
-
-	return pid
 }
 
 // Compile-time check that IdentityStorageLookup implements cluster.GrainEnumerator.
