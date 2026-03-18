@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -20,8 +19,9 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
-// Compile-time interface check.
+// Compile-time interface checks.
 var _ cluster.ClusterProvider = (*Provider)(nil)
+var _ cluster.SingletonSchedulerRegistrar = (*Provider)(nil)
 
 // Provider uses NATS JetStream raw streams for cluster membership discovery,
 // health checking via local timeout-based crash detection, and leader election
@@ -46,11 +46,11 @@ type Provider struct {
 	cancel      context.CancelFunc
 
 	// Leader election
-	role                RoleType
+	role                cluster.RoleType
 	roleMu              sync.Mutex
-	roleChangedChan     chan RoleType
-	roleChangedListener RoleChangedListener
-	schedulers []*SingletonScheduler
+	roleChangedChan     chan cluster.RoleType
+	roleChangedListener cluster.RoleChangedListener
+	schedulers          []cluster.RoleChangedListener
 	isLeader   atomic.Bool
 	leaderSeq           uint64 // last successful leader publish sequence
 	leaderMemberID      string // ID of the current leader (from consumed messages)
@@ -86,8 +86,8 @@ func NewFromJetStream(js jetstream.JetStream, opts ...Option) (*Provider, error)
 		js:                  js,
 		members:             make(map[string]*Node),
 		lastSeen:            make(map[string]time.Time),
-		role:                Follower,
-		roleChangedChan:     make(chan RoleType, 1),
+		role:                cluster.RoleFollower,
+		roleChangedChan:     make(chan cluster.RoleType, 1),
 		roleChangedListener: cfg.RoleChanged,
 	}
 
@@ -106,10 +106,21 @@ func (p *Provider) GetHealthStatus() error {
 	return p.clusterError
 }
 
-// RegisterSingletonScheduler adds a singleton scheduler to be notified on role changes.
-// Must be called before StartMember.
-func (p *Provider) RegisterSingletonScheduler(scheduler *SingletonScheduler) {
-	p.schedulers = append(p.schedulers, scheduler)
+// RegisterSingletonScheduler registers a RoleChangedListener to be notified on
+// leadership role changes. Safe to call before or after StartMember.
+// If the node is already leader, the listener is immediately notified.
+func (p *Provider) RegisterSingletonScheduler(listener cluster.RoleChangedListener) {
+	if p.shutdown.Load() {
+		return
+	}
+	p.roleMu.Lock()
+	defer p.roleMu.Unlock()
+	p.schedulers = append(p.schedulers, listener)
+	if p.role == cluster.RoleLeader {
+		cluster.SafeRunRoleChange(p.logger(), func() {
+			listener.OnRoleChanged(cluster.RoleLeader)
+		})
+	}
 }
 
 // init extracts host, port, memberID, and kinds from the cluster and builds the self node.
@@ -675,7 +686,7 @@ func (p *Provider) attemptLeaderElection() {
 			// Lost leadership
 			p.isLeader.Store(false)
 			atomic.StoreUint64(&p.leaderSeq, 0)
-			p.setRole(Follower)
+			p.setRole(cluster.RoleFollower)
 			return
 		}
 		atomic.StoreUint64(&p.leaderSeq, ack.Sequence)
@@ -691,7 +702,7 @@ func (p *Provider) attemptLeaderElection() {
 		// Won leadership
 		p.isLeader.Store(true)
 		atomic.StoreUint64(&p.leaderSeq, ack.Sequence)
-		p.setRole(Leader)
+		p.setRole(cluster.RoleLeader)
 		if p.metricsEnabled {
 			p.providerMetrics.LeaderElectionCount.Add(
 				context.Background(), 1,
@@ -737,10 +748,11 @@ func (p *Provider) publishClusterTopologyEvent() {
 }
 
 // setRole updates the role and notifies listeners.
-func (p *Provider) setRole(role RoleType) {
+func (p *Provider) setRole(role cluster.RoleType) {
 	p.roleMu.Lock()
+	defer p.roleMu.Unlock()
+
 	if role == p.role {
-		p.roleMu.Unlock()
 		return
 	}
 
@@ -750,7 +762,6 @@ func (p *Provider) setRole(role RoleType) {
 		slog.String("to", role.String()))
 
 	p.role = role
-	p.roleMu.Unlock()
 
 	// Non-blocking send to role changed channel
 	select {
@@ -760,11 +771,10 @@ func (p *Provider) setRole(role RoleType) {
 
 	// Notify all registered singleton schedulers
 	for _, scheduler := range p.schedulers {
-		safeRun(p.logger(), func() {
+		cluster.SafeRunRoleChange(p.logger(), func() {
 			scheduler.OnRoleChanged(role)
 		})
 	}
-
 }
 
 // startRoleChangedNotifyLoop starts the goroutine that notifies the
@@ -777,7 +787,7 @@ func (p *Provider) startRoleChangedNotifyLoop() {
 			select {
 			case role := <-p.roleChangedChan:
 				if lis := p.roleChangedListener; lis != nil {
-					safeRun(p.logger(), func() { lis.OnRoleChanged(role) })
+					cluster.SafeRunRoleChange(p.logger(), func() { lis.OnRoleChanged(role) })
 				}
 			case <-p.ctx.Done():
 				return
@@ -792,19 +802,6 @@ func (p *Provider) logger() *slog.Logger {
 		return p.cluster.Logger()
 	}
 	return slog.Default()
-}
-
-// safeRun executes fn and recovers from panics, logging the stack trace.
-func safeRun(logger *slog.Logger, fn func()) {
-	defer func() {
-		if r := recover(); r != nil {
-			buf := make([]byte, 64<<10)
-			buf = buf[:runtime.Stack(buf, false)]
-			logger.Warn("OnRoleChanged panic recovered",
-				slog.Any("error", fmt.Errorf("%v\n%s", r, buf)))
-		}
-	}()
-	fn()
 }
 
 // splitHostPort parses an address string into host and port components.

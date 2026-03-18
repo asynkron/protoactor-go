@@ -70,10 +70,10 @@ func TestProvider_IdentityLookup_NotNil(t *testing.T) {
 
 // mockRoleListener records role changes via a callback.
 type mockRoleListener struct {
-	callback func(RoleType)
+	callback func(cluster.RoleType)
 }
 
-func (m *mockRoleListener) OnRoleChanged(r RoleType) { m.callback(r) }
+func (m *mockRoleListener) OnRoleChanged(r cluster.RoleType) { m.callback(r) }
 
 func TestStartMember_PublishesHeartbeat(t *testing.T) {
 	srv := startEmbeddedNATS(t)
@@ -326,7 +326,7 @@ func TestRoleChangedListener_Called(t *testing.T) {
 	gotRole.Store(-1)
 
 	listener := &mockRoleListener{
-		callback: func(r RoleType) {
+		callback: func(r cluster.RoleType) {
 			gotRole.Store(int32(r))
 		},
 	}
@@ -337,7 +337,7 @@ func TestRoleChangedListener_Called(t *testing.T) {
 	t.Cleanup(func() { _ = p.Shutdown(true) })
 
 	require.Eventually(t, func() bool {
-		return gotRole.Load() == int32(Leader)
+		return gotRole.Load() == int32(cluster.RoleLeader)
 	}, 5*time.Second, 100*time.Millisecond, "role changed listener should be called with Leader")
 }
 
@@ -348,7 +348,7 @@ func TestSingletonScheduler_SpawnOnLeader(t *testing.T) {
 
 	p, c := setupCluster(t, srv, "test-singleton")
 
-	scheduler := NewSingletonScheduler(c.ActorSystem.Root)
+	scheduler := cluster.NewSingletonScheduler(c.ActorSystem.Root)
 	scheduler.FromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
 		case *actor.Started:
@@ -364,11 +364,6 @@ func TestSingletonScheduler_SpawnOnLeader(t *testing.T) {
 	require.Eventually(t, func() bool {
 		return spawned.Load()
 	}, 5*time.Second, 100*time.Millisecond, "singleton actor should be spawned on leader")
-
-	scheduler.Lock()
-	assert.Len(t, scheduler.pids, 1)
-	assert.NotNil(t, scheduler.pids[0])
-	scheduler.Unlock()
 }
 
 func TestProvider_UpdateKinds(t *testing.T) {

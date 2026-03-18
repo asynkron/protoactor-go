@@ -3,6 +3,7 @@ package natsstream
 import (
 	"time"
 
+	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/nats-io/nats.go/jetstream"
 )
 
@@ -20,28 +21,6 @@ const (
 	defaultMaxAge            = 1 * time.Hour
 )
 
-// RoleType represents the leadership role of a node in the cluster.
-type RoleType int
-
-const (
-	Follower RoleType = iota
-	Leader
-)
-
-func (r RoleType) String() string {
-	switch r {
-	case Leader:
-		return "Leader"
-	default:
-		return "Follower"
-	}
-}
-
-// RoleChangedListener receives notifications when the node's leadership role changes.
-type RoleChangedListener interface {
-	OnRoleChanged(RoleType)
-}
-
 type config struct {
 	StreamName         string
 	IdentityStreamName string
@@ -57,7 +36,7 @@ type config struct {
 	LockTTL            time.Duration
 	MaxConcurrency     int
 	RetryInterval      time.Duration
-	RoleChanged        RoleChangedListener
+	RoleChanged        cluster.RoleChangedListener
 }
 
 type Option func(*config)
@@ -78,7 +57,7 @@ func WithLeaderTTL(d time.Duration) Option         { return func(c *config) { c.
 func WithLockTTL(d time.Duration) Option           { return func(c *config) { c.LockTTL = d } }
 func WithMaxConcurrency(n int) Option              { return func(c *config) { c.MaxConcurrency = n } }
 func WithRetryInterval(d time.Duration) Option     { return func(c *config) { c.RetryInterval = d } }
-func WithRoleChangedListener(l RoleChangedListener) Option {
+func WithRoleChangedListener(l cluster.RoleChangedListener) Option {
 	return func(c *config) { c.RoleChanged = l }
 }
 

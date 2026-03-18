@@ -97,8 +97,3 @@ func TestSubjectPrefix_Custom(t *testing.T) {
 	cfg.SubjectPrefix = "myapp"
 	assert.Equal(t, "myapp", cfg.subjectPrefix("mycluster"))
 }
-
-func TestRoleType_String(t *testing.T) {
-	assert.Equal(t, "Follower", Follower.String())
-	assert.Equal(t, "Leader", Leader.String())
-}
