@@ -1,9 +1,6 @@
 package zk
 
 import (
-	"fmt"
-	"log/slog"
-	"runtime"
 	"strconv"
 	"strings"
 )
@@ -54,20 +51,6 @@ func mapString(list []string, fn func(string) string) []string {
 	return l
 }
 
-func safeRun(logger *slog.Logger, fn func()) {
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Warn("OnRoleChanged.", slog.Any("error", fmt.Errorf("%v\n%s", r, string(getRunTimeStack()))))
-		}
-	}()
-	fn()
-}
-
-func getRunTimeStack() []byte {
-	const size = 64 << 10
-	buf := make([]byte, size)
-	return buf[:runtime.Stack(buf, false)]
-}
 
 func getParentDir(path string) string {
 	parent := path[:strings.LastIndex(path, "/")]

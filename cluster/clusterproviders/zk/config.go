@@ -3,6 +3,8 @@ package zk
 
 import (
 	"time"
+
+	"github.com/asynkron/protoactor-go/cluster"
 )
 
 const baseKey = `/protoactor`
@@ -37,7 +39,7 @@ func WithSessionTimeout(tm time.Duration) Option {
 
 // WithRoleChangedListener triggered on self role changed
 // WithRoleChangedListener registers a callback invoked when the node's role changes.
-func WithRoleChangedListener(l RoleChangedListener) Option {
+func WithRoleChangedListener(l cluster.RoleChangedListener) Option {
 	return func(o *config) {
 		o.RoleChanged = l
 	}
@@ -65,16 +67,11 @@ func (za authConfig) isEmpty() bool {
 	return za.Scheme == "" && za.Credential == ""
 }
 
-// RoleChangedListener is notified whenever the node's leadership role changes.
-type RoleChangedListener interface {
-	OnRoleChanged(RoleType)
-}
-
 // OnRoleChangedFunc is an adapter to allow the use of ordinary functions as listeners.
-type OnRoleChangedFunc func(RoleType)
+type OnRoleChangedFunc func(cluster.RoleType)
 
 // OnRoleChanged calls f(rt).
-func (fn OnRoleChangedFunc) OnRoleChanged(rt RoleType) {
+func (fn OnRoleChangedFunc) OnRoleChanged(rt cluster.RoleType) {
 	fn(rt)
 }
 
@@ -83,7 +80,7 @@ type config struct {
 	Endpoints      []string
 	SessionTimeout time.Duration
 	Auth           authConfig
-	RoleChanged    RoleChangedListener
+	RoleChanged    cluster.RoleChangedListener
 }
 
 func defaultConfig() *config {

@@ -48,7 +48,9 @@ func (suite *MiscTestSuite) TestMapString() {
 }
 
 func (suite *MiscTestSuite) TestSafeRun() {
-	suite.NotPanics(func() { safeRun(slog.Default(), func() { panic("don't worry, should panic here") }) })
+	suite.NotPanics(func() {
+		cluster.SafeRunRoleChange(slog.Default(), func() { panic("don't worry, should panic here") })
+	})
 }
 
 func (suite *MiscTestSuite) TestNode() {

@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -15,23 +16,7 @@ import (
 )
 
 var _ cluster.ClusterProvider = new(Provider)
-
-// RoleType describes the leadership role of a node in the cluster.
-type RoleType int
-
-const (
-	// Follower indicates the node is not the leader.
-	Follower RoleType = iota
-	// Leader indicates the node currently holds leadership.
-	Leader
-)
-
-func (r RoleType) String() string {
-	if r == Leader {
-		return "LEADER"
-	}
-	return "FOLLOWER"
-}
+var _ cluster.SingletonSchedulerRegistrar = (*Provider)(nil)
 
 // Provider implements a ZooKeeper-backed cluster provider.
 type Provider struct {
@@ -47,9 +32,12 @@ type Provider struct {
 	conn                zkConn
 	revision            uint64
 	fullpath            string
-	roleChangedListener RoleChangedListener
-	role                RoleType
-	roleChangedChan     chan RoleType
+	roleChangedListener cluster.RoleChangedListener
+	role                cluster.RoleType
+	roleChangedChan     chan cluster.RoleType
+	roleMu              sync.Mutex
+	schedulers          []cluster.RoleChangedListener
+	closeOnce           sync.Once
 }
 
 // New creates a ZooKeeper cluster provider with the given options.
@@ -70,8 +58,8 @@ func New(endpoints []string, opts ...Option) (*Provider, error) {
 		revision:            0,
 		fullpath:            "",
 		roleChangedListener: zkCfg.RoleChanged,
-		roleChangedChan:     make(chan RoleType, 1),
-		role:                Follower,
+		roleChangedChan:     make(chan cluster.RoleType, 1),
+		role:                cluster.RoleFollower,
 	}
 	conn, err := connectZk(endpoints, zkCfg.SessionTimeout, WithEventCallback(p.onEvent))
 	if err != nil {
@@ -160,6 +148,7 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 // Shutdown deregisters the node and stops background processing.
 func (p *Provider) Shutdown(_ bool) error {
 	p.shutdown.Store(true)
+	p.closeOnce.Do(func() { close(p.roleChangedChan) })
 	if !p.deregistered {
 		p.updateLeadership(nil)
 		if err := p.deregisterService(); err != nil {
@@ -169,6 +158,22 @@ func (p *Provider) Shutdown(_ bool) error {
 		p.deregistered = true
 	}
 	return nil
+}
+
+// RegisterSingletonScheduler registers a listener to be notified of role changes.
+// If the provider is already the leader, the listener is immediately notified.
+func (p *Provider) RegisterSingletonScheduler(listener cluster.RoleChangedListener) {
+	if p.shutdown.Load() {
+		return
+	}
+	p.roleMu.Lock()
+	defer p.roleMu.Unlock()
+	p.schedulers = append(p.schedulers, listener)
+	if p.role == cluster.RoleLeader {
+		cluster.SafeRunRoleChange(p.cluster.Logger(), func() {
+			listener.OnRoleChanged(cluster.RoleLeader)
+		})
+	}
 }
 
 func (p *Provider) getID() string {
@@ -323,24 +328,39 @@ func (p *Provider) containSelf(ns []*Node) bool {
 
 func (p *Provider) startRoleChangedNotifyLoop() {
 	go func() {
-		for !p.shutdown.Load() {
-			role := <-p.roleChangedChan
+		for {
+			role, ok := <-p.roleChangedChan
+			if !ok || p.shutdown.Load() {
+				return
+			}
 			if lis := p.roleChangedListener; lis != nil {
-				safeRun(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
+				cluster.SafeRunRoleChange(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
 			}
 		}
 	}()
 }
 
 func (p *Provider) updateLeadership(ns []*Node) {
-	role := Follower
+	role := cluster.RoleFollower
 	if p.isLeaderOf(ns) {
-		role = Leader
+		role = cluster.RoleLeader
 	}
+
+	p.roleMu.Lock()
+	defer p.roleMu.Unlock()
+
 	if role != p.role {
 		p.cluster.Logger().Info("Role changed.", slog.String("from", p.role.String()), slog.String("to", role.String()))
 		p.role = role
-		p.roleChangedChan <- role
+		select {
+		case p.roleChangedChan <- role:
+		default:
+		}
+		for _, scheduler := range p.schedulers {
+			cluster.SafeRunRoleChange(p.cluster.Logger(), func() {
+				scheduler.OnRoleChanged(role)
+			})
+		}
 	}
 }
 
@@ -350,9 +370,19 @@ func (p *Provider) onEvent(evt zk.Event) {
 	}
 	switch evt.State {
 	case zk.StateConnecting, zk.StateDisconnected, zk.StateExpired:
-		if p.role == Leader {
-			p.role = Follower
-			p.roleChangedChan <- Follower
+		p.roleMu.Lock()
+		defer p.roleMu.Unlock()
+		if p.role == cluster.RoleLeader {
+			p.role = cluster.RoleFollower
+			select {
+			case p.roleChangedChan <- cluster.RoleFollower:
+			default:
+			}
+			for _, scheduler := range p.schedulers {
+				cluster.SafeRunRoleChange(p.cluster.Logger(), func() {
+					scheduler.OnRoleChanged(cluster.RoleFollower)
+				})
+			}
 		}
 	case zk.StateConnected, zk.StateHasSession:
 	}
