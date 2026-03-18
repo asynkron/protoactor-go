@@ -24,3 +24,10 @@ type KindUpdater interface {
 	// The kinds slice contains all currently registered Kind names.
 	UpdateKinds(kinds []string) error
 }
+
+// SingletonSchedulerRegistrar is an optional interface that cluster providers
+// can implement to support singleton actor scheduling. Providers that support
+// leader election should implement this interface.
+type SingletonSchedulerRegistrar interface {
+	RegisterSingletonScheduler(listener RoleChangedListener)
+}

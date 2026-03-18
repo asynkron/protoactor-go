@@ -399,6 +399,23 @@ func (c *Cluster) notifyKindUpdate() {
 	}
 }
 
+// RegisterSingletonScheduler registers a RoleChangedListener with the cluster provider.
+// The listener will be notified of leadership role changes. If the provider is already
+// the leader, the listener is immediately notified.
+// Returns an error if the cluster provider does not support singleton scheduling.
+// The Cluster must have been created (via cluster.Configure) before calling this method,
+// but it may be called before or after StartMember.
+func (c *Cluster) RegisterSingletonScheduler(listener RoleChangedListener) error {
+	if c.provider == nil {
+		return fmt.Errorf("cluster provider not configured")
+	}
+	if registrar, ok := c.provider.(SingletonSchedulerRegistrar); ok {
+		registrar.RegisterSingletonScheduler(listener)
+		return nil
+	}
+	return fmt.Errorf("cluster provider %T does not support singleton scheduling", c.provider)
+}
+
 // ensureTopicKindRegisteredLocked ensures that the topic kind is registered.
 // Caller must hold kindsMu.Lock.
 func (c *Cluster) ensureTopicKindRegisteredLocked() {
