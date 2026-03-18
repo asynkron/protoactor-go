@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -112,16 +113,11 @@ func TestIdentityBucketName_Custom(t *testing.T) {
 	assert.Equal(t, "custom-identities", cfg.identityBucketName("mycluster"))
 }
 
-func TestRoleTypeString(t *testing.T) {
-	assert.Equal(t, "Follower", Follower.String())
-	assert.Equal(t, "Leader", Leader.String())
-}
-
-// mockRoleChangedListener is a test helper that implements RoleChangedListener.
+// mockRoleChangedListener is a test helper that implements cluster.RoleChangedListener.
 type mockRoleChangedListener struct {
-	lastRole RoleType
+	lastRole cluster.RoleType
 }
 
-func (m *mockRoleChangedListener) OnRoleChanged(role RoleType) {
+func (m *mockRoleChangedListener) OnRoleChanged(role cluster.RoleType) {
 	m.lastRole = role
 }

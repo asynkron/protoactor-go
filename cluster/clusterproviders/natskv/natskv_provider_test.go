@@ -20,10 +20,10 @@ var _ cluster.KindUpdater = (*Provider)(nil)
 
 // mockRoleListener records role changes via a callback.
 type mockRoleListener struct {
-	callback func(RoleType)
+	callback func(cluster.RoleType)
 }
 
-func (m *mockRoleListener) OnRoleChanged(r RoleType) { m.callback(r) }
+func (m *mockRoleListener) OnRoleChanged(r cluster.RoleType) { m.callback(r) }
 
 // setupCluster creates a provider, actor system, and cluster for testing.
 // It returns the provider, cluster, and a cleanup function.
@@ -273,7 +273,7 @@ func TestRoleChangedListener_Called(t *testing.T) {
 	gotRole.Store(-1) // sentinel: no call yet
 
 	listener := &mockRoleListener{
-		callback: func(r RoleType) {
+		callback: func(r cluster.RoleType) {
 			gotRole.Store(int32(r))
 		},
 	}
@@ -286,7 +286,7 @@ func TestRoleChangedListener_Called(t *testing.T) {
 	// As the only member, this provider will become leader.
 	// Wait for the role changed listener to be called.
 	require.Eventually(t, func() bool {
-		return gotRole.Load() == int32(Leader)
+		return gotRole.Load() == int32(cluster.RoleLeader)
 	}, 5*time.Second, 100*time.Millisecond, "role changed listener should be called with Leader")
 }
 
@@ -355,7 +355,7 @@ func TestSingletonScheduler_SpawnOnLeader(t *testing.T) {
 	p, c := setupCluster(t, srv, "test-singleton")
 
 	// Create a singleton scheduler and register a simple actor.
-	scheduler := NewSingletonScheduler(c.ActorSystem.Root)
+	scheduler := cluster.NewSingletonScheduler(c.ActorSystem.Root)
 	scheduler.FromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
 		case *actor.Started:
@@ -373,12 +373,6 @@ func TestSingletonScheduler_SpawnOnLeader(t *testing.T) {
 	require.Eventually(t, func() bool {
 		return spawned.Load()
 	}, 5*time.Second, 100*time.Millisecond, "singleton actor should be spawned on leader")
-
-	// Verify the scheduler has a PID for the spawned actor.
-	scheduler.Lock()
-	assert.Len(t, scheduler.pids, 1, "scheduler should have exactly one spawned PID")
-	assert.NotNil(t, scheduler.pids[0], "spawned PID should not be nil")
-	scheduler.Unlock()
 }
 
 // --- Task 5: KindUpdater ---

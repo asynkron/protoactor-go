@@ -1,6 +1,10 @@
 package natskv
 
-import "time"
+import (
+	"time"
+
+	"github.com/asynkron/protoactor-go/cluster"
+)
 
 const (
 	defaultMemberTTL       = 5 * time.Second
@@ -12,31 +16,6 @@ const (
 	defaultKeyPrefix       = "cluster"
 	defaultRetryInterval   = 1 * time.Second
 )
-
-// RoleType represents the leadership role of a node in the cluster.
-type RoleType int
-
-const (
-	// Follower indicates the node is not the leader.
-	Follower RoleType = iota
-	// Leader indicates the node currently holds leadership.
-	Leader
-)
-
-// String returns a human-readable representation of the role.
-func (r RoleType) String() string {
-	switch r {
-	case Leader:
-		return "Leader"
-	default:
-		return "Follower"
-	}
-}
-
-// RoleChangedListener receives notifications when the node's leadership role changes.
-type RoleChangedListener interface {
-	OnRoleChanged(RoleType)
-}
 
 // config holds internal configuration for the NATS KV cluster provider.
 type config struct {
@@ -50,7 +29,7 @@ type config struct {
 	LockTTL         time.Duration
 	MaxConcurrency  int
 	RetryInterval   time.Duration
-	RoleChanged     RoleChangedListener
+	RoleChanged     cluster.RoleChangedListener
 }
 
 // Option configures the NATS KV cluster provider.
@@ -107,7 +86,7 @@ func WithRetryInterval(interval time.Duration) Option {
 }
 
 // WithRoleChangedListener sets a callback for leadership role changes.
-func WithRoleChangedListener(l RoleChangedListener) Option {
+func WithRoleChangedListener(l cluster.RoleChangedListener) Option {
 	return func(c *config) { c.RoleChanged = l }
 }
 
