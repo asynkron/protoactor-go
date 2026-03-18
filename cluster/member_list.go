@@ -253,9 +253,9 @@ func (ml *MemberList) getMemberStrategyByKind(kind string) MemberStrategy {
 	return newDefaultMemberStrategy(ml.cluster, kind)
 }
 
-// kindsEqual reports whether two kind slices contain the same elements,
+// KindsEqual reports whether two kind slices contain the same elements,
 // regardless of order.
-func kindsEqual(a, b []string) bool {
+func KindsEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -279,7 +279,7 @@ func kindsEqual(a, b []string) bool {
 func (ml *MemberList) hasKindChanges(newActive *MemberSet) bool {
 	for _, newM := range newActive.Members() {
 		if oldM := ml.members.GetMemberById(newM.Id); oldM != nil {
-			if !kindsEqual(oldM.Kinds, newM.Kinds) {
+			if !KindsEqual(oldM.Kinds, newM.Kinds) {
 				return true
 			}
 		}
@@ -296,7 +296,7 @@ func (ml *MemberList) processKindChangesForStayingMembers(newActive *MemberSet) 
 		if oldM == nil {
 			continue // new member, handled by memberJoin
 		}
-		if kindsEqual(oldM.Kinds, newM.Kinds) {
+		if KindsEqual(oldM.Kinds, newM.Kinds) {
 			continue // no change
 		}
 		ml.memberKindsChanged(oldM, newM)

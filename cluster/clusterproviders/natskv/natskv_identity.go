@@ -142,6 +142,7 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 
 	// Subscribe to ClusterTopology events to clean up when members leave
 	// and to update the strategy manager.
+	knownMembers := make(map[string]*cluster.Member)
 	c.ActorSystem.EventStream.Subscribe(func(evt any) {
 		if topology, ok := evt.(*cluster.ClusterTopology); ok {
 			for _, member := range topology.Left {
@@ -149,10 +150,26 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 				if il.strategyMgr != nil {
 					il.strategyMgr.RemoveMember(member)
 				}
+				delete(knownMembers, member.Id)
 			}
 			for _, member := range topology.Joined {
 				if il.strategyMgr != nil {
 					il.strategyMgr.AddMember(member)
+				}
+				knownMembers[member.Id] = member
+			}
+			// Handle kind changes for staying members: when a member
+			// updates its kinds (e.g., after RegisterKinds), it appears
+			// in topology.Members but not in Joined. Remove the stale
+			// member and re-add with updated kinds so the strategy
+			// manager can find activators for the new kinds.
+			if il.strategyMgr != nil {
+				for _, member := range topology.Members {
+					if old, ok := knownMembers[member.Id]; ok && !cluster.KindsEqual(old.Kinds, member.Kinds) {
+						il.strategyMgr.RemoveMember(old)
+						il.strategyMgr.AddMember(member)
+						knownMembers[member.Id] = member
+					}
 				}
 			}
 		}

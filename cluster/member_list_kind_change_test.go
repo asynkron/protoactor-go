@@ -10,31 +10,31 @@ import (
 )
 
 func TestKindsEqual_SameKinds(t *testing.T) {
-	assert.True(t, kindsEqual([]string{"a", "b"}, []string{"a", "b"}))
+	assert.True(t, KindsEqual([]string{"a", "b"}, []string{"a", "b"}))
 }
 
 func TestKindsEqual_DifferentOrder(t *testing.T) {
-	assert.True(t, kindsEqual([]string{"b", "a"}, []string{"a", "b"}))
+	assert.True(t, KindsEqual([]string{"b", "a"}, []string{"a", "b"}))
 }
 
 func TestKindsEqual_DifferentLength(t *testing.T) {
-	assert.False(t, kindsEqual([]string{"a"}, []string{"a", "b"}))
+	assert.False(t, KindsEqual([]string{"a"}, []string{"a", "b"}))
 }
 
 func TestKindsEqual_DifferentKinds(t *testing.T) {
-	assert.False(t, kindsEqual([]string{"a", "b"}, []string{"a", "c"}))
+	assert.False(t, KindsEqual([]string{"a", "b"}, []string{"a", "c"}))
 }
 
 func TestKindsEqual_BothEmpty(t *testing.T) {
-	assert.True(t, kindsEqual([]string{}, []string{}))
+	assert.True(t, KindsEqual([]string{}, []string{}))
 }
 
 func TestKindsEqual_BothNil(t *testing.T) {
-	assert.True(t, kindsEqual(nil, nil))
+	assert.True(t, KindsEqual(nil, nil))
 }
 
 func TestKindsEqual_NilVsEmpty(t *testing.T) {
-	assert.True(t, kindsEqual(nil, []string{}))
+	assert.True(t, KindsEqual(nil, []string{}))
 }
 
 func newTestClusterForMemberList() *Cluster {
