@@ -218,9 +218,8 @@ func (c *Cluster) Shutdown(graceful bool) {
 		}
 		c.IdentityLookup.Shutdown()
 		// This is to wait ownership transferring complete.
-		time.Sleep(time.Millisecond * 2000)
+		time.Sleep(time.Millisecond * 1000)
 		c.MemberList.stopMemberList()
-		c.IdentityLookup.Shutdown()
 		c.Gossip.Shutdown()
 	}
 
