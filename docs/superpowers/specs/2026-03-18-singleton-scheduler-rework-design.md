@@ -94,7 +94,7 @@ func (s *SingletonScheduler) OnRoleChanged(rt RoleType) {
 ```
 
 Key behaviors:
-- `RoleLeader`: if `pids` is already populated (already leader), no-op. This guards against double-spawn if `OnRoleChanged(RoleLeader)` is called twice (e.g., immediate notification on registration + a leadership flap).
+- `RoleLeader`: if `pids` is already populated (already leader), no-op. This is a **behavioral change** from the current implementations which spawn unconditionally. The guard prevents double-spawn if `OnRoleChanged(RoleLeader)` is called twice (e.g., immediate notification on registration + a leadership flap).
 - `RoleFollower`: poisons all running actors, clears PID list.
 - Thread-safe via mutex.
 - **Invariant:** `OnRoleChanged` must not call back into `RegisterSingletonScheduler` on the provider — doing so would deadlock under the role lock.
@@ -143,6 +143,9 @@ Each provider (natskv, natsstream, etcd, zk) receives the same update:
   - `schedulers []cluster.RoleChangedListener` field added to provider struct
   - `roleMu sync.Mutex` field added to provider struct
   - Their `updateLeadership`/`onEvent` methods refactored to use `roleMu` and notify schedulers, following the same pattern as natskv/natsstream `setRole`
+  - `RegisterSingletonScheduler` method added (does not exist today — this is new code, not a modification)
+  - zk's `updateLeadership` currently has **no scheduler notification at all** (only sends to the channel) — scheduler iteration must be added from scratch
+  - etcd and zk currently use **blocking** `roleChangedChan <- role` sends — these must be converted to the non-blocking `select`/`default` pattern before moving the send inside `roleMu`
 
 **Updated `RegisterSingletonScheduler`:**
 
@@ -154,7 +157,7 @@ func (p *Provider) RegisterSingletonScheduler(listener cluster.RoleChangedListen
     p.roleMu.Lock()
     defer p.roleMu.Unlock()
     p.schedulers = append(p.schedulers, listener)
-    if p.isLeader.Load() {
+    if p.role == cluster.RoleLeader {
         cluster.SafeRunRoleChange(p.logger(), func() {
             listener.OnRoleChanged(cluster.RoleLeader)
         })
@@ -166,12 +169,12 @@ Key behaviors:
 - Checks shutdown flag first — registration after shutdown is a no-op.
 - Acquires role lock to prevent races with `setRole`.
 - Appends to schedulers slice (type changes from `[]*SingletonScheduler` to `[]cluster.RoleChangedListener`).
-- If the node is already leader, immediately notifies only the newly registered scheduler.
+- If the node is already leader (checked via `p.role` under the lock, not via atomic — since we already hold `roleMu`), immediately notifies only the newly registered scheduler.
 - Wrapped in `SafeRunRoleChange` for panic recovery.
 - If not leader, no notification — the next `setRole(RoleLeader)` handles it.
 
 **Updated `setRole` / `updateLeadership`:**
-- Replaces provider-local `RoleType` references with `cluster.RoleType`.
+- Replaces provider-local `RoleType` references with `cluster.RoleType`. All references to `Follower`/`Leader` constants become `cluster.RoleFollower`/`cluster.RoleLeader`.
 - Must hold `roleMu` for the entire method, including scheduler iteration. Currently some providers release the lock before iterating schedulers, which races with `RegisterSingletonScheduler` appending to the slice. The fix is to hold `roleMu` through the iteration. This is safe because `OnRoleChanged` is wrapped in `SafeRunRoleChange` (panic recovery) and must not call back into the provider (see invariant above).
 - The non-blocking channel send to `roleChangedChan` (for `WithRoleChangedListener`) moves inside the lock. The `select`/`default` pattern is preserved to avoid deadlock on a full channel.
 
@@ -183,7 +186,13 @@ This option is preserved but updated to use the shared `cluster.RoleChangedListe
 
 ### Shared `safeRun` Helper
 
-The `safeRun` panic-recovery wrapper is duplicated across providers identically. It is lifted to `cluster/singleton.go` as an exported `SafeRunRoleChange` function. It must be exported because providers in sub-packages (`cluster/clusterproviders/natskv/`, etc.) need to call it.
+The `safeRun` panic-recovery wrapper is duplicated across providers identically. It is lifted to `cluster/singleton.go` as an exported function:
+
+```go
+func SafeRunRoleChange(logger *slog.Logger, fn func())
+```
+
+It must be exported because providers in sub-packages (`cluster/clusterproviders/natskv/`, etc.) need to call it.
 
 ### Deleted Files
 
