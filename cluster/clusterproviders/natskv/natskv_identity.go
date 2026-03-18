@@ -316,7 +316,7 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 	}
 
 	if il.defunct {
-		il.identityLogger().Info("natskv identity: cannot Get, defunct")
+		il.identityLogger().Warn("natskv identity: cannot Get, defunct, shutdown was called")
 		return nil
 	}
 
