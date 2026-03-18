@@ -30,7 +30,7 @@
 | Delete | `cluster/clusterproviders/natsstream/singleton_test.go` | Replaced by shared tests |
 | Modify | `cluster/clusterproviders/natsstream/natsstream_provider.go:29-65,89,109-113,739-808` | Update Provider struct, constructor, RegisterSingletonScheduler, setRole, remove safeRun |
 | Modify | `cluster/clusterproviders/natsstream/config.go:23-43,81-83` | Remove RoleType/String()/RoleChangedListener, update WithRoleChangedListener |
-| Modify | `cluster/clusterproviders/natsstream/config_test.go` | Remove TestRoleType_String, update mocks |
+| Modify | `cluster/clusterproviders/natsstream/config_test.go` | Remove TestRoleType_String |
 | Modify | `cluster/clusterproviders/natsstream/natsstream_provider_test.go` | Update mockRoleListener, integration tests |
 | Delete | `cluster/clusterproviders/etcd/singleton.go` | Replaced by shared types |
 | Modify | `cluster/clusterproviders/etcd/etcd_provider.go:20-43,73-83,491-533,566-575` | Add roleMu, update struct/constructor, RegisterSingletonScheduler, updateLeadership, startRoleChangedNotifyLoop, remove safeRun/getRunTimeStack |
@@ -129,12 +129,16 @@ func NewSingletonScheduler(rc *actor.RootContext) *SingletonScheduler {
 
 // FromFunc registers an actor receive function to run on the leader.
 func (s *SingletonScheduler) FromFunc(f actor.ReceiveFunc) *SingletonScheduler {
+	s.Lock()
+	defer s.Unlock()
 	s.props = append(s.props, actor.PropsFromFunc(f))
 	return s
 }
 
 // FromProducer registers an actor producer to run on the leader.
 func (s *SingletonScheduler) FromProducer(f actor.Producer) *SingletonScheduler {
+	s.Lock()
+	defer s.Unlock()
 	s.props = append(s.props, actor.PropsFromProducer(f))
 	return s
 }
@@ -610,7 +614,14 @@ cluster.SafeRunRoleChange(p.logger(), func() { lis.OnRoleChanged(role) })
 
 Delete the entire `safeRun` function.
 
-- [ ] **Step 10: Update all remaining `Follower`/`Leader`/`RoleType` references**
+- [ ] **Step 10: Add compile-time interface assertion**
+
+Add near the top of `natskv_provider.go` (next to the existing `var _ cluster.ClusterProvider` line):
+```go
+var _ cluster.SingletonSchedulerRegistrar = (*Provider)(nil)
+```
+
+- [ ] **Step 11: Update all remaining `Follower`/`Leader`/`RoleType` references**
 
 Search `natskv_provider.go` for any remaining bare `Follower`, `Leader`, or `RoleType` references and replace with `cluster.RoleFollower`, `cluster.RoleLeader`, `cluster.RoleType`. Key locations:
 - `isLeader.Store(true/false)` calls — these use `atomic.Bool`, no change needed
@@ -639,19 +650,20 @@ Update `TestRoleChangedListener_Called` (around line 269) — replace `int32(Lea
 Update `TestSingletonScheduler_SpawnOnLeader` (lines 350-382):
 - Replace `NewSingletonScheduler(c.ActorSystem.Root)` with `cluster.NewSingletonScheduler(c.ActorSystem.Root)`
 - Replace `p.RegisterSingletonScheduler(scheduler)` with `c.RegisterSingletonScheduler(scheduler)` (note: `c` is the `*cluster.Cluster` variable — check the test's variable names)
+- **Remove `scheduler.pids` assertions** — after moving `SingletonScheduler` to the `cluster` package, `pids` is unexported and inaccessible from the `natskv` test package. The `spawned` atomic bool assertion already proves correctness. The field-level test coverage is in `cluster/singleton_test.go`.
 - Add `"github.com/asynkron/protoactor-go/cluster"` to test imports
 
-- [ ] **Step 12: Verify compilation**
+- [ ] **Step 13: Verify compilation**
 
 Run: `go build ./cluster/clusterproviders/natskv/`
 Expected: Success.
 
-- [ ] **Step 13: Run natskv tests**
+- [ ] **Step 14: Run natskv tests**
 
 Run: `go test ./cluster/clusterproviders/natskv/ -v -race -count=1 -short`
 Expected: PASS
 
-- [ ] **Step 14: Commit**
+- [ ] **Step 15: Commit**
 
 ```bash
 git add -A cluster/clusterproviders/natskv/
@@ -697,7 +709,7 @@ Update `WithRoleChangedListener` (lines 81-83) parameter type to `cluster.RoleCh
 
 - [ ] **Step 3: Update `config_test.go`**
 
-Remove `TestRoleType_String` test. Update any mocks referencing local `RoleType` to use `cluster.RoleType`. Add cluster import.
+Remove `TestRoleType_String` test. No mock updates needed in this file (natsstream's `config_test.go` has no `mockRoleChangedListener`). Add cluster import if needed.
 
 - [ ] **Step 4: Update Provider struct fields in `natsstream_provider.go` (lines 29-65)**
 
@@ -727,16 +739,23 @@ Delete the entire function.
 
 Same as natskv — search and replace throughout the file.
 
-- [ ] **Step 11: Update `natsstream_provider_test.go`**
+- [ ] **Step 11: Add compile-time interface assertion**
 
-Update `mockRoleListener` to use `cluster.RoleType`. Update `TestRoleChangedListener_Called` references to `Leader` → `cluster.RoleLeader`. Update `TestSingletonScheduler_SpawnOnLeader` to use `cluster.NewSingletonScheduler` and `c.RegisterSingletonScheduler`. Add cluster import.
+Add near the top of `natsstream_provider.go` (next to the existing `var _ cluster.ClusterProvider` line):
+```go
+var _ cluster.SingletonSchedulerRegistrar = (*Provider)(nil)
+```
 
-- [ ] **Step 12: Verify compilation and tests**
+- [ ] **Step 12: Update `natsstream_provider_test.go`**
+
+Update `mockRoleListener` to use `cluster.RoleType`. Update `TestRoleChangedListener_Called` references to `Leader` → `cluster.RoleLeader`. Update `TestSingletonScheduler_SpawnOnLeader` to use `cluster.NewSingletonScheduler` and `c.RegisterSingletonScheduler`. **Remove `scheduler.pids` assertions** — `pids` is unexported from `cluster` package; use the `spawned` atomic bool assertion instead. Add cluster import.
+
+- [ ] **Step 13: Verify compilation and tests**
 
 Run: `go build ./cluster/clusterproviders/natsstream/ && go test ./cluster/clusterproviders/natsstream/ -v -race -count=1 -short`
 Expected: PASS
 
-- [ ] **Step 13: Commit**
+- [ ] **Step 14: Commit**
 
 ```bash
 git add -A cluster/clusterproviders/natsstream/
@@ -856,40 +875,122 @@ func (p *Provider) RegisterSingletonScheduler(listener cluster.RoleChangedListen
 }
 ```
 
-- [ ] **Step 6: Update `updateLeadership` (lines 497-519)**
+- [ ] **Step 6: Replace `updateLeadership` (lines 497-519)**
 
-Wrap in `roleMu` lock. Replace `Leader`/`Follower` with `cluster.RoleLeader`/`cluster.RoleFollower`. Replace `safeRun` with `cluster.SafeRunRoleChange`. Convert the blocking channel send to non-blocking:
+The network call (`fetchNodes`) must stay outside the lock. The role change + scheduler notification goes inside.
 
 ```go
-// Before:
-p.roleChangedChan <- role
+// Before (lines 497-519):
+func (p *Provider) updateLeadership() {
+	role := Follower
+	ns, err := p.fetchNodes()
+	if err != nil {
+		p.cluster.Logger().Error("Failed to fetch nodes in updateLeadership.", slog.Any("error", err))
+	}
+	if p.isLeaderOf(ns) {
+		role = Leader
+	}
+	if role != p.role {
+		p.cluster.Logger().Info("Role changed.", slog.String("from", p.role.String()), slog.String("to", role.String()))
+		p.role = role
+		p.roleChangedChan <- role
+		for _, scheduler := range p.schedulers {
+			safeRun(p.cluster.Logger(), func() {
+				scheduler.OnRoleChanged(role)
+			})
+		}
+	}
+}
 
 // After:
-select {
-case p.roleChangedChan <- role:
-default:
+func (p *Provider) updateLeadership() {
+	role := cluster.RoleFollower
+	ns, err := p.fetchNodes()
+	if err != nil {
+		p.cluster.Logger().Error("Failed to fetch nodes in updateLeadership.", slog.Any("error", err))
+	}
+	if p.isLeaderOf(ns) {
+		role = cluster.RoleLeader
+	}
+
+	p.roleMu.Lock()
+	defer p.roleMu.Unlock()
+
+	if role != p.role {
+		p.cluster.Logger().Info("Role changed.", slog.String("from", p.role.String()), slog.String("to", role.String()))
+		p.role = role
+		select {
+		case p.roleChangedChan <- role:
+		default:
+		}
+		for _, scheduler := range p.schedulers {
+			cluster.SafeRunRoleChange(p.cluster.Logger(), func() {
+				scheduler.OnRoleChanged(role)
+			})
+		}
+	}
 }
 ```
 
-- [ ] **Step 7: Update `startRoleChangedNotifyLoop` (line 571)**
+Note: `Shutdown()` calls `updateLeadership()` after `p.cancel()`, which causes `fetchNodes()` to fail. This is safe — the method sets role to `RoleFollower` on failure, which is the desired shutdown behavior. No deadlock risk because `Shutdown` does not hold `roleMu`.
+
+- [ ] **Step 7: Rewrite `startRoleChangedNotifyLoop` (lines 566-575)**
+
+The current etcd implementation uses a bare channel receive that blocks forever on shutdown. Rewrite to use a `select` with channel close for clean shutdown:
 
 ```go
-// Before:
-safeRun(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
+// Before (lines 566-575):
+func (p *Provider) startRoleChangedNotifyLoop() {
+	go func() {
+		for !p.shutdown.Load() {
+			role := <-p.roleChangedChan
+			if lis := p.roleChangedListener; lis != nil {
+				safeRun(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
+			}
+		}
+	}()
+}
 
 // After:
-cluster.SafeRunRoleChange(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
+func (p *Provider) startRoleChangedNotifyLoop() {
+	go func() {
+		for {
+			role, ok := <-p.roleChangedChan
+			if !ok || p.shutdown.Load() {
+				return
+			}
+			if lis := p.roleChangedListener; lis != nil {
+				cluster.SafeRunRoleChange(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
+			}
+		}
+	}()
+}
 ```
+
+Also, in `Shutdown()`, close the channel after setting shutdown to true:
+```go
+p.shutdown.Store(true)
+close(p.roleChangedChan)
+```
+
+Verify `Shutdown` does not already close the channel to avoid double-close. If needed, use a `sync.Once` for the close.
 
 - [ ] **Step 8: Remove `safeRun` and `getRunTimeStack`**
 
 Delete `safeRun` (lines 521-528) and `getRunTimeStack` (lines 530-533). `getRunTimeStack` is only used by `safeRun` — no other callers.
 
-- [ ] **Step 9: Update all remaining `Follower`/`Leader`/`RoleType` references**
+- [ ] **Step 9: Add compile-time interface assertion**
+
+Add near the top of `etcd_provider.go`:
+```go
+var _ cluster.SingletonSchedulerRegistrar = (*Provider)(nil)
+```
+
+- [ ] **Step 10: Update all remaining `Follower`/`Leader`/`RoleType` references**
 
 Replace throughout `etcd_provider.go`.
 
-- [ ] **Step 10: Update `etcd_provider_shutdown_test.go`**
+- [ ] **Step 11: Update `etcd_provider_shutdown_test.go`**
 
 At line 14, update:
 ```go
@@ -902,12 +1003,12 @@ roleChangedChan: make(chan cluster.RoleType, 1),
 
 Add `"github.com/asynkron/protoactor-go/cluster"` to test imports.
 
-- [ ] **Step 11: Verify compilation and tests**
+- [ ] **Step 12: Verify compilation and tests**
 
 Run: `go build ./cluster/clusterproviders/etcd/ && go test ./cluster/clusterproviders/etcd/ -v -race -count=1 -short`
 Expected: PASS
 
-- [ ] **Step 12: Commit**
+- [ ] **Step 13: Commit**
 
 ```bash
 git add -A cluster/clusterproviders/etcd/
@@ -1040,32 +1141,136 @@ func (p *Provider) RegisterSingletonScheduler(listener cluster.RoleChangedListen
 }
 ```
 
-- [ ] **Step 7: Update `updateLeadership` (lines 335-345)**
+- [ ] **Step 7: Replace `updateLeadership` (lines 335-345)**
 
-Wrap in `roleMu` lock. Replace `Follower`/`Leader` with `cluster.RoleFollower`/`cluster.RoleLeader`. Convert blocking channel send to non-blocking `select`/`default`. **Add scheduler notification loop** (does not exist today):
+Currently has no scheduler notification and no locking. Full replacement:
 
 ```go
-// Add after channel send:
-for _, scheduler := range p.schedulers {
-	cluster.SafeRunRoleChange(p.cluster.Logger(), func() {
-		scheduler.OnRoleChanged(role)
-	})
+// Before (lines 335-345):
+func (p *Provider) updateLeadership(ns []*Node) {
+	role := Follower
+	if p.isLeaderOf(ns) {
+		role = Leader
+	}
+	if role != p.role {
+		p.cluster.Logger().Info("Role changed.", slog.String("from", p.role.String()), slog.String("to", role.String()))
+		p.role = role
+		p.roleChangedChan <- role
+	}
+}
+
+// After:
+func (p *Provider) updateLeadership(ns []*Node) {
+	role := cluster.RoleFollower
+	if p.isLeaderOf(ns) {
+		role = cluster.RoleLeader
+	}
+
+	p.roleMu.Lock()
+	defer p.roleMu.Unlock()
+
+	if role != p.role {
+		p.cluster.Logger().Info("Role changed.", slog.String("from", p.role.String()), slog.String("to", role.String()))
+		p.role = role
+		select {
+		case p.roleChangedChan <- role:
+		default:
+		}
+		for _, scheduler := range p.schedulers {
+			cluster.SafeRunRoleChange(p.cluster.Logger(), func() {
+				scheduler.OnRoleChanged(role)
+			})
+		}
+	}
 }
 ```
 
-- [ ] **Step 8: Update `onEvent` (lines 347-359)**
+- [ ] **Step 8: Replace `onEvent` (lines 347-359)**
 
-Wrap role mutations in `roleMu`. Replace `Follower`/`Leader` with `cluster.RoleFollower`/`cluster.RoleLeader`. Convert blocking channel send to non-blocking. **Add scheduler notification** — `onEvent` can set the role to follower on session expiry, so schedulers must be notified.
-
-- [ ] **Step 9: Update `startRoleChangedNotifyLoop` (line 329)**
+`onEvent` is called from ZooKeeper's event callback goroutine (registered at line 76: `WithEventCallback(p.onEvent)`), so it runs concurrently with `updateLeadership`. Must use `roleMu` and notify schedulers. Full replacement:
 
 ```go
-// Before:
-safeRun(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
+// Before (lines 347-359):
+func (p *Provider) onEvent(evt zk.Event) {
+	if evt.Type != zk.EventSession {
+		return
+	}
+	switch evt.State {
+	case zk.StateConnecting, zk.StateDisconnected, zk.StateExpired:
+		if p.role == Leader {
+			p.role = Follower
+			p.roleChangedChan <- Follower
+		}
+	case zk.StateConnected, zk.StateHasSession:
+	}
+}
 
 // After:
-cluster.SafeRunRoleChange(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
+func (p *Provider) onEvent(evt zk.Event) {
+	if evt.Type != zk.EventSession {
+		return
+	}
+	switch evt.State {
+	case zk.StateConnecting, zk.StateDisconnected, zk.StateExpired:
+		p.roleMu.Lock()
+		defer p.roleMu.Unlock()
+		if p.role == cluster.RoleLeader {
+			p.role = cluster.RoleFollower
+			select {
+			case p.roleChangedChan <- cluster.RoleFollower:
+			default:
+			}
+			for _, scheduler := range p.schedulers {
+				cluster.SafeRunRoleChange(p.cluster.Logger(), func() {
+					scheduler.OnRoleChanged(cluster.RoleFollower)
+				})
+			}
+		}
+	case zk.StateConnected, zk.StateHasSession:
+	}
+}
 ```
+
+- [ ] **Step 9: Rewrite `startRoleChangedNotifyLoop` (lines 324-332)**
+
+The current zk implementation uses a bare channel receive that blocks forever on shutdown. Rewrite to use channel close:
+
+```go
+// Before (lines 324-332):
+func (p *Provider) startRoleChangedNotifyLoop() {
+	go func() {
+		for !p.shutdown.Load() {
+			role := <-p.roleChangedChan
+			if lis := p.roleChangedListener; lis != nil {
+				safeRun(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
+			}
+		}
+	}()
+}
+
+// After:
+func (p *Provider) startRoleChangedNotifyLoop() {
+	go func() {
+		for {
+			role, ok := <-p.roleChangedChan
+			if !ok || p.shutdown.Load() {
+				return
+			}
+			if lis := p.roleChangedListener; lis != nil {
+				cluster.SafeRunRoleChange(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
+			}
+		}
+	}()
+}
+```
+
+Also, in `Shutdown()`, close the channel after setting shutdown to true:
+```go
+p.shutdown.Store(true)
+close(p.roleChangedChan)
+```
+
+Use a `sync.Once` if there's risk of double-close.
 
 - [ ] **Step 10: Update `utils.go` — remove `safeRun` and `getRunTimeStack` (lines 57-70)**
 
@@ -1084,16 +1289,23 @@ suite.NotPanics(func() { cluster.SafeRunRoleChange(slog.Default(), func() { pani
 
 Add `"github.com/asynkron/protoactor-go/cluster"` to test imports.
 
-- [ ] **Step 12: Update all remaining `Follower`/`Leader`/`RoleType` references**
+- [ ] **Step 12: Add compile-time interface assertion**
+
+Add near the top of `zk_provider.go`:
+```go
+var _ cluster.SingletonSchedulerRegistrar = (*Provider)(nil)
+```
+
+- [ ] **Step 13: Update all remaining `Follower`/`Leader`/`RoleType` references**
 
 Replace throughout `zk_provider.go`.
 
-- [ ] **Step 13: Verify compilation and tests**
+- [ ] **Step 14: Verify compilation and tests**
 
 Run: `go build ./cluster/clusterproviders/zk/ && go test ./cluster/clusterproviders/zk/ -v -race -count=1 -short`
 Expected: PASS
 
-- [ ] **Step 14: Commit**
+- [ ] **Step 15: Commit**
 
 ```bash
 git add -A cluster/clusterproviders/zk/
