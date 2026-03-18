@@ -580,7 +580,12 @@ func (il *IdentityLookup) Shutdown() {
 // ClusterIdentity.AsKey() returns "kind/identity" but NATS KV keys
 // cannot contain '/', so we replace it with '.'.
 func kvKey(ci *cluster.ClusterIdentity) string {
-	return strings.ReplaceAll(ci.AsKey(), "/", ".")
+	key := strings.ReplaceAll(ci.AsKey(), "/", ".")
+	// Colons are not valid in NATS KV keys (they are not valid NATS
+	// subject tokens). Replace with underscore to support identities
+	// that use colon-separated format (e.g., "tenant:domain").
+	key = strings.ReplaceAll(key, ":", "_")
+	return key
 }
 
 // acquire acquires a slot from the concurrency semaphore.
