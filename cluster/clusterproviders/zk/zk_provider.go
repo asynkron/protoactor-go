@@ -87,11 +87,6 @@ func New(endpoints []string, opts ...Option) (*Provider, error) {
 	return p, nil
 }
 
-// IsLeader reports whether this node currently has leadership.
-func (p *Provider) IsLeader() bool {
-	return p.role == Leader
-}
-
 func (p *Provider) init(c *cluster.Cluster) error {
 	p.cluster = c
 	addr := p.cluster.ActorSystem.Address()

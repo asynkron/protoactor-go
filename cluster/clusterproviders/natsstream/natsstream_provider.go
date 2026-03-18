@@ -50,9 +50,8 @@ type Provider struct {
 	roleMu              sync.Mutex
 	roleChangedChan     chan RoleType
 	roleChangedListener RoleChangedListener
-	schedulers          []*SingletonScheduler
-	leaderFuncs         []func(isLeader bool)
-	isLeader            atomic.Bool
+	schedulers []*SingletonScheduler
+	isLeader   atomic.Bool
 	leaderSeq           uint64 // last successful leader publish sequence
 	leaderMemberID      string // ID of the current leader (from consumed messages)
 	leaderMu            sync.RWMutex
@@ -111,18 +110,6 @@ func (p *Provider) GetHealthStatus() error {
 // Must be called before StartMember.
 func (p *Provider) RegisterSingletonScheduler(scheduler *SingletonScheduler) {
 	p.schedulers = append(p.schedulers, scheduler)
-}
-
-// RegisterLeaderFunc registers a callback function that is invoked when
-// the node's leadership role changes. The callback receives true when the
-// node becomes leader and false when it becomes follower.
-func (p *Provider) RegisterLeaderFunc(fn func(isLeader bool)) {
-	p.leaderFuncs = append(p.leaderFuncs, fn)
-}
-
-// IsLeader returns true if this provider currently holds the leader role.
-func (p *Provider) IsLeader() bool {
-	return p.isLeader.Load()
 }
 
 // init extracts host, port, memberID, and kinds from the cluster and builds the self node.
@@ -778,14 +765,6 @@ func (p *Provider) setRole(role RoleType) {
 		})
 	}
 
-	// Notify all registered leader functions.
-	isLeader := role == Leader
-	for _, fn := range p.leaderFuncs {
-		capturedFn := fn
-		safeRun(p.logger(), func() {
-			capturedFn(isLeader)
-		})
-	}
 }
 
 // startRoleChangedNotifyLoop starts the goroutine that notifies the

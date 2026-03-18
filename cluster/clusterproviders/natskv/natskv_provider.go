@@ -47,9 +47,8 @@ type Provider struct {
 	roleMu              sync.Mutex
 	roleChangedChan     chan RoleType
 	roleChangedListener RoleChangedListener
-	schedulers          []*SingletonScheduler
-	leaderFuncs         []func(isLeader bool)
-	isLeader            atomic.Bool
+	schedulers []*SingletonScheduler
+	isLeader   atomic.Bool
 
 	// Integrated identity lookup
 	identity *IdentityLookup
@@ -109,26 +108,6 @@ func (p *Provider) GetHealthStatus() error {
 // Must be called before StartMember.
 func (p *Provider) RegisterSingletonScheduler(scheduler *SingletonScheduler) {
 	p.schedulers = append(p.schedulers, scheduler)
-}
-
-// RegisterLeaderFunc registers a callback function that is invoked when
-// the node's leadership role changes. The callback receives true when the
-// node becomes leader and false when it becomes follower. This provides a
-// provider-agnostic way to react to leadership changes without importing
-// provider-specific types like RoleType or SingletonScheduler.
-// May be called before or after StartMember. If called after StartMember
-// and the provider is already the leader, use IsLeader() to check and
-// manually invoke the callback.
-func (p *Provider) RegisterLeaderFunc(fn func(isLeader bool)) {
-	p.leaderFuncs = append(p.leaderFuncs, fn)
-}
-
-// IsLeader returns true if this provider currently holds the leader role.
-// This is useful when RegisterLeaderFunc is called after StartMember —
-// the caller can check IsLeader() and manually trigger the callback if
-// the leader election already occurred.
-func (p *Provider) IsLeader() bool {
-	return p.isLeader.Load()
 }
 
 // init extracts host, port, memberID, and kinds from the cluster and builds the self node.
@@ -703,14 +682,6 @@ func (p *Provider) setRole(role RoleType) {
 		})
 	}
 
-	// Notify all registered leader functions
-	isLeader := role == Leader
-	for _, fn := range p.leaderFuncs {
-		capturedFn := fn
-		safeRun(p.logger(), func() {
-			capturedFn(isLeader)
-		})
-	}
 }
 
 // startRoleChangedNotifyLoop starts the goroutine that notifies the
