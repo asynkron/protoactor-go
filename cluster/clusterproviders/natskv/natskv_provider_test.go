@@ -3,6 +3,7 @@ package natskv
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -373,6 +374,83 @@ func TestSingletonScheduler_SpawnOnLeader(t *testing.T) {
 	require.Eventually(t, func() bool {
 		return spawned.Load()
 	}, 5*time.Second, 100*time.Millisecond, "singleton actor should be spawned on leader")
+}
+
+// --- Task 7: Late-registration and concurrent race tests for singleton scheduler ---
+
+func TestSingletonScheduler_RegisterAfterStart_SpawnsImmediately(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+
+	p, c := setupCluster(t, srv, "test-singleton-late")
+
+	// Start the member first (only member = will become leader).
+	err := p.StartMember(c)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = p.Shutdown(false) })
+
+	// Wait for leader election.
+	require.Eventually(t, func() bool {
+		return p.isLeader.Load()
+	}, 5*time.Second, 100*time.Millisecond, "provider should become leader")
+
+	// Create scheduler AFTER start and leader election.
+	var spawned atomic.Bool
+	scheduler := cluster.NewSingletonScheduler(c.ActorSystem.Root)
+	scheduler.FromFunc(func(ctx actor.Context) {
+		switch ctx.Message().(type) {
+		case *actor.Started:
+			spawned.Store(true)
+		}
+	})
+
+	// Register after start — should immediately notify since already leader.
+	p.RegisterSingletonScheduler(scheduler)
+
+	// Assert actor spawns within timeout.
+	require.Eventually(t, func() bool {
+		return spawned.Load()
+	}, 5*time.Second, 100*time.Millisecond, "late-registered singleton actor should be spawned immediately on leader")
+}
+
+func TestSingletonScheduler_ConcurrentRegisterAndRoleChange(t *testing.T) {
+	srv := startEmbeddedNATS(t)
+
+	p, c := setupCluster(t, srv, "test-singleton-race")
+
+	err := p.StartMember(c)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = p.Shutdown(false) })
+
+	// Wait for leader election.
+	require.Eventually(t, func() bool {
+		return p.isLeader.Load()
+	}, 5*time.Second, 100*time.Millisecond, "provider should become leader")
+
+	// Concurrently register schedulers and toggle role.
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 100; i++ {
+			scheduler := cluster.NewSingletonScheduler(c.ActorSystem.Root)
+			scheduler.FromFunc(func(ctx actor.Context) {})
+			p.RegisterSingletonScheduler(scheduler)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 100; i++ {
+			if i%2 == 0 {
+				p.setRole(cluster.RoleFollower)
+			} else {
+				p.setRole(cluster.RoleLeader)
+			}
+		}
+	}()
+
+	wg.Wait()
 }
 
 // --- Task 5: KindUpdater ---
