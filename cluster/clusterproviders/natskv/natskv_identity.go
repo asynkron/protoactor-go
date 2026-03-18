@@ -496,7 +496,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 	}
 
 	// Persist the activation locally — we hold the lock.
-	storeErr := il.storeActivation(ctx, ci, lockID, revision, il.memberID, activationResp.Pid.Address, activationResp.Pid.Id)
+	storeErr := il.storeActivation(ctx, ci, lockID, revision, member.Id, activationResp.Pid.Address, activationResp.Pid.Id)
 	if storeErr != nil {
 		il.identityLogger().Error("natskv identity: failed to store remote activation",
 			slog.String("kind", ci.Kind),
