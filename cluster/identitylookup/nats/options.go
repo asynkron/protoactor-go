@@ -1,6 +1,7 @@
 package nats
 
 import (
+	"log/slog"
 	"time"
 )
 
@@ -19,6 +20,9 @@ type Config struct {
 	// MaxConcurrency limits the number of concurrent NATS operations.
 	// Defaults to 200.
 	MaxConcurrency int
+
+	// Logger is an optional structured logger. If nil, slog.Default() is used.
+	Logger *slog.Logger
 }
 
 // Option is a functional option for configuring Config.
@@ -35,6 +39,13 @@ func WithLockTTL(ttl time.Duration) Option {
 func WithMaxConcurrency(n int) Option {
 	return func(c *Config) {
 		c.MaxConcurrency = n
+	}
+}
+
+// WithLogger sets a custom logger for the NATS identity storage.
+func WithLogger(logger *slog.Logger) Option {
+	return func(c *Config) {
+		c.Logger = logger
 	}
 }
 

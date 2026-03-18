@@ -121,7 +121,7 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	})
 	if err != nil {
 		il.setupErr = fmt.Errorf("natskv identity setup failed: create identities bucket: %w", err)
-		slog.Error("natskv identity: failed to create identities bucket",
+		il.identityLogger().Error("natskv identity: failed to create identities bucket",
 			slog.Any("error", err))
 		return
 	}
@@ -134,7 +134,7 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	})
 	if err != nil {
 		il.setupErr = fmt.Errorf("natskv identity setup failed: create tracking bucket: %w", err)
-		slog.Error("natskv identity: failed to create tracking bucket",
+		il.identityLogger().Error("natskv identity: failed to create tracking bucket",
 			slog.Any("error", err))
 		return
 	}
@@ -183,7 +183,7 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 		queueGroup := c.Config.Name + "_activators"
 		sub, err := il.provider.nc.QueueSubscribe(subject, queueGroup, il.handleActivationRequest)
 		if err != nil {
-			slog.Error("natskv identity: failed to subscribe to activation requests",
+			il.identityLogger().Error("natskv identity: failed to subscribe to activation requests",
 				slog.Any("error", err))
 		} else {
 			il.activationSub = sub
@@ -284,7 +284,7 @@ func (il *IdentityLookup) setupPlacementActor(c *cluster.Cluster) {
 	var err error
 	il.placementPID, err = c.ActorSystem.Root.SpawnNamed(placementProps, "$placement-activator")
 	if err != nil {
-		slog.Error("natskv identity: failed to spawn placement actor",
+		il.identityLogger().Error("natskv identity: failed to spawn placement actor",
 			slog.Any("error", err))
 	}
 
@@ -292,7 +292,7 @@ func (il *IdentityLookup) setupPlacementActor(c *cluster.Cluster) {
 	proxyProps := cluster.NewActivatorProxyProps(il.placementPID, il)
 	il.proxyPID, err = c.ActorSystem.Root.SpawnNamed(proxyProps, "$proxy-activator")
 	if err != nil {
-		slog.Error("natskv identity: failed to spawn proxy actor",
+		il.identityLogger().Error("natskv identity: failed to spawn proxy actor",
 			slog.Any("error", err))
 	}
 
@@ -310,7 +310,7 @@ func (il *IdentityLookup) setupPlacementActor(c *cluster.Cluster) {
 //  5. Acquire lock, select target via strategy, route to placement actor.
 func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 	if il.setupErr != nil {
-		slog.Error("natskv identity: cannot Get, setup failed", slog.Any("error", il.setupErr))
+		il.identityLogger().Error("natskv identity: cannot Get, setup failed", slog.Any("error", il.setupErr))
 		return nil
 	}
 
@@ -360,7 +360,7 @@ func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PI
 			return pid
 		}
 		// Stale activation from a dead member — clean it up.
-		slog.Info("natskv identity: cleaning stale activation",
+		il.identityLogger().Info("natskv identity: cleaning stale activation",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("staleMember", rec.MemberID))
@@ -394,7 +394,7 @@ func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PI
 	senderAddress := il.cluster.ActorSystem.Address()
 	targetMember := il.strategyMgr.GetActivator(ci, senderAddress)
 	if targetMember == nil {
-		slog.Warn("natskv identity: no available member for activation",
+		il.identityLogger().Warn("natskv identity: no available member for activation",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity))
 		_ = il.identities.Delete(ctx, kvKey(ci))
@@ -426,7 +426,7 @@ func (il *IdentityLookup) activateLocal(ctx context.Context, ci *cluster.Cluster
 
 	resp, err := il.cluster.ActorSystem.Root.RequestFuture(il.placementPID, req, 10*time.Second).Result()
 	if err != nil {
-		slog.Error("natskv identity: placement actor request failed",
+		il.identityLogger().Error("natskv identity: placement actor request failed",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.Any("error", err))
@@ -436,7 +436,7 @@ func (il *IdentityLookup) activateLocal(ctx context.Context, ci *cluster.Cluster
 
 	activationResp, ok := resp.(*cluster.ActivationResponse)
 	if !ok || activationResp.Failed || activationResp.Pid == nil {
-		slog.Warn("natskv identity: placement actor returned failure",
+		il.identityLogger().Warn("natskv identity: placement actor returned failure",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity))
 		_ = il.identities.Delete(ctx, kvKey(ci))
@@ -463,7 +463,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 
 	resp, err := il.cluster.ActorSystem.Root.RequestFuture(proxyPID, req, 10*time.Second).Result()
 	if err != nil {
-		slog.Error("natskv identity: remote activation request failed",
+		il.identityLogger().Error("natskv identity: remote activation request failed",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("targetMember", member.Id),
@@ -474,7 +474,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 
 	activationResp, ok := resp.(*cluster.ActivationResponse)
 	if !ok || activationResp.Failed || activationResp.Pid == nil {
-		slog.Warn("natskv identity: remote activation returned failure",
+		il.identityLogger().Warn("natskv identity: remote activation returned failure",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("targetMember", member.Id))
@@ -485,7 +485,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 	// Persist the activation locally — we hold the lock.
 	storeErr := il.storeActivation(ctx, ci, lockID, revision, il.memberID, activationResp.Pid.Address, activationResp.Pid.Id)
 	if storeErr != nil {
-		slog.Error("natskv identity: failed to store remote activation",
+		il.identityLogger().Error("natskv identity: failed to store remote activation",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.Any("error", storeErr))
@@ -501,7 +501,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 
 func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID) {
 	if il.setupErr != nil {
-		slog.Error("natskv identity: cannot RemovePid, setup failed", slog.Any("error", il.setupErr))
+		il.identityLogger().Error("natskv identity: cannot RemovePid, setup failed", slog.Any("error", il.setupErr))
 		return
 	}
 
@@ -512,7 +512,7 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 	if il.cluster != nil && pid.Address == il.cluster.ActorSystem.Address() {
 		_, exists := il.cluster.ActorSystem.ProcessRegistry.GetLocal(pid.Id)
 		if exists {
-			slog.Debug("natskv identity: RemovePid skipped, actor is alive locally",
+			il.identityLogger().Debug("natskv identity: RemovePid skipped, actor is alive locally",
 				slog.String("kind", ci.Kind),
 				slog.String("identity", ci.Identity),
 				slog.String("pid", pid.String()))
@@ -547,7 +547,7 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 	// key hasn't been modified since we read it.
 	if err := il.identities.Delete(ctx, key, jetstream.LastRevision(entry.Revision())); err != nil {
 		if !errors.Is(err, jetstream.ErrKeyNotFound) && !errors.Is(err, jetstream.ErrKeyExists) {
-			slog.Error("natskv identity: RemovePid delete failed",
+			il.identityLogger().Error("natskv identity: RemovePid delete failed",
 				slog.String("key", key), slog.Any("error", err))
 		}
 	}
@@ -561,7 +561,7 @@ func (il *IdentityLookup) Shutdown() {
 	// locally tracked grains (poisons them with DeactivationReasonShutdown).
 	if il.placementPID != nil {
 		if err := il.cluster.ActorSystem.Root.PoisonFuture(il.placementPID).Wait(); err != nil {
-			slog.Error("natskv identity: failed to stop placement actor",
+			il.identityLogger().Error("natskv identity: failed to stop placement actor",
 				slog.Any("error", err))
 		}
 		il.placementPID = nil
@@ -570,7 +570,7 @@ func (il *IdentityLookup) Shutdown() {
 	// Stop proxy activator.
 	if il.proxyPID != nil {
 		if err := il.cluster.ActorSystem.Root.PoisonFuture(il.proxyPID).Wait(); err != nil {
-			slog.Error("natskv identity: failed to stop proxy activator",
+			il.identityLogger().Error("natskv identity: failed to stop proxy activator",
 				slog.Any("error", err))
 		}
 		il.proxyPID = nil
@@ -650,14 +650,14 @@ func (il *IdentityLookup) tryAcquireLock(ctx context.Context, ci *cluster.Cluste
 	}
 	data, err := json.Marshal(&rec)
 	if err != nil {
-		slog.Error("natskv identity: tryAcquireLock marshal failed", slog.Any("error", err))
+		il.identityLogger().Error("natskv identity: tryAcquireLock marshal failed", slog.Any("error", err))
 		return "", 0, false
 	}
 
 	revision, err = il.identities.Create(ctx, key, data)
 	if err != nil {
 		if !errors.Is(err, jetstream.ErrKeyExists) {
-			slog.Error("natskv identity: tryAcquireLock failed",
+			il.identityLogger().Error("natskv identity: tryAcquireLock failed",
 				slog.String("key", key), slog.Any("error", err))
 		}
 		return "", 0, false
@@ -701,7 +701,7 @@ func (il *IdentityLookup) waitForActivation(ctx context.Context, ci *cluster.Clu
 
 	watcher, err := il.identities.Watch(watchCtx, key)
 	if err != nil {
-		slog.Error("natskv identity: waitForActivation watch failed",
+		il.identityLogger().Error("natskv identity: waitForActivation watch failed",
 			slog.String("key", key), slog.Any("error", err))
 		return nil
 	}
@@ -747,7 +747,7 @@ func (il *IdentityLookup) removeMemberID(ctx context.Context, memberID string) {
 
 	var mrec memberRecord
 	if err := json.Unmarshal(entry.Value(), &mrec); err != nil {
-		slog.Error("natskv identity: removeMemberID unmarshal failed",
+		il.identityLogger().Error("natskv identity: removeMemberID unmarshal failed",
 			slog.String("memberID", memberID), slog.Any("error", err))
 		return
 	}
@@ -755,14 +755,14 @@ func (il *IdentityLookup) removeMemberID(ctx context.Context, memberID string) {
 	// Delete each identity key belonging to this member.
 	for _, key := range mrec.Keys {
 		if err := il.identities.Delete(ctx, key); err != nil && !errors.Is(err, jetstream.ErrKeyNotFound) {
-			slog.Error("natskv identity: removeMemberID delete identity failed",
+			il.identityLogger().Error("natskv identity: removeMemberID delete identity failed",
 				slog.String("key", key), slog.Any("error", err))
 		}
 	}
 
 	// Delete the member tracking record itself.
 	if err := il.memberTracker.Delete(ctx, memberID); err != nil && !errors.Is(err, jetstream.ErrKeyNotFound) {
-		slog.Error("natskv identity: removeMemberID delete member failed",
+		il.identityLogger().Error("natskv identity: removeMemberID delete member failed",
 			slog.String("memberID", memberID), slog.Any("error", err))
 	}
 }
@@ -777,7 +777,7 @@ func (il *IdentityLookup) addKeyToMember(ctx context.Context, memberID, key stri
 			mrec := memberRecord{Keys: []string{key}}
 			data, err := json.Marshal(&mrec)
 			if err != nil {
-				slog.Error("natskv identity: addKeyToMember marshal failed",
+				il.identityLogger().Error("natskv identity: addKeyToMember marshal failed",
 					slog.String("memberID", memberID), slog.Any("error", err))
 				return
 			}
@@ -789,19 +789,19 @@ func (il *IdentityLookup) addKeyToMember(ctx context.Context, memberID, key stri
 				// Another goroutine created it first -- retry with update.
 				continue
 			}
-			slog.Error("natskv identity: addKeyToMember create failed",
+			il.identityLogger().Error("natskv identity: addKeyToMember create failed",
 				slog.String("memberID", memberID), slog.Any("error", err))
 			return
 		}
 		if err != nil {
-			slog.Error("natskv identity: addKeyToMember get failed",
+			il.identityLogger().Error("natskv identity: addKeyToMember get failed",
 				slog.String("memberID", memberID), slog.Any("error", err))
 			return
 		}
 
 		var mrec memberRecord
 		if err := json.Unmarshal(entry.Value(), &mrec); err != nil {
-			slog.Error("natskv identity: addKeyToMember unmarshal failed",
+			il.identityLogger().Error("natskv identity: addKeyToMember unmarshal failed",
 				slog.String("memberID", memberID), slog.Any("error", err))
 			return
 		}
@@ -816,7 +816,7 @@ func (il *IdentityLookup) addKeyToMember(ctx context.Context, memberID, key stri
 		mrec.Keys = append(mrec.Keys, key)
 		data, err := json.Marshal(&mrec)
 		if err != nil {
-			slog.Error("natskv identity: addKeyToMember marshal failed",
+			il.identityLogger().Error("natskv identity: addKeyToMember marshal failed",
 				slog.String("memberID", memberID), slog.Any("error", err))
 			return
 		}
@@ -841,7 +841,7 @@ func (il *IdentityLookup) removeKeyFromMember(ctx context.Context, memberID, key
 
 		var mrec memberRecord
 		if err := json.Unmarshal(entry.Value(), &mrec); err != nil {
-			slog.Error("natskv identity: removeKeyFromMember unmarshal failed",
+			il.identityLogger().Error("natskv identity: removeKeyFromMember unmarshal failed",
 				slog.String("memberID", memberID), slog.Any("error", err))
 			return
 		}
@@ -857,7 +857,7 @@ func (il *IdentityLookup) removeKeyFromMember(ctx context.Context, memberID, key
 
 		data, err := json.Marshal(&mrec)
 		if err != nil {
-			slog.Error("natskv identity: removeKeyFromMember marshal failed",
+			il.identityLogger().Error("natskv identity: removeKeyFromMember marshal failed",
 				slog.String("memberID", memberID), slog.Any("error", err))
 			return
 		}
@@ -915,7 +915,7 @@ func (il *IdentityLookup) requestRemoteActivation(ctx context.Context, ci *clust
 
 	resp, err := nc.RequestWithContext(reqCtx, subject, data)
 	if err != nil {
-		slog.Error("natskv identity: remote activation request failed",
+		il.identityLogger().Error("natskv identity: remote activation request failed",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.Any("error", err))

@@ -44,6 +44,7 @@ type NatsIdentityStorage struct {
 	identities jetstream.KeyValue
 	members    jetstream.KeyValue
 	config     *Config
+	logger     *slog.Logger
 	semaphore  chan struct{}
 }
 
@@ -79,8 +80,21 @@ func New(clusterName string, js jetstream.JetStream, opts ...Option) (*NatsIdent
 		identities: identities,
 		members:    members,
 		config:     cfg,
+		logger:     cfg.Logger,
 		semaphore:  make(chan struct{}, cfg.MaxConcurrency),
 	}, nil
+}
+
+// SetLogger sets the logger for this storage backend.
+func (s *NatsIdentityStorage) SetLogger(logger *slog.Logger) {
+	s.logger = logger
+}
+
+func (s *NatsIdentityStorage) log() *slog.Logger {
+	if s.logger != nil {
+		return s.logger
+	}
+	return slog.Default()
 }
 
 // kvKey converts a ClusterIdentity to a NATS KV-safe key.
@@ -146,7 +160,7 @@ func (s *NatsIdentityStorage) TryAcquireLock(clusterIdentity *cluster.ClusterIde
 	}
 	data, err := json.Marshal(&rec)
 	if err != nil {
-		slog.Error("NATS TryAcquireLock marshal failed", slog.Any("error", err))
+		s.log().Error("NATS TryAcquireLock marshal failed", slog.Any("error", err))
 		return nil
 	}
 
@@ -155,7 +169,7 @@ func (s *NatsIdentityStorage) TryAcquireLock(clusterIdentity *cluster.ClusterIde
 		// ErrKeyExists means key already exists (locked or activated).
 		// Any other error is also treated as failure.
 		if !errors.Is(err, jetstream.ErrKeyExists) {
-			slog.Error("NATS TryAcquireLock failed",
+			s.log().Error("NATS TryAcquireLock failed",
 				slog.String("key", key), slog.Any("error", err))
 		}
 		return nil
@@ -177,7 +191,7 @@ func (s *NatsIdentityStorage) WaitForActivation(clusterIdentity *cluster.Cluster
 
 	watcher, err := s.identities.Watch(ctx, key)
 	if err != nil {
-		slog.Error("NATS WaitForActivation watch failed",
+		s.log().Error("NATS WaitForActivation watch failed",
 			slog.String("key", key), slog.Any("error", err))
 		return nil
 	}
@@ -236,7 +250,7 @@ func (s *NatsIdentityStorage) RemoveLock(spawnLock cluster.SpawnLock) {
 	}
 
 	if err := s.identities.Delete(ctx, key); err != nil {
-		slog.Error("NATS RemoveLock delete failed",
+		s.log().Error("NATS RemoveLock delete failed",
 			slog.String("key", key), slog.Any("error", err))
 	}
 }
@@ -256,20 +270,20 @@ func (s *NatsIdentityStorage) StoreActivation(memberID string, spawnLock *cluste
 	// Read current entry to verify lock ownership and get revision for CAS.
 	entry, err := s.identities.Get(ctx, key)
 	if err != nil {
-		slog.Error("NATS StoreActivation get failed",
+		s.log().Error("NATS StoreActivation get failed",
 			slog.String("key", key), slog.Any("error", err))
 		return
 	}
 
 	var rec activationRecord
 	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
-		slog.Error("NATS StoreActivation unmarshal failed",
+		s.log().Error("NATS StoreActivation unmarshal failed",
 			slog.String("key", key), slog.Any("error", err))
 		return
 	}
 
 	if rec.LockID != spawnLock.LockID {
-		slog.Warn("NATS StoreActivation lock mismatch -- lock was lost",
+		s.log().Warn("NATS StoreActivation lock mismatch -- lock was lost",
 			slog.String("key", key), slog.String("lockID", spawnLock.LockID))
 		return
 	}
@@ -283,14 +297,14 @@ func (s *NatsIdentityStorage) StoreActivation(memberID string, spawnLock *cluste
 	}
 	data, err := json.Marshal(&updated)
 	if err != nil {
-		slog.Error("NATS StoreActivation marshal failed", slog.Any("error", err))
+		s.log().Error("NATS StoreActivation marshal failed", slog.Any("error", err))
 		return
 	}
 
 	// CAS update using the revision from the Get.
 	_, err = s.identities.Update(ctx, key, data, entry.Revision())
 	if err != nil {
-		slog.Error("NATS StoreActivation update failed",
+		s.log().Error("NATS StoreActivation update failed",
 			slog.String("key", key), slog.Any("error", err))
 		return
 	}
@@ -320,7 +334,7 @@ func (s *NatsIdentityStorage) RemoveActivation(spawnLock *cluster.SpawnLock) {
 	}
 
 	if err := s.identities.Delete(ctx, key); err != nil {
-		slog.Error("NATS RemoveActivation delete failed",
+		s.log().Error("NATS RemoveActivation delete failed",
 			slog.String("key", key), slog.Any("error", err))
 	}
 }
@@ -342,7 +356,7 @@ func (s *NatsIdentityStorage) RemoveMemberId(memberID string) {
 
 	var mrec memberRecord
 	if err := json.Unmarshal(entry.Value(), &mrec); err != nil {
-		slog.Error("NATS RemoveMemberId unmarshal failed",
+		s.log().Error("NATS RemoveMemberId unmarshal failed",
 			slog.String("memberID", memberID), slog.Any("error", err))
 		return
 	}
@@ -350,14 +364,14 @@ func (s *NatsIdentityStorage) RemoveMemberId(memberID string) {
 	// Delete each identity key belonging to this member.
 	for _, key := range mrec.Keys {
 		if err := s.identities.Delete(ctx, key); err != nil && !errors.Is(err, jetstream.ErrKeyNotFound) {
-			slog.Error("NATS RemoveMemberId delete identity failed",
+			s.log().Error("NATS RemoveMemberId delete identity failed",
 				slog.String("key", key), slog.Any("error", err))
 		}
 	}
 
 	// Delete the member record itself.
 	if err := s.members.Delete(ctx, memberID); err != nil && !errors.Is(err, jetstream.ErrKeyNotFound) {
-		slog.Error("NATS RemoveMemberId delete member failed",
+		s.log().Error("NATS RemoveMemberId delete member failed",
 			slog.String("memberID", memberID), slog.Any("error", err))
 	}
 }
@@ -371,7 +385,7 @@ func (s *NatsIdentityStorage) addKeyToMember(ctx context.Context, memberID, key 
 			mrec := memberRecord{Keys: []string{key}}
 			data, err := json.Marshal(&mrec)
 			if err != nil {
-				slog.Error("NATS identity: addKeyToMember marshal failed",
+				s.log().Error("NATS identity: addKeyToMember marshal failed",
 					slog.String("memberID", memberID), slog.Any("error", err))
 				return
 			}
@@ -383,19 +397,19 @@ func (s *NatsIdentityStorage) addKeyToMember(ctx context.Context, memberID, key 
 				// Another goroutine created it first -- retry with update.
 				continue
 			}
-			slog.Error("NATS addKeyToMember create failed",
+			s.log().Error("NATS addKeyToMember create failed",
 				slog.String("memberID", memberID), slog.Any("error", err))
 			return
 		}
 		if err != nil {
-			slog.Error("NATS addKeyToMember get failed",
+			s.log().Error("NATS addKeyToMember get failed",
 				slog.String("memberID", memberID), slog.Any("error", err))
 			return
 		}
 
 		var mrec memberRecord
 		if err := json.Unmarshal(entry.Value(), &mrec); err != nil {
-			slog.Error("NATS addKeyToMember unmarshal failed",
+			s.log().Error("NATS addKeyToMember unmarshal failed",
 				slog.String("memberID", memberID), slog.Any("error", err))
 			return
 		}
@@ -410,7 +424,7 @@ func (s *NatsIdentityStorage) addKeyToMember(ctx context.Context, memberID, key 
 		mrec.Keys = append(mrec.Keys, key)
 		data, err := json.Marshal(&mrec)
 		if err != nil {
-			slog.Error("NATS identity: addKeyToMember marshal failed",
+			s.log().Error("NATS identity: addKeyToMember marshal failed",
 				slog.String("memberID", memberID), slog.Any("error", err))
 			return
 		}
@@ -547,12 +561,12 @@ func (s *NatsIdentityStorage) removeKeyFromMember(ctx context.Context, memberID,
 
 	data, err := json.Marshal(&mrec)
 	if err != nil {
-		slog.Error("NATS identity: removeKeyFromMember marshal failed",
+		s.log().Error("NATS identity: removeKeyFromMember marshal failed",
 			slog.String("memberID", memberID), slog.Any("error", err))
 		return
 	}
 	if _, err := s.members.Update(ctx, memberID, data, entry.Revision()); err != nil {
-		slog.Warn("NATS identity: removeKeyFromMember CAS update failed, will be cleaned up on member leave",
+		s.log().Warn("NATS identity: removeKeyFromMember CAS update failed, will be cleaned up on member leave",
 			slog.String("memberID", memberID), slog.Any("error", err))
 	}
 }

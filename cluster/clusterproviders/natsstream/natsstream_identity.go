@@ -99,7 +99,7 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 		Replicas:          il.config.Replicas,
 	})
 	if err != nil {
-		slog.Error("natsstream identity: failed to create identity stream",
+		il.logger().Error("natsstream identity: failed to create identity stream",
 			slog.Any("error", err))
 		return
 	}
@@ -221,7 +221,7 @@ func (il *IdentityLookup) setupPlacementActor(c *cluster.Cluster) {
 	var err error
 	il.placementPID, err = c.ActorSystem.Root.SpawnNamed(placementProps, "$placement-activator")
 	if err != nil {
-		slog.Error("natsstream identity: failed to spawn placement actor",
+		il.logger().Error("natsstream identity: failed to spawn placement actor",
 			slog.Any("error", err))
 	}
 
@@ -229,7 +229,7 @@ func (il *IdentityLookup) setupPlacementActor(c *cluster.Cluster) {
 	proxyProps := cluster.NewActivatorProxyProps(il.placementPID, il)
 	il.proxyPID, err = c.ActorSystem.Root.SpawnNamed(proxyProps, "$proxy-activator")
 	if err != nil {
-		slog.Error("natsstream identity: failed to spawn proxy actor",
+		il.logger().Error("natsstream identity: failed to spawn proxy actor",
 			slog.Any("error", err))
 	}
 
@@ -296,7 +296,7 @@ func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PI
 			return pid
 		}
 		// Stale activation from a dead member — clean it up.
-		slog.Info("natsstream identity: cleaning stale activation",
+		il.logger().Info("natsstream identity: cleaning stale activation",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("staleMember", rec.MemberID))
@@ -331,7 +331,7 @@ func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PI
 	senderAddress := il.cluster.ActorSystem.Address()
 	targetMember := il.strategyMgr.GetActivator(ci, senderAddress)
 	if targetMember == nil {
-		slog.Warn("natsstream identity: no available member for activation",
+		il.logger().Warn("natsstream identity: no available member for activation",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity))
 		subject := il.identitySubject(ci)
@@ -364,7 +364,7 @@ func (il *IdentityLookup) activateLocal(ctx context.Context, ci *cluster.Cluster
 
 	resp, err := il.cluster.ActorSystem.Root.RequestFuture(il.placementPID, req, 10*time.Second).Result()
 	if err != nil {
-		slog.Error("natsstream identity: placement actor request failed",
+		il.logger().Error("natsstream identity: placement actor request failed",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.Any("error", err))
@@ -375,7 +375,7 @@ func (il *IdentityLookup) activateLocal(ctx context.Context, ci *cluster.Cluster
 
 	activationResp, ok := resp.(*cluster.ActivationResponse)
 	if !ok || activationResp.Failed || activationResp.Pid == nil {
-		slog.Warn("natsstream identity: placement actor returned failure",
+		il.logger().Warn("natsstream identity: placement actor returned failure",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity))
 		subject := il.identitySubject(ci)
@@ -403,7 +403,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 
 	resp, err := il.cluster.ActorSystem.Root.RequestFuture(proxyPID, req, 10*time.Second).Result()
 	if err != nil {
-		slog.Error("natsstream identity: remote activation request failed",
+		il.logger().Error("natsstream identity: remote activation request failed",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("targetMember", member.Id),
@@ -415,7 +415,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 
 	activationResp, ok := resp.(*cluster.ActivationResponse)
 	if !ok || activationResp.Failed || activationResp.Pid == nil {
-		slog.Warn("natsstream identity: remote activation returned failure",
+		il.logger().Warn("natsstream identity: remote activation returned failure",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("targetMember", member.Id))
@@ -427,7 +427,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 	// Persist the activation locally — we hold the lock.
 	storeErr := il.storeActivation(ctx, ci, lockID, seq, il.memberID, activationResp.Pid.Address, activationResp.Pid.Id)
 	if storeErr != nil {
-		slog.Error("natsstream identity: failed to store remote activation",
+		il.logger().Error("natsstream identity: failed to store remote activation",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.Any("error", storeErr))
@@ -451,7 +451,7 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 	if il.cluster != nil && pid.Address == il.cluster.ActorSystem.Address() {
 		_, exists := il.cluster.ActorSystem.ProcessRegistry.GetLocal(pid.Id)
 		if exists {
-			slog.Debug("natsstream identity: RemovePid skipped, actor is alive locally",
+			il.logger().Debug("natsstream identity: RemovePid skipped, actor is alive locally",
 				slog.String("kind", ci.Kind),
 				slog.String("identity", ci.Identity),
 				slog.String("pid", pid.String()))
@@ -480,7 +480,7 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 	}
 
 	if err := il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject)); err != nil {
-		slog.Error("natsstream identity: RemovePid purge failed",
+		il.logger().Error("natsstream identity: RemovePid purge failed",
 			slog.String("subject", subject), slog.Any("error", err))
 	}
 }
@@ -493,7 +493,7 @@ func (il *IdentityLookup) Shutdown() {
 	// locally tracked grains (poisons them with DeactivationReasonShutdown).
 	if il.placementPID != nil {
 		if err := il.cluster.ActorSystem.Root.PoisonFuture(il.placementPID).Wait(); err != nil {
-			slog.Error("natsstream identity: failed to stop placement actor",
+			il.logger().Error("natsstream identity: failed to stop placement actor",
 				slog.Any("error", err))
 		}
 		il.placementPID = nil
@@ -502,7 +502,7 @@ func (il *IdentityLookup) Shutdown() {
 	// Stop proxy activator.
 	if il.proxyPID != nil {
 		if err := il.cluster.ActorSystem.Root.PoisonFuture(il.proxyPID).Wait(); err != nil {
-			slog.Error("natsstream identity: failed to stop proxy activator",
+			il.logger().Error("natsstream identity: failed to stop proxy activator",
 				slog.Any("error", err))
 		}
 		il.proxyPID = nil
@@ -517,6 +517,14 @@ func (il *IdentityLookup) Shutdown() {
 	if il.memberID != "" {
 		il.removeMemberID(context.Background(), il.memberID)
 	}
+}
+
+// logger returns the cluster logger if available, otherwise the default logger.
+func (il *IdentityLookup) logger() *slog.Logger {
+	if il.cluster != nil {
+		return il.cluster.Logger()
+	}
+	return slog.Default()
 }
 
 // kvKey converts a ClusterIdentity to a subject-safe key.
@@ -570,7 +578,7 @@ func (il *IdentityLookup) tryAcquireLock(ctx context.Context, ci *cluster.Cluste
 	}
 	data, err := json.Marshal(&rec)
 	if err != nil {
-		slog.Error("natsstream identity: tryAcquireLock marshal failed", slog.Any("error", err))
+		il.logger().Error("natsstream identity: tryAcquireLock marshal failed", slog.Any("error", err))
 		return "", 0, false
 	}
 
@@ -624,14 +632,14 @@ func (il *IdentityLookup) waitForActivation(ctx context.Context, ci *cluster.Clu
 		FilterSubjects: []string{subject},
 	})
 	if err != nil {
-		slog.Error("natsstream identity: waitForActivation consumer failed",
+		il.logger().Error("natsstream identity: waitForActivation consumer failed",
 			slog.String("subject", subject), slog.Any("error", err))
 		return nil
 	}
 
 	iter, err := consumer.Messages()
 	if err != nil {
-		slog.Error("natsstream identity: waitForActivation messages failed",
+		il.logger().Error("natsstream identity: waitForActivation messages failed",
 			slog.String("subject", subject), slog.Any("error", err))
 		return nil
 	}
@@ -687,7 +695,7 @@ func (il *IdentityLookup) removeMemberID(ctx context.Context, memberID string) {
 	if len(keys) > 0 {
 		for _, subject := range keys {
 			if err := il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject)); err != nil {
-				slog.Error("natsstream identity: removeMemberID purge failed",
+				il.logger().Error("natsstream identity: removeMemberID purge failed",
 					slog.String("subject", subject), slog.Any("error", err))
 			}
 		}
@@ -708,7 +716,7 @@ func (il *IdentityLookup) purgeActivationsForMember(ctx context.Context, memberI
 	// Use SubjectFilter to enumerate all identity subjects in the stream.
 	info, err := il.identityStream.Info(ctx, jetstream.WithSubjectFilter(il.identitySubjectPrefix+".>"))
 	if err != nil {
-		slog.Error("natsstream identity: purgeActivationsForMember stream info failed",
+		il.logger().Error("natsstream identity: purgeActivationsForMember stream info failed",
 			slog.Any("error", err))
 		return
 	}
@@ -726,12 +734,12 @@ func (il *IdentityLookup) purgeActivationsForMember(ctx context.Context, memberI
 
 		if rec.MemberID == memberID {
 			if err := il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject)); err != nil {
-				slog.Error("natsstream identity: purgeActivationsForMember purge failed",
+				il.logger().Error("natsstream identity: purgeActivationsForMember purge failed",
 					slog.String("subject", subject),
 					slog.String("memberID", memberID),
 					slog.Any("error", err))
 			} else {
-				slog.Info("natsstream identity: purged stale activation for departed member",
+				il.logger().Info("natsstream identity: purged stale activation for departed member",
 					slog.String("subject", subject),
 					slog.String("memberID", memberID))
 			}

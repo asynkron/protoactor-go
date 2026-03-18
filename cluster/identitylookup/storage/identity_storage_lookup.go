@@ -61,6 +61,14 @@ func New(storage cluster.StorageLookup) *IdentityStorageLookup {
 	}
 }
 
+// logger returns the cluster logger if available, otherwise the default logger.
+func (l *IdentityStorageLookup) logger() *slog.Logger {
+	if l.cluster != nil {
+		return l.cluster.Logger()
+	}
+	return slog.Default()
+}
+
 // Get resolves a cluster identity to an actor PID.
 //
 // The resolution protocol:
@@ -126,7 +134,7 @@ func (l *IdentityStorageLookup) resolveIdentity(ci *cluster.ClusterIdentity) *ac
 			return l.pidFromStored(existing)
 		}
 		// Stale activation from a dead member — clean it up.
-		slog.Info("IdentityStorageLookup: cleaning stale activation",
+		l.logger().Info("IdentityStorageLookup: cleaning stale activation",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("staleMember", existing.MemberID))
@@ -166,7 +174,7 @@ func (l *IdentityStorageLookup) resolveIdentity(ci *cluster.ClusterIdentity) *ac
 	senderAddress := l.cluster.ActorSystem.Address()
 	targetMember := l.strategyManager.GetActivator(ci, senderAddress)
 	if targetMember == nil {
-		slog.Warn("IdentityStorageLookup: no available member for activation",
+		l.logger().Warn("IdentityStorageLookup: no available member for activation",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity))
 		l.storage.RemoveLock(*lock)
@@ -207,7 +215,7 @@ func (l *IdentityStorageLookup) activateLocal(ctx context.Context, ci *cluster.C
 
 	resp, err := l.cluster.ActorSystem.Root.RequestFuture(l.placementPID, req, 10*time.Second).Result()
 	if err != nil {
-		slog.Error("IdentityStorageLookup: placement actor request failed",
+		l.logger().Error("IdentityStorageLookup: placement actor request failed",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.Any("error", err))
@@ -217,7 +225,7 @@ func (l *IdentityStorageLookup) activateLocal(ctx context.Context, ci *cluster.C
 
 	activationResp, ok := resp.(*cluster.ActivationResponse)
 	if !ok || activationResp.Failed || activationResp.Pid == nil {
-		slog.Warn("IdentityStorageLookup: placement actor returned failure",
+		l.logger().Warn("IdentityStorageLookup: placement actor returned failure",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity))
 		l.storage.RemoveLock(*lock)
@@ -244,7 +252,7 @@ func (l *IdentityStorageLookup) activateRemote(ctx context.Context, ci *cluster.
 
 	resp, err := l.cluster.ActorSystem.Root.RequestFuture(proxyPID, req, 10*time.Second).Result()
 	if err != nil {
-		slog.Error("IdentityStorageLookup: remote activation request failed",
+		l.logger().Error("IdentityStorageLookup: remote activation request failed",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("targetMember", member.Id),
@@ -255,7 +263,7 @@ func (l *IdentityStorageLookup) activateRemote(ctx context.Context, ci *cluster.
 
 	activationResp, ok := resp.(*cluster.ActivationResponse)
 	if !ok || activationResp.Failed || activationResp.Pid == nil {
-		slog.Warn("IdentityStorageLookup: remote activation returned failure",
+		l.logger().Warn("IdentityStorageLookup: remote activation returned failure",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("targetMember", member.Id))
@@ -287,6 +295,14 @@ func (l *IdentityStorageLookup) Setup(c *cluster.Cluster, kinds []string, isClie
 	l.cluster = c
 	l.isClient = isClient
 	l.memberID = c.ActorSystem.ID
+
+	// Inject the cluster logger into the storage backend if it supports it.
+	type loggerSetter interface {
+		SetLogger(logger *slog.Logger)
+	}
+	if ls, ok := l.storage.(loggerSetter); ok {
+		ls.SetLogger(c.Logger())
+	}
 
 	if !isClient {
 		// Create the PersistActivation callback that bridges requestID -> SpawnLock.
@@ -324,7 +340,7 @@ func (l *IdentityStorageLookup) Setup(c *cluster.Cluster, kinds []string, isClie
 		var err error
 		l.placementPID, err = c.ActorSystem.Root.SpawnNamed(placementProps, "$placement-activator")
 		if err != nil {
-			slog.Error("IdentityStorageLookup: failed to spawn placement actor",
+			l.logger().Error("IdentityStorageLookup: failed to spawn placement actor",
 				slog.Any("error", err))
 		}
 
@@ -332,7 +348,7 @@ func (l *IdentityStorageLookup) Setup(c *cluster.Cluster, kinds []string, isClie
 		proxyProps := cluster.NewActivatorProxyProps(l.placementPID, l)
 		l.proxyPID, err = c.ActorSystem.Root.SpawnNamed(proxyProps, "$proxy-activator")
 		if err != nil {
-			slog.Error("IdentityStorageLookup: failed to spawn proxy actor",
+			l.logger().Error("IdentityStorageLookup: failed to spawn proxy actor",
 				slog.Any("error", err))
 		}
 
@@ -368,7 +384,7 @@ func (l *IdentityStorageLookup) Shutdown() {
 	// locally tracked grains (poisons them with DeactivationReasonShutdown).
 	if l.placementPID != nil {
 		if err := l.cluster.ActorSystem.Root.PoisonFuture(l.placementPID).Wait(); err != nil {
-			slog.Error("IdentityStorageLookup: failed to stop placement actor",
+			l.logger().Error("IdentityStorageLookup: failed to stop placement actor",
 				slog.Any("error", err))
 		}
 		l.placementPID = nil
@@ -377,7 +393,7 @@ func (l *IdentityStorageLookup) Shutdown() {
 	// Stop proxy activator.
 	if l.proxyPID != nil {
 		if err := l.cluster.ActorSystem.Root.PoisonFuture(l.proxyPID).Wait(); err != nil {
-			slog.Error("IdentityStorageLookup: failed to stop proxy activator",
+			l.logger().Error("IdentityStorageLookup: failed to stop proxy activator",
 				slog.Any("error", err))
 		}
 		l.proxyPID = nil
@@ -459,7 +475,7 @@ func (l *IdentityStorageLookup) pidFromStored(stored *cluster.StoredActivation) 
 
 	// If no slash found, treat the entire string as the ID with empty address.
 	// This shouldn't happen with well-formed data, but we handle it gracefully.
-	slog.Warn("IdentityStorageLookup: malformed PID in stored activation",
+	l.logger().Warn("IdentityStorageLookup: malformed PID in stored activation",
 		slog.String("pid", pidStr))
 	return actor.NewPID("", pidStr)
 }

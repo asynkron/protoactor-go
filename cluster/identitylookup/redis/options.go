@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"log/slog"
 	"time"
 
 	goredis "github.com/redis/go-redis/v9"
@@ -24,6 +25,9 @@ type Config struct {
 	// MaxConcurrency limits the number of concurrent Redis operations.
 	// Defaults to 200.
 	MaxConcurrency int
+
+	// Logger is an optional structured logger. If nil, slog.Default() is used.
+	Logger *slog.Logger
 }
 
 // Option is a functional option for configuring Config.
@@ -40,6 +44,13 @@ func WithLockTTL(ttl time.Duration) Option {
 func WithMaxConcurrency(n int) Option {
 	return func(c *Config) {
 		c.MaxConcurrency = n
+	}
+}
+
+// WithLogger sets a custom logger for the Redis identity storage.
+func WithLogger(logger *slog.Logger) Option {
+	return func(c *Config) {
+		c.Logger = logger
 	}
 }
 

@@ -30,6 +30,7 @@ import (
 type RedisIdentityStorage struct {
 	client    *goredis.Client
 	config    *Config
+	logger    *slog.Logger
 	ciPrefix  string // e.g. "mycluster:ci:"
 	mbPrefix  string // e.g. "mycluster:mb:"
 	semaphore chan struct{}
@@ -59,6 +60,7 @@ func New(clusterName string, client *goredis.Client, opts ...Option) *RedisIdent
 	s := &RedisIdentityStorage{
 		client:    client,
 		config:    cfg,
+		logger:    cfg.Logger,
 		ciPrefix:  clusterName + ":ci:",
 		mbPrefix:  clusterName + ":mb:",
 		semaphore: make(chan struct{}, cfg.MaxConcurrency),
@@ -71,6 +73,18 @@ func New(clusterName string, client *goredis.Client, opts ...Option) *RedisIdent
 	}
 
 	return s
+}
+
+// SetLogger sets the logger for this storage backend.
+func (s *RedisIdentityStorage) SetLogger(logger *slog.Logger) {
+	s.logger = logger
+}
+
+func (s *RedisIdentityStorage) log() *slog.Logger {
+	if s.logger != nil {
+		return s.logger
+	}
+	return slog.Default()
 }
 
 // idKey returns the Redis key for a cluster identity hash.
@@ -125,7 +139,7 @@ func (s *RedisIdentityStorage) TryAcquireLock(clusterIdentity *cluster.ClusterId
 
 	result, err := s.acquireLockScript.Run(ctx, s.client, []string{key}, lockID, ttlMs).Int()
 	if err != nil {
-		slog.Error("Redis TryAcquireLock failed", slog.String("key", key), slog.Any("error", err))
+		s.log().Error("Redis TryAcquireLock failed", slog.String("key", key), slog.Any("error", err))
 		return nil
 	}
 
@@ -226,7 +240,7 @@ func (s *RedisIdentityStorage) RemoveLock(spawnLock cluster.SpawnLock) {
 
 	_, err := s.removeLockScript.Run(ctx, s.client, []string{key}, spawnLock.LockID).Result()
 	if err != nil && err != goredis.Nil {
-		slog.Error("Redis RemoveLock failed", slog.String("key", key), slog.Any("error", err))
+		s.log().Error("Redis RemoveLock failed", slog.String("key", key), slog.Any("error", err))
 	}
 }
 
@@ -249,13 +263,13 @@ func (s *RedisIdentityStorage) StoreActivation(memberID string, spawnLock *clust
 	).Int()
 
 	if err != nil {
-		slog.Error("Redis StoreActivation script failed",
+		s.log().Error("Redis StoreActivation script failed",
 			slog.String("key", key), slog.Any("error", err))
 		return
 	}
 
 	if result == 0 {
-		slog.Warn("Redis StoreActivation lock mismatch — lock was lost",
+		s.log().Warn("Redis StoreActivation lock mismatch — lock was lost",
 			slog.String("key", key), slog.String("lockID", spawnLock.LockID))
 	}
 }
@@ -296,7 +310,7 @@ func (s *RedisIdentityStorage) RemoveActivation(spawnLock *cluster.SpawnLock) {
 	).Result()
 
 	if err != nil && err != goredis.Nil {
-		slog.Error("Redis RemoveActivation script failed",
+		s.log().Error("Redis RemoveActivation script failed",
 			slog.String("key", key), slog.Any("error", err))
 	}
 }
@@ -314,7 +328,7 @@ func (s *RedisIdentityStorage) RemoveMemberId(memberID string) {
 
 	_, err := s.removeMemberScript.Run(ctx, s.client, []string{mbKey}).Result()
 	if err != nil && err != goredis.Nil {
-		slog.Error("Redis RemoveMemberId script failed",
+		s.log().Error("Redis RemoveMemberId script failed",
 			slog.String("memberKey", mbKey), slog.Any("error", err))
 	}
 }

@@ -35,6 +35,7 @@ import (
 type PostgresIdentityStorage struct {
 	db        *sql.DB
 	config    *Config
+	logger    *slog.Logger
 	tableName string
 	semaphore chan struct{}
 }
@@ -53,9 +54,22 @@ func New(clusterName string, db *sql.DB, opts ...Option) *PostgresIdentityStorag
 	return &PostgresIdentityStorage{
 		db:        db,
 		config:    cfg,
+		logger:    cfg.Logger,
 		tableName: clusterName + "_identities",
 		semaphore: make(chan struct{}, cfg.MaxConcurrency),
 	}
+}
+
+// SetLogger sets the logger for this storage backend.
+func (s *PostgresIdentityStorage) SetLogger(logger *slog.Logger) {
+	s.logger = logger
+}
+
+func (s *PostgresIdentityStorage) log() *slog.Logger {
+	if s.logger != nil {
+		return s.logger
+	}
+	return slog.Default()
 }
 
 // EnsureSchema creates the identities table if it does not already exist.
@@ -127,7 +141,7 @@ func (s *PostgresIdentityStorage) TryAcquireLock(clusterIdentity *cluster.Cluste
 		s.tableName,
 	)
 	if _, err := s.db.ExecContext(ctx, cleanQuery, key); err != nil {
-		slog.Warn("Postgres identity: cleanup query failed",
+		s.log().Warn("Postgres identity: cleanup query failed",
 			slog.String("key", key), slog.Any("error", err))
 	}
 
@@ -139,7 +153,7 @@ func (s *PostgresIdentityStorage) TryAcquireLock(clusterIdentity *cluster.Cluste
 	)
 	result, err := s.db.ExecContext(ctx, insertQuery, key, lockID, lockExpires)
 	if err != nil {
-		slog.Error("Postgres TryAcquireLock failed", slog.String("key", key), slog.Any("error", err))
+		s.log().Error("Postgres TryAcquireLock failed", slog.String("key", key), slog.Any("error", err))
 		return nil
 	}
 
@@ -250,7 +264,7 @@ func (s *PostgresIdentityStorage) RemoveLock(spawnLock cluster.SpawnLock) {
 
 	_, err := s.db.ExecContext(ctx, query, key, spawnLock.LockID)
 	if err != nil {
-		slog.Error("Postgres RemoveLock failed", slog.String("key", key), slog.Any("error", err))
+		s.log().Error("Postgres RemoveLock failed", slog.String("key", key), slog.Any("error", err))
 	}
 }
 
@@ -271,18 +285,18 @@ func (s *PostgresIdentityStorage) StoreActivation(memberID string, spawnLock *cl
 
 	result, err := s.db.ExecContext(ctx, query, pid.Id, pid.Address, memberID, key, spawnLock.LockID)
 	if err != nil {
-		slog.Error("Postgres StoreActivation failed",
+		s.log().Error("Postgres StoreActivation failed",
 			slog.String("key", key), slog.Any("error", err))
 		return
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		slog.Warn("Postgres identity: RowsAffected failed",
+		s.log().Warn("Postgres identity: RowsAffected failed",
 			slog.String("key", key), slog.Any("error", err))
 	}
 	if rows == 0 {
-		slog.Warn("Postgres StoreActivation lock mismatch -- lock was lost",
+		s.log().Warn("Postgres StoreActivation lock mismatch -- lock was lost",
 			slog.String("key", key), slog.String("lockID", spawnLock.LockID))
 	}
 }
@@ -299,7 +313,7 @@ func (s *PostgresIdentityStorage) RemoveActivation(spawnLock *cluster.SpawnLock)
 
 	_, err := s.db.ExecContext(ctx, query, key)
 	if err != nil {
-		slog.Error("Postgres RemoveActivation failed",
+		s.log().Error("Postgres RemoveActivation failed",
 			slog.String("key", key), slog.Any("error", err))
 	}
 }
@@ -388,7 +402,7 @@ func (s *PostgresIdentityStorage) RemoveMemberId(memberID string) {
 
 	_, err := s.db.ExecContext(ctx, query, memberID)
 	if err != nil {
-		slog.Error("Postgres RemoveMemberId failed",
+		s.log().Error("Postgres RemoveMemberId failed",
 			slog.String("memberID", memberID), slog.Any("error", err))
 	}
 }
