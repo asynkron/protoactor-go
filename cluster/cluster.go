@@ -35,11 +35,11 @@ type Cluster struct {
 	provider       ClusterProvider
 	context        Context
 
-	metrics              *clustermetrics.ClusterMetrics
-	metricsEnabled       bool
-	deactivationReasons  *deactivationReasons
-	grainMetrics         *grainMetricsStore // nil unless WithGrainMetrics() is set
-	grainReg             *GrainRegistry
+	metrics             *clustermetrics.ClusterMetrics
+	metricsEnabled      bool
+	deactivationReasons *deactivationReasons
+	grainMetrics        *grainMetricsStore // nil unless WithGrainMetrics() is set
+	grainReg            *GrainRegistry
 }
 
 var _ extensions.Extension = &Cluster{}
@@ -406,10 +406,15 @@ func (c *Cluster) notifyKindUpdate() {
 // The Cluster must have been created (via cluster.Configure) before calling this method,
 // but it may be called before or after StartMember.
 func (c *Cluster) RegisterSingletonScheduler(listener RoleChangedListener) error {
-	if c.provider == nil {
-		return fmt.Errorf("cluster provider not configured")
+	prov := c.provider
+	if prov == nil {
+		if c.Config == nil || c.Config.ClusterProvider == nil {
+			return fmt.Errorf("cluster provider not configured")
+		} else {
+			prov = c.Config.ClusterProvider
+		}
 	}
-	if registrar, ok := c.provider.(SingletonSchedulerRegistrar); ok {
+	if registrar, ok := prov.(SingletonSchedulerRegistrar); ok {
 		registrar.RegisterSingletonScheduler(listener)
 		return nil
 	}
