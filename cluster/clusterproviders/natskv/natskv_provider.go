@@ -106,15 +106,9 @@ func (p *Provider) GetHealthStatus() error {
 }
 
 // RegisterSingletonScheduler adds a singleton scheduler to be notified on role changes.
-// May be called before or after StartMember. If the provider is already leader
-// when the scheduler is registered, the scheduler is immediately notified of
-// the Leader role so it can spawn its singleton actors without waiting for the
-// next role-change event.
+// Must be called before StartMember.
 func (p *Provider) RegisterSingletonScheduler(scheduler *SingletonScheduler) {
 	p.schedulers = append(p.schedulers, scheduler)
-	if p.isLeader.Load() {
-		scheduler.OnRoleChanged(Leader)
-	}
 }
 
 // RegisterLeaderFunc registers a callback function that is invoked when
