@@ -34,6 +34,7 @@ type IdentityLookup struct {
 	cluster       *cluster.Cluster
 	memberID      string
 	isClient      bool
+	defunct       bool
 	identities    jetstream.KeyValue
 	memberTracker jetstream.KeyValue
 	config        *config
@@ -314,6 +315,11 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 		return nil
 	}
 
+	if il.defunct {
+		il.identityLogger().Info("natskv identity: cannot Get, defunct")
+		return nil
+	}
+
 	// Step 1: Check PID cache.
 	if pid, ok := il.cluster.PidCache.Get(ci.Identity, ci.Kind); ok {
 		return pid
@@ -392,7 +398,14 @@ func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PI
 
 	// Step 6: Select target member via strategy manager.
 	senderAddress := il.cluster.ActorSystem.Address()
-	targetMember := il.strategyMgr.GetActivator(ci, senderAddress)
+	strMgr := il.strategyMgr
+	if strMgr == nil {
+		il.identityLogger().Warn("natskv identity: strategy manager is nil (cluster shutting down?)",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity))
+		return nil
+	}
+	targetMember := strMgr.GetActivator(ci, senderAddress)
 	if targetMember == nil {
 		il.identityLogger().Warn("natskv identity: no available member for activation",
 			slog.String("kind", ci.Kind),
@@ -557,6 +570,7 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 // It stops the placement actor first (graceful grain shutdown), then
 // stops the proxy, closes the strategy manager, and removes member records.
 func (il *IdentityLookup) Shutdown() {
+	il.defunct = true
 	// Stop placement actor first — this triggers graceful shutdown of all
 	// locally tracked grains (poisons them with DeactivationReasonShutdown).
 	if il.placementPID != nil {
