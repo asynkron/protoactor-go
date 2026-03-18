@@ -4,6 +4,7 @@ package etcd
 import (
 	"time"
 
+	"github.com/asynkron/protoactor-go/cluster"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -11,11 +12,6 @@ const (
 	defaultKeepAliveTTL  = 3 * time.Second
 	defaultRetryInterval = 1 * time.Second
 )
-
-// RoleChangedListener receives notifications when the node role changes.
-type RoleChangedListener interface {
-	OnRoleChanged(RoleType)
-}
 
 // Option configures the etcd provider.
 type Option func(*config)
@@ -35,7 +31,7 @@ func WithEtcdConfig(cfg clientv3.Config) Option {
 }
 
 // WithRoleChangedListener sets a callback for role changes.
-func WithRoleChangedListener(l RoleChangedListener) Option {
+func WithRoleChangedListener(l cluster.RoleChangedListener) Option {
 	return func(o *config) {
 		o.RoleChanged = l
 	}
@@ -65,7 +61,7 @@ func WithEtcdClient(client *clientv3.Client) Option {
 type config struct {
 	BaseKey       string
 	cfg           clientv3.Config
-	RoleChanged   RoleChangedListener
+	RoleChanged   cluster.RoleChangedListener
 	KeepAliveTTL  time.Duration
 	RetryInterval time.Duration
 	client        *clientv3.Client

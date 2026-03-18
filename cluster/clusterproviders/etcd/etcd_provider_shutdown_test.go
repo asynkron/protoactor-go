@@ -4,6 +4,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,7 +12,7 @@ func TestProvider_ShutdownFlagIsAtomic(t *testing.T) {
 	p := &Provider{
 		members:         map[string]*Node{},
 		cancelWatchCh:   make(chan bool),
-		roleChangedChan: make(chan RoleType, 1),
+		roleChangedChan: make(chan cluster.RoleType, 1),
 	}
 
 	var wg sync.WaitGroup

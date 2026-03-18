@@ -6,15 +6,17 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/asynkron/protoactor-go/cluster"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
+
+var _ cluster.SingletonSchedulerRegistrar = (*Provider)(nil)
 
 // Provider uses etcd for cluster membership discovery.
 type Provider struct {
@@ -36,10 +38,12 @@ type Provider struct {
 	retryInterval time.Duration
 	revision      uint64
 	// deregisterCritical time.Duration
-	schedulers          []*SingletonScheduler
-	role                RoleType
-	roleChangedChan     chan RoleType
-	roleChangedListener RoleChangedListener
+	schedulers          []cluster.RoleChangedListener
+	role                cluster.RoleType
+	roleMu              sync.Mutex
+	roleChangedChan     chan cluster.RoleType
+	roleChangedListener cluster.RoleChangedListener
+	closeOnce           sync.Once
 }
 
 // New creates a provider with default etcd configuration.
@@ -77,8 +81,8 @@ func NewWithConfig(baseKey string, cfg clientv3.Config, opts ...Option) (*Provid
 		baseKey:             c.BaseKey,
 		members:             map[string]*Node{},
 		cancelWatchCh:       make(chan bool),
-		role:                Follower,
-		roleChangedChan:     make(chan RoleType, 1),
+		role:                cluster.RoleFollower,
+		roleChangedChan:     make(chan cluster.RoleType, 1),
 		roleChangedListener: c.RoleChanged,
 	}
 	return p, nil
@@ -153,6 +157,7 @@ func (p *Provider) Shutdown(_ bool) error {
 	if !p.shutdown.CompareAndSwap(false, true) {
 		return nil
 	}
+	p.closeOnce.Do(func() { close(p.roleChangedChan) })
 	if p.cancel != nil {
 		p.cancel()
 	}
@@ -489,48 +494,46 @@ func splitHostPort(addr string) (host string, port int, err error) {
 }
 
 // RegisterSingletonScheduler adds a singleton scheduler to be notified on role changes.
-func (p *Provider) RegisterSingletonScheduler(scheduler *SingletonScheduler) {
-	p.schedulers = append(p.schedulers, scheduler)
+func (p *Provider) RegisterSingletonScheduler(listener cluster.RoleChangedListener) {
+	if p.shutdown.Load() {
+		return
+	}
+	p.roleMu.Lock()
+	defer p.roleMu.Unlock()
+	p.schedulers = append(p.schedulers, listener)
+	if p.role == cluster.RoleLeader {
+		cluster.SafeRunRoleChange(p.cluster.Logger(), func() {
+			listener.OnRoleChanged(cluster.RoleLeader)
+		})
+	}
 }
 
-// 修改现有的角色变化处理逻辑
 func (p *Provider) updateLeadership() {
-	role := Follower
+	role := cluster.RoleFollower
 	ns, err := p.fetchNodes()
 	if err != nil {
 		p.cluster.Logger().Error("Failed to fetch nodes in updateLeadership.", slog.Any("error", err))
 	}
-
 	if p.isLeaderOf(ns) {
-		role = Leader
+		role = cluster.RoleLeader
 	}
+
+	p.roleMu.Lock()
+	defer p.roleMu.Unlock()
+
 	if role != p.role {
 		p.cluster.Logger().Info("Role changed.", slog.String("from", p.role.String()), slog.String("to", role.String()))
 		p.role = role
-		p.roleChangedChan <- role
-
-		// 通知所有注册的 SingletonScheduler
+		select {
+		case p.roleChangedChan <- role:
+		default:
+		}
 		for _, scheduler := range p.schedulers {
-			safeRun(p.cluster.Logger(), func() {
+			cluster.SafeRunRoleChange(p.cluster.Logger(), func() {
 				scheduler.OnRoleChanged(role)
 			})
 		}
 	}
-}
-
-func safeRun(logger *slog.Logger, fn func()) {
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Warn("OnRoleChanged.", slog.Any("error", fmt.Errorf("%v\n%s", r, string(getRunTimeStack()))))
-		}
-	}()
-	fn()
-}
-
-func getRunTimeStack() []byte {
-	const size = 64 << 10
-	buf := make([]byte, size)
-	return buf[:runtime.Stack(buf, false)]
 }
 
 func (p *Provider) isLeaderOf(ns []*Node) bool {
@@ -565,10 +568,13 @@ func (p *Provider) isLeaderOf(ns []*Node) bool {
 
 func (p *Provider) startRoleChangedNotifyLoop() {
 	go func() {
-		for !p.shutdown.Load() {
-			role := <-p.roleChangedChan
+		for {
+			role, ok := <-p.roleChangedChan
+			if !ok || p.shutdown.Load() {
+				return
+			}
 			if lis := p.roleChangedListener; lis != nil {
-				safeRun(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
+				cluster.SafeRunRoleChange(p.cluster.Logger(), func() { lis.OnRoleChanged(role) })
 			}
 		}
 	}()
