@@ -1,6 +1,7 @@
 package actor
 
 import (
+	"fmt"
 	"log/slog"
 	"net"
 	"strconv"
@@ -60,6 +61,16 @@ func (as *ActorSystem) GetHostPort() (host string, port int, err error) {
 	return
 }
 
+func (as *ActorSystem) OnStop(f func()) {
+	go func() {
+		select {
+		case <-as.stopper:
+			f()
+			return
+		}
+	}()
+}
+
 func (as *ActorSystem) Shutdown() {
 	if as.supervisionSubscription != nil {
 		as.EventStream.Unsubscribe(as.supervisionSubscription)
@@ -104,7 +115,7 @@ func NewActorSystem(options ...ConfigOption) *ActorSystem {
 func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	system := &ActorSystem{}
 	if config.SystemID != "" {
-		system.ID = config.SystemID
+		system.ID = fmt.Sprintf("%s-%s", config.SystemID, shortuuid.New())
 	} else {
 		system.ID = shortuuid.New()
 	}

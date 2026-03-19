@@ -1,9 +1,11 @@
 package actor
 
 import (
+	"fmt"
 	"log/slog"
 	"time"
 
+	"github.com/lithammer/shortuuid/v4"
 	"go.opentelemetry.io/otel/metric"
 )
 
@@ -73,7 +75,6 @@ func WithDiagnosticsSerializer(serializer func(Actor) string) ConfigOption {
 
 // WithMetricProviders sets the metric providers
 func WithMetricProviders(provider metric.MeterProvider) ConfigOption {
-
 	return func(config *Config) {
 		config.MetricsProvider = provider
 		config.MetricsEnabled = true
@@ -116,6 +117,6 @@ func WithRequestTimeout(d time.Duration) ConfigOption {
 // member names (e.g., "agg-node-1" instead of "C2UAuL74WkCNhAsGcEWqJx").
 func WithSystemID(id string) ConfigOption {
 	return func(config *Config) {
-		config.SystemID = id
+		config.SystemID = fmt.Sprintf("%s-%s", id, shortuuid.New())
 	}
 }
