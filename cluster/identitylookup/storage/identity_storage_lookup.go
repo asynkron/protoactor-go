@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -411,9 +412,72 @@ func (l *IdentityStorageLookup) Shutdown() {
 	}
 }
 
-// Peek checks whether a grain activation exists without triggering activation.
+// Peek checks if a grain activation exists without triggering activation.
 func (l *IdentityStorageLookup) Peek(clusterIdentity *cluster.ClusterIdentity) (*cluster.PeekResult, error) {
-	panic("not implemented")
+	notFound := &cluster.PeekResult{
+		GrainInfo: &cluster.GrainInfo{
+			Identity: clusterIdentity.Identity,
+			Kind:     clusterIdentity.Kind,
+		},
+		Status: cluster.PeekStatusNotFound,
+	}
+
+	// Step 1: Check for existing activation in storage.
+	existing := l.storage.TryGetExistingActivation(clusterIdentity)
+	if existing == nil {
+		return notFound, nil
+	}
+
+	// Step 2: Validate owning member is alive.
+	if !cluster.ValidateActivationMember(l.cluster.MemberList, existing.MemberID) {
+		return &cluster.PeekResult{
+			GrainInfo: &cluster.GrainInfo{
+				Identity: clusterIdentity.Identity,
+				Kind:     clusterIdentity.Kind,
+				MemberID: existing.MemberID,
+			},
+			Status: cluster.PeekStatusMemberDead,
+		}, nil
+	}
+
+	// Step 3: Confirm process alive via placement actor.
+	pid := l.pidFromStored(existing)
+	ownerAddress := pid.Address
+	proxyPID := actor.NewPID(ownerAddress, "$proxy-activator")
+	future := l.cluster.ActorSystem.Root.RequestFuture(proxyPID, &cluster.PeekRequest{
+		ClusterIdentity: clusterIdentity,
+	}, 5*time.Second)
+
+	res, err := future.Result()
+	if err != nil {
+		return nil, fmt.Errorf("peek request to %s failed: %w", ownerAddress, err)
+	}
+
+	peekResp, ok := res.(*cluster.PeekResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type: %T", res)
+	}
+
+	if peekResp.Found {
+		return &cluster.PeekResult{
+			GrainInfo: &cluster.GrainInfo{
+				Identity: clusterIdentity.Identity,
+				Kind:     clusterIdentity.Kind,
+				PID:      peekResp.Pid,
+				MemberID: existing.MemberID,
+			},
+			Status: cluster.PeekStatusAlive,
+		}, nil
+	}
+
+	return &cluster.PeekResult{
+		GrainInfo: &cluster.GrainInfo{
+			Identity: clusterIdentity.Identity,
+			Kind:     clusterIdentity.Kind,
+			MemberID: existing.MemberID,
+		},
+		Status: cluster.PeekStatusStale,
+	}, nil
 }
 
 // Compile-time check that IdentityStorageLookup implements cluster.GrainEnumerator.

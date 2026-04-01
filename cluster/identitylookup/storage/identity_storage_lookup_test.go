@@ -351,3 +351,63 @@ func TestIdentityStorageLookup_DifferentIdentitiesNotCoalesced(t *testing.T) {
 		"different identities should produce different PIDs: got %v and %v", pid1, pid2)
 }
 
+func TestStorageLookup_Peek_Alive(t *testing.T) {
+	c, isl, _ := setupTestCluster(t)
+
+	ci := &cluster.ClusterIdentity{Kind: testKind, Identity: "peek-alive-1"}
+	pid := isl.Get(ci)
+	require.NotNil(t, pid)
+
+	result, err := isl.Peek(ci)
+	require.NoError(t, err)
+	assert.Equal(t, cluster.PeekStatusAlive, result.Status)
+	assert.Equal(t, "peek-alive-1", result.Identity)
+	assert.Equal(t, testKind, result.Kind)
+	assert.Equal(t, pid, result.PID)
+
+	_ = c
+}
+
+func TestStorageLookup_Peek_NotFound(t *testing.T) {
+	c, isl, _ := setupTestCluster(t)
+
+	ci := &cluster.ClusterIdentity{Kind: testKind, Identity: "never-activated"}
+	result, err := isl.Peek(ci)
+	require.NoError(t, err)
+	assert.Equal(t, cluster.PeekStatusNotFound, result.Status)
+
+	_ = c
+}
+
+func TestStorageLookup_Peek_MemberDead(t *testing.T) {
+	c, isl, storageLookup := setupTestCluster(t)
+
+	ci := &cluster.ClusterIdentity{Kind: testKind, Identity: "dead-member-grain"}
+	lock := storageLookup.TryAcquireLock(ci)
+	require.NotNil(t, lock)
+
+	fakePID := actor.NewPID("dead-host:9999", testKind+"/dead-member-grain")
+	storageLookup.StoreActivation("dead-member-id", lock, fakePID)
+
+	result, err := isl.Peek(ci)
+	require.NoError(t, err)
+	assert.Equal(t, cluster.PeekStatusMemberDead, result.Status)
+	assert.Equal(t, "dead-member-grain", result.Identity)
+
+	_ = c
+}
+
+func TestStorageLookup_Peek_Stale(t *testing.T) {
+	c, isl, _ := setupTestCluster(t)
+
+	ci := &cluster.ClusterIdentity{Kind: testKind, Identity: "peek-stale-1"}
+	pid := isl.Get(ci)
+	require.NotNil(t, pid)
+
+	c.ActorSystem.Root.Poison(pid)
+
+	require.Eventually(t, func() bool {
+		r, err := isl.Peek(ci)
+		return err == nil && r.Status == cluster.PeekStatusStale
+	}, 5*time.Second, 50*time.Millisecond)
+}

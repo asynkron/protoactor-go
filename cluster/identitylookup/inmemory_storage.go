@@ -103,7 +103,7 @@ func (s *InMemoryStorageLookup) StoreActivation(memberID string, spawnLock *clus
 	delete(s.locks, key)
 
 	activation := &cluster.StoredActivation{
-		Pid:      pid.String(),
+		Pid:      pid.Address + "/" + pid.Id,
 		MemberID: memberID,
 	}
 	s.activations[key] = activation
