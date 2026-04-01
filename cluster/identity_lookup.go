@@ -10,6 +10,11 @@ import (
 type IdentityLookup interface {
 	Get(clusterIdentity *ClusterIdentity) *actor.PID
 
+	// Peek checks whether a grain activation exists without triggering
+	// activation. It returns liveness status based on the activation record,
+	// member health, and placement actor confirmation.
+	Peek(clusterIdentity *ClusterIdentity) (*PeekResult, error)
+
 	RemovePid(clusterIdentity *ClusterIdentity, pid *actor.PID)
 
 	Setup(cluster *Cluster, kinds []string, isClient bool)

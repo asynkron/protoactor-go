@@ -235,6 +235,15 @@ func (c *Cluster) Get(identity string, kind string) *actor.PID {
 	return c.IdentityLookup.Get(NewClusterIdentity(identity, kind))
 }
 
+// Peek checks whether a grain activation exists without triggering activation.
+// Returns a PeekResult with liveness status. See PeekStatus for possible states.
+func (c *Cluster) Peek(identity, kind string) (*PeekResult, error) {
+	if c.IdentityLookup == nil {
+		return nil, fmt.Errorf("cluster not started")
+	}
+	return c.IdentityLookup.Peek(NewClusterIdentity(identity, kind))
+}
+
 func (c *Cluster) Request(identity string, kind string, message any, option ...GrainCallOption) (any, error) {
 	return c.context.Request(identity, kind, message, option...)
 }

@@ -42,6 +42,11 @@ func (p *IdentityLookup) Shutdown() {
 	p.partitionManager.Stop()
 }
 
+// Peek checks whether a grain activation exists without triggering activation.
+func (p *IdentityLookup) Peek(clusterIdentity *cluster.ClusterIdentity) (*cluster.PeekResult, error) {
+	panic("not implemented")
+}
+
 // New creates a new distributed hash identity lookup implementation.
 func New() cluster.IdentityLookup {
 	return &IdentityLookup{}

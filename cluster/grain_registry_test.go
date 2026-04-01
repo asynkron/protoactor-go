@@ -11,10 +11,11 @@ import (
 // mockIdentityLookup implements IdentityLookup but NOT GrainEnumerator.
 type mockIdentityLookup struct{}
 
-func (m *mockIdentityLookup) Get(_ *ClusterIdentity) *actor.PID { return nil }
-func (m *mockIdentityLookup) RemovePid(_ *ClusterIdentity, _ *actor.PID) {}
-func (m *mockIdentityLookup) Setup(_ *Cluster, _ []string, _ bool)       {}
-func (m *mockIdentityLookup) Shutdown()                                   {}
+func (m *mockIdentityLookup) Get(_ *ClusterIdentity) *actor.PID              { return nil }
+func (m *mockIdentityLookup) RemovePid(_ *ClusterIdentity, _ *actor.PID)    {}
+func (m *mockIdentityLookup) Setup(_ *Cluster, _ []string, _ bool)           {}
+func (m *mockIdentityLookup) Shutdown()                                       {}
+func (m *mockIdentityLookup) Peek(_ *ClusterIdentity) (*PeekResult, error) { return nil, nil }
 
 func TestGrainRegistry_Count_ReturnsVirtualActorCount(t *testing.T) {
 	c := newTestCluster()

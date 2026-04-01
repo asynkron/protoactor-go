@@ -868,3 +868,8 @@ func (il *IdentityLookup) lookupSubject(ctx context.Context, subject string, mem
 func pidFromRecord(rec *activationRecord) *actor.PID {
 	return actor.NewPID(rec.PidAddress, rec.PidID)
 }
+
+// Peek checks whether a grain activation exists without triggering activation.
+func (il *IdentityLookup) Peek(clusterIdentity *cluster.ClusterIdentity) (*cluster.PeekResult, error) {
+	panic("not implemented")
+}

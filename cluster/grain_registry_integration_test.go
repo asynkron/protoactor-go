@@ -71,6 +71,10 @@ func (l *enumerableFakeIdentityLookup) Setup(cluster *Cluster, kinds []string, i
 
 func (l *enumerableFakeIdentityLookup) Shutdown() {}
 
+func (l *enumerableFakeIdentityLookup) Peek(identity *ClusterIdentity) (*PeekResult, error) {
+	return nil, nil
+}
+
 // GrainEnumerator implementation.
 
 func (l *enumerableFakeIdentityLookup) ListGrains() ([]*GrainInfo, error) {

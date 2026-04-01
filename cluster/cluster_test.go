@@ -10,6 +10,7 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // inmemoryProvider use for test
@@ -113,6 +114,27 @@ func (lu *fakeIdentityLookup) Setup(cluster *Cluster, kinds []string, isClient b
 func (lu *fakeIdentityLookup) Shutdown() {
 }
 
+func (l *fakeIdentityLookup) Peek(identity *ClusterIdentity) (*PeekResult, error) {
+	if val, ok := l.m.Load(identity.Identity); ok {
+		pid := val.(*actor.PID)
+		return &PeekResult{
+			GrainInfo: &GrainInfo{
+				Identity: identity.Identity,
+				Kind:     identity.Kind,
+				PID:      pid,
+			},
+			Status: PeekStatusAlive,
+		}, nil
+	}
+	return &PeekResult{
+		GrainInfo: &GrainInfo{
+			Identity: identity.Identity,
+			Kind:     identity.Kind,
+		},
+		Status: PeekStatusNotFound,
+	}, nil
+}
+
 func newClusterForTest(name string, cp ClusterProvider, opts ...ConfigOption) *Cluster {
 	system := actor.NewActorSystem()
 	lookup := fakeIdentityLookup{}
@@ -196,6 +218,22 @@ func TestCluster_Get(t *testing.T) {
 		pid := c.Get("name", "kind")
 		assert.NotNil(pid)
 	})
+}
+
+func TestClusterPeek_DelegatesToIdentityLookup(t *testing.T) {
+	cp := newInmemoryProvider()
+	props := actor.PropsFromFunc(func(ctx actor.Context) {})
+	kind := NewKind("test-kind", props)
+	c := newClusterForTest("peek-test", cp, WithKinds(kind))
+	err := c.StartMember()
+	require.NoError(t, err)
+	defer c.Shutdown(true)
+
+	result, err := c.Peek("some-identity", "test-kind")
+	require.NoError(t, err)
+	assert.Equal(t, PeekStatusNotFound, result.Status)
+	assert.Equal(t, "some-identity", result.Identity)
+	assert.Equal(t, "test-kind", result.Kind)
 }
 
 func TestCluster_Shutdown_Graceful(t *testing.T) {

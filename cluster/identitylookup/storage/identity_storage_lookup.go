@@ -411,6 +411,11 @@ func (l *IdentityStorageLookup) Shutdown() {
 	}
 }
 
+// Peek checks whether a grain activation exists without triggering activation.
+func (l *IdentityStorageLookup) Peek(clusterIdentity *cluster.ClusterIdentity) (*cluster.PeekResult, error) {
+	panic("not implemented")
+}
+
 // Compile-time check that IdentityStorageLookup implements cluster.GrainEnumerator.
 var _ cluster.GrainEnumerator = (*IdentityStorageLookup)(nil)
 

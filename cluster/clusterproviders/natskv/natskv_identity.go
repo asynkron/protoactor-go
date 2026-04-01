@@ -1062,3 +1062,8 @@ func (il *IdentityLookup) listMemberGrains(ctx context.Context, memberID string)
 
 	return result, nil
 }
+
+// Peek checks whether a grain activation exists without triggering activation.
+func (il *IdentityLookup) Peek(clusterIdentity *cluster.ClusterIdentity) (*cluster.PeekResult, error) {
+	panic("not implemented")
+}
