@@ -1182,6 +1182,102 @@ func (x *ActorStatistics) GetActorCount() map[string]int64 {
 	return nil
 }
 
+type PeekRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ClusterIdentity *ClusterIdentity       `protobuf:"bytes,1,opt,name=cluster_identity,json=clusterIdentity,proto3" json:"cluster_identity,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *PeekRequest) Reset() {
+	*x = PeekRequest{}
+	mi := &file_cluster_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeekRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeekRequest) ProtoMessage() {}
+
+func (x *PeekRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cluster_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeekRequest.ProtoReflect.Descriptor instead.
+func (*PeekRequest) Descriptor() ([]byte, []int) {
+	return file_cluster_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *PeekRequest) GetClusterIdentity() *ClusterIdentity {
+	if x != nil {
+		return x.ClusterIdentity
+	}
+	return nil
+}
+
+type PeekResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Found         bool                   `protobuf:"varint,1,opt,name=found,proto3" json:"found,omitempty"`
+	Pid           *actor.PID             `protobuf:"bytes,2,opt,name=pid,proto3" json:"pid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PeekResponse) Reset() {
+	*x = PeekResponse{}
+	mi := &file_cluster_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeekResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeekResponse) ProtoMessage() {}
+
+func (x *PeekResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cluster_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeekResponse.ProtoReflect.Descriptor instead.
+func (*PeekResponse) Descriptor() ([]byte, []int) {
+	return file_cluster_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *PeekResponse) GetFound() bool {
+	if x != nil {
+		return x.Found
+	}
+	return false
+}
+
+func (x *PeekResponse) GetPid() *actor.PID {
+	if x != nil {
+		return x.Pid
+	}
+	return nil
+}
+
 type IdentityHandoverRequest_Topology struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TopologyHash  uint64                 `protobuf:"varint,1,opt,name=topology_hash,json=topologyHash,proto3" json:"topology_hash,omitempty"`
@@ -1192,7 +1288,7 @@ type IdentityHandoverRequest_Topology struct {
 
 func (x *IdentityHandoverRequest_Topology) Reset() {
 	*x = IdentityHandoverRequest_Topology{}
-	mi := &file_cluster_proto_msgTypes[19]
+	mi := &file_cluster_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1204,7 +1300,7 @@ func (x *IdentityHandoverRequest_Topology) String() string {
 func (*IdentityHandoverRequest_Topology) ProtoMessage() {}
 
 func (x *IdentityHandoverRequest_Topology) ProtoReflect() protoreflect.Message {
-	mi := &file_cluster_proto_msgTypes[19]
+	mi := &file_cluster_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1244,7 +1340,7 @@ type PackedActivations_Kind struct {
 
 func (x *PackedActivations_Kind) Reset() {
 	*x = PackedActivations_Kind{}
-	mi := &file_cluster_proto_msgTypes[20]
+	mi := &file_cluster_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1256,7 +1352,7 @@ func (x *PackedActivations_Kind) String() string {
 func (*PackedActivations_Kind) ProtoMessage() {}
 
 func (x *PackedActivations_Kind) ProtoReflect() protoreflect.Message {
-	mi := &file_cluster_proto_msgTypes[20]
+	mi := &file_cluster_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1296,7 +1392,7 @@ type PackedActivations_Activation struct {
 
 func (x *PackedActivations_Activation) Reset() {
 	*x = PackedActivations_Activation{}
-	mi := &file_cluster_proto_msgTypes[21]
+	mi := &file_cluster_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1308,7 +1404,7 @@ func (x *PackedActivations_Activation) String() string {
 func (*PackedActivations_Activation) ProtoMessage() {}
 
 func (x *PackedActivations_Activation) ProtoReflect() protoreflect.Message {
-	mi := &file_cluster_proto_msgTypes[21]
+	mi := &file_cluster_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1438,7 +1534,13 @@ const file_cluster_proto_rawDesc = "" +
 	"actorCount\x1a=\n" +
 	"\x0fActorCountEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01B,Z*/github.com/asynkron/protoactor-go/clusterb\x06proto3"
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"R\n" +
+	"\vPeekRequest\x12C\n" +
+	"\x10cluster_identity\x18\x01 \x01(\v2\x18.cluster.ClusterIdentityR\x0fclusterIdentity\"B\n" +
+	"\fPeekResponse\x12\x14\n" +
+	"\x05found\x18\x01 \x01(\bR\x05found\x12\x1c\n" +
+	"\x03pid\x18\x02 \x01(\v2\n" +
+	".actor.PIDR\x03pidB,Z*/github.com/asynkron/protoactor-go/clusterb\x06proto3"
 
 var (
 	file_cluster_proto_rawDescOnce sync.Once
@@ -1453,7 +1555,7 @@ func file_cluster_proto_rawDescGZIP() []byte {
 }
 
 var file_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_cluster_proto_goTypes = []any{
 	(IdentityHandoverAck_State)(0),           // 0: cluster.IdentityHandoverAck.State
 	(*IdentityHandoverRequest)(nil),          // 1: cluster.IdentityHandoverRequest
@@ -1475,41 +1577,45 @@ var file_cluster_proto_goTypes = []any{
 	(*ClusterTopologyNotification)(nil),      // 17: cluster.ClusterTopologyNotification
 	(*MemberHeartbeat)(nil),                  // 18: cluster.MemberHeartbeat
 	(*ActorStatistics)(nil),                  // 19: cluster.ActorStatistics
-	(*IdentityHandoverRequest_Topology)(nil), // 20: cluster.IdentityHandoverRequest.Topology
-	(*PackedActivations_Kind)(nil),           // 21: cluster.PackedActivations.Kind
-	(*PackedActivations_Activation)(nil),     // 22: cluster.PackedActivations.Activation
-	nil,                                      // 23: cluster.ActorStatistics.ActorCountEntry
-	(*actor.PID)(nil),                        // 24: actor.PID
+	(*PeekRequest)(nil),                      // 20: cluster.PeekRequest
+	(*PeekResponse)(nil),                     // 21: cluster.PeekResponse
+	(*IdentityHandoverRequest_Topology)(nil), // 22: cluster.IdentityHandoverRequest.Topology
+	(*PackedActivations_Kind)(nil),           // 23: cluster.PackedActivations.Kind
+	(*PackedActivations_Activation)(nil),     // 24: cluster.PackedActivations.Activation
+	nil,                                      // 25: cluster.ActorStatistics.ActorCountEntry
+	(*actor.PID)(nil),                        // 26: actor.PID
 }
 var file_cluster_proto_depIdxs = []int32{
-	20, // 0: cluster.IdentityHandoverRequest.current_topology:type_name -> cluster.IdentityHandoverRequest.Topology
-	20, // 1: cluster.IdentityHandoverRequest.delta_topology:type_name -> cluster.IdentityHandoverRequest.Topology
+	22, // 0: cluster.IdentityHandoverRequest.current_topology:type_name -> cluster.IdentityHandoverRequest.Topology
+	22, // 1: cluster.IdentityHandoverRequest.delta_topology:type_name -> cluster.IdentityHandoverRequest.Topology
 	7,  // 2: cluster.IdentityHandover.actors:type_name -> cluster.Activation
 	4,  // 3: cluster.RemoteIdentityHandover.actors:type_name -> cluster.PackedActivations
-	21, // 4: cluster.PackedActivations.actors:type_name -> cluster.PackedActivations.Kind
+	23, // 4: cluster.PackedActivations.actors:type_name -> cluster.PackedActivations.Kind
 	0,  // 5: cluster.IdentityHandoverAck.processing_state:type_name -> cluster.IdentityHandoverAck.State
-	24, // 6: cluster.Activation.pid:type_name -> actor.PID
+	26, // 6: cluster.Activation.pid:type_name -> actor.PID
 	6,  // 7: cluster.Activation.cluster_identity:type_name -> cluster.ClusterIdentity
-	24, // 8: cluster.ActivationTerminating.pid:type_name -> actor.PID
+	26, // 8: cluster.ActivationTerminating.pid:type_name -> actor.PID
 	6,  // 9: cluster.ActivationTerminating.cluster_identity:type_name -> cluster.ClusterIdentity
-	24, // 10: cluster.ActivationTerminated.pid:type_name -> actor.PID
+	26, // 10: cluster.ActivationTerminated.pid:type_name -> actor.PID
 	6,  // 11: cluster.ActivationTerminated.cluster_identity:type_name -> cluster.ClusterIdentity
 	6,  // 12: cluster.ActivationRequest.cluster_identity:type_name -> cluster.ClusterIdentity
 	6,  // 13: cluster.ProxyActivationRequest.cluster_identity:type_name -> cluster.ClusterIdentity
-	24, // 14: cluster.ProxyActivationRequest.replaced_activation:type_name -> actor.PID
-	24, // 15: cluster.ActivationResponse.pid:type_name -> actor.PID
+	26, // 14: cluster.ProxyActivationRequest.replaced_activation:type_name -> actor.PID
+	26, // 15: cluster.ActivationResponse.pid:type_name -> actor.PID
 	15, // 16: cluster.ClusterTopology.members:type_name -> cluster.Member
 	15, // 17: cluster.ClusterTopology.joined:type_name -> cluster.Member
 	15, // 18: cluster.ClusterTopology.left:type_name -> cluster.Member
 	19, // 19: cluster.MemberHeartbeat.actor_statistics:type_name -> cluster.ActorStatistics
-	23, // 20: cluster.ActorStatistics.actor_count:type_name -> cluster.ActorStatistics.ActorCountEntry
-	15, // 21: cluster.IdentityHandoverRequest.Topology.members:type_name -> cluster.Member
-	22, // 22: cluster.PackedActivations.Kind.activations:type_name -> cluster.PackedActivations.Activation
-	23, // [23:23] is the sub-list for method output_type
-	23, // [23:23] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	25, // 20: cluster.ActorStatistics.actor_count:type_name -> cluster.ActorStatistics.ActorCountEntry
+	6,  // 21: cluster.PeekRequest.cluster_identity:type_name -> cluster.ClusterIdentity
+	26, // 22: cluster.PeekResponse.pid:type_name -> actor.PID
+	15, // 23: cluster.IdentityHandoverRequest.Topology.members:type_name -> cluster.Member
+	24, // 24: cluster.PackedActivations.Kind.activations:type_name -> cluster.PackedActivations.Activation
+	25, // [25:25] is the sub-list for method output_type
+	25, // [25:25] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_cluster_proto_init() }
@@ -1523,7 +1629,7 @@ func file_cluster_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cluster_proto_rawDesc), len(file_cluster_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   23,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

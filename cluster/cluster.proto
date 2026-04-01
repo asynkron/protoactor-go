@@ -134,3 +134,12 @@ message ActorStatistics {
   map<string, int64> actor_count = 1;
 }
 
+message PeekRequest {
+  ClusterIdentity cluster_identity = 1;
+}
+
+message PeekResponse {
+  bool found = 1;
+  actor.PID pid = 2;
+}
+
