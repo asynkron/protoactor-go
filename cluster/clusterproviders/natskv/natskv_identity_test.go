@@ -771,6 +771,69 @@ func TestIdentityLookup_EndToEnd_ActivateAndRetrieve(t *testing.T) {
 	assert.Equal(t, il.memberID, rec.MemberID, "member ID should be ours")
 }
 
+func TestNatsKV_Peek_Alive(t *testing.T) {
+	p, c, il := setupPlacementTestCluster(t, "peek-alive")
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "peek-alive-1"}
+	pid := il.Get(ci)
+	require.NotNil(t, pid, "Get should activate the grain")
+
+	result, err := il.Peek(ci)
+	require.NoError(t, err)
+	assert.Equal(t, cluster.PeekStatusAlive, result.Status)
+	assert.Equal(t, "peek-alive-1", result.Identity)
+	assert.Equal(t, "TestKind", result.Kind)
+	assert.Equal(t, pid, result.PID)
+
+	_, _ = p, c
+}
+
+func TestNatsKV_Peek_NotFound(t *testing.T) {
+	_, _, il := setupPlacementTestCluster(t, "peek-notfound")
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "never-activated"}
+	result, err := il.Peek(ci)
+	require.NoError(t, err)
+	assert.Equal(t, cluster.PeekStatusNotFound, result.Status)
+}
+
+func TestNatsKV_Peek_MemberDead(t *testing.T) {
+	_, _, il := setupPlacementTestCluster(t, "peek-member-dead")
+
+	ctx := context.Background()
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "dead-grain"}
+	rec := activationRecord{
+		MemberID:   "dead-member-id",
+		PidID:      "TestKind/dead-grain",
+		PidAddress: "dead-host:9999",
+	}
+	data, _ := json.Marshal(&rec)
+	_, err := il.identities.Put(ctx, kvKey(ci), data)
+	require.NoError(t, err)
+
+	result, err := il.Peek(ci)
+	require.NoError(t, err)
+	assert.Equal(t, cluster.PeekStatusMemberDead, result.Status)
+	assert.Equal(t, "dead-grain", result.Identity)
+}
+
+func TestNatsKV_Peek_Stale(t *testing.T) {
+	p, c, il := setupPlacementTestCluster(t, "peek-stale")
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "peek-stale-1"}
+	pid := il.Get(ci)
+	require.NotNil(t, pid)
+
+	c.ActorSystem.Root.Poison(pid)
+
+	require.Eventually(t, func() bool {
+		r, err := il.Peek(ci)
+		return err == nil && r.Status == cluster.PeekStatusStale
+	}, 5*time.Second, 50*time.Millisecond)
+
+	_ = p
+}
+
 // TestIdentityLookup_GetExistingActivation_ReturnsActivationFromOtherMember
 // verifies that getExistingActivation returns activations stored by other
 // members without proactively deleting them. Stale PID cleanup is handled

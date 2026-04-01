@@ -1063,7 +1063,77 @@ func (il *IdentityLookup) listMemberGrains(ctx context.Context, memberID string)
 	return result, nil
 }
 
-// Peek checks whether a grain activation exists without triggering activation.
+// Peek checks if a grain activation exists without triggering activation.
 func (il *IdentityLookup) Peek(clusterIdentity *cluster.ClusterIdentity) (*cluster.PeekResult, error) {
-	panic("not implemented")
+	notFound := &cluster.PeekResult{
+		GrainInfo: &cluster.GrainInfo{
+			Identity: clusterIdentity.Identity,
+			Kind:     clusterIdentity.Kind,
+		},
+		Status: cluster.PeekStatusNotFound,
+	}
+
+	if il.setupErr != nil {
+		return nil, fmt.Errorf("natskv identity: cannot Peek, setup failed: %w", il.setupErr)
+	}
+	if il.defunct {
+		return nil, fmt.Errorf("natskv identity: cannot Peek, shutdown was called")
+	}
+
+	// Step 1: Check for existing activation in NATS KV.
+	ctx := context.Background()
+	existing := il.getExistingActivation(ctx, clusterIdentity)
+	if existing == nil {
+		return notFound, nil
+	}
+
+	// Step 2: Validate owning member is alive.
+	if !cluster.ValidateActivationMember(il.cluster.MemberList, existing.MemberID) {
+		return &cluster.PeekResult{
+			GrainInfo: &cluster.GrainInfo{
+				Identity: clusterIdentity.Identity,
+				Kind:     clusterIdentity.Kind,
+				MemberID: existing.MemberID,
+			},
+			Status: cluster.PeekStatusMemberDead,
+		}, nil
+	}
+
+	// Step 3: Confirm process alive via placement actor.
+	ownerAddress := existing.PidAddress
+	proxyPID := actor.NewPID(ownerAddress, "$proxy-activator")
+	future := il.cluster.ActorSystem.Root.RequestFuture(proxyPID, &cluster.PeekRequest{
+		ClusterIdentity: clusterIdentity,
+	}, 5*time.Second)
+
+	res, err := future.Result()
+	if err != nil {
+		return nil, fmt.Errorf("peek request to %s failed: %w", ownerAddress, err)
+	}
+
+	peekResp, ok := res.(*cluster.PeekResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type: %T", res)
+	}
+
+	if peekResp.Found {
+		return &cluster.PeekResult{
+			GrainInfo: &cluster.GrainInfo{
+				Identity: clusterIdentity.Identity,
+				Kind:     clusterIdentity.Kind,
+				PID:      peekResp.Pid,
+				MemberID: existing.MemberID,
+			},
+			Status: cluster.PeekStatusAlive,
+		}, nil
+	}
+
+	return &cluster.PeekResult{
+		GrainInfo: &cluster.GrainInfo{
+			Identity: clusterIdentity.Identity,
+			Kind:     clusterIdentity.Kind,
+			MemberID: existing.MemberID,
+		},
+		Status: cluster.PeekStatusStale,
+	}, nil
 }
