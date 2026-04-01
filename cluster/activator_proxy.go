@@ -42,6 +42,8 @@ func (a *activatorProxy) Receive(ctx actor.Context) {
 		a.forwardActivationRequest(ctx, msg)
 	case *ProxyActivationRequest:
 		a.handleProxyActivationRequest(ctx, msg)
+	case *PeekRequest:
+		a.forwardPeekRequest(ctx, msg)
 	default:
 		ctx.Logger().Debug("Activator proxy ignoring unknown message",
 			slog.Any("type", msg))
@@ -63,6 +65,24 @@ func (a *activatorProxy) forwardActivationRequest(ctx actor.Context, msg *Activa
 		}
 
 		// Forward the response as-is.
+		ctx.Respond(res)
+	})
+}
+
+// forwardPeekRequest forwards a PeekRequest to the local placement actor
+// and responds with the result. This is a read-only operation.
+func (a *activatorProxy) forwardPeekRequest(ctx actor.Context, msg *PeekRequest) {
+	future := ctx.RequestFuture(a.placementPID, msg, proxyForwardTimeout)
+
+	ctx.ReenterAfter(future, func(res any, err error) {
+		if err != nil {
+			ctx.Logger().Error("Proxy forward PeekRequest failed",
+				slog.String("identity", msg.ClusterIdentity.Identity),
+				slog.Any("error", err))
+			ctx.Respond(&PeekResponse{Found: false})
+			return
+		}
+
 		ctx.Respond(res)
 	})
 }

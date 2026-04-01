@@ -152,6 +152,102 @@ func TestActivatorProxy_UnknownMessage_Ignored(t *testing.T) {
 	assert.False(t, resp.Failed)
 }
 
+func TestActivatorProxy_ForwardsPeekRequest(t *testing.T) {
+	c := newTestClusterWithKind(t, "test-kind", echoProps())
+
+	cfg := PlacementConfig{}
+	placementProps := NewPlacementActorProps(c, cfg)
+	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$test-placement-proxy-peek")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(placementPID)
+
+	lookup := &fakeIdentityLookup{}
+	lookup.Setup(c, nil, false)
+	proxyProps := NewActivatorProxyProps(placementPID, lookup)
+	proxyPID, err := c.ActorSystem.Root.SpawnNamed(proxyProps, "$test-proxy-peek")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(proxyPID)
+
+	activateReq := &ActivationRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "grain-1"},
+		RequestId:       "req-1",
+	}
+	activateFuture := c.ActorSystem.Root.RequestFuture(proxyPID, activateReq, 5*time.Second)
+	activateRes, err := activateFuture.Result()
+	require.NoError(t, err)
+	activateResp := activateRes.(*ActivationResponse)
+	require.False(t, activateResp.Failed)
+
+	peekReq := &PeekRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "grain-1"},
+	}
+	peekFuture := c.ActorSystem.Root.RequestFuture(proxyPID, peekReq, 5*time.Second)
+	peekRes, err := peekFuture.Result()
+	require.NoError(t, err)
+	peekResp, ok := peekRes.(*PeekResponse)
+	require.True(t, ok)
+	assert.True(t, peekResp.Found)
+	assert.Equal(t, activateResp.Pid, peekResp.Pid)
+}
+
+func TestActivatorProxy_ForwardsPeekRequest_NotFound(t *testing.T) {
+	c := newTestClusterWithKind(t, "test-kind", echoProps())
+
+	cfg := PlacementConfig{}
+	placementProps := NewPlacementActorProps(c, cfg)
+	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$test-placement-proxy-peek-nf")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(placementPID)
+
+	lookup := &fakeIdentityLookup{}
+	lookup.Setup(c, nil, false)
+	proxyProps := NewActivatorProxyProps(placementPID, lookup)
+	proxyPID, err := c.ActorSystem.Root.SpawnNamed(proxyProps, "$test-proxy-peek-nf")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(proxyPID)
+
+	peekReq := &PeekRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "nonexistent"},
+	}
+	peekFuture := c.ActorSystem.Root.RequestFuture(proxyPID, peekReq, 5*time.Second)
+	peekRes, err := peekFuture.Result()
+	require.NoError(t, err)
+	peekResp, ok := peekRes.(*PeekResponse)
+	require.True(t, ok)
+	assert.False(t, peekResp.Found)
+}
+
+func TestActivatorProxy_ForwardsPeekRequest_Timeout(t *testing.T) {
+	c := newTestClusterWithKind(t, "test-kind", echoProps())
+
+	// Create a "black hole" actor that never responds, simulating an unresponsive placement actor.
+	blackHoleProps := actor.PropsFromFunc(func(ctx actor.Context) {
+		// Intentionally ignore all messages.
+	})
+	blackHolePID, err := c.ActorSystem.Root.SpawnNamed(blackHoleProps, "$test-blackhole-placement")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(blackHolePID)
+
+	lookup := &fakeIdentityLookup{}
+	lookup.Setup(c, nil, false)
+	proxyProps := NewActivatorProxyProps(blackHolePID, lookup)
+	proxyPID, err := c.ActorSystem.Root.SpawnNamed(proxyProps, "$test-proxy-peek-timeout")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(proxyPID)
+
+	peekReq := &PeekRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "timeout-grain"},
+	}
+	// Use a timeout longer than proxyForwardTimeout (10s) to ensure we get
+	// the proxy's error response, not our own timeout.
+	peekFuture := c.ActorSystem.Root.RequestFuture(proxyPID, peekReq, 15*time.Second)
+	peekRes, err := peekFuture.Result()
+	require.NoError(t, err)
+	peekResp, ok := peekRes.(*PeekResponse)
+	require.True(t, ok)
+	assert.False(t, peekResp.Found, "proxy should respond Found: false on placement timeout")
+}
+
 func TestActivatorProxy_TimeoutOnForward_RespondsFailed(t *testing.T) {
 	system := actor.NewActorSystem()
 	t.Cleanup(func() { system.Shutdown() })
