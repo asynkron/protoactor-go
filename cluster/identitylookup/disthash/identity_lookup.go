@@ -2,6 +2,7 @@
 package disthash
 
 import (
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -42,9 +43,88 @@ func (p *IdentityLookup) Shutdown() {
 	p.partitionManager.Stop()
 }
 
-// Peek checks whether a grain activation exists without triggering activation.
+// Peek checks if a grain activation exists without triggering activation.
+// For disthash, this hashes to the owner member and sends a PeekRequest
+// directly to the placement actor (not via the proxy). This matches how
+// disthash's Get() sends ActivationRequest directly to the placement actor,
+// unlike natskv/natsstream/storage which route through $proxy-activator.
 func (p *IdentityLookup) Peek(clusterIdentity *cluster.ClusterIdentity) (*cluster.PeekResult, error) {
-	panic("not implemented")
+	pm := p.partitionManager
+	notFound := &cluster.PeekResult{
+		GrainInfo: &cluster.GrainInfo{
+			Identity: clusterIdentity.Identity,
+			Kind:     clusterIdentity.Kind,
+		},
+		Status: cluster.PeekStatusNotFound,
+	}
+
+	// Snapshot rendezvous under read lock.
+	pm.rdvMutex.RLock()
+	rdv := pm.rdv
+	pm.rdvMutex.RUnlock()
+
+	ownerAddress := rdv.GetByClusterIdentity(clusterIdentity)
+	if ownerAddress == "" {
+		return notFound, nil
+	}
+
+	// Check if the owning member is still in the cluster.
+	memberSet := pm.cluster.MemberList.Members()
+	if memberSet == nil {
+		return notFound, nil
+	}
+
+	memberAlive := false
+	var ownerMember *cluster.Member
+	for _, m := range memberSet.Members() {
+		if m.Address() == ownerAddress {
+			memberAlive = true
+			ownerMember = m
+			break
+		}
+	}
+
+	if !memberAlive {
+		return &cluster.PeekResult{
+			GrainInfo: &cluster.GrainInfo{
+				Identity: clusterIdentity.Identity,
+				Kind:     clusterIdentity.Kind,
+			},
+			Status: cluster.PeekStatusMemberDead,
+		}, nil
+	}
+
+	// Send PeekRequest to the placement actor on the owning member.
+	placementPID := pm.PidOfActivatorActor(ownerAddress)
+	future := pm.cluster.ActorSystem.Root.RequestFuture(placementPID, &cluster.PeekRequest{
+		ClusterIdentity: clusterIdentity,
+	}, 5*time.Second)
+
+	res, err := future.Result()
+	if err != nil {
+		return nil, fmt.Errorf("peek request to %s failed: %w", ownerAddress, err)
+	}
+
+	peekResp, ok := res.(*cluster.PeekResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type from placement actor: %T", res)
+	}
+
+	if peekResp.Found {
+		return &cluster.PeekResult{
+			GrainInfo: &cluster.GrainInfo{
+				Identity: clusterIdentity.Identity,
+				Kind:     clusterIdentity.Kind,
+				PID:      peekResp.Pid,
+				MemberID: ownerMember.Id,
+			},
+			Status: cluster.PeekStatusAlive,
+		}, nil
+	}
+
+	// disthash has no persistent records — if placement says not found,
+	// the grain simply doesn't exist.
+	return notFound, nil
 }
 
 // New creates a new distributed hash identity lookup implementation.

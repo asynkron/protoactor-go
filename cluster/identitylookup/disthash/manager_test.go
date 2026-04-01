@@ -479,3 +479,136 @@ func TestPlacementActorCleansUpOnTermination(t *testing.T) {
 func TestDistHashManager(t *testing.T) {
 	suite.Run(t, new(DistHashManagerTestSuite))
 }
+
+// setupDisthashPeekTest creates a cluster, partition manager, and wires the
+// lookup so that Peek() works. The lookup's partitionManager is set directly
+// since we bypass Setup() in unit tests (same as existing manager tests).
+func setupDisthashPeekTest(t *testing.T) (*IdentityLookup, *Manager, *actor.ActorSystem, *cluster.Cluster) {
+	t.Helper()
+	system := actor.NewActorSystem()
+	props := actor.PropsFromFunc(func(ctx actor.Context) {})
+	kind := cluster.NewKind("TestKind", props)
+	provider := test.NewTestProvider(test.NewInMemAgent())
+	lookup := New().(*IdentityLookup)
+	remoteCfg := remote.Configure("127.0.0.1", 0)
+	config := cluster.Configure("test-cluster", provider, lookup, remoteCfg, cluster.WithKinds(kind))
+	c := cluster.NewCluster(system, config)
+
+	// Start remote so MemberList.UpdateClusterTopology can access the block list.
+	c.Remote = remote.NewRemote(system, c.Config.RemoteConfig)
+	err := c.Remote.Start()
+	require.NoError(t, err)
+
+	c.InitKindsForTest(kind)
+
+	manager := newPartitionManager(c)
+	manager.Start()
+
+	// Wire the partition manager into the lookup so Peek() can access it.
+	lookup.partitionManager = manager
+
+	t.Cleanup(func() {
+		manager.Stop()
+		c.Remote.Shutdown(true)
+	})
+	return lookup, manager, system, c
+}
+
+func TestDisthash_Peek_ActiveGrain(t *testing.T) {
+	lookup, manager, system, c := setupDisthashPeekTest(t)
+
+	host, port, err := system.GetHostPort()
+	require.NoError(t, err)
+	self := &cluster.Member{Host: host, Port: int32(port), Id: system.ID, Kinds: []string{"TestKind"}}
+	manager.onClusterTopology(&cluster.ClusterTopology{
+		Members: cluster.Members{self},
+	})
+	c.MemberList.UpdateClusterTopology(cluster.Members{self})
+
+	identity := &cluster.ClusterIdentity{Identity: "abc", Kind: "TestKind"}
+	req := &cluster.ActivationRequest{ClusterIdentity: identity}
+	future := system.Root.RequestFuture(manager.placementActor, req, 5*time.Second)
+	res, err := future.Result()
+	require.NoError(t, err)
+	resp := res.(*cluster.ActivationResponse)
+	require.False(t, resp.Failed)
+	require.NotNil(t, resp.Pid)
+
+	peekResult, err := lookup.Peek(identity)
+	require.NoError(t, err)
+	assert.Equal(t, cluster.PeekStatusAlive, peekResult.Status)
+	assert.Equal(t, "abc", peekResult.Identity)
+	assert.Equal(t, "TestKind", peekResult.Kind)
+	assert.Equal(t, resp.Pid, peekResult.PID)
+	assert.Equal(t, system.ID, peekResult.MemberID)
+}
+
+func TestDisthash_Peek_NoActivation(t *testing.T) {
+	lookup, manager, system, c := setupDisthashPeekTest(t)
+
+	host, port, err := system.GetHostPort()
+	require.NoError(t, err)
+	self := &cluster.Member{Host: host, Port: int32(port), Id: system.ID, Kinds: []string{"TestKind"}}
+	manager.onClusterTopology(&cluster.ClusterTopology{
+		Members: cluster.Members{self},
+	})
+	c.MemberList.UpdateClusterTopology(cluster.Members{self})
+
+	identity := &cluster.ClusterIdentity{Identity: "nonexistent", Kind: "TestKind"}
+	peekResult, err := lookup.Peek(identity)
+	require.NoError(t, err)
+	assert.Equal(t, cluster.PeekStatusNotFound, peekResult.Status)
+}
+
+func TestDisthash_Peek_AfterTermination(t *testing.T) {
+	lookup, manager, system, c := setupDisthashPeekTest(t)
+
+	host, port, err := system.GetHostPort()
+	require.NoError(t, err)
+	self := &cluster.Member{Host: host, Port: int32(port), Id: system.ID, Kinds: []string{"TestKind"}}
+	manager.onClusterTopology(&cluster.ClusterTopology{
+		Members: cluster.Members{self},
+	})
+	c.MemberList.UpdateClusterTopology(cluster.Members{self})
+
+	identity := &cluster.ClusterIdentity{Identity: "will-die", Kind: "TestKind"}
+	req := &cluster.ActivationRequest{ClusterIdentity: identity}
+	future := system.Root.RequestFuture(manager.placementActor, req, 5*time.Second)
+	res, err := future.Result()
+	require.NoError(t, err)
+	resp := res.(*cluster.ActivationResponse)
+	require.False(t, resp.Failed)
+
+	system.Root.Poison(resp.Pid)
+	require.Eventually(t, func() bool {
+		r, err := lookup.Peek(identity)
+		return err == nil && r.Status == cluster.PeekStatusNotFound
+	}, 5*time.Second, 50*time.Millisecond)
+}
+
+func TestDisthash_Peek_MemberDead(t *testing.T) {
+	lookup, manager, _, c := setupDisthashPeekTest(t)
+
+	deadMember := &cluster.Member{Host: "dead-host", Port: 9999, Id: "dead-member-id", Kinds: []string{"TestKind"}}
+	manager.onClusterTopology(&cluster.ClusterTopology{
+		Members: cluster.Members{deadMember},
+	})
+	// MemberList has NO members — the dead member is not in it.
+	c.MemberList.UpdateClusterTopology(cluster.Members{})
+
+	identity := &cluster.ClusterIdentity{Identity: "abc", Kind: "TestKind"}
+	peekResult, err := lookup.Peek(identity)
+	require.NoError(t, err)
+	assert.Equal(t, cluster.PeekStatusMemberDead, peekResult.Status)
+	assert.Equal(t, "abc", peekResult.Identity)
+	assert.Equal(t, "TestKind", peekResult.Kind)
+}
+
+func TestDisthash_Peek_NoMembers(t *testing.T) {
+	lookup, _, _, _ := setupDisthashPeekTest(t)
+
+	identity := &cluster.ClusterIdentity{Identity: "abc", Kind: "TestKind"}
+	peekResult, err := lookup.Peek(identity)
+	require.NoError(t, err)
+	assert.Equal(t, cluster.PeekStatusNotFound, peekResult.Status)
+}
