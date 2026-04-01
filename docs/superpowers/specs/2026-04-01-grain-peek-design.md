@@ -95,7 +95,7 @@ All backends follow the same three-step pattern:
 
 1. **Check for activation record** (backend-specific, read-only)
 2. **Validate member liveness** via `MemberList.ContainsMemberID` (local, cheap)
-3. **Confirm process alive** by sending `PeekRequest` to `$proxy-activator` on the owning member
+3. **Confirm process alive** by sending `PeekRequest` to the owning member's placement actor (disthash sends directly to the placement actor via `PidOfActivatorActor`; natskv, natsstream, and storage route through `$proxy-activator`)
 
 The final `PeekStatus` is determined by combining the results:
 

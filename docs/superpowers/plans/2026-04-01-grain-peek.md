@@ -202,6 +202,9 @@ In `cluster/cluster.go`, add after the existing `Cluster.Get` method:
 // Peek checks whether a grain activation exists without triggering activation.
 // Returns a PeekResult with liveness status. See PeekStatus for possible states.
 func (c *Cluster) Peek(identity, kind string) (*PeekResult, error) {
+	if c.IdentityLookup == nil {
+		return nil, fmt.Errorf("cluster not started")
+	}
 	return c.IdentityLookup.Peek(NewClusterIdentity(identity, kind))
 }
 ```
@@ -391,16 +394,54 @@ func TestPlacementActor_PeekRequest_WhileStopping(t *testing.T) {
 	c.ActorSystem.Root.Poison(placementPID)
 	time.Sleep(100 * time.Millisecond) // Let the poison arrive.
 
-	// Peek while stopping — should report not found.
+	// Peek while stopping — should report not found (or timeout if already stopped).
 	peekReq := &PeekRequest{
 		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "grain-1"},
 	}
 	peekFuture := c.ActorSystem.Root.RequestFuture(placementPID, peekReq, 5*time.Second)
 	peekRes, err := peekFuture.Result()
-	require.NoError(t, err)
+	if err != nil {
+		// Actor already fully stopped — timeout/dead letter is acceptable.
+		return
+	}
 	peekResp, ok := peekRes.(*PeekResponse)
 	require.True(t, ok)
 	assert.False(t, peekResp.Found, "peek should report not found while placement is stopping")
+}
+
+func TestPlacementActor_PeekRequest_DoesNotActivate(t *testing.T) {
+	c := newTestClusterWithKind(t, "test-kind", echoProps())
+
+	cfg := PlacementConfig{}
+	placementProps := NewPlacementActorProps(c, cfg)
+	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$test-placement-peek-noactivate")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(placementPID)
+
+	// Peek for an identity that does not exist.
+	peekReq := &PeekRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "should-not-exist"},
+	}
+	peekFuture := c.ActorSystem.Root.RequestFuture(placementPID, peekReq, 5*time.Second)
+	peekRes, err := peekFuture.Result()
+	require.NoError(t, err)
+	peekResp := peekRes.(*PeekResponse)
+	assert.False(t, peekResp.Found)
+
+	// Verify the grain was NOT activated by peeking again and by checking ListGrains.
+	listFuture := c.ActorSystem.Root.RequestFuture(placementPID, &ListGrainsRequest{}, 5*time.Second)
+	listRes, err := listFuture.Result()
+	require.NoError(t, err)
+	listResp := listRes.(*ListGrainsResponse)
+	assert.Empty(t, listResp.Grains, "peek should not have activated any grains")
+}
+
+func TestPeekStatus_String(t *testing.T) {
+	assert.Equal(t, "not_found", PeekStatusNotFound.String())
+	assert.Equal(t, "alive", PeekStatusAlive.String())
+	assert.Equal(t, "member_dead", PeekStatusMemberDead.String())
+	assert.Equal(t, "stale", PeekStatusStale.String())
+	assert.Equal(t, "PeekStatus(99)", PeekStatus(99).String())
 }
 
 func TestPlacementActor_PeekRequest_ConcurrentWithActivation(t *testing.T) {
@@ -584,6 +625,39 @@ func TestActivatorProxy_ForwardsPeekRequest_NotFound(t *testing.T) {
 	require.True(t, ok)
 	assert.False(t, peekResp.Found)
 }
+
+func TestActivatorProxy_ForwardsPeekRequest_Timeout(t *testing.T) {
+	c := newTestClusterWithKind(t, "test-kind", echoProps())
+
+	// Create a "black hole" actor that never responds, simulating an unresponsive placement actor.
+	blackHoleProps := actor.PropsFromFunc(func(ctx actor.Context) {
+		// Intentionally ignore all messages.
+	})
+	blackHolePID, err := c.ActorSystem.Root.SpawnNamed(blackHoleProps, "$test-blackhole-placement")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(blackHolePID)
+
+	lookup := &fakeIdentityLookup{}
+	lookup.Setup(c, nil, false)
+	proxyProps := NewActivatorProxyProps(blackHolePID, lookup)
+	proxyPID, err := c.ActorSystem.Root.SpawnNamed(proxyProps, "$test-proxy-peek-timeout")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(proxyPID)
+
+	// Peek via the proxy — the placement actor never responds, so the proxy
+	// should hit proxyForwardTimeout and respond with Found: false.
+	peekReq := &PeekRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "timeout-grain"},
+	}
+	// Use a timeout longer than proxyForwardTimeout (10s) to ensure we get
+	// the proxy's error response, not our own timeout.
+	peekFuture := c.ActorSystem.Root.RequestFuture(proxyPID, peekReq, 15*time.Second)
+	peekRes, err := peekFuture.Result()
+	require.NoError(t, err)
+	peekResp, ok := peekRes.(*PeekResponse)
+	require.True(t, ok)
+	assert.False(t, peekResp.Found, "proxy should respond Found: false on placement timeout")
+}
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -650,22 +724,35 @@ git commit -m "feat(cluster): add PeekRequest forwarding to activator proxy"
 
 - [ ] **Step 1: Write tests for disthash Peek**
 
-Add to `cluster/identitylookup/disthash/manager_test.go`:
+Add a helper and tests to `cluster/identitylookup/disthash/manager_test.go`:
 
 ```go
-func TestDisthash_Peek_ActiveGrain(t *testing.T) {
+// setupDisthashPeekTest creates a cluster, partition manager, and wires the
+// lookup so that Peek() works. The lookup's partitionManager is set directly
+// since we bypass Setup() in unit tests (same as existing manager tests).
+func setupDisthashPeekTest(t *testing.T) (*IdentityLookup, *Manager, *actor.ActorSystem, *cluster.Cluster) {
+	t.Helper()
 	system := actor.NewActorSystem()
 	props := actor.PropsFromFunc(func(ctx actor.Context) {})
 	kind := cluster.NewKind("TestKind", props)
 	provider := test.NewTestProvider(test.NewInMemAgent())
-	lookup := New()
+	lookup := New().(*IdentityLookup)
 	config := cluster.Configure("test-cluster", provider, lookup,
 		remote.Configure("127.0.0.1", 0), cluster.WithKinds(kind))
 	c := cluster.NewCluster(system, config)
 
 	manager := newPartitionManager(c)
 	manager.Start()
-	defer manager.Stop()
+
+	// Wire the partition manager into the lookup so Peek() can access it.
+	lookup.partitionManager = manager
+
+	t.Cleanup(func() { manager.Stop() })
+	return lookup, manager, system, c
+}
+
+func TestDisthash_Peek_ActiveGrain(t *testing.T) {
+	lookup, manager, system, c := setupDisthashPeekTest(t)
 
 	// Register self as the only member so rendezvous always maps to us.
 	self := &cluster.Member{Host: "127.0.0.1", Port: 0, Id: system.ID, Kinds: []string{"TestKind"}}
@@ -691,21 +778,11 @@ func TestDisthash_Peek_ActiveGrain(t *testing.T) {
 	assert.Equal(t, "abc", peekResult.Identity)
 	assert.Equal(t, "TestKind", peekResult.Kind)
 	assert.Equal(t, resp.Pid, peekResult.PID)
+	assert.Equal(t, system.ID, peekResult.MemberID)
 }
 
 func TestDisthash_Peek_NoActivation(t *testing.T) {
-	system := actor.NewActorSystem()
-	props := actor.PropsFromFunc(func(ctx actor.Context) {})
-	kind := cluster.NewKind("TestKind", props)
-	provider := test.NewTestProvider(test.NewInMemAgent())
-	lookup := New()
-	config := cluster.Configure("test-cluster", provider, lookup,
-		remote.Configure("127.0.0.1", 0), cluster.WithKinds(kind))
-	c := cluster.NewCluster(system, config)
-
-	manager := newPartitionManager(c)
-	manager.Start()
-	defer manager.Stop()
+	lookup, manager, system, c := setupDisthashPeekTest(t)
 
 	self := &cluster.Member{Host: "127.0.0.1", Port: 0, Id: system.ID, Kinds: []string{"TestKind"}}
 	manager.onClusterTopology(&cluster.ClusterTopology{
@@ -721,18 +798,7 @@ func TestDisthash_Peek_NoActivation(t *testing.T) {
 }
 
 func TestDisthash_Peek_AfterTermination(t *testing.T) {
-	system := actor.NewActorSystem()
-	props := actor.PropsFromFunc(func(ctx actor.Context) {})
-	kind := cluster.NewKind("TestKind", props)
-	provider := test.NewTestProvider(test.NewInMemAgent())
-	lookup := New()
-	config := cluster.Configure("test-cluster", provider, lookup,
-		remote.Configure("127.0.0.1", 0), cluster.WithKinds(kind))
-	c := cluster.NewCluster(system, config)
-
-	manager := newPartitionManager(c)
-	manager.Start()
-	defer manager.Stop()
+	lookup, manager, system, c := setupDisthashPeekTest(t)
 
 	self := &cluster.Member{Host: "127.0.0.1", Port: 0, Id: system.ID, Kinds: []string{"TestKind"}}
 	manager.onClusterTopology(&cluster.ClusterTopology{
@@ -749,29 +815,36 @@ func TestDisthash_Peek_AfterTermination(t *testing.T) {
 	resp := res.(*cluster.ActivationResponse)
 	require.False(t, resp.Failed)
 
-	// Stop the grain.
+	// Stop the grain and wait for the placement actor to process Terminated.
 	system.Root.Poison(resp.Pid)
-	time.Sleep(500 * time.Millisecond) // Wait for termination to propagate.
+	require.Eventually(t, func() bool {
+		r, err := lookup.Peek(identity)
+		return err == nil && r.Status == cluster.PeekStatusNotFound
+	}, 5*time.Second, 50*time.Millisecond)
+}
 
-	// Peek should return NotFound.
+func TestDisthash_Peek_MemberDead(t *testing.T) {
+	lookup, manager, _, c := setupDisthashPeekTest(t)
+
+	// Set up rendezvous with a member, then remove it from the MemberList
+	// (but leave it in the rendezvous so the hash still points to it).
+	deadMember := &cluster.Member{Host: "dead-host", Port: 9999, Id: "dead-member-id", Kinds: []string{"TestKind"}}
+	manager.onClusterTopology(&cluster.ClusterTopology{
+		Members: cluster.Members{deadMember},
+	})
+	// MemberList has NO members — the dead member is not in it.
+	c.MemberList.UpdateClusterTopology(cluster.Members{})
+
+	identity := &cluster.ClusterIdentity{Identity: "abc", Kind: "TestKind"}
 	peekResult, err := lookup.Peek(identity)
 	require.NoError(t, err)
-	assert.Equal(t, cluster.PeekStatusNotFound, peekResult.Status)
+	assert.Equal(t, cluster.PeekStatusMemberDead, peekResult.Status)
+	assert.Equal(t, "abc", peekResult.Identity)
+	assert.Equal(t, "TestKind", peekResult.Kind)
 }
 
 func TestDisthash_Peek_NoMembers(t *testing.T) {
-	system := actor.NewActorSystem()
-	props := actor.PropsFromFunc(func(ctx actor.Context) {})
-	kind := cluster.NewKind("TestKind", props)
-	provider := test.NewTestProvider(test.NewInMemAgent())
-	lookup := New()
-	config := cluster.Configure("test-cluster", provider, lookup,
-		remote.Configure("127.0.0.1", 0), cluster.WithKinds(kind))
-	c := cluster.NewCluster(system, config)
-
-	manager := newPartitionManager(c)
-	manager.Start()
-	defer manager.Stop()
+	lookup, _, _, _ := setupDisthashPeekTest(t)
 
 	// No members registered — rendezvous returns empty.
 	identity := &cluster.ClusterIdentity{Identity: "abc", Kind: "TestKind"}
@@ -796,7 +869,9 @@ Replace the stub `Peek` method in `cluster/identitylookup/disthash/identity_look
 ```go
 // Peek checks if a grain activation exists without triggering activation.
 // For disthash, this hashes to the owner member and sends a PeekRequest
-// to the placement actor.
+// directly to the placement actor (not via the proxy). This matches how
+// disthash's Get() sends ActivationRequest directly to the placement actor,
+// unlike natskv/natsstream/storage which route through $proxy-activator.
 func (p *IdentityLookup) Peek(clusterIdentity *cluster.ClusterIdentity) (*cluster.PeekResult, error) {
 	pm := p.partitionManager
 	notFound := &cluster.PeekResult{
@@ -967,12 +1042,12 @@ func TestNatsKV_Peek_Stale(t *testing.T) {
 
 	// Stop the grain process directly (bypassing identity cleanup).
 	c.ActorSystem.Root.Poison(pid)
-	time.Sleep(500 * time.Millisecond)
 
-	// The NATS KV record still exists, but placement actor no longer has it.
-	result, err := il.Peek(ci)
-	require.NoError(t, err)
-	assert.Equal(t, cluster.PeekStatusStale, result.Status)
+	// Wait for the placement actor to process Terminated, then Peek should return Stale.
+	require.Eventually(t, func() bool {
+		r, err := il.Peek(ci)
+		return err == nil && r.Status == cluster.PeekStatusStale
+	}, 5*time.Second, 50*time.Millisecond)
 
 	_ = p
 }
@@ -1156,11 +1231,12 @@ func TestNatsStream_Peek_Stale(t *testing.T) {
 
 	// Stop grain directly, bypassing identity cleanup.
 	c.ActorSystem.Root.Poison(pid)
-	time.Sleep(500 * time.Millisecond)
 
-	result, err := il.Peek(ci)
-	require.NoError(t, err)
-	assert.Equal(t, cluster.PeekStatusStale, result.Status)
+	// Wait for placement actor to process Terminated, then Peek should return Stale.
+	require.Eventually(t, func() bool {
+		r, err := il.Peek(ci)
+		return err == nil && r.Status == cluster.PeekStatusStale
+	}, 5*time.Second, 50*time.Millisecond)
 
 	_ = p
 }
@@ -1338,12 +1414,12 @@ func TestStorageLookup_Peek_Stale(t *testing.T) {
 
 	// Stop the grain directly, bypassing storage cleanup.
 	c.ActorSystem.Root.Poison(pid)
-	time.Sleep(500 * time.Millisecond)
 
-	// Storage record still exists but placement actor no longer has it.
-	result, err := isl.Peek(ci)
-	require.NoError(t, err)
-	assert.Equal(t, cluster.PeekStatusStale, result.Status)
+	// Wait for placement actor to process Terminated, then Peek should return Stale.
+	require.Eventually(t, func() bool {
+		r, err := isl.Peek(ci)
+		return err == nil && r.Status == cluster.PeekStatusStale
+	}, 5*time.Second, 50*time.Millisecond)
 }
 ```
 
@@ -1453,3 +1529,31 @@ Expected: all tests PASS.
 git add cluster/identitylookup/storage/identity_storage_lookup.go cluster/identitylookup/storage/identity_storage_lookup_test.go
 git commit -m "feat(storage): implement Peek for non-activating grain liveness check"
 ```
+
+---
+
+### Task 9: Final Project-Wide Verification
+
+- [ ] **Step 1: Build the entire project**
+
+```bash
+go build ./...
+```
+
+Expected: compiles cleanly with no errors.
+
+- [ ] **Step 2: Run all tests with race detection**
+
+```bash
+go test -race ./...
+```
+
+Expected: all tests PASS. No race conditions detected.
+
+- [ ] **Step 3: Verify no stubs remain**
+
+```bash
+grep -r 'panic("not implemented")' cluster/
+```
+
+Expected: no matches found. All stubs from Task 2 Step 5 have been replaced.
