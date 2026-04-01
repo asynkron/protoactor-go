@@ -119,6 +119,8 @@ func (p *placementActor) Receive(ctx actor.Context) {
 		p.onClusterTopology(ctx, msg)
 	case *ListGrainsRequest:
 		p.onListGrains(ctx)
+	case *PeekRequest:
+		p.onPeekRequest(ctx, msg)
 	default:
 		ctx.Logger().Error("Placement actor received unknown message",
 			slog.Any("message", msg), slog.Any("sender", ctx.Sender()))
@@ -490,6 +492,23 @@ func (p *placementActor) onListGrains(ctx actor.Context) {
 		})
 	}
 	ctx.Respond(&ListGrainsResponse{Grains: grains})
+}
+
+// onPeekRequest checks whether a specific identity is active locally
+// without spawning. This is a read-only, side-effect-free operation.
+func (p *placementActor) onPeekRequest(ctx actor.Context, msg *PeekRequest) {
+	if p.stopping {
+		ctx.Respond(&PeekResponse{Found: false})
+		return
+	}
+
+	key := msg.ClusterIdentity.AsKey()
+	if meta, found := p.actors[key]; found {
+		ctx.Respond(&PeekResponse{Found: true, Pid: meta.PID})
+		return
+	}
+
+	ctx.Respond(&PeekResponse{Found: false})
 }
 
 // pidToKey finds the identity key for a PID in the actors map.

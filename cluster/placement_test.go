@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -772,4 +773,174 @@ func TestPlacementActor_SpawnThenImmediateCrash_WithPersistence(t *testing.T) {
 	// RemoveActivation should eventually be called when Terminated arrives.
 	// (May or may not be called depending on timing — the actor may already
 	// have been removed from the map by the persistence failure path.)
+}
+
+// Task 3: PeekRequest handler tests
+
+func TestPlacementActor_PeekRequest_Found(t *testing.T) {
+	c := newTestClusterWithKind(t, "test-kind", echoProps())
+
+	cfg := PlacementConfig{}
+	placementProps := NewPlacementActorProps(c, cfg)
+	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$test-placement-peek-found")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(placementPID)
+
+	// First, activate a grain.
+	activateReq := &ActivationRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "grain-1"},
+		RequestId:       "req-1",
+	}
+	activateFuture := c.ActorSystem.Root.RequestFuture(placementPID, activateReq, 5*time.Second)
+	activateRes, err := activateFuture.Result()
+	require.NoError(t, err)
+	activateResp := activateRes.(*ActivationResponse)
+	require.False(t, activateResp.Failed)
+	require.NotNil(t, activateResp.Pid)
+
+	// Peek for the same identity — should be found.
+	peekReq := &PeekRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "grain-1"},
+	}
+	peekFuture := c.ActorSystem.Root.RequestFuture(placementPID, peekReq, 5*time.Second)
+	peekRes, err := peekFuture.Result()
+	require.NoError(t, err)
+	peekResp, ok := peekRes.(*PeekResponse)
+	require.True(t, ok)
+	assert.True(t, peekResp.Found)
+	assert.Equal(t, activateResp.Pid, peekResp.Pid)
+}
+
+func TestPlacementActor_PeekRequest_NotFound(t *testing.T) {
+	c := newTestClusterWithKind(t, "test-kind", echoProps())
+
+	cfg := PlacementConfig{}
+	placementProps := NewPlacementActorProps(c, cfg)
+	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$test-placement-peek-notfound")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(placementPID)
+
+	peekReq := &PeekRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "nonexistent"},
+	}
+	peekFuture := c.ActorSystem.Root.RequestFuture(placementPID, peekReq, 5*time.Second)
+	peekRes, err := peekFuture.Result()
+	require.NoError(t, err)
+	peekResp, ok := peekRes.(*PeekResponse)
+	require.True(t, ok)
+	assert.False(t, peekResp.Found)
+	assert.Nil(t, peekResp.Pid)
+}
+
+func TestPlacementActor_PeekRequest_WhileStopping(t *testing.T) {
+	c := newTestClusterWithKind(t, "test-kind", slowStopProps(2*time.Second))
+
+	cfg := PlacementConfig{}
+	placementProps := NewPlacementActorProps(c, cfg)
+	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$test-placement-peek-stopping")
+	require.NoError(t, err)
+
+	activateReq := &ActivationRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "grain-1"},
+		RequestId:       "req-1",
+	}
+	activateFuture := c.ActorSystem.Root.RequestFuture(placementPID, activateReq, 5*time.Second)
+	activateRes, err := activateFuture.Result()
+	require.NoError(t, err)
+	activateResp := activateRes.(*ActivationResponse)
+	require.False(t, activateResp.Failed)
+
+	c.ActorSystem.Root.Poison(placementPID)
+	time.Sleep(100 * time.Millisecond)
+
+	peekReq := &PeekRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "grain-1"},
+	}
+	peekFuture := c.ActorSystem.Root.RequestFuture(placementPID, peekReq, 5*time.Second)
+	peekRes, err := peekFuture.Result()
+	if err != nil {
+		// Actor already fully stopped — timeout/dead letter is acceptable.
+		return
+	}
+	peekResp, ok := peekRes.(*PeekResponse)
+	require.True(t, ok)
+	assert.False(t, peekResp.Found, "peek should report not found while placement is stopping")
+}
+
+func TestPlacementActor_PeekRequest_DoesNotActivate(t *testing.T) {
+	c := newTestClusterWithKind(t, "test-kind", echoProps())
+
+	cfg := PlacementConfig{}
+	placementProps := NewPlacementActorProps(c, cfg)
+	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$test-placement-peek-noactivate")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(placementPID)
+
+	peekReq := &PeekRequest{
+		ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: "should-not-exist"},
+	}
+	peekFuture := c.ActorSystem.Root.RequestFuture(placementPID, peekReq, 5*time.Second)
+	peekRes, err := peekFuture.Result()
+	require.NoError(t, err)
+	peekResp := peekRes.(*PeekResponse)
+	assert.False(t, peekResp.Found)
+
+	listFuture := c.ActorSystem.Root.RequestFuture(placementPID, &ListGrainsRequest{}, 5*time.Second)
+	listRes, err := listFuture.Result()
+	require.NoError(t, err)
+	listResp := listRes.(*ListGrainsResponse)
+	assert.Empty(t, listResp.Grains, "peek should not have activated any grains")
+}
+
+func TestPeekStatus_String(t *testing.T) {
+	assert.Equal(t, "not_found", PeekStatusNotFound.String())
+	assert.Equal(t, "alive", PeekStatusAlive.String())
+	assert.Equal(t, "member_dead", PeekStatusMemberDead.String())
+	assert.Equal(t, "stale", PeekStatusStale.String())
+	assert.Equal(t, "PeekStatus(99)", PeekStatus(99).String())
+}
+
+func TestPlacementActor_PeekRequest_ConcurrentWithActivation(t *testing.T) {
+	c := newTestClusterWithKind(t, "test-kind", echoProps())
+
+	cfg := PlacementConfig{}
+	placementProps := NewPlacementActorProps(c, cfg)
+	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$test-placement-peek-concurrent")
+	require.NoError(t, err)
+	defer c.ActorSystem.Root.Poison(placementPID)
+
+	const n = 50
+	var wg sync.WaitGroup
+	wg.Add(n * 2)
+
+	for i := 0; i < n; i++ {
+		identity := fmt.Sprintf("grain-%d", i)
+
+		go func() {
+			defer wg.Done()
+			req := &ActivationRequest{
+				ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: identity},
+				RequestId:       fmt.Sprintf("req-%s", identity),
+			}
+			future := c.ActorSystem.Root.RequestFuture(placementPID, req, 5*time.Second)
+			_, _ = future.Result()
+		}()
+
+		go func() {
+			defer wg.Done()
+			req := &PeekRequest{
+				ClusterIdentity: &ClusterIdentity{Kind: "test-kind", Identity: identity},
+			}
+			future := c.ActorSystem.Root.RequestFuture(placementPID, req, 5*time.Second)
+			res, err := future.Result()
+			if err == nil {
+				resp, ok := res.(*PeekResponse)
+				if ok {
+					_ = resp.Found
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
 }
