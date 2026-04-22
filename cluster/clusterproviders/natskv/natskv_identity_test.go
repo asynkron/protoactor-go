@@ -681,9 +681,9 @@ func setupPlacementTestCluster(t *testing.T, clusterName string) (*Provider, *cl
 func TestIdentityLookup_SetupSpawnsPlacementAndProxy(t *testing.T) {
 	_, _, il := setupPlacementTestCluster(t, "test-sp3-setup")
 
-	require.NotNil(t, il.placementPID, "placementPID should be set after Setup()")
-	require.NotNil(t, il.proxyPID, "proxyPID should be set after Setup()")
-	require.NotNil(t, il.strategyMgr, "strategyMgr should be set after Setup()")
+	require.NotNil(t, il.placementPID.Load(), "placementPID should be set after Setup()")
+	require.NotNil(t, il.proxyPID.Load(), "proxyPID should be set after Setup()")
+	require.NotNil(t, il.strategyMgr.Load(), "strategyMgr should be set after Setup()")
 
 	// Get() should work end-to-end.
 	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "setup-test"}
