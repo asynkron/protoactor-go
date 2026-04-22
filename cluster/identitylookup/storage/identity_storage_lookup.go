@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -32,12 +33,20 @@ type IdentityStorageLookup struct {
 	isClient bool
 
 	// placementPID and proxyPID are the local placement and proxy actors
-	// spawned during Setup(). They are nil for client-only nodes.
-	placementPID *actor.PID
-	proxyPID     *actor.PID
+	// spawned during Setup(). They are nil for client-only nodes. Accessed
+	// atomically so Shutdown() can swap them to nil while Get() readers may
+	// still be in flight.
+	placementPID atomic.Pointer[actor.PID]
+	proxyPID     atomic.Pointer[actor.PID]
 
 	// strategyManager selects which member should host a given identity.
-	strategyManager *cluster.StrategyManager
+	// Accessed atomically because the topology event handler and Shutdown()
+	// may swap it concurrently with resolveIdentity() readers.
+	strategyManager atomic.Pointer[cluster.StrategyManager]
+
+	// defunct is set during Shutdown() and checked on entry to Get()/Peek()
+	// so post-shutdown reconciler ticks short-circuit cleanly.
+	defunct atomic.Bool
 
 	// inflightMu protects the inflights map for concurrent Get() coalescing.
 	inflightMu sync.Mutex
@@ -84,6 +93,11 @@ func (l *IdentityStorageLookup) logger() *slog.Logger {
 //
 // Returns nil if the identity could not be resolved (caller should retry).
 func (l *IdentityStorageLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
+	if l.defunct.Load() {
+		l.logger().Warn("IdentityStorageLookup: cannot Get, defunct, shutdown was called")
+		return nil
+	}
+
 	// Check PID cache first (avoids storage round-trip for cached PIDs).
 	if pid, ok := l.cluster.PidCache.Get(ci.Identity, ci.Kind); ok {
 		return pid
@@ -173,7 +187,15 @@ func (l *IdentityStorageLookup) resolveIdentity(ci *cluster.ClusterIdentity) *ac
 
 	// Step 3: Select target member via strategy manager.
 	senderAddress := l.cluster.ActorSystem.Address()
-	targetMember := l.strategyManager.GetActivator(ci, senderAddress)
+	strMgr := l.strategyManager.Load()
+	if strMgr == nil {
+		l.logger().Warn("IdentityStorageLookup: strategy manager is nil (cluster shutting down?)",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity))
+		l.storage.RemoveLock(*lock)
+		return nil
+	}
+	targetMember := strMgr.GetActivator(ci, senderAddress)
 	if targetMember == nil {
 		l.logger().Warn("IdentityStorageLookup: no available member for activation",
 			slog.String("kind", ci.Kind),
@@ -214,7 +236,16 @@ func (l *IdentityStorageLookup) activateLocal(ctx context.Context, ci *cluster.C
 		RequestId:       lock.LockID,
 	}
 
-	resp, err := l.cluster.ActorSystem.Root.RequestFuture(l.placementPID, req, 10*time.Second).Result()
+	placementPID := l.placementPID.Load()
+	if placementPID == nil {
+		l.logger().Warn("IdentityStorageLookup: placement actor is nil (cluster shutting down?)",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity))
+		l.storage.RemoveLock(*lock)
+		return nil
+	}
+
+	resp, err := l.cluster.ActorSystem.Root.RequestFuture(placementPID, req, 10*time.Second).Result()
 	if err != nil {
 		l.logger().Error("IdentityStorageLookup: placement actor request failed",
 			slog.String("kind", ci.Kind),
@@ -338,38 +369,40 @@ func (l *IdentityStorageLookup) Setup(c *cluster.Cluster, kinds []string, isClie
 
 		// Spawn the placement actor.
 		placementProps := cluster.NewPlacementActorProps(c, config)
-		var err error
-		l.placementPID, err = c.ActorSystem.Root.SpawnNamed(placementProps, "$placement-activator")
+		placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$placement-activator")
 		if err != nil {
 			l.logger().Error("IdentityStorageLookup: failed to spawn placement actor",
 				slog.Any("error", err))
 		}
+		l.placementPID.Store(placementPID)
 
 		// Spawn the proxy actor.
-		proxyProps := cluster.NewActivatorProxyProps(l.placementPID, l)
-		l.proxyPID, err = c.ActorSystem.Root.SpawnNamed(proxyProps, "$proxy-activator")
+		proxyProps := cluster.NewActivatorProxyProps(placementPID, l)
+		proxyPID, err := c.ActorSystem.Root.SpawnNamed(proxyProps, "$proxy-activator")
 		if err != nil {
 			l.logger().Error("IdentityStorageLookup: failed to spawn proxy actor",
 				slog.Any("error", err))
 		}
+		l.proxyPID.Store(proxyPID)
 
 		// Create the strategy manager.
-		l.strategyManager = cluster.NewStrategyManager(c)
+		l.strategyManager.Store(cluster.NewStrategyManager(c))
 	}
 
 	// Subscribe to topology events to clean up activations when members
 	// leave, and to update the strategy manager.
 	c.ActorSystem.EventStream.Subscribe(func(evt any) {
 		if topology, ok := evt.(*cluster.ClusterTopology); ok {
+			strMgr := l.strategyManager.Load()
 			for _, member := range topology.Left {
 				l.storage.RemoveMemberId(member.Id)
-				if l.strategyManager != nil {
-					l.strategyManager.RemoveMember(member)
+				if strMgr != nil {
+					strMgr.RemoveMember(member)
 				}
 			}
 			for _, member := range topology.Joined {
-				if l.strategyManager != nil {
-					l.strategyManager.AddMember(member)
+				if strMgr != nil {
+					strMgr.AddMember(member)
 				}
 			}
 		}
@@ -381,29 +414,27 @@ func (l *IdentityStorageLookup) Setup(c *cluster.Cluster, kinds []string, isClie
 // locally tracked grains), then stops the proxy activator, closes the strategy
 // manager, and finally removes member records from storage.
 func (l *IdentityStorageLookup) Shutdown() {
+	l.defunct.Store(true)
 	// Stop placement actor first — this triggers graceful shutdown of all
 	// locally tracked grains (poisons them with DeactivationReasonShutdown).
-	if l.placementPID != nil {
-		if err := l.cluster.ActorSystem.Root.PoisonFuture(l.placementPID).Wait(); err != nil {
+	if placementPID := l.placementPID.Swap(nil); placementPID != nil {
+		if err := l.cluster.ActorSystem.Root.PoisonFuture(placementPID).Wait(); err != nil {
 			l.logger().Error("IdentityStorageLookup: failed to stop placement actor",
 				slog.Any("error", err))
 		}
-		l.placementPID = nil
 	}
 
 	// Stop proxy activator.
-	if l.proxyPID != nil {
-		if err := l.cluster.ActorSystem.Root.PoisonFuture(l.proxyPID).Wait(); err != nil {
+	if proxyPID := l.proxyPID.Swap(nil); proxyPID != nil {
+		if err := l.cluster.ActorSystem.Root.PoisonFuture(proxyPID).Wait(); err != nil {
 			l.logger().Error("IdentityStorageLookup: failed to stop proxy activator",
 				slog.Any("error", err))
 		}
-		l.proxyPID = nil
 	}
 
 	// Close strategy manager.
-	if l.strategyManager != nil {
-		l.strategyManager.Close()
-		l.strategyManager = nil
+	if strMgr := l.strategyManager.Swap(nil); strMgr != nil {
+		strMgr.Close()
 	}
 
 	// Remove all activations belonging to this member from storage.
@@ -420,6 +451,10 @@ func (l *IdentityStorageLookup) Peek(clusterIdentity *cluster.ClusterIdentity) (
 			Kind:     clusterIdentity.Kind,
 		},
 		Status: cluster.PeekStatusNotFound,
+	}
+
+	if l.defunct.Load() {
+		return nil, fmt.Errorf("IdentityStorageLookup: cannot Peek, shutdown was called")
 	}
 
 	// Step 1: Check for existing activation in storage.
