@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -39,12 +40,20 @@ type IdentityLookup struct {
 	memberKeys            map[string][]string // memberID -> list of identity subject keys
 	memberKeysMu          sync.Mutex
 
-	// Placement actor and proxy PIDs (non-client only).
-	placementPID *actor.PID
-	proxyPID     *actor.PID
+	// Placement actor and proxy PIDs (non-client only). Accessed atomically
+	// because Shutdown() nils these while concurrent Get()/RequestFuture paths
+	// may be reading them.
+	placementPID atomic.Pointer[actor.PID]
+	proxyPID     atomic.Pointer[actor.PID]
 
-	// Strategy manager for member selection.
-	strategyMgr *cluster.StrategyManager
+	// Strategy manager for member selection. Accessed atomically because the
+	// topology event handler and Shutdown() may swap it concurrently with
+	// resolveIdentity() readers.
+	strategyMgr atomic.Pointer[cluster.StrategyManager]
+
+	// defunct is set during Shutdown() and checked on entry to Get()/Peek()
+	// so post-shutdown reconciler ticks short-circuit cleanly.
+	defunct atomic.Bool
 
 	// Inflight coalescing map.
 	inflightMu sync.Mutex
@@ -109,22 +118,23 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	// topology events. This avoids a data race where the subscription handler
 	// reads il.strategyMgr while setupPlacementActor is writing it.
 	if !isClient {
-		il.strategyMgr = cluster.NewStrategyManager(c)
+		il.strategyMgr.Store(cluster.NewStrategyManager(c))
 	}
 
 	// Subscribe to ClusterTopology events to clean up when members leave
 	// and to update the strategy manager.
 	c.ActorSystem.EventStream.Subscribe(func(evt any) {
 		if topology, ok := evt.(*cluster.ClusterTopology); ok {
+			strMgr := il.strategyMgr.Load()
 			for _, member := range topology.Left {
 				il.removeMemberID(context.Background(), member.Id)
-				if il.strategyMgr != nil {
-					il.strategyMgr.RemoveMember(member)
+				if strMgr != nil {
+					strMgr.RemoveMember(member)
 				}
 			}
 			for _, member := range topology.Joined {
-				if il.strategyMgr != nil {
-					il.strategyMgr.AddMember(member)
+				if strMgr != nil {
+					strMgr.AddMember(member)
 				}
 			}
 		}
@@ -218,20 +228,21 @@ func (il *IdentityLookup) setupPlacementActor(c *cluster.Cluster) {
 
 	// Spawn the placement actor.
 	placementProps := cluster.NewPlacementActorProps(c, config)
-	var err error
-	il.placementPID, err = c.ActorSystem.Root.SpawnNamed(placementProps, "$placement-activator")
+	placementPID, err := c.ActorSystem.Root.SpawnNamed(placementProps, "$placement-activator")
 	if err != nil {
 		il.logger().Error("natsstream identity: failed to spawn placement actor",
 			slog.Any("error", err))
 	}
+	il.placementPID.Store(placementPID)
 
 	// Spawn the proxy actor.
-	proxyProps := cluster.NewActivatorProxyProps(il.placementPID, il)
-	il.proxyPID, err = c.ActorSystem.Root.SpawnNamed(proxyProps, "$proxy-activator")
+	proxyProps := cluster.NewActivatorProxyProps(placementPID, il)
+	proxyPID, err := c.ActorSystem.Root.SpawnNamed(proxyProps, "$proxy-activator")
 	if err != nil {
 		il.logger().Error("natsstream identity: failed to spawn proxy actor",
 			slog.Any("error", err))
 	}
+	il.proxyPID.Store(proxyPID)
 
 	// Strategy manager is already created in Setup() before the event subscription.
 }
@@ -250,6 +261,11 @@ func (il *IdentityLookup) identitySubject(ci *cluster.ClusterIdentity) string {
 //  4. If client, wait for a member to spawn the actor.
 //  5. Acquire lock, select target via strategy, route to placement actor.
 func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
+	if il.defunct.Load() {
+		il.logger().Warn("natsstream identity: cannot Get, defunct, shutdown was called")
+		return nil
+	}
+
 	// Step 1: Check PID cache.
 	if pid, ok := il.cluster.PidCache.Get(ci.Identity, ci.Kind); ok {
 		return pid
@@ -329,7 +345,14 @@ func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PI
 
 	// Step 6: Select target member via strategy manager.
 	senderAddress := il.cluster.ActorSystem.Address()
-	targetMember := il.strategyMgr.GetActivator(ci, senderAddress)
+	strMgr := il.strategyMgr.Load()
+	if strMgr == nil {
+		il.logger().Warn("natsstream identity: strategy manager is nil (cluster shutting down?)",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity))
+		return nil
+	}
+	targetMember := strMgr.GetActivator(ci, senderAddress)
 	if targetMember == nil {
 		il.logger().Warn("natsstream identity: no available member for activation",
 			slog.String("kind", ci.Kind),
@@ -362,7 +385,17 @@ func (il *IdentityLookup) activateLocal(ctx context.Context, ci *cluster.Cluster
 		RequestId:       lockID,
 	}
 
-	resp, err := il.cluster.ActorSystem.Root.RequestFuture(il.placementPID, req, 10*time.Second).Result()
+	placementPID := il.placementPID.Load()
+	if placementPID == nil {
+		il.logger().Warn("natsstream identity: placement actor is nil (cluster shutting down?)",
+			slog.String("kind", ci.Kind),
+			slog.String("identity", ci.Identity))
+		subject := il.identitySubject(ci)
+		_ = il.identityStream.Purge(ctx, jetstream.WithPurgeSubject(subject))
+		return nil
+	}
+
+	resp, err := il.cluster.ActorSystem.Root.RequestFuture(placementPID, req, 10*time.Second).Result()
 	if err != nil {
 		il.logger().Error("natsstream identity: placement actor request failed",
 			slog.String("kind", ci.Kind),
@@ -489,29 +522,27 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 // It stops the placement actor first (graceful grain shutdown), then
 // stops the proxy, closes the strategy manager, and removes member records.
 func (il *IdentityLookup) Shutdown() {
+	il.defunct.Store(true)
 	// Stop placement actor first — this triggers graceful shutdown of all
 	// locally tracked grains (poisons them with DeactivationReasonShutdown).
-	if il.placementPID != nil {
-		if err := il.cluster.ActorSystem.Root.PoisonFuture(il.placementPID).Wait(); err != nil {
+	if placementPID := il.placementPID.Swap(nil); placementPID != nil {
+		if err := il.cluster.ActorSystem.Root.PoisonFuture(placementPID).Wait(); err != nil {
 			il.logger().Error("natsstream identity: failed to stop placement actor",
 				slog.Any("error", err))
 		}
-		il.placementPID = nil
 	}
 
 	// Stop proxy activator.
-	if il.proxyPID != nil {
-		if err := il.cluster.ActorSystem.Root.PoisonFuture(il.proxyPID).Wait(); err != nil {
+	if proxyPID := il.proxyPID.Swap(nil); proxyPID != nil {
+		if err := il.cluster.ActorSystem.Root.PoisonFuture(proxyPID).Wait(); err != nil {
 			il.logger().Error("natsstream identity: failed to stop proxy activator",
 				slog.Any("error", err))
 		}
-		il.proxyPID = nil
 	}
 
 	// Close strategy manager.
-	if il.strategyMgr != nil {
-		il.strategyMgr.Close()
-		il.strategyMgr = nil
+	if strMgr := il.strategyMgr.Swap(nil); strMgr != nil {
+		strMgr.Close()
 	}
 
 	if il.memberID != "" {
@@ -877,6 +908,10 @@ func (il *IdentityLookup) Peek(clusterIdentity *cluster.ClusterIdentity) (*clust
 			Kind:     clusterIdentity.Kind,
 		},
 		Status: cluster.PeekStatusNotFound,
+	}
+
+	if il.defunct.Load() {
+		return nil, fmt.Errorf("natsstream identity: cannot Peek, shutdown was called")
 	}
 
 	// Step 1: Check for existing activation in NATS stream.
