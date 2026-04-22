@@ -398,16 +398,23 @@ func TestStorageLookup_Peek_MemberDead(t *testing.T) {
 }
 
 func TestStorageLookup_Peek_Stale(t *testing.T) {
-	c, isl, _ := setupTestCluster(t)
+	c, isl, storageLookup := setupTestCluster(t)
 
+	// Plant a stale activation deterministically: a storage record whose
+	// PID references the local member but is not registered in the
+	// placement actor's map. This mirrors the state a crashed process would
+	// leave behind, without depending on the narrow timing window between
+	// p.actors deletion and RemoveActivation callback cleanup during
+	// graceful Poison/Terminated handling.
 	ci := &cluster.ClusterIdentity{Kind: testKind, Identity: "peek-stale-1"}
-	pid := isl.Get(ci)
-	require.NotNil(t, pid)
+	lock := storageLookup.TryAcquireLock(ci)
+	require.NotNil(t, lock)
+	stalePID := actor.NewPID(c.ActorSystem.Address(), testKind+"/peek-stale-nonexistent")
+	storageLookup.StoreActivation(c.ActorSystem.ID, lock, stalePID)
 
-	c.ActorSystem.Root.Poison(pid)
-
-	require.Eventually(t, func() bool {
-		r, err := isl.Peek(ci)
-		return err == nil && r.Status == cluster.PeekStatusStale
-	}, 5*time.Second, 50*time.Millisecond)
+	// Storage has the record → member is alive → placement returns Found=false.
+	// Peek must classify this as Stale.
+	r, err := isl.Peek(ci)
+	require.NoError(t, err)
+	assert.Equal(t, cluster.PeekStatusStale, r.Status)
 }
