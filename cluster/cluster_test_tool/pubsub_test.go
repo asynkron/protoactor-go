@@ -316,10 +316,22 @@ func (suite *PubSubTestSuite) TestWillExpireTopicActorAfterIdle() {
 	pid := firstCluster.Get(topic, cluster.TopicActorKind)
 	suite.Assert().NotNil(pid, "Topic actor should not be nil")
 
-	time.Sleep(time.Second * 5)
+	// SpawnNamed reuses the grain's name ("kind/identity") for the respawned
+	// PID, so comparing pid.String() cannot detect recreation. Instead,
+	// observe the effect of the idle timeout: the underlying process is
+	// removed from the local ProcessRegistry once the actor stops. Poll
+	// until the process is gone (the 2s idle timeout + mailbox drain +
+	// Terminated handling gives us a small window past the deadline).
+	suite.Assert().Eventually(func() bool {
+		_, exists := firstCluster.ActorSystem.ProcessRegistry.GetLocal(pid.Id)
+		return !exists
+	}, 10*time.Second, 100*time.Millisecond,
+		"Topic actor should be deactivated after idle timeout elapses")
 
+	// A subsequent Get must succeed — a fresh topic actor is spawned with
+	// the same name, confirming reactivation works after expiry.
 	newPid := firstCluster.Get(topic, cluster.TopicActorKind)
-	suite.Assert().NotEqual(pid.String(), newPid.String(), "Topic actor should be recreated")
+	suite.Assert().NotNil(newPid, "Topic actor should reactivate after idle expiry")
 }
 
 // In order for 'go test' to run this suite, we need to create
