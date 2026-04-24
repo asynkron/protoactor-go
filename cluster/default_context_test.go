@@ -122,3 +122,26 @@ func TestCluster_Request_NoHeaders_EmptyOnReceiver(t *testing.T) {
 	obs := <-seen
 	assert.Equal(t, 0, obs.hdrLen)
 }
+
+func TestCluster_Request_PrewrappedEnvelopeHeadersWinOverOption(t *testing.T) {
+	t.Parallel()
+
+	seen := make(chan headerObservation, 1)
+	c := newHeaderEchoCluster(t, "test-headers-merge", seen)
+
+	env := actor.WrapEnvelope("hello")
+	env.SetHeader("trace-id", "from-envelope")
+	// "tenant" is unique to the option.
+
+	resp, err := c.Request("id-1", "echo", env, WithHeaders(map[string]string{
+		"trace-id": "from-option", // should lose
+		"tenant":   "acme",        // should be added
+	}))
+	assert.NoError(t, err)
+	assert.Equal(t, "ack", resp)
+
+	obs := <-seen
+	assert.Equal(t, "from-envelope", obs.traceID, "envelope wins on conflict")
+	assert.Equal(t, "acme", obs.tenant, "non-overlapping option key is added")
+	assert.Equal(t, 2, obs.hdrLen)
+}
