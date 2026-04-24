@@ -13,9 +13,6 @@ use (
 	./cluster/identitylookup/nats
 	./cluster/identitylookup/postgres
 	./cluster/identitylookup/redis
-	./persistence/protocb
-	./persistence/protodynamo
-	./persistence/protopg
 	./examples/actor-autorespond
 	./examples/actor-backpressure
 	./examples/actor-deadletter
@@ -71,4 +68,7 @@ use (
 	./examples/router-demo
 	./examples/router-limitconcurrency
 	./examples/scheduler
+	./persistence/protocb
+	./persistence/protodynamo
+	./persistence/protopg
 )
