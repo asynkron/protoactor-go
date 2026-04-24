@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/cluster/clusterproviders/k8s
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v1.0.0
+	github.com/awevoke/protoactor-go v1.0.1
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/otel v1.43.0

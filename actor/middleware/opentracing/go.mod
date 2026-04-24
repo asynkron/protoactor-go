@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/actor/middleware/opentracing
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v1.0.0
+	github.com/awevoke/protoactor-go v1.0.1
 	github.com/opentracing/opentracing-go v1.2.0
 )
 

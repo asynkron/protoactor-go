@@ -5,7 +5,7 @@ go 1.25.3
 replace github.com/awevoke/protoactor-go => ../..
 
 require (
-	github.com/awevoke/protoactor-go v1.0.0
+	github.com/awevoke/protoactor-go v1.0.1
 	go.opentelemetry.io/otel v1.43.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.37.0
 	go.opentelemetry.io/otel/sdk v1.43.0
@@ -14,7 +14,7 @@ require (
 
 require (
 	github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2 // indirect
-	github.com/awevoke/protoactor-go/actor/middleware/opentelemetry v1.0.0
+	github.com/awevoke/protoactor-go/actor/middleware/opentelemetry v1.0.1
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect

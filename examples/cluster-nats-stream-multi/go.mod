@@ -3,8 +3,8 @@ module github.com/awevoke/protoactor-go/examples/cluster-nats-stream-multi
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v1.0.0
-	github.com/awevoke/protoactor-go/cluster/clusterproviders/natsstream v1.0.0
+	github.com/awevoke/protoactor-go v1.0.1
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natsstream v1.0.1
 	github.com/nats-io/nats.go v1.48.0
 )
 
