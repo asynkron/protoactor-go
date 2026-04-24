@@ -166,3 +166,20 @@ func TestCluster_Request_DoesNotMutateCallerEnvelope(t *testing.T) {
 	assert.Equal(t, "", env.GetHeader("tenant"), "option header must not have been written into caller's envelope")
 	assert.Equal(t, 1, env.Header.Length())
 }
+
+func TestCluster_Request_PrewrappedEnvelope_HeadersFlowWithoutOption(t *testing.T) {
+	t.Parallel()
+
+	seen := make(chan headerObservation, 1)
+	c := newHeaderEchoCluster(t, "test-headers-noopt", seen)
+
+	env := actor.WrapEnvelope("hello")
+	env.SetHeader("trace-id", "raw-env")
+
+	_, err := c.Request("id-1", "echo", env)
+	assert.NoError(t, err)
+
+	obs := <-seen
+	assert.Equal(t, "raw-env", obs.traceID)
+	assert.Equal(t, "hello", obs.msg)
+}
