@@ -307,3 +307,137 @@ func TestActorContextAutoRespondTouchedMessage(t *testing.T) {
 	assert.IsType(t, &Touched{}, res)
 	assert.True(t, res2.Who.Equal(pid))
 }
+
+// Two-actor setup: sender actor issues Request/RequestFuture/RequestWithCustomSender
+// to a receiver; assertions are about what the receiver observes.
+func TestActorContext_Request_PreservesEnvelopeHeaders(t *testing.T) {
+	t.Parallel()
+
+	type received struct {
+		traceID string
+		msg     any
+		sender  *PID
+	}
+	got := make(chan received, 1)
+
+	receiverProps := PropsFromFunc(func(ctx Context) {
+		if _, ok := ctx.Message().(string); ok {
+			got <- received{
+				traceID: ctx.MessageHeader().Get("trace-id"),
+				msg:     ctx.Message(),
+				sender:  ctx.Sender(),
+			}
+		}
+	})
+	receiver := rootContext.Spawn(receiverProps)
+	defer func() { _ = rootContext.StopFuture(receiver).Wait() }()
+
+	senderSelfCh := make(chan *PID, 1)
+	senderProps := PropsFromFunc(func(ctx Context) {
+		switch ctx.Message().(type) {
+		case *Started:
+			senderSelfCh <- ctx.Self()
+			env := WrapEnvelope("hello")
+			env.SetHeader("trace-id", "req")
+			ctx.Request(receiver, env)
+		}
+	})
+	sender := rootContext.Spawn(senderProps)
+	defer func() { _ = rootContext.StopFuture(sender).Wait() }()
+
+	senderSelf := <-senderSelfCh
+	r := <-got
+	assert.Equal(t, "req", r.traceID)
+	assert.Equal(t, "hello", r.msg)
+	assert.Equal(t, senderSelf.Id, r.sender.Id, "ctx.Request must set sender to ctx.Self()")
+}
+
+func TestActorContext_RequestFuture_PreservesEnvelopeHeaders(t *testing.T) {
+	t.Parallel()
+
+	type received struct {
+		traceID string
+		msg     any
+	}
+	got := make(chan received, 1)
+
+	receiverProps := PropsFromFunc(func(ctx Context) {
+		if _, ok := ctx.Message().(string); ok {
+			got <- received{
+				traceID: ctx.MessageHeader().Get("trace-id"),
+				msg:     ctx.Message(),
+			}
+			ctx.Respond("ok")
+		}
+	})
+	receiver := rootContext.Spawn(receiverProps)
+	defer func() { _ = rootContext.StopFuture(receiver).Wait() }()
+
+	done := make(chan struct{})
+	senderProps := PropsFromFunc(func(ctx Context) {
+		switch ctx.Message().(type) {
+		case *Started:
+			env := WrapEnvelope("hello")
+			env.SetHeader("trace-id", "rf")
+			f := ctx.RequestFuture(receiver, env, testTimeout)
+			go func() {
+				_, _ = f.Result()
+				close(done)
+			}()
+		}
+	})
+	sender := rootContext.Spawn(senderProps)
+	defer func() { _ = rootContext.StopFuture(sender).Wait() }()
+
+	select {
+	case <-done:
+	case <-time.After(testTimeout):
+		t.Fatal("future did not complete")
+	}
+
+	r := <-got
+	assert.Equal(t, "rf", r.traceID)
+	assert.Equal(t, "hello", r.msg)
+}
+
+func TestActorContext_RequestWithCustomSender_PreservesHeadersOverridesSender(t *testing.T) {
+	t.Parallel()
+
+	type received struct {
+		traceID string
+		msg     any
+		sender  *PID
+	}
+	got := make(chan received, 1)
+
+	receiverProps := PropsFromFunc(func(ctx Context) {
+		if _, ok := ctx.Message().(string); ok {
+			got <- received{
+				traceID: ctx.MessageHeader().Get("trace-id"),
+				msg:     ctx.Message(),
+				sender:  ctx.Sender(),
+			}
+		}
+	})
+	receiver := rootContext.Spawn(receiverProps)
+	defer func() { _ = rootContext.StopFuture(receiver).Wait() }()
+
+	customSender := NewPID("cs-addr", "cs-id")
+	senderProps := PropsFromFunc(func(ctx Context) {
+		switch ctx.Message().(type) {
+		case *Started:
+			env := WrapEnvelope("hello")
+			env.SetHeader("trace-id", "cs")
+			env.Sender = NewPID("ignored", "ignored")
+			ctx.RequestWithCustomSender(receiver, env, customSender)
+		}
+	})
+	sender := rootContext.Spawn(senderProps)
+	defer func() { _ = rootContext.StopFuture(sender).Wait() }()
+
+	r := <-got
+	assert.Equal(t, "cs", r.traceID)
+	assert.Equal(t, "hello", r.msg)
+	assert.Equal(t, customSender.Id, r.sender.Id)
+	assert.Equal(t, customSender.Address, r.sender.Address)
+}
