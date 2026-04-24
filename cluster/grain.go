@@ -11,6 +11,7 @@ type GrainCallConfig struct {
 	Timeout     time.Duration
 	RetryAction func(n int) int
 	Context     actor.SenderContext
+	Headers     map[string]string
 }
 
 type GrainCallOption func(config *GrainCallConfig)
@@ -59,6 +60,15 @@ func WithRetryAction(act func(i int) int) GrainCallOption {
 func WithContext(ctx actor.SenderContext) GrainCallOption {
 	return func(config *GrainCallConfig) {
 		config.Context = ctx
+	}
+}
+
+// WithHeaders attaches the given headers to the outgoing request message.
+// If the caller also passes a *actor.MessageEnvelope as the message argument,
+// header values set directly on the envelope win on key conflict.
+func WithHeaders(headers map[string]string) GrainCallOption {
+	return func(config *GrainCallConfig) {
+		config.Headers = headers
 	}
 }
 
