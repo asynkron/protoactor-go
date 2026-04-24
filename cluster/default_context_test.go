@@ -145,3 +145,24 @@ func TestCluster_Request_PrewrappedEnvelopeHeadersWinOverOption(t *testing.T) {
 	assert.Equal(t, "acme", obs.tenant, "non-overlapping option key is added")
 	assert.Equal(t, 2, obs.hdrLen)
 }
+
+func TestCluster_Request_DoesNotMutateCallerEnvelope(t *testing.T) {
+	t.Parallel()
+
+	seen := make(chan headerObservation, 1)
+	c := newHeaderEchoCluster(t, "test-headers-nomutate", seen)
+
+	env := actor.WrapEnvelope("hello")
+	env.SetHeader("trace-id", "fixed")
+
+	_, err := c.Request("id-1", "echo", env, WithHeaders(map[string]string{
+		"tenant": "acme",
+	}))
+	assert.NoError(t, err)
+	<-seen
+
+	// Caller's envelope must be unchanged.
+	assert.Equal(t, "fixed", env.GetHeader("trace-id"))
+	assert.Equal(t, "", env.GetHeader("tenant"), "option header must not have been written into caller's envelope")
+	assert.Equal(t, 1, env.Header.Length())
+}
