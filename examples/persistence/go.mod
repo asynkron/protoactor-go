@@ -9,7 +9,7 @@ require (
 	google.golang.org/protobuf v1.36.11
 )
 
-require github.com/awevoke/protoactor-go v0.0.0-20240116091649-93e384a26d0d
+require github.com/awevoke/protoactor-go v1.0.0
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

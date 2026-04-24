@@ -9,7 +9,7 @@ require (
 
 replace github.com/awevoke/protoactor-go => ../..
 
-require github.com/awevoke/protoactor-go v0.0.0-20240116091649-93e384a26d0d
+require github.com/awevoke/protoactor-go v1.0.0
 
 require (
 	github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2 // indirect

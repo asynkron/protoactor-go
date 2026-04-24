@@ -3,8 +3,8 @@ module github.com/awevoke/protoactor-go/examples/cluster-nats-kv
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v0.0.0
-	github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv v0.0.0
+	github.com/awevoke/protoactor-go v1.0.0
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv v1.0.0
 	github.com/nats-io/nats.go v1.48.0
 )
 
@@ -48,6 +48,6 @@ require (
 )
 
 replace (
-	github.com/awevoke/protoactor-go => ../../
+	github.com/awevoke/protoactor-go => ../..
 	github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv => ../../cluster/clusterproviders/natskv
 )
