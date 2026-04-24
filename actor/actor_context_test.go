@@ -441,3 +441,46 @@ func TestActorContext_RequestWithCustomSender_PreservesHeadersOverridesSender(t 
 	assert.Equal(t, customSender.Id, r.sender.Id)
 	assert.Equal(t, customSender.Address, r.sender.Address)
 }
+
+// Forward preserves the original envelope headers and does not overwrite the sender.
+func TestActorContext_Forward_PreservesHeadersAndSender(t *testing.T) {
+	t.Parallel()
+
+	type received struct {
+		traceID string
+		msg     any
+		sender  *PID
+	}
+	got := make(chan received, 1)
+
+	originalSender := NewPID("orig-addr", "orig-id")
+
+	finalProps := PropsFromFunc(func(ctx Context) {
+		if _, ok := ctx.Message().(string); ok {
+			got <- received{
+				traceID: ctx.MessageHeader().Get("trace-id"),
+				msg:     ctx.Message(),
+				sender:  ctx.Sender(),
+			}
+		}
+	})
+	final := rootContext.Spawn(finalProps)
+	defer func() { _ = rootContext.StopFuture(final).Wait() }()
+
+	forwarderProps := PropsFromFunc(func(ctx Context) {
+		if _, ok := ctx.Message().(string); ok {
+			ctx.Forward(final)
+		}
+	})
+	forwarder := rootContext.Spawn(forwarderProps)
+	defer func() { _ = rootContext.StopFuture(forwarder).Wait() }()
+
+	env := WrapEnvelope("hello")
+	env.SetHeader("trace-id", "fwd")
+	rootContext.RequestWithCustomSender(forwarder, env, originalSender)
+
+	r := <-got
+	assert.Equal(t, "fwd", r.traceID)
+	assert.Equal(t, "hello", r.msg)
+	assert.Equal(t, originalSender.Id, r.sender.Id, "Forward must preserve original sender")
+}
