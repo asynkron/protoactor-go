@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/cluster/clusterproviders/consul
 go 1.25.5
 
 require (
-	github.com/awevoke/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go v1.0.0
 	github.com/hashicorp/consul/api v1.33.2
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.40.0
@@ -103,5 +103,3 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/awevoke/protoactor-go => ../../../

@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats-server/v2 v2.12.4
 	github.com/nats-io/nats.go v1.48.0
@@ -94,5 +94,3 @@ require (
 	google.golang.org/grpc v1.79.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/awevoke/protoactor-go => ../../../

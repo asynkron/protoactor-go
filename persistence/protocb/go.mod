@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/persistence/protocb
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go v1.0.0
 	github.com/couchbase/gocb v1.6.7
 	google.golang.org/protobuf v1.36.11
 )
@@ -44,5 +44,3 @@ require (
 	gopkg.in/couchbaselabs/gojcbmock.v1 v1.0.4 // indirect
 	gopkg.in/couchbaselabs/jsonx.v1 v1.0.1 // indirect
 )
-
-replace github.com/awevoke/protoactor-go => ../../

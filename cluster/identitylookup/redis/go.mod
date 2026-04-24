@@ -2,10 +2,8 @@ module github.com/awevoke/protoactor-go/cluster/identitylookup/redis
 
 go 1.25.3
 
-replace github.com/awevoke/protoactor-go => ../../../
-
 require (
-	github.com/awevoke/protoactor-go v0.0.0-20260118094027-288962e52f3f
+	github.com/awevoke/protoactor-go v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.17.3
 	github.com/testcontainers/testcontainers-go v0.40.0

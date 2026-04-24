@@ -2,10 +2,8 @@ module github.com/awevoke/protoactor-go/cluster/identitylookup/nats
 
 go 1.25.3
 
-replace github.com/awevoke/protoactor-go => ../../../
-
 require (
-	github.com/awevoke/protoactor-go v0.0.0-00010101000000-000000000000
+	github.com/awevoke/protoactor-go v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats.go v1.48.0
 	github.com/testcontainers/testcontainers-go v0.40.0

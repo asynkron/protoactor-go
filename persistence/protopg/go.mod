@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/persistence/protopg
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go v1.0.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.40.0
@@ -86,5 +86,3 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/awevoke/protoactor-go => ../../
