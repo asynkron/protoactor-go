@@ -72,6 +72,23 @@ func WrapEnvelope(message any) *MessageEnvelope {
 	return &MessageEnvelope{nil, message, nil}
 }
 
+// envelopeWithSender returns a *MessageEnvelope carrying message with the
+// given sender. If message is already a *MessageEnvelope, its Header is
+// preserved; when sender is non-nil the returned envelope is a copy of the
+// input with Sender replaced (the caller's envelope is never mutated). If
+// sender is nil, an existing envelope is returned as-is.
+func envelopeWithSender(message any, sender *PID) *MessageEnvelope {
+	if env, ok := message.(*MessageEnvelope); ok {
+		if sender == nil {
+			return env
+		}
+		out := *env
+		out.Sender = sender
+		return &out
+	}
+	return &MessageEnvelope{Header: nil, Message: message, Sender: sender}
+}
+
 // UnwrapEnvelope extracts header, message and sender from an envelope.
 func UnwrapEnvelope(message any) (ReadonlyMessageHeader, any, *PID) {
 	if env, ok := message.(*MessageEnvelope); ok {
