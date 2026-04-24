@@ -12,8 +12,8 @@
 //
 //	import (
 //	    goredis "github.com/redis/go-redis/v9"
-//	    redisidentity "github.com/asynkron/protoactor-go/cluster/identitylookup/redis"
-//	    "github.com/asynkron/protoactor-go/cluster/identitylookup/storage"
+//	    redisidentity "github.com/awevoke/protoactor-go/cluster/identitylookup/redis"
+//	    "github.com/awevoke/protoactor-go/cluster/identitylookup/storage"
 //	)
 //
 //	client := goredis.NewClient(&goredis.Options{Addr: "localhost:6379"})

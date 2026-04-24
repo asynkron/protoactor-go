@@ -7,7 +7,7 @@
 package hello
 
 import (
-	_ "github.com/asynkron/protoactor-go/protobuf/protoc-gen-go-grain/options"
+	_ "github.com/awevoke/protoactor-go/protobuf/protoc-gen-go-grain/options"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

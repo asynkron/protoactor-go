@@ -3,7 +3,7 @@ package router
 import (
 	"sync/atomic"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 type roundRobinGroupRouter struct {

@@ -10,9 +10,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	natskvmetrics "github.com/asynkron/protoactor-go/cluster/clusterproviders/natskv/metrics"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	natskvmetrics "github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv/metrics"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"go.opentelemetry.io/otel/metric"
@@ -251,10 +251,10 @@ func (p *Provider) createMemberBucket() error {
 	bucketName := p.config.memberBucketName(p.clusterName)
 
 	kv, err := p.js.CreateOrUpdateKeyValue(p.ctx, jetstream.KeyValueConfig{
-		Bucket:          bucketName,
-		Replicas:        p.config.Replicas,
-		TTL:             p.config.MemberTTL,
-		LimitMarkerTTL:  p.config.MemberTTL, // emit delete markers for TTL-expired keys
+		Bucket:         bucketName,
+		Replicas:       p.config.Replicas,
+		TTL:            p.config.MemberTTL,
+		LimitMarkerTTL: p.config.MemberTTL, // emit delete markers for TTL-expired keys
 	})
 	if err != nil {
 		return fmt.Errorf("natskv: create member bucket %q: %w", bucketName, err)

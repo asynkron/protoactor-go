@@ -1,6 +1,6 @@
 syntax = "proto3";
 package cluster;
-option go_package = "/github.com/asynkron/protoactor-go/cluster";
+option go_package = "/github.com/awevoke/protoactor-go/cluster";
 
 message TestMessage {
     int32 number = 1;

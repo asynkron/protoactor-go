@@ -3,7 +3,7 @@ package cluster
 import (
 	"testing"
 
-	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/awevoke/protoactor-go/eventstream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/anypb"

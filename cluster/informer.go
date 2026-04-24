@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/asynkron/gofun/set"
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"google.golang.org/protobuf/proto"
 )
 

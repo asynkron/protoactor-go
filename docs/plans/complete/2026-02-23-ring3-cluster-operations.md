@@ -387,7 +387,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 )
 

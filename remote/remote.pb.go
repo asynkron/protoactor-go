@@ -7,7 +7,7 @@
 package remote
 
 import (
-	actor "github.com/asynkron/protoactor-go/actor"
+	actor "github.com/awevoke/protoactor-go/actor"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -1034,7 +1034,7 @@ const file_remote_proto_rawDesc = "" +
 	"\bRemoting\x12=\n" +
 	"\aReceive\x12\x15.remote.RemoteMessage\x1a\x15.remote.RemoteMessage\"\x00(\x010\x01\x12N\n" +
 	"\rListProcesses\x12\x1c.remote.ListProcessesRequest\x1a\x1d.remote.ListProcessesResponse\"\x00\x12f\n" +
-	"\x15GetProcessDiagnostics\x12$.remote.GetProcessDiagnosticsRequest\x1a%.remote.GetProcessDiagnosticsResponse\"\x00B+Z)/github.com/asynkron/protoactor-go/remoteb\x06proto3"
+	"\x15GetProcessDiagnostics\x12$.remote.GetProcessDiagnosticsRequest\x1a%.remote.GetProcessDiagnosticsResponse\"\x00B+Z)/github.com/awevoke/protoactor-go/remoteb\x06proto3"
 
 var (
 	file_remote_proto_rawDescOnce sync.Once

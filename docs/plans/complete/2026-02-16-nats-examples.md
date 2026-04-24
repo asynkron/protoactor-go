@@ -74,8 +74,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/google/uuid"
 )
 
@@ -146,9 +146,9 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup"
-	pgidentity "github.com/asynkron/protoactor-go/cluster/identitylookup/postgres"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup"
+	pgidentity "github.com/awevoke/protoactor-go/cluster/identitylookup/postgres"
 )
 
 var testDB *sql.DB
@@ -526,8 +526,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go/jetstream"
 )
@@ -618,9 +618,9 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup"
-	natsidentity "github.com/asynkron/protoactor-go/cluster/identitylookup/nats"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup"
+	natsidentity "github.com/awevoke/protoactor-go/cluster/identitylookup/nats"
 )
 
 var testJS jetstream.JetStream
@@ -1017,7 +1017,7 @@ event-driven WaitForActivation. Passes conformance suite.
 **Context:**
 - Reference: C# Kafka example at `agent-vendored/protoactor-dotnet/examples/cluster.kafka-virtual-actor-ingress/Program.cs`
 - Go grain pattern: `examples/cluster-grain/` (node1=client, node2=host, shared=proto)
-- Go module pattern: `replace github.com/asynkron/protoactor-go => ../..` in go.mod
+- Go module pattern: `replace github.com/awevoke/protoactor-go => ../..` in go.mod
 - Protoc build: `protoc --go_out=. --go_opt=paths=source_relative --plugin=protoc-gen-go-grain=../../../protobuf/protoc-gen-go-grain/protoc-gen-go-grain.sh --go-grain_out=. --go-grain_opt=paths=source_relative -I../../ -I. protos.proto`
 
 **Step 1: Create docker-compose.yml**
@@ -1044,7 +1044,7 @@ services:
 // examples/nats-virtual-actor-ingress/shared/protos.proto
 syntax = "proto3";
 package shared;
-option go_package = "github.com/asynkron/protoactor-go/examples/nats-virtual-actor-ingress/shared";
+option go_package = "github.com/awevoke/protoactor-go/examples/nats-virtual-actor-ingress/shared";
 
 message DeviceMessage {
   string data = 1;
@@ -1081,10 +1081,10 @@ module nats-virtual-actor-ingress
 
 go 1.25.3
 
-replace github.com/asynkron/protoactor-go => ../..
+replace github.com/awevoke/protoactor-go => ../..
 
 require (
-	github.com/asynkron/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go v0.0.0
 	github.com/nats-io/nats.go v1.39.1
 	google.golang.org/protobuf v1.36.10
 )
@@ -1107,11 +1107,11 @@ import (
 
 	"nats-virtual-actor-ingress/shared"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/remote"
 )
 
 type DeviceGrain struct {
@@ -1181,11 +1181,11 @@ import (
 
 	"nats-virtual-actor-ingress/shared"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 )
 
@@ -1327,11 +1327,11 @@ import (
 
 	"nats-jetstream-virtual-actor-ingress/shared"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )
@@ -1518,7 +1518,7 @@ virtual actors, and ack-based at-least-once delivery semantics.
 ```protobuf
 syntax = "proto3";
 package shared;
-option go_package = "github.com/asynkron/protoactor-go/examples/nats-forwarder/shared";
+option go_package = "github.com/awevoke/protoactor-go/examples/nats-forwarder/shared";
 
 message Command {
   string action = 1;
@@ -1558,11 +1558,11 @@ import (
 
 	"nats-forwarder/shared"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/remote"
 )
 
 type WorkerActor struct {
@@ -1635,11 +1635,11 @@ import (
 
 	"nats-forwarder/shared"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
 )
@@ -1813,7 +1813,7 @@ The affinity strategy uses gossip to propagate subject bindings since the Member
 ```protobuf
 syntax = "proto3";
 package shared;
-option go_package = "github.com/asynkron/protoactor-go/examples/nats-stream-locality/shared";
+option go_package = "github.com/awevoke/protoactor-go/examples/nats-stream-locality/shared";
 
 message SensorReading {
   string sensor_id = 1;
@@ -1839,7 +1839,7 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 )
 
 const SubjectBindingsKey = "nats-subject-bindings"
@@ -1990,11 +1990,11 @@ import (
 
 	"nats-stream-locality/shared"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -2239,7 +2239,7 @@ services:
 ```protobuf
 syntax = "proto3";
 package shared;
-option go_package = "github.com/asynkron/protoactor-go/examples/nats-identity-prevention/shared";
+option go_package = "github.com/awevoke/protoactor-go/examples/nats-identity-prevention/shared";
 
 message IncrementRequest {
   int32 amount = 1;
@@ -2275,12 +2275,12 @@ import (
 	"nats-identity-prevention/shared"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/postgres"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/storage"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/postgres"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/storage"
+	"github.com/awevoke/protoactor-go/remote"
 )
 
 type CounterGrain struct {
@@ -2366,12 +2366,12 @@ import (
 
 	"nats-identity-prevention/shared"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	natsidentity "github.com/asynkron/protoactor-go/cluster/identitylookup/nats"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/storage"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
+	natsidentity "github.com/awevoke/protoactor-go/cluster/identitylookup/nats"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/storage"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )
@@ -2463,11 +2463,11 @@ import (
 
 	"nats-identity-prevention/shared"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/remote"
 )
 
 var concurrency = flag.Int("concurrency", 10, "Number of concurrent goroutines")

@@ -3,7 +3,7 @@ package opentelemetry
 import (
 	"sync"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"go.opentelemetry.io/otel/trace"
 )
 

@@ -30,10 +30,10 @@ package main
 import (
     "fmt"
 
-    "github.com/asynkron/protoactor-go/actor"
-    "github.com/asynkron/protoactor-go/cluster"
-    "github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-    "github.com/asynkron/protoactor-go/remote"
+    "github.com/awevoke/protoactor-go/actor"
+    "github.com/awevoke/protoactor-go/cluster"
+    "github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+    "github.com/awevoke/protoactor-go/remote"
 )
 
 func main() {
@@ -75,7 +75,7 @@ func main() {
 #### Consul
 
 ```go
-import "github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
+import "github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
 
 provider, err := consul.New()
 if err != nil {
@@ -86,7 +86,7 @@ if err != nil {
 #### Kubernetes
 
 ```go
-import "github.com/asynkron/protoactor-go/cluster/clusterproviders/k8s"
+import "github.com/awevoke/protoactor-go/cluster/clusterproviders/k8s"
 
 provider, err := k8s.New()
 if err != nil {
@@ -97,7 +97,7 @@ if err != nil {
 #### Automanaged (development / testing)
 
 ```go
-import "github.com/asynkron/protoactor-go/cluster/clusterproviders/automanaged"
+import "github.com/awevoke/protoactor-go/cluster/clusterproviders/automanaged"
 
 provider := automanaged.New()
 ```

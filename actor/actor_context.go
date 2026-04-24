@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/asynkron/protoactor-go/ctxext"
-	"github.com/asynkron/protoactor-go/metrics"
+	"github.com/awevoke/protoactor-go/ctxext"
+	"github.com/awevoke/protoactor-go/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )

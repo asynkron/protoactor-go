@@ -7,13 +7,13 @@ import (
 
 	"cluster-broadcast/shared"
 
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/automanaged"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/automanaged"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
 
 	console "github.com/asynkron/goconsole"
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/remote"
 )
 
 func main() {

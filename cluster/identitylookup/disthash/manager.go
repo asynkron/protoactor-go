@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	clustering "github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/awevoke/protoactor-go/actor"
+	clustering "github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/eventstream"
 )
 
 const (

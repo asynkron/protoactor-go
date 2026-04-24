@@ -8,7 +8,7 @@ import (
 	"time"
 
 	console "github.com/asynkron/goconsole"
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"golang.org/x/time/rate"
 )
 

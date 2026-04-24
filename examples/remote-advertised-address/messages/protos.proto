@@ -1,6 +1,6 @@
 syntax = "proto3";
 package messages;
-option go_package = "github.com/asynkron/protoactor-go/examples/remote-advertised-address/messages";
+option go_package = "github.com/awevoke/protoactor-go/examples/remote-advertised-address/messages";
 import "actor.proto";
 
 message Start {}

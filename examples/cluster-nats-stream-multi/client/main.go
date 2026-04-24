@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/natsstream"
-	"github.com/asynkron/protoactor-go/examples/cluster-nats-stream-multi/shared"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/natsstream"
+	"github.com/awevoke/protoactor-go/examples/cluster-nats-stream-multi/shared"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 )
 

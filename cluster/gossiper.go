@@ -10,14 +10,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/remote"
 
 	"github.com/asynkron/gofun/set"
 	"go.opentelemetry.io/otel"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/eventstream"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 

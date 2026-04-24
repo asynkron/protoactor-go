@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/persistence"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/persistence"
 	"github.com/couchbase/gocb"
 )
 

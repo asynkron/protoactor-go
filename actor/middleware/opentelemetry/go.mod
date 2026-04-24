@@ -1,9 +1,9 @@
-module github.com/asynkron/protoactor-go/actor/middleware/opentelemetry
+module github.com/awevoke/protoactor-go/actor/middleware/opentelemetry
 
 go 1.25.3
 
 require (
-	github.com/asynkron/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go v0.0.0
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
 )
@@ -35,4 +35,4 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 )
 
-replace github.com/asynkron/protoactor-go => ../../../
+replace github.com/awevoke/protoactor-go => ../../../

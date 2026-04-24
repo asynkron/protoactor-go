@@ -2,7 +2,7 @@
 
 1. Install the protocol compiler plugins for Go using the following commands:
     ```
-    go install github.com/asynkron/protoactor-go/protobuf/protoc-gen-go-grain@latest
+    go install github.com/awevoke/protoactor-go/protobuf/protoc-gen-go-grain@latest
     ```
 
 2. Update your PATH so that the protoc compiler can find the plugins:

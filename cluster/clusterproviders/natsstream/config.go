@@ -3,7 +3,7 @@ package natsstream
 import (
 	"time"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/nats-io/nats.go/jetstream"
 )
 
@@ -41,22 +41,26 @@ type config struct {
 
 type Option func(*config)
 
-func WithStreamName(name string) Option         { return func(c *config) { c.StreamName = name } }
-func WithIdentityStreamName(name string) Option { return func(c *config) { c.IdentityStreamName = name } }
-func WithSubjectPrefix(prefix string) Option    { return func(c *config) { c.SubjectPrefix = prefix } }
-func WithReplicas(n int) Option                 { return func(c *config) { c.Replicas = n } }
+func WithStreamName(name string) Option { return func(c *config) { c.StreamName = name } }
+func WithIdentityStreamName(name string) Option {
+	return func(c *config) { c.IdentityStreamName = name }
+}
+func WithSubjectPrefix(prefix string) Option { return func(c *config) { c.SubjectPrefix = prefix } }
+func WithReplicas(n int) Option              { return func(c *config) { c.Replicas = n } }
 func WithStorage(s jetstream.StorageType) Option {
 	return func(c *config) { c.Storage = s }
 }
-func WithMaxAge(d time.Duration) Option            { return func(c *config) { c.MaxAge = d } }
-func WithHeartbeatInterval(d time.Duration) Option { return func(c *config) { c.HeartbeatInterval = d } }
-func WithHeartbeatTTL(d time.Duration) Option      { return func(c *config) { c.HeartbeatTTL = d } }
-func WithMemberTimeout(d time.Duration) Option     { return func(c *config) { c.MemberTimeout = d } }
-func WithCheckInterval(d time.Duration) Option     { return func(c *config) { c.CheckInterval = d } }
-func WithLeaderTTL(d time.Duration) Option         { return func(c *config) { c.LeaderTTL = d } }
-func WithLockTTL(d time.Duration) Option           { return func(c *config) { c.LockTTL = d } }
-func WithMaxConcurrency(n int) Option              { return func(c *config) { c.MaxConcurrency = n } }
-func WithRetryInterval(d time.Duration) Option     { return func(c *config) { c.RetryInterval = d } }
+func WithMaxAge(d time.Duration) Option { return func(c *config) { c.MaxAge = d } }
+func WithHeartbeatInterval(d time.Duration) Option {
+	return func(c *config) { c.HeartbeatInterval = d }
+}
+func WithHeartbeatTTL(d time.Duration) Option  { return func(c *config) { c.HeartbeatTTL = d } }
+func WithMemberTimeout(d time.Duration) Option { return func(c *config) { c.MemberTimeout = d } }
+func WithCheckInterval(d time.Duration) Option { return func(c *config) { c.CheckInterval = d } }
+func WithLeaderTTL(d time.Duration) Option     { return func(c *config) { c.LeaderTTL = d } }
+func WithLockTTL(d time.Duration) Option       { return func(c *config) { c.LockTTL = d } }
+func WithMaxConcurrency(n int) Option          { return func(c *config) { c.MaxConcurrency = n } }
+func WithRetryInterval(d time.Duration) Option { return func(c *config) { c.RetryInterval = d } }
 func WithRoleChangedListener(l cluster.RoleChangedListener) Option {
 	return func(c *config) { c.RoleChanged = l }
 }

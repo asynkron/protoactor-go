@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/go-zookeeper/zk"
 )
 

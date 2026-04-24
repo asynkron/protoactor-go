@@ -7,8 +7,8 @@ import (
 	"time"
 
 	console "github.com/asynkron/goconsole"
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/actor/middleware/opentracing"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor/middleware/opentracing"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jaegerlog "github.com/uber/jaeger-client-go/log"

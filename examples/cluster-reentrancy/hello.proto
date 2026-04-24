@@ -4,7 +4,7 @@ package reentrancy;
 
 import "protobuf/protoc-gen-go-grain/options/options.proto";
 
-option go_package = "github.com/asynkron/protoactor-go/examples/cluster-reentrancy/main";
+option go_package = "github.com/awevoke/protoactor-go/examples/cluster-reentrancy/main";
 
 message InvokeServiceRequest {
   string name = 1;

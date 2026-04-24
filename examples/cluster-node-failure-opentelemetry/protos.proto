@@ -1,6 +1,6 @@
 syntax = "proto3";
 package main;
-option go_package = "github.com/asynkron/protoactor-go/examples/cluster-node-failure-opentelemetry;main";
+option go_package = "github.com/awevoke/protoactor-go/examples/cluster-node-failure-opentelemetry;main";
 
 message HelloRequest {
   string name = 1;

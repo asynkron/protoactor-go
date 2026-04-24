@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +44,7 @@ func TestDefaultContext_timeoutLogThrottle_resetsAfterPeriod(t *testing.T) {
 
 	// Create a custom context with a short throttle period for testing reset
 	dcc := &DefaultContext{
-		cluster: c,
+		cluster:                   c,
 		requestTimeoutLogThrottle: actor.NewThrottle(2, 100*time.Millisecond, func(count int32) {}),
 		futureTimeoutLogThrottle:  actor.NewThrottle(2, 100*time.Millisecond, func(count int32) {}),
 	}

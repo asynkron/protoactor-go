@@ -2,7 +2,7 @@ package main
 
 import (
 	console "github.com/asynkron/goconsole"
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"log/slog"
 )
 

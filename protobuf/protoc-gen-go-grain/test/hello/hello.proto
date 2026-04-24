@@ -4,7 +4,7 @@ package hello;
 
 import "google/protobuf/empty.proto";
 
-option go_package = "github.com/asynkron/protoactor-go/protoc-gen-go-grain/testdata/hello";
+option go_package = "github.com/awevoke/protoactor-go/protoc-gen-go-grain/testdata/hello";
 
 message SayHelloResponse {
   string message = 1;

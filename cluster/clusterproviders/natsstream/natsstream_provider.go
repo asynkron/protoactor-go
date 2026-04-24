@@ -11,9 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	natsstreammetrics "github.com/asynkron/protoactor-go/cluster/clusterproviders/natsstream/metrics"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	natsstreammetrics "github.com/awevoke/protoactor-go/cluster/clusterproviders/natsstream/metrics"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"go.opentelemetry.io/otel/metric"
@@ -27,23 +27,23 @@ var _ cluster.SingletonSchedulerRegistrar = (*Provider)(nil)
 // health checking via local timeout-based crash detection, and leader election
 // via publish-race CAS semantics.
 type Provider struct {
-	cluster     *cluster.Cluster
-	clusterName string
-	prefix      string // resolved subject prefix
-	config      *config
-	js          jetstream.JetStream
-	stream      jetstream.Stream // cluster membership stream
-	self        *Node
-	isMember    bool
-	members     map[string]*Node
-	membersMu   sync.RWMutex
-	lastSeen    map[string]time.Time // memberID -> last heartbeat time
-	lastSeenMu  sync.RWMutex
-	shutdown    atomic.Bool
+	cluster      *cluster.Cluster
+	clusterName  string
+	prefix       string // resolved subject prefix
+	config       *config
+	js           jetstream.JetStream
+	stream       jetstream.Stream // cluster membership stream
+	self         *Node
+	isMember     bool
+	members      map[string]*Node
+	membersMu    sync.RWMutex
+	lastSeen     map[string]time.Time // memberID -> last heartbeat time
+	lastSeenMu   sync.RWMutex
+	shutdown     atomic.Bool
 	clusterError error
-	wg          sync.WaitGroup
-	ctx         context.Context
-	cancel      context.CancelFunc
+	wg           sync.WaitGroup
+	ctx          context.Context
+	cancel       context.CancelFunc
 
 	// Leader election
 	role                cluster.RoleType
@@ -51,7 +51,7 @@ type Provider struct {
 	roleChangedChan     chan cluster.RoleType
 	roleChangedListener cluster.RoleChangedListener
 	schedulers          []cluster.RoleChangedListener
-	isLeader   atomic.Bool
+	isLeader            atomic.Bool
 	leaderSeq           uint64 // last successful leader publish sequence
 	leaderMemberID      string // ID of the current leader (from consumed messages)
 	leaderMu            sync.RWMutex

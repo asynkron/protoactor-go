@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // ErrEnumerationNotSupported is returned by GrainRegistry methods that require

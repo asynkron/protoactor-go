@@ -3,7 +3,7 @@ package natsstream
 import (
 	"encoding/json"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 )
 
 // Node represents a cluster member stored in a JetStream stream message.
@@ -58,8 +58,8 @@ func (n *Node) MemberStatus() *cluster.Member {
 	}
 }
 
-func (n *Node) IsAlive() bool { return n.Alive }
+func (n *Node) IsAlive() bool       { return n.Alive }
 func (n *Node) SetAlive(alive bool) { n.Alive = alive }
 
-func (n *Node) Serialize() ([]byte, error) { return json.Marshal(n) }
+func (n *Node) Serialize() ([]byte, error)    { return json.Marshal(n) }
 func (n *Node) Deserialize(data []byte) error { return json.Unmarshal(data, n) }

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // testTimeout is generously long to reduce flakiness on busy CI systems.

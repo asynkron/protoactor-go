@@ -6,8 +6,8 @@ import (
 	"distributedchannels/messages"
 
 	console "github.com/asynkron/goconsole"
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/remote"
 )
 
 func newMyMessageSenderChannel(context actor.SenderContext) chan<- *messages.MyMessage {

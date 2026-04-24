@@ -4,7 +4,7 @@ package stream
 import (
 	"sync/atomic"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // TypedStream converts actor messages of type T into a channel.

@@ -12,9 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	k8smetrics "github.com/asynkron/protoactor-go/cluster/clusterproviders/k8s/metrics"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	k8smetrics "github.com/awevoke/protoactor-go/cluster/clusterproviders/k8s/metrics"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/metric"
 	v1 "k8s.io/api/core/v1"
@@ -38,18 +38,18 @@ type Labels map[string]string
 
 // This data structure provides of k8s as cluster provider for Proto.Actor
 type Provider struct {
-	id             string
-	cluster        *cluster.Cluster
-	clusterName    string
-	podName        string
-	host           string
-	address        string
-	namespace      string
-	knownKinds     []string
-	clusterPods    map[types.UID]*v1.Pod
-	port           int
-	client         *kubernetes.Clientset
-	clusterMonitor *actor.PID
+	id              string
+	cluster         *cluster.Cluster
+	clusterName     string
+	podName         string
+	host            string
+	address         string
+	namespace       string
+	knownKinds      []string
+	clusterPods     map[types.UID]*v1.Pod
+	port            int
+	client          *kubernetes.Clientset
+	clusterMonitor  *actor.PID
 	shutdown        atomic.Bool
 	cancelWatch     context.CancelFunc
 	watchDone       chan struct{}

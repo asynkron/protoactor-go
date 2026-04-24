@@ -2,7 +2,7 @@ package main
 
 import (
 	console "github.com/asynkron/goconsole"
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"github.com/lmittmann/tint"
 	slogzap "github.com/samber/slog-zap/v2"
 	"go.uber.org/zap"

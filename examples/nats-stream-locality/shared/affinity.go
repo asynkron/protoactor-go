@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 

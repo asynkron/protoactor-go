@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // Demonstrates how to create an actor using a function literal and how to send a message asynchronously

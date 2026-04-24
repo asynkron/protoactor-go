@@ -1,6 +1,6 @@
 syntax = "proto3";
 package shared;
-option go_package = "github.com/asynkron/protoactor-go/examples/cluster-broadcast/shared";
+option go_package = "github.com/awevoke/protoactor-go/examples/cluster-broadcast/shared";
 
 message Noop {}
 

@@ -13,10 +13,10 @@ import (
 
 	"github.com/asynkron/gofun/set"
 
-	"github.com/asynkron/protoactor-go/actor"
-	clustermetrics "github.com/asynkron/protoactor-go/cluster/metrics"
-	"github.com/asynkron/protoactor-go/extensions"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	clustermetrics "github.com/awevoke/protoactor-go/cluster/metrics"
+	"github.com/awevoke/protoactor-go/extensions"
+	"github.com/awevoke/protoactor-go/remote"
 )
 
 var extensionID = extensions.NextExtensionID()

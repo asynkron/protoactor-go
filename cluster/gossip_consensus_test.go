@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	cluster "github.com/asynkron/protoactor-go/cluster"
-	cluster_test_tool "github.com/asynkron/protoactor-go/cluster/cluster_test_tool"
+	cluster "github.com/awevoke/protoactor-go/cluster"
+	cluster_test_tool "github.com/awevoke/protoactor-go/cluster/cluster_test_tool"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )

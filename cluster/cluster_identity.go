@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/ctxext"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/ctxext"
 )
 
 // AsKey formats the identity as "kind/identity".

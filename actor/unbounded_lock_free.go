@@ -1,7 +1,7 @@
 package actor
 
 import (
-	"github.com/asynkron/protoactor-go/internal/queue/mpsc"
+	"github.com/awevoke/protoactor-go/internal/queue/mpsc"
 )
 
 // UnboundedLockfree returns a producer which creates an unbounded, lock-free mailbox.

@@ -12,7 +12,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/sync/errgroup"
 )

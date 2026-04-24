@@ -9,7 +9,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/asynkron/protoactor-go/metrics"
+	"github.com/awevoke/protoactor-go/metrics"
 	"go.opentelemetry.io/otel/metric"
 )
 

@@ -934,7 +934,7 @@ func TestCluster_Request_NoHeaders_EmptyOnReceiver(t *testing.T) {
 }
 ```
 
-If the imports don't already include `"github.com/asynkron/protoactor-go/actor"` and `"github.com/stretchr/testify/require"`, add them.
+If the imports don't already include `"github.com/awevoke/protoactor-go/actor"` and `"github.com/stretchr/testify/require"`, add them.
 
 - [ ] **Step 2: Run the test, expect failure**
 

@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/scheduler"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/scheduler"
 )
 
 const Topic = "chat"

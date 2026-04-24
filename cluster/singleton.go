@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // RoleType represents the leadership role of a cluster node.

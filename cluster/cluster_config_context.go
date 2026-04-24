@@ -5,7 +5,7 @@ package cluster
 import (
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 const (

@@ -14,9 +14,9 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup"
-	natsidentity "github.com/asynkron/protoactor-go/cluster/identitylookup/nats"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup"
+	natsidentity "github.com/awevoke/protoactor-go/cluster/identitylookup/nats"
 )
 
 var testJS jetstream.JetStream

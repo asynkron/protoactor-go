@@ -7,7 +7,7 @@
 package cluster
 
 import (
-	actor "github.com/asynkron/protoactor-go/actor"
+	actor "github.com/awevoke/protoactor-go/actor"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
@@ -975,7 +975,7 @@ const file_pubsub_proto_rawDesc = "" +
 	"\rPublishStatus\x12\x06\n" +
 	"\x02Ok\x10\x00\x12\n" +
 	"\n" +
-	"\x06Failed\x10\x01B,Z*/github.com/asynkron/protoactor-go/clusterb\x06proto3"
+	"\x06Failed\x10\x01B,Z*/github.com/awevoke/protoactor-go/clusterb\x06proto3"
 
 var (
 	file_pubsub_proto_rawDescOnce sync.Once

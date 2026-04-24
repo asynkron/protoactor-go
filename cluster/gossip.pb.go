@@ -355,7 +355,7 @@ const file_gossip_proto_rawDesc = "" +
 	"\n" +
 	"ItemsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12*\n" +
-	"\x05value\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x05value:\x028\x01B,Z*/github.com/asynkron/protoactor-go/clusterb\x06proto3"
+	"\x05value\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x05value:\x028\x01B,Z*/github.com/awevoke/protoactor-go/clusterb\x06proto3"
 
 var (
 	file_gossip_proto_rawDescOnce sync.Once

@@ -11,7 +11,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"golang.org/x/net/context"
@@ -342,7 +342,6 @@ func (s *endpointReader) onServerConnection(stream Remoting_ReceiveServer, sc *S
 		s.connectedAddress.Store(sc.Address)
 	}
 }
-
 
 func (s *endpointReader) onClientConnection(stream Remoting_ReceiveServer, cc *ClientConnection) {
 	blocked := s.remote.BlockList().IsBlocked(cc.MemberId)

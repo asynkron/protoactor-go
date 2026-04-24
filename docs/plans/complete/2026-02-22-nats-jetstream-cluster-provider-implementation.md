@@ -24,12 +24,12 @@
 **Step 1: Create `go.mod`**
 
 ```go
-module github.com/asynkron/protoactor-go/cluster/clusterproviders/natsstream
+module github.com/awevoke/protoactor-go/cluster/clusterproviders/natsstream
 
 go 1.25.3
 
 require (
-	github.com/asynkron/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go v0.0.0
 	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats-server/v2 v2.12.4
 	github.com/nats-io/nats.go v1.48.0
@@ -37,7 +37,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.40.0
 )
 
-replace github.com/asynkron/protoactor-go => ../../../
+replace github.com/awevoke/protoactor-go => ../../../
 ```
 
 **Step 2: Write the config tests**
@@ -449,7 +449,7 @@ package natsstream
 import (
 	"encoding/json"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 )
 
 // Node represents a cluster member stored in a JetStream stream message.
@@ -545,9 +545,9 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stretchr/testify/require"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/remote"
 )
 
 // startEmbeddedNATS starts an embedded NATS server with JetStream enabled.
@@ -650,7 +650,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -733,7 +733,7 @@ package natsstream
 import (
 	"sync"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // SingletonScheduler manages actors that should only run on the leader node.
@@ -898,7 +898,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )
@@ -1666,8 +1666,8 @@ Create `cluster/clusterproviders/natsstream/natsstream_identity.go` with just en
 package natsstream
 
 import (
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
 )
 
 // Compile-time check that IdentityLookup implements cluster.IdentityLookup.
@@ -2043,7 +2043,7 @@ func TestSingletonScheduler_SpawnOnLeader(t *testing.T) {
 }
 ```
 
-Note: Add required imports to the test file: `"context"`, `"encoding/json"`, `"sync/atomic"`, `"time"`, `"github.com/asynkron/protoactor-go/actor"`, etc.
+Note: Add required imports to the test file: `"context"`, `"encoding/json"`, `"sync/atomic"`, `"time"`, `"github.com/awevoke/protoactor-go/actor"`, etc.
 
 **Step 2: Run tests**
 
@@ -2083,7 +2083,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -2232,8 +2232,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go/jetstream"
 )
@@ -2662,9 +2662,9 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/remote"
 )
 
 // startNATSContainer starts a NATS server in a Docker container with JetStream enabled.
@@ -2945,10 +2945,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/natsstream"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/natsstream"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 )
 
@@ -2994,19 +2994,19 @@ func main() {
 **Step 3: Create `go.mod`**
 
 ```
-module github.com/asynkron/protoactor-go/examples/cluster-nats-stream
+module github.com/awevoke/protoactor-go/examples/cluster-nats-stream
 
 go 1.25.3
 
 require (
-	github.com/asynkron/protoactor-go v0.0.0
-	github.com/asynkron/protoactor-go/cluster/clusterproviders/natsstream v0.0.0
+	github.com/awevoke/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natsstream v0.0.0
 	github.com/nats-io/nats.go v1.48.0
 )
 
 replace (
-	github.com/asynkron/protoactor-go => ../../
-	github.com/asynkron/protoactor-go/cluster/clusterproviders/natsstream => ../../cluster/clusterproviders/natsstream
+	github.com/awevoke/protoactor-go => ../../
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natsstream => ../../cluster/clusterproviders/natsstream
 )
 ```
 
@@ -3038,7 +3038,7 @@ git commit -m "feat(examples): add single-node NATS JetStream cluster example"
 ```go
 package shared
 
-import "github.com/asynkron/protoactor-go/actor"
+import "github.com/awevoke/protoactor-go/actor"
 
 const HelloKind = "hello"
 
@@ -3067,11 +3067,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/natsstream"
-	"github.com/asynkron/protoactor-go/examples/cluster-nats-stream-multi/shared"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/natsstream"
+	"github.com/awevoke/protoactor-go/examples/cluster-nats-stream-multi/shared"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 )
 
@@ -3132,10 +3132,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/natsstream"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/natsstream"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 )
 
@@ -3241,19 +3241,19 @@ services:
 **Step 5: Create `go.mod`**
 
 ```
-module github.com/asynkron/protoactor-go/examples/cluster-nats-stream-multi
+module github.com/awevoke/protoactor-go/examples/cluster-nats-stream-multi
 
 go 1.25.3
 
 require (
-	github.com/asynkron/protoactor-go v0.0.0
-	github.com/asynkron/protoactor-go/cluster/clusterproviders/natsstream v0.0.0
+	github.com/awevoke/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natsstream v0.0.0
 	github.com/nats-io/nats.go v1.48.0
 )
 
 replace (
-	github.com/asynkron/protoactor-go => ../../
-	github.com/asynkron/protoactor-go/cluster/clusterproviders/natsstream => ../../cluster/clusterproviders/natsstream
+	github.com/awevoke/protoactor-go => ../../
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natsstream => ../../cluster/clusterproviders/natsstream
 )
 ```
 

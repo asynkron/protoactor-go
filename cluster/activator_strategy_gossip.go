@@ -5,9 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/awevoke/protoactor-go/eventstream"
 )
-
 
 // GossipStrategy selects the member with the fewest active grains for the
 // requested kind, using per-kind actor counts from gossip heartbeats.
@@ -16,7 +15,7 @@ type GossipStrategy struct {
 	mu          sync.RWMutex
 	members     []*Member
 	actorCounts map[string]map[string]int64 // memberID -> kind -> count
-	counter     atomic.Uint32             // round-robin fallback counter (independent of mutex)
+	counter     atomic.Uint32               // round-robin fallback counter (independent of mutex)
 
 	// ScoreMember is an optional callback that allows custom scoring of members.
 	// Lower scores are preferred. When nil, the per-kind actor count is used.

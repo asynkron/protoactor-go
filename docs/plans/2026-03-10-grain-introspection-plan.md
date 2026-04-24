@@ -86,7 +86,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // GrainInfo describes an active grain activation.
@@ -187,7 +187,7 @@ package cluster
 import (
 	"testing"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -526,7 +526,7 @@ func (state *PassivationHolder) Init(actorSystem *actor.ActorSystem, pid *actor.
 }
 ```
 
-Add import: `clustering "github.com/asynkron/protoactor-go/cluster"`
+Add import: `clustering "github.com/awevoke/protoactor-go/cluster"`
 
 **Important:** Check for import cycles. The `plugin` package importing `cluster` should be fine since `plugin` is a separate package. Verify:
 
@@ -759,7 +759,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // ErrEnumerationNotSupported is returned by GrainRegistry methods that require
@@ -948,7 +948,7 @@ package cluster
 import (
 	"testing"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1004,7 +1004,7 @@ func (m *mockIdentityLookup) Setup(_ *Cluster, _ []string, _ bool) {}
 func (m *mockIdentityLookup) Shutdown() {}
 ```
 
-Note: You'll need to adapt imports. The test uses `newInmemoryProvider()` — check existing cluster tests for how this helper is defined (it may be in a test helper file). If it doesn't exist, create a minimal `ClusterProvider` for testing. Also check if `remote` needs to be imported from `github.com/asynkron/protoactor-go/remote`.
+Note: You'll need to adapt imports. The test uses `newInmemoryProvider()` — check existing cluster tests for how this helper is defined (it may be in a test helper file). If it doesn't exist, create a minimal `ClusterProvider` for testing. Also check if `remote` needs to be imported from `github.com/awevoke/protoactor-go/remote`.
 
 - [ ] **Step 4: Run tests**
 
@@ -1406,7 +1406,7 @@ func (p *IdentityLookup) fanOutListGrains(memberID string) ([]*cluster.GrainInfo
 }
 ```
 
-Add `time`, `log/slog`, and `"github.com/asynkron/protoactor-go/actor"` to the imports (some may already be present).
+Add `time`, `log/slog`, and `"github.com/awevoke/protoactor-go/actor"` to the imports (some may already be present).
 
 - [ ] **Step 3: Write tests**
 
@@ -1419,9 +1419,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	clustering "github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	clustering "github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -2554,9 +2554,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

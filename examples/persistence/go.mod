@@ -2,14 +2,14 @@ module persistence
 
 go 1.25.3
 
-replace github.com/asynkron/protoactor-go => ../..
+replace github.com/awevoke/protoactor-go => ../..
 
 require (
 	github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716
 	google.golang.org/protobuf v1.36.10
 )
 
-require github.com/asynkron/protoactor-go v0.0.0-20240116091649-93e384a26d0d
+require github.com/awevoke/protoactor-go v0.0.0-20240116091649-93e384a26d0d
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

@@ -1,6 +1,6 @@
 package cluster
 
-import "github.com/asynkron/protoactor-go/actor"
+import "github.com/awevoke/protoactor-go/actor"
 
 // Context is an interface any cluster context needs to implement
 type Context interface {

@@ -1,6 +1,6 @@
 syntax = "proto3";
 package shared;
-option go_package = "github.com/asynkron/protoactor-go/examples/nats-forwarder/shared";
+option go_package = "github.com/awevoke/protoactor-go/examples/nats-forwarder/shared";
 
 message Command {
   string action = 1;

@@ -63,7 +63,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // RoleType represents the leadership role of a cluster node.
@@ -192,7 +192,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -437,7 +437,7 @@ Remove lines 16-39 entirely — this includes:
 - `String()` method (lines 27-34)
 - `RoleChangedListener` interface (lines 36-39)
 
-Add `"github.com/asynkron/protoactor-go/cluster"` to imports.
+Add `"github.com/awevoke/protoactor-go/cluster"` to imports.
 
 Update the `config` struct field (line 53):
 ```go
@@ -480,7 +480,7 @@ func (m *mockRoleChangedListener) OnRoleChanged(role cluster.RoleType) {
 }
 ```
 
-Add `"github.com/asynkron/protoactor-go/cluster"` to test imports.
+Add `"github.com/awevoke/protoactor-go/cluster"` to test imports.
 
 - [ ] **Step 4: Update Provider struct fields in `natskv_provider.go` (lines 46-51)**
 
@@ -651,7 +651,7 @@ Update `TestSingletonScheduler_SpawnOnLeader` (lines 350-382):
 - Replace `NewSingletonScheduler(c.ActorSystem.Root)` with `cluster.NewSingletonScheduler(c.ActorSystem.Root)`
 - Replace `p.RegisterSingletonScheduler(scheduler)` with `c.RegisterSingletonScheduler(scheduler)` (note: `c` is the `*cluster.Cluster` variable — check the test's variable names)
 - **Remove `scheduler.pids` assertions** — after moving `SingletonScheduler` to the `cluster` package, `pids` is unexported and inaccessible from the `natskv` test package. The `spawned` atomic bool assertion already proves correctness. The field-level test coverage is in `cluster/singleton_test.go`.
-- Add `"github.com/asynkron/protoactor-go/cluster"` to test imports
+- Add `"github.com/awevoke/protoactor-go/cluster"` to test imports
 
 - [ ] **Step 13: Verify compilation**
 
@@ -701,7 +701,7 @@ Remove lines 23-43 entirely — this includes:
 - `String()` method (lines 31-37)
 - `RoleChangedListener` interface (lines 41-43)
 
-Add `"github.com/asynkron/protoactor-go/cluster"` to imports.
+Add `"github.com/awevoke/protoactor-go/cluster"` to imports.
 
 Update the `config` struct's `RoleChanged` field to `cluster.RoleChangedListener`.
 
@@ -801,7 +801,7 @@ type RoleChangedListener interface {
 }
 ```
 
-Add `"github.com/asynkron/protoactor-go/cluster"` to imports.
+Add `"github.com/awevoke/protoactor-go/cluster"` to imports.
 
 Update `WithRoleChangedListener` (lines 37-42) parameter type:
 ```go
@@ -837,7 +837,7 @@ RoleChanged   cluster.RoleChangedListener
 ```
 
 Add `"sync"` to imports (note: `"sync/atomic"` is already imported but `"sync"` is not).
-Add `"github.com/asynkron/protoactor-go/cluster"` to imports.
+Add `"github.com/awevoke/protoactor-go/cluster"` to imports.
 
 - [ ] **Step 4: Update constructor (lines 73-83)**
 
@@ -1001,7 +1001,7 @@ roleChangedChan: make(chan RoleType, 1),
 roleChangedChan: make(chan cluster.RoleType, 1),
 ```
 
-Add `"github.com/asynkron/protoactor-go/cluster"` to test imports.
+Add `"github.com/awevoke/protoactor-go/cluster"` to test imports.
 
 - [ ] **Step 12: Verify compilation and tests**
 
@@ -1087,7 +1087,7 @@ RoleChanged    RoleChangedListener
 RoleChanged    cluster.RoleChangedListener
 ```
 
-Add `"github.com/asynkron/protoactor-go/cluster"` to imports.
+Add `"github.com/awevoke/protoactor-go/cluster"` to imports.
 
 - [ ] **Step 3: Remove inline `RoleType` from `zk_provider.go` (lines 19-34)**
 
@@ -1109,7 +1109,7 @@ Remove the `RoleType` type, `Follower`/`Leader` constants, and `String()` method
 	schedulers          []cluster.RoleChangedListener
 ```
 
-Add `"github.com/asynkron/protoactor-go/cluster"` to imports.
+Add `"github.com/awevoke/protoactor-go/cluster"` to imports.
 
 - [ ] **Step 5: Update constructor (lines 73-74)**
 
@@ -1287,7 +1287,7 @@ suite.NotPanics(func() { safeRun(slog.Default(), func() { panic("don't worry, sh
 suite.NotPanics(func() { cluster.SafeRunRoleChange(slog.Default(), func() { panic("don't worry, should panic here") }) })
 ```
 
-Add `"github.com/asynkron/protoactor-go/cluster"` to test imports.
+Add `"github.com/awevoke/protoactor-go/cluster"` to test imports.
 
 - [ ] **Step 12: Add compile-time interface assertion**
 

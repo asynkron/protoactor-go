@@ -1,6 +1,6 @@
 syntax = "proto3";
 package shared;
-option go_package = "github.com/asynkron/protoactor-go/examples/nats-stream-locality/shared";
+option go_package = "github.com/awevoke/protoactor-go/examples/nats-stream-locality/shared";
 
 message SensorReading {
   string sensor_id = 1;

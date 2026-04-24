@@ -2,7 +2,7 @@
 package propagator
 
 import (
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 type MiddlewarePropagator struct {

@@ -3,8 +3,8 @@ package identitylookup_test
 import (
 	"testing"
 
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup"
 )
 
 // TestInMemoryConformance runs the full StorageLookup conformance suite

@@ -27,12 +27,12 @@ mkdir -p cluster/clusterproviders/natskv
 Write `cluster/clusterproviders/natskv/go.mod`:
 
 ```go
-module github.com/asynkron/protoactor-go/cluster/clusterproviders/natskv
+module github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv
 
 go 1.25.3
 
 require (
-	github.com/asynkron/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go v0.0.0
 	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats-server/v2 v2.11.4
 	github.com/nats-io/nats.go v1.48.0
@@ -40,7 +40,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.40.0
 )
 
-replace github.com/asynkron/protoactor-go => ../../../
+replace github.com/awevoke/protoactor-go => ../../../
 ```
 
 **Step 2: Create doc.go**
@@ -481,7 +481,7 @@ package natskv
 import (
 	"encoding/json"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 )
 
 // Node represents a cluster member stored in the NATS KV bucket.
@@ -595,7 +595,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -675,7 +675,7 @@ package natskv
 import (
 	"sync"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // RoleType represents the node's leadership role in the cluster.
@@ -953,7 +953,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )
@@ -1556,7 +1556,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 )
 
 func TestIdentityLookup_InterfaceCompliance(t *testing.T) {
@@ -1831,8 +1831,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go/jetstream"
 )
@@ -2564,10 +2564,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -2802,10 +2802,10 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/remote"
 )
 
 func startNATSContainer(t *testing.T) string {
@@ -3022,19 +3022,19 @@ services:
 **Step 3: Write go.mod**
 
 ```go
-module github.com/asynkron/protoactor-go/examples/cluster-nats-kv
+module github.com/awevoke/protoactor-go/examples/cluster-nats-kv
 
 go 1.25.3
 
 require (
-	github.com/asynkron/protoactor-go v0.0.0
-	github.com/asynkron/protoactor-go/cluster/clusterproviders/natskv v0.0.0
+	github.com/awevoke/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv v0.0.0
 	github.com/nats-io/nats.go v1.48.0
 )
 
 replace (
-	github.com/asynkron/protoactor-go => ../../
-	github.com/asynkron/protoactor-go/cluster/clusterproviders/natskv => ../../cluster/clusterproviders/natskv
+	github.com/awevoke/protoactor-go => ../../
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv => ../../cluster/clusterproviders/natskv
 )
 ```
 
@@ -3050,10 +3050,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/natskv"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 )
 
@@ -3193,19 +3193,19 @@ services:
 **Step 3: Write go.mod**
 
 ```go
-module github.com/asynkron/protoactor-go/examples/cluster-nats-kv-multi
+module github.com/awevoke/protoactor-go/examples/cluster-nats-kv-multi
 
 go 1.25.3
 
 require (
-	github.com/asynkron/protoactor-go v0.0.0
-	github.com/asynkron/protoactor-go/cluster/clusterproviders/natskv v0.0.0
+	github.com/awevoke/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv v0.0.0
 	github.com/nats-io/nats.go v1.48.0
 )
 
 replace (
-	github.com/asynkron/protoactor-go => ../../
-	github.com/asynkron/protoactor-go/cluster/clusterproviders/natskv => ../../cluster/clusterproviders/natskv
+	github.com/awevoke/protoactor-go => ../../
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv => ../../cluster/clusterproviders/natskv
 )
 ```
 
@@ -3223,10 +3223,10 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/natskv"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 )
 
@@ -3313,10 +3313,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/natskv"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 )
 

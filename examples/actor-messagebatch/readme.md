@@ -15,7 +15,7 @@ To run this example, ensure you have:
 
 Install Proto.Actor with:
 ```bash
-go get -u github.com/asynkron/protoactor-go
+go get -u github.com/awevoke/protoactor-go
 ```
 
 ## Running the Example

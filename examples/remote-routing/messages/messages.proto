@@ -1,5 +1,5 @@
 syntax = "proto3";
-option go_package = "github.com/asynkron/protoactor-go/examples/remote-routing/messages";
+option go_package = "github.com/awevoke/protoactor-go/examples/remote-routing/messages";
 package messages;
 
 

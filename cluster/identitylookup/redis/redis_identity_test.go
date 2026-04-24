@@ -13,9 +13,9 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup"
-	redisidentity "github.com/asynkron/protoactor-go/cluster/identitylookup/redis"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup"
+	redisidentity "github.com/awevoke/protoactor-go/cluster/identitylookup/redis"
 )
 
 var testClient *goredis.Client

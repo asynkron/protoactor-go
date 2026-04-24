@@ -79,7 +79,7 @@ type Member struct {
 **Module structure:**
 
 - Each provider has its own `go.mod` in its directory (see `cluster/clusterproviders/etcd/go.mod` for reference)
-- Uses `replace github.com/asynkron/protoactor-go => ../../../` directive
+- Uses `replace github.com/awevoke/protoactor-go => ../../../` directive
 - Target `github.com/nats-io/nats.go v1.48.0`
 - Use `github.com/nats-io/nats-server/v2` for embedded server in unit tests
 - Use `github.com/testcontainers/testcontainers-go` for integration tests

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/awevoke/protoactor-go/eventstream"
 )
 
 // BenchmarkRendezvousHashing_10Members benchmarks GetByClusterIdentity with

@@ -12,7 +12,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 
-	"github.com/asynkron/protoactor-go/persistence"
+	"github.com/awevoke/protoactor-go/persistence"
 )
 
 // Compile-time check that PostgresProvider satisfies the persistence interfaces.

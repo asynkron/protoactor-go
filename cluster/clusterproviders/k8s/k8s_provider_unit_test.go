@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
@@ -89,10 +89,10 @@ func TestMapPodsToMembers_SingleRunningPod(t *testing.T) {
 			UID:  types.UID("uid-1"),
 			Name: "pod-1",
 			Labels: map[string]string{
-				LabelCluster:               "test-cluster",
-				LabelPort:                  "8080",
-				LabelMemberID:              "member-1",
-				LabelKind + "-grainType1":  "true",
+				LabelCluster:              "test-cluster",
+				LabelPort:                 "8080",
+				LabelMemberID:             "member-1",
+				LabelKind + "-grainType1": "true",
 			},
 		},
 		Status: v1.PodStatus{
@@ -315,12 +315,12 @@ func TestMapPodsToMembers_MultipleKinds(t *testing.T) {
 			UID:  types.UID("uid-multi-kind"),
 			Name: "multi-kind-pod",
 			Labels: map[string]string{
-				LabelCluster:              "test-cluster",
-				LabelPort:                 "8080",
-				LabelMemberID:             "member-multi",
-				LabelKind + "-grainA":     "true",
-				LabelKind + "-grainB":     "true",
-				LabelKind + "-grainC":     "true",
+				LabelCluster:          "test-cluster",
+				LabelPort:             "8080",
+				LabelMemberID:         "member-multi",
+				LabelKind + "-grainA": "true",
+				LabelKind + "-grainB": "true",
+				LabelKind + "-grainC": "true",
 			},
 		},
 		Status: v1.PodStatus{
@@ -451,10 +451,10 @@ func TestMapPodsToMembers_ReturnsCorrectMemberFields(t *testing.T) {
 			UID:  types.UID("uid-full"),
 			Name: "full-pod",
 			Labels: map[string]string{
-				LabelCluster:             "production-cluster",
-				LabelPort:                "9090",
-				LabelMemberID:            "member-abc-123",
-				LabelKind + "-MyGrain":   "true",
+				LabelCluster:           "production-cluster",
+				LabelPort:              "9090",
+				LabelMemberID:          "member-abc-123",
+				LabelKind + "-MyGrain": "true",
 			},
 		},
 		Status: v1.PodStatus{

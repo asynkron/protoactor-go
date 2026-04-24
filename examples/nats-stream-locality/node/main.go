@@ -14,11 +14,11 @@ import (
 
 	"nats-stream-locality/shared"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -127,9 +127,9 @@ func main() {
 
 	consumerName := fmt.Sprintf("node-%s", system.ID)
 	cons, err := js.CreateOrUpdateConsumer(ctx, "SENSORS", jetstream.ConsumerConfig{
-		Name:          consumerName,
+		Name:           consumerName,
 		FilterSubjects: subjectList,
-		AckPolicy:     jetstream.AckExplicitPolicy,
+		AckPolicy:      jetstream.AckExplicitPolicy,
 	})
 	if err != nil {
 		log.Fatalf("Failed to create consumer: %v", err)

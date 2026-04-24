@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/asynkron/protoactor-go/internal/queue/mpsc"
+	"github.com/awevoke/protoactor-go/internal/queue/mpsc"
 )
 
 // benchInvoker is a minimal MessageInvoker for benchmarking mailbox throughput.

@@ -1,8 +1,8 @@
 package opentracing
 
 import (
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/actor/middleware/propagator"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor/middleware/propagator"
 )
 
 // TracingMiddleware sets up spawn, sender, and receiver middlewares that propagate tracing spans.

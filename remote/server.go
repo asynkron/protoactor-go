@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asynkron/protoactor-go/extensions"
+	"github.com/awevoke/protoactor-go/extensions"
 
-	"github.com/asynkron/protoactor-go/actor"
-	remotemetrics "github.com/asynkron/protoactor-go/remote/metrics"
+	"github.com/awevoke/protoactor-go/actor"
+	remotemetrics "github.com/awevoke/protoactor-go/remote/metrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )

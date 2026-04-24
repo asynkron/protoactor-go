@@ -2,11 +2,11 @@ module actor-opentelemetry
 
 go 1.25.3
 
-replace github.com/asynkron/protoactor-go => ../..
+replace github.com/awevoke/protoactor-go => ../..
 
 require (
 	github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716
-	github.com/asynkron/protoactor-go v0.0.0-00010101000000-000000000000
+	github.com/awevoke/protoactor-go v0.0.0-00010101000000-000000000000
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.37.0
 	go.opentelemetry.io/otel/sdk v1.38.0

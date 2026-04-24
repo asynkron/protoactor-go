@@ -1,6 +1,6 @@
 syntax = "proto3";
 package shared;
-option go_package = "github.com/asynkron/protoactor-go/examples/nats-virtual-actor-ingress/shared";
+option go_package = "github.com/awevoke/protoactor-go/examples/nats-virtual-actor-ingress/shared";
 
 message DeviceMessage {
   string data = 1;

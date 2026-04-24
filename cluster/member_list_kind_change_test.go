@@ -3,8 +3,8 @@ package cluster
 import (
 	"testing"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -43,10 +43,10 @@ func newTestClusterForMemberList() *Cluster {
 	c := &Cluster{
 		ActorSystem: system,
 		Config: &Config{
-			Name:                  "test-cluster",
+			Name:                   "test-cluster",
 			ClusterContextProducer: newDefaultClusterContext,
-			MemberStrategyBuilder: newDefaultMemberStrategy,
-			PubSubConfig:          newPubSubConfig(),
+			MemberStrategyBuilder:  newDefaultMemberStrategy,
+			PubSubConfig:           newPubSubConfig(),
 		},
 		Remote: remote.NewRemote(system, rc),
 		kinds:  map[string]*ActivatedKind{},

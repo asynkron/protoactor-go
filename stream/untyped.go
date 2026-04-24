@@ -3,7 +3,7 @@ package stream
 import (
 	"sync/atomic"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // UntypedStream converts all actor messages into a channel of empty interface.

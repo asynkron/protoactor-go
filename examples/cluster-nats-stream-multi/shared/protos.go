@@ -1,6 +1,6 @@
 package shared
 
-import "github.com/asynkron/protoactor-go/actor"
+import "github.com/awevoke/protoactor-go/actor"
 
 const HelloKind = "hello"
 

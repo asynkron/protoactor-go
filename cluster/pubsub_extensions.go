@@ -3,7 +3,7 @@ package cluster
 import (
 	"fmt"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // Publisher creates a new PubSub publisher that publishes messages directly to the TopicActor

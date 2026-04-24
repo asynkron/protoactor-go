@@ -8,9 +8,9 @@ require (
 	github.com/uber/jaeger-lib v2.4.0+incompatible
 )
 
-replace github.com/asynkron/protoactor-go => ../..
+replace github.com/awevoke/protoactor-go => ../..
 
-require github.com/asynkron/protoactor-go v0.0.0-20240116091649-93e384a26d0d
+require github.com/awevoke/protoactor-go v0.0.0-20240116091649-93e384a26d0d
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.0 // indirect

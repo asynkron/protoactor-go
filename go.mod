@@ -1,4 +1,4 @@
-module github.com/asynkron/protoactor-go
+module github.com/awevoke/protoactor-go
 
 go 1.25.3
 

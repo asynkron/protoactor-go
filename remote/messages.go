@@ -1,6 +1,6 @@
 package remote
 
-import "github.com/asynkron/protoactor-go/actor"
+import "github.com/awevoke/protoactor-go/actor"
 
 // EndpointTerminatedEvent is published when a remote endpoint terminates.
 type EndpointTerminatedEvent struct {

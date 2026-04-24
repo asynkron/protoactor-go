@@ -2,8 +2,8 @@ github.com/Workiva/go-datastructures v1.1.1 h1:9G5u1UqKt6ABseAffHGNfbNQd7omRlWE5
 github.com/Workiva/go-datastructures v1.1.1/go.mod h1:1yZL+zfsztete+ePzZz/Zb1/t5BnDuE2Ya2MMGhzP6A=
 github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716 h1:SgyG4sXkrlalMoCfp20LiNPNhfJS7ez3opNdtihIxPc=
 github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716/go.mod h1:/zSlF0T2ArAsTG6SVu8d8qlK+19jjudjA3wWsxnGFHg=
-github.com/asynkron/protoactor-go v0.0.0-20240116091649-93e384a26d0d h1:/hjPIUib6lReKTncaTIW6FMwO/2sa2Kgv9TCDODZDpo=
-github.com/asynkron/protoactor-go v0.0.0-20240116091649-93e384a26d0d/go.mod h1:4KJf8vAca0fX3EShIBwyY77HV8NldoO1RzFGNlNkjWA=
+github.com/awevoke/protoactor-go v0.0.0-20240116091649-93e384a26d0d h1:/hjPIUib6lReKTncaTIW6FMwO/2sa2Kgv9TCDODZDpo=
+github.com/awevoke/protoactor-go v0.0.0-20240116091649-93e384a26d0d/go.mod h1:4KJf8vAca0fX3EShIBwyY77HV8NldoO1RzFGNlNkjWA=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=

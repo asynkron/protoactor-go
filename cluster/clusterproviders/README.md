@@ -140,8 +140,8 @@ support dynamic scaling.
 
 ```go
 import (
-    "github.com/asynkron/protoactor-go/cluster"
-    "github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
+    "github.com/awevoke/protoactor-go/cluster"
+    "github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
     "github.com/hashicorp/consul/api"
 )
 
@@ -177,8 +177,8 @@ service account needs permission to `get` and `patch` pods, and to `list` and
 
 ```go
 import (
-    "github.com/asynkron/protoactor-go/cluster"
-    "github.com/asynkron/protoactor-go/cluster/clusterproviders/k8s"
+    "github.com/awevoke/protoactor-go/cluster"
+    "github.com/awevoke/protoactor-go/cluster/clusterproviders/k8s"
 )
 
 // Using in-cluster configuration (auto-detected from pod environment)
@@ -211,8 +211,8 @@ name label and only considers pods whose containers are all in `Ready` state.
 
 ```go
 import (
-    "github.com/asynkron/protoactor-go/cluster"
-    "github.com/asynkron/protoactor-go/cluster/clusterproviders/etcd"
+    "github.com/awevoke/protoactor-go/cluster"
+    "github.com/awevoke/protoactor-go/cluster/clusterproviders/etcd"
     clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -238,8 +238,8 @@ clusterConfig := cluster.Configure("my-cluster", provider, /* identity lookup */
 
 ```go
 import (
-    "github.com/asynkron/protoactor-go/cluster"
-    "github.com/asynkron/protoactor-go/cluster/clusterproviders/zk"
+    "github.com/awevoke/protoactor-go/cluster"
+    "github.com/awevoke/protoactor-go/cluster/clusterproviders/zk"
 )
 
 provider, err := zk.New(
@@ -258,8 +258,8 @@ clusterConfig := cluster.Configure("my-cluster", provider, /* identity lookup */
 
 ```go
 import (
-    "github.com/asynkron/protoactor-go/cluster"
-    "github.com/asynkron/protoactor-go/cluster/clusterproviders/automanaged"
+    "github.com/awevoke/protoactor-go/cluster"
+    "github.com/awevoke/protoactor-go/cluster/clusterproviders/automanaged"
 )
 
 // Single-node local development

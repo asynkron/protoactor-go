@@ -3,7 +3,7 @@ package cluster
 import (
 	"sync"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // GrainActivated is published to the EventStream when a grain actor starts.
@@ -16,7 +16,7 @@ type GrainActivated struct {
 type DeactivationReason int
 
 const (
-	DeactivationReasonUnknown          DeactivationReason = iota
+	DeactivationReasonUnknown DeactivationReason = iota
 	DeactivationReasonPassivation
 	DeactivationReasonShutdown
 	DeactivationReasonTopologyChange

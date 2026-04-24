@@ -3,7 +3,7 @@ package extensions_test
 import (
 	"testing"
 
-	"github.com/asynkron/protoactor-go/extensions"
+	"github.com/awevoke/protoactor-go/extensions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

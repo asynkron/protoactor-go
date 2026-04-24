@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )

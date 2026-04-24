@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,9 +1,9 @@
-module github.com/asynkron/protoactor-go/cluster/clusterproviders/etcd
+module github.com/awevoke/protoactor-go/cluster/clusterproviders/etcd
 
 go 1.25.3
 
 require (
-	github.com/asynkron/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go v0.0.0
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.40.0
 	go.etcd.io/etcd/client/v3 v3.6.6
@@ -97,4 +97,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/asynkron/protoactor-go => ../../../
+replace github.com/awevoke/protoactor-go => ../../../

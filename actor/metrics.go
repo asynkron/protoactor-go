@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/asynkron/protoactor-go/extensions"
-	"github.com/asynkron/protoactor-go/metrics"
+	"github.com/awevoke/protoactor-go/extensions"
+	"github.com/awevoke/protoactor-go/metrics"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"

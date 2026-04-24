@@ -6,8 +6,8 @@ import (
 	"strconv"
 
 	console "github.com/asynkron/goconsole"
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/persistence"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/persistence"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"

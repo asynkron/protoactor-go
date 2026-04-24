@@ -19,20 +19,20 @@ Proto.Actor uses tags to categorise issues into groups or mark their phase in de
 Most notably many tags start with a `t:` prefix (as in `topic:`), which categorises issues in terms of which module they
 relate to. Examples are:
 
-- [t:actor](https://github.com/asynkron/protoactor-go/labels/t%3Aactor)
-- [t:remote](https://github.com/asynkron/protoactor-go/labels/t%3Aremote)
-- [t:cluster](https://github.com/asynkron/protoactor-go/labels/t%3Acluster)
-- [t:router](https://github.com/asynkron/protoactor-go/labels/t%3Arouter)
-- [See all labels](https://github.com/asynkron/protoactor-go/labels)
+- [t:actor](https://github.com/awevoke/protoactor-go/labels/t%3Aactor)
+- [t:remote](https://github.com/awevoke/protoactor-go/labels/t%3Aremote)
+- [t:cluster](https://github.com/awevoke/protoactor-go/labels/t%3Acluster)
+- [t:router](https://github.com/awevoke/protoactor-go/labels/t%3Arouter)
+- [See all labels](https://github.com/awevoke/protoactor-go/labels)
 
 In general *all issues are open for anyone working on them*, however if you're new to the project and looking for an
 issue
 that will be accepted and likely is a nice one to get started you should check out the following tags:
 
-- [community](https://github.com/asynkron/protoactor-go/labels/community) - which identifies issues that the core team
+- [community](https://github.com/awevoke/protoactor-go/labels/community) - which identifies issues that the core team
   will likely not have time to work on, or the issue is a nice entry level ticket. If you're not sure how to solve a
   ticket but would like to work on it feel free to ask in the issue about clarification or tips.
-- [nice-to-have (low-priority)](https://github.com/asynkron/protoactor-go/labels/nice-to-have) - are tasks which make
+- [nice-to-have (low-priority)](https://github.com/awevoke/protoactor-go/labels/nice-to-have) - are tasks which make
   sense, however are not very high priority (in case of other very high priority issues). If you see something
   interesting in this list, a contribution would be really wonderful!
 
@@ -54,7 +54,7 @@ issue is:
 
 The last group of special tags indicate specific states a ticket is in:
 
-- [bug](https://github.com/asynkron/protoactor-go/labels/bug) - bugs take priority in being fixed above features. The
+- [bug](https://github.com/awevoke/protoactor-go/labels/bug) - bugs take priority in being fixed above features. The
   core team dedicates a number of days to working on bugs each sprint. Bugs which have reproducers are also great for
   community contributions as they're well isolated. Sometimes we're not as lucky to have reproducers though, then a
   bugfix should also include a test reproducing the original error along with the fix.
@@ -72,10 +72,10 @@ We encourage changes that make it easier to achieve our goals in an efficient wa
 The steps below describe how to get a patch into a main development branch (e.g. `dev`).
 The steps are exactly the same for everyone involved in the project (be it core team, or first time contributor).
 
-1. Make sure an issue exists in the [issue tracker](https://github.com/asynkron/protoactor-go/issues) for the work you
+1. Make sure an issue exists in the [issue tracker](https://github.com/awevoke/protoactor-go/issues) for the work you
    want to contribute.
-    - If there is no ticket for it, [create one](https://github.com/asynkron/protoactor-go/issues/new) first.
-1. [Fork the project](https://github.com/asynkron/protoactor-go#fork-destination-box) on GitHub. You'll need to create a
+    - If there is no ticket for it, [create one](https://github.com/awevoke/protoactor-go/issues/new) first.
+1. [Fork the project](https://github.com/awevoke/protoactor-go#fork-destination-box) on GitHub. You'll need to create a
    feature-branch for your work on your fork, as this way you'll be able to submit a pull request against the mainline
    Proto.Actor.
 1. Create a branch on your fork and work on the feature. For
@@ -240,4 +240,4 @@ Each project should be configured to use a continuous integration (CI) tool (i.e
 ## Related links
 
 * [Proto.Actor Contributor License Agreement](https://cla-assistant.io/asynkron/protoactor-go)
-* [Proto.Actor Issue Tracker](https://github.com/asynkron/protoactor-go/issues)
+* [Proto.Actor Issue Tracker](https://github.com/awevoke/protoactor-go/issues)

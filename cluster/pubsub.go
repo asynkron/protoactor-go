@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/extensions"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/extensions"
 )
 
 const PubSubDeliveryName = "$pubsub-delivery"

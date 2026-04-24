@@ -4,7 +4,7 @@ package options;
 
 import "google/protobuf/descriptor.proto";
 
-option go_package = "github.com/asynkron/protoactor-go/protobuf/protoc-gen-go-grain/options";
+option go_package = "github.com/awevoke/protoactor-go/protobuf/protoc-gen-go-grain/options";
 
 message MethodOptions {
   // mark a method as reenterable will generate a callback version of the method

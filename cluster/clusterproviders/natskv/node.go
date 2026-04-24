@@ -3,7 +3,7 @@ package natskv
 import (
 	"encoding/json"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 )
 
 // Node represents a cluster member stored in NATS KV.

@@ -146,7 +146,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/asynkron/protoactor-go/metrics"
+	"github.com/awevoke/protoactor-go/metrics"
 )
 
 // recordSupervisionMetric records a supervision event metric if metrics are enabled.
@@ -801,7 +801,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/asynkron/protoactor-go/metrics"
+	"github.com/awevoke/protoactor-go/metrics"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -936,7 +936,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/asynkron/protoactor-go/metrics"
+	"github.com/awevoke/protoactor-go/metrics"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -1032,7 +1032,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/asynkron/protoactor-go/metrics"
+	"github.com/awevoke/protoactor-go/metrics"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -1415,9 +1415,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/actor/middleware/opentelemetry"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor/middleware/opentelemetry"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -1570,8 +1570,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/stretchr/testify/assert"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -1651,10 +1651,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/automanaged"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/automanaged"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -1725,10 +1725,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/automanaged"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/automanaged"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"

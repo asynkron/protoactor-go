@@ -4,7 +4,7 @@ package etcd
 import (
 	"time"
 
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -192,8 +192,8 @@ type mockSupervisorForTest struct {
 	stopCalled    bool
 }
 
-func (m *mockSupervisorForTest) Children() []*actor.PID                    { return nil }
-func (m *mockSupervisorForTest) EscalateFailure(reason any, message any)   {}
-func (m *mockSupervisorForTest) RestartChildren(pids ...*actor.PID)        { m.restartCalled = true }
-func (m *mockSupervisorForTest) StopChildren(pids ...*actor.PID)           { m.stopCalled = true }
-func (m *mockSupervisorForTest) ResumeChildren(pids ...*actor.PID)         {}
+func (m *mockSupervisorForTest) Children() []*actor.PID                  { return nil }
+func (m *mockSupervisorForTest) EscalateFailure(reason any, message any) {}
+func (m *mockSupervisorForTest) RestartChildren(pids ...*actor.PID)      { m.restartCalled = true }
+func (m *mockSupervisorForTest) StopChildren(pids ...*actor.PID)         { m.stopCalled = true }
+func (m *mockSupervisorForTest) ResumeChildren(pids ...*actor.PID)       {}

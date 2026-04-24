@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	actor "github.com/asynkron/protoactor-go/actor"
-	cluster "github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/test"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
-	"github.com/asynkron/protoactor-go/remote"
+	actor "github.com/awevoke/protoactor-go/actor"
+	cluster "github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/test"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/awevoke/protoactor-go/remote"
 )
 
 func main() {

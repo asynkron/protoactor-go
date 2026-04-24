@@ -11,12 +11,12 @@ import (
 
 	"nats-identity-prevention/shared"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	natsidentity "github.com/asynkron/protoactor-go/cluster/identitylookup/nats"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/storage"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
+	natsidentity "github.com/awevoke/protoactor-go/cluster/identitylookup/nats"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/storage"
+	"github.com/awevoke/protoactor-go/remote"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )

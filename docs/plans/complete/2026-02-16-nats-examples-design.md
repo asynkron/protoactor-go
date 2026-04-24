@@ -229,4 +229,4 @@ The two node types run independently as separate demo scenarios, not mixed in on
 - `github.com/nats-io/nats.go` — NATS client
 - `github.com/nats-io/nats.go/jetstream` — JetStream API (same module)
 - `github.com/lib/pq` or `github.com/jackc/pgx/v5` — Postgres driver (for postgres StorageLookup)
-- Existing: `github.com/asynkron/protoactor-go`, consul provider, disthash, protobuf tooling
+- Existing: `github.com/awevoke/protoactor-go`, consul provider, disthash, protobuf tooling

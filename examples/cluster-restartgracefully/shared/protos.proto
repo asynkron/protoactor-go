@@ -1,5 +1,5 @@
 syntax = "proto3";
-option go_package = "github.com/asynkron/protoactor-go/examples/cluster-restartgracefully/shared";
+option go_package = "github.com/awevoke/protoactor-go/examples/cluster-restartgracefully/shared";
 package shared;
 
 message Void {}

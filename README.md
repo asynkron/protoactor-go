@@ -1,7 +1,7 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/asynkron/protoactor-go)](https://goreportcard.com/report/github.com/asynkron/protoactor-go)
-[![GoDoc](https://godoc.org/github.com/asynkron/protoactor-go?status.svg)](https://godoc.org/github.com/asynkron/protoactor-go)
-[![checks](https://github.com/asynkron/protoactor-go/actions/workflows/checks.yml/badge.svg)](https://github.com/asynkron/protoactor-go/actions/workflows/checks.yml)
-[![Sourcegraph](https://sourcegraph.com/github.com/asynkron/protoactor-go/-/badge.svg)](https://sourcegraph.com/github.com/asynkron/protoactor-go?badge)
+[![Go Report Card](https://goreportcard.com/badge/github.com/awevoke/protoactor-go)](https://goreportcard.com/report/github.com/awevoke/protoactor-go)
+[![GoDoc](https://godoc.org/github.com/awevoke/protoactor-go?status.svg)](https://godoc.org/github.com/awevoke/protoactor-go)
+[![checks](https://github.com/awevoke/protoactor-go/actions/workflows/checks.yml/badge.svg)](https://github.com/awevoke/protoactor-go/actions/workflows/checks.yml)
+[![Sourcegraph](https://sourcegraph.com/github.com/awevoke/protoactor-go/-/badge.svg)](https://sourcegraph.com/github.com/awevoke/protoactor-go?badge)
 
 ### [Join our Slack channel](https://join.slack.com/t/asynkron/shared_invite/zt-ko824601-yGN1d3GHF9jzZX2VtONodQ)
 
@@ -104,8 +104,8 @@ Next, install the [standard protocol buffer implementation](https://github.com/g
 commands to get all the necessary tooling:
 
 ```
-go get github.com/asynkron/protoactor-go/...
-cd $GOPATH/src/github.com/asynkron/protoactor-go
+go get github.com/awevoke/protoactor-go/...
+cd $GOPATH/src/github.com/awevoke/protoactor-go
 go get ./...
 make
 ```
@@ -387,7 +387,7 @@ For more examples, see the example folder in this repository.
 
 ## Contributors
 
-<a href="https://github.com/asynkron/protoactor-go/graphs/contributors">
+<a href="https://github.com/awevoke/protoactor-go/graphs/contributors">
   <img src="https://contributors-img.web.app/image?repo=asynkron/protoactor-go" />
 </a>
 

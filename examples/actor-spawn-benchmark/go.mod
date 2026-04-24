@@ -2,9 +2,9 @@ module spawnbenchmark
 
 go 1.25.3
 
-replace github.com/asynkron/protoactor-go => ../..
+replace github.com/awevoke/protoactor-go => ../..
 
-require github.com/asynkron/protoactor-go v0.0.0-20240116091649-93e384a26d0d
+require github.com/awevoke/protoactor-go v0.0.0-20240116091649-93e384a26d0d
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

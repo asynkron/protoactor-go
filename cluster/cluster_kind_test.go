@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,9 +16,9 @@ func (t *testActor) Receive(_ actor.Context) {}
 func newTestCluster() *Cluster {
 	system := actor.NewActorSystem()
 	cfg := &Config{
-		Name:               "test-cluster",
+		Name:                   "test-cluster",
 		ClusterContextProducer: newDefaultClusterContext,
-		PubSubConfig:       newPubSubConfig(),
+		PubSubConfig:           newPubSubConfig(),
 	}
 	c := &Cluster{
 		ActorSystem: system,

@@ -20,8 +20,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go/jetstream"
 )

@@ -183,7 +183,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -274,7 +274,7 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // Kind represents the kinds of actors a cluster can manage

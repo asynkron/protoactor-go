@@ -3,7 +3,7 @@ package ctxext_test
 import (
 	"testing"
 
-	"github.com/asynkron/protoactor-go/ctxext"
+	"github.com/awevoke/protoactor-go/ctxext"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

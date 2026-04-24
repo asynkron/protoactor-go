@@ -51,7 +51,6 @@ func mapString(list []string, fn func(string) string) []string {
 	return l
 }
 
-
 func getParentDir(path string) string {
 	parent := path[:strings.LastIndex(path, "/")]
 	if parent == "" {

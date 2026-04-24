@@ -7,9 +7,9 @@ require (
 	google.golang.org/protobuf v1.36.10
 )
 
-replace github.com/asynkron/protoactor-go => ../..
+replace github.com/awevoke/protoactor-go => ../..
 
-require github.com/asynkron/protoactor-go v0.0.0-20240408071539-f4cee9b2a813
+require github.com/awevoke/protoactor-go v0.0.0-20240408071539-f4cee9b2a813
 
 require github.com/lmittmann/tint v1.1.2
 

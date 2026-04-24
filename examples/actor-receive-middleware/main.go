@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	console "github.com/asynkron/goconsole"
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/actor/middleware"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor/middleware"
 )
 
 type hello struct{ Who string }

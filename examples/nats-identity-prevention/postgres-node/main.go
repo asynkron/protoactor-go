@@ -13,13 +13,13 @@ import (
 
 	"nats-identity-prevention/shared"
 
-	"github.com/asynkron/protoactor-go/actor"
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup/storage"
-	"github.com/asynkron/protoactor-go/remote"
+	"github.com/awevoke/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup/storage"
+	"github.com/awevoke/protoactor-go/remote"
 
-	pgidentity "github.com/asynkron/protoactor-go/cluster/identitylookup/postgres"
+	pgidentity "github.com/awevoke/protoactor-go/cluster/identitylookup/postgres"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 

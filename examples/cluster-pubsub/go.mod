@@ -4,11 +4,11 @@ go 1.25.3
 
 require (
 	github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716
-	github.com/asynkron/protoactor-go v0.0.0-20250813145324-74dace48f110
+	github.com/awevoke/protoactor-go v0.0.0-20250813145324-74dace48f110
 	google.golang.org/protobuf v1.36.10
 )
 
-replace github.com/asynkron/protoactor-go => ../..
+replace github.com/awevoke/protoactor-go => ../..
 
 require (
 	github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2 // indirect

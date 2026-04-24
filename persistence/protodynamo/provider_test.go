@@ -17,7 +17,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/asynkron/protoactor-go/persistence/protodynamo"
+	"github.com/awevoke/protoactor-go/persistence/protodynamo"
 )
 
 // startDynamoDBLocal launches a DynamoDB-local container via testcontainers

@@ -2,13 +2,13 @@ module nats-virtual-actor-ingress
 
 go 1.25.5
 
-replace github.com/asynkron/protoactor-go => ../..
+replace github.com/awevoke/protoactor-go => ../..
 
-replace github.com/asynkron/protoactor-go/cluster/clusterproviders/consul => ../../cluster/clusterproviders/consul
+replace github.com/awevoke/protoactor-go/cluster/clusterproviders/consul => ../../cluster/clusterproviders/consul
 
 require (
-	github.com/asynkron/protoactor-go v0.0.0
-	github.com/asynkron/protoactor-go/cluster/clusterproviders/consul v0.0.0
+	github.com/awevoke/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/consul v0.0.0
 	github.com/nats-io/nats.go v1.39.1
 	google.golang.org/protobuf v1.36.11
 )

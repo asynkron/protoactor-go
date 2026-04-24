@@ -2,19 +2,19 @@ module nats-identity-prevention
 
 go 1.25.5
 
-replace github.com/asynkron/protoactor-go => ../..
+replace github.com/awevoke/protoactor-go => ../..
 
-replace github.com/asynkron/protoactor-go/cluster/clusterproviders/consul => ../../cluster/clusterproviders/consul
+replace github.com/awevoke/protoactor-go/cluster/clusterproviders/consul => ../../cluster/clusterproviders/consul
 
-replace github.com/asynkron/protoactor-go/cluster/identitylookup/postgres => ../../cluster/identitylookup/postgres
+replace github.com/awevoke/protoactor-go/cluster/identitylookup/postgres => ../../cluster/identitylookup/postgres
 
-replace github.com/asynkron/protoactor-go/cluster/identitylookup/nats => ../../cluster/identitylookup/nats
+replace github.com/awevoke/protoactor-go/cluster/identitylookup/nats => ../../cluster/identitylookup/nats
 
 require (
-	github.com/asynkron/protoactor-go v0.0.0
-	github.com/asynkron/protoactor-go/cluster/clusterproviders/consul v0.0.0
-	github.com/asynkron/protoactor-go/cluster/identitylookup/nats v0.0.0
-	github.com/asynkron/protoactor-go/cluster/identitylookup/postgres v0.0.0
+	github.com/awevoke/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/consul v0.0.0
+	github.com/awevoke/protoactor-go/cluster/identitylookup/nats v0.0.0
+	github.com/awevoke/protoactor-go/cluster/identitylookup/postgres v0.0.0
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/nats-io/nats.go v1.42.0
 	google.golang.org/protobuf v1.36.11

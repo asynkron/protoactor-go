@@ -766,7 +766,7 @@ package cluster
 import (
 	"testing"
 
-	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/awevoke/protoactor-go/eventstream"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -1013,7 +1013,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/asynkron/protoactor-go/eventstream"
+	"github.com/awevoke/protoactor-go/eventstream"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 

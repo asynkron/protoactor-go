@@ -1,6 +1,6 @@
 syntax = "proto3";
 package shared;
-option go_package = "github.com/asynkron/protoactor-go/examples/cluster-grain/shared";
+option go_package = "github.com/awevoke/protoactor-go/examples/cluster-grain/shared";
 
 message HelloRequest {
   string name = 1;

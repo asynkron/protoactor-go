@@ -14,9 +14,9 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/asynkron/protoactor-go/cluster"
-	"github.com/asynkron/protoactor-go/cluster/identitylookup"
-	pgidentity "github.com/asynkron/protoactor-go/cluster/identitylookup/postgres"
+	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/cluster/identitylookup"
+	pgidentity "github.com/awevoke/protoactor-go/cluster/identitylookup/postgres"
 )
 
 var testDB *sql.DB

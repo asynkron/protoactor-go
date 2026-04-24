@@ -16,7 +16,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/asynkron/protoactor-go/persistence/protopg"
+	"github.com/awevoke/protoactor-go/persistence/protopg"
 )
 
 var testDSN string
@@ -105,7 +105,7 @@ func TestGetSnapshotInterval(t *testing.T) {
 		input    int
 		expected int
 	}{
-		{0, 1},   // 0 is replaced by the default of 1
+		{0, 1}, // 0 is replaced by the default of 1
 		{1, 1},
 		{5, 5},
 		{100, 100},

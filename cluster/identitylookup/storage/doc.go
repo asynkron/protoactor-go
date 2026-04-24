@@ -5,8 +5,8 @@
 // Usage:
 //
 //	import (
-//	    "github.com/asynkron/protoactor-go/cluster/identitylookup/storage"
-//	    redisidentity "github.com/asynkron/protoactor-go/cluster/identitylookup/redis"
+//	    "github.com/awevoke/protoactor-go/cluster/identitylookup/storage"
+//	    redisidentity "github.com/awevoke/protoactor-go/cluster/identitylookup/redis"
 //	)
 //
 //	redisStorage := redisidentity.New("mycluster", client)

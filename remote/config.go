@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -22,8 +22,8 @@ func defaultConfig() *Config {
 		RetryBaseDelay:           2 * time.Second,
 		RetryMaxDelay:            10 * time.Second,
 		ShutdownTimeout:          10 * time.Second,
-		SupervisorRestartWindow: 60 * time.Second,
-		SupervisorMaxRestarts:   5,
+		SupervisorRestartWindow:  60 * time.Second,
+		SupervisorMaxRestarts:    5,
 	}
 }
 

@@ -7,7 +7,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/asynkron/protoactor-go/metrics"
+	"github.com/awevoke/protoactor-go/metrics"
 )
 
 // recordSupervisionMetric records a supervision event metric if metrics are enabled.

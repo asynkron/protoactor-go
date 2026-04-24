@@ -1,10 +1,10 @@
-module github.com/asynkron/protoactor-go/examples/cluster-nats-kv-multi
+module github.com/awevoke/protoactor-go/examples/cluster-nats-kv-multi
 
 go 1.25.3
 
 require (
-	github.com/asynkron/protoactor-go v0.0.0
-	github.com/asynkron/protoactor-go/cluster/clusterproviders/natskv v0.0.0
+	github.com/awevoke/protoactor-go v0.0.0
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv v0.0.0
 	github.com/nats-io/nats.go v1.48.0
 )
 
@@ -48,6 +48,6 @@ require (
 )
 
 replace (
-	github.com/asynkron/protoactor-go => ../../
-	github.com/asynkron/protoactor-go/cluster/clusterproviders/natskv => ../../cluster/clusterproviders/natskv
+	github.com/awevoke/protoactor-go => ../../
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv => ../../cluster/clusterproviders/natskv
 )

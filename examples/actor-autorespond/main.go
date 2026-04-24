@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asynkron/protoactor-go/actor"
+	"github.com/awevoke/protoactor-go/actor"
 )
 
 // Auto Response in Proto.Actor is a special kind of message that can create its own response message

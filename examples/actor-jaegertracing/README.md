@@ -16,7 +16,7 @@ Ensure you have the following to run this example:
 
 Install the necessary libraries using:
 ```bash
-go get -u github.com/asynkron/protoactor-go
+go get -u github.com/awevoke/protoactor-go
 go get -u github.com/uber/jaeger-client-go
 ```
 
