@@ -82,3 +82,73 @@ func TestEnvelopeWithSender_Envelope_WithSender_ClonesAndOverrides(t *testing.T)
 	assert.Equal(t, "hello", out.Message)
 	assert.Same(t, newSender, out.Sender)
 }
+
+func TestEnvelopeWithHeaders_RawMessage_EmptyHeaders(t *testing.T) {
+	t.Parallel()
+
+	out := EnvelopeWithHeaders("hello", nil)
+	assert.NotNil(t, out)
+	assert.Nil(t, out.Header)
+	assert.Equal(t, "hello", out.Message)
+	assert.Nil(t, out.Sender)
+}
+
+func TestEnvelopeWithHeaders_RawMessage_WithHeaders(t *testing.T) {
+	t.Parallel()
+
+	out := EnvelopeWithHeaders("hello", map[string]string{"k": "v"})
+	assert.NotNil(t, out)
+	assert.Equal(t, 1, out.Header.Length())
+	assert.Equal(t, "v", out.Header.Get("k"))
+	assert.Equal(t, "hello", out.Message)
+}
+
+func TestEnvelopeWithHeaders_Envelope_EmptyHeaders_ReturnsSame(t *testing.T) {
+	t.Parallel()
+
+	in := &MessageEnvelope{
+		Header:  messageHeader{"k": "v"},
+		Message: "hello",
+	}
+	out := EnvelopeWithHeaders(in, nil)
+	assert.Same(t, in, out)
+}
+
+func TestEnvelopeWithHeaders_Envelope_WithHeaders_ClonesAndMerges(t *testing.T) {
+	t.Parallel()
+
+	in := &MessageEnvelope{
+		Header:  messageHeader{"k": "envelope-value"},
+		Message: "hello",
+	}
+
+	out := EnvelopeWithHeaders(in, map[string]string{
+		"k": "option-value", // should lose to envelope
+		"m": "n",            // should be added
+	})
+
+	assert.NotSame(t, in, out, "must clone to avoid mutating caller's envelope")
+	assert.Equal(t, 1, in.Header.Length(), "caller's envelope must not be mutated")
+	assert.Equal(t, "envelope-value", in.Header.Get("k"))
+
+	assert.Equal(t, 2, out.Header.Length())
+	assert.Equal(t, "envelope-value", out.Header.Get("k"), "envelope wins on conflict")
+	assert.Equal(t, "n", out.Header.Get("m"), "non-overlapping option key added")
+	assert.Equal(t, "hello", out.Message)
+}
+
+func TestEnvelopeWithHeaders_Envelope_NilHeader_AddsHeaders(t *testing.T) {
+	t.Parallel()
+
+	in := &MessageEnvelope{
+		Header:  nil,
+		Message: "hello",
+	}
+
+	out := EnvelopeWithHeaders(in, map[string]string{"k": "v"})
+
+	assert.NotSame(t, in, out)
+	assert.Nil(t, in.Header, "caller's envelope header must remain nil")
+	assert.Equal(t, 1, out.Header.Length())
+	assert.Equal(t, "v", out.Header.Get("k"))
+}

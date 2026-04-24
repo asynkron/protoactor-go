@@ -89,6 +89,41 @@ func envelopeWithSender(message any, sender *PID) *MessageEnvelope {
 	return &MessageEnvelope{Header: nil, Message: message, Sender: sender}
 }
 
+// EnvelopeWithHeaders returns a *MessageEnvelope carrying message with the
+// given headers attached. If message is already a *MessageEnvelope, the
+// returned envelope is a copy: existing envelope header values win on key
+// conflict (explicit wrap is more specific than caller-provided headers).
+// The caller's envelope is never mutated. If headers is empty, an existing
+// envelope is returned as-is and a raw message is wrapped without a header
+// map.
+func EnvelopeWithHeaders(message any, headers map[string]string) *MessageEnvelope {
+	if env, ok := message.(*MessageEnvelope); ok {
+		if len(headers) == 0 {
+			return env
+		}
+		out := &MessageEnvelope{
+			Header:  make(messageHeader, len(headers)+env.Header.Length()),
+			Message: env.Message,
+			Sender:  env.Sender,
+		}
+		for k, v := range headers {
+			out.Header[k] = v
+		}
+		for _, k := range env.Header.Keys() {
+			out.Header[k] = env.Header.Get(k) // envelope wins
+		}
+		return out
+	}
+	out := &MessageEnvelope{Message: message}
+	if len(headers) > 0 {
+		out.Header = make(messageHeader, len(headers))
+		for k, v := range headers {
+			out.Header[k] = v
+		}
+	}
+	return out
+}
+
 // UnwrapEnvelope extracts header, message and sender from an envelope.
 func UnwrapEnvelope(message any) (ReadonlyMessageHeader, any, *PID) {
 	if env, ok := message.(*MessageEnvelope); ok {
