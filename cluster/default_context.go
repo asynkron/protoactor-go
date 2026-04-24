@@ -59,6 +59,10 @@ func (dcc *DefaultContext) Request(identity, kind string, message any, opts ...G
 		o(callConfig)
 	}
 
+	if len(callConfig.Headers) > 0 {
+		message = actor.EnvelopeWithHeaders(message, callConfig.Headers)
+	}
+
 	_context := callConfig.Context
 
 	// get the configuration from the composed Cluster value
@@ -205,6 +209,10 @@ func (dcc *DefaultContext) RequestFuture(identity string, kind string, message a
 	callConfig := NewGrainCallOptions(dcc.cluster)
 	for _, o := range opts {
 		o(callConfig)
+	}
+
+	if len(callConfig.Headers) > 0 {
+		message = actor.EnvelopeWithHeaders(message, callConfig.Headers)
 	}
 
 	_context := callConfig.Context
