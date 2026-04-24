@@ -321,32 +321,16 @@ func (ctx *actorContext) sendUserMessage(pid *PID, message any) {
 }
 
 func (ctx *actorContext) Request(pid *PID, message any) {
-	env := &MessageEnvelope{
-		Header:  nil,
-		Message: message,
-		Sender:  ctx.Self(),
-	}
-
-	ctx.sendUserMessage(pid, env)
+	ctx.sendUserMessage(pid, envelopeWithSender(message, ctx.Self()))
 }
 
 func (ctx *actorContext) RequestWithCustomSender(pid *PID, message any, sender *PID) {
-	env := &MessageEnvelope{
-		Header:  nil,
-		Message: message,
-		Sender:  sender,
-	}
-	ctx.sendUserMessage(pid, env)
+	ctx.sendUserMessage(pid, envelopeWithSender(message, sender))
 }
 
 func (ctx *actorContext) RequestFuture(pid *PID, message any, timeout time.Duration) Future {
 	future := NewFuture(ctx.actorSystem, timeout)
-	env := &MessageEnvelope{
-		Header:  nil,
-		Message: message,
-		Sender:  future.PID(),
-	}
-	ctx.sendUserMessage(pid, env)
+	ctx.sendUserMessage(pid, envelopeWithSender(message, future.PID()))
 
 	return future
 }
