@@ -229,8 +229,7 @@ FakesAssemblies/
 # MacOS
 .DS_Store
 
-# go.work
-/go.work
+# go.work.sum (go.work is checked in for multi-module development)
 /go.work.sum
 
 .vscode/
