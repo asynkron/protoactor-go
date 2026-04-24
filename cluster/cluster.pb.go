@@ -1540,7 +1540,7 @@ const file_cluster_proto_rawDesc = "" +
 	"\fPeekResponse\x12\x14\n" +
 	"\x05found\x18\x01 \x01(\bR\x05found\x12\x1c\n" +
 	"\x03pid\x18\x02 \x01(\v2\n" +
-	".actor.PIDR\x03pidB,Z*/github.com/awevoke/protoactor-go/clusterb\x06proto3"
+	".actor.PIDR\x03pidB+Z)/github.com/awevoke/protoactor-go/clusterb\x06proto3"
 
 var (
 	file_cluster_proto_rawDescOnce sync.Once

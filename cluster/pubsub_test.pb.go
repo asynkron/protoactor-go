@@ -71,7 +71,7 @@ const file_pubsub_test_proto_rawDesc = "" +
 	"\n" +
 	"\x11pubsub_test.proto\x12\acluster\"%\n" +
 	"\vTestMessage\x12\x16\n" +
-	"\x06number\x18\x01 \x01(\x05R\x06numberB,Z*/github.com/awevoke/protoactor-go/clusterb\x06proto3"
+	"\x06number\x18\x01 \x01(\x05R\x06numberB+Z)/github.com/awevoke/protoactor-go/clusterb\x06proto3"
 
 var (
 	file_pubsub_test_proto_rawDescOnce sync.Once
