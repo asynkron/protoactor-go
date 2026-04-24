@@ -152,3 +152,38 @@ func TestEnvelopeWithHeaders_Envelope_NilHeader_AddsHeaders(t *testing.T) {
 	assert.Equal(t, 1, out.Header.Length())
 	assert.Equal(t, "v", out.Header.Get("k"))
 }
+
+// Guards the glue between the cluster-side envelope construction and the
+// remote outbound path: remote/remote_process.go:22 calls UnwrapEnvelope on
+// the outgoing envelope and hands header/message/sender to SendMessage. Any
+// envelope built by EnvelopeWithHeaders must round-trip through UnwrapEnvelope
+// with headers intact.
+func TestEnvelopeWithHeaders_UnwrapsCleanlyForRemote(t *testing.T) {
+	t.Parallel()
+
+	env := EnvelopeWithHeaders("hello", map[string]string{"trace-id": "x"})
+
+	header, msg, sender := UnwrapEnvelope(env)
+	assert.Equal(t, "x", header.Get("trace-id"))
+	assert.Equal(t, "hello", msg, "payload must be the inner message, not the envelope")
+	assert.Nil(t, sender)
+}
+
+// Same guard when the cluster layer merges option headers with a caller's
+// pre-wrapped envelope: UnwrapEnvelope must see the merged header map.
+func TestEnvelopeWithHeaders_PrewrappedMergeUnwrapsCleanly(t *testing.T) {
+	t.Parallel()
+
+	in := WrapEnvelope("hello")
+	in.SetHeader("trace-id", "envelope-wins")
+
+	env := EnvelopeWithHeaders(in, map[string]string{
+		"trace-id": "should-lose",
+		"tenant":   "acme",
+	})
+
+	header, msg, _ := UnwrapEnvelope(env)
+	assert.Equal(t, "envelope-wins", header.Get("trace-id"))
+	assert.Equal(t, "acme", header.Get("tenant"))
+	assert.Equal(t, "hello", msg)
+}
