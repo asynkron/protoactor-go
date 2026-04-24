@@ -132,23 +132,13 @@ func (rc *RootContext) Request(pid *PID, message any) {
 
 // RequestWithCustomSender sends a message on behalf of the provided sender PID.
 func (rc *RootContext) RequestWithCustomSender(pid *PID, message any, sender *PID) {
-	env := &MessageEnvelope{
-		Header:  nil,
-		Message: message,
-		Sender:  sender,
-	}
-	rc.sendUserMessage(pid, env)
+	rc.sendUserMessage(pid, envelopeWithSender(message, sender))
 }
 
 // RequestFuture sends a message to a given PID and returns a Future.
 func (rc *RootContext) RequestFuture(pid *PID, message any, timeout time.Duration) Future {
 	future := NewFuture(rc.actorSystem, timeout)
-	env := &MessageEnvelope{
-		Header:  nil,
-		Message: message,
-		Sender:  future.PID(),
-	}
-	rc.sendUserMessage(pid, env)
+	rc.sendUserMessage(pid, envelopeWithSender(message, future.PID()))
 
 	return future
 }
