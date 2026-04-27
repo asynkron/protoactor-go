@@ -88,22 +88,36 @@ func (s *SingletonScheduler) FromProducer(f actor.Producer) *SingletonScheduler 
 
 // OnRoleChanged is called when the cluster node's leadership role changes.
 // On RoleLeader: spawns all registered actors (no-op if already leader with running actors).
-// On RoleFollower: poisons all running actors.
-// This is a behavioral change from prior per-provider implementations which spawned
-// unconditionally — the double-spawn guard prevents duplicate actors.
+// On RoleFollower: poisons all running actors and waits for them to stop before
+// returning, so callers (notably provider Shutdown) can rely on the singleton
+// being fully stopped once OnRoleChanged returns. The wait is bounded by the
+// actor system's StopTimeout.
 func (s *SingletonScheduler) OnRoleChanged(rt RoleType) {
-	s.Lock()
-	defer s.Unlock()
 	switch rt {
 	case RoleFollower:
-		if len(s.pids) > 0 {
-			s.root.Logger().Info("I am follower, poison singleton actors")
-			for _, pid := range s.pids {
-				s.root.Poison(pid)
-			}
-			s.pids = nil
+		s.Lock()
+		if len(s.pids) == 0 {
+			s.Unlock()
+			return
+		}
+		s.root.Logger().Info("I am follower, poison singleton actors")
+		pids := s.pids
+		s.pids = nil
+		s.Unlock()
+
+		// Poison and wait outside the lock so concurrent registration calls
+		// don't block on actor stop. Each future is bounded by the actor
+		// system's StopTimeout.
+		futures := make([]actor.Future, 0, len(pids))
+		for _, pid := range pids {
+			futures = append(futures, s.root.PoisonFuture(pid))
+		}
+		for _, f := range futures {
+			_ = f.Wait()
 		}
 	case RoleLeader:
+		s.Lock()
+		defer s.Unlock()
 		if len(s.pids) > 0 {
 			return // already leader with running actors, no-op
 		}

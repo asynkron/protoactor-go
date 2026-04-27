@@ -205,11 +205,23 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 	return nil
 }
 
-// Shutdown deregisters the node and stops background tasks.
+// Shutdown deregisters the node and stops background tasks. If the node was
+// the leader, it first transitions itself to follower so registered
+// SingletonSchedulers stop their actors and any RoleChangedListeners observe
+// the demotion before the KV state is torn down.
 func (p *Provider) Shutdown(_ bool) error {
 	if !p.shutdown.CompareAndSwap(false, true) {
 		return nil
 	}
+
+	// Snapshot leader state before stepping down so we still know to delete
+	// the leader key below.
+	wasLeader := p.isLeader.Load()
+	p.isLeader.Store(false)
+	// Synchronously notify listeners. SingletonScheduler.OnRoleChanged blocks
+	// on PoisonFuture.Wait, so by the time setRole returns, singleton actors
+	// have stopped (bounded by StopTimeout).
+	p.setRole(cluster.RoleFollower)
 
 	if p.cancel != nil {
 		p.cancel()
@@ -222,8 +234,7 @@ func (p *Provider) Shutdown(_ bool) error {
 		defer cancel()
 		_ = p.memberBucket.Delete(ctx, key)
 
-		// If leader, delete leader key
-		if p.isLeader.Load() && p.leaderBucket != nil {
+		if wasLeader && p.leaderBucket != nil {
 			_ = p.leaderBucket.Delete(ctx, p.leaderKey())
 		}
 	}
