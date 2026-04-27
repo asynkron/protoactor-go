@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/persistence/protocb
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v1.0.1
+	github.com/awevoke/protoactor-go v1.0.2
 	github.com/couchbase/gocb v1.6.7
 	google.golang.org/protobuf v1.36.11
 )

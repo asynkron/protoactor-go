@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/cluster/clusterproviders/zk
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v1.0.1
+	github.com/awevoke/protoactor-go v1.0.2
 	github.com/go-zookeeper/zk v1.0.4
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.40.0

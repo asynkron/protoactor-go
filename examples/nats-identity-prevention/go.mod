@@ -11,10 +11,10 @@ replace github.com/awevoke/protoactor-go/cluster/identitylookup/postgres => ../.
 replace github.com/awevoke/protoactor-go/cluster/identitylookup/nats => ../../cluster/identitylookup/nats
 
 require (
-	github.com/awevoke/protoactor-go v1.0.1
-	github.com/awevoke/protoactor-go/cluster/clusterproviders/consul v1.0.1
-	github.com/awevoke/protoactor-go/cluster/identitylookup/nats v1.0.1
-	github.com/awevoke/protoactor-go/cluster/identitylookup/postgres v1.0.1
+	github.com/awevoke/protoactor-go v1.0.2
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/consul v1.0.2
+	github.com/awevoke/protoactor-go/cluster/identitylookup/nats v1.0.2
+	github.com/awevoke/protoactor-go/cluster/identitylookup/postgres v1.0.2
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/nats-io/nats.go v1.48.0
 	google.golang.org/protobuf v1.36.11

@@ -5,7 +5,7 @@ go 1.25.3
 replace github.com/awevoke/protoactor-go => ../..
 
 require (
-	github.com/awevoke/protoactor-go v1.0.1
+	github.com/awevoke/protoactor-go v1.0.2
 	google.golang.org/protobuf v1.36.11
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 )
@@ -46,7 +46,7 @@ require (
 
 require (
 	github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2 // indirect
-	github.com/awevoke/protoactor-go/cluster/clusterproviders/k8s v1.0.1
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/k8s v1.0.2
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect

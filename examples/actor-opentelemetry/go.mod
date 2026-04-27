@@ -6,14 +6,14 @@ replace github.com/awevoke/protoactor-go => ../..
 
 require (
 	github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716
-	github.com/awevoke/protoactor-go v1.0.1
+	github.com/awevoke/protoactor-go v1.0.2
 	go.opentelemetry.io/otel v1.43.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.37.0
 	go.opentelemetry.io/otel/sdk v1.43.0
 )
 
 require (
-	github.com/awevoke/protoactor-go/actor/middleware/opentelemetry v1.0.1
+	github.com/awevoke/protoactor-go/actor/middleware/opentelemetry v1.0.2
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
