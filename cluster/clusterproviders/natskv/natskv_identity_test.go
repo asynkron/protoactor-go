@@ -22,15 +22,23 @@ func TestIdentityLookup_InterfaceCompliance(t *testing.T) {
 func TestIdentityLookup_kvKey(t *testing.T) {
 	ci := &cluster.ClusterIdentity{Kind: "MyGrain", Identity: "abc-123"}
 	key := kvKey(ci)
-	assert.NotContains(t, key, "/")
-	assert.Contains(t, key, ".")
+	// kvKey is "kind/identity" with ':' rewritten to '_'. The first '/' is
+	// the kind|identity boundary; kinds are forbidden from containing '/' so
+	// it is always unambiguous.
+	assert.Equal(t, "MyGrain/abc-123", key)
 }
 
-func TestIdentityLookup_kvKey_ReplacesSlash(t *testing.T) {
-	ci := &cluster.ClusterIdentity{Kind: "SomeKind", Identity: "some-id"}
+func TestIdentityLookup_kvKey_PreservesSlashInIdentity(t *testing.T) {
+	ci := &cluster.ClusterIdentity{Kind: "SomeKind", Identity: "org/team/user"}
 	key := kvKey(ci)
-	// AsKey() returns "SomeKind/some-id", kvKey replaces "/" with "."
-	assert.Equal(t, "SomeKind.some-id", key)
+	assert.Equal(t, "SomeKind/org/team/user", key)
+}
+
+func TestIdentityLookup_kvKey_EscapesColon(t *testing.T) {
+	ci := &cluster.ClusterIdentity{Kind: "SomeKind", Identity: "tenant:domain"}
+	key := kvKey(ci)
+	// ':' is not a valid NATS KV key character, so it is rewritten to '_'.
+	assert.Equal(t, "SomeKind/tenant_domain", key)
 }
 
 func TestIdentityLookup_AcquireLock(t *testing.T) {

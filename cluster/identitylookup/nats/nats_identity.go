@@ -2,8 +2,10 @@
 //
 // It uses two KV buckets per cluster:
 //
-//   - {clusterName}_identities: stores activation records keyed by {kind}.{identity}
-//     (NATS KV keys cannot contain '/' so '.' is used as separator)
+//   - {clusterName}_identities: stores activation records keyed by "kind/identity".
+//     The first '/' is the kind|identity boundary; identities may contain
+//     additional '/' characters (kinds may not — see cluster.ValidateKindName).
+//     Colons are rewritten to '_' because they are not valid NATS KV key chars.
 //   - {clusterName}_members: maps memberID to a JSON list of identity keys
 //
 // The atomic Create operation on NATS KV (which fails with ErrKeyExists if the
@@ -98,10 +100,15 @@ func (s *NatsIdentityStorage) log() *slog.Logger {
 }
 
 // kvKey converts a ClusterIdentity to a NATS KV-safe key.
-// ClusterIdentity.AsKey() returns "kind/identity" but NATS KV keys
-// cannot contain '/', so we replace it with '.'.
+//
+// The key is the "kind/identity" string from ClusterIdentity.AsKey() with one
+// substitution: ':' is rewritten to '_' because colon is not a valid NATS KV
+// key character (NATS KV validates against `^[-/_=\.a-zA-Z0-9]+$`). The slash
+// between kind and identity is preserved — kinds are forbidden from
+// containing '/' (see cluster.ValidateKindName), so the first '/' is always
+// the kind/identity boundary and any subsequent '/' is part of the identity.
 func kvKey(ci *cluster.ClusterIdentity) string {
-	return strings.ReplaceAll(ci.AsKey(), "/", ".")
+	return strings.ReplaceAll(ci.AsKey(), ":", "_")
 }
 
 // acquire acquires a slot from the concurrency semaphore.
@@ -115,9 +122,12 @@ func (s *NatsIdentityStorage) release() {
 }
 
 // TryGetExistingActivation looks up the current activation for a cluster
-// identity. Returns nil if no activation exists or if the key only contains
-// a lock (no completed activation).
+// identity. Returns nil if no activation exists, the identity is invalid,
+// or the key only contains a lock (no completed activation).
 func (s *NatsIdentityStorage) TryGetExistingActivation(clusterIdentity *cluster.ClusterIdentity) *cluster.StoredActivation {
+	if cluster.ValidateIdentity(clusterIdentity.Identity) != nil {
+		return nil
+	}
 	s.acquire()
 	defer s.release()
 
@@ -146,8 +156,14 @@ func (s *NatsIdentityStorage) TryGetExistingActivation(clusterIdentity *cluster.
 
 // TryAcquireLock attempts to acquire an exclusive spawn lock for the given
 // cluster identity. Uses NATS KV Create which atomically fails if the key
-// already exists. Returns nil if the identity already has a lock or activation.
+// already exists. Returns nil if the identity is invalid (e.g. empty) or
+// already has a lock or activation.
 func (s *NatsIdentityStorage) TryAcquireLock(clusterIdentity *cluster.ClusterIdentity) *cluster.SpawnLock {
+	if err := cluster.ValidateIdentity(clusterIdentity.Identity); err != nil {
+		s.log().Warn("NATS TryAcquireLock: rejecting invalid identity",
+			slog.String("kind", clusterIdentity.Kind), slog.Any("error", err))
+		return nil
+	}
 	s.acquire()
 	defer s.release()
 
@@ -529,7 +545,10 @@ func (s *NatsIdentityStorage) readActivation(ctx context.Context, key, memberID 
 		return nil, nil
 	}
 
-	kind, identity := cluster.ParseDotSeparatedKey(key)
+	// kvKey produces "kind/identity"; split on the first '/' so that
+	// identities containing '/' round-trip correctly. Kinds are forbidden
+	// from containing '/' (see cluster.ValidateKindName).
+	kind, identity := cluster.ParseStoredActivationInfoKey(key)
 	return &cluster.StoredActivationInfo{
 		Identity: identity,
 		Kind:     kind,

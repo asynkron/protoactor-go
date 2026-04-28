@@ -98,6 +98,12 @@ func (l *IdentityStorageLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 		return nil
 	}
 
+	if err := cluster.ValidateIdentity(ci.Identity); err != nil {
+		l.logger().Warn("IdentityStorageLookup: rejecting invalid identity",
+			slog.String("kind", ci.Kind), slog.Any("error", err))
+		return nil
+	}
+
 	// Check PID cache first (avoids storage round-trip for cached PIDs).
 	if pid, ok := l.cluster.PidCache.Get(ci.Identity, ci.Kind); ok {
 		return pid

@@ -230,8 +230,13 @@ func (c *Cluster) Shutdown(graceful bool) {
 }
 
 // Get resolves the PID for the given identity and kind.
-// It returns nil if the kind is not registered or the activation fails.
+// It returns nil if the identity is empty, the kind is not registered, or
+// the activation fails.
 func (c *Cluster) Get(identity string, kind string) *actor.PID {
+	if err := ValidateIdentity(identity); err != nil {
+		c.Logger().Warn("cluster.Get: invalid identity", slog.String("kind", kind), slog.Any("error", err))
+		return nil
+	}
 	return c.IdentityLookup.Get(NewClusterIdentity(identity, kind))
 }
 
@@ -240,6 +245,9 @@ func (c *Cluster) Get(identity string, kind string) *actor.PID {
 func (c *Cluster) Peek(identity, kind string) (*PeekResult, error) {
 	if c.IdentityLookup == nil {
 		return nil, fmt.Errorf("cluster not started")
+	}
+	if err := ValidateIdentity(identity); err != nil {
+		return nil, err
 	}
 	return c.IdentityLookup.Peek(NewClusterIdentity(identity, kind))
 }
@@ -307,6 +315,9 @@ func (c *Cluster) InitKindsForTest(kinds ...*Kind) {
 //
 // Returns an error if a Kind with the same name is already registered.
 func (c *Cluster) RegisterKind(kind *Kind) error {
+	if err := ValidateKindName(kind.Kind); err != nil {
+		return err
+	}
 	// Build outside the lock — Build may call StrategyBuilder(c)
 	// which may acquire kindsMu.RLock via TryGetClusterKind.
 	activated := kind.Build(c)
@@ -333,6 +344,13 @@ func (c *Cluster) RegisterKind(kind *Kind) error {
 func (c *Cluster) RegisterKinds(kinds []*Kind) error {
 	if len(kinds) == 0 {
 		return nil
+	}
+
+	// Validate names up front so partial work isn't done if any name is bad.
+	for _, k := range kinds {
+		if err := ValidateKindName(k.Kind); err != nil {
+			return err
+		}
 	}
 
 	// Build all kinds outside the lock.

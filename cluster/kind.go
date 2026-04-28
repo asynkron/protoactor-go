@@ -2,10 +2,33 @@ package cluster
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"sync/atomic"
 
 	"github.com/awevoke/protoactor-go/actor"
 )
+
+// ValidateKindName checks that a Kind name is acceptable for use in a cluster.
+//
+// The kind name appears as the prefix (before the first '/') of every
+// ClusterIdentity key — see ClusterIdentity.AsKey, which formats keys as
+// "kind/identity". To keep that boundary unambiguous when the identity itself
+// contains '/', kinds must not contain '/'. Identities are still free to
+// contain '/' and round-trip correctly because key parsing splits on the
+// first '/'.
+//
+// An empty kind name is also rejected because it produces a leading-'/'
+// key that no parser can disambiguate from "kind=, identity=foo".
+func ValidateKindName(name string) error {
+	if name == "" {
+		return fmt.Errorf("kind name must not be empty")
+	}
+	if strings.Contains(name, "/") {
+		return fmt.Errorf("kind name %q must not contain '/' (reserved as kind/identity separator)", name)
+	}
+	return nil
+}
 
 // Kind represents the kinds of actors a cluster can manage
 type Kind struct {

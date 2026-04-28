@@ -56,6 +56,11 @@ func (c *Config) validate() error {
 	if c.RequestTimeoutTime <= 0 {
 		return fmt.Errorf("RequestTimeoutTime must be > 0")
 	}
+	for name := range c.Kinds {
+		if err := ValidateKindName(name); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

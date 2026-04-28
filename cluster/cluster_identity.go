@@ -1,9 +1,26 @@
 package cluster
 
 import (
+	"fmt"
+
 	"github.com/awevoke/protoactor-go/actor"
 	"github.com/awevoke/protoactor-go/ctxext"
 )
+
+// ValidateIdentity checks that a grain Identity string is acceptable. An
+// empty identity produces an unparseable key (the "kind/" form has no value
+// after the kind|identity boundary), and there is no sensible default actor
+// for an unspecified identity, so empty identities are rejected.
+//
+// Identities may contain '/' (kinds may not — see ValidateKindName) so a
+// single forbidden character is empty-string only. Other ill-formed
+// identities still surface as ErrInvalidKey from the storage backend.
+func ValidateIdentity(identity string) error {
+	if identity == "" {
+		return fmt.Errorf("identity must not be empty")
+	}
+	return nil
+}
 
 // AsKey formats the identity as "kind/identity".
 func (ci *ClusterIdentity) AsKey() string {

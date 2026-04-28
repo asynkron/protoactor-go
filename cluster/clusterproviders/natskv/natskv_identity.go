@@ -327,6 +327,12 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 		return nil
 	}
 
+	if err := cluster.ValidateIdentity(ci.Identity); err != nil {
+		il.identityLogger().Warn("natskv identity: rejecting invalid identity",
+			slog.String("kind", ci.Kind), slog.Any("error", err))
+		return nil
+	}
+
 	// Step 1: Check PID cache.
 	if pid, ok := il.cluster.PidCache.Get(ci.Identity, ci.Kind); ok {
 		return pid
@@ -621,15 +627,15 @@ func (il *IdentityLookup) Shutdown() {
 }
 
 // kvKey converts a ClusterIdentity to a NATS KV-safe key.
-// ClusterIdentity.AsKey() returns "kind/identity" but NATS KV keys
-// cannot contain '/', so we replace it with '.'.
+//
+// The key is the "kind/identity" string from ClusterIdentity.AsKey() with one
+// substitution: ':' is rewritten to '_' because colon is not a valid NATS KV
+// key character (NATS KV validates against `^[-/_=\.a-zA-Z0-9]+$`). The slash
+// between kind and identity is preserved — kinds are forbidden from
+// containing '/' (see cluster.ValidateKindName), so the first '/' is always
+// the kind/identity boundary and any subsequent '/' is part of the identity.
 func kvKey(ci *cluster.ClusterIdentity) string {
-	key := strings.ReplaceAll(ci.AsKey(), "/", ".")
-	// Colons are not valid in NATS KV keys (they are not valid NATS
-	// subject tokens). Replace with underscore to support identities
-	// that use colon-separated format (e.g., "tenant:domain").
-	key = strings.ReplaceAll(key, ":", "_")
-	return key
+	return strings.ReplaceAll(ci.AsKey(), ":", "_")
 }
 
 // acquire acquires a slot from the concurrency semaphore.
@@ -1064,7 +1070,15 @@ func (il *IdentityLookup) listMemberGrains(ctx context.Context, memberID string)
 			continue
 		}
 
-		kind, identity := cluster.ParseDotSeparatedKey(key)
+		// kvKey produces "kind/identity"; split on the first '/' so that
+		// identities containing '/' round-trip correctly. Kind names are
+		// validated to never contain '/' (see cluster.ValidateKindName).
+		// Reverse the ':'->'_' substitution applied by kvKey is NOT possible
+		// here without losing fidelity for identities that legitimately
+		// contained '_' — kinds and identities with ':' will surface here as
+		// the post-substitution form, which is consistent with how they were
+		// stored. Callers wanting the original form should track it themselves.
+		kind, identity := cluster.ParseStoredActivationInfoKey(key)
 		result = append(result, &cluster.GrainInfo{
 			Identity: identity,
 			Kind:     kind,
