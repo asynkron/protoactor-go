@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/cluster/identitylookup/postgres
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v1.0.2
+	github.com/awevoke/protoactor-go v1.0.3
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/testcontainers/testcontainers-go v0.40.0

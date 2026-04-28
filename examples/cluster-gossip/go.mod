@@ -9,7 +9,7 @@ require (
 
 replace github.com/awevoke/protoactor-go => ../..
 
-require github.com/awevoke/protoactor-go v1.0.2
+require github.com/awevoke/protoactor-go v1.0.3
 
 require github.com/lmittmann/tint v1.1.2
 

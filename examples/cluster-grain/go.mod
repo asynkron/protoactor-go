@@ -11,7 +11,7 @@ require (
 
 replace github.com/awevoke/protoactor-go => ../..
 
-require github.com/awevoke/protoactor-go v1.0.2
+require github.com/awevoke/protoactor-go v1.0.3
 
 require (
 	github.com/armon/go-metrics v0.4.1 // indirect

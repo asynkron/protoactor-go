@@ -4,7 +4,7 @@ go 1.25.3
 
 require (
 	github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716
-	github.com/awevoke/protoactor-go v1.0.2
+	github.com/awevoke/protoactor-go v1.0.3
 	google.golang.org/protobuf v1.36.11
 )
 

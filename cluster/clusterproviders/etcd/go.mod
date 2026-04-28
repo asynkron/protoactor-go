@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/cluster/clusterproviders/etcd
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v1.0.2
+	github.com/awevoke/protoactor-go v1.0.3
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.40.0
 	go.etcd.io/etcd/client/v3 v3.6.6
