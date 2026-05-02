@@ -116,7 +116,7 @@ Windows users can use Cygwin to run make: [www.cygwin.com](https://www.cygwin.co
 
 ## Testing
 
-This command exectutes all tests in the repository except for consul integration tests (you need consul for running
+This command executes all tests in the repository except for consul integration tests (you need consul for running
 those tests). We also skip directories that don't contain any tests.
 
 ```
