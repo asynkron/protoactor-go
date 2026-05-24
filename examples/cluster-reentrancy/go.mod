@@ -5,7 +5,7 @@ go 1.25.3
 replace github.com/awevoke/protoactor-go => ../..
 
 require (
-	github.com/awevoke/protoactor-go v1.0.3
+	github.com/awevoke/protoactor-go v1.0.4
 	google.golang.org/protobuf v1.36.11
 )
 

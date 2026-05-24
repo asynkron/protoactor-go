@@ -10,7 +10,7 @@ require (
 
 replace github.com/awevoke/protoactor-go => ../..
 
-require github.com/awevoke/protoactor-go v1.0.3
+require github.com/awevoke/protoactor-go v1.0.4
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.0 // indirect

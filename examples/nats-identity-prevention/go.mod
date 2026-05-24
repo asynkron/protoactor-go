@@ -11,7 +11,7 @@ replace github.com/awevoke/protoactor-go/cluster/identitylookup/postgres => ../.
 replace github.com/awevoke/protoactor-go/cluster/identitylookup/nats => ../../cluster/identitylookup/nats
 
 require (
-	github.com/awevoke/protoactor-go v1.0.3
+	github.com/awevoke/protoactor-go v1.0.4
 	github.com/awevoke/protoactor-go/cluster/clusterproviders/consul v1.0.2
 	github.com/awevoke/protoactor-go/cluster/identitylookup/nats v1.0.2
 	github.com/awevoke/protoactor-go/cluster/identitylookup/postgres v1.0.2

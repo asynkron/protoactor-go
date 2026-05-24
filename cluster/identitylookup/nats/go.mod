@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/cluster/identitylookup/nats
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v1.0.3
+	github.com/awevoke/protoactor-go v1.0.4
 	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats-server/v2 v2.12.8
 	github.com/nats-io/nats.go v1.51.0
