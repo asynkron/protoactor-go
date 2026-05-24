@@ -106,8 +106,13 @@ selectloop:
 			break selectloop
 		default:
 			if counter >= callConfig.RetryCount {
-				err = fmt.Errorf("have reached max retries: %v", callConfig.RetryCount)
-
+				if err != nil { // a dead-letter/timeout sentinel caused the exhaustion
+					err = fmt.Errorf("cluster request to %s/%s reached max retries (%d): %w: %w",
+						kind, identity, callConfig.RetryCount, ErrMaxRetriesExceeded, err)
+				} else { // exhausted on pid-nil resolution failures; no inner sentinel
+					err = fmt.Errorf("cluster request to %s/%s reached max retries (%d): %w",
+						kind, identity, callConfig.RetryCount, ErrMaxRetriesExceeded)
+				}
 				break selectloop
 			}
 			pid, fromCache = dcc.getPid(traceCtx, identity, kind)
@@ -246,7 +251,8 @@ func (dcc *DefaultContext) RequestFuture(identity string, kind string, message a
 			return nil, err
 		default:
 			if counter >= callConfig.RetryCount {
-				return nil, fmt.Errorf("have reached max retries: %v", callConfig.RetryCount)
+				return nil, fmt.Errorf("cluster request to %s/%s reached max retries (%d): %w",
+					kind, identity, callConfig.RetryCount, ErrMaxRetriesExceeded)
 			}
 
 			pid, _ := dcc.getPid(traceCtx, identity, kind)

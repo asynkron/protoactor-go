@@ -10,6 +10,14 @@ import (
 // — the lock is irrecoverably lost. The spawned actor is poisoned immediately.
 var ErrLockNotHeld = errors.New("spawn lock is no longer held")
 
+// ErrMaxRetriesExceeded marks that a cluster request exhausted its configured
+// retry count. It is transient/retryable: callers can match it via
+// errors.Is(err, ErrMaxRetriesExceeded) to distinguish retry exhaustion from
+// terminal failures. When the exhaustion was caused by an underlying typed
+// sentinel (e.g. a dead-letter or timeout), that sentinel is also wrapped into
+// the returned error and remains matchable on the same error value.
+var ErrMaxRetriesExceeded = errors.New("cluster: exceeded max retries")
+
 const (
 	ErrorReason_OK                  = "OK"
 	ErrorReason_CANCELLED           = "CANCELLED"
