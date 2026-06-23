@@ -6,7 +6,7 @@ replace github.com/awevoke/protoactor-go => ../..
 
 require (
 	github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716
-	github.com/awevoke/protoactor-go v1.0.4
+	github.com/awevoke/protoactor-go v1.0.5
 	golang.org/x/time v0.15.0
 )
 

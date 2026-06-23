@@ -11,7 +11,7 @@ require (
 
 replace github.com/awevoke/protoactor-go => ../..
 
-require github.com/awevoke/protoactor-go v1.0.4
+require github.com/awevoke/protoactor-go v1.0.5
 
 require (
 	github.com/armon/go-metrics v0.4.1 // indirect
@@ -34,7 +34,7 @@ require (
 
 require (
 	github.com/asynkron/gofun v0.0.0-20220329210725-34fed760f4c2 // indirect
-	github.com/awevoke/protoactor-go/cluster/clusterproviders/consul v1.0.4
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/consul v1.0.5
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect

@@ -4,7 +4,7 @@ go 1.25.3
 
 replace github.com/awevoke/protoactor-go => ../..
 
-require github.com/awevoke/protoactor-go v1.0.4
+require github.com/awevoke/protoactor-go v1.0.5
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

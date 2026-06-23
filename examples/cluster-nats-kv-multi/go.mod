@@ -3,8 +3,8 @@ module github.com/awevoke/protoactor-go/examples/cluster-nats-kv-multi
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v1.0.4
-	github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv v1.0.4
+	github.com/awevoke/protoactor-go v1.0.5
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv v1.0.5
 	github.com/nats-io/nats.go v1.52.0
 )
 

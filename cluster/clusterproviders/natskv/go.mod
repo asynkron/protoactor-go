@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v1.0.4
+	github.com/awevoke/protoactor-go v1.0.5
 	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats-server/v2 v2.14.2
 	github.com/nats-io/nats.go v1.52.0

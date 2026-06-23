@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/cluster/identitylookup/redis
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v1.0.4
+	github.com/awevoke/protoactor-go v1.0.5
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/testcontainers/testcontainers-go v0.43.0

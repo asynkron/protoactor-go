@@ -3,7 +3,7 @@ module github.com/awevoke/protoactor-go/persistence/protodynamo
 go 1.25.3
 
 require (
-	github.com/awevoke/protoactor-go v1.0.4
+	github.com/awevoke/protoactor-go v1.0.5
 	github.com/aws/aws-sdk-go-v2 v1.42.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.24
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.59.0

@@ -10,11 +10,11 @@ require (
 
 replace github.com/awevoke/protoactor-go => ../..
 
-require github.com/awevoke/protoactor-go v1.0.4
+require github.com/awevoke/protoactor-go v1.0.5
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.0 // indirect
-	github.com/awevoke/protoactor-go/actor/middleware/opentracing v1.0.4
+	github.com/awevoke/protoactor-go/actor/middleware/opentracing v1.0.5
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect

@@ -7,8 +7,8 @@ replace github.com/awevoke/protoactor-go => ../..
 replace github.com/awevoke/protoactor-go/cluster/clusterproviders/consul => ../../cluster/clusterproviders/consul
 
 require (
-	github.com/awevoke/protoactor-go v1.0.4
-	github.com/awevoke/protoactor-go/cluster/clusterproviders/consul v1.0.4
+	github.com/awevoke/protoactor-go v1.0.5
+	github.com/awevoke/protoactor-go/cluster/clusterproviders/consul v1.0.5
 	github.com/nats-io/nats.go v1.52.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 )
