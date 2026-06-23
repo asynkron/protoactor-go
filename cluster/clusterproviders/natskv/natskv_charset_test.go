@@ -391,6 +391,58 @@ func TestCharset_NatsKV_SlashAndDotIdentitiesAreDistinct(t *testing.T) {
 		"identities %q and %q must resolve to distinct activations", slashID, dotID)
 }
 
+// TestCharset_NatsKV_DotAndEqualsRoundTrip exercises identities that use '.'
+// and '=' as in-string separators, verifying they round-trip via
+// cluster.Request (full end-to-end: spawn, request, response) AND via
+// ListGrains (the enumeration parse path that splits on the first '/').
+func TestCharset_NatsKV_DotAndEqualsRoundTrip(t *testing.T) {
+	srv := startEmbeddedNATSCharset(t)
+
+	echo := cluster.NewKind("MyKind", echoActorProps())
+	p, c := startCharsetCluster(t, srv, "charset-dot-eq-rt", []*cluster.Kind{echo})
+	t.Cleanup(func() { c.Shutdown(true) })
+
+	identities := []string{
+		"user.1",          // single dot
+		"a.b.c.d",         // multi-dot
+		"key=value",       // single equals
+		"a=b=c",           // multi-equals
+		"key=value.json",  // mixed equals + dot
+		"a.b=c.d",         // alternating
+		"v1.0.3=stable",   // realistic version-style
+	}
+
+	for _, identity := range identities {
+		identity := identity
+		t.Run(identity, func(t *testing.T) {
+			resp, err := c.Request(identity, "MyKind", &emptypb.Empty{},
+				cluster.WithTimeout(5*time.Second),
+				cluster.WithRetryCount(2),
+			)
+			require.NoError(t, err, "cluster.Request must succeed for identity %q", identity)
+			require.IsType(t, &emptypb.Empty{}, resp)
+			t.Logf("Request OK for identity=%q (kvKey=%q)", identity,
+				kvKey(cluster.NewClusterIdentity(identity, "MyKind")))
+		})
+	}
+
+	// One round-trip enumeration after all activations to confirm every
+	// identity is returned by ListGrains exactly as it was supplied.
+	infos, err := p.IdentityLookup().ListGrains()
+	require.NoError(t, err)
+
+	got := make(map[string]struct{}, len(infos))
+	for _, info := range infos {
+		if info.Kind == "MyKind" {
+			got[info.Identity] = struct{}{}
+		}
+	}
+	for _, want := range identities {
+		_, ok := got[want]
+		require.True(t, ok, "ListGrains must return identity %q intact (got %v)", want, got)
+	}
+}
+
 // TestCharset_NatsKV_SlashIdentityRoundTrip activates a grain whose identity
 // contains '/' characters and then enumerates the activations via
 // ListActivations to verify the original identity (slashes intact) is
