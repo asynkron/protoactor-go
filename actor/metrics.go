@@ -3,8 +3,9 @@
 package actor
 
 import (
-	"fmt"
+	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/asynkron/protoactor-go/extensions"
 	"github.com/asynkron/protoactor-go/metrics"
@@ -64,10 +65,37 @@ func SystemLabels(system *ActorSystem) []attribute.KeyValue {
 	}
 }
 
+// actorTypeLabels caches the "actortype" attribute keyed by the actor's concrete
+// reflect.Type, avoiding the repeated reflection/formatting cost of computing the
+// type name on every metric emission.
+var actorTypeLabels sync.Map // map[reflect.Type]attribute.KeyValue
+
+// actorTypeLabel returns a cached "actortype" label for the given actor, computing
+// (and caching) it on first use for each concrete type.
+func actorTypeLabel(actor Actor) attribute.KeyValue {
+	t := reflect.TypeOf(actor)
+	if t == nil {
+		return attribute.String("actortype", "<nil>")
+	}
+	if v, ok := actorTypeLabels.Load(t); ok {
+		return v.(attribute.KeyValue)
+	}
+
+	// Match the previous fmt.Sprintf("%T", ...) output, stripping a leading '*'
+	// for pointer types.
+	name := t.String()
+	if t.Kind() == reflect.Ptr {
+		name = strings.Replace(name, "*", "", 1)
+	}
+
+	kv := attribute.String("actortype", name)
+	actorTypeLabels.Store(t, kv)
+
+	return kv
+}
+
 // CommonLabels returns the default set of labels for an actor metric, including
 // system-wide labels and the specific actor type.
 func (m *Metrics) CommonLabels(ctx Context) []attribute.KeyValue {
-	return append(SystemLabels(ctx.ActorSystem()),
-		attribute.String("actortype", strings.Replace(fmt.Sprintf("%T", ctx.Actor()), "*", "", 1)),
-	)
+	return append(SystemLabels(ctx.ActorSystem()), actorTypeLabel(ctx.Actor()))
 }
