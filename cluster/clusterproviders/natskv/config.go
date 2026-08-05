@@ -7,29 +7,31 @@ import (
 )
 
 const (
-	defaultMemberTTL       = 5 * time.Second
-	defaultRefreshInterval = 2 * time.Second
-	defaultLeaderTTL       = 10 * time.Second
-	defaultLockTTL         = 5 * time.Second
-	defaultMaxConcurrency  = 200
-	defaultReplicas        = 1
-	defaultKeyPrefix       = "cluster"
-	defaultRetryInterval   = 1 * time.Second
+	defaultMemberTTL         = 5 * time.Second
+	defaultRefreshInterval   = 2 * time.Second
+	defaultReconcileInterval = 15 * time.Second
+	defaultLeaderTTL         = 10 * time.Second
+	defaultLockTTL           = 5 * time.Second
+	defaultMaxConcurrency    = 200
+	defaultReplicas          = 1
+	defaultKeyPrefix         = "cluster"
+	defaultRetryInterval     = 1 * time.Second
 )
 
 // config holds internal configuration for the NATS KV cluster provider.
 type config struct {
-	BucketName      string
-	IdentityBucket  string
-	KeyPrefix       string
-	Replicas        int
-	MemberTTL       time.Duration
-	RefreshInterval time.Duration
-	LeaderTTL       time.Duration
-	LockTTL         time.Duration
-	MaxConcurrency  int
-	RetryInterval   time.Duration
-	RoleChanged     cluster.RoleChangedListener
+	BucketName        string
+	IdentityBucket    string
+	KeyPrefix         string
+	Replicas          int
+	MemberTTL         time.Duration
+	RefreshInterval   time.Duration
+	ReconcileInterval time.Duration
+	LeaderTTL         time.Duration
+	LockTTL           time.Duration
+	MaxConcurrency    int
+	RetryInterval     time.Duration
+	RoleChanged       cluster.RoleChangedListener
 }
 
 // Option configures the NATS KV cluster provider.
@@ -65,6 +67,14 @@ func WithRefreshInterval(interval time.Duration) Option {
 	return func(c *config) { c.RefreshInterval = interval }
 }
 
+// WithReconcileInterval sets the interval at which the provider reconciles its
+// in-memory member set against the live member keys in the KV bucket, pruning
+// stale members whose keys have expired without a delivered delete event.
+// A value <= 0 disables periodic reconciliation.
+func WithReconcileInterval(interval time.Duration) Option {
+	return func(c *config) { c.ReconcileInterval = interval }
+}
+
 // WithLeaderTTL sets the TTL for the leader election key.
 func WithLeaderTTL(ttl time.Duration) Option {
 	return func(c *config) { c.LeaderTTL = ttl }
@@ -92,14 +102,15 @@ func WithRoleChangedListener(l cluster.RoleChangedListener) Option {
 
 func newDefaultConfig() *config {
 	return &config{
-		KeyPrefix:       defaultKeyPrefix,
-		Replicas:        defaultReplicas,
-		MemberTTL:       defaultMemberTTL,
-		RefreshInterval: defaultRefreshInterval,
-		LeaderTTL:       defaultLeaderTTL,
-		LockTTL:         defaultLockTTL,
-		MaxConcurrency:  defaultMaxConcurrency,
-		RetryInterval:   defaultRetryInterval,
+		KeyPrefix:         defaultKeyPrefix,
+		Replicas:          defaultReplicas,
+		MemberTTL:         defaultMemberTTL,
+		RefreshInterval:   defaultRefreshInterval,
+		ReconcileInterval: defaultReconcileInterval,
+		LeaderTTL:         defaultLeaderTTL,
+		LockTTL:           defaultLockTTL,
+		MaxConcurrency:    defaultMaxConcurrency,
+		RetryInterval:     defaultRetryInterval,
 	}
 }
 

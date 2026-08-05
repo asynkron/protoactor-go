@@ -2,6 +2,7 @@ package natskv
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -36,11 +37,24 @@ type Provider struct {
 	isMember     bool
 	members      map[string]*Node
 	membersMu    sync.RWMutex
-	shutdown     atomic.Bool
+	// publishMu serializes publishClusterTopologyEvent so that a snapshot
+	// computed by one publisher (watcher or reconcile goroutine) is always
+	// applied to MemberList before the next publisher computes and applies its
+	// own -- preventing an older topology from clobbering a newer one.
+	publishMu sync.Mutex
+	shutdown  atomic.Bool
+	// clusterError is written by the watcher and reconcile goroutines and read
+	// by GetHealthStatus; clusterErrMu guards it.
 	clusterError error
-	wg           sync.WaitGroup
-	ctx          context.Context
-	cancel       context.CancelFunc
+	clusterErrMu sync.Mutex
+	// reconcileMisses holds the member IDs that were absent from the live KV
+	// key set during the previous reconcile pass. A member is only pruned once
+	// it is absent in two consecutive passes (see reconcileMembers). Accessed
+	// only from the single reconcile goroutine (serial), so it needs no lock.
+	reconcileMisses map[string]struct{}
+	wg              sync.WaitGroup
+	ctx             context.Context
+	cancel          context.CancelFunc
 
 	// Leader election
 	role                cluster.RoleType
@@ -84,6 +98,7 @@ func NewFromJetStream(js jetstream.JetStream, opts ...Option) (*Provider, error)
 		config:              cfg,
 		js:                  js,
 		members:             make(map[string]*Node),
+		reconcileMisses:     make(map[string]struct{}),
 		role:                cluster.RoleFollower,
 		roleChangedChan:     make(chan cluster.RoleType, 1),
 		roleChangedListener: cfg.RoleChanged,
@@ -101,7 +116,17 @@ func (p *Provider) IdentityLookup() *IdentityLookup {
 
 // GetHealthStatus returns an error if the cluster health status has problems.
 func (p *Provider) GetHealthStatus() error {
+	p.clusterErrMu.Lock()
+	defer p.clusterErrMu.Unlock()
 	return p.clusterError
+}
+
+// setClusterError records the most recent background-goroutine error surfaced
+// by GetHealthStatus. Safe to call from any goroutine.
+func (p *Provider) setClusterError(err error) {
+	p.clusterErrMu.Lock()
+	p.clusterError = err
+	p.clusterErrMu.Unlock()
 }
 
 // RegisterSingletonScheduler registers a RoleChangedListener to be notified on
@@ -173,6 +198,7 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 	p.startWatching()
 	p.startLeaderWatching()
 	p.startRefresh()
+	p.startReconcile()
 	p.attemptLeaderElection()
 
 	return nil
@@ -201,6 +227,7 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 
 	p.publishClusterTopologyEvent()
 	p.startWatching()
+	p.startReconcile()
 
 	return nil
 }
@@ -386,6 +413,13 @@ func (p *Provider) handleMemberDelete(entry jetstream.KeyValueEntry) {
 // publishClusterTopologyEvent converts internal state to cluster.Member list
 // and notifies the cluster's MemberList.
 func (p *Provider) publishClusterTopologyEvent() {
+	// Serialize the whole compute-and-apply so concurrent publishers (the
+	// watcher and the reconcile goroutine) cannot interleave and apply an older
+	// snapshot after a newer one. publishMu is always the outermost lock here;
+	// no other code path acquires it, so it cannot invert with membersMu.
+	p.publishMu.Lock()
+	defer p.publishMu.Unlock()
+
 	start := time.Now()
 
 	p.membersMu.RLock()
@@ -431,7 +465,7 @@ func (p *Provider) startWatching() {
 						slog.String("provider", "natskv"),
 						slog.Any("error", r))
 				}
-				p.clusterError = fmt.Errorf("watcher panic: %v", r)
+				p.setClusterError(fmt.Errorf("watcher panic: %v", r))
 			}
 		}()
 
@@ -445,7 +479,7 @@ func (p *Provider) startWatching() {
 						slog.String("provider", "natskv"),
 						slog.Any("error", err))
 				}
-				p.clusterError = err
+				p.setClusterError(err)
 				if p.metricsEnabled {
 					p.providerMetrics.WatchReconnectCount.Add(
 						context.Background(), 1,
@@ -491,6 +525,186 @@ func (p *Provider) keepWatching() error {
 			}
 		}
 
+		p.publishClusterTopologyEvent()
+	}
+
+	return nil
+}
+
+// startReconcile starts a goroutine that periodically reconciles the in-memory
+// member set against the live member keys in the KV bucket. This makes the
+// provider self-healing: if a delete/expiry event for a member key is missed by
+// the UpdatesOnly watcher (e.g. during watcher reconnects or crash churn), the
+// stale member is pruned within one reconcile interval instead of persisting
+// until a full restart. If ReconcileInterval <= 0, reconciliation is disabled.
+func (p *Provider) startReconcile() {
+	if p.config.ReconcileInterval <= 0 {
+		return
+	}
+
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		defer func() {
+			if r := recover(); r != nil {
+				if p.cluster != nil {
+					p.cluster.Logger().Error("Recovered from panic in reconcile",
+						slog.String("provider", "natskv"),
+						slog.Any("error", r))
+				}
+				p.setClusterError(fmt.Errorf("reconcile panic: %v", r))
+			}
+		}()
+
+		ticker := time.NewTicker(p.config.ReconcileInterval)
+		defer ticker.Stop()
+
+		for !p.shutdown.Load() {
+			select {
+			case <-ticker.C:
+				if err := p.reconcileMembers(); err != nil {
+					if p.shutdown.Load() {
+						return
+					}
+					if p.cluster != nil {
+						p.cluster.Logger().Error("Reconcile failed, retrying",
+							slog.String("provider", "natskv"),
+							slog.Any("error", err))
+					}
+					p.setClusterError(err)
+				}
+			case <-p.ctx.Done():
+				return
+			}
+		}
+	}()
+}
+
+// reconcileMembers re-reads the set of live member keys from the KV bucket and
+// reconciles the in-memory member set against it, in both directions:
+//
+//   - Prune: an in-memory member whose key is absent from the bucket in TWO
+//     consecutive passes is removed. This corrects for delete/expiry events
+//     that were never delivered to the watcher. The two-pass grace is what
+//     makes pruning race-free: a member is present in p.members only because
+//     its Put was observed, which means its key is durably in the bucket, so it
+//     always reappears in the next snapshot. Only a genuine ghost -- absent
+//     every pass -- is pruned. A member that merely joins concurrently with a
+//     single snapshot (absent for one pass) is never falsely pruned, which
+//     would otherwise permanently block a live node via the member block list.
+//   - Upsert: a live key with no corresponding in-memory member is re-added.
+//     This corrects for Put events the watcher missed (e.g. a dead or
+//     reconnecting watcher), so the provider self-heals adds as well as deletes.
+//
+// The live-key snapshot uses ListKeysFiltered, which delivers last-per-subject
+// with delete markers ignored, so it returns exactly the keys with a current
+// value regardless of the bucket's history depth. If the reconcile changes the
+// member set, the cluster topology is re-published.
+func (p *Provider) reconcileMembers() error {
+	prefix := p.config.KeyPrefix + ".members."
+
+	lister, err := p.memberBucket.ListKeysFiltered(p.ctx, prefix+">")
+	if err != nil {
+		return fmt.Errorf("natskv: list members for reconcile: %w", err)
+	}
+	live := make(map[string]struct{})
+	for key := range lister.Keys() {
+		if id := extractMemberID(key, prefix); id != "" {
+			live[id] = struct{}{}
+		}
+	}
+
+	// Under the members lock, collect prune candidates (members absent from the
+	// live snapshot for a second consecutive pass) and live IDs missing from
+	// memory (for upsert). Candidates are not deleted here: each is first
+	// confirmed absent with an authoritative point Get below, so that a
+	// snapshot that was truncated (e.g. a watcher subscription closed
+	// mid-listing surfaces no error) cannot cause a live member to be pruned.
+	// The candidate's *Node is captured so the later delete can verify the
+	// entry was not replaced in the meantime by a concurrent watcher Put.
+	missingNow := make(map[string]struct{})
+	pruneCandidates := make(map[string]*Node)
+	var toUpsert []string
+
+	p.membersMu.Lock()
+	for id, node := range p.members {
+		if p.self != nil && id == p.self.ID {
+			continue // never prune self
+		}
+		if _, ok := live[id]; ok {
+			continue
+		}
+		missingNow[id] = struct{}{}
+		if _, missedBefore := p.reconcileMisses[id]; missedBefore {
+			pruneCandidates[id] = node
+		}
+	}
+	for id := range live {
+		if p.self != nil && id == p.self.ID {
+			continue
+		}
+		if _, ok := p.members[id]; !ok {
+			toUpsert = append(toUpsert, id)
+		}
+	}
+	p.membersMu.Unlock()
+
+	// Carry the current missing set forward for the next pass's grace check.
+	// (reconcileMembers is only called from the single, serial reconcile
+	// goroutine, so this needs no additional synchronization.)
+	p.reconcileMisses = missingNow
+
+	// Confirm each prune candidate is really gone with a point Get before
+	// deleting. Only a definitive ErrKeyNotFound authorizes a prune; a present
+	// key (the snapshot was wrong) or a transient error leaves the member in
+	// place, to be re-evaluated next pass. The delete re-checks under the lock
+	// that the same *Node is still mapped, so a member re-added by the watcher
+	// between the Get and the delete is not removed.
+	pruned := 0
+	for id, node := range pruneCandidates {
+		_, gerr := p.memberBucket.Get(p.ctx, p.memberKey(id))
+		if !errors.Is(gerr, jetstream.ErrKeyNotFound) {
+			continue
+		}
+		p.membersMu.Lock()
+		if cur, ok := p.members[id]; ok && cur == node {
+			delete(p.members, id)
+			pruned++
+		}
+		p.membersMu.Unlock()
+	}
+
+	// Upsert live members the watcher missed. The value is fetched outside the
+	// members lock; adding a member whose key is present in KV is always
+	// correct, because the key exists only if that member registered it.
+	added := 0
+	for _, id := range toUpsert {
+		entry, gerr := p.memberBucket.Get(p.ctx, p.memberKey(id))
+		if gerr != nil {
+			continue // key vanished between snapshot and Get, or a transient error
+		}
+		node, nerr := NewNodeFromBytes(entry.Value())
+		if nerr != nil {
+			continue
+		}
+		if p.self != nil && node.Equal(p.self) {
+			continue
+		}
+		p.membersMu.Lock()
+		if _, exists := p.members[node.ID]; !exists {
+			p.members[node.ID] = node
+			added++
+		}
+		p.membersMu.Unlock()
+	}
+
+	if pruned > 0 || added > 0 {
+		if p.cluster != nil {
+			p.cluster.Logger().Info("Reconciled cluster members",
+				slog.String("provider", "natskv"),
+				slog.Int("pruned", pruned),
+				slog.Int("added", added))
+		}
 		p.publishClusterTopologyEvent()
 	}
 
