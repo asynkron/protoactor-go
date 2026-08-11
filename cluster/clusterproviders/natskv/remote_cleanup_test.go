@@ -12,13 +12,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestStoreActivationBounded verifies that storeActivation returns within a
-// bounded time even when the parent context has no deadline and the KV is
-// unresponsive. We simulate unresponsiveness by cancelling early is not
-// possible against the real update path, so instead we assert the 10s bound is
-// applied by passing a context that is already at its deadline: the Update
-// must return promptly with a context error rather than hanging.
-func TestStoreActivationBounded(t *testing.T) {
+// TestStoreActivationContextPropagation verifies that storeActivation honors
+// its parent context: the child context it derives via WithTimeout inherits
+// cancellation from the parent, so a cancelled parent makes the KV Update
+// return promptly with a context error rather than hanging. This proves
+// context propagation into the bounded call; it does not exercise the 10s
+// ceiling itself (which would require a genuinely unresponsive KV).
+func TestStoreActivationContextPropagation(t *testing.T) {
 	il := buildBareIdentityLookup(t)
 	ci := testCI("TestKind", "bounded-1")
 	ctx := context.Background()
@@ -202,10 +202,13 @@ func TestStoreFailurePoisonsThroughPlacement(t *testing.T) {
 
 // TestRemoteRemoveAndPoisonNATSRoundTrip verifies the NATS poison control-plane
 // end-to-end within a single member: a poison request published to the
-// member-scoped subject reaches handleRemoveAndPoisonRequest, which drives the
-// local placement actor and poisons the grain.
+// member-scoped subject reaches handleRemoveAndPoisonRequest, which validates
+// the target against the identity record (the caller's lock-only record at the
+// carried revision) and then drives the local placement actor to poison the
+// grain.
 func TestRemoteRemoveAndPoisonNATSRoundTrip(t *testing.T) {
 	_, _, il := setupPlacementTestCluster(t, "test-poison-nats")
+	ctx := context.Background()
 
 	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "poison-nats-1"}
 	placementPID := il.placementPID.Load()
@@ -216,14 +219,95 @@ func TestRemoteRemoveAndPoisonNATSRoundTrip(t *testing.T) {
 	pid := res.(*cluster.ActivationResponse).Pid
 	require.NotNil(t, pid)
 
+	// The store-failure path leaves the caller's lock-only record in place; the
+	// poison request carries that record's revision. Establish it here so the
+	// target-validation guard honors the request.
+	lockData, _ := json.Marshal(&activationRecord{LockID: "L", MemberID: il.memberID})
+	rev, err := il.identities.Put(ctx, kvKey(ci), lockData)
+	require.NoError(t, err)
+
 	// Build a Member pointing at ourselves and drive the request path.
 	self := &cluster.Member{Id: il.memberID}
-	il.requestRemoteRemoveAndPoison(self, pid)
+	il.requestRemoteRemoveAndPoison(self, ci, pid, rev)
 
 	assert.Eventually(t, func() bool {
 		_, a := il.cluster.ActorSystem.ProcessRegistry.GetLocal(pid.Id)
 		return !a
 	}, 3*time.Second, 25*time.Millisecond, "grain must be poisoned via the NATS poison round-trip")
+}
+
+// TestReplayedPoisonRejectedAfterSuccessorActivation is the replay/spoof guard
+// for finding 1: a poisonReq replayed AFTER a legitimate successor has
+// activated the same identity on the same member must be REJECTED — the
+// successor survives — while a genuine store-failure poison (matching lock-only
+// revision) is still honored.
+func TestReplayedPoisonRejectedAfterSuccessorActivation(t *testing.T) {
+	_, _, il := setupPlacementTestCluster(t, "test-poison-replay")
+	ctx := context.Background()
+
+	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "replay-1"}
+	placementPID := il.placementPID.Load()
+	require.NotNil(t, placementPID)
+
+	// --- Loser: a remote-initiated activation whose caller-side persist fails.
+	// Establish its lock-only record and capture the revision the caller would
+	// carry in its poison request.
+	loserData, _ := json.Marshal(&activationRecord{LockID: "L-loser", MemberID: il.memberID})
+	loserRev, err := il.identities.Put(ctx, kvKey(ci), loserData)
+	require.NoError(t, err)
+
+	res, err := il.cluster.ActorSystem.Root.RequestFuture(placementPID,
+		&cluster.ActivationRequest{ClusterIdentity: ci}, 5*time.Second).Result()
+	require.NoError(t, err)
+	loserPID := res.(*cluster.ActivationResponse).Pid
+	require.NotNil(t, loserPID)
+
+	// --- Successor: wins the identity legitimately. It re-acquires the lock and
+	// stores a completed record, bumping the revision away from loserRev.
+	res2, err := il.cluster.ActorSystem.Root.RequestFuture(placementPID,
+		&cluster.ActivationRequest{ClusterIdentity: ci}, 5*time.Second).Result()
+	require.NoError(t, err)
+	successorPID := res2.(*cluster.ActivationResponse).Pid
+	require.NotNil(t, successorPID)
+	// storeActivation upgrades the record to point at the successor PID.
+	require.NoError(t, il.storeActivation(ctx, ci, "L-succ", loserRev, il.memberID,
+		successorPID.Address, successorPID.Id))
+
+	// --- Replay: the loser's original poison request arrives now, carrying the
+	// stale loserRev. It must be REJECTED — the current record is completed
+	// (points at the successor), so poisonTargetIsOrphan returns false.
+	staleReq := &poisonReq{
+		Kind:       ci.Kind,
+		Identity:   ci.Identity,
+		PidID:      successorPID.Id, // replay could even target the successor PID
+		PidAddress: successorPID.Address,
+		Revision:   loserRev,
+	}
+	assert.False(t, il.poisonTargetIsOrphan(staleReq),
+		"replayed poison against a completed successor record must be rejected")
+
+	// Drive the full NATS handler path to confirm the successor survives.
+	self := &cluster.Member{Id: il.memberID}
+	il.requestRemoteRemoveAndPoison(self, ci, successorPID, loserRev)
+	// Give the (rejected) request time to be processed.
+	time.Sleep(300 * time.Millisecond)
+	_, alive := il.cluster.ActorSystem.ProcessRegistry.GetLocal(successorPID.Id)
+	assert.True(t, alive, "successor grain must survive a replayed poison")
+
+	// --- Sanity: a genuine store-failure poison still works. Reset the record
+	// to a fresh lock-only state and poison at the matching revision.
+	freshData, _ := json.Marshal(&activationRecord{LockID: "L-fresh", MemberID: il.memberID})
+	freshRev, err := il.identities.Put(ctx, kvKey(ci), freshData)
+	require.NoError(t, err)
+	genuineReq := &poisonReq{
+		Kind:       ci.Kind,
+		Identity:   ci.Identity,
+		PidID:      successorPID.Id,
+		PidAddress: successorPID.Address,
+		Revision:   freshRev,
+	}
+	assert.True(t, il.poisonTargetIsOrphan(genuineReq),
+		"a genuine store-failure poison (lock-only record at the carried revision) must be honored")
 }
 
 // TestCheckActivationRecordClassification exercises natskv's

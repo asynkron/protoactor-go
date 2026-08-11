@@ -148,11 +148,22 @@ func activateSubject(clusterName string) string {
 // poisonReq asks a member to remove-and-poison a specific grain PID via its
 // local placement actor. Used by the remote store-failure cleanup path, which
 // cannot send the (non-proto) RemoveAndPoisonRequest across the wire directly.
+//
+// Kind/Identity name the identity record so the receiving member can re-read it
+// and validate the request before honoring it. Revision is the caller's held
+// lock revision at the moment its persist failed: the record must still be at
+// that revision (i.e. still the loser's unresolved lock-only record) for the
+// poison to be honored. This prevents a replayed/spoofed poisonReq from an
+// earlier legitimately-failed activation from killing a later, legitimate
+// re-activation of the same identity — a successor's persist (or a new lock)
+// bumps the record's revision away from the carried value, so the replay is
+// rejected. See handleRemoveAndPoisonRequest.
 type poisonReq struct {
 	Kind       string `json:"k"`
 	Identity   string `json:"i"`
 	PidID      string `json:"pid"`
 	PidAddress string `json:"adr"`
+	Revision   uint64 `json:"rev"`
 }
 
 // poisonResp acknowledges a poisonReq. Ok is true once the grain was removed
@@ -812,7 +823,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 		// the grain from its tracking and poison it BEFORE we delete the lock,
 		// so no live instance survives on the losing side. On timeout we
 		// proceed — the remote's self-check is the backstop.
-		il.requestRemoteRemoveAndPoison(member, activationResp.Pid)
+		il.requestRemoteRemoveAndPoison(member, ci, activationResp.Pid, revision)
 		il.casDelete(ctx, kvKey(ci), revision, "activateRemote/store-failed")
 		return nil
 	}
@@ -1301,17 +1312,18 @@ func (il *IdentityLookup) handleActivationRequest(msg *nats.Msg) {
 // to remove it from tracking and poison it. It is best-effort: on any error or
 // timeout it returns and the caller proceeds (the remote placement actor's
 // self-check is the backstop). Bounded to 5s.
-func (il *IdentityLookup) requestRemoteRemoveAndPoison(member *cluster.Member, pid *actor.PID) {
+func (il *IdentityLookup) requestRemoteRemoveAndPoison(member *cluster.Member, ci *cluster.ClusterIdentity, pid *actor.PID, revision uint64) {
 	nc := il.provider.nc
 	if nc == nil {
 		return
 	}
 
 	data, err := json.Marshal(poisonReq{
-		Kind:       pidKindOf(pid),
-		Identity:   "",
+		Kind:       ci.Kind,
+		Identity:   ci.Identity,
 		PidID:      pid.Id,
 		PidAddress: pid.Address,
+		Revision:   revision,
 	})
 	if err != nil {
 		return
@@ -1329,18 +1341,30 @@ func (il *IdentityLookup) requestRemoteRemoveAndPoison(member *cluster.Member, p
 	}
 }
 
-// pidKindOf extracts the kind prefix from a grain PID id of the form
-// "kind/identity". Returns the whole id if there is no separator.
-func pidKindOf(pid *actor.PID) string {
-	if i := strings.IndexByte(pid.Id, '/'); i >= 0 {
-		return pid.Id[:i]
-	}
-	return pid.Id
-}
-
 // handleRemoveAndPoisonRequest is the NATS subscription handler for peer
-// remove-and-poison requests. It sends a RemoveAndPoisonRequest to the local
-// placement actor and waits for the ack, then replies.
+// remove-and-poison requests. It validates that the target grain is genuinely
+// an orphan of the caller's failed activation before forwarding a
+// RemoveAndPoisonRequest to the local placement actor.
+//
+// Decision rule (target validation against replay/spoof): re-read the identity
+// record and honor the poison only when the target is provably the loser's
+// unresolved activation:
+//
+//   - record ABSENT: the loser's lock was already released and no successor has
+//     written a record, so the tracked grain is a genuine orphan -> honor.
+//   - record LOCK-ONLY (PidID == "") AND its current revision == the caller's
+//     carried revision: this is still the loser's own unresolved lock (its
+//     persist failed before it could upgrade the record) -> honor.
+//   - anything else -> REJECT. A non-empty PidID means some activation (a
+//     successor, or the loser itself) has completed and is authoritative; a
+//     revision mismatch on a lock-only record means the lock was re-acquired by
+//     a successor. A replayed poisonReq from an earlier failed activation
+//     carries a stale revision, so it cannot match the current record and is
+//     rejected, protecting the legitimate successor.
+//
+// This mirrors the CAS-with-revision discipline used throughout the identity
+// store: the caller's held lock revision is the proof that the record it wants
+// poisoned is the same record it lost on.
 func (il *IdentityLookup) handleRemoveAndPoisonRequest(msg *nats.Msg) {
 	var req poisonReq
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
@@ -1356,6 +1380,17 @@ func (il *IdentityLookup) handleRemoveAndPoisonRequest(msg *nats.Msg) {
 		return
 	}
 
+	if !il.poisonTargetIsOrphan(&req) {
+		il.identityLogger().Warn("natskv identity: rejecting remove-and-poison request; target is not an orphan of the caller's failed activation (replay/spoof guard)",
+			slog.String("kind", req.Kind),
+			slog.String("identity", req.Identity),
+			slog.String("pid", req.PidAddress+"/"+req.PidID),
+			slog.Uint64("callerRevision", req.Revision))
+		resp, _ := json.Marshal(poisonResp{Error: "rejected: target not orphaned"})
+		_ = msg.Respond(resp)
+		return
+	}
+
 	pid := actor.NewPID(req.PidAddress, req.PidID)
 	future := il.cluster.ActorSystem.Root.RequestFuture(placementPID,
 		&cluster.RemoveAndPoisonRequest{PID: pid}, 5*time.Second)
@@ -1367,6 +1402,46 @@ func (il *IdentityLookup) handleRemoveAndPoisonRequest(msg *nats.Msg) {
 
 	resp, _ := json.Marshal(poisonResp{Ok: true})
 	_ = msg.Respond(resp)
+}
+
+// poisonTargetIsOrphan re-reads the identity record named by the request and
+// reports whether the poison should be honored. See handleRemoveAndPoisonRequest
+// for the decision rule. A missing kind/identity (older wire format) is treated
+// as not-orphan, so an unvalidatable request is rejected rather than trusted.
+func (il *IdentityLookup) poisonTargetIsOrphan(req *poisonReq) bool {
+	if req.Kind == "" && req.Identity == "" {
+		return false
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	key := kvKey(&cluster.ClusterIdentity{Kind: req.Kind, Identity: req.Identity})
+	entry, err := il.identities.Get(ctx, key)
+	if err != nil {
+		// Record absent: the loser's lock was released and no successor has
+		// written a record yet. The tracked grain is a genuine orphan.
+		if errors.Is(err, jetstream.ErrKeyNotFound) {
+			return true
+		}
+		// Any other read error: fail closed (do not poison on uncertainty).
+		return false
+	}
+
+	var rec activationRecord
+	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
+		return false
+	}
+
+	// A completed record (PidID set) is authoritative — a successor (or the
+	// loser itself) has resolved the identity. Never poison against it.
+	if rec.PidID != "" {
+		return false
+	}
+
+	// Lock-only record: honor only if it is still the loser's own lock, proven
+	// by the revision matching the one the caller held when its persist failed.
+	return entry.Revision() == req.Revision
 }
 
 // requestRemoteActivation sends a NATS request to a cluster member asking it

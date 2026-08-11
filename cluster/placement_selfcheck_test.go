@@ -264,7 +264,6 @@ func TestStragglerPersistSkippedAfterAbort(t *testing.T) {
 func TestPlacementUnchangedWithoutCallbacks(t *testing.T) {
 	c := newTestClusterWithKind(t, "skind", echoProps())
 
-	var checks atomic.Int32
 	cfg := PlacementConfig{
 		PersistActivation: func(ctx context.Context, ci *ClusterIdentity, pid *actor.PID, requestID string) error {
 			return nil
@@ -272,8 +271,6 @@ func TestPlacementUnchangedWithoutCallbacks(t *testing.T) {
 		// No CheckActivationRecord / CleanupOwnRecord.
 		SelfCheckDelay: 20 * time.Millisecond,
 	}
-	// Sanity: the check callback (unset) can never be invoked.
-	_ = checks
 	pp := spawnPlacement(t, c, "$no-cb", cfg)
 
 	// Remote-initiated activation.
