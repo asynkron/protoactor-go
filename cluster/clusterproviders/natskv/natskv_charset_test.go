@@ -138,6 +138,7 @@ func startCharsetCluster(t *testing.T, srv *server.Server, clusterName string, k
 		WithRefreshInterval(2*time.Second),
 		WithLeaderTTL(10*time.Second),
 		WithLockTTL(1*time.Second),
+		WithWaiterWindow(1*time.Second), // waitForActivation now uses WaiterWindow, not LockTTL.
 	)
 	require.NoError(t, err)
 

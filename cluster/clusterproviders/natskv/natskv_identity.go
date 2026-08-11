@@ -369,75 +369,160 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 }
 
 // resolveIdentity performs the actual identity resolution logic.
+// It runs a bounded retry loop (up to 3 passes) starting at the
+// existing-activation check (step 3). Each pass can:
+//   - Return immediately with a valid PID.
+//   - Reap an abandoned lock and continue to the next pass.
+//   - Wait for an in-progress activation and either return the PID or
+//     continue (if the lock was deleted and resolution should retry).
+//   - Acquire the lock and activate locally or remotely.
 func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PID {
 	il.acquire()
 	defer il.release()
 
 	ctx := context.Background()
 
-	// Step 3: Check for existing activation with stale validation.
-	rec, existingRev := il.getExistingActivationWithRev(ctx, ci)
-	if rec != nil {
-		if cluster.ValidateActivationMember(il.cluster.MemberList, rec.MemberID) {
-			pid := pidFromRecord(rec)
-			il.cluster.PidCache.Set(ci.Identity, ci.Kind, pid)
-			return pid
+resolution:
+	for pass := 0; pass < 3; pass++ {
+		// Step 3: Check for existing activation with stale validation.
+		rec, existingRev := il.getExistingActivationWithRev(ctx, ci)
+		if rec != nil {
+			if cluster.ValidateActivationMember(il.cluster.MemberList, rec.MemberID) {
+				pid := pidFromRecord(rec)
+				il.cluster.PidCache.Set(ci.Identity, ci.Kind, pid)
+				return pid
+			}
+			// Stale activation from a dead member — clean it up.
+			il.identityLogger().Info("natskv identity: cleaning stale activation",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity),
+				slog.String("staleMember", rec.MemberID))
+			il.casDelete(ctx, kvKey(ci), existingRev, "resolveIdentity/stale")
+			if rec.MemberID != "" {
+				il.removeKeyFromMember(ctx, rec.MemberID, kvKey(ci))
+			}
 		}
-		// Stale activation from a dead member — clean it up.
-		il.identityLogger().Info("natskv identity: cleaning stale activation",
+
+		// Step 4: If client, request remote activation from a member via NATS.
+		if il.isClient {
+			arec := il.requestRemoteActivation(ctx, ci)
+			if arec != nil {
+				return pidFromRecord(arec)
+			}
+			return nil
+		}
+
+		// Step 5: Try to acquire the spawn lock.
+		lockID, revision, ok := il.tryAcquireLock(ctx, ci)
+		if !ok {
+			// Another node holds the lock. Check whether it is an abandoned
+			// lock we can reap; if so, continue to the next pass.
+			if il.maybeReapLock(ctx, ci) {
+				continue resolution
+			}
+			// Lock is held by a live owner — wait for activation to complete.
+			arec := il.waitForActivation(ctx, ci)
+			if arec != nil {
+				return pidFromRecord(arec)
+			}
+			// waitForActivation returned nil: the lock was deleted (KeyValueDelete).
+			// Re-enter the loop so we can try to acquire the lock ourselves.
+			continue resolution
+		}
+
+		// Step 6: Select target member via strategy manager.
+		senderAddress := il.cluster.ActorSystem.Address()
+		strMgr := il.strategyMgr.Load()
+		if strMgr == nil {
+			il.identityLogger().Warn("natskv identity: strategy manager is nil (cluster shutting down?)",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity))
+			return nil
+		}
+		targetMember := strMgr.GetActivator(ci, senderAddress)
+		if targetMember == nil {
+			il.identityLogger().Warn("natskv identity: no available member for activation",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity))
+			il.casDelete(ctx, kvKey(ci), revision, "resolveIdentity/no-target")
+			return nil
+		}
+
+		// Step 7: Route activation request.
+		if targetMember.Id == il.memberID {
+			return il.activateLocal(ctx, ci, lockID, revision)
+		}
+
+		return il.activateRemote(ctx, ci, lockID, revision, targetMember)
+	}
+
+	il.identityLogger().Warn("natskv identity: resolution loop exhausted",
+		slog.String("kind", ci.Kind),
+		slog.String("identity", ci.Identity))
+	return nil
+}
+
+// maybeReapLock checks whether the current identity record is an abandoned
+// lock that can be forcibly reaped, and deletes it if so.
+//
+// Reap conditions (both require PidID == ""):
+//   - Owner-absence branch: record has MemberID, the owner is absent from the
+//     member list, and entryAge > LockOwnerAbsentGrace.
+//   - Hard branch: entryAge > HardReapAge, regardless of owner state.
+//     This is the only branch that applies to legacy records with empty MemberID.
+//
+// Returns true if the lock was reaped (deleted), false otherwise.
+// A CAS miss on delete is a terminal no-op (another node raced us); the
+// function still returns true so the caller re-enters the resolution loop.
+func (il *IdentityLookup) maybeReapLock(ctx context.Context, ci *cluster.ClusterIdentity) bool {
+	key := kvKey(ci)
+
+	entry, err := il.identities.Get(ctx, key)
+	if err != nil {
+		// Key absent or unreadable: nothing to reap.
+		return false
+	}
+
+	var rec activationRecord
+	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
+		return false
+	}
+
+	// Only lock-only records are eligible for reaping (PidID must be empty).
+	if rec.PidID != "" {
+		return false
+	}
+
+	age := entryAge(entry, il.now())
+
+	// Hard branch: age alone qualifies — fires for both named and legacy records.
+	if age > il.config.HardReapAge {
+		il.identityLogger().Info("natskv identity: reaping stale lock (hard age threshold)",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
-			slog.String("staleMember", rec.MemberID))
-		il.casDelete(ctx, kvKey(ci), existingRev, "resolveIdentity/stale")
-		if rec.MemberID != "" {
-			il.removeKeyFromMember(ctx, rec.MemberID, kvKey(ci))
+			slog.String("memberID", rec.MemberID),
+			slog.Duration("age", age),
+			slog.Duration("hardReapAge", il.config.HardReapAge))
+		il.casDelete(ctx, key, entry.Revision(), "maybeReapLock/hard")
+		return true
+	}
+
+	// Owner-absence branch: only applies when MemberID is set.
+	if rec.MemberID != "" {
+		ownerAbsent := il.cluster == nil || !cluster.ValidateActivationMember(il.cluster.MemberList, rec.MemberID)
+		if ownerAbsent && age > il.config.LockOwnerAbsentGrace {
+			il.identityLogger().Info("natskv identity: reaping stale lock (owner absent)",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity),
+				slog.String("memberID", rec.MemberID),
+				slog.Duration("age", age),
+				slog.Duration("grace", il.config.LockOwnerAbsentGrace))
+			il.casDelete(ctx, key, entry.Revision(), "maybeReapLock/owner-absent")
+			return true
 		}
 	}
 
-	// Step 4: If client, request remote activation from a member via NATS.
-	if il.isClient {
-		arec := il.requestRemoteActivation(ctx, ci)
-		if arec != nil {
-			return pidFromRecord(arec)
-		}
-		return nil
-	}
-
-	// Step 5: Try to acquire the spawn lock.
-	lockID, revision, ok := il.tryAcquireLock(ctx, ci)
-	if !ok {
-		// Another node is spawning. Wait for it.
-		arec := il.waitForActivation(ctx, ci)
-		if arec != nil {
-			return pidFromRecord(arec)
-		}
-		return nil
-	}
-
-	// Step 6: Select target member via strategy manager.
-	senderAddress := il.cluster.ActorSystem.Address()
-	strMgr := il.strategyMgr.Load()
-	if strMgr == nil {
-		il.identityLogger().Warn("natskv identity: strategy manager is nil (cluster shutting down?)",
-			slog.String("kind", ci.Kind),
-			slog.String("identity", ci.Identity))
-		return nil
-	}
-	targetMember := strMgr.GetActivator(ci, senderAddress)
-	if targetMember == nil {
-		il.identityLogger().Warn("natskv identity: no available member for activation",
-			slog.String("kind", ci.Kind),
-			slog.String("identity", ci.Identity))
-		il.casDelete(ctx, kvKey(ci), revision, "resolveIdentity/no-target")
-		return nil
-	}
-
-	// Step 7: Route activation request.
-	if targetMember.Id == il.memberID {
-		return il.activateLocal(ctx, ci, lockID, revision)
-	}
-
-	return il.activateRemote(ctx, ci, lockID, revision, targetMember)
+	return false
 }
 
 // activateLocal sends an ActivationRequest to the local placement actor.
@@ -772,10 +857,14 @@ func (il *IdentityLookup) storeActivation(ctx context.Context, ci *cluster.Clust
 }
 
 // waitForActivation watches the NATS KV key for the given cluster identity
-// until an activation appears (PID is set), or the lock TTL timeout expires.
+// until an activation appears (PID is set), or the WaiterWindow timeout expires.
+// WaiterWindow is intentionally shorter than LockTTL: it bounds how long a
+// caller waits for a lock holder to complete, so that abandoned locks are
+// detected and reaped promptly on the next resolution pass.
+// Note: requestRemoteActivation uses LockTTL for its own timeout (unchanged).
 func (il *IdentityLookup) waitForActivation(ctx context.Context, ci *cluster.ClusterIdentity) *activationRecord {
 	key := kvKey(ci)
-	watchCtx, cancel := context.WithTimeout(ctx, il.config.LockTTL)
+	watchCtx, cancel := context.WithTimeout(ctx, il.config.WaiterWindow)
 	defer cancel()
 
 	watcher, err := il.identities.Watch(watchCtx, key)

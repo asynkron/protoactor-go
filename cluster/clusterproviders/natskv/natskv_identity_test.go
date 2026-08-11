@@ -269,7 +269,8 @@ func TestIdentityLookup_WaitForActivation_Timeout(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := newDefaultConfig()
-	cfg.LockTTL = 500 * time.Millisecond // Short TTL for test.
+	cfg.LockTTL = 500 * time.Millisecond    // Short TTL for test (requestRemoteActivation; not used by waitForActivation).
+	cfg.WaiterWindow = 500 * time.Millisecond // waitForActivation now uses WaiterWindow.
 
 	il := &IdentityLookup{
 		identities: identities,
@@ -279,13 +280,13 @@ func TestIdentityLookup_WaitForActivation_Timeout(t *testing.T) {
 
 	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "timeout1"}
 
-	// No activation will be stored, so it should time out.
+	// No activation will be stored, so it should time out after WaiterWindow.
 	start := time.Now()
 	rec := il.waitForActivation(ctx, ci)
 	elapsed := time.Since(start)
 
 	assert.Nil(t, rec, "should return nil on timeout")
-	assert.GreaterOrEqual(t, elapsed, 400*time.Millisecond, "should wait at least close to LockTTL")
+	assert.GreaterOrEqual(t, elapsed, 400*time.Millisecond, "should wait at least close to WaiterWindow")
 }
 
 func TestIdentityLookup_AddKeyToMember(t *testing.T) {
