@@ -269,7 +269,7 @@ func TestIdentityLookup_WaitForActivation_Timeout(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := newDefaultConfig()
-	cfg.LockTTL = 500 * time.Millisecond    // Short TTL for test (requestRemoteActivation; not used by waitForActivation).
+	cfg.LockTTL = 500 * time.Millisecond      // Short TTL for test (requestRemoteActivation; not used by waitForActivation).
 	cfg.WaiterWindow = 500 * time.Millisecond // waitForActivation now uses WaiterWindow.
 
 	il := &IdentityLookup{

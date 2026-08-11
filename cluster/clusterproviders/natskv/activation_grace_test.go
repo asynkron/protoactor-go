@@ -15,9 +15,10 @@ import (
 // activations whose owning member is absent.
 //
 // Timeline (via il.now):
-//   t0        -- stale record injected; first Get() observes absent owner
-//   t0+59s    -- second Get() still within grace (< 60s) -> returns PID uncached
-//   t0+61s    -- third Get() grace has elapsed -> CAS-deletes + re-activates
+//
+//	t0        -- stale record injected; first Get() observes absent owner
+//	t0+59s    -- second Get() still within grace (< 60s) -> returns PID uncached
+//	t0+61s    -- third Get() grace has elapsed -> CAS-deletes + re-activates
 func TestActivationGraceWindow(t *testing.T) {
 	_, c, il := setupPlacementTestCluster(t, "test-grace-window")
 	ctx := context.Background()

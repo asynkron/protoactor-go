@@ -53,7 +53,7 @@ func TestLockReapOnGet(t *testing.T) {
 		wantReaped  bool
 	}{
 		{"dead owner, aged past grace", false, 35 * time.Second, true},
-		{"dead owner, young", false, 5 * time.Second, false},   // convergence guard
+		{"dead owner, young", false, 5 * time.Second, false}, // convergence guard
 		{"live owner, young", true, 5 * time.Second, false},
 		{"live owner, past hard threshold", true, 65 * time.Second, true}, // slow-live-aged
 		{"legacy no-owner record, young", false, 20 * time.Second, false}, // hard branch only
