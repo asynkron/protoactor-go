@@ -106,6 +106,10 @@ type IdentityLookup struct {
 	// absence tracks when each identity key was first observed to have an
 	// absent owner. See absenceClock for semantics.
 	absence absenceClock
+
+	// janitorStop is closed to signal the background janitor goroutine to stop.
+	// It is non-nil only on non-client (member) nodes.
+	janitorStop chan struct{}
 }
 
 // SetsOwnPidCache returns true, signalling to DefaultContext that this
@@ -300,6 +304,8 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	// Non-client members: spawn placement actor and proxy.
 	if !isClient {
 		il.setupPlacementActor(c)
+		il.janitorStop = make(chan struct{})
+		go il.runJanitor()
 	}
 }
 
@@ -893,6 +899,10 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 // stops the proxy, closes the strategy manager, and removes member records.
 func (il *IdentityLookup) Shutdown() {
 	il.defunct.Store(true)
+	// Stop the janitor goroutine (member nodes only).
+	if il.janitorStop != nil {
+		close(il.janitorStop)
+	}
 	// Stop placement actor first — this triggers graceful shutdown of all
 	// locally tracked grains (poisons them with DeactivationReasonShutdown).
 	if placementPID := il.placementPID.Swap(nil); placementPID != nil {
@@ -1116,6 +1126,9 @@ func (il *IdentityLookup) waitForActivation(ctx context.Context, ci *cluster.Clu
 		}
 	}
 
+	// Loop exited: either the watch context timed out (WaiterWindow elapsed)
+	// or the watcher was closed due to a NATS error. Classify for metrics.
+	il.recordWaitTimeoutOutcome(ctx, key)
 	return nil
 }
 

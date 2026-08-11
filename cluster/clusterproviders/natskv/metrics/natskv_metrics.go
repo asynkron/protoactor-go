@@ -16,6 +16,7 @@ type NatsKVMetrics struct {
 	KeyRefreshFailureCount metric.Int64Counter
 	WatchReconnectCount    metric.Int64Counter
 	LeaderElectionCount    metric.Int64Counter
+	LockWaitTimeoutTotal   metric.Int64Counter
 }
 
 // NewNatsKVMetrics creates all metric instruments for the NATS KV provider.
@@ -54,6 +55,14 @@ func NewNatsKVMetrics(logger *slog.Logger) *NatsKVMetrics {
 		metric.WithDescription("Leader election events"),
 	); err != nil {
 		err = fmt.Errorf("failed to create LeaderElectionCount instrument, %w", err)
+		logger.Error(err.Error(), slog.Any("error", err))
+	}
+
+	if m.LockWaitTimeoutTotal, err = meter.Int64Counter(
+		"protocluster_natskv_lock_wait_timeout_total",
+		metric.WithDescription("Spawn-lock wait timeouts by outcome (activated_late or still_locked)"),
+	); err != nil {
+		err = fmt.Errorf("failed to create LockWaitTimeoutTotal instrument, %w", err)
 		logger.Error(err.Error(), slog.Any("error", err))
 	}
 

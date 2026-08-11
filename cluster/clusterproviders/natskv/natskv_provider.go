@@ -954,6 +954,22 @@ func extractMemberID(key, prefix string) string {
 	return key[len(prefix):]
 }
 
+// IsLeader reports whether this node is the current cluster leader.
+func (p *Provider) IsLeader() bool {
+	return p.isLeader.Load()
+}
+
+// MemberKeyExists reports whether a member key currently exists in the members KV bucket.
+// It performs a direct KV Get — not the in-memory map — so it detects member keys
+// that were restored between janitor sweeps.
+func (p *Provider) MemberKeyExists(ctx context.Context, memberID string) bool {
+	if p.memberBucket == nil {
+		return false
+	}
+	_, err := p.memberBucket.Get(ctx, p.memberKey(memberID))
+	return err == nil
+}
+
 // splitHostPort parses an address string into host and port components.
 func splitHostPort(addr string) (host string, port int, err error) {
 	if h, p, e := net.SplitHostPort(addr); e != nil {
