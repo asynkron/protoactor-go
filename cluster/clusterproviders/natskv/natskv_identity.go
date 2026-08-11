@@ -376,7 +376,7 @@ func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PI
 	ctx := context.Background()
 
 	// Step 3: Check for existing activation with stale validation.
-	rec := il.getExistingActivation(ctx, ci)
+	rec, existingRev := il.getExistingActivationWithRev(ctx, ci)
 	if rec != nil {
 		if cluster.ValidateActivationMember(il.cluster.MemberList, rec.MemberID) {
 			pid := pidFromRecord(rec)
@@ -388,7 +388,7 @@ func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PI
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("staleMember", rec.MemberID))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), existingRev, "resolveIdentity/stale")
 		if rec.MemberID != "" {
 			il.removeKeyFromMember(ctx, rec.MemberID, kvKey(ci))
 		}
@@ -428,7 +428,7 @@ func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PI
 		il.identityLogger().Warn("natskv identity: no available member for activation",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), revision, "resolveIdentity/no-target")
 		return nil
 	}
 
@@ -460,7 +460,7 @@ func (il *IdentityLookup) activateLocal(ctx context.Context, ci *cluster.Cluster
 		il.identityLogger().Warn("natskv identity: placement actor is nil (cluster shutting down?)",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), revision, "activateLocal/nil-placement")
 		return nil
 	}
 
@@ -470,7 +470,7 @@ func (il *IdentityLookup) activateLocal(ctx context.Context, ci *cluster.Cluster
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.Any("error", err))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), revision, "activateLocal/request-failed")
 		return nil
 	}
 
@@ -479,7 +479,7 @@ func (il *IdentityLookup) activateLocal(ctx context.Context, ci *cluster.Cluster
 		il.identityLogger().Warn("natskv identity: placement actor returned failure",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), revision, "activateLocal/response-failure")
 		return nil
 	}
 
@@ -508,7 +508,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 			slog.String("identity", ci.Identity),
 			slog.String("targetMember", member.Id),
 			slog.Any("error", err))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), revision, "activateRemote/request-failed")
 		return nil
 	}
 
@@ -518,7 +518,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("targetMember", member.Id))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), revision, "activateRemote/response-failure")
 		return nil
 	}
 
@@ -529,7 +529,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.Any("error", storeErr))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), revision, "activateRemote/store-failed")
 		return nil
 	}
 
@@ -667,24 +667,51 @@ func (il *IdentityLookup) release() {
 // getExistingActivation looks up the current activation for a cluster identity.
 // Returns nil if no activation exists or if the key only contains a lock (no PID).
 func (il *IdentityLookup) getExistingActivation(ctx context.Context, ci *cluster.ClusterIdentity) *activationRecord {
+	rec, _ := il.getExistingActivationWithRev(ctx, ci)
+	return rec
+}
+
+// getExistingActivationWithRev looks up the current activation for a cluster
+// identity and returns both the record and the NATS KV revision of the entry.
+// Returns (nil, 0) if no activation exists or if the key only contains a lock.
+// Callers that need to CAS-delete the record must use this revision.
+func (il *IdentityLookup) getExistingActivationWithRev(ctx context.Context, ci *cluster.ClusterIdentity) (*activationRecord, uint64) {
 	key := kvKey(ci)
 
 	entry, err := il.identities.Get(ctx, key)
 	if err != nil {
-		return nil
+		return nil, 0
 	}
 
 	var rec activationRecord
 	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
-		return nil
+		return nil, 0
 	}
 
 	// Only return if it's a completed activation (has PID info).
 	if rec.PidID == "" || rec.PidAddress == "" {
-		return nil
+		return nil, 0
 	}
 
-	return &rec
+	return &rec, entry.Revision()
+}
+
+// casDelete deletes the given key only if its current revision matches rev.
+// A CAS miss (ErrKeyExists from jetstream) is a terminal no-op: the key was
+// modified after our read, so we must not blind-delete. Any error other than
+// ErrKeyNotFound is logged at debug level. Never loops or falls back to
+// unconditional delete.
+func (il *IdentityLookup) casDelete(ctx context.Context, key string, rev uint64, site string) {
+	err := il.identities.Delete(ctx, key, jetstream.LastRevision(rev))
+	if err == nil || errors.Is(err, jetstream.ErrKeyNotFound) {
+		return
+	}
+	// CAS miss or transient error: terminal no-op.
+	il.identityLogger().Debug("natskv identity: casDelete miss (terminal no-op)",
+		slog.String("site", site),
+		slog.String("key", key),
+		slog.Uint64("rev", rev),
+		slog.Any("error", err))
 }
 
 // tryAcquireLock attempts to acquire an exclusive spawn lock for the given
@@ -805,11 +832,38 @@ func (il *IdentityLookup) removeMemberID(ctx context.Context, memberID string) {
 	}
 
 	// Delete each identity key belonging to this member.
+	// Read each key first to obtain its current revision, then CAS-delete.
+	// If the key is absent between the list read and this read, skip it
+	// (another node already cleaned it up). If the record's MemberID has
+	// changed, the key was re-activated by a different member -- skip it
+	// (the tracking list is stale but the new owner is alive). A CAS miss
+	// from a concurrent writer is a terminal no-op.
 	for _, key := range mrec.Keys {
-		if err := il.identities.Delete(ctx, key); err != nil && !errors.Is(err, jetstream.ErrKeyNotFound) {
-			il.identityLogger().Error("natskv identity: removeMemberID delete identity failed",
+		idEntry, err := il.identities.Get(ctx, key)
+		if err != nil {
+			if errors.Is(err, jetstream.ErrKeyNotFound) {
+				continue // already gone -- nothing to do
+			}
+			il.identityLogger().Error("natskv identity: removeMemberID get identity failed",
 				slog.String("key", key), slog.Any("error", err))
+			continue
 		}
+		// Validate that the stored record still belongs to this member.
+		// If another member has re-activated the grain, leave it alone.
+		var idRec activationRecord
+		if jsonErr := json.Unmarshal(idEntry.Value(), &idRec); jsonErr != nil {
+			il.identityLogger().Error("natskv identity: removeMemberID unmarshal identity failed",
+				slog.String("key", key), slog.Any("error", jsonErr))
+			continue
+		}
+		if idRec.MemberID != memberID {
+			il.identityLogger().Debug("natskv identity: removeMemberID skipping key taken by new member",
+				slog.String("key", key),
+				slog.String("currentOwner", idRec.MemberID),
+				slog.String("removedMember", memberID))
+			continue
+		}
+		il.casDelete(ctx, key, idEntry.Revision(), "removeMemberID")
 	}
 
 	// Delete the member tracking record itself.
