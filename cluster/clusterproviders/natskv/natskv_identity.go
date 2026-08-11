@@ -109,7 +109,8 @@ type IdentityLookup struct {
 
 	// janitorStop is closed to signal the background janitor goroutine to stop.
 	// It is non-nil only on non-client (member) nodes.
-	janitorStop chan struct{}
+	janitorStop     chan struct{}
+	janitorStopOnce sync.Once
 }
 
 // SetsOwnPidCache returns true, signalling to DefaultContext that this
@@ -900,8 +901,10 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 func (il *IdentityLookup) Shutdown() {
 	il.defunct.Store(true)
 	// Stop the janitor goroutine (member nodes only).
+	// sync.Once guards against a double-close panic if Shutdown is called more
+	// than once (e.g. by a finalizer and an explicit call).
 	if il.janitorStop != nil {
-		close(il.janitorStop)
+		il.janitorStopOnce.Do(func() { close(il.janitorStop) })
 	}
 	// Stop placement actor first — this triggers graceful shutdown of all
 	// locally tracked grains (poisons them with DeactivationReasonShutdown).

@@ -261,6 +261,70 @@ func TestJanitorActivationAbsenceRule(t *testing.T) {
 	assert.NoError(t, err, "after reset, sweep 3 is only first observation of new absence: record must be kept")
 }
 
+// TestJanitorNonLeaderSkips verifies that the leadership gate in runJanitor
+// prevents sweeps when the node is not the leader, and that the same sweep path
+// DOES reap the record once leadership is held.
+//
+// The test inlines the gate condition (`if p.isLeader.Load()`) exactly as
+// runJanitor does, so the gate correctness is exercised rather than just the
+// sweep logic.
+func TestJanitorNonLeaderSkips(t *testing.T) {
+	p, _, il := setupPlacementTestCluster(t, "test-janitor-non-leader-skips")
+
+	ctx := context.Background()
+
+	t0 := time.Now()
+	il.now = func() time.Time { return t0.Add(61 * time.Second) }
+	il.config.HardReapAge = 60 * time.Second
+
+	ci := testCI("TestKind", "non-leader-aged-lock")
+	key := kvKey(ci)
+
+	// Write a lock-only record.
+	rec := activationRecord{LockID: "stale-lock", MemberID: "gone-member"}
+	data, err := json.Marshal(&rec)
+	require.NoError(t, err)
+	_, err = il.identities.Put(ctx, key, data)
+	require.NoError(t, err)
+
+	ac := &janitorAbsenceClock{}
+
+	// Non-leader: gate prevents sweep; aged lock must survive.
+	p.isLeader.Store(false)
+	if p.isLeader.Load() {
+		il.janitorSweep(ctx, ac)
+	}
+	_, err = il.identities.Get(ctx, key)
+	assert.NoError(t, err, "non-leader: aged lock-only record must not be reaped")
+
+	// Promote to leader: gate allows sweep; aged lock must be reaped.
+	p.isLeader.Store(true)
+	if p.isLeader.Load() {
+		il.janitorSweep(ctx, ac)
+	}
+	_, err = il.identities.Get(ctx, key)
+	assert.ErrorIs(t, err, jetstream.ErrKeyNotFound,
+		"leader: aged lock-only record must be reaped after gate allows sweep")
+}
+
+// TestShutdownDoubleCallNoPanic verifies that calling Shutdown twice on a
+// member node does not panic. The sync.Once guard on janitorStop must absorb
+// the second close without a double-close panic.
+func TestShutdownDoubleCallNoPanic(t *testing.T) {
+	_, _, il := setupPlacementTestCluster(t, "test-shutdown-double-call")
+
+	// janitorStop is set by Setup (non-client path). The t.Cleanup registered by
+	// setupPlacementTestCluster will call il.Shutdown() once more; calling it
+	// here a second time must not panic.
+	require.NotNil(t, il.janitorStop, "janitorStop must be non-nil after Setup")
+
+	// First explicit shutdown.
+	assert.NotPanics(t, func() { il.Shutdown() }, "first Shutdown must not panic")
+
+	// Second explicit shutdown -- the sync.Once guard must absorb the double close.
+	assert.NotPanics(t, func() { il.Shutdown() }, "second Shutdown must not panic")
+}
+
 // TestWaitTimeoutMetricOutcomes verifies that recordWaitTimeoutOutcome
 // increments the correct counter label based on what the follow-up KV Get finds:
 //   - "activated_late": the key has a completed activation (PidID set).

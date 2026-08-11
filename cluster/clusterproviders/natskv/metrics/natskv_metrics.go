@@ -25,13 +25,19 @@ func NewNatsKVMetrics(logger *slog.Logger) *NatsKVMetrics {
 	m := &NatsKVMetrics{}
 	var err error
 
+	logErr := func(msg string, logErr error) {
+		if logger != nil {
+			logger.Error(msg, slog.Any("error", logErr))
+		}
+	}
+
 	if m.TopologyUpdateDuration, err = meter.Float64Histogram(
 		"protocluster_natskv_topology_update_duration",
 		metric.WithDescription("Time to process a topology update"),
 		metric.WithUnit("s"),
 	); err != nil {
 		err = fmt.Errorf("failed to create TopologyUpdateDuration instrument, %w", err)
-		logger.Error(err.Error(), slog.Any("error", err))
+		logErr(err.Error(), err)
 	}
 
 	if m.KeyRefreshFailureCount, err = meter.Int64Counter(
@@ -39,7 +45,7 @@ func NewNatsKVMetrics(logger *slog.Logger) *NatsKVMetrics {
 		metric.WithDescription("Failed member/leader key refreshes"),
 	); err != nil {
 		err = fmt.Errorf("failed to create KeyRefreshFailureCount instrument, %w", err)
-		logger.Error(err.Error(), slog.Any("error", err))
+		logErr(err.Error(), err)
 	}
 
 	if m.WatchReconnectCount, err = meter.Int64Counter(
@@ -47,7 +53,7 @@ func NewNatsKVMetrics(logger *slog.Logger) *NatsKVMetrics {
 		metric.WithDescription("KV watch reconnections"),
 	); err != nil {
 		err = fmt.Errorf("failed to create WatchReconnectCount instrument, %w", err)
-		logger.Error(err.Error(), slog.Any("error", err))
+		logErr(err.Error(), err)
 	}
 
 	if m.LeaderElectionCount, err = meter.Int64Counter(
@@ -55,7 +61,7 @@ func NewNatsKVMetrics(logger *slog.Logger) *NatsKVMetrics {
 		metric.WithDescription("Leader election events"),
 	); err != nil {
 		err = fmt.Errorf("failed to create LeaderElectionCount instrument, %w", err)
-		logger.Error(err.Error(), slog.Any("error", err))
+		logErr(err.Error(), err)
 	}
 
 	if m.LockWaitTimeoutTotal, err = meter.Int64Counter(
@@ -63,7 +69,7 @@ func NewNatsKVMetrics(logger *slog.Logger) *NatsKVMetrics {
 		metric.WithDescription("Spawn-lock wait timeouts by outcome (activated_late or still_locked)"),
 	); err != nil {
 		err = fmt.Errorf("failed to create LockWaitTimeoutTotal instrument, %w", err)
-		logger.Error(err.Error(), slog.Any("error", err))
+		logErr(err.Error(), err)
 	}
 
 	return m
