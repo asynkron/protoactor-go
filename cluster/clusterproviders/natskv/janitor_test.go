@@ -3,6 +3,8 @@ package natskv
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -261,50 +263,73 @@ func TestJanitorActivationAbsenceRule(t *testing.T) {
 	assert.NoError(t, err, "after reset, sweep 3 is only first observation of new absence: record must be kept")
 }
 
-// TestJanitorNonLeaderSkips verifies that the leadership gate in runJanitor
-// prevents sweeps when the node is not the leader, and that the same sweep path
-// DOES reap the record once leadership is held.
+// TestJanitorNonLeaderSkips verifies that the leadership gate inside the real
+// runJanitor goroutine prevents sweeps when the node is not the leader, and
+// that the same running goroutine reaps the record once leadership is acquired.
 //
-// The test inlines the gate condition (`if p.isLeader.Load()`) exactly as
-// runJanitor does, so the gate correctness is exercised rather than just the
-// sweep logic.
+// Approach: drive the actual runJanitor loop (not an inline copy of the gate)
+// with a very short JanitorInterval.  Assert the aged lock survives multiple
+// ticks while isLeader=false, then flip isLeader=true and assert the same
+// goroutine reaps it within a few more ticks.  This would catch a deletion of
+// the gate at janitor.go:72.
 func TestJanitorNonLeaderSkips(t *testing.T) {
 	p, _, il := setupPlacementTestCluster(t, "test-janitor-non-leader-skips")
 
 	ctx := context.Background()
 
-	t0 := time.Now()
-	il.now = func() time.Time { return t0.Add(61 * time.Second) }
-	il.config.HardReapAge = 60 * time.Second
+	// Stop the janitor that Setup launched (it uses the default 30 s interval
+	// and would race with the replacement below).
+	il.janitorStopOnce.Do(func() { close(il.janitorStop) })
+	// Small pause to let the goroutine exit before we reset the channel.
+	time.Sleep(20 * time.Millisecond)
 
-	ci := testCI("TestKind", "non-leader-aged-lock")
-	key := kvKey(ci)
+	// Reconfigure for rapid ticking: HardReapAge=1 ms so any entry that is
+	// already written counts as aged, JanitorInterval=10 ms so we get many
+	// ticks in a short wall-clock window.
+	il.config.HardReapAge = 1 * time.Millisecond
+	il.config.JanitorInterval = 10 * time.Millisecond
+
+	// Override the clock so entries always appear aged: il.now() returns a
+	// time far in the future relative to when the KV entry was created (the
+	// NATS server timestamps entries at write time).
+	il.now = func() time.Time { return time.Now().Add(5 * time.Minute) }
 
 	// Write a lock-only record.
+	ci := testCI("TestKind", "non-leader-aged-lock")
+	key := kvKey(ci)
 	rec := activationRecord{LockID: "stale-lock", MemberID: "gone-member"}
 	data, err := json.Marshal(&rec)
 	require.NoError(t, err)
 	_, err = il.identities.Put(ctx, key, data)
 	require.NoError(t, err)
 
-	ac := &janitorAbsenceClock{}
-
-	// Non-leader: gate prevents sweep; aged lock must survive.
+	// Start a fresh janitor goroutine with the updated config.
+	// Reset the stop channel and Once so the new goroutine and the Cleanup
+	// registered by setupPlacementTestCluster can both close it safely.
+	il.janitorStop = make(chan struct{})
+	il.janitorStopOnce = sync.Once{}
 	p.isLeader.Store(false)
-	if p.isLeader.Load() {
-		il.janitorSweep(ctx, ac)
-	}
-	_, err = il.identities.Get(ctx, key)
-	assert.NoError(t, err, "non-leader: aged lock-only record must not be reaped")
+	go il.runJanitor()
 
-	// Promote to leader: gate allows sweep; aged lock must be reaped.
-	p.isLeader.Store(true)
-	if p.isLeader.Load() {
-		il.janitorSweep(ctx, ac)
-	}
+	// Allow ~15 ticks while non-leader: the record must survive all of them.
+	time.Sleep(150 * time.Millisecond)
 	_, err = il.identities.Get(ctx, key)
-	assert.ErrorIs(t, err, jetstream.ErrKeyNotFound,
-		"leader: aged lock-only record must be reaped after gate allows sweep")
+	assert.NoError(t, err, "non-leader: aged lock-only record must survive runJanitor ticks")
+
+	// Promote to leader: the already-running goroutine must reap the record
+	// within a few ticks (allow up to 500 ms = ~50 tick opportunities).
+	p.isLeader.Store(true)
+	deadline := time.Now().Add(500 * time.Millisecond)
+	reaped := false
+	for time.Now().Before(deadline) {
+		_, getErr := il.identities.Get(ctx, key)
+		if errors.Is(getErr, jetstream.ErrKeyNotFound) {
+			reaped = true
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	assert.True(t, reaped, "leader: runJanitor must reap the aged lock-only record within 500 ms")
 }
 
 // TestShutdownDoubleCallNoPanic verifies that calling Shutdown twice on a
