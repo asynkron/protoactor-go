@@ -61,6 +61,10 @@ type IdentityLookup struct {
 	// lockRevisions maps lockID -> NATS KV revision from tryAcquireLock.
 	// Used to bridge the revision into the PersistActivation callback.
 	lockRevisions sync.Map
+
+	// now is the clock function used by all time-dependent paths in
+	// IdentityLookup. Defaults to time.Now; overridable in tests.
+	now func() time.Time
 }
 
 // activationRecord is the JSON-encoded value stored in the identities KV bucket.
@@ -101,6 +105,7 @@ func newIdentityLookup(p *Provider) *IdentityLookup {
 		provider:  p,
 		config:    p.config,
 		semaphore: make(chan struct{}, p.config.MaxConcurrency),
+		now:       time.Now,
 	}
 }
 
@@ -638,6 +643,17 @@ func kvKey(ci *cluster.ClusterIdentity) string {
 	return strings.ReplaceAll(ci.AsKey(), ":", "_")
 }
 
+// entryAge returns how long ago a KV entry was created, clamped to zero.
+// A negative result (server clock ahead of local clock) is treated as zero
+// to avoid incorrect reap decisions caused by clock skew.
+func entryAge(e jetstream.KeyValueEntry, now time.Time) time.Duration {
+	age := now.Sub(e.Created())
+	if age < 0 {
+		return 0
+	}
+	return age
+}
+
 // acquire acquires a slot from the concurrency semaphore.
 func (il *IdentityLookup) acquire() {
 	il.semaphore <- struct{}{}
@@ -674,12 +690,15 @@ func (il *IdentityLookup) getExistingActivation(ctx context.Context, ci *cluster
 // tryAcquireLock attempts to acquire an exclusive spawn lock for the given
 // cluster identity using NATS KV Create (atomic, fails if key exists).
 // Returns the lock ID, the revision for CAS, and whether the lock was acquired.
+// The MemberID field of the written record identifies this node as the lock
+// owner so that restart-resilience logic can detect and reap abandoned locks.
 func (il *IdentityLookup) tryAcquireLock(ctx context.Context, ci *cluster.ClusterIdentity) (lockID string, revision uint64, ok bool) {
 	lockID = uuid.New().String()
 	key := kvKey(ci)
 
 	rec := activationRecord{
-		LockID: lockID,
+		LockID:   lockID,
+		MemberID: il.memberID,
 	}
 	data, err := json.Marshal(&rec)
 	if err != nil {
