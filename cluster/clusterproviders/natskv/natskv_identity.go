@@ -28,6 +28,42 @@ type inflight struct {
 	pid  *actor.PID
 }
 
+// absenceClock tracks the first time each activation key was observed to have
+// an absent owner. It is used to implement the ActivationAbsentGrace window:
+// on the first Get() that finds an absent owner the timestamp is recorded;
+// cleanup is deferred until a subsequent Get() finds the grace elapsed.
+//
+// All methods are safe for concurrent use.
+type absenceClock struct {
+	mu  sync.Mutex
+	obs map[string]time.Time // key -> first-absent observation time
+}
+
+// firstAbsent returns the first-observed-absent time for key. If no prior
+// observation exists it records now and returns now.
+// Safe to call on the zero-value absenceClock (obs is lazy-initialized).
+func (a *absenceClock) firstAbsent(key string, now time.Time) time.Time {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.obs == nil {
+		a.obs = make(map[string]time.Time)
+	}
+	if t, ok := a.obs[key]; ok {
+		return t
+	}
+	a.obs[key] = now
+	return now
+}
+
+// clear removes key from the absence map. It is called when the owner is
+// confirmed present, when the identity record is absent entirely, or after
+// cleanup fires. Safe to call on the zero-value absenceClock.
+func (a *absenceClock) clear(key string) {
+	a.mu.Lock()
+	delete(a.obs, key)
+	a.mu.Unlock()
+}
+
 // IdentityLookup implements cluster.IdentityLookup directly using NATS JetStream KV
 // for lock acquisition, activation storage, and member tracking.
 type IdentityLookup struct {
@@ -65,7 +101,16 @@ type IdentityLookup struct {
 	// now is the clock function used by all time-dependent paths in
 	// IdentityLookup. Defaults to time.Now; overridable in tests.
 	now func() time.Time
+
+	// absence tracks when each identity key was first observed to have an
+	// absent owner. See absenceClock for semantics.
+	absence absenceClock
 }
+
+// SetsOwnPidCache returns true, signalling to DefaultContext that this
+// IdentityLookup manages its own PidCache.Set calls and that DefaultContext
+// must not perform a redundant Set on the result of Get().
+func (il *IdentityLookup) SetsOwnPidCache() bool { return true }
 
 // activationRecord is the JSON-encoded value stored in the identities KV bucket.
 type activationRecord struct {
@@ -106,6 +151,7 @@ func newIdentityLookup(p *Provider) *IdentityLookup {
 		config:    p.config,
 		semaphore: make(chan struct{}, p.config.MaxConcurrency),
 		now:       time.Now,
+		absence:   absenceClock{obs: make(map[string]time.Time)},
 	}
 }
 
@@ -385,22 +431,40 @@ func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PI
 resolution:
 	for pass := 0; pass < 3; pass++ {
 		// Step 3: Check for existing activation with stale validation.
+		key := kvKey(ci)
 		rec, existingRev := il.getExistingActivationWithRev(ctx, ci)
-		if rec != nil {
-			if cluster.ValidateActivationMember(il.cluster.MemberList, rec.MemberID) {
-				pid := pidFromRecord(rec)
-				il.cluster.PidCache.Set(ci.Identity, ci.Kind, pid)
-				return pid
+		if rec == nil {
+			// No activation record exists. If there was an absence entry for
+			// this key (from a prior Get that found an absent-owner record),
+			// clear it: the record is now gone entirely.
+			il.absence.clear(key)
+		} else if cluster.ValidateActivationMember(il.cluster.MemberList, rec.MemberID) {
+			// Owner is present — clear any stale absence entry and return the PID.
+			il.absence.clear(key)
+			pid := pidFromRecord(rec)
+			il.cluster.PidCache.Set(ci.Identity, ci.Kind, pid)
+			return pid
+		} else {
+			// Owner is absent. Apply the ActivationAbsentGrace window.
+			now := il.now()
+			firstSeen := il.absence.firstAbsent(key, now)
+			if now.Sub(firstSeen) < il.config.ActivationAbsentGrace {
+				// Still within grace — return the stale PID without caching it.
+				// The caller gets a usable PID; the grace window protects us
+				// from a premature cleanup during a rolling restart.
+				return pidFromRecord(rec)
 			}
-			// Stale activation from a dead member — clean it up.
-			il.identityLogger().Info("natskv identity: cleaning stale activation",
+			// Grace has elapsed — perform cleanup and fall through to
+			// lock/spawn resolution (the loop continues).
+			il.identityLogger().Info("natskv identity: cleaning stale activation after grace elapsed",
 				slog.String("kind", ci.Kind),
 				slog.String("identity", ci.Identity),
 				slog.String("staleMember", rec.MemberID))
-			il.casDelete(ctx, kvKey(ci), existingRev, "resolveIdentity/stale")
+			il.casDelete(ctx, key, existingRev, "resolveIdentity/stale-after-grace")
 			if rec.MemberID != "" {
-				il.removeKeyFromMember(ctx, rec.MemberID, kvKey(ci))
+				il.removeKeyFromMember(ctx, rec.MemberID, key)
 			}
+			il.absence.clear(key)
 		}
 
 		// Step 4: If client, request remote activation from a member via NATS.

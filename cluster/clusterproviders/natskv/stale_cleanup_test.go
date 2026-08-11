@@ -30,6 +30,10 @@ func TestStale_MultipleCrashedNodeActivations_CleanedIncrementally(t *testing.T)
 	_, c, il := setupPlacementTestCluster(t, "test-stale-multi-crash")
 	ctx := context.Background()
 
+	// Freeze time so we can control the grace window.
+	t0 := time.Now()
+	il.now = func() time.Time { return t0 }
+
 	crashedMember := "crashed-node-multi"
 
 	// Simulate 3 stale activations from the crashed node.
@@ -55,10 +59,19 @@ func TestStale_MultipleCrashedNodeActivations_CleanedIncrementally(t *testing.T)
 	_, err = il.memberTracker.Put(ctx, crashedMember, trackData)
 	require.NoError(t, err)
 
-	// Access only grain 0 via Get() — should clean that one stale record.
+	// First Get() for grain 0 at t0 — within grace, records absence.
 	ci0 := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "crash-multi-0"}
+	stale0 := il.Get(ci0)
+	require.NotNil(t, stale0, "first Get at t0 should return the stale PID (within grace)")
+	assert.Equal(t, "crashed-host:9999", stale0.Address,
+		"first Get should return stale address within grace")
+
+	// Advance clock past ActivationAbsentGrace.
+	il.now = func() time.Time { return t0.Add(il.config.ActivationAbsentGrace + time.Second) }
+
+	// Second Get() for grain 0 — grace elapsed: should clean and re-activate.
 	pid0 := il.Get(ci0)
-	require.NotNil(t, pid0, "Get should return a new PID for grain 0")
+	require.NotNil(t, pid0, "Get should return a new PID for grain 0 after grace elapses")
 	assert.Equal(t, c.ActorSystem.Address(), pid0.Address)
 
 	// Grain 0's KV record should now point to this node.
@@ -350,6 +363,10 @@ func TestStale_ConcurrentRemovePidAndReactivation(t *testing.T) {
 	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "race-grain"}
 	ctx := context.Background()
 
+	// Freeze time at t0 so all concurrent Gets in phase 1 are within grace.
+	t0 := time.Now()
+	il.now = func() time.Time { return t0 }
+
 	// Inject a stale activation from a dead member.
 	staleRec := activationRecord{
 		PidID:      "TestKind/race-grain",
@@ -361,30 +378,56 @@ func TestStale_ConcurrentRemovePidAndReactivation(t *testing.T) {
 	_, err = il.identities.Put(ctx, kvKey(ci), data)
 	require.NoError(t, err)
 
-	// Launch 5 concurrent Get() calls — all will detect the stale activation
-	// and attempt to clean + re-activate.
+	// Phase 1 — within grace: concurrent Gets return the stale PID without cleaning.
 	const concurrency = 5
 	var wg sync.WaitGroup
-	pids := make([]*actor.PID, concurrency)
+	stalePids := make([]*actor.PID, concurrency)
 
 	wg.Add(concurrency)
 	for i := 0; i < concurrency; i++ {
 		go func(idx int) {
 			defer wg.Done()
-			pids[idx] = il.Get(ci)
+			stalePids[idx] = il.Get(ci)
 		}(i)
 	}
 	wg.Wait()
 
-	// All should have returned a PID (some may be nil if they lost the race
-	// and retried but eventually succeeded).
+	// All phase-1 Gets should return the stale PID (inflight coalescing).
+	for i, pid := range stalePids {
+		require.NotNil(t, pid, "phase-1 goroutine %d returned nil", i)
+		assert.Equal(t, "dead-host:9999", pid.Address,
+			"phase-1 Gets should return the stale address within grace")
+	}
+
+	// Stale record must still be in KV (grace protected it).
+	recStill := il.getExistingActivation(ctx, ci)
+	require.NotNil(t, recStill, "stale record must still exist after phase-1 Gets")
+
+	// Phase 2 — advance clock past ActivationAbsentGrace.
+	il.now = func() time.Time { return t0.Add(il.config.ActivationAbsentGrace + time.Second) }
+
+	// Concurrent Gets after grace elapsed — all will detect stale, attempt to
+	// clean + re-activate. CAS and inflight coalescing ensure exactly one
+	// activation wins.
+	livePids := make([]*actor.PID, concurrency)
+
+	wg.Add(concurrency)
+	for i := 0; i < concurrency; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			livePids[idx] = il.Get(ci)
+		}(i)
+	}
+	wg.Wait()
+
+	// All should have returned a PID.
 	var nonNilPids []*actor.PID
-	for _, pid := range pids {
+	for _, pid := range livePids {
 		if pid != nil {
 			nonNilPids = append(nonNilPids, pid)
 		}
 	}
-	require.NotEmpty(t, nonNilPids, "at least one Get() should succeed")
+	require.NotEmpty(t, nonNilPids, "at least one Get() should succeed after grace")
 
 	// All non-nil PIDs should be the same (coalesced or same activation).
 	for i := 1; i < len(nonNilPids); i++ {

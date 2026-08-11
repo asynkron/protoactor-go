@@ -736,6 +736,10 @@ func TestIdentityLookup_StaleActivationCleaned(t *testing.T) {
 	ci := &cluster.ClusterIdentity{Kind: "TestKind", Identity: "stale-1"}
 	ctx := context.Background()
 
+	// Freeze time so we can control the grace window.
+	t0 := time.Now()
+	il.now = func() time.Time { return t0 }
+
 	// Insert a stale activation from a dead member directly into KV.
 	staleRec := activationRecord{
 		PidID:      "TestKind/stale-1",
@@ -750,7 +754,16 @@ func TestIdentityLookup_StaleActivationCleaned(t *testing.T) {
 	rec := il.getExistingActivation(ctx, ci)
 	require.NotNil(t, rec, "stale activation should exist before Get()")
 
-	// Get() should detect the stale member, clean it up, and re-activate.
+	// First Get() at t0 — within grace, returns stale PID without cleaning.
+	stalePid := il.Get(ci)
+	require.NotNil(t, stalePid, "first Get() should return the stale PID (within grace)")
+	assert.Equal(t, "dead-host:9999", stalePid.Address,
+		"first Get() should return the stale PID address")
+
+	// Advance clock past ActivationAbsentGrace (default 60s).
+	il.now = func() time.Time { return t0.Add(il.config.ActivationAbsentGrace + time.Second) }
+
+	// Second Get() — grace elapsed: cleanup + re-activate.
 	pid := il.Get(ci)
 	require.NotNil(t, pid, "Get() should return a PID after cleaning stale activation")
 
