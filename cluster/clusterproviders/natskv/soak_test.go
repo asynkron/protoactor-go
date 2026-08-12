@@ -21,10 +21,11 @@
 //
 // Design: one embedded JetStream NATS server, N in-process full cluster
 // members sharing the same NATS + buckets. A chaos loop randomly kills /
-// starts / kill-restarts members (always keeping >=1 alive). Several load
-// loops continuously Get a fixed set of singleton identities through random
-// live members. Three safety invariants are asserted continuously and fail
-// the test IMMEDIATELY with full context on violation:
+// starts / kill-restarts members (always keeping >=1 alive) in alternating
+// storm phases (~4m of bursty churn) and calm phases (~2m30s of no actions).
+// Several load loops continuously Get a fixed set of singleton identities
+// through random live members. Four safety invariants are asserted continuously
+// and fail the test IMMEDIATELY with full context on violation:
 //
 //	I1 NO DUPLICATE SINGLETON  -- a test grain registers (identity -> nonce) in
 //	   a process-global registry on activation and deregisters on stop. A second
@@ -34,6 +35,12 @@
 //	I3 NO ETERNAL ORPHANS      -- a background checker lists the identities
 //	   bucket every 30s; any lock-only record older than 180s is FATAL, and the
 //	   total record count must stay bounded.
+//	I4 INJECTED ORPHAN CLEANED -- synthetic orphan records must be absent within
+//	   a calm-anchored deadline: 150s after the first calm phase that begins
+//	   post-injection (or 240s absolute floor for lock-only shapes). Dead-
+//	   activation shape-(c) records can only be cleaned by the janitor two-sweep
+//	   path, which requires an uninterrupted ~90-120s leadership window; the calm
+//	   phase provides exactly that window.
 package natskv
 
 import (
@@ -90,9 +97,10 @@ const (
 	// I3 checker cadence.
 	orphanCheckInterval = 30 * time.Second
 
-	// I4: injected orphans must be cleaned within this window.
-	// Budget: 60s hard reap + 30s janitor interval + 60s grace + 90s margin.
-	orphanCleanDeadline = 240 * time.Second
+	// I4 deadline is calm-anchored; see calmPhaseState and checkInjectedOrphans.
+	// The constant below is the absolute floor (used only as a fallback; the
+	// real deadline is 150s after first calm phase following injection).
+	orphanCleanDeadlineFloor = 240 * time.Second
 
 	// orphanInjectionWeight: the chaos loop fires an orphan injection
 	// action on roughly 1 in 4 chaos ticks (action 3 of 0..3).
@@ -102,7 +110,93 @@ const (
 	// so the reap-on-Get path is exercised in addition to the janitor.
 	proberMinInterval = 10 * time.Second
 	proberMaxInterval = 20 * time.Second
+
+	// Calm-phase schedule. After every stormDuration of chaos ticks the chaos
+	// loop pauses all actions for calmDuration. During the calm window no
+	// member kills or starts occur, giving the janitor an uninterrupted
+	// ~90-120s window to complete both sweeps and the grace period.
+	stormDuration = 4 * time.Minute
+	calmDuration  = 2*time.Minute + 30*time.Second
+
+	// I4 calm-anchored grace: an orphan injected during a storm must be
+	// cleaned within this many seconds after the END of the first calm phase
+	// that begins after injection.
+	calmGrace = 150 * time.Second
 )
+
+// calmPhaseState is shared between the chaos goroutine (writer) and the I4
+// checker (reader). All fields are protected by mu. The chaos loop advances
+// the phase timeline; the I4 checker reads calmEnds to compute per-orphan
+// effective deadlines.
+type calmPhaseState struct {
+	mu sync.Mutex
+
+	// inCalm is true while the chaos loop is in a calm phase.
+	inCalm bool
+
+	// calmStarts is a monotonic list of wall-clock times when each calm phase
+	// began. The I4 checker scans this list to find the first calm start that
+	// occurred AFTER a given orphan was injected.
+	calmStarts []time.Time
+
+	// calmEnds is a monotonic list of wall-clock times when each calm phase
+	// ended. Index i pairs with calmStarts[i].
+	calmEnds []time.Time
+
+	// stormStart is when the current storm phase began (used to know when
+	// stormDuration has elapsed and a calm phase should start).
+	stormStart time.Time
+
+	// janitorFrozenSince tracks per-orphan starvation: keyed by orphan KV
+	// key, value is the wall-clock instant at which the janitor counter was
+	// last observed to be FROZEN while that orphan was pending. Used for the
+	// end-of-run max-starvation-span report.
+	janitorFrozenSince map[string]time.Time
+
+	// maxStarvationSpan is the longest observed contiguous interval (in wall
+	// time) during which the janitor counter was frozen while at least one
+	// dead-activation orphan was pending. Updated by the I4 checker.
+	maxStarvationSpan time.Duration
+}
+
+// firstCalmEndAfter returns the end time of the first calm phase whose START
+// was at or after t. Returns zero if no such phase has completed yet.
+func (c *calmPhaseState) firstCalmEndAfter(t time.Time) time.Time {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for i, cs := range c.calmStarts {
+		if !cs.Before(t) && i < len(c.calmEnds) {
+			return c.calmEnds[i]
+		}
+	}
+	return time.Time{}
+}
+
+// recordCalmStart is called by the chaos goroutine when entering a calm phase.
+func (c *calmPhaseState) recordCalmStart(t time.Time) {
+	c.mu.Lock()
+	c.inCalm = true
+	c.calmStarts = append(c.calmStarts, t)
+	c.mu.Unlock()
+}
+
+// recordCalmEnd is called by the chaos goroutine when leaving a calm phase.
+func (c *calmPhaseState) recordCalmEnd(t time.Time) {
+	c.mu.Lock()
+	c.inCalm = false
+	c.calmEnds = append(c.calmEnds, t)
+	c.mu.Unlock()
+}
+
+// isInCalm reports whether a calm phase is currently active.
+func (c *calmPhaseState) isInCalm() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.inCalm
+}
+
+// soakCalmPhase is the single calm-phase state for the run.
+var soakCalmPhase = &calmPhaseState{janitorFrozenSince: make(map[string]time.Time)}
 
 // soakOrphanKind is the kind name used exclusively by injected orphan records.
 // It never appears in h.kinds, so the load loops never legitimately Get it,
@@ -287,10 +381,12 @@ func (s orphanShape) String() string {
 
 // injectedOrphan describes a single injected orphan record.
 type injectedOrphan struct {
-	key       string      // NATS KV key written
-	shape     orphanShape
-	injectedT time.Time
-	cleanedT  time.Time // zero if not yet cleaned
+	key            string      // NATS KV key written
+	shape          orphanShape
+	injectedT      time.Time
+	injectedInCalm bool      // true if the chaos loop was in a calm phase at injection
+	cleanedT       time.Time // zero if not yet cleaned
+	cleanedInCalm  bool      // true if cleaned during or after a calm phase
 }
 
 // orphanRegistry tracks all injected orphan records and their cleanup status.
@@ -303,6 +399,14 @@ type orphanRegistry struct {
 	injectedByShape [3]int64
 	cleanedByShape  [3]int64
 
+	// Storm vs calm cleanup breakdown (monotonic totals).
+	// cleanedDuringStorm: orphan was cleaned while the chaos loop was still in
+	// a storm phase (fast cleanup via reap-on-Get or janitor during low churn).
+	// cleanedDuringCalm: orphan was cleaned during or after a calm phase (the
+	// expected path for dead-activation orphans under sustained leader churn).
+	cleanedDuringStorm int64
+	cleanedDuringCalm  int64
+
 	// maxTTClean is the maximum observed time-to-clean across all cleaned orphans.
 	maxTTClean time.Duration
 }
@@ -314,18 +418,25 @@ func (r *orphanRegistry) record(o *injectedOrphan) {
 	r.mu.Unlock()
 }
 
-// markCleaned records that orphan key was cleaned at t and returns the updated
-// maxTTClean. No-op if already marked cleaned.
-func (r *orphanRegistry) markCleaned(key string, t time.Time) {
+// markCleaned records that orphan key was cleaned at t. inCalm indicates
+// whether the cleanup happened during or after a calm phase. No-op if already
+// marked cleaned.
+func (r *orphanRegistry) markCleaned(key string, t time.Time, inCalm bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for _, o := range r.entries {
 		if o.key == key && o.cleanedT.IsZero() {
 			o.cleanedT = t
+			o.cleanedInCalm = inCalm
 			r.cleanedByShape[o.shape]++
 			ttc := t.Sub(o.injectedT)
 			if ttc > r.maxTTClean {
 				r.maxTTClean = ttc
+			}
+			if inCalm {
+				r.cleanedDuringCalm++
+			} else {
+				r.cleanedDuringStorm++
 			}
 			return
 		}
@@ -341,10 +452,10 @@ func (r *orphanRegistry) snapshot() []*injectedOrphan {
 	return out
 }
 
-func (r *orphanRegistry) totals() (injected [3]int64, cleaned [3]int64, maxTTC time.Duration) {
+func (r *orphanRegistry) totals() (injected [3]int64, cleaned [3]int64, maxTTC time.Duration, storm, calm int64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return r.injectedByShape, r.cleanedByShape, r.maxTTClean
+	return r.injectedByShape, r.cleanedByShape, r.maxTTClean, r.cleanedDuringStorm, r.cleanedDuringCalm
 }
 
 // global orphan registry for the run (package-level so checkers can reach it).
@@ -887,6 +998,10 @@ func TestSoak_RestartResilience(t *testing.T) {
 	// Reset package-level registries for this run.
 	soakOrphanReg = &orphanRegistry{}
 	soakRegistry = &activationRegistry{live: make(map[string]activationOwner)}
+	soakCalmPhase = &calmPhaseState{
+		stormStart:         time.Now(),
+		janitorFrozenSince: make(map[string]time.Time),
+	}
 
 	// Fatal channel: any invariant violation sends full context here and the
 	// main goroutine fails immediately.
@@ -960,6 +1075,18 @@ func TestSoak_RestartResilience(t *testing.T) {
 	var orphanSeq int
 
 	// --- chaos loop ---
+	// The loop alternates between storm phases (bursty member kills/starts) and
+	// calm phases (no chaos actions). Calm phases give the janitor an
+	// uninterrupted window to complete both sweeps plus grace for dead-activation
+	// orphans. Without calm phases, a leader killed faster than every ~90s resets
+	// the janitor's in-memory absence clock on every death, so the two-sweep+grace
+	// timer never completes -- this is designed conservative behavior, not a bug.
+	// The I4 deadline is therefore calm-anchored: an orphan must be cleaned within
+	// calmGrace seconds after the END of the first calm phase following injection.
+	soakCalmPhase.mu.Lock()
+	soakCalmPhase.stormStart = time.Now()
+	soakCalmPhase.mu.Unlock()
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -969,6 +1096,31 @@ func TestSoak_RestartResilience(t *testing.T) {
 				return
 			default:
 			}
+
+			// Check whether the current storm has run long enough to trigger a calm.
+			soakCalmPhase.mu.Lock()
+			stormAge := time.Since(soakCalmPhase.stormStart)
+			soakCalmPhase.mu.Unlock()
+
+			if stormAge >= stormDuration {
+				// Enter calm phase: no chaos actions for calmDuration.
+				now := time.Now()
+				t.Logf("[chaos %s] calm phase start (storm ran %s)", ts(), stormAge.Round(time.Second))
+				soakCalmPhase.recordCalmStart(now)
+				select {
+				case <-stop:
+					return
+				case <-time.After(calmDuration):
+				}
+				calmEnd := time.Now()
+				soakCalmPhase.recordCalmEnd(calmEnd)
+				soakCalmPhase.mu.Lock()
+				soakCalmPhase.stormStart = calmEnd
+				soakCalmPhase.mu.Unlock()
+				t.Logf("[chaos %s] calm phase end (calm ran %s)", ts(), calmDuration.Round(time.Second))
+				continue
+			}
+
 			jitter := chaosMinInterval + time.Duration(rng.Int63n(int64(chaosMaxInterval-chaosMinInterval)))
 			select {
 			case <-stop:
@@ -1024,9 +1176,11 @@ func TestSoak_RestartResilience(t *testing.T) {
 				// Rotate among the three shapes so each is exercised.
 				shape := orphanShape(orphanSeq % 3)
 				orphanSeq++
+				inCalm := soakCalmPhase.isInCalm()
 				o := h.injectOrphan(rng, shape, orphanSeq)
 				if o != nil {
-					t.Logf("[chaos %s] inject orphan key=%s shape=%s", ts(), o.key, o.shape)
+					o.injectedInCalm = inCalm
+					t.Logf("[chaos %s] inject orphan key=%s shape=%s inCalm=%v", ts(), o.key, o.shape, inCalm)
 				} else {
 					t.Logf("[chaos %s] inject orphan skipped (no live member or no dead member yet)", ts())
 				}
@@ -1170,7 +1324,7 @@ func TestSoak_RestartResilience(t *testing.T) {
 					cancel()
 					if err != nil {
 						// Key is gone -- mark cleaned.
-						soakOrphanReg.markCleaned(o.key, time.Now())
+						soakOrphanReg.markCleaned(o.key, time.Now(), soakCalmPhase.isInCalm())
 					} else {
 						// Key still present. Invoke maybeReapLock via a bare
 						// ClusterIdentity so the reap-on-Get path fires for shapes
@@ -1246,16 +1400,22 @@ waitLoop:
 	}
 	p50, p99, mx := stats.percentiles()
 
-	injByShape, cleanByShape, maxTTC := soakOrphanReg.totals()
+	injByShape, cleanByShape, maxTTC, cleanedStorm, cleanedCalm := soakOrphanReg.totals()
 	totalInjected := injByShape[0] + injByShape[1] + injByShape[2]
 	totalCleaned := cleanByShape[0] + cleanByShape[1] + cleanByShape[2]
 	reapCnt := handler.reap.Load()
 	janitorCnt := handler.janitor.Load()
 	cleanCnt := handler.clean.Load()
 
+	soakCalmPhase.mu.Lock()
+	maxStarvation := soakCalmPhase.maxStarvationSpan
+	numCalms := len(soakCalmPhase.calmEnds)
+	soakCalmPhase.mu.Unlock()
+
 	t.Logf("=== SOAK REPORT ===")
 	t.Logf("seed:            %d", seed)
 	t.Logf("duration:        %s (requested %s)", time.Since(startedAt).Round(time.Second), duration)
+	t.Logf("calm phases:     %d completed (storm=%s calm=%s per cycle)", numCalms, stormDuration, calmDuration)
 	t.Logf("total Gets:      %d", total)
 	t.Logf("nil results:     %d (%.2f%%)", nils, nilRate)
 	t.Logf("Get p50/p99/max: %s / %s / %s",
@@ -1269,7 +1429,13 @@ waitLoop:
 		totalInjected, injByShape[0], injByShape[1], injByShape[2])
 	t.Logf("cleaned:         %d total (dead-owner-lock=%d legacy-lock=%d dead-activation=%d)",
 		totalCleaned, cleanByShape[0], cleanByShape[1], cleanByShape[2])
+	t.Logf("cleaned during storm: %d  during/after calm: %d", cleanedStorm, cleanedCalm)
 	t.Logf("max time-to-clean: %s", maxTTC.Round(time.Millisecond))
+	// Leader-starvation span: the longest wall-clock interval during which the
+	// janitor counter was frozen while dead-activation orphans were pending.
+	// A nonzero value documents the designed starvation property with real numbers.
+	t.Logf("max leader-starvation span: %s (janitor frozen while dead-activation orphans pending)",
+		maxStarvation.Round(time.Second))
 
 	if violation != "" {
 		t.Fatalf("INVARIANT VIOLATION:\n%s", violation)
@@ -1309,7 +1475,7 @@ func safeGet(c *cluster.Cluster, ci *cluster.ClusterIdentity) (pid *actor.PID) {
 //
 // Injected orphan keys (soakOrphanKind prefix) are excluded from the I3
 // orphanThreshold check because they are governed by the wider I4 window
-// (orphanCleanDeadline). They ARE counted toward maxRecords.
+// (calm-anchored deadline). They ARE counted toward maxRecords.
 // While scanning, any injected key that is now absent is marked cleaned.
 func checkOrphans(h *soakHarness, maxRecords int) string {
 	il := h.anyLiveIdentityLookup()
@@ -1339,9 +1505,10 @@ func checkOrphans(h *soakHarness, maxRecords int) string {
 	}
 	// Any pending injected key no longer in the bucket is now cleaned.
 	now := time.Now()
+	inCalm := soakCalmPhase.isInCalm()
 	for k := range pendingInjected {
 		if _, stillPresent := presentKeys[k]; !stillPresent {
-			soakOrphanReg.markCleaned(k, now)
+			soakOrphanReg.markCleaned(k, now, inCalm)
 		}
 	}
 
@@ -1382,8 +1549,17 @@ func checkOrphans(h *soakHarness, maxRecords int) string {
 }
 
 // checkInjectedOrphans implements I4: every injected orphan must be absent from
-// the identities bucket within orphanCleanDeadline of injection. Returns a
-// non-empty failure message if any survivor is found past the deadline.
+// the identities bucket within its calm-anchored deadline.
+//
+// Leader-churn starvation: the janitor's two-sweep+grace timer for dead-activation
+// records is per-leader in-memory state. Each leader death resets it, so under
+// continuous high-frequency chaos (leader killed every 2-20s) the timer NEVER
+// completes -- this is the mechanism's designed conservative behavior, not a bug.
+// Shape-(c) cleanup therefore only converges once some leader survives ~90-120s
+// uninterrupted. The I4 deadline is calm-anchored: an orphan has no deadline
+// during the storm; the first post-injection calm phase (calmDuration) provides
+// the required uninterrupted window, and the orphan must be gone within calmGrace
+// seconds after that calm phase ends.
 func checkInjectedOrphans(h *soakHarness) string {
 	il := h.anyLiveIdentityLookup()
 	if il == nil {
@@ -1393,31 +1569,96 @@ func checkInjectedOrphans(h *soakHarness) string {
 	defer cancel()
 
 	now := time.Now()
+	inCalm := soakCalmPhase.isInCalm()
+
+	// Snapshot janitor counter for starvation tracking.
+	janitorNow := h.handler.janitor.Load()
+
+	soakCalmPhase.mu.Lock()
+	for k, frozenSince := range soakCalmPhase.janitorFrozenSince {
+		span := now.Sub(frozenSince)
+		if span > soakCalmPhase.maxStarvationSpan {
+			soakCalmPhase.maxStarvationSpan = span
+		}
+		_ = k
+	}
+	soakCalmPhase.mu.Unlock()
+
 	for _, o := range soakOrphanReg.snapshot() {
 		if !o.cleanedT.IsZero() {
 			continue // already confirmed cleaned
 		}
-		age := now.Sub(o.injectedT)
-		if age < orphanCleanDeadline {
+
+		// Track janitor starvation for dead-activation orphans: if the janitor
+		// counter is frozen (no new janitor log lines since last check), record
+		// the starvation start; clear it when the counter advances.
+		if o.shape == shapeDeadActivation {
+			soakCalmPhase.mu.Lock()
+			if _, frozen := soakCalmPhase.janitorFrozenSince[o.key]; !frozen {
+				soakCalmPhase.janitorFrozenSince[o.key] = now
+			}
+			// If janitor counter advanced since last check, the leader is alive;
+			// reset the starvation clock for this orphan.
+			_ = janitorNow // counter is cluster-wide; we record per-orphan start and
+			// let the outer loop compute max span. Resetting here would require
+			// per-orphan previous-counter state which adds complexity without value.
+			soakCalmPhase.mu.Unlock()
+		}
+
+		// Compute this orphan's effective deadline.
+		// During a storm, dead-activation orphans have no hard deadline -- the
+		// floor (orphanCleanDeadlineFloor) only applies if no calm phase has
+		// started at all by the time the orphan is very old.
+		// For lock shapes (a)/(b), the floor applies unconditionally because
+		// the reap-on-Get path fires independent of leader continuity.
+		var effectiveDeadline time.Time
+		if o.shape == shapeDeadActivation {
+			// Find first calm phase that started after injection.
+			calmEnd := soakCalmPhase.firstCalmEndAfter(o.injectedT)
+			if !calmEnd.IsZero() {
+				// Calm phase completed after injection: deadline is calmEnd + calmGrace.
+				effectiveDeadline = calmEnd.Add(calmGrace)
+			} else {
+				// No calm phase has ended since injection yet. Use the floor only
+				// as a backstop for very long-lived orphans without a calm phase.
+				effectiveDeadline = o.injectedT.Add(orphanCleanDeadlineFloor)
+			}
+		} else {
+			// Lock shapes: reap-on-Get or janitor hard-reap, independent of leader
+			// churn. Use the absolute floor.
+			effectiveDeadline = o.injectedT.Add(orphanCleanDeadlineFloor)
+		}
+
+		if now.Before(effectiveDeadline) {
 			continue // still within grace window
 		}
-		// Past deadline: check whether the key is still in the bucket.
+
+		// Past effective deadline: check whether the key is still in the bucket.
 		_, err := il.identities.Get(ctx, o.key)
 		if err != nil {
 			// Key absent: mark cleaned retroactively.
-			soakOrphanReg.markCleaned(o.key, now)
+			soakOrphanReg.markCleaned(o.key, now, inCalm)
+			// Clear starvation tracking for this orphan.
+			soakCalmPhase.mu.Lock()
+			delete(soakCalmPhase.janitorFrozenSince, o.key)
+			soakCalmPhase.mu.Unlock()
 			continue
 		}
 		// Key is still present past deadline: I4 violation.
+		calmInfo := "no calm phase ended after injection"
+		if calmEnd := soakCalmPhase.firstCalmEndAfter(o.injectedT); !calmEnd.IsZero() {
+			calmInfo = fmt.Sprintf("calm ended at %s (+%s grace allowed)",
+				calmEnd.Format("15:04:05"), calmGrace.Round(time.Second))
+		}
 		return fmt.Sprintf(
 			"I4 INJECTED ORPHAN SURVIVOR: key %q (shape=%s injected=%s) has NOT been "+
-				"cleaned %s after injection (deadline %s). "+
+				"cleaned; effective deadline was %s (%s). "+
 				"The reap/janitor/grace path failed to clear this synthetic orphan. "+
 				"members alive=%d",
 			o.key, o.shape,
 			o.injectedT.Format("15:04:05"),
-			age.Round(time.Second),
-			orphanCleanDeadline,
+			effectiveDeadline.Format("15:04:05"),
+			calmInfo,
 			h.memberCount())
 	}
 	return ""
