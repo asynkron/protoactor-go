@@ -89,7 +89,25 @@ const (
 
 	// I3 checker cadence.
 	orphanCheckInterval = 30 * time.Second
+
+	// I4: injected orphans must be cleaned within this window.
+	// Budget: 60s hard reap + 30s janitor interval + 60s grace + 90s margin.
+	orphanCleanDeadline = 240 * time.Second
+
+	// orphanInjectionWeight: the chaos loop fires an orphan injection
+	// action on roughly 1 in 4 chaos ticks (action 3 of 0..3).
+	orphanInjectionWeight = 4
+
+	// Prober cadence per injected key: how often to Get a shape-(a)/(b) key
+	// so the reap-on-Get path is exercised in addition to the janitor.
+	proberMinInterval = 10 * time.Second
+	proberMaxInterval = 20 * time.Second
 )
+
+// soakOrphanKind is the kind name used exclusively by injected orphan records.
+// It never appears in h.kinds, so the load loops never legitimately Get it,
+// meaning shape (c) records can only be cleaned by the janitor two-sweep path.
+const soakOrphanKind = "soakorphan"
 
 // soakKinds returns the kind names used by the harness.
 func soakKinds() []string {
@@ -235,25 +253,133 @@ func soakGrainProps() *actor.Props {
 // deregister the exact nonce it registered.
 var soakOwnerByPID sync.Map
 
+// --- orphan injection registry ---------------------------------------------
+
+// orphanShape enumerates the three orphan record shapes.
+type orphanShape int
+
+const (
+	// shapeDeadOwnerLock: lock-only with dead owner's memberID.
+	// Cleaned by reap-on-Get (absent-owner branch, 30s) or janitor hard-reap (60s).
+	shapeDeadOwnerLock orphanShape = iota
+	// shapeLegacyLock: lock-only with no memberID (legacy format).
+	// Cleaned by janitor hard-reap only (60s).
+	shapeLegacyLock
+	// shapeDeadActivation: completed activation pointing at a previously-killed
+	// member's address/PID with a fake identity (soakorphan kind). Only cleaned
+	// by the janitor two-sweep path because the load loops never Get soakorphan
+	// identities.
+	shapeDeadActivation
+)
+
+func (s orphanShape) String() string {
+	switch s {
+	case shapeDeadOwnerLock:
+		return "dead-owner-lock"
+	case shapeLegacyLock:
+		return "legacy-lock"
+	case shapeDeadActivation:
+		return "dead-activation"
+	default:
+		return "unknown"
+	}
+}
+
+// injectedOrphan describes a single injected orphan record.
+type injectedOrphan struct {
+	key       string      // NATS KV key written
+	shape     orphanShape
+	injectedT time.Time
+	cleanedT  time.Time // zero if not yet cleaned
+}
+
+// orphanRegistry tracks all injected orphan records and their cleanup status.
+// Concurrent-safe: the injector goroutine writes, the I4 checker goroutine reads.
+type orphanRegistry struct {
+	mu      sync.Mutex
+	entries []*injectedOrphan
+
+	// Counters by shape (monotonic, never decremented).
+	injectedByShape [3]int64
+	cleanedByShape  [3]int64
+
+	// maxTTClean is the maximum observed time-to-clean across all cleaned orphans.
+	maxTTClean time.Duration
+}
+
+func (r *orphanRegistry) record(o *injectedOrphan) {
+	r.mu.Lock()
+	r.entries = append(r.entries, o)
+	r.injectedByShape[o.shape]++
+	r.mu.Unlock()
+}
+
+// markCleaned records that orphan key was cleaned at t and returns the updated
+// maxTTClean. No-op if already marked cleaned.
+func (r *orphanRegistry) markCleaned(key string, t time.Time) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, o := range r.entries {
+		if o.key == key && o.cleanedT.IsZero() {
+			o.cleanedT = t
+			r.cleanedByShape[o.shape]++
+			ttc := t.Sub(o.injectedT)
+			if ttc > r.maxTTClean {
+				r.maxTTClean = ttc
+			}
+			return
+		}
+	}
+}
+
+// snapshot returns a copy of all entries (does not acquire a lock on callee).
+func (r *orphanRegistry) snapshot() []*injectedOrphan {
+	r.mu.Lock()
+	out := make([]*injectedOrphan, len(r.entries))
+	copy(out, r.entries)
+	r.mu.Unlock()
+	return out
+}
+
+func (r *orphanRegistry) totals() (injected [3]int64, cleaned [3]int64, maxTTC time.Duration) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.injectedByShape, r.cleanedByShape, r.maxTTClean
+}
+
+// global orphan registry for the run (package-level so checkers can reach it).
+var soakOrphanReg = &orphanRegistry{}
+
 // --- reap/janitor log scraper ----------------------------------------------
 
 // countingHandler is an slog.Handler that counts records whose message contains
 // certain substrings, so the end-of-run report can show reap/janitor activity
 // without a metrics backend. It forwards nothing (discard) to keep output quiet.
+//
+// Matched log lines (from natskv_identity.go and janitor.go):
+//   - reap:    "natskv identity: reaping stale lock (hard age threshold)"
+//              "natskv identity: reaping stale lock (owner absent)"
+//              "natskv janitor: reaping aged lock"
+//              "natskv janitor: reaping activation with absent member"
+//   - janitor: "natskv janitor: reaping aged lock"
+//              "natskv janitor: reaping activation with absent member"
+//   - clean:   "natskv identity: cleaning stale activation after grace elapsed"
 type countingHandler struct {
-	reap    atomic.Int64 // "reaping" (janitor + lock reap)
-	janitor atomic.Int64 // "janitor:"
-	clean   atomic.Int64 // "cleaning stale activation"
+	reap    atomic.Int64 // any message containing "reaping"
+	janitor atomic.Int64 // any message containing "natskv janitor:"
+	clean   atomic.Int64 // any message containing "cleaning stale activation"
 }
 
 func (h *countingHandler) Enabled(_ context.Context, _ slog.Level) bool { return true }
 
 func (h *countingHandler) Handle(_ context.Context, r slog.Record) error {
 	msg := r.Message
-	if containsSub(msg, "janitor:") {
+	// Count janitor lines before reap so the janitor counter is a strict subset
+	// of reap for the two reaping paths; however reap also catches Get-path reaps.
+	if containsSub(msg, "natskv janitor:") {
 		h.janitor.Add(1)
 	}
-	if containsSub(msg, "reaping") || containsSub(msg, "reap") {
+	if containsSub(msg, "reaping") {
 		h.reap.Add(1)
 	}
 	if containsSub(msg, "cleaning stale activation") {
@@ -289,6 +415,14 @@ type soakMember struct {
 	startedT time.Time
 }
 
+// killedMemberInfo records the identifiers of a member that has been stopped,
+// so the orphan injector can reference its address/memberID without it being
+// a live member.
+type killedMemberInfo struct {
+	memberID string
+	address  string
+}
+
 // soakHarness owns the embedded NATS server, the shared config, and the set of
 // live members. It provides start/stop primitives the chaos loop drives.
 type soakHarness struct {
@@ -302,6 +436,10 @@ type soakHarness struct {
 	mu      sync.Mutex
 	members map[int]*soakMember
 	nextID  int
+
+	// killedMembers is a FIFO log of recently stopped members (capped at 10).
+	// Written under mu. The orphan injector reads under mu to pick a dead owner.
+	killedMembers []killedMemberInfo
 
 	// aliveSince tracks the wall-clock instant at which the cluster last became
 	// non-empty (>=1 member). Reset to zero whenever the cluster is empty. Used
@@ -428,6 +566,16 @@ func (h *soakHarness) stopMember(m *soakMember, graceful bool) {
 	if empty {
 		h.aliveSince.Store(0)
 	}
+	// Record the killed member for orphan injection. Cap at 10 entries so the
+	// ring does not grow unboundedly on multi-hour runs.
+	killed := killedMemberInfo{
+		memberID: m.provider.identity.memberID,
+		address:  m.address,
+	}
+	h.killedMembers = append(h.killedMembers, killed)
+	if len(h.killedMembers) > 10 {
+		h.killedMembers = h.killedMembers[len(h.killedMembers)-10:]
+	}
 	h.mu.Unlock()
 
 	if graceful {
@@ -539,6 +687,85 @@ func (h *soakHarness) anyLiveIdentityLookup() *IdentityLookup {
 		return nil
 	}
 	return ms[0].provider.IdentityLookup()
+}
+
+// pickDeadMember returns a recently-killed member's info, or zero if none yet.
+func (h *soakHarness) pickDeadMember(rng *rand.Rand) (killedMemberInfo, bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if len(h.killedMembers) == 0 {
+		return killedMemberInfo{}, false
+	}
+	return h.killedMembers[rng.Intn(len(h.killedMembers))], true
+}
+
+// injectOrphan writes a synthetic orphan record directly into the identities
+// bucket via a live member's IdentityLookup. The injected key uses soakOrphanKind
+// so it never collides with the load-loop singletons. Returns the injectedOrphan
+// descriptor, or nil if injection was skipped (no live member / no dead member).
+//
+// The three shapes match the real incident classes:
+//   - shapeDeadOwnerLock:  {"lid":"<uuid>","mid":"<dead-memberID>"}
+//   - shapeLegacyLock:     {"lid":"<uuid>"}
+//   - shapeDeadActivation: {"pid":"<fake>","adr":"<fake>","mid":"<dead-memberID>"}
+func (h *soakHarness) injectOrphan(rng *rand.Rand, shape orphanShape, seq int) *injectedOrphan {
+	il := h.anyLiveIdentityLookup()
+	if il == nil {
+		return nil
+	}
+	dead, ok := h.pickDeadMember(rng)
+	if !ok {
+		return nil
+	}
+
+	// Build a unique identity key. The identity string encodes the shape and a
+	// sequence number so concurrent injections never collide.
+	identity := fmt.Sprintf("orphan-%s-%d", shape, seq)
+	ci := cluster.NewClusterIdentity(identity, soakOrphanKind)
+	key := kvKey(ci)
+
+	var rec activationRecord
+	switch shape {
+	case shapeDeadOwnerLock:
+		rec = activationRecord{
+			LockID:   fmt.Sprintf("fake-lock-%d", seq),
+			MemberID: dead.memberID,
+		}
+	case shapeLegacyLock:
+		rec = activationRecord{
+			LockID: fmt.Sprintf("fake-lock-legacy-%d", seq),
+			// No MemberID: legacy format.
+		}
+	case shapeDeadActivation:
+		rec = activationRecord{
+			PidID:      fmt.Sprintf("fake-pid-%d", seq),
+			PidAddress: dead.address,
+			MemberID:   dead.memberID,
+		}
+	}
+
+	data, err := json.Marshal(&rec)
+	if err != nil {
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Use Create so we don't overwrite a concurrent injection with the same key.
+	// If the key already exists (extremely unlikely given the seq counter), skip.
+	_, err = il.identities.Create(ctx, key, data)
+	if err != nil {
+		return nil
+	}
+
+	o := &injectedOrphan{
+		key:       key,
+		shape:     shape,
+		injectedT: time.Now(),
+	}
+	soakOrphanReg.record(o)
+	return o
 }
 
 // --- load-loop metrics ------------------------------------------------------
@@ -657,6 +884,10 @@ func TestSoak_RestartResilience(t *testing.T) {
 	clusterNm := "soak-" + strconv.FormatInt(seed, 36)
 	h := newSoakHarness(t, natsURL, handler, clusterNm)
 
+	// Reset package-level registries for this run.
+	soakOrphanReg = &orphanRegistry{}
+	soakRegistry = &activationRegistry{live: make(map[string]activationOwner)}
+
 	// Fatal channel: any invariant violation sends full context here and the
 	// main goroutine fails immediately.
 	fatalCh := make(chan string, 8)
@@ -724,6 +955,10 @@ func TestSoak_RestartResilience(t *testing.T) {
 		}(loop)
 	}
 
+	// orphanSeq is a monotonically-increasing counter for unique orphan keys.
+	// Owned by the chaos goroutine; no concurrent access.
+	var orphanSeq int
+
 	// --- chaos loop ---
 	wg.Add(1)
 	go func() {
@@ -742,7 +977,8 @@ func TestSoak_RestartResilience(t *testing.T) {
 			}
 
 			live := h.liveMembers()
-			action := rng.Intn(3)
+			// action 0-2: member lifecycle. action 3: orphan injection (~1-in-4).
+			action := rng.Intn(orphanInjectionWeight)
 			switch action {
 			case 0: // kill a random member, keeping >=1 alive
 				if len(live) <= 1 {
@@ -784,6 +1020,16 @@ func TestSoak_RestartResilience(t *testing.T) {
 					continue
 				}
 				t.Logf("[chaos %s] kill-restart m%d -> m%d (count=%d)", ts(), victim.id, m.id, h.memberCount())
+			case 3: // orphan injection: directly write a synthetic orphan record
+				// Rotate among the three shapes so each is exercised.
+				shape := orphanShape(orphanSeq % 3)
+				orphanSeq++
+				o := h.injectOrphan(rng, shape, orphanSeq)
+				if o != nil {
+					t.Logf("[chaos %s] inject orphan key=%s shape=%s", ts(), o.key, o.shape)
+				} else {
+					t.Logf("[chaos %s] inject orphan skipped (no live member or no dead member yet)", ts())
+				}
 			}
 		}
 	}()
@@ -839,24 +1085,107 @@ func TestSoak_RestartResilience(t *testing.T) {
 		}
 	}()
 
-	// --- I3 checker: orphan lock-only records + count bound ---
+	// --- I3 checker: orphan lock-only records + count bound; also I4 ---
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		ticker := time.NewTicker(orphanCheckInterval)
 		defer ticker.Stop()
-		maxRecords := len(ids)*2 + 8 // bound: identities x2 + margin
+		// maxRecords: load-loop identities x2 + injected orphan budget + margin.
+		// Injected orphans add at most ~1 per chaos tick (every 2-20s); at the
+		// default 10m run pace that is at most ~300 orphans in flight before any
+		// cleanup happens, but cleanup is fast (30-60s), so a steady-state bound
+		// of 30 on top of the load-loop identities is generous.
+		maxRecords := len(ids)*2 + 30 + 8
 		for {
 			select {
 			case <-stop:
 				return
 			case <-ticker.C:
+				// I3: check native orphans in the bucket.
 				if msg := checkOrphans(h, maxRecords); msg != "" {
 					select {
 					case fatalCh <- msg:
 					default:
 					}
 					return
+				}
+				// I4: every injected orphan must be gone within orphanCleanDeadline.
+				if msg := checkInjectedOrphans(h); msg != "" {
+					select {
+					case fatalCh <- msg:
+					default:
+					}
+					return
+				}
+			}
+		}
+	}()
+
+	// --- prober: periodically Get each pending injected shape-(a)/(b) orphan ---
+	// This exercises the reap-on-Get path in addition to the janitor sweep.
+	// Shape-(c) orphans use soakOrphanKind which no member serves, so Getting
+	// them would only ever return nil and would not trigger the reap-on-Get path
+	// (they need the janitor). We skip them here intentionally.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		prng := rand.New(rand.NewSource(seed + int64(soakLoadLoops) + 99))
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			sleep := proberMinInterval + time.Duration(prng.Int63n(int64(proberMaxInterval-proberMinInterval)))
+			select {
+			case <-stop:
+				return
+			case <-time.After(sleep):
+			}
+
+			// Snapshot pending orphans that are lock-only shapes (a) and (b).
+			pending := soakOrphanReg.snapshot()
+			live := h.liveMembers()
+			if len(live) == 0 || len(pending) == 0 {
+				continue
+			}
+			m := live[prng.Intn(len(live))]
+
+			for _, o := range pending {
+				if o.cleanedT.IsZero() && (o.shape == shapeDeadOwnerLock || o.shape == shapeLegacyLock) {
+					// Build a ClusterIdentity matching the injected key.
+					// Key format: "soakorphan/<identity-string>".
+					// We cannot call cluster.Get for soakorphan because it is not
+					// a registered Kind; use the IdentityLookup directly to trigger
+					// the reap-on-Get path which only needs a NATS KV read.
+					// We read the raw entry to confirm the record is still present;
+					// if absent, mark it cleaned.
+					il := m.provider.IdentityLookup()
+					if il == nil {
+						continue
+					}
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					entry, err := il.identities.Get(ctx, o.key)
+					cancel()
+					if err != nil {
+						// Key is gone -- mark cleaned.
+						soakOrphanReg.markCleaned(o.key, time.Now())
+					} else {
+						// Key still present. Invoke maybeReapLock via a bare
+						// ClusterIdentity so the reap-on-Get path fires for shapes
+						// (a)/(b). The CI kind/identity are not checked inside
+						// maybeReapLock -- only the KV record contents matter.
+						var rec activationRecord
+						if json.Unmarshal(entry.Value(), &rec) == nil && rec.PidID == "" {
+							// Lock-only record: eligible for maybeReapLock.
+							ci := &cluster.ClusterIdentity{
+								Kind:     soakOrphanKind,
+								Identity: o.key[len(soakOrphanKind)+1:], // strip "soakorphan/"
+							}
+							il.maybeReapLock(context.Background(), ci)
+						}
+					}
 				}
 			}
 		}
@@ -917,6 +1246,13 @@ waitLoop:
 	}
 	p50, p99, mx := stats.percentiles()
 
+	injByShape, cleanByShape, maxTTC := soakOrphanReg.totals()
+	totalInjected := injByShape[0] + injByShape[1] + injByShape[2]
+	totalCleaned := cleanByShape[0] + cleanByShape[1] + cleanByShape[2]
+	reapCnt := handler.reap.Load()
+	janitorCnt := handler.janitor.Load()
+	cleanCnt := handler.clean.Load()
+
 	t.Logf("=== SOAK REPORT ===")
 	t.Logf("seed:            %d", seed)
 	t.Logf("duration:        %s (requested %s)", time.Since(startedAt).Round(time.Second), duration)
@@ -924,13 +1260,31 @@ waitLoop:
 	t.Logf("nil results:     %d (%.2f%%)", nils, nilRate)
 	t.Logf("Get p50/p99/max: %s / %s / %s",
 		p50.Round(time.Millisecond), p99.Round(time.Millisecond), mx.Round(time.Millisecond))
-	t.Logf("reap log count:  %d", handler.reap.Load())
-	t.Logf("janitor count:   %d", handler.janitor.Load())
-	t.Logf("stale-clean cnt: %d", handler.clean.Load())
+	t.Logf("reap log count:  %d", reapCnt)
+	t.Logf("janitor count:   %d", janitorCnt)
+	t.Logf("stale-clean cnt: %d", cleanCnt)
 	t.Logf("final records:   %d (lock-only: %d)", finalCount, lockOnly)
+	t.Logf("--- orphan injection ---")
+	t.Logf("injected:        %d total (dead-owner-lock=%d legacy-lock=%d dead-activation=%d)",
+		totalInjected, injByShape[0], injByShape[1], injByShape[2])
+	t.Logf("cleaned:         %d total (dead-owner-lock=%d legacy-lock=%d dead-activation=%d)",
+		totalCleaned, cleanByShape[0], cleanByShape[1], cleanByShape[2])
+	t.Logf("max time-to-clean: %s", maxTTC.Round(time.Millisecond))
 
 	if violation != "" {
 		t.Fatalf("INVARIANT VIOLATION:\n%s", violation)
+	}
+
+	// End-of-run assertion: if any orphans were injected, counters must be nonzero.
+	// A zero counter with injections means no cleanup path fired at all -- the run
+	// is inconclusive (it did not exercise the mechanisms it was designed to test).
+	if totalInjected > 0 {
+		allCounters := reapCnt + janitorCnt + cleanCnt
+		if allCounters == 0 {
+			t.Fatalf("INCONCLUSIVE: %d orphans were injected but reap+janitor+stale-clean counters are all zero. "+
+				"No cleanup path fired. Verify log-scrape patterns match actual log messages.",
+				totalInjected)
+		}
 	}
 
 	t.Logf("PASS seed=%d", seed)
@@ -952,6 +1306,11 @@ func safeGet(c *cluster.Cluster, ci *cluster.ClusterIdentity) (pid *actor.PID) {
 // checkOrphans inspects the identities bucket for I3: any lock-only record
 // (PidID == "") older than orphanThreshold is a violation, and the total record
 // count must not exceed maxRecords. Returns a non-empty message on violation.
+//
+// Injected orphan keys (soakOrphanKind prefix) are excluded from the I3
+// orphanThreshold check because they are governed by the wider I4 window
+// (orphanCleanDeadline). They ARE counted toward maxRecords.
+// While scanning, any injected key that is now absent is marked cleaned.
 func checkOrphans(h *soakHarness, maxRecords int) string {
 	il := h.anyLiveIdentityLookup()
 	if il == nil {
@@ -966,7 +1325,26 @@ func checkOrphans(h *soakHarness, maxRecords int) string {
 		return ""
 	}
 
+	// Build a set of injected keys still pending, so we can mark cleaned ones.
+	pendingInjected := make(map[string]*injectedOrphan)
+	for _, o := range soakOrphanReg.snapshot() {
+		if o.cleanedT.IsZero() {
+			pendingInjected[o.key] = o
+		}
+	}
+	// Keys present in bucket: collect.
+	presentKeys := make(map[string]struct{}, len(keys))
+	for _, k := range keys {
+		presentKeys[k] = struct{}{}
+	}
+	// Any pending injected key no longer in the bucket is now cleaned.
 	now := time.Now()
+	for k := range pendingInjected {
+		if _, stillPresent := presentKeys[k]; !stillPresent {
+			soakOrphanReg.markCleaned(k, now)
+		}
+	}
+
 	lockOnly := 0
 	for _, key := range keys {
 		entry, err := il.identities.Get(ctx, key)
@@ -979,6 +1357,10 @@ func checkOrphans(h *soakHarness, maxRecords int) string {
 		}
 		if rec.PidID == "" {
 			lockOnly++
+			// Injected orphans use the wider I4 deadline; skip the I3 threshold.
+			if _, isInjected := pendingInjected[key]; isInjected {
+				continue
+			}
 			age := entryAge(entry, now)
 			if age > orphanThreshold {
 				return fmt.Sprintf(
@@ -992,9 +1374,51 @@ func checkOrphans(h *soakHarness, maxRecords int) string {
 
 	if len(keys) > maxRecords {
 		return fmt.Sprintf(
-			"I3 RECORD LEAK: identities bucket holds %d records (bound %d = identities x2 + margin). "+
+			"I3 RECORD LEAK: identities bucket holds %d records (bound %d = identities x2 + injection-budget + margin). "+
 				"lock-only=%d. Records are accumulating faster than they are reaped. members alive=%d",
 			len(keys), maxRecords, lockOnly, h.memberCount())
+	}
+	return ""
+}
+
+// checkInjectedOrphans implements I4: every injected orphan must be absent from
+// the identities bucket within orphanCleanDeadline of injection. Returns a
+// non-empty failure message if any survivor is found past the deadline.
+func checkInjectedOrphans(h *soakHarness) string {
+	il := h.anyLiveIdentityLookup()
+	if il == nil {
+		return ""
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	now := time.Now()
+	for _, o := range soakOrphanReg.snapshot() {
+		if !o.cleanedT.IsZero() {
+			continue // already confirmed cleaned
+		}
+		age := now.Sub(o.injectedT)
+		if age < orphanCleanDeadline {
+			continue // still within grace window
+		}
+		// Past deadline: check whether the key is still in the bucket.
+		_, err := il.identities.Get(ctx, o.key)
+		if err != nil {
+			// Key absent: mark cleaned retroactively.
+			soakOrphanReg.markCleaned(o.key, now)
+			continue
+		}
+		// Key is still present past deadline: I4 violation.
+		return fmt.Sprintf(
+			"I4 INJECTED ORPHAN SURVIVOR: key %q (shape=%s injected=%s) has NOT been "+
+				"cleaned %s after injection (deadline %s). "+
+				"The reap/janitor/grace path failed to clear this synthetic orphan. "+
+				"members alive=%d",
+			o.key, o.shape,
+			o.injectedT.Format("15:04:05"),
+			age.Round(time.Second),
+			orphanCleanDeadline,
+			h.memberCount())
 	}
 	return ""
 }
