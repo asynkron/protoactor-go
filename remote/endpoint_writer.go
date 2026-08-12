@@ -82,10 +82,10 @@ func (state *endpointWriter) initialize(_ actor.Context) {
 			// initializeInternal before it returns, so it is not orphaned across
 			// retries.
 			delay := calcBackoffDelay(state.config.RetryBaseDelay, state.config.RetryMaxDelay, i)
-			// Cancelable backoff: if the writer is being torn down (peer left),
-			// abort the retry loop immediately instead of blocking the mailbox
-			// for the full window. closeClientConn (Stopped/Restarting) closes
-			// state.stopped.
+			// stopped-channel select is defensive for future async-retry refactors.
+			// Does NOT provide mid-sleep preemption today: single-goroutine mailbox
+			// ensures Restarting/Stopped handlers cannot run while initialize blocks.
+			// Load-bearing leak fix is conn close in initializeInternal.
 			select {
 			case <-time.After(delay):
 			case <-state.stopped:
