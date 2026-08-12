@@ -43,6 +43,7 @@ import (
 	"log/slog"
 	"math/rand"
 	"os"
+	"runtime"
 	"sort"
 	"strconv"
 	"sync"
@@ -52,6 +53,9 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/awevoke/protoactor-go/actor"
 	"github.com/awevoke/protoactor-go/cluster"
@@ -303,6 +307,13 @@ type soakHarness struct {
 	// non-empty (>=1 member). Reset to zero whenever the cluster is empty. Used
 	// by I2 to only count nil spans while >=1 member was continuously alive.
 	aliveSince atomic.Int64 // unix nanos, 0 == currently empty
+
+	// Cumulative lifecycle counters for the resource telemetry line. started
+	// and stopped are monotonic totals across the whole run; their difference
+	// is the live member count. A goroutine count that climbs with stopped is
+	// the fingerprint of a leaked per-member teardown.
+	started atomic.Int64
+	stopped atomic.Int64
 }
 
 func newSoakHarness(t *testing.T, natsURL string, handler *countingHandler, clusterNm string) *soakHarness {
@@ -329,6 +340,36 @@ func newSoakHarness(t *testing.T, natsURL string, handler *countingHandler, clus
 	}
 }
 
+// remoteConfigOpts returns the remote configuration used by every soak member.
+//
+// gRPC client keepalive is enabled so that a ClientConn to a peer that has been
+// hard-crashed is actively probed and torn down by gRPC instead of lingering in
+// a permanent reconnect loop. This mirrors what a production deployment should
+// configure and bounds the per-connection goroutine/socket footprint under
+// sustained restart churn. It is a partial mitigation only: see the harness
+// report for the residual endpointWriter ClientConn that is not reclaimed when a
+// writer is terminated while still mid-connect (a remote-package concern).
+func remoteConfigOpts() []remote.ConfigOption {
+	return []remote.ConfigOption{
+		remote.WithDialOptions(
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:                5 * time.Second,
+				Timeout:             3 * time.Second,
+				PermitWithoutStream: true,
+			}),
+		),
+		// Bound the endpointWriter connect-retry window. A writer toward a
+		// hard-crashed peer blocks its mailbox goroutine in initialize()'s
+		// synchronous retry loop; a short window lets it exit and be terminated
+		// (and its ClientConn closed) promptly instead of accumulating under
+		// churn. These are transport-hygiene settings, not invariant thresholds.
+		remote.WithMaxRetryCount(2),
+		remote.WithRetryBaseDelay(200 * time.Millisecond),
+		remote.WithRetryMaxDelay(1 * time.Second),
+	}
+}
+
 // startMember boots one full cluster node joined to the shared NATS + buckets.
 func (h *soakHarness) startMember() (*soakMember, error) {
 	nc, err := nats.Connect(h.natsURL)
@@ -344,7 +385,7 @@ func (h *soakHarness) startMember() (*soakMember, error) {
 	system := actor.NewActorSystem(actor.WithLoggerFactory(func(s *actor.ActorSystem) *slog.Logger {
 		return slog.New(h.handler)
 	}))
-	remoteCfg := remote.Configure("127.0.0.1", 0)
+	remoteCfg := remote.Configure("127.0.0.1", 0, remoteConfigOpts()...)
 	clusterCfg := cluster.Configure(h.clusterNm, p, p.IdentityLookup(), remoteCfg,
 		cluster.WithKinds(h.kinds...))
 	c := cluster.NewCluster(system, clusterCfg)
@@ -363,10 +404,23 @@ func (h *soakHarness) startMember() (*soakMember, error) {
 		h.aliveSince.Store(time.Now().UnixNano())
 	}
 	h.mu.Unlock()
+	h.started.Add(1)
 	return m, nil
 }
 
-// stopMember gracefully shuts down a member and removes it from the live set.
+// stopMember shuts down a member and removes it from the live set. The graceful
+// path exercises the full production teardown; the hard-crash path models a real
+// process kill (Stopping is never delivered, so stale KV claims persist).
+//
+// Both paths then call reclaimInProcess. This is required because the harness
+// runs every "member" as an in-process actor system sharing one OS process. A
+// real crashed pod has its goroutines, gRPC client connections, and sockets
+// reclaimed by the kernel the instant the process dies; an in-process crash
+// simulation does not get that for free. Without explicit reclamation the run
+// leaks ~30 goroutines and a gRPC ClientConn per crash (a wedged endpointWriter
+// per dead peer address plus the member's own NATS connection), which is what
+// OOM-killed the 4h EKS soak. Reclaiming here restores the OS-kill semantics the
+// harness is meant to model, without weakening the crash's KV-side behavior.
 func (h *soakHarness) stopMember(m *soakMember, graceful bool) {
 	h.mu.Lock()
 	delete(h.members, m.id)
@@ -391,12 +445,63 @@ func (h *soakHarness) stopMember(m *soakMember, graceful bool) {
 		m.provider.wg.Wait()
 	}
 
+	h.reclaimInProcess(m, graceful)
+
 	// The member is gone: its grains are dead. Purge any registry entries for
 	// its address. On graceful shutdown the Stopping handlers already
 	// deregistered them (this is then a no-op); on hard crash Stopping never
 	// ran, so this is the only cleanup. Done AFTER teardown so no further
 	// Started message can re-add an entry for this address.
 	soakRegistry.purgeAddress(m.address)
+	h.stopped.Add(1)
+}
+
+// reclaimInProcess releases the in-process resources that a real OS process
+// death would reclaim but that an in-process crash simulation leaves dangling:
+//
+//   - The member's raw NATS connection. The provider treats the connection as
+//     caller-owned (it never calls nc.Close), so the harness -- which opened it
+//     in startMember -- must close it. This is required on BOTH the graceful and
+//     crash paths; neither cluster.Shutdown nor the crash teardown closes it.
+//   - The identity-lookup background janitor goroutine and the member-side NATS
+//     subscriptions, which the graceful path stops via IdentityLookup.Shutdown
+//     but the crash path deliberately skips.
+//   - Every remaining local actor process. ActorSystem.Shutdown only closes the
+//     stopper channel; it never delivers Stopped, so endpointWriter actors never
+//     run closeClientConn and their gRPC ClientConn (plus its background
+//     stream.Recv goroutine) leaks. Stopping each local process delivers the
+//     Stopped these handlers need. Redundant on the graceful path (already
+//     stopped) and harmless there.
+func (h *soakHarness) reclaimInProcess(m *soakMember, graceful bool) {
+	if !graceful {
+		il := m.provider.identity
+		if il != nil {
+			if il.janitorStop != nil {
+				il.janitorStopOnce.Do(func() { close(il.janitorStop) })
+			}
+			if il.activationSub != nil {
+				_ = il.activationSub.Unsubscribe()
+			}
+			if il.poisonSub != nil {
+				_ = il.poisonSub.Unsubscribe()
+			}
+		}
+		// Stop any actors the bare ActorSystem.Shutdown left running so their
+		// Stopped-driven cleanup (notably endpointWriter.closeClientConn) fires.
+		reg := m.cluster.ActorSystem.ProcessRegistry
+		for i := range reg.LocalPIDs.LocalPIDs {
+			for item := range reg.LocalPIDs.LocalPIDs[i].IterBuffered() {
+				if proc, ok := item.Val.(actor.Process); ok {
+					proc.Stop(m.cluster.ActorSystem.NewLocalPID(item.Key))
+				}
+			}
+		}
+	}
+
+	// Always close the harness-owned NATS connection; the provider never does.
+	if m.provider.nc != nil {
+		m.provider.nc.Close()
+	}
 }
 
 // liveMembers returns a snapshot of currently-live members.
@@ -578,6 +683,7 @@ func TestSoak_RestartResilience(t *testing.T) {
 	spans := newNilSpanTracker()
 	ids := soakIdentities()
 	startedAt := time.Now()
+	logResourceTelemetry(t, h, startedAt) // baseline after warm-up, before chaos
 	for _, ci := range ids {
 		spans.ensureSeen(identityKeyOf(ci), startedAt)
 	}
@@ -777,6 +883,7 @@ waitLoop:
 				stats.total.Load(), stats.nils.Load(), h.memberCount(),
 				p50.Round(time.Millisecond), p99.Round(time.Millisecond), mx.Round(time.Millisecond),
 				handler.reap.Load(), handler.janitor.Load())
+			logResourceTelemetry(t, h, startedAt)
 		}
 	}
 
@@ -965,4 +1072,27 @@ func envSeed(name string) int64 {
 // ts returns a compact timestamp for chaos/progress logs.
 func ts() string {
 	return time.Now().Format("15:04:05.000")
+}
+
+// logResourceTelemetry emits a periodic resource line so a multi-hour run can be
+// diagnosed for growth. It reports runtime.MemStats (HeapAlloc / HeapInuse /
+// Sys), the live goroutine count, the current live member count, and the
+// cumulative members started/stopped. The diagnostic reading:
+//
+//   - goroutines climbing in lock-step with `stopped` == leaked per-member
+//     teardown (a Shutdown path that fails to release goroutines/connections).
+//   - HeapAlloc climbing while goroutines stay flat == data accumulation
+//     (e.g. the embedded JetStream store or unbounded harness bookkeeping).
+//   - both flat == the working set is stable; any OOM is a legitimate
+//     steady-state requirement, not a leak.
+func logResourceTelemetry(t *testing.T, h *soakHarness, startedAt time.Time) {
+	t.Helper()
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	t.Logf("[resource %s] elapsed=%s goroutines=%d heapAlloc=%dMiB heapInuse=%dMiB sys=%dMiB "+
+		"members=%d started=%d stopped=%d",
+		ts(), time.Since(startedAt).Round(time.Second),
+		runtime.NumGoroutine(),
+		ms.HeapAlloc/(1024*1024), ms.HeapInuse/(1024*1024), ms.Sys/(1024*1024),
+		h.memberCount(), h.started.Load(), h.stopped.Load())
 }
