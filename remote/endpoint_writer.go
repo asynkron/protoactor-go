@@ -33,6 +33,11 @@ type endpointWriter struct {
 	stream     Remoting_ReceiveClient
 	remote     *Remote
 	cancelFunc context.CancelFunc
+	// stopped is closed when the writer is torn down (Stopped/Restarting). It
+	// makes the connect-retry backoff cancelable so a writer toward an
+	// unreachable peer stops promptly instead of blocking its mailbox for the
+	// full retry window and leaking its gRPC ClientConn.
+	stopped chan struct{}
 }
 
 type restartAfterConnectFailure struct {
@@ -61,6 +66,11 @@ func (state *endpointWriter) initialize(_ actor.Context) {
 
 	state.remote.Logger().Info("Started EndpointWriter. connecting", slog.String("address", state.address))
 
+	// Fresh stop channel for this (re)initialization. A previous incarnation may
+	// have closed its channel on Restarting; a closed channel here would make
+	// every backoff abort immediately.
+	state.stopped = make(chan struct{})
+
 	var err error
 
 	for i := 0; i < state.remote.config.MaxRetryCount; i++ {
@@ -68,8 +78,19 @@ func (state *endpointWriter) initialize(_ actor.Context) {
 		if err != nil {
 			state.remote.Logger().Error("EndpointWriter failed to connect",
 				slog.String("address", state.address), slog.Any("error", err), slog.Int("retry", i))
+			// Any ClientConn created by this failed attempt is closed by
+			// initializeInternal before it returns, so it is not orphaned across
+			// retries.
 			delay := calcBackoffDelay(state.config.RetryBaseDelay, state.config.RetryMaxDelay, i)
-			time.Sleep(delay)
+			// Cancelable backoff: if the writer is being torn down (peer left),
+			// abort the retry loop immediately instead of blocking the mailbox
+			// for the full window. closeClientConn (Stopped/Restarting) closes
+			// state.stopped.
+			select {
+			case <-time.After(delay):
+			case <-state.stopped:
+				return
+			}
 			continue
 		}
 
@@ -89,6 +110,22 @@ func (state *endpointWriter) initialize(_ actor.Context) {
 }
 
 func (state *endpointWriter) initializeInternal() error {
+	// Close any ClientConn left over from a previous failed attempt before
+	// creating a new one. grpc.NewClient returns a lazily-connecting ClientConn
+	// that immediately spawns background connection-management goroutines (a
+	// reconnect loop and a callback serializer); overwriting state.conn without
+	// closing the old one orphans those goroutines and the socket. Under
+	// membership churn every surviving member creates such a writer toward every
+	// dead peer and retries several times, so the orphaned ClientConns accumulate
+	// without bound. Closing here bounds the footprint to one live ClientConn per
+	// writer.
+	if state.conn != nil {
+		if err := state.conn.Close(); err != nil {
+			state.remote.Logger().Error("EndpointWriter error closing stale client conn before reconnect",
+				slog.String("address", state.address), slog.Any("error", err))
+		}
+		state.conn = nil
+	}
 	conn, err := grpc.NewClient(state.address, state.config.DialOptions...)
 	if err != nil {
 		return err
@@ -105,6 +142,13 @@ func (state *endpointWriter) initializeInternal() error {
 	if err != nil {
 		cancel()
 		state.cancelFunc = nil
+		// Close the ClientConn we just created so its background reconnect and
+		// callback-serializer goroutines do not leak when this attempt fails.
+		if closeErr := state.conn.Close(); closeErr != nil {
+			state.remote.Logger().Error("EndpointWriter error closing client conn after failed stream create",
+				slog.String("address", state.address), slog.Any("error", closeErr))
+		}
+		state.conn = nil
 		state.remote.Logger().Error("EndpointWriter failed to create receive stream", slog.String("address", state.address), slog.Any("error", err))
 		return err
 	}
@@ -409,6 +453,18 @@ func (state *endpointWriter) Receive(ctx actor.Context) {
 
 func (state *endpointWriter) closeClientConn() {
 	state.remote.Logger().Info("EndpointWriter closing client connection", slog.String("address", state.address))
+
+	// Signal any in-progress connect-retry backoff to abort so a writer being
+	// torn down while still connecting stops promptly instead of holding its
+	// mailbox for the remainder of the retry window.
+	if state.stopped != nil {
+		select {
+		case <-state.stopped:
+			// already closed
+		default:
+			close(state.stopped)
+		}
+	}
 
 	if state.remote.metricsEnabled {
 		_ctx := context.Background()
