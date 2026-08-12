@@ -651,7 +651,11 @@ func TestSoak_RestartResilience(t *testing.T) {
 				graceful := rng.Intn(2) == 0
 				h.stopMember(victim, graceful)
 				t.Logf("[chaos %s] kill m%d graceful=%v (count=%d)", ts(), victim.id, graceful, h.memberCount())
-			case 1: // start a replacement member
+			case 1: // start a replacement member (capped at 2*SOAK_MEMBERS)
+				if len(live) >= 2*members {
+					t.Logf("[chaos %s] start skipped: at cap (%d >= 2*%d)", ts(), len(live), members)
+					continue
+				}
 				m, err := h.startMember()
 				if err != nil {
 					t.Logf("[chaos %s] start FAILED: %v", ts(), err)
