@@ -1098,7 +1098,8 @@ func (il *IdentityLookup) storeActivation(ctx context.Context, ci *cluster.Clust
 // WaiterWindow is intentionally shorter than LockTTL: it bounds how long a
 // caller waits for a lock holder to complete, so that abandoned locks are
 // detected and reaped promptly on the next resolution pass.
-// Note: requestRemoteActivation uses LockTTL for its own timeout (unchanged).
+// Note: requestRemoteActivation uses RemoteActivationTimeout for its own
+// timeout, which is independent of LockTTL and WaiterWindow.
 func (il *IdentityLookup) waitForActivation(ctx context.Context, ci *cluster.ClusterIdentity) *activationRecord {
 	key := kvKey(ci)
 	watchCtx, cancel := context.WithTimeout(ctx, il.config.WaiterWindow)
@@ -1480,7 +1481,11 @@ func (il *IdentityLookup) requestRemoteActivation(ctx context.Context, ci *clust
 		return nil
 	}
 
-	reqCtx, cancel := context.WithTimeout(ctx, il.config.LockTTL)
+	// Bound the remote round-trip with RemoteActivationTimeout, not LockTTL.
+	// Member-side spawn (placement RPC) can legitimately take ~10s+, so the
+	// old LockTTL (5s) bound truncated valid activations. LockTTL is untouched
+	// everywhere else.
+	reqCtx, cancel := context.WithTimeout(ctx, il.config.RemoteActivationTimeout)
 	defer cancel()
 
 	resp, err := nc.RequestWithContext(reqCtx, subject, data)
