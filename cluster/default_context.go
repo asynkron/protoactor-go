@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/awevoke/protoactor-go/actor"
@@ -21,11 +22,27 @@ import (
 // Defines a type to provide DefaultContext configurations / implementations.
 type ContextProducer func(*Cluster) Context
 
+// selfCachingLookup is an optional interface that an IdentityLookup may
+// implement to signal that it manages its own PidCache.Set calls. When true,
+// DefaultContext must not call PidCache.Set on the result of Get() — doing
+// so would bypass the lookup's own caching policy (e.g. the natskv grace
+// window that intentionally withholds caching for absent-owner activations).
+type selfCachingLookup interface {
+	SetsOwnPidCache() bool
+}
+
 // Defines a default cluster context hashBytes structure.
 type DefaultContext struct {
 	cluster                   *Cluster
 	requestTimeoutLogThrottle actor.ShouldThrottle
 	futureTimeoutLogThrottle  actor.ShouldThrottle
+	// skipPidCacheSet and skipPidCacheSetOnce implement a lazy one-time check
+	// of whether the cluster's IdentityLookup implements selfCachingLookup.
+	// The check is deferred until the first getPid call because IdentityLookup
+	// is set on the Cluster by StartMember/StartClient, which happens after
+	// newDefaultClusterContext is called during cluster construction.
+	skipPidCacheSet     bool
+	skipPidCacheSetOnce sync.Once
 }
 
 var _ Context = (*DefaultContext)(nil)
@@ -46,6 +63,17 @@ func newDefaultClusterContext(cluster *Cluster) Context {
 	}
 
 	return &clusterContext
+}
+
+// selfCachingSkip resolves (lazily, once) whether the cluster's IdentityLookup
+// sets its own PidCache entries and DefaultContext should skip its own Set calls.
+func (dcc *DefaultContext) selfCachingSkip() bool {
+	dcc.skipPidCacheSetOnce.Do(func() {
+		if s, ok := dcc.cluster.IdentityLookup.(selfCachingLookup); ok && s.SetsOwnPidCache() {
+			dcc.skipPidCacheSet = true
+		}
+	})
+	return dcc.skipPidCacheSet
 }
 
 func (dcc *DefaultContext) Request(identity, kind string, message any, opts ...GrainCallOption) (any, error) {
@@ -305,7 +333,7 @@ func (dcc *DefaultContext) getPid(traceCtx context.Context, identity, kind strin
 	if dcc.cluster.metricsEnabled {
 		start := time.Now()
 		pid = dcc.cluster.Get(identity, kind)
-		if pid != nil {
+		if pid != nil && !dcc.selfCachingSkip() {
 			dcc.cluster.PidCache.Set(identity, kind, pid)
 		}
 		elapsed := time.Since(start)
@@ -321,7 +349,7 @@ func (dcc *DefaultContext) getPid(traceCtx context.Context, identity, kind strin
 		}
 	} else {
 		pid = dcc.cluster.Get(identity, kind)
-		if pid != nil {
+		if pid != nil && !dcc.selfCachingSkip() {
 			dcc.cluster.PidCache.Set(identity, kind, pid)
 		}
 	}

@@ -138,6 +138,7 @@ func startCharsetCluster(t *testing.T, srv *server.Server, clusterName string, k
 		WithRefreshInterval(2*time.Second),
 		WithLeaderTTL(10*time.Second),
 		WithLockTTL(1*time.Second),
+		WithWaiterWindow(1*time.Second), // waitForActivation now uses WaiterWindow, not LockTTL.
 	)
 	require.NoError(t, err)
 
@@ -302,12 +303,12 @@ func TestCharset_NatsKV_IdentityValidation(t *testing.T) {
 // that contain '/' or are empty, since '/' is the kind|identity boundary.
 func TestCharset_NatsKV_KindValidation(t *testing.T) {
 	rejected := []string{
-		"",                // empty
-		"a/b",             // simple slash
-		"org/team",        // path-shaped
-		"/leading",        // leading slash
-		"trailing/",       // trailing slash
-		"a/b/c",           // multiple slashes
+		"",          // empty
+		"a/b",       // simple slash
+		"org/team",  // path-shaped
+		"/leading",  // leading slash
+		"trailing/", // trailing slash
+		"a/b/c",     // multiple slashes
 	}
 	for _, name := range rejected {
 		t.Run("reject_"+name, func(t *testing.T) {
@@ -403,13 +404,13 @@ func TestCharset_NatsKV_DotAndEqualsRoundTrip(t *testing.T) {
 	t.Cleanup(func() { c.Shutdown(true) })
 
 	identities := []string{
-		"user.1",          // single dot
-		"a.b.c.d",         // multi-dot
-		"key=value",       // single equals
-		"a=b=c",           // multi-equals
-		"key=value.json",  // mixed equals + dot
-		"a.b=c.d",         // alternating
-		"v1.0.3=stable",   // realistic version-style
+		"user.1",         // single dot
+		"a.b.c.d",        // multi-dot
+		"key=value",      // single equals
+		"a=b=c",          // multi-equals
+		"key=value.json", // mixed equals + dot
+		"a.b=c.d",        // alternating
+		"v1.0.3=stable",  // realistic version-style
 	}
 
 	for _, identity := range identities {

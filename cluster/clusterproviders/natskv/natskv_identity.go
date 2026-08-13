@@ -28,6 +28,42 @@ type inflight struct {
 	pid  *actor.PID
 }
 
+// absenceClock tracks the first time each activation key was observed to have
+// an absent owner. It is used to implement the ActivationAbsentGrace window:
+// on the first Get() that finds an absent owner the timestamp is recorded;
+// cleanup is deferred until a subsequent Get() finds the grace elapsed.
+//
+// All methods are safe for concurrent use.
+type absenceClock struct {
+	mu  sync.Mutex
+	obs map[string]time.Time // key -> first-absent observation time
+}
+
+// firstAbsent returns the first-observed-absent time for key. If no prior
+// observation exists it records now and returns now.
+// Safe to call on the zero-value absenceClock (obs is lazy-initialized).
+func (a *absenceClock) firstAbsent(key string, now time.Time) time.Time {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.obs == nil {
+		a.obs = make(map[string]time.Time)
+	}
+	if t, ok := a.obs[key]; ok {
+		return t
+	}
+	a.obs[key] = now
+	return now
+}
+
+// clear removes key from the absence map. It is called when the owner is
+// confirmed present, when the identity record is absent entirely, or after
+// cleanup fires. Safe to call on the zero-value absenceClock.
+func (a *absenceClock) clear(key string) {
+	a.mu.Lock()
+	delete(a.obs, key)
+	a.mu.Unlock()
+}
+
 // IdentityLookup implements cluster.IdentityLookup directly using NATS JetStream KV
 // for lock acquisition, activation storage, and member tracking.
 type IdentityLookup struct {
@@ -42,6 +78,7 @@ type IdentityLookup struct {
 	semaphore     chan struct{}
 	setupErr      error
 	activationSub *nats.Subscription // member-side subscription for client activation requests
+	poisonSub     *nats.Subscription // member-side subscription for peer remove-and-poison requests
 
 	// Placement actor and proxy PIDs (non-client only). Accessed atomically
 	// because Shutdown() nils these while concurrent Get()/RequestFuture paths
@@ -61,7 +98,25 @@ type IdentityLookup struct {
 	// lockRevisions maps lockID -> NATS KV revision from tryAcquireLock.
 	// Used to bridge the revision into the PersistActivation callback.
 	lockRevisions sync.Map
+
+	// now is the clock function used by all time-dependent paths in
+	// IdentityLookup. Defaults to time.Now; overridable in tests.
+	now func() time.Time
+
+	// absence tracks when each identity key was first observed to have an
+	// absent owner. See absenceClock for semantics.
+	absence absenceClock
+
+	// janitorStop is closed to signal the background janitor goroutine to stop.
+	// It is non-nil only on non-client (member) nodes.
+	janitorStop     chan struct{}
+	janitorStopOnce sync.Once
 }
+
+// SetsOwnPidCache returns true, signalling to DefaultContext that this
+// IdentityLookup manages its own PidCache.Set calls and that DefaultContext
+// must not perform a redundant Set on the result of Get().
+func (il *IdentityLookup) SetsOwnPidCache() bool { return true }
 
 // activationRecord is the JSON-encoded value stored in the identities KV bucket.
 type activationRecord struct {
@@ -95,12 +150,48 @@ func activateSubject(clusterName string) string {
 	return "_protoactor." + clusterName + ".activate"
 }
 
+// poisonReq asks a member to remove-and-poison a specific grain PID via its
+// local placement actor. Used by the remote store-failure cleanup path, which
+// cannot send the (non-proto) RemoveAndPoisonRequest across the wire directly.
+//
+// Kind/Identity name the identity record so the receiving member can re-read it
+// and validate the request before honoring it. Revision is the caller's held
+// lock revision at the moment its persist failed: the record must still be at
+// that revision (i.e. still the loser's unresolved lock-only record) for the
+// poison to be honored. This prevents a replayed/spoofed poisonReq from an
+// earlier legitimately-failed activation from killing a later, legitimate
+// re-activation of the same identity — a successor's persist (or a new lock)
+// bumps the record's revision away from the carried value, so the replay is
+// rejected. See handleRemoveAndPoisonRequest.
+type poisonReq struct {
+	Kind       string `json:"k"`
+	Identity   string `json:"i"`
+	PidID      string `json:"pid"`
+	PidAddress string `json:"adr"`
+	Revision   uint64 `json:"rev"`
+}
+
+// poisonResp acknowledges a poisonReq. Ok is true once the grain was removed
+// from tracking and poisoned (or was already gone).
+type poisonResp struct {
+	Ok    bool   `json:"ok"`
+	Error string `json:"err,omitempty"`
+}
+
+// poisonSubject returns the NATS subject used for member-to-member
+// remove-and-poison requests.
+func poisonSubject(clusterName string) string {
+	return "_protoactor." + clusterName + ".poison"
+}
+
 // newIdentityLookup creates a new IdentityLookup associated with the given provider.
 func newIdentityLookup(p *Provider) *IdentityLookup {
 	return &IdentityLookup{
 		provider:  p,
 		config:    p.config,
 		semaphore: make(chan struct{}, p.config.MaxConcurrency),
+		now:       time.Now,
+		absence:   absenceClock{obs: make(map[string]time.Time)},
 	}
 }
 
@@ -195,11 +286,27 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 		} else {
 			il.activationSub = sub
 		}
+
+		// Subscribe (per-member, no queue group) to remove-and-poison requests
+		// so a peer that failed to persist a remote activation can ask us to
+		// tear down the grain we spawned. Not a queue group: the request is
+		// addressed to the specific member that hosts the grain, using a
+		// member-scoped subject.
+		poisonSub, err := il.provider.nc.Subscribe(
+			poisonSubject(c.Config.Name)+"."+il.memberID, il.handleRemoveAndPoisonRequest)
+		if err != nil {
+			il.identityLogger().Error("natskv identity: failed to subscribe to poison requests",
+				slog.Any("error", err))
+		} else {
+			il.poisonSub = poisonSub
+		}
 	}
 
 	// Non-client members: spawn placement actor and proxy.
 	if !isClient {
 		il.setupPlacementActor(c)
+		il.janitorStop = make(chan struct{})
+		go il.runJanitor()
 	}
 }
 
@@ -282,8 +389,11 @@ func (il *IdentityLookup) setupPlacementActor(c *cluster.Cluster) {
 	}
 
 	config := cluster.PlacementConfig{
-		PersistActivation: persistActivation,
-		RemoveActivation:  removeActivation,
+		PersistActivation:     persistActivation,
+		RemoveActivation:      removeActivation,
+		CheckActivationRecord: il.checkActivationRecord,
+		CleanupOwnRecord:      il.cleanupOwnRecord,
+		SelfCheckHardReapAge:  il.config.HardReapAge,
 	}
 
 	// Spawn the placement actor.
@@ -364,75 +474,178 @@ func (il *IdentityLookup) Get(ci *cluster.ClusterIdentity) *actor.PID {
 }
 
 // resolveIdentity performs the actual identity resolution logic.
+// It runs a bounded retry loop (up to 3 passes) starting at the
+// existing-activation check (step 3). Each pass can:
+//   - Return immediately with a valid PID.
+//   - Reap an abandoned lock and continue to the next pass.
+//   - Wait for an in-progress activation and either return the PID or
+//     continue (if the lock was deleted and resolution should retry).
+//   - Acquire the lock and activate locally or remotely.
 func (il *IdentityLookup) resolveIdentity(ci *cluster.ClusterIdentity) *actor.PID {
 	il.acquire()
 	defer il.release()
 
 	ctx := context.Background()
 
-	// Step 3: Check for existing activation with stale validation.
-	rec := il.getExistingActivation(ctx, ci)
-	if rec != nil {
-		if cluster.ValidateActivationMember(il.cluster.MemberList, rec.MemberID) {
+resolution:
+	for pass := 0; pass < 3; pass++ {
+		// Step 3: Check for existing activation with stale validation.
+		key := kvKey(ci)
+		rec, existingRev := il.getExistingActivationWithRev(ctx, ci)
+		if rec == nil {
+			// No activation record exists. If there was an absence entry for
+			// this key (from a prior Get that found an absent-owner record),
+			// clear it: the record is now gone entirely.
+			il.absence.clear(key)
+		} else if cluster.ValidateActivationMember(il.cluster.MemberList, rec.MemberID) {
+			// Owner is present — clear any stale absence entry and return the PID.
+			il.absence.clear(key)
 			pid := pidFromRecord(rec)
 			il.cluster.PidCache.Set(ci.Identity, ci.Kind, pid)
 			return pid
+		} else {
+			// Owner is absent. Apply the ActivationAbsentGrace window.
+			now := il.now()
+			firstSeen := il.absence.firstAbsent(key, now)
+			if now.Sub(firstSeen) < il.config.ActivationAbsentGrace {
+				// Still within grace — return the stale PID without caching it.
+				// The caller gets a usable PID; the grace window protects us
+				// from a premature cleanup during a rolling restart.
+				return pidFromRecord(rec)
+			}
+			// Grace has elapsed — perform cleanup and fall through to
+			// lock/spawn resolution (the loop continues).
+			il.identityLogger().Info("natskv identity: cleaning stale activation after grace elapsed",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity),
+				slog.String("staleMember", rec.MemberID))
+			il.casDelete(ctx, key, existingRev, "resolveIdentity/stale-after-grace")
+			if rec.MemberID != "" {
+				il.removeKeyFromMember(ctx, rec.MemberID, key)
+			}
+			il.absence.clear(key)
 		}
-		// Stale activation from a dead member — clean it up.
-		il.identityLogger().Info("natskv identity: cleaning stale activation",
+
+		// Step 4: If client, request remote activation from a member via NATS.
+		if il.isClient {
+			arec := il.requestRemoteActivation(ctx, ci)
+			if arec != nil {
+				return pidFromRecord(arec)
+			}
+			return nil
+		}
+
+		// Step 5: Try to acquire the spawn lock.
+		lockID, revision, ok := il.tryAcquireLock(ctx, ci)
+		if !ok {
+			// Another node holds the lock. Check whether it is an abandoned
+			// lock we can reap; if so, continue to the next pass.
+			if il.maybeReapLock(ctx, ci) {
+				continue resolution
+			}
+			// Lock is held by a live owner — wait for activation to complete.
+			arec := il.waitForActivation(ctx, ci)
+			if arec != nil {
+				return pidFromRecord(arec)
+			}
+			// waitForActivation returned nil: the lock was deleted (KeyValueDelete).
+			// Re-enter the loop so we can try to acquire the lock ourselves.
+			continue resolution
+		}
+
+		// Step 6: Select target member via strategy manager.
+		senderAddress := il.cluster.ActorSystem.Address()
+		strMgr := il.strategyMgr.Load()
+		if strMgr == nil {
+			il.identityLogger().Warn("natskv identity: strategy manager is nil (cluster shutting down?)",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity))
+			return nil
+		}
+		targetMember := strMgr.GetActivator(ci, senderAddress)
+		if targetMember == nil {
+			il.identityLogger().Warn("natskv identity: no available member for activation",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity))
+			il.casDelete(ctx, kvKey(ci), revision, "resolveIdentity/no-target")
+			return nil
+		}
+
+		// Step 7: Route activation request.
+		if targetMember.Id == il.memberID {
+			return il.activateLocal(ctx, ci, lockID, revision)
+		}
+
+		return il.activateRemote(ctx, ci, lockID, revision, targetMember)
+	}
+
+	il.identityLogger().Warn("natskv identity: resolution loop exhausted",
+		slog.String("kind", ci.Kind),
+		slog.String("identity", ci.Identity))
+	return nil
+}
+
+// maybeReapLock checks whether the current identity record is an abandoned
+// lock that can be forcibly reaped, and deletes it if so.
+//
+// Reap conditions (both require PidID == ""):
+//   - Owner-absence branch: record has MemberID, the owner is absent from the
+//     member list, and entryAge > LockOwnerAbsentGrace.
+//   - Hard branch: entryAge > HardReapAge, regardless of owner state.
+//     This is the only branch that applies to legacy records with empty MemberID.
+//
+// Returns true if the lock was reaped (deleted), false otherwise.
+// A CAS miss on delete is a terminal no-op (another node raced us); the
+// function still returns true so the caller re-enters the resolution loop.
+func (il *IdentityLookup) maybeReapLock(ctx context.Context, ci *cluster.ClusterIdentity) bool {
+	key := kvKey(ci)
+
+	entry, err := il.identities.Get(ctx, key)
+	if err != nil {
+		// Key absent or unreadable: nothing to reap.
+		return false
+	}
+
+	var rec activationRecord
+	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
+		return false
+	}
+
+	// Only lock-only records are eligible for reaping (PidID must be empty).
+	if rec.PidID != "" {
+		return false
+	}
+
+	age := entryAge(entry, il.now())
+
+	// Hard branch: age alone qualifies — fires for both named and legacy records.
+	if age > il.config.HardReapAge {
+		il.identityLogger().Info("natskv identity: reaping stale lock (hard age threshold)",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
-			slog.String("staleMember", rec.MemberID))
-		_ = il.identities.Delete(ctx, kvKey(ci))
-		if rec.MemberID != "" {
-			il.removeKeyFromMember(ctx, rec.MemberID, kvKey(ci))
+			slog.String("memberID", rec.MemberID),
+			slog.Duration("age", age),
+			slog.Duration("hardReapAge", il.config.HardReapAge))
+		il.casDelete(ctx, key, entry.Revision(), "maybeReapLock/hard")
+		return true
+	}
+
+	// Owner-absence branch: only applies when MemberID is set.
+	if rec.MemberID != "" {
+		ownerAbsent := il.cluster == nil || !cluster.ValidateActivationMember(il.cluster.MemberList, rec.MemberID)
+		if ownerAbsent && age > il.config.LockOwnerAbsentGrace {
+			il.identityLogger().Info("natskv identity: reaping stale lock (owner absent)",
+				slog.String("kind", ci.Kind),
+				slog.String("identity", ci.Identity),
+				slog.String("memberID", rec.MemberID),
+				slog.Duration("age", age),
+				slog.Duration("grace", il.config.LockOwnerAbsentGrace))
+			il.casDelete(ctx, key, entry.Revision(), "maybeReapLock/owner-absent")
+			return true
 		}
 	}
 
-	// Step 4: If client, request remote activation from a member via NATS.
-	if il.isClient {
-		arec := il.requestRemoteActivation(ctx, ci)
-		if arec != nil {
-			return pidFromRecord(arec)
-		}
-		return nil
-	}
-
-	// Step 5: Try to acquire the spawn lock.
-	lockID, revision, ok := il.tryAcquireLock(ctx, ci)
-	if !ok {
-		// Another node is spawning. Wait for it.
-		arec := il.waitForActivation(ctx, ci)
-		if arec != nil {
-			return pidFromRecord(arec)
-		}
-		return nil
-	}
-
-	// Step 6: Select target member via strategy manager.
-	senderAddress := il.cluster.ActorSystem.Address()
-	strMgr := il.strategyMgr.Load()
-	if strMgr == nil {
-		il.identityLogger().Warn("natskv identity: strategy manager is nil (cluster shutting down?)",
-			slog.String("kind", ci.Kind),
-			slog.String("identity", ci.Identity))
-		return nil
-	}
-	targetMember := strMgr.GetActivator(ci, senderAddress)
-	if targetMember == nil {
-		il.identityLogger().Warn("natskv identity: no available member for activation",
-			slog.String("kind", ci.Kind),
-			slog.String("identity", ci.Identity))
-		_ = il.identities.Delete(ctx, kvKey(ci))
-		return nil
-	}
-
-	// Step 7: Route activation request.
-	if targetMember.Id == il.memberID {
-		return il.activateLocal(ctx, ci, lockID, revision)
-	}
-
-	return il.activateRemote(ctx, ci, lockID, revision, targetMember)
+	return false
 }
 
 // activateLocal sends an ActivationRequest to the local placement actor.
@@ -455,7 +668,7 @@ func (il *IdentityLookup) activateLocal(ctx context.Context, ci *cluster.Cluster
 		il.identityLogger().Warn("natskv identity: placement actor is nil (cluster shutting down?)",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), revision, "activateLocal/nil-placement")
 		return nil
 	}
 
@@ -465,7 +678,7 @@ func (il *IdentityLookup) activateLocal(ctx context.Context, ci *cluster.Cluster
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.Any("error", err))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), revision, "activateLocal/request-failed")
 		return nil
 	}
 
@@ -474,14 +687,102 @@ func (il *IdentityLookup) activateLocal(ctx context.Context, ci *cluster.Cluster
 		il.identityLogger().Warn("natskv identity: placement actor returned failure",
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), revision, "activateLocal/response-failure")
 		return nil
+	}
+
+	// Reuse detection without a proto change: on a successful spawn the
+	// placement actor's PersistActivation callback consumed our lock revision
+	// and upgraded the record to lock-only -> PID. But on the REUSE path (the
+	// placement actor returned an already-tracked actor without spawning),
+	// PersistActivation never ran, so the record is still lock-only and our
+	// revision is still present. Detect that and upgrade the record ourselves
+	// using the held revision, so no lock-only record survives a successful
+	// activateLocal. On store failure, fall into the standard failure cleanup.
+	if _, held := il.lockRevisions.Load(lockID); held {
+		if rec := il.readRawRecord(ctx, ci); rec != nil && rec.PidID == "" {
+			il.lockRevisions.Delete(lockID)
+			storeErr := il.storeActivation(ctx, ci, lockID, revision, il.memberID,
+				activationResp.Pid.Address, activationResp.Pid.Id)
+			if storeErr != nil {
+				il.identityLogger().Error("natskv identity: failed to upgrade reused activation record",
+					slog.String("kind", ci.Kind),
+					slog.String("identity", ci.Identity),
+					slog.Any("error", storeErr))
+				il.casDelete(ctx, kvKey(ci), revision, "activateLocal/reuse-store-failed")
+				return nil
+			}
+		}
 	}
 
 	// Populate the local PID cache.
 	il.cluster.PidCache.Set(ci.Identity, ci.Kind, activationResp.Pid)
 
 	return activationResp.Pid
+}
+
+// readRawRecord reads the current identity record for ci without the
+// completed-activation filter that getExistingActivationWithRev applies, so
+// callers can distinguish a lock-only record (PidID == "") from a completed
+// one. Returns nil if the key is absent or unreadable.
+func (il *IdentityLookup) readRawRecord(ctx context.Context, ci *cluster.ClusterIdentity) *activationRecord {
+	entry, err := il.identities.Get(ctx, kvKey(ci))
+	if err != nil {
+		return nil
+	}
+	var rec activationRecord
+	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
+		return nil
+	}
+	return &rec
+}
+
+// checkActivationRecord is the PlacementConfig.CheckActivationRecord callback.
+// It classifies the persisted identity record for a grain the local placement
+// actor spawned but did not persist (remote-initiated activation) with one KV
+// Get: absent/unreadable -> RecordAbsent; lock-only (no PID) -> RecordLockOnly;
+// PID matches selfPID -> RecordOwn; PID differs -> RecordForeign.
+func (il *IdentityLookup) checkActivationRecord(ctx context.Context, ci *cluster.ClusterIdentity, selfPID *actor.PID) cluster.RecordCheck {
+	key := kvKey(ci)
+	entry, err := il.identities.Get(ctx, key)
+	if err != nil {
+		return cluster.RecordAbsent
+	}
+	var rec activationRecord
+	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
+		return cluster.RecordAbsent
+	}
+	if rec.PidID == "" {
+		return cluster.RecordLockOnly
+	}
+	if rec.PidID == selfPID.Id && rec.PidAddress == selfPID.Address {
+		return cluster.RecordOwn
+	}
+	return cluster.RecordForeign
+}
+
+// cleanupOwnRecord is the PlacementConfig.CleanupOwnRecord callback. After the
+// placement actor self-poisons a duplicate grain, it CAS-deletes a completed
+// record only if that record still points at selfPID. A successor's record
+// (different PID) is left untouched.
+func (il *IdentityLookup) cleanupOwnRecord(ctx context.Context, ci *cluster.ClusterIdentity, selfPID *actor.PID) {
+	key := kvKey(ci)
+	entry, err := il.identities.Get(ctx, key)
+	if err != nil {
+		return
+	}
+	var rec activationRecord
+	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
+		return
+	}
+	// Only delete a record that points at the poisoned PID.
+	if rec.PidID != selfPID.Id || rec.PidAddress != selfPID.Address {
+		return
+	}
+	if rec.MemberID != "" {
+		il.removeKeyFromMember(ctx, rec.MemberID, key)
+	}
+	il.casDelete(ctx, key, entry.Revision(), "cleanupOwnRecord")
 }
 
 // activateRemote sends an ActivationRequest to a remote node's proxy actor.
@@ -503,7 +804,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 			slog.String("identity", ci.Identity),
 			slog.String("targetMember", member.Id),
 			slog.Any("error", err))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), revision, "activateRemote/request-failed")
 		return nil
 	}
 
@@ -513,7 +814,7 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.String("targetMember", member.Id))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		il.casDelete(ctx, kvKey(ci), revision, "activateRemote/response-failure")
 		return nil
 	}
 
@@ -524,7 +825,13 @@ func (il *IdentityLookup) activateRemote(ctx context.Context, ci *cluster.Cluste
 			slog.String("kind", ci.Kind),
 			slog.String("identity", ci.Identity),
 			slog.Any("error", storeErr))
-		_ = il.identities.Delete(ctx, kvKey(ci))
+		// The remote placement actor spawned the grain but our persist failed,
+		// so the identity record is still lock-only. Ask the remote to remove
+		// the grain from its tracking and poison it BEFORE we delete the lock,
+		// so no live instance survives on the losing side. On timeout we
+		// proceed — the remote's self-check is the backstop.
+		il.requestRemoteRemoveAndPoison(member, ci, activationResp.Pid, revision)
+		il.casDelete(ctx, kvKey(ci), revision, "activateRemote/store-failed")
 		return nil
 	}
 
@@ -593,6 +900,12 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 // stops the proxy, closes the strategy manager, and removes member records.
 func (il *IdentityLookup) Shutdown() {
 	il.defunct.Store(true)
+	// Stop the janitor goroutine (member nodes only).
+	// sync.Once guards against a double-close panic if Shutdown is called more
+	// than once (e.g. by a finalizer and an explicit call).
+	if il.janitorStop != nil {
+		il.janitorStopOnce.Do(func() { close(il.janitorStop) })
+	}
 	// Stop placement actor first — this triggers graceful shutdown of all
 	// locally tracked grains (poisons them with DeactivationReasonShutdown).
 	if placementPID := il.placementPID.Swap(nil); placementPID != nil {
@@ -618,6 +931,9 @@ func (il *IdentityLookup) Shutdown() {
 	if il.activationSub != nil {
 		_ = il.activationSub.Unsubscribe()
 	}
+	if il.poisonSub != nil {
+		_ = il.poisonSub.Unsubscribe()
+	}
 	if il.setupErr != nil {
 		return
 	}
@@ -638,6 +954,17 @@ func kvKey(ci *cluster.ClusterIdentity) string {
 	return strings.ReplaceAll(ci.AsKey(), ":", "_")
 }
 
+// entryAge returns how long ago a KV entry was created, clamped to zero.
+// A negative result (server clock ahead of local clock) is treated as zero
+// to avoid incorrect reap decisions caused by clock skew.
+func entryAge(e jetstream.KeyValueEntry, now time.Time) time.Duration {
+	age := now.Sub(e.Created())
+	if age < 0 {
+		return 0
+	}
+	return age
+}
+
 // acquire acquires a slot from the concurrency semaphore.
 func (il *IdentityLookup) acquire() {
 	il.semaphore <- struct{}{}
@@ -651,35 +978,65 @@ func (il *IdentityLookup) release() {
 // getExistingActivation looks up the current activation for a cluster identity.
 // Returns nil if no activation exists or if the key only contains a lock (no PID).
 func (il *IdentityLookup) getExistingActivation(ctx context.Context, ci *cluster.ClusterIdentity) *activationRecord {
+	rec, _ := il.getExistingActivationWithRev(ctx, ci)
+	return rec
+}
+
+// getExistingActivationWithRev looks up the current activation for a cluster
+// identity and returns both the record and the NATS KV revision of the entry.
+// Returns (nil, 0) if no activation exists or if the key only contains a lock.
+// Callers that need to CAS-delete the record must use this revision.
+func (il *IdentityLookup) getExistingActivationWithRev(ctx context.Context, ci *cluster.ClusterIdentity) (*activationRecord, uint64) {
 	key := kvKey(ci)
 
 	entry, err := il.identities.Get(ctx, key)
 	if err != nil {
-		return nil
+		return nil, 0
 	}
 
 	var rec activationRecord
 	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
-		return nil
+		return nil, 0
 	}
 
 	// Only return if it's a completed activation (has PID info).
 	if rec.PidID == "" || rec.PidAddress == "" {
-		return nil
+		return nil, 0
 	}
 
-	return &rec
+	return &rec, entry.Revision()
+}
+
+// casDelete deletes the given key only if its current revision matches rev.
+// A CAS miss (ErrKeyExists from jetstream) is a terminal no-op: the key was
+// modified after our read, so we must not blind-delete. Any error other than
+// ErrKeyNotFound is logged at debug level. Never loops or falls back to
+// unconditional delete.
+func (il *IdentityLookup) casDelete(ctx context.Context, key string, rev uint64, site string) {
+	err := il.identities.Delete(ctx, key, jetstream.LastRevision(rev))
+	if err == nil || errors.Is(err, jetstream.ErrKeyNotFound) {
+		return
+	}
+	// CAS miss or transient error: terminal no-op.
+	il.identityLogger().Debug("natskv identity: casDelete miss (terminal no-op)",
+		slog.String("site", site),
+		slog.String("key", key),
+		slog.Uint64("rev", rev),
+		slog.Any("error", err))
 }
 
 // tryAcquireLock attempts to acquire an exclusive spawn lock for the given
 // cluster identity using NATS KV Create (atomic, fails if key exists).
 // Returns the lock ID, the revision for CAS, and whether the lock was acquired.
+// The MemberID field of the written record identifies this node as the lock
+// owner so that restart-resilience logic can detect and reap abandoned locks.
 func (il *IdentityLookup) tryAcquireLock(ctx context.Context, ci *cluster.ClusterIdentity) (lockID string, revision uint64, ok bool) {
 	lockID = uuid.New().String()
 	key := kvKey(ci)
 
 	rec := activationRecord{
-		LockID: lockID,
+		LockID:   lockID,
+		MemberID: il.memberID,
 	}
 	data, err := json.Marshal(&rec)
 	if err != nil {
@@ -701,7 +1058,13 @@ func (il *IdentityLookup) tryAcquireLock(ctx context.Context, ci *cluster.Cluste
 
 // storeActivation stores a completed activation using CAS (revision-based Update),
 // then tracks the key in the member's tracking record.
+//
+// The operation is bounded to 10s: an unresponsive KV must not block the
+// caller (activateRemote / the reuse-upgrade path) indefinitely.
 func (il *IdentityLookup) storeActivation(ctx context.Context, ci *cluster.ClusterIdentity, lockID string, revision uint64, memberID, pidAddress, pidID string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	key := kvKey(ci)
 
 	updated := activationRecord{
@@ -726,10 +1089,14 @@ func (il *IdentityLookup) storeActivation(ctx context.Context, ci *cluster.Clust
 }
 
 // waitForActivation watches the NATS KV key for the given cluster identity
-// until an activation appears (PID is set), or the lock TTL timeout expires.
+// until an activation appears (PID is set), or the WaiterWindow timeout expires.
+// WaiterWindow is intentionally shorter than LockTTL: it bounds how long a
+// caller waits for a lock holder to complete, so that abandoned locks are
+// detected and reaped promptly on the next resolution pass.
+// Note: requestRemoteActivation uses LockTTL for its own timeout (unchanged).
 func (il *IdentityLookup) waitForActivation(ctx context.Context, ci *cluster.ClusterIdentity) *activationRecord {
 	key := kvKey(ci)
-	watchCtx, cancel := context.WithTimeout(ctx, il.config.LockTTL)
+	watchCtx, cancel := context.WithTimeout(ctx, il.config.WaiterWindow)
 	defer cancel()
 
 	watcher, err := il.identities.Watch(watchCtx, key)
@@ -762,6 +1129,9 @@ func (il *IdentityLookup) waitForActivation(ctx context.Context, ci *cluster.Clu
 		}
 	}
 
+	// Loop exited: either the watch context timed out (WaiterWindow elapsed)
+	// or the watcher was closed due to a NATS error. Classify for metrics.
+	il.recordWaitTimeoutOutcome(ctx, key)
 	return nil
 }
 
@@ -786,11 +1156,38 @@ func (il *IdentityLookup) removeMemberID(ctx context.Context, memberID string) {
 	}
 
 	// Delete each identity key belonging to this member.
+	// Read each key first to obtain its current revision, then CAS-delete.
+	// If the key is absent between the list read and this read, skip it
+	// (another node already cleaned it up). If the record's MemberID has
+	// changed, the key was re-activated by a different member -- skip it
+	// (the tracking list is stale but the new owner is alive). A CAS miss
+	// from a concurrent writer is a terminal no-op.
 	for _, key := range mrec.Keys {
-		if err := il.identities.Delete(ctx, key); err != nil && !errors.Is(err, jetstream.ErrKeyNotFound) {
-			il.identityLogger().Error("natskv identity: removeMemberID delete identity failed",
+		idEntry, err := il.identities.Get(ctx, key)
+		if err != nil {
+			if errors.Is(err, jetstream.ErrKeyNotFound) {
+				continue // already gone -- nothing to do
+			}
+			il.identityLogger().Error("natskv identity: removeMemberID get identity failed",
 				slog.String("key", key), slog.Any("error", err))
+			continue
 		}
+		// Validate that the stored record still belongs to this member.
+		// If another member has re-activated the grain, leave it alone.
+		var idRec activationRecord
+		if jsonErr := json.Unmarshal(idEntry.Value(), &idRec); jsonErr != nil {
+			il.identityLogger().Error("natskv identity: removeMemberID unmarshal identity failed",
+				slog.String("key", key), slog.Any("error", jsonErr))
+			continue
+		}
+		if idRec.MemberID != memberID {
+			il.identityLogger().Debug("natskv identity: removeMemberID skipping key taken by new member",
+				slog.String("key", key),
+				slog.String("currentOwner", idRec.MemberID),
+				slog.String("removedMember", memberID))
+			continue
+		}
+		il.casDelete(ctx, key, idEntry.Revision(), "removeMemberID")
 	}
 
 	// Delete the member tracking record itself.
@@ -925,6 +1322,142 @@ func (il *IdentityLookup) handleActivationRequest(msg *nats.Msg) {
 
 	resp, _ := json.Marshal(activationResp{PidID: pid.Id, PidAddress: pid.Address})
 	_ = msg.Respond(resp)
+}
+
+// requestRemoteRemoveAndPoison asks the member hosting a remotely-spawned grain
+// to remove it from tracking and poison it. It is best-effort: on any error or
+// timeout it returns and the caller proceeds (the remote placement actor's
+// self-check is the backstop). Bounded to 5s.
+func (il *IdentityLookup) requestRemoteRemoveAndPoison(member *cluster.Member, ci *cluster.ClusterIdentity, pid *actor.PID, revision uint64) {
+	nc := il.provider.nc
+	if nc == nil {
+		return
+	}
+
+	data, err := json.Marshal(poisonReq{
+		Kind:       ci.Kind,
+		Identity:   ci.Identity,
+		PidID:      pid.Id,
+		PidAddress: pid.Address,
+		Revision:   revision,
+	})
+	if err != nil {
+		return
+	}
+
+	reqCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	subject := poisonSubject(il.cluster.Config.Name) + "." + member.Id
+	if _, err := nc.RequestWithContext(reqCtx, subject, data); err != nil {
+		il.identityLogger().Warn("natskv identity: remote remove-and-poison request failed (self-check is backstop)",
+			slog.String("targetMember", member.Id),
+			slog.String("pid", pid.String()),
+			slog.Any("error", err))
+	}
+}
+
+// handleRemoveAndPoisonRequest is the NATS subscription handler for peer
+// remove-and-poison requests. It validates that the target grain is genuinely
+// an orphan of the caller's failed activation before forwarding a
+// RemoveAndPoisonRequest to the local placement actor.
+//
+// Decision rule (target validation against replay/spoof): re-read the identity
+// record and honor the poison only when the target is provably the loser's
+// unresolved activation:
+//
+//   - record ABSENT: the loser's lock was already released and no successor has
+//     written a record, so the tracked grain is a genuine orphan -> honor.
+//   - record LOCK-ONLY (PidID == "") AND its current revision == the caller's
+//     carried revision: this is still the loser's own unresolved lock (its
+//     persist failed before it could upgrade the record) -> honor.
+//   - anything else -> REJECT. A non-empty PidID means some activation (a
+//     successor, or the loser itself) has completed and is authoritative; a
+//     revision mismatch on a lock-only record means the lock was re-acquired by
+//     a successor. A replayed poisonReq from an earlier failed activation
+//     carries a stale revision, so it cannot match the current record and is
+//     rejected, protecting the legitimate successor.
+//
+// This mirrors the CAS-with-revision discipline used throughout the identity
+// store: the caller's held lock revision is the proof that the record it wants
+// poisoned is the same record it lost on.
+func (il *IdentityLookup) handleRemoveAndPoisonRequest(msg *nats.Msg) {
+	var req poisonReq
+	if err := json.Unmarshal(msg.Data, &req); err != nil {
+		resp, _ := json.Marshal(poisonResp{Error: "bad request"})
+		_ = msg.Respond(resp)
+		return
+	}
+
+	placementPID := il.placementPID.Load()
+	if placementPID == nil {
+		resp, _ := json.Marshal(poisonResp{Error: "no placement actor"})
+		_ = msg.Respond(resp)
+		return
+	}
+
+	if !il.poisonTargetIsOrphan(&req) {
+		il.identityLogger().Warn("natskv identity: rejecting remove-and-poison request; target is not an orphan of the caller's failed activation (replay/spoof guard)",
+			slog.String("kind", req.Kind),
+			slog.String("identity", req.Identity),
+			slog.String("pid", req.PidAddress+"/"+req.PidID),
+			slog.Uint64("callerRevision", req.Revision))
+		resp, _ := json.Marshal(poisonResp{Error: "rejected: target not orphaned"})
+		_ = msg.Respond(resp)
+		return
+	}
+
+	pid := actor.NewPID(req.PidAddress, req.PidID)
+	future := il.cluster.ActorSystem.Root.RequestFuture(placementPID,
+		&cluster.RemoveAndPoisonRequest{PID: pid}, 5*time.Second)
+	if _, err := future.Result(); err != nil {
+		resp, _ := json.Marshal(poisonResp{Error: err.Error()})
+		_ = msg.Respond(resp)
+		return
+	}
+
+	resp, _ := json.Marshal(poisonResp{Ok: true})
+	_ = msg.Respond(resp)
+}
+
+// poisonTargetIsOrphan re-reads the identity record named by the request and
+// reports whether the poison should be honored. See handleRemoveAndPoisonRequest
+// for the decision rule. A missing kind/identity (older wire format) is treated
+// as not-orphan, so an unvalidatable request is rejected rather than trusted.
+func (il *IdentityLookup) poisonTargetIsOrphan(req *poisonReq) bool {
+	if req.Kind == "" && req.Identity == "" {
+		return false
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	key := kvKey(&cluster.ClusterIdentity{Kind: req.Kind, Identity: req.Identity})
+	entry, err := il.identities.Get(ctx, key)
+	if err != nil {
+		// Record absent: the loser's lock was released and no successor has
+		// written a record yet. The tracked grain is a genuine orphan.
+		if errors.Is(err, jetstream.ErrKeyNotFound) {
+			return true
+		}
+		// Any other read error: fail closed (do not poison on uncertainty).
+		return false
+	}
+
+	var rec activationRecord
+	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
+		return false
+	}
+
+	// A completed record (PidID set) is authoritative — a successor (or the
+	// loser itself) has resolved the identity. Never poison against it.
+	if rec.PidID != "" {
+		return false
+	}
+
+	// Lock-only record: honor only if it is still the loser's own lock, proven
+	// by the revision matching the one the caller held when its persist failed.
+	return entry.Revision() == req.Revision
 }
 
 // requestRemoteActivation sends a NATS request to a cluster member asking it

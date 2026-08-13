@@ -7,15 +7,20 @@ import (
 )
 
 const (
-	defaultMemberTTL         = 5 * time.Second
-	defaultRefreshInterval   = 2 * time.Second
-	defaultReconcileInterval = 15 * time.Second
-	defaultLeaderTTL         = 10 * time.Second
-	defaultLockTTL           = 5 * time.Second
-	defaultMaxConcurrency    = 200
-	defaultReplicas          = 1
-	defaultKeyPrefix         = "cluster"
-	defaultRetryInterval     = 1 * time.Second
+	defaultMemberTTL             = 5 * time.Second
+	defaultRefreshInterval       = 2 * time.Second
+	defaultReconcileInterval     = 15 * time.Second
+	defaultLeaderTTL             = 10 * time.Second
+	defaultLockTTL               = 5 * time.Second
+	defaultMaxConcurrency        = 200
+	defaultReplicas              = 1
+	defaultKeyPrefix             = "cluster"
+	defaultRetryInterval         = 1 * time.Second
+	defaultLockOwnerAbsentGrace  = 30 * time.Second
+	defaultHardReapAge           = 60 * time.Second
+	defaultActivationAbsentGrace = 60 * time.Second
+	defaultWaiterWindow          = 15 * time.Second
+	defaultJanitorInterval       = 30 * time.Second
 )
 
 // config holds internal configuration for the NATS KV cluster provider.
@@ -32,6 +37,28 @@ type config struct {
 	MaxConcurrency    int
 	RetryInterval     time.Duration
 	RoleChanged       cluster.RoleChangedListener
+
+	// Reaping and janitor configuration.
+	//
+	// LockOwnerAbsentGrace is the duration after which a lock record whose
+	// owning member is absent from the cluster may be forcibly reaped.
+	LockOwnerAbsentGrace time.Duration
+
+	// HardReapAge is the maximum age of any identity record; entries older
+	// than this are eligible for forced removal regardless of member state.
+	HardReapAge time.Duration
+
+	// ActivationAbsentGrace is the time after which an activation whose
+	// owning member is no longer in the cluster is eligible for cleanup.
+	ActivationAbsentGrace time.Duration
+
+	// WaiterWindow is the maximum time a node waits for an in-progress
+	// activation (held lock) to resolve before treating the lock as stale.
+	WaiterWindow time.Duration
+
+	// JanitorInterval is the cadence at which the background janitor
+	// scans for and removes stale identity records.
+	JanitorInterval time.Duration
 }
 
 // Option configures the NATS KV cluster provider.
@@ -100,17 +127,53 @@ func WithRoleChangedListener(l cluster.RoleChangedListener) Option {
 	return func(c *config) { c.RoleChanged = l }
 }
 
+// WithLockOwnerAbsentGrace sets the grace period before a lock whose owning
+// member is absent from the cluster may be forcibly reaped.
+func WithLockOwnerAbsentGrace(d time.Duration) Option {
+	return func(c *config) { c.LockOwnerAbsentGrace = d }
+}
+
+// WithHardReapAge sets the maximum age of any identity record before it is
+// eligible for forced removal regardless of member state.
+func WithHardReapAge(d time.Duration) Option {
+	return func(c *config) { c.HardReapAge = d }
+}
+
+// WithActivationAbsentGrace sets the time after which an activation whose
+// owning member is no longer in the cluster is eligible for cleanup.
+func WithActivationAbsentGrace(d time.Duration) Option {
+	return func(c *config) { c.ActivationAbsentGrace = d }
+}
+
+// WithWaiterWindow sets the maximum time a node waits for an in-progress
+// activation to resolve before treating the lock as stale.
+func WithWaiterWindow(d time.Duration) Option {
+	return func(c *config) { c.WaiterWindow = d }
+}
+
+// WithJanitorInterval sets the cadence at which the background janitor
+// scans for and removes stale identity records. A value <= 0 disables
+// the janitor.
+func WithJanitorInterval(d time.Duration) Option {
+	return func(c *config) { c.JanitorInterval = d }
+}
+
 func newDefaultConfig() *config {
 	return &config{
-		KeyPrefix:         defaultKeyPrefix,
-		Replicas:          defaultReplicas,
-		MemberTTL:         defaultMemberTTL,
-		RefreshInterval:   defaultRefreshInterval,
-		ReconcileInterval: defaultReconcileInterval,
-		LeaderTTL:         defaultLeaderTTL,
-		LockTTL:           defaultLockTTL,
-		MaxConcurrency:    defaultMaxConcurrency,
-		RetryInterval:     defaultRetryInterval,
+		KeyPrefix:             defaultKeyPrefix,
+		Replicas:              defaultReplicas,
+		MemberTTL:             defaultMemberTTL,
+		RefreshInterval:       defaultRefreshInterval,
+		ReconcileInterval:     defaultReconcileInterval,
+		LeaderTTL:             defaultLeaderTTL,
+		LockTTL:               defaultLockTTL,
+		MaxConcurrency:        defaultMaxConcurrency,
+		RetryInterval:         defaultRetryInterval,
+		LockOwnerAbsentGrace:  defaultLockOwnerAbsentGrace,
+		HardReapAge:           defaultHardReapAge,
+		ActivationAbsentGrace: defaultActivationAbsentGrace,
+		WaiterWindow:          defaultWaiterWindow,
+		JanitorInterval:       defaultJanitorInterval,
 	}
 }
 
