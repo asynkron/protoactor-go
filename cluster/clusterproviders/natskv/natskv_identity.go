@@ -111,6 +111,10 @@ type IdentityLookup struct {
 	// It is non-nil only on non-client (member) nodes.
 	janitorStop     chan struct{}
 	janitorStopOnce sync.Once
+
+	// writeGuard tracks consecutive identity-write failures and drives the
+	// fail-stop watchdog. See writeFailureGuard.
+	writeGuard writeFailureGuard
 }
 
 // SetsOwnPidCache returns true, signalling to DefaultContext that this
@@ -343,6 +347,7 @@ func (il *IdentityLookup) setupPlacementActor(c *cluster.Cluster) {
 		}
 
 		_, err = il.identities.Update(ctx, key, data, rev)
+		il.recordIdentityWriteOutcome("persistActivation/update", false, err)
 		if err != nil {
 			return cluster.ErrLockNotHeld
 		}
@@ -380,7 +385,9 @@ func (il *IdentityLookup) setupPlacementActor(c *cluster.Cluster) {
 		}
 
 		// CAS delete.
-		if err := il.identities.Delete(ctx, key, jetstream.LastRevision(entry.Revision())); err != nil {
+		err = il.identities.Delete(ctx, key, jetstream.LastRevision(entry.Revision()))
+		il.recordIdentityWriteOutcome("removeActivation/delete", true, err)
+		if err != nil {
 			if !errors.Is(err, jetstream.ErrKeyNotFound) && !errors.Is(err, jetstream.ErrKeyExists) {
 				return err
 			}
@@ -887,12 +894,8 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 
 	// Use CAS delete (LastRevision) so the delete only succeeds if the
 	// key hasn't been modified since we read it.
-	if err := il.identities.Delete(ctx, key, jetstream.LastRevision(entry.Revision())); err != nil {
-		if !errors.Is(err, jetstream.ErrKeyNotFound) && !errors.Is(err, jetstream.ErrKeyExists) {
-			il.identityLogger().Error("natskv identity: RemovePid delete failed",
-				slog.String("key", key), slog.Any("error", err))
-		}
-	}
+	err = il.identities.Delete(ctx, key, jetstream.LastRevision(entry.Revision()))
+	il.recordIdentityWriteOutcome("RemovePid/delete", true, err)
 }
 
 // Shutdown performs cleanup when the cluster is shutting down.
@@ -1014,15 +1017,13 @@ func (il *IdentityLookup) getExistingActivationWithRev(ctx context.Context, ci *
 // unconditional delete.
 func (il *IdentityLookup) casDelete(ctx context.Context, key string, rev uint64, site string) {
 	err := il.identities.Delete(ctx, key, jetstream.LastRevision(rev))
-	if err == nil || errors.Is(err, jetstream.ErrKeyNotFound) {
-		return
-	}
-	// CAS miss or transient error: terminal no-op.
-	il.identityLogger().Debug("natskv identity: casDelete miss (terminal no-op)",
-		slog.String("site", site),
-		slog.String("key", key),
-		slog.Uint64("rev", rev),
-		slog.Any("error", err))
+	// Control flow is unchanged: casDelete is always a terminal no-op and
+	// never retries or blind-deletes. Only the logging/accounting differs --
+	// the recorder classifies the error (success / benign CAS conflict / real
+	// failure), resetting or advancing the fail-stop streak accordingly. A CAS
+	// miss (wrong-last-sequence) is benign and Debug-logged; a genuine write
+	// failure is now surfaced at Warn instead of being swallowed at Debug.
+	il.recordIdentityWriteOutcome("casDelete/"+site, true, err)
 }
 
 // tryAcquireLock attempts to acquire an exclusive spawn lock for the given
@@ -1046,12 +1047,13 @@ func (il *IdentityLookup) tryAcquireLock(ctx context.Context, ci *cluster.Cluste
 
 	revision, err = il.identities.Create(ctx, key, data)
 	if err != nil {
-		if !errors.Is(err, jetstream.ErrKeyExists) {
-			il.identityLogger().Error("natskv identity: tryAcquireLock failed",
-				slog.String("key", key), slog.Any("error", err))
-		}
+		// ErrKeyExists (code 10071) means another node holds the lock: a benign
+		// CAS conflict that resets the failure streak. Anything else is a real
+		// write failure, surfaced at Warn and counted toward fail-stop.
+		il.recordIdentityWriteOutcome("tryAcquireLock/create", false, err)
 		return "", 0, false
 	}
+	il.recordIdentityWriteOutcome("tryAcquireLock/create", false, nil)
 
 	return lockID, revision, true
 }
@@ -1079,6 +1081,9 @@ func (il *IdentityLookup) storeActivation(ctx context.Context, ci *cluster.Clust
 	}
 
 	_, err = il.identities.Update(ctx, key, data, revision)
+	// Record the outcome: a wrong-last-sequence conflict (another writer won
+	// the CAS) is benign and resets the streak; a genuine failure counts.
+	il.recordIdentityWriteOutcome("storeActivation/update", false, err)
 	if err != nil {
 		return err
 	}
@@ -1191,10 +1196,8 @@ func (il *IdentityLookup) removeMemberID(ctx context.Context, memberID string) {
 	}
 
 	// Delete the member tracking record itself.
-	if err := il.memberTracker.Delete(ctx, memberID); err != nil && !errors.Is(err, jetstream.ErrKeyNotFound) {
-		il.identityLogger().Error("natskv identity: removeMemberID delete member failed",
-			slog.String("memberID", memberID), slog.Any("error", err))
-	}
+	err = il.memberTracker.Delete(ctx, memberID)
+	il.recordIdentityWriteOutcome("removeMemberID/deleteMember", true, err)
 }
 
 // addKeyToMember adds an identity key to a member's tracking record.
@@ -1212,6 +1215,7 @@ func (il *IdentityLookup) addKeyToMember(ctx context.Context, memberID, key stri
 				return
 			}
 			_, err = il.memberTracker.Create(ctx, memberID, data)
+			il.recordIdentityWriteOutcome("addKeyToMember/create", false, err)
 			if err == nil {
 				return
 			}
@@ -1219,8 +1223,6 @@ func (il *IdentityLookup) addKeyToMember(ctx context.Context, memberID, key stri
 				// Another goroutine created it first -- retry with update.
 				continue
 			}
-			il.identityLogger().Error("natskv identity: addKeyToMember create failed",
-				slog.String("memberID", memberID), slog.Any("error", err))
 			return
 		}
 		if err != nil {
@@ -1252,6 +1254,7 @@ func (il *IdentityLookup) addKeyToMember(ctx context.Context, memberID, key stri
 		}
 
 		_, err = il.memberTracker.Update(ctx, memberID, data, entry.Revision())
+		il.recordIdentityWriteOutcome("addKeyToMember/update", false, err)
 		if err == nil {
 			return
 		}
@@ -1293,6 +1296,7 @@ func (il *IdentityLookup) removeKeyFromMember(ctx context.Context, memberID, key
 		}
 
 		_, err = il.memberTracker.Update(ctx, memberID, data, entry.Revision())
+		il.recordIdentityWriteOutcome("removeKeyFromMember/update", false, err)
 		if err == nil {
 			return
 		}

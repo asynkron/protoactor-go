@@ -959,6 +959,27 @@ func (p *Provider) IsLeader() bool {
 	return p.isLeader.Load()
 }
 
+// releaseLeadershipBestEffort deletes this node's leader key so that a
+// successor can be elected immediately, rather than waiting for the leader
+// key's TTL to lapse. It is called from the fail-stop path just before the
+// process exits: the identities write handle has failed, but the leader key
+// lives in a separate bucket (leaderBucket) whose handle is very likely still
+// healthy, so this release usually succeeds and makes succession immediate.
+//
+// It is strictly best-effort: any error is swallowed (we are about to exit
+// anyway), and the local isLeader flag is cleared regardless. Returns true if
+// the leader-key delete call returned no error.
+func (p *Provider) releaseLeadershipBestEffort() bool {
+	p.isLeader.Store(false)
+	if p.leaderBucket == nil {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	err := p.leaderBucket.Delete(ctx, p.leaderKey())
+	return err == nil || errors.Is(err, jetstream.ErrKeyNotFound)
+}
+
 // MemberKeyExists reports whether a member key currently exists in the members KV bucket.
 // It performs a direct KV Get — not the in-memory map — so it detects member keys
 // that were restored between janitor sweeps.
