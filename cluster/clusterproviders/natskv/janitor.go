@@ -3,10 +3,12 @@ package natskv
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"sync"
 	"time"
 
+	"github.com/nats-io/nats.go/jetstream"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -86,22 +88,37 @@ func (il *IdentityLookup) runJanitor() {
 //     AND (b) age-since-first-observation >= ActivationAbsentGrace.
 //     If the member key is restored between sweeps, ac entry is cleared.
 func (il *IdentityLookup) janitorSweep(ctx context.Context, ac *janitorAbsenceClock) {
+	start := il.now()
+
 	lister, err := il.identities.ListKeys(ctx)
 	if err != nil {
-		il.identityLogger().Debug("natskv janitor: list keys failed", slog.Any("error", err))
+		// A ListKeys failure means the sweep could not run at all -- that is an
+		// operational fault, not a quiet no-op, so it is surfaced at Warn (was
+		// Debug) and counted as an error sweep.
+		il.identityLogger().Warn("natskv janitor: list keys failed", slog.Any("error", err))
+		il.recordJanitorSweep("error")
 		return
 	}
 
-	now := il.now()
+	now := start
+	var scanned, lockReaps, activationCleans, sweepErrors int
 
 	for key := range lister.Keys() {
+		scanned++
+
 		entry, err := il.identities.Get(ctx, key)
 		if err != nil {
+			// A per-key Get failure (other than a benign not-found race) is an
+			// error observation for this sweep.
+			if !errors.Is(err, jetstream.ErrKeyNotFound) {
+				sweepErrors++
+			}
 			continue
 		}
 
 		var rec activationRecord
 		if err := json.Unmarshal(entry.Value(), &rec); err != nil {
+			sweepErrors++
 			continue
 		}
 
@@ -114,6 +131,8 @@ func (il *IdentityLookup) janitorSweep(ctx context.Context, ac *janitorAbsenceCl
 					slog.String("memberID", rec.MemberID),
 					slog.Duration("age", age))
 				il.casDelete(ctx, key, entry.Revision(), "janitor/hard-reap-lock")
+				lockReaps++
+				il.recordJanitorReap("lock")
 				// No absence state to clear: lock records are not tracked in ac.
 			}
 		} else {
@@ -134,11 +153,57 @@ func (il *IdentityLookup) janitorSweep(ctx context.Context, ac *janitorAbsenceCl
 						slog.Int("observations", count),
 						slog.Duration("absentFor", elapsed))
 					il.casDelete(ctx, key, entry.Revision(), "janitor/absent-member")
+					activationCleans++
+					il.recordJanitorReap("activation")
 					ac.clear(key)
 				}
 			}
 		}
 	}
+
+	durationMs := il.now().Sub(start).Milliseconds()
+	workDone := lockReaps > 0 || activationCleans > 0
+	// Summary line: Info when the sweep did work or hit errors, Debug when the
+	// sweep was entirely quiet (all zeros), so operators see reaps/faults but
+	// steady-state sweeps do not spam the log.
+	logSummary := il.identityLogger().Debug
+	if workDone || sweepErrors > 0 {
+		logSummary = il.identityLogger().Info
+	}
+	logSummary("natskv janitor: sweep complete",
+		slog.Int("scanned", scanned),
+		slog.Int("lockReaps", lockReaps),
+		slog.Int("activationCleans", activationCleans),
+		slog.Int("errors", sweepErrors),
+		slog.Int64("durationMs", durationMs))
+
+	outcome := "clean"
+	if sweepErrors > 0 {
+		outcome = "error"
+	} else if workDone {
+		outcome = "work"
+	}
+	il.recordJanitorSweep(outcome)
+}
+
+// recordJanitorSweep bumps the sweep-outcome counter, labelled by outcome
+// ("clean", "work", or "error"). No-op when metrics are disabled.
+func (il *IdentityLookup) recordJanitorSweep(outcome string) {
+	if il.provider == nil || !il.provider.metricsEnabled || il.provider.providerMetrics == nil {
+		return
+	}
+	il.provider.providerMetrics.JanitorSweepTotal.Add(context.Background(), 1,
+		metric.WithAttributes(attribute.String("outcome", outcome)))
+}
+
+// recordJanitorReap bumps the reap counter, labelled by type ("lock" or
+// "activation"). No-op when metrics are disabled.
+func (il *IdentityLookup) recordJanitorReap(reapType string) {
+	if il.provider == nil || !il.provider.metricsEnabled || il.provider.providerMetrics == nil {
+		return
+	}
+	il.provider.providerMetrics.JanitorReapTotal.Add(context.Background(), 1,
+		metric.WithAttributes(attribute.String("type", reapType)))
 }
 
 // recordWaitTimeoutOutcome classifies the outcome of a waitForActivation timeout
