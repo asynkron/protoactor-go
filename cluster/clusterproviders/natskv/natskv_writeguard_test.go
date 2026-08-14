@@ -392,3 +392,109 @@ func TestWarnRateLimit(t *testing.T) {
 	il.recordIdentityWriteOutcome("casDelete/x", true, realErr)
 	require.Equal(t, 2, h.countByLevelAndMsg(slog.LevelWarn, "write failed"))
 }
+
+// TestRecordOutcomeAfterShutdownNeverTrips verifies that once Shutdown() marks
+// an IdentityLookup as defunct, subsequent erroring writes do not advance the
+// failure streak and cannot trip FailStop. A late canceled write during clean
+// shutdown must never os.Exit the process.
+func TestRecordOutcomeAfterShutdownNeverTrips(t *testing.T) {
+	var tripped atomic.Int32
+	il, nowP := newGuardOnlyIL(t,
+		WithWriteFailureThreshold(2),
+		WithWriteFailureWindow(time.Second),
+		WithFailStop(func(string) { tripped.Add(1) }),
+	)
+
+	realErr := errors.New("context canceled")
+
+	// Mark defunct (mimics Shutdown).
+	il.defunct.Store(true)
+
+	// Drive many errors past threshold+window; none should advance the streak
+	// or trip fail-stop.
+	for i := 0; i < 10; i++ {
+		il.recordIdentityWriteOutcome("op", false, realErr)
+	}
+	*nowP = nowP.Add(2 * time.Second)
+	for i := 0; i < 10; i++ {
+		il.recordIdentityWriteOutcome("op", false, realErr)
+	}
+
+	require.Zero(t, il.streakLenForTest(), "streak must stay zero after Shutdown")
+	require.Zero(t, tripped.Load(), "FailStop must never be called after Shutdown")
+}
+
+// TestClassifyWriteError_RealKV verifies that the classifyWriteError function
+// maps the actual errors produced by a live embedded NATS KV to the expected
+// writeOutcome values. This catches any behavior change in nats.go on version
+// bumps that synthetic error construction (wrongLastSeqErr) would not detect.
+func TestClassifyWriteError_RealKV(t *testing.T) {
+	il := buildBareIdentityLookup(t)
+	ctx := context.Background()
+	kv := il.identities
+
+	t.Run("Create-conflict is writeCASConflict", func(t *testing.T) {
+		key := "rkvtest/create-conflict"
+		_, err := kv.Create(ctx, key, []byte("v1"))
+		require.NoError(t, err, "first Create must succeed")
+
+		// Second Create on existing key must return the error that
+		// classifyWriteError maps to writeCASConflict.
+		_, createErr := kv.Create(ctx, key, []byte("v2"))
+		require.Error(t, createErr)
+		require.Equal(t, writeCASConflict, classifyWriteError(createErr, false),
+			"Create on existing key must classify as writeCASConflict (resets streak)")
+	})
+
+	t.Run("Update wrong-last-seq is writeCASConflict", func(t *testing.T) {
+		key := "rkvtest/update-wrong-seq"
+		rev, err := kv.Create(ctx, key, []byte("v1"))
+		require.NoError(t, err)
+
+		// Update with a stale revision (rev-1 or 0) triggers wrong-last-sequence.
+		staleRev := uint64(0)
+		if rev > 0 {
+			staleRev = rev - 1
+		}
+		_, updateErr := kv.Update(ctx, key, []byte("v2"), staleRev)
+		require.Error(t, updateErr)
+		require.Equal(t, writeCASConflict, classifyWriteError(updateErr, false),
+			"Update with wrong revision must classify as writeCASConflict (resets streak)")
+	})
+
+	t.Run("guarded-Delete wrong-last-seq is writeCASConflict", func(t *testing.T) {
+		key := "rkvtest/delete-wrong-seq"
+		rev, err := kv.Create(ctx, key, []byte("v1"))
+		require.NoError(t, err)
+
+		// Delete with a stale revision triggers wrong-last-sequence on the KV stream.
+		staleRev := uint64(0)
+		if rev > 0 {
+			staleRev = rev - 1
+		}
+		deleteErr := kv.Delete(ctx, key, jetstream.LastRevision(staleRev))
+		require.Error(t, deleteErr)
+		require.Equal(t, writeCASConflict, classifyWriteError(deleteErr, false),
+			"guarded Delete with wrong revision must classify as writeCASConflict (resets streak)")
+	})
+
+	t.Run("unguarded delete of absent key is writeSuccess", func(t *testing.T) {
+		key := "rkvtest/delete-absent"
+		// Key was never created; plain Delete returns ErrKeyNotFound.
+		deleteErr := kv.Delete(ctx, key)
+		// classifyWriteError(isDelete=true) maps ErrKeyNotFound to writeSuccess.
+		require.Equal(t, writeSuccess, classifyWriteError(deleteErr, true),
+			"unguarded delete of absent key must classify as writeSuccess")
+	})
+
+	t.Run("canceled-context write is writeFailure", func(t *testing.T) {
+		key := "rkvtest/canceled-ctx"
+		canceledCtx, cancel := context.WithCancel(ctx)
+		cancel() // immediately canceled
+
+		_, createErr := kv.Create(canceledCtx, key, []byte("v1"))
+		require.Error(t, createErr)
+		require.Equal(t, writeFailure, classifyWriteError(createErr, false),
+			"write with canceled context must classify as writeFailure (increments streak)")
+	})
+}

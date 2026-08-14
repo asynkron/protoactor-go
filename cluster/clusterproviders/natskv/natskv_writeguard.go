@@ -110,7 +110,16 @@ const writeGuardWarnInterval = time.Second
 // isDelete tells the classifier whether ErrKeyNotFound is benign (delete) or a
 // failure (create/update). It returns the classified outcome so callers can
 // keep any control flow that depends on it (none currently need to).
+//
+// If the IdentityLookup is already defunct (Shutdown was called), the call is
+// a no-op: accounting is skipped and FailStop is never tripped. Writes that
+// race with clean shutdown can return context.Canceled or similar transient
+// errors; those must not advance the streak or terminate the process.
 func (il *IdentityLookup) recordIdentityWriteOutcome(op string, isDelete bool, err error) writeOutcome {
+	if il.defunct.Load() {
+		return classifyWriteError(err, isDelete)
+	}
+
 	outcome := classifyWriteError(err, isDelete)
 
 	switch outcome {
@@ -205,6 +214,14 @@ func (il *IdentityLookup) recordWriteFailure(op string, err error) {
 // best-effort leadership release (if this node is leader), then invocation of
 // the configured FailStop action (default os.Exit(70)). It is only ever
 // reached once (guarded by g.tripped).
+//
+// Cluster-wide simultaneous fail-stop is BY DESIGN: if the NATS write path
+// is down for longer than WriteFailureWindow, every member that is actively
+// writing will independently trip its own watchdog and exit at roughly the
+// same time. This is safe because StartMember fails cleanly at Setup (bucket
+// creation returns an error) until NATS recovers, so a supervisor loop will
+// simply keep retrying until the KV is available and then bring the member
+// up cleanly with fresh write handles.
 func (il *IdentityLookup) tripFailStop(streak int, streakStart time.Time, lastErr error) {
 	isLeader := il.provider != nil && il.provider.IsLeader()
 	window := il.now().Sub(streakStart)

@@ -83,10 +83,11 @@ type config struct {
 	// produced more than WriteFailureThreshold consecutive errors.
 	WriteFailureWindow time.Duration
 
-	// FailStop is invoked when the write-failure watchdog trips. The default
-	// logs the failure context and calls os.Exit(70) so the supervisor
-	// restarts the process and re-establishes the KV write handles. Set to
-	// nil (via WithFailStopDisabled) to disable fail-stop, e.g. in tests.
+	// FailStop is invoked when the write-failure watchdog trips. A nil value
+	// is the default: tripFailStop resolves it to defaultFailStop (os.Exit(70))
+	// at trip time so the supervisor restarts the process and re-establishes
+	// the KV write handles. Use WithFailStop to supply a custom action, or
+	// WithFailStopDisabled to install a no-op (e.g. in tests).
 	FailStop func(reason string)
 
 	// RemoteActivationTimeout bounds the client-side remote activation
@@ -256,9 +257,11 @@ func newDefaultConfig() *config {
 		WriteFailureThreshold:   defaultWriteFailureThreshold,
 		WriteFailureWindow:      defaultWriteFailureWindow,
 		RemoteActivationTimeout: defaultRemoteActivationTO,
-		// FailStop left nil here; the default action is installed by the
-		// provider at Setup time so it can capture leadership state. See
-		// defaultFailStop.
+		// FailStop is intentionally left nil here. The nil value is a lazy
+		// sentinel: tripFailStop resolves it to defaultFailStop at trip time,
+		// not at Setup time, so the logger and leadership state are current
+		// when the watchdog actually fires. Callers that want a custom action
+		// (e.g. tests) should use WithFailStop or WithFailStopDisabled.
 	}
 }
 
