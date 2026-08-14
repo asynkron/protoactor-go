@@ -21,6 +21,18 @@ const (
 	defaultActivationAbsentGrace = 60 * time.Second
 	defaultWaiterWindow          = 15 * time.Second
 	defaultJanitorInterval       = 30 * time.Second
+
+	defaultWriteFailureThreshold = 15
+	defaultWriteFailureWindow    = 90 * time.Second
+	defaultRemoteActivationTO    = 12 * time.Second
+
+	// failStopExitCode is the process exit code used by the default FailStop
+	// action. 70 is BSD sysexits.h EX_SOFTWARE ("internal software error"):
+	// an unambiguous, non-zero, non-generic code that lets an orchestrator
+	// distinguish a self-diagnosed fail-stop from a crash (SIGSEGV) or a
+	// normal exit. The process exits so the supervisor restarts it clean,
+	// which re-establishes the KV write handles that failed silently.
+	failStopExitCode = 70
 )
 
 // config holds internal configuration for the NATS KV cluster provider.
@@ -59,6 +71,29 @@ type config struct {
 	// JanitorInterval is the cadence at which the background janitor
 	// scans for and removes stale identity records.
 	JanitorInterval time.Duration
+
+	// WriteFailureThreshold is the number of consecutive non-benign identity
+	// write failures required to trip the fail-stop watchdog. CAS conflicts
+	// and delete-of-absent successes reset the streak and never count.
+	WriteFailureThreshold int
+
+	// WriteFailureWindow is the minimum age of the streak's first failure
+	// before fail-stop may trip. It rides out transient blips: a NATS outage
+	// that recovers within this window never trips the watchdog even if it
+	// produced more than WriteFailureThreshold consecutive errors.
+	WriteFailureWindow time.Duration
+
+	// FailStop is invoked when the write-failure watchdog trips. A nil value
+	// is the default: tripFailStop resolves it to defaultFailStop (os.Exit(70))
+	// at trip time so the supervisor restarts the process and re-establishes
+	// the KV write handles. Use WithFailStop to supply a custom action, or
+	// WithFailStopDisabled to install a no-op (e.g. in tests).
+	FailStop func(reason string)
+
+	// RemoteActivationTimeout bounds the client-side remote activation
+	// round-trip. It must exceed the member-side spawn budget (placement RPC),
+	// which can legitimately take ~10s+. It is independent of LockTTL.
+	RemoteActivationTimeout time.Duration
 }
 
 // Option configures the NATS KV cluster provider.
@@ -158,22 +193,75 @@ func WithJanitorInterval(d time.Duration) Option {
 	return func(c *config) { c.JanitorInterval = d }
 }
 
+// WithWriteFailureThreshold sets the number of consecutive non-benign identity
+// write failures required to trip the fail-stop watchdog. A value <= 0 leaves
+// the default in place.
+func WithWriteFailureThreshold(n int) Option {
+	return func(c *config) {
+		if n > 0 {
+			c.WriteFailureThreshold = n
+		}
+	}
+}
+
+// WithWriteFailureWindow sets the minimum age of the write-failure streak's
+// first failure before fail-stop may trip. A value <= 0 leaves the default.
+func WithWriteFailureWindow(d time.Duration) Option {
+	return func(c *config) {
+		if d > 0 {
+			c.WriteFailureWindow = d
+		}
+	}
+}
+
+// WithFailStop sets a custom fail-stop action, replacing the default
+// os.Exit(70) behavior. The reason string describes why the watchdog tripped.
+func WithFailStop(fn func(reason string)) Option {
+	return func(c *config) { c.FailStop = fn }
+}
+
+// WithFailStopDisabled disables the fail-stop watchdog entirely. Write failures
+// are still logged and counted, but the process is never terminated. Intended
+// for tests and environments where an external supervisor is not present.
+func WithFailStopDisabled() Option {
+	return func(c *config) { c.FailStop = func(string) {} }
+}
+
+// WithRemoteActivationTimeout sets the client-side timeout for the remote
+// activation round-trip. It must exceed the member-side spawn budget. A value
+// <= 0 leaves the default in place.
+func WithRemoteActivationTimeout(d time.Duration) Option {
+	return func(c *config) {
+		if d > 0 {
+			c.RemoteActivationTimeout = d
+		}
+	}
+}
+
 func newDefaultConfig() *config {
 	return &config{
-		KeyPrefix:             defaultKeyPrefix,
-		Replicas:              defaultReplicas,
-		MemberTTL:             defaultMemberTTL,
-		RefreshInterval:       defaultRefreshInterval,
-		ReconcileInterval:     defaultReconcileInterval,
-		LeaderTTL:             defaultLeaderTTL,
-		LockTTL:               defaultLockTTL,
-		MaxConcurrency:        defaultMaxConcurrency,
-		RetryInterval:         defaultRetryInterval,
-		LockOwnerAbsentGrace:  defaultLockOwnerAbsentGrace,
-		HardReapAge:           defaultHardReapAge,
-		ActivationAbsentGrace: defaultActivationAbsentGrace,
-		WaiterWindow:          defaultWaiterWindow,
-		JanitorInterval:       defaultJanitorInterval,
+		KeyPrefix:               defaultKeyPrefix,
+		Replicas:                defaultReplicas,
+		MemberTTL:               defaultMemberTTL,
+		RefreshInterval:         defaultRefreshInterval,
+		ReconcileInterval:       defaultReconcileInterval,
+		LeaderTTL:               defaultLeaderTTL,
+		LockTTL:                 defaultLockTTL,
+		MaxConcurrency:          defaultMaxConcurrency,
+		RetryInterval:           defaultRetryInterval,
+		LockOwnerAbsentGrace:    defaultLockOwnerAbsentGrace,
+		HardReapAge:             defaultHardReapAge,
+		ActivationAbsentGrace:   defaultActivationAbsentGrace,
+		WaiterWindow:            defaultWaiterWindow,
+		JanitorInterval:         defaultJanitorInterval,
+		WriteFailureThreshold:   defaultWriteFailureThreshold,
+		WriteFailureWindow:      defaultWriteFailureWindow,
+		RemoteActivationTimeout: defaultRemoteActivationTO,
+		// FailStop is intentionally left nil here. The nil value is a lazy
+		// sentinel: tripFailStop resolves it to defaultFailStop at trip time,
+		// not at Setup time, so the logger and leadership state are current
+		// when the watchdog actually fires. Callers that want a custom action
+		// (e.g. tests) should use WithFailStop or WithFailStopDisabled.
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/awevoke/protoactor-go/cluster"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDefaultConfig(t *testing.T) {
@@ -22,6 +23,47 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Empty(t, cfg.BucketName)
 	assert.Empty(t, cfg.IdentityBucket)
 	assert.Nil(t, cfg.RoleChanged)
+}
+
+func TestFailStopConfigDefaults(t *testing.T) {
+	cfg := newDefaultConfig()
+	assert.Equal(t, 15, cfg.WriteFailureThreshold)
+	assert.Equal(t, 90*time.Second, cfg.WriteFailureWindow)
+	assert.Equal(t, 12*time.Second, cfg.RemoteActivationTimeout)
+	assert.Nil(t, cfg.FailStop, "default FailStop is nil; the recorder falls back to defaultFailStop")
+}
+
+func TestWriteFailureOptions(t *testing.T) {
+	cfg := newDefaultConfig()
+	WithWriteFailureThreshold(42)(cfg)
+	WithWriteFailureWindow(5 * time.Second)(cfg)
+	WithRemoteActivationTimeout(20 * time.Second)(cfg)
+	assert.Equal(t, 42, cfg.WriteFailureThreshold)
+	assert.Equal(t, 5*time.Second, cfg.WriteFailureWindow)
+	assert.Equal(t, 20*time.Second, cfg.RemoteActivationTimeout)
+
+	// Non-positive values leave defaults untouched.
+	WithWriteFailureThreshold(0)(cfg)
+	WithWriteFailureWindow(-1)(cfg)
+	WithRemoteActivationTimeout(0)(cfg)
+	assert.Equal(t, 42, cfg.WriteFailureThreshold)
+	assert.Equal(t, 5*time.Second, cfg.WriteFailureWindow)
+	assert.Equal(t, 20*time.Second, cfg.RemoteActivationTimeout)
+}
+
+func TestWithFailStopDisabled(t *testing.T) {
+	cfg := newDefaultConfig()
+	WithFailStopDisabled()(cfg)
+	require.NotNil(t, cfg.FailStop)
+	cfg.FailStop("noop") // must not panic or exit
+}
+
+func TestWithFailStop(t *testing.T) {
+	cfg := newDefaultConfig()
+	called := ""
+	WithFailStop(func(r string) { called = r })(cfg)
+	cfg.FailStop("boom")
+	assert.Equal(t, "boom", called)
 }
 
 func TestWithBucketName(t *testing.T) {
