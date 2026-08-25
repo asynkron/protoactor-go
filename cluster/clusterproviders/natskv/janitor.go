@@ -83,6 +83,19 @@ func (il *IdentityLookup) runJanitor() {
 	// disabled (JanitorInterval <= 0) the migration does not run at all, and
 	// that is safe: the read path returns the union of both shapes for this
 	// whole release, so an un-migrated bucket is correct, merely fatter.
+	//
+	// The latch is per-goroutine and never re-arms, and that has one honest
+	// consequence during a mixed-version fleet: a legacy record written by a
+	// still-old node AFTER this leader's first clean pass is BRIDGED but not
+	// FANNED OUT -- every reader still returns it, because memberTracking and
+	// ListGrains union both shapes for the whole release, but this leader will
+	// not migrate it until its janitor goroutine is replaced (leadership
+	// change, or process restart). The alternative -- re-arming -- would buy a
+	// bucket enumeration on every tick, forever, to chase a window that closes
+	// when the last old node leaves. A pass is only "done" if the bucket really
+	// is free of legacy records: a failed or CAS-lost purge keeps the pass
+	// unfinished (fanOutLegacyMemberRecord), so the latch cannot close over a
+	// record this leader saw and failed to remove.
 	migrationDone := false
 
 	for {

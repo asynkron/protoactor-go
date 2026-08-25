@@ -3,16 +3,21 @@ package natskv
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/awevoke/protoactor-go/actor"
 	"github.com/awevoke/protoactor-go/cluster"
+	"github.com/awevoke/protoactor-go/remote"
 )
 
 // listTrackingKeys returns every key the tracking bucket holds for memberID,
@@ -801,4 +806,469 @@ func identitiesOf(grains []*cluster.GrainInfo) []string {
 	}
 
 	return out
+}
+
+// --- Fix wave 1 ---
+
+// keyListerGoroutines reports how many nats.go key-lister goroutines exist and
+// the stacks of those parked SENDING into their channel -- the exact shape an
+// abandoned lister leaves behind. The state is matched rather than a goroutine
+// count, which would be both noisy and unable to say what leaked.
+func keyListerGoroutines() (live int, parked []string) {
+	// Started large and grown until the dump is comfortably short of the
+	// buffer end: runtime.Stack truncates at a whole goroutine, so a dump that
+	// merely fits closely may already have dropped the newest goroutines --
+	// which are exactly the ones a leak leaves behind.
+	buf := make([]byte, 1<<20)
+
+	for {
+		n := runtime.Stack(buf, true)
+		if n < len(buf)-(1<<16) {
+			buf = buf[:n]
+
+			break
+		}
+
+		buf = make([]byte, 2*len(buf))
+	}
+
+	// The frame name covers ListKeys and ListKeysFiltered, which share
+	// keyLister; "chan send" is the goroutine header's wait reason.
+	for _, g := range strings.Split(string(buf), "\n\n") {
+		if !strings.Contains(g, "jetstream.(*kvs).ListKeys") {
+			continue
+		}
+
+		live++
+
+		if strings.Contains(g, "chan send") {
+			parked = append(parked, g)
+		}
+	}
+
+	return live, parked
+}
+
+// requireKeyListersDrained waits for the lister goroutines to reach a TERMINAL
+// state and requires that it is the right one. A lister is asynchronous: once
+// its consumer stops ranging it either finishes and exits, or fills its
+// 256-entry buffer and parks on the send forever. Sampling "nothing is parked"
+// immediately after the pass returns proves nothing, because the leak takes a
+// few milliseconds to establish; this waits for one of the two outcomes.
+func requireKeyListersDrained(t *testing.T, why string) {
+	t.Helper()
+
+	deadline := time.Now().Add(30 * time.Second)
+
+	for {
+		live, parked := keyListerGoroutines()
+		if len(parked) > 0 {
+			t.Fatalf("%d key-lister goroutine(s) parked on a channel send: %s\n%s",
+				len(parked), why, strings.Join(parked, "\n"))
+		}
+
+		if live == 0 {
+			return // every lister goroutine ran to completion and exited
+		}
+
+		if time.Now().After(deadline) {
+			t.Fatalf("%d key-lister goroutine(s) never reached a terminal state", live)
+		}
+
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+// TestTrackingMigration_DrainsTheKeyListerWhenCapped is the goroutine-leak
+// guard on the migration's own enumeration.
+//
+// nats.go's key lister runs a goroutine that forwards keys into a 256-entry
+// buffered channel, and the send is OUTSIDE its select (v1.52.0
+// jetstream/kv.go:1414-1423):
+//
+//	case entry := <-watcher.Updates():
+//	        if entry == nil { return }
+//	        kl.keys <- entry.Key()   // blocking, and not a select case
+//	case <-ctx.Done():
+//	        return
+//
+// So a caller that stops ranging before the keys are exhausted parks that
+// goroutine forever as soon as the buffer fills: cancelling the context cannot
+// release a goroutine that is not in the select, and the deferred
+// watcher.Stop() inside it never runs, so the server-side consumer leaks with
+// it. On this path that is one goroutine and one consumer per janitor tick,
+// for as long as the migration keeps being capped -- i.e. the whole migration
+// on any bucket big enough to need one. Every other lister site in this
+// package drains to exhaustion; this one must too.
+//
+// The shape that triggers it: the first legacy record spends the per-pass
+// write cap, the second legacy record meets the cap check, and more than the
+// channel's 256 buffer is still unread behind it.
+func TestTrackingMigration_DrainsTheKeyListerWhenCapped(t *testing.T) {
+	ctx := context.Background()
+	il, _ := newIdentityLookupForTest(t)
+
+	const (
+		spender  = "clusterA_node1" // its fan-out spends the write cap
+		stopper  = "clusterA_node2" // the record the cap check is reached on
+		trailing = 2000             // unread behind it, far past the lister's 256 buffer
+	)
+
+	keys := make([]string, maxMigrationPutsPerSetup+1)
+	for i := range keys {
+		keys[i] = fmt.Sprintf("wk-Session/capped-%d", i)
+	}
+
+	writeLegacyMemberRecord(t, il, spender, keys...)
+	writeLegacyMemberRecord(t, il, stopper, "wk-Session/stopper-a")
+
+	for i := range trailing {
+		_, err := il.memberTracker.Put(ctx,
+			trackingSubKey("clusterA_node3", fmt.Sprintf("wk-Session/tail-%d", i)), nil)
+		require.NoError(t, err)
+	}
+
+	require.False(t, il.migrateLegacyMemberRecords(ctx), "a capped pass is not done")
+
+	requireKeyListersDrained(t,
+		"the capped migration pass abandoned its enumeration instead of draining it")
+
+	// Draining is not doing the work: the cap still holds.
+	_, err := il.memberTracker.Get(ctx, stopper)
+	require.NoError(t, err, "a capped pass must leave the legacy record it did not reach")
+}
+
+// keyListerBuffer is the capacity nats.go gives a key lister's channel
+// (v1.52.0 jetstream/kv.go:1411, make(chan string, 256)).
+const keyListerBuffer = 256
+
+// blockingKeyLister reproduces the ONE mechanic that makes an abandoned
+// enumeration a leak, exactly as upstream implements it: a feeder goroutine
+// pushing into a 256-entry buffered channel with the send OUTSIDE the select
+// that watches the context (v1.52.0 jetstream/kv.go:1414-1423). Once the buffer
+// is full the feeder is parked in a channel send, where a cancelled context
+// cannot reach it and the deferred watcher.Stop() it carries never runs.
+//
+// It exists because the real lister leaks only when the timing cooperates --
+// whether it has delivered more than the buffer holds by the moment its
+// consumer walks away is a scheduling race. The contract ("drain it") is not a
+// race, so it is pinned here deterministically, and
+// TestTrackingMigration_DrainsTheKeyListerWhenCapped observes the real thing.
+type blockingKeyLister struct {
+	keys chan string
+	done chan struct{}
+}
+
+func newBlockingKeyLister(keys []string) *blockingKeyLister {
+	kl := &blockingKeyLister{
+		keys: make(chan string, keyListerBuffer),
+		done: make(chan struct{}),
+	}
+
+	go func() {
+		defer close(kl.done)
+		defer close(kl.keys)
+
+		for _, k := range keys {
+			// No context arm: upstream has one, and it is precisely what a
+			// goroutine already parked in this send cannot reach. Modelling
+			// the arm would make the fake's own send-versus-cancel race the
+			// subject of the test instead of the contract being pinned.
+			kl.keys <- k
+		}
+	}()
+
+	return kl
+}
+
+func (k *blockingKeyLister) Keys() <-chan string { return k.keys }
+
+func (k *blockingKeyLister) Stop() error { return nil }
+
+// blockingListerKV serves that lister from a real bucket, so every other
+// operation the migration performs -- Get, Put, Purge -- still runs against
+// real JetStream.
+type blockingListerKV struct {
+	jetstream.KeyValue
+
+	keys   []string
+	lister *blockingKeyLister
+}
+
+func (k *blockingListerKV) ListKeys(_ context.Context, _ ...jetstream.WatchOpt) (jetstream.KeyLister, error) {
+	k.lister = newBlockingKeyLister(k.keys)
+
+	return k.lister, nil
+}
+
+// TestTrackingMigration_CappedPassStillConsumesEveryKey is the deterministic
+// half of the drain contract: when the pass stops doing work it must keep
+// READING, to exhaustion, because the lister it walks away from cannot be
+// stopped from the outside.
+func TestTrackingMigration_CappedPassStillConsumesEveryKey(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	il, _ := newIdentityLookupForTest(t)
+
+	const (
+		spender = "clusterA_node1" // its fan-out spends the per-pass write cap
+		stopper = "clusterA_node2" // the record the cap check is reached on
+	)
+
+	keys := make([]string, maxMigrationPutsPerSetup+1)
+	for i := range keys {
+		keys[i] = fmt.Sprintf("wk-Session/capped-%d", i)
+	}
+
+	writeLegacyMemberRecord(t, il, spender, keys...)
+	writeLegacyMemberRecord(t, il, stopper, "wk-Session/stopper-a")
+
+	// Enumerated behind the two legacy records, and more numerous than the
+	// lister's buffer: with an early break these are what the feeder is left
+	// holding.
+	enumerated := []string{spender, stopper}
+	for i := range 2 * keyListerBuffer {
+		enumerated = append(enumerated, trackingSubKey("clusterA_node3", fmt.Sprintf("wk-Session/tail-%d", i)))
+	}
+
+	tracker := &blockingListerKV{KeyValue: il.memberTracker, keys: enumerated}
+	il.memberTracker = tracker
+
+	require.False(t, il.migrateLegacyMemberRecords(ctx), "a capped pass is not done")
+
+	select {
+	case <-tracker.lister.done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the key lister's feeder goroutine is still parked on its channel send: " +
+			"the capped pass abandoned the enumeration instead of draining it")
+	}
+
+	// Draining is not doing the work: the cap still holds.
+	_, err := il.memberTracker.Get(ctx, stopper)
+	require.NoError(t, err, "a capped pass must leave the legacy record it did not reach")
+}
+
+// setupClusterWithSystemID drives a real IdentityLookup.Setup against a cluster
+// whose ActorSystem.ID carries systemID.
+//
+// That id is the half of the member id this package does not choose:
+// production sets it from the node's own name (the superproject's actorsystem
+// component calls actor.WithSystemID(hostname())), so a host whose name is an
+// FQDN is exactly how a dotted member id arrives in a real deployment.
+func setupClusterWithSystemID(t *testing.T, clusterName, systemID string) *IdentityLookup {
+	t.Helper()
+
+	srv := startEmbeddedNATS(t)
+	nc, _ := connectNATS(t, srv)
+
+	p, err := New(nc)
+	require.NoError(t, err)
+
+	system := actor.NewActorSystem(actor.WithSystemID(systemID))
+	remoteConfig := remote.Configure("127.0.0.1", 0)
+	kind := cluster.NewKind("TestKind", actor.PropsFromFunc(func(actor.Context) {}))
+
+	c := cluster.NewCluster(system, cluster.Configure(clusterName, p, p.IdentityLookup(), remoteConfig,
+		cluster.WithKinds(kind)))
+	c.Remote = remote.NewRemote(system, remoteConfig)
+
+	require.NoError(t, c.Remote.Start())
+	c.InitKindsForTest(kind)
+
+	il := p.IdentityLookup()
+	il.Setup(c, []string{"TestKind"}, false)
+
+	t.Cleanup(func() {
+		il.Shutdown()
+		c.Remote.Shutdown(true)
+	})
+
+	return il
+}
+
+// TestSetup_RejectsDottedMemberID is the enforcement TestMemberID_ContainsNoDot
+// only pins the environment for. A dot in the member id is not cosmetic: '.'
+// is the tracking sub-key separator, so trackingKeyMember splits at the FIRST
+// dot and every one of that member's sub-keys is attributed to a prefix of its
+// id and an identity no identities Get can resolve. Measured consequence:
+// ByMember reports zero grains for the node -- in every process, on the
+// collector's 30s loop -- and removeMemberID stops removing the identity
+// records of a member that has left. Both are silent.
+//
+// A hostname that is an FQDN produces exactly that member id, so the
+// precondition is enforced at startup rather than documented.
+func TestSetup_RejectsDottedMemberID(t *testing.T) {
+	t.Parallel()
+
+	il := setupClusterWithSystemID(t, "testcluster", "node.host.example.com")
+
+	require.Error(t, il.setupErr, "a dotted member id must fail Setup loudly")
+	assert.Contains(t, il.setupErr.Error(), il.memberID,
+		"the error must name the offending member id")
+	assert.Contains(t, il.setupErr.Error(), "'.'",
+		"and say what is wrong with it")
+
+	// Not a silent failure: every read path surfaces it.
+	_, err := il.ListGrains()
+	require.ErrorIs(t, err, il.setupErr)
+
+	assert.Nil(t, il.memberTracker,
+		"the guard must run before the buckets are created")
+}
+
+// TestSetup_UndottedMemberIDIsUnaffected is the other half of the row: the
+// guard rejects the dotted id and nothing else.
+func TestSetup_UndottedMemberIDIsUnaffected(t *testing.T) {
+	t.Parallel()
+
+	il := setupClusterWithSystemID(t, "testcluster", "node-host-example-com")
+
+	require.NoError(t, il.setupErr)
+	require.NotEmpty(t, il.memberID)
+	require.NotContains(t, il.memberID, ".")
+	require.NotNil(t, il.memberTracker, "Setup must have completed")
+}
+
+// TestListGrains_DeduplicatesAnIdentityHeldInBothShapes is the dedupe row the
+// cross-member union test cannot cover: during the migration one member holds
+// the same identity as a legacy array entry AND as a sub-key, and an operator
+// enumeration must show it once. Without the dedupe the same grain is reported
+// twice, with two identities Gets to build it.
+func TestListGrains_DeduplicatesAnIdentityHeldInBothShapes(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	il, _ := newIdentityLookupForTest(t)
+
+	const (
+		memberID = "clusterA_node1"
+		key      = "wk-Session/dup"
+	)
+
+	writeIdentityRecord(t, il, memberID, key)
+	// The crash window this exists for: fanned out, not yet purged.
+	il.addKeyToMember(ctx, memberID, key)
+	writeLegacyMemberRecord(t, il, memberID, key)
+
+	grains, err := il.ListGrains()
+	require.NoError(t, err)
+
+	require.Len(t, grains, 1, "one identity in both shapes is still one grain")
+	assert.Equal(t, "dup", grains[0].Identity)
+	assert.Equal(t, memberID, grains[0].MemberID)
+}
+
+// TestListGrains_EmptyBucketIsNotAnError pins the behaviour that the removed
+// ErrNoKeysFound branch claimed to provide. jetstream's ListKeys never returns
+// that sentinel -- only the legacy KeyValue.Keys() does -- so an empty bucket
+// arrives as an enumeration that yields nothing.
+func TestListGrains_EmptyBucketIsNotAnError(t *testing.T) {
+	t.Parallel()
+
+	il, _ := newIdentityLookupForTest(t)
+
+	grains, err := il.ListGrains()
+
+	require.NoError(t, err)
+	assert.Empty(t, grains)
+}
+
+// failingKV wraps a real KeyValue so one operation on one key can be made to
+// fail. The transitional legacy-record paths are error paths against a bucket
+// another release is still writing, and this drives them against a real
+// bucket rather than a stand-in for the whole interface.
+type failingKV struct {
+	jetstream.KeyValue
+
+	failGetKey   string
+	failPurgeKey string
+	err          error
+}
+
+func (k failingKV) Get(ctx context.Context, key string) (jetstream.KeyValueEntry, error) {
+	if k.failGetKey != "" && key == k.failGetKey {
+		return nil, k.err
+	}
+
+	return k.KeyValue.Get(ctx, key)
+}
+
+func (k failingKV) Purge(ctx context.Context, key string, opts ...jetstream.KVDeleteOpt) error {
+	if k.failPurgeKey != "" && key == k.failPurgeKey {
+		return k.err
+	}
+
+	return k.KeyValue.Purge(ctx, key, opts...)
+}
+
+// TestTrackingMigration_PurgeFailureIsNotDone is the bookkeeping honesty row.
+// The pass reports whether the bucket is free of legacy records, and its
+// caller latches on that answer: a "done" returned while a legacy record is
+// still sitting there stops the migration for the life of the janitor
+// goroutine and logs "tracking migration complete" over a bucket that is not.
+//
+// A failed or CAS-lost Purge is exactly that case -- an old-release node
+// rewrote the array between the read and the purge, or the write failed -- so
+// the pass must report itself unfinished and come back next tick.
+func TestTrackingMigration_PurgeFailureIsNotDone(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	il, _ := newIdentityLookupForTest(t)
+
+	const memberID = "clusterA_node1"
+
+	writeLegacyMemberRecord(t, il, memberID, "wk-Session/a", "wk-Session/b")
+
+	il.memberTracker = failingKV{
+		KeyValue:     il.memberTracker,
+		failPurgeKey: memberID,
+		err:          errors.New("purge rejected"),
+	}
+
+	require.False(t, il.migrateLegacyMemberRecords(ctx),
+		"a legacy record still in the bucket is not a finished migration")
+
+	// The fan-out is not rolled back: the read path unions both shapes, and the
+	// next pass re-Puts (idempotent) and re-purges.
+	assert.ElementsMatch(t,
+		[]string{memberID + ".wk-Session/a", memberID + ".wk-Session/b"},
+		listTrackingKeys(t, il, memberID))
+
+	_, err := il.memberTracker.Get(ctx, memberID)
+	require.NoError(t, err, "the legacy record survived, which is why the pass is not done")
+}
+
+// TestRemoveMemberID_ContinuesWhenTheLegacyGetFails pins that the two
+// transitional legacy-record readers are best-effort in the SAME direction.
+// ListGrains' expandLegacyMemberRecord already skips a legacy record it cannot
+// read; memberTracking used to turn the same transient error into an aborted
+// removeMemberID -- so a single failed Get of a bridge record left every
+// identity record of a departed member behind, with the sub-key enumeration
+// that answered the question sitting unused.
+func TestRemoveMemberID_ContinuesWhenTheLegacyGetFails(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	il, _ := newIdentityLookupForTest(t)
+
+	const memberID = "clusterA_node1"
+
+	seedTrackedActivation(t, il, memberID, "wk-Session/a")
+
+	il.memberTracker = failingKV{
+		KeyValue:   il.memberTracker,
+		failGetKey: memberID,
+		err:        errors.New("legacy get failed"),
+	}
+
+	il.removeMemberID(ctx, memberID)
+
+	_, err := il.identities.Get(ctx, "wk-Session/a")
+	assert.ErrorIs(t, err, jetstream.ErrKeyNotFound,
+		"the sub-key enumeration answered; a failed legacy Get must not discard it")
+
+	assert.Empty(t, listTrackingKeys(t, il, memberID),
+		"and the member's own tracking state goes with it")
 }

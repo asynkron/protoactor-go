@@ -301,6 +301,46 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	il.isClient = isClient
 	il.inflights = make(map[string]*inflight)
 
+	// A member id containing '.' is a hard startup failure, not a warning.
+	//
+	// '.' is the tracking sub-key separator (trackingSubKey), and it is the
+	// separator precisely because it is the NATS SUBJECT separator. With a dot
+	// in the member half, trackingKeyMember splits at the FIRST dot: every one
+	// of this node's sub-keys is attributed to a prefix of its id and to an
+	// identity key that no identities Get can resolve. Measured consequence --
+	// ByMember reports ZERO grains for this node, in every process, on the
+	// collector's 30s loop, and removeMemberID stops removing the identity
+	// records of a member that has left. Both are silent; the bucket keeps
+	// filling.
+	//
+	// It is reachable: the id's second half is ActorSystem.ID, which callers
+	// build from the node's own name (actor.WithSystemID), so an FQDN hostname
+	// produces exactly this. Failing here, before any bucket exists, is the
+	// only place it can be said out loud.
+	//
+	// The wildcard bytes need no guard of their own: '*' and '>' are rejected
+	// by nats.go's key validation on the first Put, loudly and immediately
+	// (v1.52.0 jetstream/kv.go, validKeyRe).
+	//
+	// Not conditioned on isClient. A client writes no sub-keys of its own, but
+	// the id is built identically on every node, so a dotted one is a naming
+	// convention that breaks this node's member peers; failing here says so
+	// where it can still be read, instead of leaving it to be discovered on a
+	// member.
+	if strings.Contains(il.memberID, ".") {
+		il.setupErr = fmt.Errorf(
+			"natskv identity setup failed: member id %q contains '.', which is the tracking "+
+				"sub-key separator: member-scoped tracking reads and member-departure cleanup "+
+				"would silently return nothing. Give the node a name without dots "+
+				"(cluster name %q, actor system id %q)",
+			il.memberID, c.Config.Name, c.ActorSystem.ID)
+		il.identityLogger().Error("natskv identity: refusing to start with a dotted member id",
+			slog.String("memberID", il.memberID),
+			slog.Any("error", il.setupErr))
+
+		return
+	}
+
 	ctx := context.Background()
 	js := il.provider.js
 	clusterName := c.Config.Name
@@ -1368,7 +1408,8 @@ func trackingKeyMember(key string) (memberID, identityKey string, ok bool) {
 
 // memberTracking returns every identity key the tracking bucket says memberID
 // holds, deduplicated, together with the revision of that member's LEGACY
-// record if one is still present (0 when there is none).
+// record if one is still present -- 0 when there is none, and 0 when there is
+// one this call could not read (see the legacy arm).
 //
 // It reads BOTH shapes and returns their union, and that is a correctness
 // requirement, not tolerance for its own sake. A migration pass that dies
@@ -1407,13 +1448,22 @@ func (il *IdentityLookup) memberTracking(ctx context.Context, memberID string) (
 	// LEGACY ARM -- delete this block, and memberTracking's second return
 	// value with it, in the release AFTER the one that introduces sub-keys.
 	// Until then a bucket written by the previous release must stay readable.
+	//
+	// Best-effort, in the same direction as the other legacy reader
+	// (expandLegacyMemberRecord, which skips a record it cannot read): the
+	// filtered enumeration above has already answered, and discarding that
+	// answer over a transient Get would abort removeMemberID -- leaving every
+	// identity record of a departed member behind. A bridge record that could
+	// not be read is reported as absent (legacyRev 0), so nothing purges it on
+	// a revision it never saw.
 	entry, getErr := il.memberTracker.Get(ctx, memberID)
 	if getErr != nil {
-		if errors.Is(getErr, jetstream.ErrKeyNotFound) {
-			return keys, 0, nil
+		if !errors.Is(getErr, jetstream.ErrKeyNotFound) {
+			il.identityLogger().Warn("natskv identity: legacy member record read failed; continuing with sub-keys",
+				slog.String("memberID", memberID), slog.Any("error", getErr))
 		}
 
-		return nil, 0, getErr
+		return keys, 0, nil
 	}
 
 	var mrec memberRecord
@@ -1599,9 +1649,16 @@ func (il *IdentityLookup) tombstoneOptsNoCAS() []jetstream.KVDeleteOpt {
 // is the JSON array, and a node still running the previous release can rewrite
 // it at any moment. Blind-deleting one that was just rewritten would drop every
 // key added to it since the read.
-func (il *IdentityLookup) purgeLegacyMemberRecord(ctx context.Context, memberID string, rev uint64) {
+//
+// It reports whether the record is now gone: a CAS conflict means an
+// old-release node rewrote the array between the read and this purge, so the
+// record is still there and the caller must not report that member finished.
+func (il *IdentityLookup) purgeLegacyMemberRecord(ctx context.Context, memberID string, rev uint64) bool {
 	err := il.memberTracker.Purge(ctx, memberID, il.tombstoneOpts(rev)...)
-	il.recordIdentityWriteOutcome("legacyMemberRecord/purge", true, err)
+
+	// writeSuccess covers "the purge applied" and "the key was already gone",
+	// which are the two shapes of a legacy record that is no longer there.
+	return il.recordIdentityWriteOutcome("legacyMemberRecord/purge", true, err) == writeSuccess
 }
 
 // migrateLegacyMemberRecords fans the previous release's per-member JSON arrays
@@ -1632,9 +1689,9 @@ func (il *IdentityLookup) migrateLegacyMemberRecords(parent context.Context) boo
 		return true
 	}
 
-	// Own deadline, and cancel on the way out: breaking early out of
-	// lister.Keys() otherwise leaves nats.go's key-lister goroutine blocked on
-	// a send forever. It selects on ctx.Done(), so cancelling releases it.
+	// Own deadline, and cancel on the way out. The cancel is NOT what makes
+	// abandoning the enumeration safe -- see the drain below; it bounds the
+	// pass's own work.
 	ctx, cancel := context.WithTimeout(parent, migrationDeadline)
 	defer cancel()
 
@@ -1648,6 +1705,20 @@ func (il *IdentityLookup) migrateLegacyMemberRecords(parent context.Context) boo
 	writes := 0
 	pending := 0
 
+	// The enumeration is DRAINED, never abandoned: once the pass stops doing
+	// work it keeps reading to exhaustion, and a key it will not process is
+	// counted as pending instead of breaking the range.
+	//
+	// nats.go's key lister runs a goroutine forwarding keys into a 256-entry
+	// buffered channel, and that send sits OUTSIDE the select that watches the
+	// context (v1.52.0 jetstream/kv.go:1414-1423). A consumer that stops
+	// ranging therefore parks it forever as soon as the buffer fills:
+	// cancelling ctx cannot reach a goroutine that is not in the select, and
+	// the deferred watcher.Stop() it holds never runs, so the server-side
+	// consumer leaks with the goroutine. On this path that is one goroutine and
+	// one consumer per janitor tick, for as long as the migration keeps being
+	// capped. Every other lister site in this package drains for the same
+	// reason. Draining costs only channel receives: no Get, no Put, no probe.
 	for key := range lister.Keys() {
 		if _, _, isSubKey := trackingKeyMember(key); isSubKey {
 			continue // already fanned out; costs nothing to skip
@@ -1656,7 +1727,7 @@ func (il *IdentityLookup) migrateLegacyMemberRecords(parent context.Context) boo
 		if writes >= maxMigrationPutsPerSetup || ctx.Err() != nil {
 			pending++
 
-			break
+			continue
 		}
 
 		if !il.fanOutLegacyMemberRecord(ctx, key, &writes) {
@@ -1730,9 +1801,11 @@ func (il *IdentityLookup) fanOutLegacyMemberRecord(ctx context.Context, memberID
 	// partial fan-out keeps it and the next pass resumes: the Puts are
 	// idempotent, so re-writing the ones already done costs writes, not
 	// correctness.
-	il.purgeLegacyMemberRecord(ctx, memberID, entry.Revision())
-
-	return true
+	//
+	// A failed or CAS-lost purge leaves the record in the bucket, so this
+	// member is NOT finished. Reporting it finished would let the caller latch
+	// "migration complete" over a bucket that still holds legacy records.
+	return il.purgeLegacyMemberRecord(ctx, memberID, entry.Revision())
 }
 
 // handleActivationRequest is the NATS subscription handler for client-initiated
@@ -1984,11 +2057,11 @@ func (il *IdentityLookup) ListGrains() ([]*cluster.GrainInfo, error) {
 
 	ctx := context.Background()
 
+	// No ErrNoKeysFound branch: that sentinel belongs to the legacy
+	// KeyValue.Keys() API. jetstream's ListKeys reports an empty bucket as an
+	// enumeration that yields nothing (v1.52.0 jetstream/kv.go:1403-1427), which
+	// this loop already handles -- TestListGrains_EmptyBucketIsNotAnError pins it.
 	lister, err := il.memberTracker.ListKeys(ctx)
-	if errors.Is(err, jetstream.ErrNoKeysFound) {
-		return nil, nil
-	}
-
 	if err != nil {
 		return nil, fmt.Errorf("natskv identity: list tracking keys: %w", err)
 	}

@@ -340,10 +340,10 @@ func TestIdentityBucket_MarkerCountBoundedAfterTTL(t *testing.T) {
 }
 
 // TestJanitorSweep_IssuesNoStreamPurgeRequests is the N+1 guard: PurgeDeletes
-// issues one $JS.API.STREAM.PURGE per delete marker (nats.go kv.go:1528-1580),
-// which on the hub bucket at soak is 2,160 sequential round trips. The sweep
-// must issue zero -- the marker lifecycle is the server's job now, not a
-// periodic client-side scan.
+// issues one $JS.API.STREAM.PURGE per delete marker (the linked nats.go,
+// v1.52.0, jetstream/kv.go:1499-1552), which on the hub bucket at soak is 2,160
+// sequential round trips. The sweep must issue zero -- the marker lifecycle is
+// the server's job now, not a periodic client-side scan.
 func TestJanitorSweep_IssuesNoStreamPurgeRequests(t *testing.T) {
 	t.Parallel()
 
@@ -402,10 +402,10 @@ func TestJanitorSweep_IssuesNoStreamPurgeRequests(t *testing.T) {
 
 // TestCreateBucketWithMarkerTTL_UnsupportedFallsBackAndWarns: a server below
 // JetStream API level 1 returns ErrLimitMarkerTTLNotSupported from
-// CreateOrUpdateKeyValue (nats.go jetstream/kv.go:658-668). Setup must degrade
-// to today's no-TTL bucket, not fail -- the cluster provider failing to start is
-// far worse than tombstones accumulating -- and it must REPORT that it degraded,
-// because casDelete's PurgeTTL depends on the answer.
+// CreateOrUpdateKeyValue (nats.go v1.52.0, jetstream/kv.go:658-668). Setup must
+// degrade to today's no-TTL bucket, not fail -- the cluster provider failing to
+// start is far worse than tombstones accumulating -- and it must REPORT that it
+// degraded, because casDelete's PurgeTTL depends on the answer.
 //
 // The unsupported server is simulated by a jetstream.JetStream stub whose
 // CreateOrUpdateKeyValue returns ErrLimitMarkerTTLNotSupported for a config
