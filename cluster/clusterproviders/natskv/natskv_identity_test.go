@@ -289,6 +289,10 @@ func TestIdentityLookup_WaitForActivation_Timeout(t *testing.T) {
 	assert.GreaterOrEqual(t, elapsed, 400*time.Millisecond, "should wait at least close to WaiterWindow")
 }
 
+// TestIdentityLookup_AddKeyToMember pins the tracking shape a member's
+// activations leave behind: one sub-key per identity, "<memberID>.<identityKey>",
+// with an EMPTY value. The key is the fact -- there is no per-member array to
+// read, scan, re-marshal and CAS-write on every activation any more.
 func TestIdentityLookup_AddKeyToMember(t *testing.T) {
 	srv := startEmbeddedNATS(t)
 	_, js := connectNATS(t, srv)
@@ -310,33 +314,31 @@ func TestIdentityLookup_AddKeyToMember(t *testing.T) {
 	// Add first key.
 	il.addKeyToMember(ctx, memberID, "TestKind.id1")
 
-	// Verify it's tracked.
-	entry, err := tracking.Get(ctx, memberID)
+	entry, err := tracking.Get(ctx, memberID+".TestKind.id1")
 	require.NoError(t, err)
-
-	var mrec memberRecord
-	require.NoError(t, json.Unmarshal(entry.Value(), &mrec))
-	assert.Equal(t, []string{"TestKind.id1"}, mrec.Keys)
+	assert.Empty(t, entry.Value(), "the sub-key carries no value")
 
 	// Add second key.
 	il.addKeyToMember(ctx, memberID, "TestKind.id2")
 
-	entry, err = tracking.Get(ctx, memberID)
-	require.NoError(t, err)
-	require.NoError(t, json.Unmarshal(entry.Value(), &mrec))
-	assert.Len(t, mrec.Keys, 2)
-	assert.Contains(t, mrec.Keys, "TestKind.id1")
-	assert.Contains(t, mrec.Keys, "TestKind.id2")
+	assert.ElementsMatch(t, []string{
+		memberID + ".TestKind.id1",
+		memberID + ".TestKind.id2",
+	}, listTrackingKeys(t, il, memberID))
 
-	// Adding duplicate should not create duplicate entry.
+	// Adding a duplicate is a no-op rewrite, not a second entry.
 	il.addKeyToMember(ctx, memberID, "TestKind.id1")
 
-	entry, err = tracking.Get(ctx, memberID)
-	require.NoError(t, err)
-	require.NoError(t, json.Unmarshal(entry.Value(), &mrec))
-	assert.Len(t, mrec.Keys, 2)
+	assert.Len(t, listTrackingKeys(t, il, memberID), 2)
+
+	// The legacy per-member record is not written any more, so there is no key
+	// whose name is the bare member id.
+	_, err = tracking.Get(ctx, memberID)
+	assert.ErrorIs(t, err, jetstream.ErrKeyNotFound)
 }
 
+// TestIdentityLookup_RemoveKeyFromMember pins that a passivation removes
+// exactly its own sub-key and leaves the member's other grains alone.
 func TestIdentityLookup_RemoveKeyFromMember(t *testing.T) {
 	srv := startEmbeddedNATS(t)
 	_, js := connectNATS(t, srv)
@@ -362,12 +364,7 @@ func TestIdentityLookup_RemoveKeyFromMember(t *testing.T) {
 	// Remove one.
 	il.removeKeyFromMember(ctx, memberID, "TestKind.id1")
 
-	entry, err := tracking.Get(ctx, memberID)
-	require.NoError(t, err)
-
-	var mrec memberRecord
-	require.NoError(t, json.Unmarshal(entry.Value(), &mrec))
-	assert.Equal(t, []string{"TestKind.id2"}, mrec.Keys)
+	assert.Equal(t, []string{memberID + ".TestKind.id2"}, listTrackingKeys(t, il, memberID))
 }
 
 func TestIdentityLookup_SetupError_GetReturnsNil(t *testing.T) {
@@ -647,7 +644,17 @@ func TestRemovePid_DeletesWhenActorRemote(t *testing.T) {
 
 // setupPlacementTestCluster creates a cluster with a placement actor, proxy,
 // strategy manager, and a single member topology — ready for testing Get().
-func setupPlacementTestCluster(t *testing.T, clusterName string) (*Provider, *cluster.Cluster, *IdentityLookup) {
+// setupPlacementTestCluster builds a member-mode cluster on an embedded NATS
+// server and runs IdentityLookup.Setup against it.
+//
+// opts reach the provider's config BEFORE Setup runs, which is the only safe
+// moment to set anything the janitor goroutine reads: Setup spawns
+// runJanitor, and runJanitor reads il.config.JanitorInterval and il.janitorStop
+// with no lock. A test that mutates either of those AFTER this returns has a
+// data race with that goroutine even if it first closes janitorStop and
+// sleeps -- close() orders the test before the goroutine, never the goroutine
+// before the test, and time.Sleep orders nothing at all.
+func setupPlacementTestCluster(t *testing.T, clusterName string, opts ...Option) (*Provider, *cluster.Cluster, *IdentityLookup) {
 	t.Helper()
 
 	srv := startEmbeddedNATS(t)
@@ -655,7 +662,7 @@ func setupPlacementTestCluster(t *testing.T, clusterName string) (*Provider, *cl
 	kind := cluster.NewKind("TestKind", kindProps)
 
 	p, c := setupClusterWithKindsEmbedded(t, srv, clusterName,
-		[]*cluster.Kind{kind})
+		[]*cluster.Kind{kind}, opts...)
 
 	// Start remote so ActorSystem.Address() returns a real host:port.
 	err := c.Remote.Start()

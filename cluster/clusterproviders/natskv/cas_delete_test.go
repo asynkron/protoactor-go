@@ -348,13 +348,15 @@ func TestJanitorSweep_IssuesNoStreamPurgeRequests(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	il, env := newIdentityLookupForTest(t)
+	il, env := newIdentityLookupForTest(t, withMemberBucket())
 
-	// janitorSweep consults provider.MemberKeyExists; a provider with no member
-	// bucket reports every owner absent, which is what drives the reap branch.
-	p, err := NewFromJetStream(env.js)
+	// The reap branch needs a members bucket that ANSWERS and does not contain
+	// "departed-member". A provider with no members bucket at all is not that
+	// shape: the sweep reads a missing answer as missing information and reaps
+	// nothing, precisely so a lost bucket handle cannot reap the whole
+	// identities bucket. So the bucket exists and holds one live member.
+	_, err := env.memberBucket.Put(ctx, env.provider.memberKey("live-member"), []byte(`{}`))
 	require.NoError(t, err)
-	il.provider = p
 
 	const activations = 4
 

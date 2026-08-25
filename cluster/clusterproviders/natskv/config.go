@@ -44,6 +44,20 @@ const (
 	// clampMarkerTTL.
 	minTombstoneTTL = time.Second
 
+	// maxMigrationPutsPerSetup bounds the legacy tracking fan-out per pass.
+	// The legacy record's Keys slice is the 262-393 KB array the sub-key shape
+	// removes -- tens of thousands of entries per member on the spoke -- and
+	// the fan-out runs on the leader's maintenance loop, so an unbounded loop
+	// is one long write storm on a live cluster. A member that does not finish
+	// keeps its legacy record and resumes on the next pass; the read path
+	// returns the union of both shapes for this whole release, so a paused
+	// migration loses nothing.
+	maxMigrationPutsPerSetup = 2000
+
+	// migrationDeadline bounds the same loop in wall clock, for the case where
+	// the writes are slow rather than numerous.
+	migrationDeadline = 10 * time.Second
+
 	defaultWriteFailureThreshold = 15
 	defaultWriteFailureWindow    = 90 * time.Second
 	defaultRemoteActivationTO    = 12 * time.Second

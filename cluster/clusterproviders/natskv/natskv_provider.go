@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -286,12 +287,15 @@ func (p *Provider) UpdateKinds(kinds []string) error {
 // The bucket is configured with a TTL so that keys expire if not refreshed,
 // and LimitMarkerTTL so that watchers receive delete notifications on expiry.
 //
-// The marker TTL is clamped, the key TTL is not: the server's floor of one
-// second applies only to SubjectDeleteMarkerTTL (stream.go: "subject delete
-// marker TTL must be at least 1 second"), and violating it fails bucket
-// creation -- i.e. fails StartMember -- rather than degrading. MaxAge, which is
-// where the key TTL lands, has no such floor, so a sub-second MemberTTL keeps
-// expiring keys exactly as configured while its markers live for one second.
+// The marker TTL is clamped, the key TTL is not, and the two floors differ.
+// SubjectDeleteMarkerTTL must be at least ONE SECOND (nats-server stream.go:
+// "subject delete marker TTL must be at least 1 second"); MaxAge, which is
+// where the key TTL lands, has a floor of its own at 100ms ("max age needs to
+// be >= 100ms", same file). Both rejections fail bucket creation -- i.e. fail
+// StartMember -- rather than degrading. So a MemberTTL between 100ms and one
+// second keeps expiring keys exactly as configured while its markers are
+// raised to a second, and a MemberTTL BELOW 100ms is a startup outage that
+// this clamp does not and cannot prevent: it clamps the marker TTL only.
 func (p *Provider) createMemberBucket() error {
 	bucketName := p.config.memberBucketName(p.clusterName)
 
@@ -998,6 +1002,51 @@ func (p *Provider) MemberKeyExists(ctx context.Context, memberID string) bool {
 	}
 	_, err := p.memberBucket.Get(ctx, p.memberKey(memberID))
 	return err == nil
+}
+
+// MemberKeysSnapshot returns the member ids present in the members bucket, as
+// a set, in ONE enumeration.
+//
+// MemberKeyExists is a KV Get, and the janitor called it once per activation
+// record with a PID -- the second leg that makes a sweep 1+2N instead of 2+N,
+// and the reason the measured get count exceeded the listed key count. The
+// member set is small and changes only on topology events, so one snapshot per
+// sweep answers every probe the sweep would have made.
+//
+// A nil map with a nil error means "no answer", not "no members": callers must
+// treat that as missing information rather than as an empty cluster, because
+// reading it as an empty cluster would make every activation look orphaned.
+func (p *Provider) MemberKeysSnapshot(ctx context.Context) (map[string]struct{}, error) {
+	if p.memberBucket == nil {
+		return nil, nil
+	}
+
+	lister, err := p.memberBucket.ListKeys(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("natskv: list member keys: %w", err)
+	}
+
+	out := make(map[string]struct{})
+
+	for key := range lister.Keys() {
+		if id, ok := p.memberIDFromKey(key); ok {
+			out[id] = struct{}{}
+		}
+	}
+
+	return out, nil
+}
+
+// memberIDFromKey inverts memberKey. It reports false for a key that does not
+// carry the members prefix, so a foreign key in the bucket is skipped rather
+// than turned into a phantom member.
+func (p *Provider) memberIDFromKey(key string) (string, bool) {
+	id, ok := strings.CutPrefix(key, p.config.KeyPrefix+".members.")
+	if !ok || id == "" {
+		return "", false
+	}
+
+	return id, true
 }
 
 // splitHostPort parses an address string into host and port components.

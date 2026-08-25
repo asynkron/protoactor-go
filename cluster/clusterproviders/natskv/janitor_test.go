@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"sync"
 	"testing"
 	"time"
 
@@ -171,12 +170,21 @@ func TestJanitorActivationAbsenceRule(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Create the member bucket so MemberKeyExists can do real KV lookups.
+	// Create the member bucket so the sweep's membership enumeration has
+	// something to read.
 	memberBucket, err := p.js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
 		Bucket: p.config.memberBucketName(il.cluster.Config.Name),
 	})
 	require.NoError(t, err)
 	p.memberBucket = memberBucket
+
+	// One live member, so the enumeration ANSWERS. An empty members bucket is
+	// read as missing information, not as "every member is gone" -- the sweep
+	// runs only on the leader, and a leader is itself a member -- so without
+	// this the absence rule never fires and this test would pass for the wrong
+	// reason.
+	_, err = memberBucket.Put(ctx, p.memberKey("test-member-still-here"), []byte(`{}`))
+	require.NoError(t, err)
 
 	t0 := time.Now()
 	il.now = func() time.Time { return t0 }
@@ -271,23 +279,36 @@ func TestJanitorActivationAbsenceRule(t *testing.T) {
 // with a very short JanitorInterval.  Assert the aged lock survives multiple
 // ticks while isLeader=false, then flip isLeader=true and assert the same
 // goroutine reaps it within a few more ticks.  This would catch a deletion of
-// the gate at janitor.go:72.
+// the gate at janitor.go:74.
+//
+// The rapid tick is configured through the PROVIDER OPTIONS, so it is in place
+// before Setup spawns the janitor. The earlier shape of this test stopped
+// Setup's goroutine, rewrote il.config.JanitorInterval and il.janitorStop, and
+// started a second goroutine; that is two data races (-race reported both on
+// every run), because close(il.janitorStop) and time.Sleep order the TEST
+// after the goroutine, not the goroutine after the test, so the exited
+// goroutine's reads at janitor.go:61 and :71 stayed unordered with respect to
+// those writes. Configuring up front removes the writes rather than hiding
+// them.
+//
+// The two fields still written after Setup -- il.now and il.config.HardReapAge
+// -- are ordered by the isLeader atomic: runJanitor reads neither until
+// p.isLeader.Load() returns true, and that Load acquires the Store below,
+// which happens after both writes.
 func TestJanitorNonLeaderSkips(t *testing.T) {
-	p, _, il := setupPlacementTestCluster(t, "test-janitor-non-leader-skips")
+	p, _, il := setupPlacementTestCluster(t, "test-janitor-non-leader-skips",
+		// HardReapAge=1 ms so any entry that is already written counts as
+		// aged, JanitorInterval=10 ms so we get many ticks in a short
+		// wall-clock window.
+		WithHardReapAge(1*time.Millisecond),
+		WithJanitorInterval(10*time.Millisecond),
+	)
 
 	ctx := context.Background()
 
-	// Stop the janitor that Setup launched (it uses the default 30 s interval
-	// and would race with the replacement below).
-	il.janitorStopOnce.Do(func() { close(il.janitorStop) })
-	// Small pause to let the goroutine exit before we reset the channel.
-	time.Sleep(20 * time.Millisecond)
-
-	// Reconfigure for rapid ticking: HardReapAge=1 ms so any entry that is
-	// already written counts as aged, JanitorInterval=10 ms so we get many
-	// ticks in a short wall-clock window.
-	il.config.HardReapAge = 1 * time.Millisecond
-	il.config.JanitorInterval = 10 * time.Millisecond
+	// The janitor Setup started is already ticking at 10 ms, and is skipping
+	// every tick: isLeader is false until the promotion below.
+	require.False(t, p.IsLeader(), "the provider must start non-leader for this test to mean anything")
 
 	// Override the clock so entries always appear aged: il.now() returns a
 	// time far in the future relative to when the KV entry was created (the
@@ -302,14 +323,6 @@ func TestJanitorNonLeaderSkips(t *testing.T) {
 	require.NoError(t, err)
 	_, err = il.identities.Put(ctx, key, data)
 	require.NoError(t, err)
-
-	// Start a fresh janitor goroutine with the updated config.
-	// Reset the stop channel and Once so the new goroutine and the Cleanup
-	// registered by setupPlacementTestCluster can both close it safely.
-	il.janitorStop = make(chan struct{})
-	il.janitorStopOnce = sync.Once{}
-	p.isLeader.Store(false)
-	go il.runJanitor()
 
 	// Allow ~15 ticks while non-leader: the record must survive all of them.
 	time.Sleep(150 * time.Millisecond)

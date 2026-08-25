@@ -66,6 +66,25 @@ func (il *IdentityLookup) runJanitor() {
 	ticker := time.NewTicker(il.config.JanitorInterval)
 	defer ticker.Stop()
 
+	// The previous release's per-member tracking records are fanned out from
+	// here, and that placement is load-bearing rather than convenient.
+	//
+	// Setup cannot do it: Cluster.StartMember calls IdentityLookup.Setup
+	// BEFORE ClusterProvider.StartMember (cluster/cluster.go), and leader
+	// election runs inside the latter, so at Setup time IsLeader() is false on
+	// every node -- a one-shot leader check started from Setup would migrate
+	// nothing, on every node, forever. This loop is the first leader-gated
+	// thing that exists, it is already off the startup path, and it already
+	// stops on janitorStop, so the migration inherits all three properties and
+	// reuses this gate instead of growing a second leadership check.
+	//
+	// It runs at most once per pass and stops for good once the bucket reports
+	// clean, so the steady-state sweep cost is untouched. If the janitor is
+	// disabled (JanitorInterval <= 0) the migration does not run at all, and
+	// that is safe: the read path returns the union of both shapes for this
+	// whole release, so an un-migrated bucket is correct, merely fatter.
+	migrationDone := false
+
 	for {
 		select {
 		case <-il.janitorStop:
@@ -73,6 +92,9 @@ func (il *IdentityLookup) runJanitor() {
 		case <-ticker.C:
 			if il.isClient || !il.provider.IsLeader() {
 				continue
+			}
+			if !migrationDone {
+				migrationDone = il.migrateLegacyMemberRecords(context.Background())
 			}
 			il.janitorSweep(context.Background(), ac)
 		}
@@ -85,8 +107,14 @@ func (il *IdentityLookup) runJanitor() {
 //   - Lock-only record (PidID == "") older than HardReapAge: CAS-delete.
 //   - Activation (PidID set) whose member key is absent from the members bucket:
 //     record absence via ac; delete only when BOTH (a) >= 2 sweep observations
-//     AND (b) age-since-first-observation >= ActivationAbsentGrace.
+//     AND (b) age-since-first-observation >= ActivationAbsentGrace, and the
+//     member is still absent on an authoritative point Get.
 //     If the member key is restored between sweeps, ac entry is cleared.
+//
+// Round-trip budget: TWO enumerations (identities, then members) plus one
+// identities Get per key, i.e. 2+N. The membership question used to be a KV Get
+// per activation record with a PID, making the sweep 1+2N over a set that
+// changes only on topology events; one snapshot answers all of them.
 func (il *IdentityLookup) janitorSweep(ctx context.Context, ac *janitorAbsenceClock) {
 	start := il.now()
 
@@ -99,6 +127,8 @@ func (il *IdentityLookup) janitorSweep(ctx context.Context, ac *janitorAbsenceCl
 		il.recordJanitorSweep("error")
 		return
 	}
+
+	members := il.memberSnapshot(ctx)
 
 	now := start
 	var scanned, lockReaps, activationCleans, sweepErrors int
@@ -136,9 +166,27 @@ func (il *IdentityLookup) janitorSweep(ctx context.Context, ac *janitorAbsenceCl
 				// No absence state to clear: lock records are not tracked in ac.
 			}
 		} else {
-			// Completed activation: check whether the owning member key exists
-			// in the members bucket (direct KV read, not the in-memory list).
-			memberPresent := rec.MemberID != "" && il.provider.MemberKeyExists(ctx, rec.MemberID)
+			// Completed activation: is the owning member still in the members
+			// bucket? Answered from the ONE snapshot taken before this loop,
+			// not from a Get per record.
+			if len(members) == 0 {
+				// No usable membership answer this sweep. Treat every
+				// activation as present: fail closed, so the absence clock
+				// does not advance and nothing is reaped on missing
+				// information. An empty answer counts as missing, not as "the
+				// cluster has no members" -- this sweep runs only on the
+				// leader, and a leader is itself a member, so an empty members
+				// bucket is a broken observation. Lock reaping is unaffected;
+				// it never consults membership.
+				ac.clear(key)
+				continue
+			}
+
+			_, memberPresent := members[rec.MemberID]
+			if rec.MemberID == "" {
+				memberPresent = false
+			}
+
 			if memberPresent {
 				// Member key exists -- clear any accumulated absence state.
 				ac.clear(key)
@@ -147,6 +195,22 @@ func (il *IdentityLookup) janitorSweep(ctx context.Context, ac *janitorAbsenceCl
 				firstSeen, count := ac.observe(key, now)
 				elapsed := now.Sub(firstSeen)
 				if count >= 2 && elapsed >= il.config.ActivationAbsentGrace {
+					// Confirm before deleting. The snapshot is a watcher-backed
+					// enumeration, and a truncated one surfaces no error -- the
+					// provider's reconcileMembers guards its own prune with the
+					// same authoritative point Get, for the same reason. Here
+					// the stake is a live grain's activation record, so the
+					// absence CLOCK may run on the cheap snapshot but the
+					// irreversible delete may not. This costs one Get per REAP,
+					// which is zero in steady state, not one per record.
+					if rec.MemberID != "" && il.provider.MemberKeyExists(ctx, rec.MemberID) {
+						il.identityLogger().Debug("natskv janitor: member reappeared on confirmation; not reaping",
+							slog.String("key", key),
+							slog.String("memberID", rec.MemberID))
+						ac.clear(key)
+						continue
+					}
+
 					il.identityLogger().Info("natskv janitor: reaping activation with absent member",
 						slog.String("key", key),
 						slog.String("memberID", rec.MemberID),
@@ -184,6 +248,29 @@ func (il *IdentityLookup) janitorSweep(ctx context.Context, ac *janitorAbsenceCl
 		outcome = "work"
 	}
 	il.recordJanitorSweep(outcome)
+}
+
+// memberSnapshot takes the sweep's one membership enumeration, or reports nil
+// when it cannot. Nil is "no answer": the caller must fail closed on it, never
+// read it as "every member is gone".
+func (il *IdentityLookup) memberSnapshot(ctx context.Context) map[string]struct{} {
+	if il.provider == nil {
+		return nil
+	}
+
+	members, err := il.provider.MemberKeysSnapshot(ctx)
+	if err != nil {
+		// A member-list failure makes every activation look absent, which
+		// would reap the whole bucket. Skip the activation half of this sweep
+		// entirely; lock reaping is unaffected because it does not consult
+		// membership.
+		il.identityLogger().Warn("natskv janitor: member snapshot failed; skipping activation checks",
+			slog.Any("error", err))
+
+		return nil
+	}
+
+	return members
 }
 
 // recordJanitorSweep bumps the sweep-outcome counter, labelled by outcome

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,8 +47,11 @@ func TestClampMarkerTTL(t *testing.T) {
 
 // TestProviderBuckets_SubSecondTTLDoesNotFailStartup is the end-to-end row: a
 // 500ms member/leader TTL must still create both buckets, with the KEY TTL left
-// exactly as configured (MaxAge has no such floor) and only the MARKER TTL
-// raised.
+// exactly as configured and only the MARKER TTL raised. 500ms is chosen to sit
+// between the two server floors -- MaxAge's 100ms and SubjectDeleteMarkerTTL's
+// one second -- because that is the whole range in which the clamp is both
+// necessary and sufficient. Below 100ms the key TTL itself is rejected and
+// bucket creation fails; the clamp governs markers only.
 func TestProviderBuckets_SubSecondTTLDoesNotFailStartup(t *testing.T) {
 	t.Parallel()
 
@@ -93,4 +97,30 @@ func TestProviderBuckets_SubSecondTTLDoesNotFailStartup(t *testing.T) {
 			assert.Equal(t, tc.ttl, leaderStatus.TTL())
 		})
 	}
+}
+
+// TestCreateBucketWithMarkerTTL_ClampsSubSecondTTL pins the clamp the helper
+// now applies itself. A caller that hands it a positive sub-second marker TTL
+// used to get JSStreamInvalidConfig -- "subject delete marker TTL must be at
+// least 1 second" -- which is NOT the capability error the fallback keys on, so
+// bucket creation failed outright and Setup with it. Clamping inside the helper
+// makes its own doc comment literally true regardless of caller.
+func TestCreateBucketWithMarkerTTL_ClampsSubSecondTTL(t *testing.T) {
+	t.Parallel()
+
+	srv := startEmbeddedNATS(t)
+	_, js := connectNATS(t, srv)
+
+	kv, enabled, err := createBucketWithMarkerTTL(context.Background(), js, jetstream.KeyValueConfig{
+		Bucket:   "test_marker_ttl_clamped_in_helper",
+		Replicas: 1,
+	}, 500*time.Millisecond, discardLogger())
+
+	require.NoError(t, err, "a sub-second marker TTL must be clamped, not rejected")
+	require.True(t, enabled)
+
+	status, err := kv.Status(context.Background())
+	require.NoError(t, err)
+
+	assert.Equal(t, minTombstoneTTL, status.LimitMarkerTTL())
 }

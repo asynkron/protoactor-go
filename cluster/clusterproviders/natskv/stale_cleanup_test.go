@@ -138,11 +138,8 @@ func TestStale_TopologyLeave_CleansAllMemberActivations(t *testing.T) {
 		rec := il.getExistingActivation(ctx, ci)
 		require.NotNil(t, rec, "activation %d should exist before cleanup", i)
 	}
-	trackEntry, err := tracking.Get(ctx, deadMemberID)
-	require.NoError(t, err, "member tracking record should exist")
-	var mrec memberRecord
-	require.NoError(t, json.Unmarshal(trackEntry.Value(), &mrec))
-	assert.Len(t, mrec.Keys, 5, "tracking record should have 5 keys")
+	assert.Len(t, listTrackingKeys(t, il, deadMemberID), 5,
+		"the member should hold one tracking sub-key per grain before cleanup")
 
 	// Simulate topology leave by calling removeMemberID directly.
 	// In production, this is triggered by the ClusterTopology event handler
@@ -156,10 +153,16 @@ func TestStale_TopologyLeave_CleansAllMemberActivations(t *testing.T) {
 		assert.Nil(t, rec, "activation %d should be deleted after topology leave", i)
 	}
 
-	// Verify the tracking record is gone.
+	// Verify the member's tracking state is gone. Under per-member sub-keys
+	// that is the SUB-KEYS, not one per-member record: leaving them behind
+	// would grow the tracking bucket by one key per grain for every member
+	// that ever departed.
+	assert.Empty(t, listTrackingKeys(t, il, deadMemberID),
+		"member tracking sub-keys should be deleted after topology leave")
+
 	_, err = tracking.Get(ctx, deadMemberID)
 	assert.ErrorIs(t, err, jetstream.ErrKeyNotFound,
-		"member tracking record should be deleted after topology leave")
+		"and no legacy per-member record should be left either")
 }
 
 // TestStale_OrphanedMemberTracking_NoErrors verifies that removeMemberID
