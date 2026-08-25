@@ -241,7 +241,8 @@ func (il *IdentityLookup) janitorSweep(ctx context.Context, ac *janitorAbsenceCl
 		}
 	}
 
-	durationMs := il.now().Sub(start).Milliseconds()
+	elapsed := il.now().Sub(start)
+	durationMs := elapsed.Milliseconds()
 	workDone := lockReaps > 0 || activationCleans > 0
 	// Summary line: Info when the sweep did work or hit errors, Debug when the
 	// sweep was entirely quiet (all zeros), so operators see reaps/faults but
@@ -264,6 +265,7 @@ func (il *IdentityLookup) janitorSweep(ctx context.Context, ac *janitorAbsenceCl
 		outcome = "work"
 	}
 	il.recordJanitorSweep(outcome)
+	il.recordJanitorCost(elapsed, scanned)
 }
 
 // memberSnapshot takes the sweep's one membership enumeration, or reports nil
@@ -297,6 +299,44 @@ func (il *IdentityLookup) recordJanitorSweep(outcome string) {
 	}
 	il.provider.providerMetrics.JanitorSweepTotal.Add(context.Background(), 1,
 		metric.WithAttributes(attribute.String("outcome", outcome)))
+}
+
+// recordJanitorCost publishes what one sweep cost: its wall duration in
+// seconds and the number of LIVE identity keys it enumerated. Both are values
+// janitorSweep already computes for its summary log line, so recording them
+// adds no work and no round trip -- the sweep was 36% of hub NATS egress and
+// nothing in-process reported it.
+//
+// Neither carries an attribute, because nothing in this package does: the
+// existing recorders label only the thing they classify (outcome, type), and
+// the scrape target's own namespace/job/pod labels identify the cluster.
+//
+// Deliberately NOT called on the ListKeys-failure path. That sweep enumerated
+// nothing, so a duration sample there would report a suspiciously fast sweep
+// and a live-key gauge of zero would claim the bucket is empty;
+// recordJanitorSweep("error") is that path's signal.
+//
+// No-op when metrics are disabled.
+func (il *IdentityLookup) recordJanitorCost(elapsed time.Duration, liveKeys int) {
+	if il.provider == nil || !il.provider.metricsEnabled || il.provider.providerMetrics == nil {
+		return
+	}
+
+	ctx := context.Background()
+	il.provider.providerMetrics.JanitorSweepDuration.Record(ctx, elapsed.Seconds())
+	il.provider.providerMetrics.JanitorLiveKeys.Record(ctx, int64(liveKeys))
+}
+
+// recordTombstonePurge bumps the tombstone-purge counter. Called from
+// casDelete, whose only production callers are this file's two reap sites, so
+// the counter is janitor-scoped by construction. No-op when metrics are
+// disabled.
+func (il *IdentityLookup) recordTombstonePurge() {
+	if il.provider == nil || !il.provider.metricsEnabled || il.provider.providerMetrics == nil {
+		return
+	}
+
+	il.provider.providerMetrics.JanitorTombstonePurgeTotal.Add(context.Background(), 1)
 }
 
 // recordJanitorReap bumps the reap counter, labelled by type ("lock" or

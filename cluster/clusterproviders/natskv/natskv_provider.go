@@ -17,6 +17,7 @@ import (
 	natskvmetrics "github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv/metrics"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
@@ -115,6 +116,41 @@ func (p *Provider) IdentityLookup() *IdentityLookup {
 	return p.identity
 }
 
+// recordMarkerTTLEnabled publishes the identity buckets' marker-TTL state as a
+// gauge, one series per bucket: 1 when that bucket's delete markers expire
+// server-side, 0 when it retains every one of them forever.
+//
+// Why here and not in IdentityLookup.Setup, where the answer is computed:
+// Cluster.StartMember calls IdentityLookup.Setup BEFORE
+// ClusterProvider.StartMember (cluster/cluster.go), so at Setup time
+// providerMetrics is still nil and a record there would go nowhere. This is
+// the same ordering that keeps the legacy-record migration in runJanitor
+// rather than in Setup. Both start paths call it, because a client's buckets
+// are created by the same Setup and can fall back the same way.
+//
+// A lookup whose Setup failed records nothing. Absence is the honest state for
+// a node that has no identity buckets at all; a 0 would report a
+// marker-retention problem in place of a setup failure.
+func (p *Provider) recordMarkerTTLEnabled() {
+	if !p.metricsEnabled || p.providerMetrics == nil || p.identity == nil {
+		return
+	}
+
+	if p.identity.setupErr != nil {
+		return
+	}
+
+	for _, st := range p.identity.markerTTLStates {
+		enabled := int64(0)
+		if st.enabled {
+			enabled = 1
+		}
+
+		p.providerMetrics.MarkerTTLEnabled.Record(context.Background(), enabled,
+			metric.WithAttributes(attribute.String("bucket", st.bucket)))
+	}
+}
+
 // GetHealthStatus returns an error if the cluster health status has problems.
 func (p *Provider) GetHealthStatus() error {
 	p.clusterErrMu.Lock()
@@ -175,6 +211,7 @@ func (p *Provider) StartMember(c *cluster.Cluster) error {
 
 	p.providerMetrics = natskvmetrics.NewNatsKVMetrics(c.Logger())
 	p.metricsEnabled = c.MetricsEnabled()
+	p.recordMarkerTTLEnabled()
 
 	if err := p.createMemberBucket(); err != nil {
 		return err
@@ -217,6 +254,7 @@ func (p *Provider) StartClient(c *cluster.Cluster) error {
 
 	p.providerMetrics = natskvmetrics.NewNatsKVMetrics(c.Logger())
 	p.metricsEnabled = c.MetricsEnabled()
+	p.recordMarkerTTLEnabled()
 
 	if err := p.createMemberBucket(); err != nil {
 		return err

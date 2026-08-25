@@ -130,6 +130,21 @@ type IdentityLookup struct {
 	// disagree, since Setup takes their CONJUNCTION. Keeping the gate is what
 	// makes each of those a real degradation rather than a different outage.
 	markerTTLEnabled bool
+
+	// markerTTLStates records the same answer PER BUCKET, in Setup, for the
+	// MarkerTTLEnabled gauge. The conjunction above is what governs behaviour;
+	// this is what an operator needs, because the remedy differs by bucket:
+	// the identities bucket can be rotated with WithIdentityBucket, while the
+	// tracking bucket's name is derived from the cluster name and has no
+	// override at all. Written once in Setup and read only by
+	// Provider.recordMarkerTTLEnabled, which runs later on the same goroutine.
+	markerTTLStates []markerTTLState
+}
+
+// markerTTLState is one bucket's answer to "was it created with marker TTLs".
+type markerTTLState struct {
+	bucket  string
+	enabled bool
 }
 
 // SetsOwnPidCache returns true, signalling to DefaultContext that this
@@ -384,8 +399,11 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	// and these buckets set neither -- the only TTL-bearing message they ever
 	// carry is the purge marker the identity delete sites write (casDelete,
 	// removeActivation, RemovePid).
+	identityBucket := il.config.identityBucketName(clusterName)
+	trackingBucket := "protoactor_" + clusterName + "_identities_tracking"
+
 	identities, identityMarkerTTL, err := createBucketWithMarkerTTL(ctx, js, jetstream.KeyValueConfig{
-		Bucket:   il.config.identityBucketName(clusterName),
+		Bucket:   identityBucket,
 		Replicas: il.config.Replicas,
 	}, il.config.TombstoneTTL, il.identityLogger())
 	if err != nil {
@@ -398,7 +416,7 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 
 	// Create the member tracking KV bucket, on the same terms.
 	tracker, trackerMarkerTTL, err := createBucketWithMarkerTTL(ctx, js, jetstream.KeyValueConfig{
-		Bucket:   "protoactor_" + clusterName + "_identities_tracking",
+		Bucket:   trackingBucket,
 		Replicas: il.config.Replicas,
 	}, il.config.TombstoneTTL, il.identityLogger())
 	if err != nil {
@@ -415,6 +433,15 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	// safe direction (no PurgeTTL, hence no delete that the server can reject)
 	// whichever bucket it was. Say so when it happens.
 	il.markerTTLEnabled = identityMarkerTTL && trackerMarkerTTL
+	// Per-bucket, for the gauge: the conjunction says whether PurgeTTL is
+	// attached, but only the split says which bucket is retaining markers
+	// forever, and that is what decides whether the documented rotation lever
+	// (WithIdentityBucket, identities bucket only) even applies.
+	il.markerTTLStates = []markerTTLState{
+		{bucket: identityBucket, enabled: identityMarkerTTL},
+		{bucket: trackingBucket, enabled: trackerMarkerTTL},
+	}
+
 	if identityMarkerTTL != trackerMarkerTTL {
 		il.identityLogger().Warn("natskv identity: KV marker TTL support differs between buckets",
 			slog.Bool("identities", identityMarkerTTL),
@@ -1225,6 +1252,17 @@ func (il *IdentityLookup) casDelete(ctx context.Context, key string, rev uint64,
 	// miss (wrong-last-sequence) is benign and Debug-logged; a genuine write
 	// failure is now surfaced at Warn instead of being swallowed at Debug.
 	il.recordIdentityWriteOutcome("casDelete/"+site, true, err)
+
+	// Count only a purge the server actually stored. The write recorder's
+	// writeSuccess is deliberately wider than that -- it also treats a delete
+	// that found the key already absent as a success, because that still
+	// proves the write path works -- but such a delete leaves no marker at
+	// all, so a counter keyed on the outcome rather than on the purge would
+	// over-report the bucket's marker population. err == nil is exactly "a
+	// purge marker now exists for this key".
+	if err == nil {
+		il.recordTombstonePurge()
+	}
 }
 
 // tombstoneOpts builds the delete options every identity delete site uses --
