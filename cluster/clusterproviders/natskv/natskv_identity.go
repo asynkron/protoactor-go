@@ -116,12 +116,17 @@ type IdentityLookup struct {
 	// fail-stop watchdog. See writeFailureGuard.
 	writeGuard writeFailureGuard
 
-	// markerTTLEnabled records whether the identities bucket was actually
+	// markerTTLEnabled records whether the identity buckets were actually
 	// created with marker TTLs. It is set once, in Setup, and read only by
-	// tombstoneOpts. It is load-bearing, not informational: a PurgeTTL stamps
-	// a Nats-TTL header, and the server rejects that header on a stream with
+	// tombstoneOpts, where it gates PurgeTTL: a PurgeTTL stamps a Nats-TTL
+	// header, and the server rejects that header on a stream with
 	// AllowMsgTTL: false, so attaching it to a bucket that fell back would
 	// make every identity delete fail.
+	//
+	// It is false only where createBucketWithMarkerTTL took its fallback, which
+	// no topology reaches today -- see that function for why. Keeping the gate
+	// is what makes the fallback a real degradation rather than a different
+	// outage, so it is written and tested as if it were reachable.
 	markerTTLEnabled bool
 }
 
@@ -211,16 +216,28 @@ func newIdentityLookup(p *Provider) *IdentityLookup {
 // retries once without it when the server does not support marker TTLs.
 //
 // LimitMarkerTTL requires JetStream API level >= 1; nats.go probes AccountInfo
-// and returns ErrLimitMarkerTTLNotSupported below that. A cluster provider that
-// fails to start is far worse than tombstones accumulating, so an unsupported
-// server degrades to the previous behaviour with a WARN naming the reason.
-// Every OTHER error is fatal and propagates: a fallback that hid a dead NATS
-// connection would hide a broken identity write path.
+// and returns ErrLimitMarkerTTLNotSupported below that. Every OTHER error is
+// fatal and propagates: a fallback that hid a dead NATS connection would hide a
+// broken identity write path.
 //
-// The returned bool is load-bearing, not informational: casDelete's PurgeTTL
-// stamps a Nats-TTL header, and nats-server rejects that header on a stream
-// with AllowMsgTTL: false. Attaching it to a bucket that fell back would make
-// every identity delete fail. See tombstoneOpts.
+// The fallback is DEFENCE IN DEPTH, not a live degradation path. On a
+// pre-API-level-1 server no topology that exists today survives to use it: the
+// provider's own member and leader buckets pass LimitMarkerTTL
+// UNCONDITIONALLY (createMemberBucket / createLeaderBucket), so
+// Provider.StartMember and Provider.StartClient both fail outright on such a
+// server. Cluster.StartMember and Cluster.StartClient call IdentityLookup.Setup
+// BEFORE the provider's Start* (cluster/cluster.go), so the order of events is:
+// this ladder degrades with a WARN, and moments later the cluster fails to
+// start anyway. What the ladder buys is that an IdentityLookup driven WITHOUT
+// those provider buckets keeps working -- no such wiring exists in-tree, so
+// treat this as a guard on a future one, and keep the WARN so the fallback is
+// never silent.
+//
+// The returned bool is load-bearing wherever the fallback IS taken: casDelete's
+// and the passivation sites' PurgeTTL stamps a Nats-TTL header, and nats-server
+// rejects that header on a stream with AllowMsgTTL: false. Attaching it to a
+// bucket that fell back would make every identity delete fail. See
+// tombstoneOpts.
 //
 // Round-trip cost: the TTL-carrying attempt adds one AccountInfo call per
 // bucket per process start (nats.go issues one from prepareKeyValueConfig
@@ -292,11 +309,16 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	//
 	// Re-pushing the config is otherwise safe here because both buckets are
 	// created with ONLY Bucket and Replicas set, so LimitMarkerTTL is the
-	// single field that changes. Enabling it does not make the server start
+	// single KeyValueConfig field that changes -- though nats.go expands it
+	// into TWO stream fields, AllowMsgTTL: true and SubjectDeleteMarkerTTL
+	// (jetstream/kv.go, prepareKeyValueConfig), which is exactly why the
+	// enable is one-way: the refusal above is on clearing AllowMsgTTL.
+	// Enabling it does not make the server start
 	// planting markers of its own: it emits subject-delete markers only when
 	// limits remove the last message on a subject (MaxAge, per-message TTL),
 	// and these buckets set neither -- the only TTL-bearing message they ever
-	// carry is the purge marker casDelete writes.
+	// carry is the purge marker the identity delete sites write (casDelete,
+	// removeActivation, RemovePid).
 	identities, identityMarkerTTL, err := createBucketWithMarkerTTL(ctx, js, jetstream.KeyValueConfig{
 		Bucket:   il.config.identityBucketName(clusterName),
 		Replicas: il.config.Replicas,
@@ -322,10 +344,11 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	}
 	il.memberTracker = tracker
 
-	// The identities bucket's answer is the one that governs, since that is
-	// the bucket casDelete purges. The two cannot disagree -- same server,
-	// same call -- so a disagreement means an assumption broke; take the
-	// conjunction (the safe direction: no PurgeTTL) and say so.
+	// The CONJUNCTION governs: PurgeTTL is attached only if BOTH buckets took
+	// their marker TTL. The two cannot disagree -- same server, same call --
+	// so a disagreement means an assumption broke, and the conjunction is the
+	// safe direction (no PurgeTTL, hence no delete that the server can reject)
+	// whichever bucket it was. Say so when it happens.
 	il.markerTTLEnabled = identityMarkerTTL && trackerMarkerTTL
 	if identityMarkerTTL != trackerMarkerTTL {
 		il.identityLogger().Warn("natskv identity: KV marker TTL support differs between buckets",
@@ -406,6 +429,56 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	}
 }
 
+// removeActivation is the placement actor's RemoveActivation callback: the
+// normal grain-passivation path. It reads the record, refuses to touch one that
+// no longer points at the PID being removed, and CAS-deletes the rest.
+//
+// A CAS miss is benign and reported as such: ErrKeyExists (the jetstream
+// sentinel carrying JSErrCodeStreamWrongLastSequence) means the record was
+// rewritten by a newer activation after our read, and ErrKeyNotFound means it
+// was already gone. Neither is an error the placement actor can act on.
+func (il *IdentityLookup) removeActivation(
+	ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID,
+) error {
+	key := kvKey(ci)
+
+	// Read the entry to validate the PID before deleting.
+	entry, err := il.identities.Get(ctx, key)
+	if err != nil {
+		if errors.Is(err, jetstream.ErrKeyNotFound) {
+			return nil
+		}
+		return err
+	}
+
+	var rec activationRecord
+	if err := json.Unmarshal(entry.Value(), &rec); err != nil {
+		return err
+	}
+
+	// Only delete if the stored PID matches.
+	if rec.PidID != pid.Id || rec.PidAddress != pid.Address {
+		return nil
+	}
+
+	if rec.MemberID != "" {
+		il.removeKeyFromMember(ctx, rec.MemberID, key)
+	}
+
+	// CAS delete, as an expiring purge marker. This is the dominant marker
+	// source -- every ordinary passivation lands here, janitor reaps do not --
+	// so leaving it on a plain Delete would keep the bucket growing with every
+	// identity ever activated. See tombstoneOpts for why PurgeTTL is gated.
+	err = il.identities.Purge(ctx, key, il.tombstoneOpts(entry.Revision())...)
+	il.recordIdentityWriteOutcome("removeActivation/delete", true, err)
+	if err != nil {
+		if !errors.Is(err, jetstream.ErrKeyNotFound) && !errors.Is(err, jetstream.ErrKeyExists) {
+			return err
+		}
+	}
+	return nil
+}
+
 // setupPlacementActor spawns the placement actor, proxy actor, and creates
 // the strategy manager for non-client members.
 func (il *IdentityLookup) setupPlacementActor(c *cluster.Cluster) {
@@ -449,47 +522,9 @@ func (il *IdentityLookup) setupPlacementActor(c *cluster.Cluster) {
 		return nil
 	}
 
-	// Create the RemoveActivation callback.
-	removeActivation := func(ctx context.Context, ci *cluster.ClusterIdentity, pid *actor.PID) error {
-		key := kvKey(ci)
-
-		// Read the entry to validate the PID before deleting.
-		entry, err := il.identities.Get(ctx, key)
-		if err != nil {
-			if errors.Is(err, jetstream.ErrKeyNotFound) {
-				return nil
-			}
-			return err
-		}
-
-		var rec activationRecord
-		if err := json.Unmarshal(entry.Value(), &rec); err != nil {
-			return err
-		}
-
-		// Only delete if the stored PID matches.
-		if rec.PidID != pid.Id || rec.PidAddress != pid.Address {
-			return nil
-		}
-
-		if rec.MemberID != "" {
-			il.removeKeyFromMember(ctx, rec.MemberID, key)
-		}
-
-		// CAS delete.
-		err = il.identities.Delete(ctx, key, jetstream.LastRevision(entry.Revision()))
-		il.recordIdentityWriteOutcome("removeActivation/delete", true, err)
-		if err != nil {
-			if !errors.Is(err, jetstream.ErrKeyNotFound) && !errors.Is(err, jetstream.ErrKeyExists) {
-				return err
-			}
-		}
-		return nil
-	}
-
 	config := cluster.PlacementConfig{
 		PersistActivation:     persistActivation,
-		RemoveActivation:      removeActivation,
+		RemoveActivation:      il.removeActivation,
 		CheckActivationRecord: il.checkActivationRecord,
 		CleanupOwnRecord:      il.cleanupOwnRecord,
 		SelfCheckHardReapAge:  il.config.HardReapAge,
@@ -984,9 +1019,10 @@ func (il *IdentityLookup) RemovePid(ci *cluster.ClusterIdentity, pid *actor.PID)
 		il.removeKeyFromMember(ctx, rec.MemberID, key)
 	}
 
-	// Use CAS delete (LastRevision) so the delete only succeeds if the
-	// key hasn't been modified since we read it.
-	err = il.identities.Delete(ctx, key, jetstream.LastRevision(entry.Revision()))
+	// Use CAS delete (LastRevision) so the delete only succeeds if the key
+	// hasn't been modified since we read it, and write it as an expiring purge
+	// marker for the same reason removeActivation does. See tombstoneOpts.
+	err = il.identities.Purge(ctx, key, il.tombstoneOpts(entry.Revision())...)
 	il.recordIdentityWriteOutcome("RemovePid/delete", true, err)
 }
 
@@ -1126,17 +1162,22 @@ func (il *IdentityLookup) casDelete(ctx context.Context, key string, rev uint64,
 	il.recordIdentityWriteOutcome("casDelete/"+site, true, err)
 }
 
-// tombstoneOpts builds the delete options for a purge marker. PurgeTTL is
-// attached ONLY when the bucket actually carries marker TTLs: Purge stamps a
-// Nats-TTL header, and nats-server rejects that header on a stream with
-// AllowMsgTTL: false (JSMessageTTLDisabledErr, "per-message TTL is disabled").
-// On a server that fell back, an unconditional PurgeTTL would make every
-// identity delete fail -- passivated identities would never be removed and the
-// write-failure watchdog would fail-stop the process. That is a correctness
-// outage in place of a latency optimisation, so the flag gates the option.
+// tombstoneOpts builds the delete options every identity delete site uses --
+// casDelete, removeActivation and RemovePid. PurgeTTL is attached ONLY when the
+// bucket actually carries marker TTLs: Purge stamps a Nats-TTL header, and
+// nats-server rejects that header on a stream with AllowMsgTTL: false
+// (JSMessageTTLDisabledErr, "per-message TTL is disabled"). On a bucket that
+// fell back, an unconditional PurgeTTL would make every identity delete fail --
+// passivated identities would never be removed and the write-failure watchdog
+// would fail-stop the process. That is a correctness outage in place of a
+// storage optimisation, so the flag gates the option even though
+// createBucketWithMarkerTTL's fallback is unreachable in today's topologies.
 //
 // LastRevision is always attached: the CAS guard is not negotiable, and both
-// options are KVDeleteOpt, so the rollup does not defeat it.
+// options are KVDeleteOpt, so the rollup does not defeat it. A rejected purge
+// still carries JSErrCodeStreamWrongLastSequence, so classifyWriteError still
+// calls it a benign CAS conflict and removeActivation's ErrKeyExists filter
+// still matches it.
 func (il *IdentityLookup) tombstoneOpts(rev uint64) []jetstream.KVDeleteOpt {
 	opts := []jetstream.KVDeleteOpt{jetstream.LastRevision(rev)}
 

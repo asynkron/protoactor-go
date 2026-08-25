@@ -38,7 +38,10 @@ const (
 	// least 1 second"). Below it, bucket creation fails with
 	// JSStreamInvalidConfig -- which is NOT ErrLimitMarkerTTLNotSupported and
 	// so would NOT take createBucketWithMarkerTTL's fallback, turning a
-	// mis-set knob into a startup outage. WithTombstoneTTL clamps to it.
+	// mis-set knob into a startup outage. It governs EVERY LimitMarkerTTL this
+	// package sets -- the identity buckets' TombstoneTTL and the provider's
+	// member/leader buckets, whose marker TTL is their key TTL -- via
+	// clampMarkerTTL.
 	minTombstoneTTL = time.Second
 
 	defaultWriteFailureThreshold = 15
@@ -94,8 +97,9 @@ type config struct {
 	// TombstoneTTL is how long the server retains the delete marker a removed
 	// identity leaves behind, before expiring it on its own. It is applied
 	// twice: as the bucket's LimitMarkerTTL at creation, and as the per-message
-	// PurgeTTL on each casDelete. A value <= 0 opts out entirely and restores
-	// the previous behaviour of markers that are retained forever.
+	// PurgeTTL on every identity delete (casDelete, removeActivation,
+	// RemovePid). A value <= 0 opts out entirely and restores the previous
+	// behaviour of markers that are retained forever.
 	TombstoneTTL time.Duration
 
 	// WriteFailureThreshold is the number of consecutive non-benign identity
@@ -219,6 +223,23 @@ func WithJanitorInterval(d time.Duration) Option {
 	return func(c *config) { c.JanitorInterval = d }
 }
 
+// clampMarkerTTL raises a positive marker TTL to the server's floor and
+// normalises anything non-positive to "no marker TTL". Every LimitMarkerTTL
+// this package sets goes through it: the server rejects a sub-second
+// SubjectDeleteMarkerTTL with JSStreamInvalidConfig, which is a bucket-creation
+// failure -- i.e. a startup outage -- rather than a capability error that
+// something could fall back from.
+func clampMarkerTTL(d time.Duration) time.Duration {
+	switch {
+	case d <= 0:
+		return 0
+	case d < minTombstoneTTL:
+		return minTombstoneTTL
+	default:
+		return d
+	}
+}
+
 // WithTombstoneTTL sets how long the server retains a deleted identity's
 // marker before expiring it. A value <= 0 disables marker expiry, restoring
 // markers that are retained forever. A positive value below the server's
@@ -226,16 +247,7 @@ func WithJanitorInterval(d time.Duration) Option {
 // through, because the server rejects a shorter marker TTL outright and that
 // rejection would fail Setup instead of degrading.
 func WithTombstoneTTL(d time.Duration) Option {
-	return func(c *config) {
-		switch {
-		case d <= 0:
-			c.TombstoneTTL = 0
-		case d < minTombstoneTTL:
-			c.TombstoneTTL = minTombstoneTTL
-		default:
-			c.TombstoneTTL = d
-		}
-	}
+	return func(c *config) { c.TombstoneTTL = clampMarkerTTL(d) }
 }
 
 // WithWriteFailureThreshold sets the number of consecutive non-benign identity

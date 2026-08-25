@@ -3,7 +3,6 @@ package natskv
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -288,32 +287,12 @@ func TestStale_RemoveActivation_CAS_DoesNotDeleteNewActivation(t *testing.T) {
 	// The callback should read the current entry, see the PID doesn't match
 	// (it's now node B's PID), and skip deletion.
 	//
-	// Build the RemoveActivation callback the same way setupPlacementActor does.
-	removeActivation := func(rmCtx context.Context, rmCI *cluster.ClusterIdentity, rmPid *actor.PID) error {
-		key := kvKey(rmCI)
-		entry, err := il.identities.Get(rmCtx, key)
-		if err != nil {
-			if errors.Is(err, jetstream.ErrKeyNotFound) {
-				return nil
-			}
-			return err
-		}
-		var rec activationRecord
-		if err := json.Unmarshal(entry.Value(), &rec); err != nil {
-			return err
-		}
-		// Only delete if PID matches.
-		if rec.PidID != rmPid.Id || rec.PidAddress != rmPid.Address {
-			return nil // PID changed — someone else re-activated
-		}
-		if rec.MemberID != "" {
-			il.removeKeyFromMember(rmCtx, rec.MemberID, key)
-		}
-		return il.identities.Delete(rmCtx, key, jetstream.LastRevision(entry.Revision()))
-	}
-
-	// Call RemoveActivation with node A's OLD PID.
-	err = removeActivation(ctx, ci, pidA)
+	// This is the production callback itself (setupPlacementActor passes
+	// il.removeActivation as PlacementConfig.RemoveActivation), not a copy of
+	// its logic: a copy silently stops testing the real path the moment the
+	// real one changes, which is exactly what happened when the delete became
+	// an expiring purge.
+	err = il.removeActivation(ctx, ci, pidA)
 	assert.NoError(t, err, "RemoveActivation should not error (PID mismatch -> skip)")
 
 	// Step 4: Verify node B's activation survived.

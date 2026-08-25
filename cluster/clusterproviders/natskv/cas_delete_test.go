@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"strconv"
 	"sync"
@@ -431,6 +432,7 @@ func TestCreateBucketWithMarkerTTL_UnsupportedFallsBackAndWarns(t *testing.T) {
 	require.NotNil(t, kv)
 	require.False(t, enabled, "the caller must learn the TTL was NOT enabled")
 	require.Equal(t, 1, js.rejected, "the TTL config was attempted exactly once")
+	require.Equal(t, 1, js.plainAttempts, "and the ladder's second rung was taken exactly once")
 
 	require.Contains(t, buf.String(), "does not support KV marker TTLs")
 
@@ -460,12 +462,96 @@ func TestCreateBucketWithMarkerTTL_RealFailureIsFatal(t *testing.T) {
 	require.False(t, enabled)
 }
 
-// ttlRejectingJS rejects any KeyValueConfig carrying LimitMarkerTTL, the way a
-// pre-API-level-1 server does, and passes everything else through.
+// TestCasDelete_FallbackShape_DeletesWithPermanentMarker is the true fallback
+// shape end-to-end: a bucket whose stream really carries AllowMsgTTL: false
+// while the configured TombstoneTTL stays POSITIVE. That is the only shape in
+// which tombstoneOpts' markerTTLEnabled term is load-bearing -- with the TTL
+// knob also zeroed, the `TombstoneTTL > 0` term alone would suppress PurgeTTL
+// and dropping the flag from the gate would go unnoticed. Here dropping it
+// makes the server reject the purge with 10166 and the identity leaks.
+func TestCasDelete_FallbackShape_DeletesWithPermanentMarker(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	il, env := newIdentityLookupForTest(t, withBucketMarkerTTL(0), withMarkerTTLEnabled(false))
+
+	require.Positive(t, il.config.TombstoneTTL,
+		"only the BUCKET fell back; the configured knob stays positive")
+
+	status, err := il.identities.Status(ctx)
+	require.NoError(t, err)
+	require.Zero(t, status.LimitMarkerTTL(), "the bucket must genuinely lack marker TTLs")
+
+	key := kvKey(testCI("TestKind", "fallback-shape"))
+
+	rev, err := il.identities.Put(ctx, key, []byte(`{"pidId":"p1"}`))
+	require.NoError(t, err)
+
+	il.casDelete(ctx, key, rev, "test")
+
+	_, err = il.identities.Get(ctx, key)
+	require.ErrorIs(t, err, jetstream.ErrKeyNotFound,
+		"the delete must succeed: a PurgeTTL here would be rejected with 10166 and leak the identity")
+
+	hdr := lastMsgHeaders(t, env.js, "KV_"+env.identityBucket, "$KV."+env.identityBucket+"."+key)
+	assert.Equal(t, "PURGE", hdr.Get("KV-Operation"))
+	assert.Equal(t, "sub", hdr.Get("Nats-Rollup"))
+	assert.Empty(t, hdr.Get("Nats-TTL"),
+		"a bucket without marker TTLs cannot carry an expiry -- the marker is permanent, as before")
+
+	assert.Equal(t, 1, streamMsgCount(t, env.js, "KV_"+env.identityBucket),
+		"the fallback keeps exactly the old behaviour: one retained marker")
+}
+
+// TestCreateBucketWithMarkerTTL_NonCapabilityErrorDoesNotFallBack pins the
+// half of the fallback contract that an invalid-bucket-name test cannot reach:
+// a name the server rejects fails BOTH attempts, so removing the
+// ErrLimitMarkerTTLNotSupported check would still surface an error. Here only
+// the TTL-carrying attempt fails, and it fails with something that is NOT the
+// capability error -- the helper must propagate it and never try the second
+// rung, because a fallback that hid a dead NATS connection would hide a broken
+// identity write path.
+func TestCreateBucketWithMarkerTTL_NonCapabilityErrorDoesNotFallBack(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	srv := startEmbeddedNATS(t)
+	_, real := connectNATS(t, srv)
+
+	js := &ttlRejectingJS{JetStream: real, ttlErr: errKVUnavailable}
+
+	kv, enabled, err := createBucketWithMarkerTTL(ctx, js, jetstream.KeyValueConfig{
+		Bucket:   "test_fatal_bucket",
+		Replicas: 1,
+	}, time.Hour, discardLogger())
+
+	require.ErrorIs(t, err, errKVUnavailable, "a non-capability error must propagate unchanged")
+	require.Nil(t, kv)
+	require.False(t, enabled)
+	require.Equal(t, 1, js.rejected)
+	require.Zero(t, js.plainAttempts,
+		"only ErrLimitMarkerTTLNotSupported degrades; anything else must fail Setup outright")
+}
+
+// errKVUnavailable stands in for a genuinely broken JetStream (dead connection,
+// bad account) as opposed to one that merely lacks marker-TTL support.
+var errKVUnavailable = errors.New("kv unavailable")
+
+// ttlRejectingJS fails only the TTL-carrying bucket attempt and passes
+// everything else through. With the zero-value ttlErr it reproduces a
+// pre-API-level-1 server (ErrLimitMarkerTTLNotSupported); with any other error
+// it reproduces a genuinely broken JetStream, which must NOT be swallowed by
+// the fallback. plainAttempts counts the fallback attempts, so a test can pin
+// whether the ladder was taken at all.
 type ttlRejectingJS struct {
 	jetstream.JetStream
 
-	rejected int
+	// ttlErr is returned for a config carrying LimitMarkerTTL. nil means
+	// ErrLimitMarkerTTLNotSupported.
+	ttlErr error
+
+	rejected      int
+	plainAttempts int
 }
 
 func (j *ttlRejectingJS) CreateOrUpdateKeyValue(
@@ -474,8 +560,14 @@ func (j *ttlRejectingJS) CreateOrUpdateKeyValue(
 	if cfg.LimitMarkerTTL != 0 {
 		j.rejected++
 
+		if j.ttlErr != nil {
+			return nil, j.ttlErr
+		}
+
 		return nil, jetstream.ErrLimitMarkerTTLNotSupported
 	}
+
+	j.plainAttempts++
 
 	return j.JetStream.CreateOrUpdateKeyValue(ctx, cfg)
 }

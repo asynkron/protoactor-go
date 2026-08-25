@@ -285,14 +285,22 @@ func (p *Provider) UpdateKinds(kinds []string) error {
 // createMemberBucket creates or binds the member KV bucket.
 // The bucket is configured with a TTL so that keys expire if not refreshed,
 // and LimitMarkerTTL so that watchers receive delete notifications on expiry.
+//
+// The marker TTL is clamped, the key TTL is not: the server's floor of one
+// second applies only to SubjectDeleteMarkerTTL (stream.go: "subject delete
+// marker TTL must be at least 1 second"), and violating it fails bucket
+// creation -- i.e. fails StartMember -- rather than degrading. MaxAge, which is
+// where the key TTL lands, has no such floor, so a sub-second MemberTTL keeps
+// expiring keys exactly as configured while its markers live for one second.
 func (p *Provider) createMemberBucket() error {
 	bucketName := p.config.memberBucketName(p.clusterName)
 
 	kv, err := p.js.CreateOrUpdateKeyValue(p.ctx, jetstream.KeyValueConfig{
-		Bucket:         bucketName,
-		Replicas:       p.config.Replicas,
-		TTL:            p.config.MemberTTL,
-		LimitMarkerTTL: p.config.MemberTTL, // emit delete markers for TTL-expired keys
+		Bucket:   bucketName,
+		Replicas: p.config.Replicas,
+		TTL:      p.config.MemberTTL,
+		// emit delete markers for TTL-expired keys
+		LimitMarkerTTL: clampMarkerTTL(p.config.MemberTTL),
 	})
 	if err != nil {
 		return fmt.Errorf("natskv: create member bucket %q: %w", bucketName, err)
@@ -304,7 +312,8 @@ func (p *Provider) createMemberBucket() error {
 
 // createLeaderBucket creates a separate KV bucket for leader election with
 // its own TTL (LeaderTTL), so the leader key can have a different TTL than
-// member keys.
+// member keys. The marker TTL is clamped to the server floor for the same
+// reason as the member bucket's; see createMemberBucket.
 func (p *Provider) createLeaderBucket() error {
 	bucketName := p.config.memberBucketName(p.clusterName) + "_leader"
 
@@ -312,7 +321,7 @@ func (p *Provider) createLeaderBucket() error {
 		Bucket:         bucketName,
 		Replicas:       p.config.Replicas,
 		TTL:            p.config.LeaderTTL,
-		LimitMarkerTTL: p.config.LeaderTTL,
+		LimitMarkerTTL: clampMarkerTTL(p.config.LeaderTTL),
 	})
 	if err != nil {
 		return fmt.Errorf("natskv: create leader bucket %q: %w", bucketName, err)

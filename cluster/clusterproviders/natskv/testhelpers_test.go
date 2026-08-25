@@ -92,8 +92,14 @@ type natskvTestEnv struct {
 
 // identityLookupTestConfig is newIdentityLookupForTest's option target.
 type identityLookupTestConfig struct {
-	clusterName      string
-	tombstoneTTL     time.Duration
+	clusterName  string
+	tombstoneTTL time.Duration
+	// bucketMarkerTTL is the TTL the BUCKETS are created with, when it needs
+	// to differ from the configured TombstoneTTL. nil means "same as
+	// tombstoneTTL", which is what production does. Decoupling the two is the
+	// only way to build the real fallback shape: a bucket whose stream carries
+	// AllowMsgTTL: false while config.TombstoneTTL is positive.
+	bucketMarkerTTL  *time.Duration
 	markerTTLEnabled *bool // nil = whatever the server actually supports
 }
 
@@ -111,6 +117,16 @@ func withMarkerTTLEnabled(enabled bool) natskvTestOption {
 // withTombstoneTTL overrides the marker TTL, for the bounded-marker test.
 func withTombstoneTTL(d time.Duration) natskvTestOption {
 	return func(c *identityLookupTestConfig) { c.tombstoneTTL = d }
+}
+
+// withBucketMarkerTTL overrides the TTL the buckets are CREATED with, leaving
+// config.TombstoneTTL alone. Passing 0 produces a bucket whose stream really
+// has AllowMsgTTL: false while the configured TombstoneTTL stays positive --
+// the exact shape a server without marker-TTL support leaves behind, and the
+// only shape in which dropping markerTTLEnabled from tombstoneOpts' gate is
+// observable.
+func withBucketMarkerTTL(d time.Duration) natskvTestOption {
+	return func(c *identityLookupTestConfig) { c.bucketMarkerTTL = &d }
 }
 
 // newIdentityLookupForTest builds an IdentityLookup against an embedded NATS
@@ -139,6 +155,11 @@ func newIdentityLookupForTest(t *testing.T, opts ...natskvTestOption) (*Identity
 	cfg := newDefaultConfig()
 	cfg.TombstoneTTL = tc.tombstoneTTL
 
+	bucketTTL := tc.tombstoneTTL
+	if tc.bucketMarkerTTL != nil {
+		bucketTTL = *tc.bucketMarkerTTL
+	}
+
 	// Unique per test so t.Parallel() cases cannot collide on one server.
 	identityBucket := cfg.identityBucketName(tc.clusterName) + "_" + strings.ReplaceAll(t.Name(), "/", "_")
 	trackingBucket := "protoactor_" + tc.clusterName + "_identities_tracking_" + strings.ReplaceAll(t.Name(), "/", "_")
@@ -146,13 +167,13 @@ func newIdentityLookupForTest(t *testing.T, opts ...natskvTestOption) (*Identity
 	identities, ttlEnabled, err := createBucketWithMarkerTTL(ctx, js, jetstream.KeyValueConfig{
 		Bucket:   identityBucket,
 		Replicas: 1,
-	}, cfg.TombstoneTTL, discardLogger())
+	}, bucketTTL, discardLogger())
 	require.NoError(t, err)
 
 	tracker, _, err := createBucketWithMarkerTTL(ctx, js, jetstream.KeyValueConfig{
 		Bucket:   trackingBucket,
 		Replicas: 1,
-	}, cfg.TombstoneTTL, discardLogger())
+	}, bucketTTL, discardLogger())
 	require.NoError(t, err)
 
 	if tc.markerTTLEnabled != nil {
