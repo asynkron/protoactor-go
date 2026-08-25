@@ -289,6 +289,17 @@ func (e *erroringKV) Delete(ctx context.Context, key string, opts ...jetstream.K
 	return e.KeyValue.Delete(ctx, key, opts...)
 }
 
+// Purge is the write method casDelete actually calls: the tombstone it leaves
+// must expire server-side, so the delete is a Purge (Delete + rollup + TTL),
+// not a Delete. Without this override the wrapper would silently pass the
+// site under test straight through to the real bucket.
+func (e *erroringKV) Purge(ctx context.Context, key string, opts ...jetstream.KVDeleteOpt) error {
+	if err := e.armed(); err != nil {
+		return err
+	}
+	return e.KeyValue.Purge(ctx, key, opts...)
+}
+
 func (e *erroringKV) Put(ctx context.Context, key string, value []byte) (uint64, error) {
 	if err := e.armed(); err != nil {
 		return 0, err

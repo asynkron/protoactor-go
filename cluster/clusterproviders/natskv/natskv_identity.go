@@ -115,6 +115,14 @@ type IdentityLookup struct {
 	// writeGuard tracks consecutive identity-write failures and drives the
 	// fail-stop watchdog. See writeFailureGuard.
 	writeGuard writeFailureGuard
+
+	// markerTTLEnabled records whether the identities bucket was actually
+	// created with marker TTLs. It is set once, in Setup, and read only by
+	// tombstoneOpts. It is load-bearing, not informational: a PurgeTTL stamps
+	// a Nats-TTL header, and the server rejects that header on a stream with
+	// AllowMsgTTL: false, so attaching it to a bucket that fell back would
+	// make every identity delete fail.
+	markerTTLEnabled bool
 }
 
 // SetsOwnPidCache returns true, signalling to DefaultContext that this
@@ -199,6 +207,57 @@ func newIdentityLookup(p *Provider) *IdentityLookup {
 	}
 }
 
+// createBucketWithMarkerTTL creates cfg's bucket with LimitMarkerTTL set, and
+// retries once without it when the server does not support marker TTLs.
+//
+// LimitMarkerTTL requires JetStream API level >= 1; nats.go probes AccountInfo
+// and returns ErrLimitMarkerTTLNotSupported below that. A cluster provider that
+// fails to start is far worse than tombstones accumulating, so an unsupported
+// server degrades to the previous behaviour with a WARN naming the reason.
+// Every OTHER error is fatal and propagates: a fallback that hid a dead NATS
+// connection would hide a broken identity write path.
+//
+// The returned bool is load-bearing, not informational: casDelete's PurgeTTL
+// stamps a Nats-TTL header, and nats-server rejects that header on a stream
+// with AllowMsgTTL: false. Attaching it to a bucket that fell back would make
+// every identity delete fail. See tombstoneOpts.
+//
+// Round-trip cost: the TTL-carrying attempt adds one AccountInfo call per
+// bucket per process start (nats.go issues one from prepareKeyValueConfig
+// regardless, and a second one only when LimitMarkerTTL is set).
+func createBucketWithMarkerTTL(
+	ctx context.Context,
+	js jetstream.JetStream,
+	cfg jetstream.KeyValueConfig,
+	ttl time.Duration,
+	logger *slog.Logger,
+) (kv jetstream.KeyValue, markerTTLEnabled bool, err error) {
+	if ttl > 0 {
+		withTTL := cfg
+		withTTL.LimitMarkerTTL = ttl
+
+		kv, err = js.CreateOrUpdateKeyValue(ctx, withTTL)
+		if err == nil {
+			return kv, true, nil
+		}
+
+		if !errors.Is(err, jetstream.ErrLimitMarkerTTLNotSupported) {
+			return nil, false, err
+		}
+
+		logger.Warn("natskv identity: server does not support KV marker TTLs; delete markers will accumulate",
+			slog.String("bucket", cfg.Bucket),
+			slog.Duration("requestedTTL", ttl))
+	}
+
+	kv, err = js.CreateOrUpdateKeyValue(ctx, cfg)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return kv, false, nil
+}
+
 // Setup initializes the identity lookup with the cluster context, creates the
 // required KV buckets, and subscribes to topology events for member cleanup.
 func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient bool) {
@@ -215,11 +274,33 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	js := il.provider.js
 	clusterName := c.Config.Name
 
-	// Create the identities KV bucket (no TTL -- activations persist).
-	identities, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+	// Create the identities KV bucket. Records themselves have no TTL --
+	// activations persist -- but the delete MARKERS they leave behind expire
+	// server-side after TombstoneTTL. Without that, the bucket's retained
+	// message count grows with every identity ever activated instead of with
+	// the live set, and every janitor ListKeys pays transport for the markers
+	// because nats.go filters them client-side.
+	//
+	// The enable is ONE-WAY on an existing bucket: nats-server's stream update
+	// check refuses any config that clears AllowMsgTTL ("message TTL status
+	// can not be disabled"), so a bucket cannot be moved back to
+	// no-marker-TTL in place. That has a sharp operational edge -- reverting
+	// to a build that creates these buckets WITHOUT LimitMarkerTTL makes this
+	// very call fail, i.e. fails Setup, against an already-upgraded bucket.
+	// Rollback is therefore bucket rotation via WithIdentityBucket, which is
+	// already the documented incident lever, not a code revert on its own.
+	//
+	// Re-pushing the config is otherwise safe here because both buckets are
+	// created with ONLY Bucket and Replicas set, so LimitMarkerTTL is the
+	// single field that changes. Enabling it does not make the server start
+	// planting markers of its own: it emits subject-delete markers only when
+	// limits remove the last message on a subject (MaxAge, per-message TTL),
+	// and these buckets set neither -- the only TTL-bearing message they ever
+	// carry is the purge marker casDelete writes.
+	identities, identityMarkerTTL, err := createBucketWithMarkerTTL(ctx, js, jetstream.KeyValueConfig{
 		Bucket:   il.config.identityBucketName(clusterName),
 		Replicas: il.config.Replicas,
-	})
+	}, il.config.TombstoneTTL, il.identityLogger())
 	if err != nil {
 		il.setupErr = fmt.Errorf("natskv identity setup failed: create identities bucket: %w", err)
 		il.identityLogger().Error("natskv identity: failed to create identities bucket",
@@ -228,11 +309,11 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	}
 	il.identities = identities
 
-	// Create the member tracking KV bucket.
-	tracker, err := js.CreateOrUpdateKeyValue(ctx, jetstream.KeyValueConfig{
+	// Create the member tracking KV bucket, on the same terms.
+	tracker, trackerMarkerTTL, err := createBucketWithMarkerTTL(ctx, js, jetstream.KeyValueConfig{
 		Bucket:   "protoactor_" + clusterName + "_identities_tracking",
 		Replicas: il.config.Replicas,
-	})
+	}, il.config.TombstoneTTL, il.identityLogger())
 	if err != nil {
 		il.setupErr = fmt.Errorf("natskv identity setup failed: create tracking bucket: %w", err)
 		il.identityLogger().Error("natskv identity: failed to create tracking bucket",
@@ -240,6 +321,17 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 		return
 	}
 	il.memberTracker = tracker
+
+	// The identities bucket's answer is the one that governs, since that is
+	// the bucket casDelete purges. The two cannot disagree -- same server,
+	// same call -- so a disagreement means an assumption broke; take the
+	// conjunction (the safe direction: no PurgeTTL) and say so.
+	il.markerTTLEnabled = identityMarkerTTL && trackerMarkerTTL
+	if identityMarkerTTL != trackerMarkerTTL {
+		il.identityLogger().Warn("natskv identity: KV marker TTL support differs between buckets",
+			slog.Bool("identities", identityMarkerTTL),
+			slog.Bool("tracking", trackerMarkerTTL))
+	}
 
 	// Subscribe to ClusterTopology events to clean up when members leave
 	// and to update the strategy manager.
@@ -1010,13 +1102,21 @@ func (il *IdentityLookup) getExistingActivationWithRev(ctx context.Context, ci *
 	return &rec, entry.Revision()
 }
 
-// casDelete deletes the given key only if its current revision matches rev.
+// casDelete removes the given key only if its current revision matches rev.
 // A CAS miss (ErrKeyExists from jetstream) is a terminal no-op: the key was
-// modified after our read, so we must not blind-delete. Any error other than
-// ErrKeyNotFound is logged at debug level. Never loops or falls back to
-// unconditional delete.
+// modified after our read, so we must not blind-delete. Never loops or falls
+// back to unconditional delete.
+//
+// Purge rather than Delete: Purge is Delete plus KV-Operation: PURGE,
+// Nats-Rollup: sub and a per-message TTL, so the subject collapses to a single
+// marker that the server removes on its own instead of retaining it forever.
+// The rollup discards nothing a reader could still want -- these buckets run at
+// the KV default History of 1, so the subject already holds at most one
+// message. Both LastRevision and PurgeTTL are KVDeleteOpt, so the CAS guard is
+// unaffected, and the server evaluates the expected-revision header before it
+// stores anything, so a rejected purge never rolls the subject up.
 func (il *IdentityLookup) casDelete(ctx context.Context, key string, rev uint64, site string) {
-	err := il.identities.Delete(ctx, key, jetstream.LastRevision(rev))
+	err := il.identities.Purge(ctx, key, il.tombstoneOpts(rev)...)
 	// Control flow is unchanged: casDelete is always a terminal no-op and
 	// never retries or blind-deletes. Only the logging/accounting differs --
 	// the recorder classifies the error (success / benign CAS conflict / real
@@ -1024,6 +1124,27 @@ func (il *IdentityLookup) casDelete(ctx context.Context, key string, rev uint64,
 	// miss (wrong-last-sequence) is benign and Debug-logged; a genuine write
 	// failure is now surfaced at Warn instead of being swallowed at Debug.
 	il.recordIdentityWriteOutcome("casDelete/"+site, true, err)
+}
+
+// tombstoneOpts builds the delete options for a purge marker. PurgeTTL is
+// attached ONLY when the bucket actually carries marker TTLs: Purge stamps a
+// Nats-TTL header, and nats-server rejects that header on a stream with
+// AllowMsgTTL: false (JSMessageTTLDisabledErr, "per-message TTL is disabled").
+// On a server that fell back, an unconditional PurgeTTL would make every
+// identity delete fail -- passivated identities would never be removed and the
+// write-failure watchdog would fail-stop the process. That is a correctness
+// outage in place of a latency optimisation, so the flag gates the option.
+//
+// LastRevision is always attached: the CAS guard is not negotiable, and both
+// options are KVDeleteOpt, so the rollup does not defeat it.
+func (il *IdentityLookup) tombstoneOpts(rev uint64) []jetstream.KVDeleteOpt {
+	opts := []jetstream.KVDeleteOpt{jetstream.LastRevision(rev)}
+
+	if il.markerTTLEnabled && il.config.TombstoneTTL > 0 {
+		opts = append(opts, jetstream.PurgeTTL(il.config.TombstoneTTL))
+	}
+
+	return opts
 }
 
 // tryAcquireLock attempts to acquire an exclusive spawn lock for the given

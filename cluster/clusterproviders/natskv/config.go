@@ -22,6 +22,25 @@ const (
 	defaultWaiterWindow          = 15 * time.Second
 	defaultJanitorInterval       = 30 * time.Second
 
+	// defaultTombstoneTTL is how long a deleted identity's marker is retained
+	// before the server removes it. Without a TTL the marker is retained
+	// forever and the identities bucket's message count grows with every
+	// identity ever activated, not with the live set: 2,160 markers against
+	// 4,856 live keys on the hub at soak, +46/min. One hour is far longer than
+	// any reader that could race a delete -- the only reader of the identities
+	// bucket that watches for delete markers is waitForActivation, bounded by
+	// WaiterWindow (15s) -- and short enough that the marker set tracks grain
+	// churn rather than uptime.
+	defaultTombstoneTTL = time.Hour
+
+	// minTombstoneTTL is the server's floor for a subject-delete-marker TTL
+	// (nats-server server/stream.go: "subject delete marker TTL must be at
+	// least 1 second"). Below it, bucket creation fails with
+	// JSStreamInvalidConfig -- which is NOT ErrLimitMarkerTTLNotSupported and
+	// so would NOT take createBucketWithMarkerTTL's fallback, turning a
+	// mis-set knob into a startup outage. WithTombstoneTTL clamps to it.
+	minTombstoneTTL = time.Second
+
 	defaultWriteFailureThreshold = 15
 	defaultWriteFailureWindow    = 90 * time.Second
 	defaultRemoteActivationTO    = 12 * time.Second
@@ -71,6 +90,13 @@ type config struct {
 	// JanitorInterval is the cadence at which the background janitor
 	// scans for and removes stale identity records.
 	JanitorInterval time.Duration
+
+	// TombstoneTTL is how long the server retains the delete marker a removed
+	// identity leaves behind, before expiring it on its own. It is applied
+	// twice: as the bucket's LimitMarkerTTL at creation, and as the per-message
+	// PurgeTTL on each casDelete. A value <= 0 opts out entirely and restores
+	// the previous behaviour of markers that are retained forever.
+	TombstoneTTL time.Duration
 
 	// WriteFailureThreshold is the number of consecutive non-benign identity
 	// write failures required to trip the fail-stop watchdog. CAS conflicts
@@ -193,6 +219,25 @@ func WithJanitorInterval(d time.Duration) Option {
 	return func(c *config) { c.JanitorInterval = d }
 }
 
+// WithTombstoneTTL sets how long the server retains a deleted identity's
+// marker before expiring it. A value <= 0 disables marker expiry, restoring
+// markers that are retained forever. A positive value below the server's
+// one-second floor is clamped to minTombstoneTTL rather than being passed
+// through, because the server rejects a shorter marker TTL outright and that
+// rejection would fail Setup instead of degrading.
+func WithTombstoneTTL(d time.Duration) Option {
+	return func(c *config) {
+		switch {
+		case d <= 0:
+			c.TombstoneTTL = 0
+		case d < minTombstoneTTL:
+			c.TombstoneTTL = minTombstoneTTL
+		default:
+			c.TombstoneTTL = d
+		}
+	}
+}
+
 // WithWriteFailureThreshold sets the number of consecutive non-benign identity
 // write failures required to trip the fail-stop watchdog. A value <= 0 leaves
 // the default in place.
@@ -254,6 +299,7 @@ func newDefaultConfig() *config {
 		ActivationAbsentGrace:   defaultActivationAbsentGrace,
 		WaiterWindow:            defaultWaiterWindow,
 		JanitorInterval:         defaultJanitorInterval,
+		TombstoneTTL:            defaultTombstoneTTL,
 		WriteFailureThreshold:   defaultWriteFailureThreshold,
 		WriteFailureWindow:      defaultWriteFailureWindow,
 		RemoteActivationTimeout: defaultRemoteActivationTO,

@@ -163,3 +163,43 @@ type mockRoleChangedListener struct {
 func (m *mockRoleChangedListener) OnRoleChanged(role cluster.RoleType) {
 	m.lastRole = role
 }
+
+// TestTombstoneTTLConfig pins the delete-marker retention knob: its default,
+// the option that overrides it, the opt-out, and the server-imposed floor.
+func TestTombstoneTTLConfig(t *testing.T) {
+	t.Run("default", func(t *testing.T) {
+		cfg := newDefaultConfig()
+		assert.Equal(t, defaultTombstoneTTL, cfg.TombstoneTTL)
+		assert.Equal(t, time.Hour, cfg.TombstoneTTL,
+			"one hour: far longer than any reader that could race a delete, "+
+				"short enough that the marker set tracks grain churn not uptime")
+	})
+
+	t.Run("override", func(t *testing.T) {
+		cfg := newDefaultConfig()
+		WithTombstoneTTL(90 * time.Minute)(cfg)
+		assert.Equal(t, 90*time.Minute, cfg.TombstoneTTL)
+	})
+
+	t.Run("non-positive disables marker TTLs", func(t *testing.T) {
+		cfg := newDefaultConfig()
+		WithTombstoneTTL(0)(cfg)
+		assert.Zero(t, cfg.TombstoneTTL)
+
+		cfg = newDefaultConfig()
+		WithTombstoneTTL(-time.Second)(cfg)
+		assert.Zero(t, cfg.TombstoneTTL, "a negative TTL is an opt-out, not an invalid stream config")
+	})
+
+	t.Run("clamped to the server floor", func(t *testing.T) {
+		// nats-server rejects SubjectDeleteMarkerTTL below one second
+		// (server/stream.go:1774) with JSStreamInvalidConfig, which is NOT
+		// ErrLimitMarkerTTLNotSupported and would therefore fail Setup rather
+		// than fall back. Clamping keeps a mis-set knob from becoming a
+		// startup outage.
+		cfg := newDefaultConfig()
+		WithTombstoneTTL(50 * time.Millisecond)(cfg)
+		assert.Equal(t, minTombstoneTTL, cfg.TombstoneTTL)
+		assert.Equal(t, time.Second, minTombstoneTTL)
+	})
+}

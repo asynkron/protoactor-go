@@ -1,9 +1,18 @@
 package natskv
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
+	"strconv"
+	"sync"
 	"testing"
+	"time"
+
+	"github.com/nats-io/nats.go/jetstream"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestCASDeleteMissIsTerminalNoOp verifies that a stale caller (holding an
@@ -139,4 +148,354 @@ func TestRemoveMemberIDCannotDeleteUnreadRecords(t *testing.T) {
 	if rec.MemberID != "member-m2" {
 		t.Errorf("expected member-m2 activation; got %+v", rec)
 	}
+}
+
+// TestCasDelete_WritesExpiringPurgeMarker: a Delete leaves a marker that lives
+// forever, so the identities bucket grew monotonically with every identity ever
+// activated. Purge with a TTL collapses the subject to one marker that expires
+// on its own.
+func TestCasDelete_WritesExpiringPurgeMarker(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	il, env := newIdentityLookupForTest(t)
+	key := kvKey(testCI("TestKind", "marker-grain"))
+
+	rev, err := il.identities.Put(ctx, key, []byte(`{"pid":"p1"}`))
+	require.NoError(t, err)
+
+	il.casDelete(ctx, key, rev, "test")
+
+	_, err = il.identities.Get(ctx, key)
+	require.ErrorIs(t, err, jetstream.ErrKeyNotFound, "the record must be gone")
+
+	entries := streamMsgCount(t, env.js, "KV_"+env.identityBucket)
+	require.Equal(t, 1, entries, "purge must collapse the subject to a single marker")
+
+	hdr := lastMsgHeaders(t, env.js, "KV_"+env.identityBucket, "$KV."+env.identityBucket+"."+key)
+	assert.Equal(t, "PURGE", hdr.Get("KV-Operation"))
+	assert.Equal(t, "sub", hdr.Get("Nats-Rollup"))
+	assert.NotEmpty(t, hdr.Get("Nats-TTL"), "the marker must carry its own expiry")
+}
+
+// TestCasDelete_PurgeWithLastRevision_RejectsStaleRevision pins that the rollup
+// does not defeat the CAS guard. casDelete must never blind-delete: a key
+// modified after our read belongs to somebody else now. Both LastRevision and
+// PurgeTTL are KVDeleteOpt, and the server evaluates the expected-last-subject
+// -sequence header before it stores anything, so a rejected purge never gets to
+// roll the subject up.
+func TestCasDelete_PurgeWithLastRevision_RejectsStaleRevision(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	il, env := newIdentityLookupForTest(t)
+	key := kvKey(testCI("TestKind", "stale-grain"))
+
+	staleRev, err := il.identities.Put(ctx, key, []byte(`{"pid":"p1"}`))
+	require.NoError(t, err)
+
+	_, err = il.identities.Put(ctx, key, []byte(`{"pid":"p2"}`))
+	require.NoError(t, err)
+
+	il.casDelete(ctx, key, staleRev, "test")
+
+	entry, err := il.identities.Get(ctx, key)
+	require.NoError(t, err, "a stale-revision purge must not remove the key")
+	assert.JSONEq(t, `{"pid":"p2"}`, string(entry.Value()), "the newer write must survive intact")
+
+	hdr := lastMsgHeaders(t, env.js, "KV_"+env.identityBucket, "$KV."+env.identityBucket+"."+key)
+	assert.Empty(t, hdr.Get("KV-Operation"), "no marker may be written by a rejected purge")
+}
+
+// TestTombstoneOpts_GatedByMarkerTTLFlag pins that the PurgeTTL option is
+// governed by whether the bucket REALLY got marker TTLs, not by the configured
+// TombstoneTTL alone. Both lookups here carry the same positive TombstoneTTL;
+// only the flag differs.
+func TestTombstoneOpts_GatedByMarkerTTLFlag(t *testing.T) {
+	t.Parallel()
+
+	off, _ := newIdentityLookupForTest(t, withMarkerTTLEnabled(false))
+	on, _ := newIdentityLookupForTest(t, withMarkerTTLEnabled(true))
+
+	require.Positive(t, off.config.TombstoneTTL, "the configured TTL is not what gates the option")
+	require.Len(t, off.tombstoneOpts(1), 1,
+		"a bucket that fell back gets the CAS guard only; a PurgeTTL would fail every delete")
+	require.Len(t, on.tombstoneOpts(1), 2, "the CAS guard plus PurgeTTL")
+}
+
+// TestCasDelete_OnServerWithoutMarkerTTL_StillDeletes is the guard on the
+// fallback path itself. Purge stamps Nats-TTL, and nats-server rejects a
+// TTL header on a stream with AllowMsgTTL: false (server/stream.go:6358,
+// JSMessageTTLDisabledErr 10166) -- so an unconditional PurgeTTL would make
+// EVERY identity delete fail on exactly the servers the fallback exists for.
+//
+// The bucket here is created through the production helper with no TTL, so its
+// stream genuinely carries AllowMsgTTL: false -- the same shape a pre-API-
+// level-1 server would have produced. The rejection is asserted directly
+// before the delete is, so the hazard is proven real rather than assumed.
+func TestCasDelete_OnServerWithoutMarkerTTL_StillDeletes(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	il, _ := newIdentityLookupForTest(t, withTombstoneTTL(0), withMarkerTTLEnabled(false))
+
+	// The hazard, demonstrated on this exact bucket.
+	hazardRev, err := il.identities.Put(ctx, "kind/hazard", []byte(`{"pidId":"p0"}`))
+	require.NoError(t, err)
+
+	err = il.identities.Purge(ctx, "kind/hazard",
+		jetstream.LastRevision(hazardRev), jetstream.PurgeTTL(time.Hour))
+	require.Error(t, err, "an unconditional PurgeTTL must be rejected here")
+
+	var apiErr *jetstream.APIError
+
+	require.ErrorAs(t, err, &apiErr)
+	// nats.go names no constant for it; 10166 is JSMessageTTLDisabledErr
+	// (nats-server server/jetstream_errors_generated.go), "per-message TTL is
+	// disabled".
+	assert.Equal(t, jetstream.ErrorCode(10166), apiErr.ErrorCode)
+	assert.Contains(t, apiErr.Description, "per-message TTL is disabled")
+
+	_, err = il.identities.Get(ctx, "kind/hazard")
+	require.NoError(t, err, "the rejected purge left the record in place -- an identity leak")
+
+	// What casDelete actually does on such a bucket.
+	require.Len(t, il.tombstoneOpts(hazardRev), 1, "only the CAS guard may be attached")
+
+	rev, err := il.identities.Put(ctx, "kind/ident", []byte(`{"pidId":"p1"}`))
+	require.NoError(t, err)
+
+	il.casDelete(ctx, "kind/ident", rev, "test")
+
+	_, err = il.identities.Get(ctx, "kind/ident")
+	require.ErrorIs(t, err, jetstream.ErrKeyNotFound,
+		"the delete must succeed even where per-message TTLs are disabled")
+}
+
+// TestCasDelete_OnServerWithMarkerTTL_UsesPurgeTTL is the same test the other
+// way round: where marker TTLs ARE supported, the marker must carry its expiry.
+func TestCasDelete_OnServerWithMarkerTTL_UsesPurgeTTL(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	il, env := newIdentityLookupForTest(t, withMarkerTTLEnabled(true))
+
+	rev, err := il.identities.Put(ctx, "kind/ident", []byte(`{"pidId":"p1"}`))
+	require.NoError(t, err)
+
+	il.casDelete(ctx, "kind/ident", rev, "test")
+
+	_, err = il.identities.Get(ctx, "kind/ident")
+	require.ErrorIs(t, err, jetstream.ErrKeyNotFound)
+
+	hdr := lastMsgHeaders(t, env.js, "KV_"+env.identityBucket, "$KV."+env.identityBucket+".kind/ident")
+	assert.Equal(t, "PURGE", hdr.Get("KV-Operation"))
+	assert.Equal(t, defaultTombstoneTTL.String(), hdr.Get("Nats-TTL"),
+		"the marker's expiry must be the configured TombstoneTTL")
+}
+
+// TestIdentityBucket_MarkerCountBoundedAfterTTL: with a short TombstoneTTL, the
+// retained message count returns to the live-key count instead of accumulating.
+// This is the whole point of the change -- the hub bucket at soak held 4,856
+// live keys plus 2,160 markers that could never be removed.
+func TestIdentityBucket_MarkerCountBoundedAfterTTL(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	// One second is the server's floor for SubjectDeleteMarkerTTL
+	// (server/stream.go:1774), which is why minTombstoneTTL exists.
+	il, env := newIdentityLookupForTest(t, withTombstoneTTL(minTombstoneTTL))
+	stream := "KV_" + env.identityBucket
+
+	const liveKeys, deletedKeys = 3, 5
+
+	for i := range liveKeys {
+		_, err := il.identities.Put(ctx, kvKey(testCI("Live", strconv.Itoa(i))), []byte(`{"pid":"live"}`))
+		require.NoError(t, err)
+	}
+
+	for i := range deletedKeys {
+		key := kvKey(testCI("Dead", strconv.Itoa(i)))
+
+		rev, err := il.identities.Put(ctx, key, []byte(`{"pid":"dead"}`))
+		require.NoError(t, err)
+
+		il.casDelete(ctx, key, rev, "test")
+	}
+
+	require.Equal(t, liveKeys+deletedKeys, streamMsgCount(t, env.js, stream),
+		"immediately after the deletes, one marker per deleted key is retained")
+
+	require.Eventually(t, func() bool {
+		return streamMsgCount(t, env.js, stream) == liveKeys
+	}, 30*time.Second, 250*time.Millisecond,
+		"markers must expire server-side back to the live-key count")
+
+	for i := range liveKeys {
+		_, err := il.identities.Get(ctx, kvKey(testCI("Live", strconv.Itoa(i))))
+		require.NoError(t, err, "expiring markers must not touch live records")
+	}
+}
+
+// TestJanitorSweep_IssuesNoStreamPurgeRequests is the N+1 guard: PurgeDeletes
+// issues one $JS.API.STREAM.PURGE per delete marker (nats.go kv.go:1528-1580),
+// which on the hub bucket at soak is 2,160 sequential round trips. The sweep
+// must issue zero -- the marker lifecycle is the server's job now, not a
+// periodic client-side scan.
+func TestJanitorSweep_IssuesNoStreamPurgeRequests(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	il, env := newIdentityLookupForTest(t)
+
+	// janitorSweep consults provider.MemberKeyExists; a provider with no member
+	// bucket reports every owner absent, which is what drives the reap branch.
+	p, err := NewFromJetStream(env.js)
+	require.NoError(t, err)
+	il.provider = p
+
+	const activations = 4
+
+	for i := range activations {
+		rec, marshalErr := json.Marshal(&activationRecord{
+			PidID:      "Dead/grain-" + strconv.Itoa(i),
+			PidAddress: "127.0.0.1:1",
+			MemberID:   "departed-member",
+		})
+		require.NoError(t, marshalErr)
+
+		_, putErr := il.identities.Put(ctx, kvKey(testCI("Dead", strconv.Itoa(i))), rec)
+		require.NoError(t, putErr)
+	}
+
+	counter := newJSAPICounter(t, env.conn)
+
+	// The absent-member branch needs two observations AND the grace elapsed,
+	// so the sweep runs twice against a clock the test advances.
+	now := time.Now()
+	il.now = func() time.Time { return now }
+
+	ac := &janitorAbsenceClock{}
+	il.janitorSweep(ctx, ac)
+
+	now = now.Add(2 * il.config.ActivationAbsentGrace)
+	il.janitorSweep(ctx, ac)
+
+	require.NoError(t, env.conn.Flush())
+
+	assert.Zero(t, counter.countPrefix(t, "$JS.API.STREAM.PURGE."),
+		"the sweep must not purge the stream once per marker")
+
+	// The sweep must actually have done the work whose cost is being measured.
+	for i := range activations {
+		_, getErr := il.identities.Get(ctx, kvKey(testCI("Dead", strconv.Itoa(i))))
+		require.ErrorIs(t, getErr, jetstream.ErrKeyNotFound, "the sweep must have reaped the record")
+	}
+
+	assert.Equal(t, activations, streamMsgCount(t, env.js, "KV_"+env.identityBucket),
+		"each reap leaves exactly one rolled-up marker")
+}
+
+// TestCreateBucketWithMarkerTTL_UnsupportedFallsBackAndWarns: a server below
+// JetStream API level 1 returns ErrLimitMarkerTTLNotSupported from
+// CreateOrUpdateKeyValue (nats.go jetstream/kv.go:658-668). Setup must degrade
+// to today's no-TTL bucket, not fail -- the cluster provider failing to start is
+// far worse than tombstones accumulating -- and it must REPORT that it degraded,
+// because casDelete's PurgeTTL depends on the answer.
+//
+// The unsupported server is simulated by a jetstream.JetStream stub whose
+// CreateOrUpdateKeyValue returns ErrLimitMarkerTTLNotSupported for a config
+// carrying LimitMarkerTTL and succeeds for one that does not; the embedded
+// server advertises API level 4 and supports marker TTLs, so the failure cannot
+// be provoked directly.
+func TestCreateBucketWithMarkerTTL_UnsupportedFallsBackAndWarns(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	srv := startEmbeddedNATS(t)
+	_, real := connectNATS(t, srv)
+
+	js := &ttlRejectingJS{JetStream: real}
+
+	var buf lockedBuffer
+
+	logger := slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn}))
+
+	kv, enabled, err := createBucketWithMarkerTTL(ctx, js, jetstream.KeyValueConfig{
+		Bucket:   "test_fallback_bucket",
+		Replicas: 1,
+	}, time.Hour, logger)
+
+	require.NoError(t, err, "an unsupported server must not fail Setup")
+	require.NotNil(t, kv)
+	require.False(t, enabled, "the caller must learn the TTL was NOT enabled")
+	require.Equal(t, 1, js.rejected, "the TTL config was attempted exactly once")
+
+	require.Contains(t, buf.String(), "does not support KV marker TTLs")
+
+	status, err := kv.Status(ctx)
+	require.NoError(t, err)
+	require.Zero(t, status.LimitMarkerTTL(), "the fallback bucket carries no marker TTL")
+}
+
+// TestCreateBucketWithMarkerTTL_RealFailureIsFatal pins the other half of the
+// fallback's contract: only ErrLimitMarkerTTLNotSupported degrades. Any other
+// error is a genuine Setup failure (NATS down, bad config) and must propagate,
+// because silently continuing past it would hide a broken write path.
+func TestCreateBucketWithMarkerTTL_RealFailureIsFatal(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	srv := startEmbeddedNATS(t)
+	_, real := connectNATS(t, srv)
+
+	kv, enabled, err := createBucketWithMarkerTTL(ctx, real, jetstream.KeyValueConfig{
+		Bucket:   "not a valid bucket name",
+		Replicas: 1,
+	}, time.Hour, discardLogger())
+
+	require.Error(t, err)
+	require.Nil(t, kv)
+	require.False(t, enabled)
+}
+
+// ttlRejectingJS rejects any KeyValueConfig carrying LimitMarkerTTL, the way a
+// pre-API-level-1 server does, and passes everything else through.
+type ttlRejectingJS struct {
+	jetstream.JetStream
+
+	rejected int
+}
+
+func (j *ttlRejectingJS) CreateOrUpdateKeyValue(
+	ctx context.Context, cfg jetstream.KeyValueConfig,
+) (jetstream.KeyValue, error) {
+	if cfg.LimitMarkerTTL != 0 {
+		j.rejected++
+
+		return nil, jetstream.ErrLimitMarkerTTLNotSupported
+	}
+
+	return j.JetStream.CreateOrUpdateKeyValue(ctx, cfg)
+}
+
+// lockedBuffer is a goroutine-safe io.Writer for capturing slog output.
+type lockedBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *lockedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.buf.Write(p)
+}
+
+func (b *lockedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.buf.String()
 }
