@@ -92,10 +92,13 @@ func (il *IdentityLookup) runJanitor() {
 	// not migrate it until its janitor goroutine is replaced (leadership
 	// change, or process restart). The alternative -- re-arming -- would buy a
 	// bucket enumeration on every tick, forever, to chase a window that closes
-	// when the last old node leaves. A pass is only "done" if the bucket really
-	// is free of legacy records: a failed or CAS-lost purge keeps the pass
+	// when the last old node leaves. A pass is only "done" if it is free of
+	// every legacy record it enumerated -- a failed or CAS-lost purge keeps it
 	// unfinished (fanOutLegacyMemberRecord), so the latch cannot close over a
-	// record this leader saw and failed to remove.
+	// record this leader saw and failed to remove -- AND its own deadline did
+	// not cut the enumeration short: a truncated pass can have nothing to
+	// report pending for a record it never reached, so it must also fail
+	// closed on ctx.Err() alone (migrateLegacyMemberRecords).
 	migrationDone := false
 
 	for {

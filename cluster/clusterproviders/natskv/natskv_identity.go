@@ -327,6 +327,17 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 	// convention that breaks this node's member peers; failing here says so
 	// where it can still be read, instead of leaving it to be discovered on a
 	// member.
+	//
+	// This guard stops IdentityLookup, not the process: Setup returns no error
+	// (Cluster.StartMember calls it and does not check one), so a guarded node
+	// still completes StartMember, still registers into the members bucket via
+	// ClusterProvider.StartMember, and still reports Ready by whatever health
+	// check the deployment uses -- every il.setupErr check downstream is what
+	// actually keeps it from doing useful identity work. That observation
+	// rides forward with the hostname-sanitization question already on file
+	// for the owner (an FQDN hostname is the reachable source of the dot);
+	// resolving that question may make this guard unreachable in practice
+	// without changing what it does when it is reached.
 	if strings.Contains(il.memberID, ".") {
 		il.setupErr = fmt.Errorf(
 			"natskv identity setup failed: member id %q contains '.', which is the tracking "+
@@ -334,7 +345,7 @@ func (il *IdentityLookup) Setup(c *cluster.Cluster, kinds []string, isClient boo
 				"would silently return nothing. Give the node a name without dots "+
 				"(cluster name %q, actor system id %q)",
 			il.memberID, c.Config.Name, c.ActorSystem.ID)
-		il.identityLogger().Error("natskv identity: refusing to start with a dotted member id",
+		il.identityLogger().Error("natskv identity: refusing to initialize identity lookup for a dotted member id",
 			slog.String("memberID", il.memberID),
 			slog.Any("error", il.setupErr))
 
@@ -1398,8 +1409,11 @@ func trackingMemberFilter(memberID string) string {
 //
 // The split is on the FIRST '.', because the identity half legitimately
 // contains dots -- natskv_charset_test.go round-trips identities such as
-// "a.b.c.d" and "v1.0.3=stable" -- while the member half provably does not
-// (Setup builds it as clusterName + "_" + ActorSystem.ID).
+// "a.b.c.d" and "v1.0.3=stable" -- while the member half does not: not because
+// concatenating clusterName + "_" + ActorSystem.ID cannot produce one (an FQDN
+// hostname reaching ActorSystem.ID would), but because Setup's dotted-member-id
+// guard fails Setup loudly, before any bucket exists, on any memberID that
+// contains one. trackingKeyMember runs only on a member that guard let through.
 func trackingKeyMember(key string) (memberID, identityKey string, ok bool) {
 	memberID, identityKey, ok = strings.Cut(key, ".")
 
@@ -1662,9 +1676,15 @@ func (il *IdentityLookup) purgeLegacyMemberRecord(ctx context.Context, memberID 
 }
 
 // migrateLegacyMemberRecords fans the previous release's per-member JSON arrays
-// out into sub-keys and purges each array once its keys are durable. It reports
-// whether the bucket is now free of legacy records, so its driver can stop
-// calling it.
+// out into sub-keys and purges each array once its keys are durable. It
+// reports whether the bucket is free of every legacy record THE PASS
+// ENUMERATED before its own deadline -- not whether the bucket is free of
+// legacy records, full stop. A deadline that fires mid-enumeration closes the
+// key lister's channel before every record has even been observed, so the
+// pass has nothing to report pending for a record it never reached; it must
+// therefore report itself unfinished on ctx.Err() alone, regardless of what it
+// did or did not see. Only a pass that both saw and finished every record it
+// enumerated lets its driver stop calling it.
 //
 // Idempotent and best-effort, and bounded twice over: maxMigrationPutsPerSetup
 // writes and migrationDeadline of wall clock per pass. A member whose fan-out
@@ -1735,7 +1755,7 @@ func (il *IdentityLookup) migrateLegacyMemberRecords(parent context.Context) boo
 		}
 	}
 
-	if pending > 0 {
+	if pending > 0 || ctx.Err() != nil {
 		il.identityLogger().Info("natskv identity: tracking migration paused; resuming next pass",
 			slog.Int("writes", writes),
 			slog.Int("pending", pending),

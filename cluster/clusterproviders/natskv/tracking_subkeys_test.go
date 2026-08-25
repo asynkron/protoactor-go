@@ -1049,6 +1049,115 @@ func TestTrackingMigration_CappedPassStillConsumesEveryKey(t *testing.T) {
 	require.NoError(t, err, "a capped pass must leave the legacy record it did not reach")
 }
 
+// truncatingKeyLister reproduces the shape a deadline firing MID-ENUMERATION
+// leaves behind: after delivering some keys it blocks on ctx.Done() alone --
+// never racing a send against it -- so the moment the deadline fires it closes
+// with every later key never having been observed by any consumer. That is
+// exactly what upstream's own select produces when ctx.Done() is chosen over
+// the next watcher update (v1.52.0 jetstream/kv.go:1414-1423): the range loop
+// in migrateLegacyMemberRecords ends because the channel closed, not because
+// it counted the undelivered key as pending. Blocking on ctx.Done() alone
+// (rather than select-ing it against the next send) is what keeps this
+// deterministic instead of racing, the same reasoning blockingKeyLister
+// documents for omitting the context arm entirely.
+type truncatingKeyLister struct {
+	keys chan string
+	done chan struct{}
+}
+
+func newTruncatingKeyLister(ctx context.Context, delivered []string) *truncatingKeyLister {
+	kl := &truncatingKeyLister{keys: make(chan string), done: make(chan struct{})}
+
+	go func() {
+		defer close(kl.done)
+		defer close(kl.keys)
+
+		for _, k := range delivered {
+			kl.keys <- k
+		}
+
+		<-ctx.Done() // the truncation point: no further key is ever attempted
+	}()
+
+	return kl
+}
+
+func (k *truncatingKeyLister) Keys() <-chan string { return k.keys }
+
+func (k *truncatingKeyLister) Stop() error { return nil }
+
+// truncatingListerKV serves a truncatingKeyLister from a real bucket, so every
+// other operation the migration performs -- Get, Put, Purge -- still runs
+// against real JetStream, and captures the exact context the production code
+// passed to ListKeys so the fake can block on the SAME deadline the migration
+// itself is bounded by.
+type truncatingListerKV struct {
+	jetstream.KeyValue
+
+	delivered []string
+	lister    *truncatingKeyLister
+}
+
+func (k *truncatingListerKV) ListKeys(ctx context.Context, _ ...jetstream.WatchOpt) (jetstream.KeyLister, error) {
+	k.lister = newTruncatingKeyLister(ctx, k.delivered)
+
+	return k.lister, nil
+}
+
+// TestTrackingMigration_DeadlineTruncationReportsUnfinished is the row Q1
+// asked for: a deadline that fires BETWEEN two legacy records must not let the
+// pass claim the bucket is free of them.
+//
+// "delivered" is fully fanned out and purged -- ctx is confirmed still live
+// while that happens, so its processing is never in question. Only once that
+// is durable does the test fire the deadline, and the lister never attempts to
+// send "truncated" at all: the enumeration ends by the channel closing, so the
+// pass's own pending counter never sees that key and never increments for it.
+// A gate that only checks "pending > 0" therefore has nothing telling it the
+// pass is incomplete, even though a legacy record it never reached is still
+// sitting in the bucket -- which is exactly the false "migration complete"
+// the reviewer demonstrated. The gate must also ask the context.
+func TestTrackingMigration_DeadlineTruncationReportsUnfinished(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	il, _ := newIdentityLookupForTest(t)
+
+	const (
+		delivered = "clusterA_node1" // enumerated and fanned out before the deadline fires
+		truncated = "clusterA_node2" // never delivered by the lister -- the deadline wins the race
+	)
+
+	writeLegacyMemberRecord(t, il, delivered, "wk-Session/a")
+	writeLegacyMemberRecord(t, il, truncated, "wk-Session/b")
+
+	parent, cancelParent := context.WithCancel(context.Background())
+	defer cancelParent()
+
+	il.memberTracker = &truncatingListerKV{KeyValue: il.memberTracker, delivered: []string{delivered}}
+
+	result := make(chan bool, 1)
+	go func() { result <- il.migrateLegacyMemberRecords(parent) }()
+
+	// Proof the delivered member's fan-out is durable -- its legacy record is
+	// purged -- before the deadline is allowed to fire.
+	require.Eventually(t, func() bool {
+		_, getErr := il.memberTracker.Get(ctx, delivered)
+
+		return errors.Is(getErr, jetstream.ErrKeyNotFound)
+	}, 5*time.Second, 5*time.Millisecond,
+		"the delivered member must be fanned out before the deadline truncates the pass")
+
+	cancelParent()
+
+	assert.False(t, <-result,
+		"a deadline that fires before a legacy record is even enumerated must not report the pass done")
+
+	_, err := il.memberTracker.Get(ctx, truncated)
+	require.NoError(t, err,
+		"the never-enumerated member's legacy record must still be in the bucket")
+}
+
 // setupClusterWithSystemID drives a real IdentityLookup.Setup against a cluster
 // whose ActorSystem.ID carries systemID.
 //
