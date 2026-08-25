@@ -8,7 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/metric"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 
 	natskvmetrics "github.com/awevoke/protoactor-go/cluster/clusterproviders/natskv/metrics"
@@ -50,7 +52,7 @@ func TestExportedPrometheusNames(t *testing.T) {
 	m.JanitorSweepDuration.Record(ctx, 0.3)
 	m.JanitorLiveKeys.Record(ctx, 7)
 	m.JanitorTombstonePurgeTotal.Add(ctx, 1)
-	m.MarkerTTLEnabled.Record(ctx, 1)
+	m.MarkerTTLEnabled.Record(ctx, 1, metric.WithAttributes(attribute.String("bucket", "test-bucket")))
 
 	families, err := reg.Gather()
 	require.NoError(t, err)
@@ -91,4 +93,30 @@ func TestExportedPrometheusNames(t *testing.T) {
 		[]float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
 		bounds,
 		"the exported le values are the ones the promtool fixture must use")
+
+	// MarkerTTLEnabled's bucket attribute is what makes NatsKVMarkersNotExpiring
+	// answerable per bucket, and it is the capture group NatsKVMarkersNotExpiring's
+	// label_replace reads to build stream_name for its "and on (namespace,
+	// stream_name)" join -- if this instrument ever stopped carrying it, that
+	// join's RHS would go empty and the alert would never fire, silently. Pinned
+	// here on the EXPORTED shape, beside natskv's own
+	// TestStartMember_RecordsMarkerTTLGauge / TestStartClient_RecordsMarkerTTLGauge,
+	// which pin the WIRING that gets a real bucket name into it.
+	var sawBucketLabel bool
+
+	for _, f := range families {
+		if f.GetName() != "protocluster_natskv_marker_ttl_enabled" {
+			continue
+		}
+
+		require.Len(t, f.GetMetric(), 1)
+
+		for _, lp := range f.GetMetric()[0].GetLabel() {
+			if lp.GetName() == "bucket" && lp.GetValue() == "test-bucket" {
+				sawBucketLabel = true
+			}
+		}
+	}
+
+	assert.True(t, sawBucketLabel, "MarkerTTLEnabled must export its bucket attribute as a Prometheus label")
 }

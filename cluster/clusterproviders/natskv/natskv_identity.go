@@ -1243,7 +1243,21 @@ func (il *IdentityLookup) getExistingActivationWithRev(ctx context.Context, ci *
 // message. Both LastRevision and PurgeTTL are KVDeleteOpt, so the CAS guard is
 // unaffected, and the server evaluates the expected-revision header before it
 // stores anything, so a rejected purge never rolls the subject up.
-func (il *IdentityLookup) casDelete(ctx context.Context, key string, rev uint64, site string) {
+//
+// Returns the Purge error rather than counting a tombstone purge itself: this
+// function has FIFTEEN production call sites and only TWO of them are the
+// janitor's own reap sites (janitor.go's "janitor/hard-reap-lock" and
+// "janitor/absent-member"). The other thirteen -- resolveIdentity's
+// grace/no-target paths, maybeReapLock's owner-absent branch,
+// activateLocal/activateRemote's store-failure cleanups, cleanupOwnRecord and
+// removeMemberID -- fire on ordinary CAS losses, lock steals, activation
+// cleanup and member departure, none of which is the janitor sweeping
+// anything. protocluster_natskv_janitor_tombstone_purge_total's name, HELP
+// text and the runbook all promise a janitor-scoped count, so only the
+// janitor's two call sites record it (see recordTombstonePurge and its two
+// call sites in janitor.go); every other caller is free to ignore the
+// returned error, as thirteen of them do.
+func (il *IdentityLookup) casDelete(ctx context.Context, key string, rev uint64, site string) error {
 	err := il.identities.Purge(ctx, key, il.tombstoneOpts(rev)...)
 	// Control flow is unchanged: casDelete is always a terminal no-op and
 	// never retries or blind-deletes. Only the logging/accounting differs --
@@ -1253,16 +1267,7 @@ func (il *IdentityLookup) casDelete(ctx context.Context, key string, rev uint64,
 	// failure is now surfaced at Warn instead of being swallowed at Debug.
 	il.recordIdentityWriteOutcome("casDelete/"+site, true, err)
 
-	// Count only a purge the server actually stored. The write recorder's
-	// writeSuccess is deliberately wider than that -- it also treats a delete
-	// that found the key already absent as a success, because that still
-	// proves the write path works -- but such a delete leaves no marker at
-	// all, so a counter keyed on the outcome rather than on the purge would
-	// over-report the bucket's marker population. err == nil is exactly "a
-	// purge marker now exists for this key".
-	if err == nil {
-		il.recordTombstonePurge()
-	}
+	return err
 }
 
 // tombstoneOpts builds the delete options every identity delete site uses --

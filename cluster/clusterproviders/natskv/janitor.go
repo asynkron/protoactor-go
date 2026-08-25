@@ -176,7 +176,13 @@ func (il *IdentityLookup) janitorSweep(ctx context.Context, ac *janitorAbsenceCl
 					slog.String("key", key),
 					slog.String("memberID", rec.MemberID),
 					slog.Duration("age", age))
-				il.casDelete(ctx, key, entry.Revision(), "janitor/hard-reap-lock")
+				// Count only a purge the server actually stored: err == nil is
+				// exactly "a purge marker now exists for this key". A CAS
+				// conflict stores nothing and must not be counted (see
+				// TestCasDelete_PurgeOutcomes for casDelete's own contract).
+				if err := il.casDelete(ctx, key, entry.Revision(), "janitor/hard-reap-lock"); err == nil {
+					il.recordTombstonePurge()
+				}
 				lockReaps++
 				il.recordJanitorReap("lock")
 				// No absence state to clear: lock records are not tracked in ac.
@@ -232,7 +238,10 @@ func (il *IdentityLookup) janitorSweep(ctx context.Context, ac *janitorAbsenceCl
 						slog.String("memberID", rec.MemberID),
 						slog.Int("observations", count),
 						slog.Duration("absentFor", elapsed))
-					il.casDelete(ctx, key, entry.Revision(), "janitor/absent-member")
+					// Same err == nil gate as the hard-reap-lock site above.
+					if err := il.casDelete(ctx, key, entry.Revision(), "janitor/absent-member"); err == nil {
+						il.recordTombstonePurge()
+					}
 					activationCleans++
 					il.recordJanitorReap("activation")
 					ac.clear(key)
@@ -302,10 +311,20 @@ func (il *IdentityLookup) recordJanitorSweep(outcome string) {
 }
 
 // recordJanitorCost publishes what one sweep cost: its wall duration in
-// seconds and the number of LIVE identity keys it enumerated. Both are values
+// seconds and the number of identity keys it enumerated. Both are values
 // janitorSweep already computes for its summary log line, so recording them
 // adds no work and no round trip -- the sweep was 36% of hub NATS egress and
 // nothing in-process reported it.
+//
+// "Enumerated", not "live": liveKeys is janitorSweep's scanned, which
+// increments for every key its ListKeys call returned, BEFORE the per-key Get
+// that would confirm the record is still there. ListKeys already excludes
+// purge-marker tombstones server-side, but a key whose Get subsequently fails
+// -- e.g. a benign not-found race against a concurrent delete -- is still
+// counted here; only the reap decision, not this gauge, consults the Get
+// result. It answers "how much did this sweep have to look at", which is the
+// sweep-cost question this instrument exists for, not a precise census of
+// live activations.
 //
 // Neither carries an attribute, because nothing in this package does: the
 // existing recorders label only the thing they classify (outcome, type), and
@@ -327,9 +346,19 @@ func (il *IdentityLookup) recordJanitorCost(elapsed time.Duration, liveKeys int)
 	il.provider.providerMetrics.JanitorLiveKeys.Record(ctx, int64(liveKeys))
 }
 
-// recordTombstonePurge bumps the tombstone-purge counter. Called from
-// casDelete, whose only production callers are this file's two reap sites, so
-// the counter is janitor-scoped by construction. No-op when metrics are
+// recordTombstonePurge bumps the tombstone-purge counter. Called from THIS
+// FILE'S two reap sites only -- janitorSweep's hard-reap-lock and
+// absent-member branches, each guarded by its own casDelete's returned error
+// -- and nowhere else. That is deliberate, not incidental: casDelete has
+// fifteen production call sites in natskv_identity.go, and thirteen of them
+// (resolveIdentity's grace/no-target paths, maybeReapLock's owner-absent
+// branch, activateLocal/activateRemote's store-failure cleanups,
+// cleanupOwnRecord, removeMemberID) fire on ordinary CAS losses, lock steals
+// and member departures -- routine identity churn, not the janitor sweeping
+// anything. Counting those here would make this family answer "how much
+// identity churn is there" instead of what its name, its HELP text and the
+// runbook's NatsKVJanitorSweepSlow "First checks" step all promise: how much
+// the janitor's own sweep is actually removing. No-op when metrics are
 // disabled.
 func (il *IdentityLookup) recordTombstonePurge() {
 	if il.provider == nil || !il.provider.metricsEnabled || il.provider.providerMetrics == nil {

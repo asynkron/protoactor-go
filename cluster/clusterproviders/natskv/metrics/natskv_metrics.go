@@ -37,9 +37,12 @@ type NatsKVMetrics struct {
 	// tracks the live key count; this is the only in-process report of it.
 	JanitorSweepDuration metric.Float64Histogram
 
-	// JanitorLiveKeys reports the number of LIVE identity keys the most recent
-	// sweep enumerated. A gauge, not a counter: each sweep replaces the
-	// previous answer rather than adding to it.
+	// JanitorLiveKeys reports the number of identity keys the most recent
+	// sweep's ListKeys call returned, INCLUDING any whose subsequent per-key
+	// Get failed (a benign not-found race counts the same as a confirmed
+	// live record; see natskv's janitor.go recordJanitorCost). A gauge, not a
+	// counter: each sweep replaces the previous answer rather than adding to
+	// it.
 	JanitorLiveKeys metric.Int64Gauge
 
 	// JanitorTombstonePurgeTotal counts identity records the janitor actually
@@ -162,7 +165,7 @@ func NewNatsKVMetrics(logger *slog.Logger) *NatsKVMetrics {
 
 	if m.JanitorLiveKeys, err = meter.Int64Gauge(
 		"protocluster_natskv_janitor_live_keys",
-		metric.WithDescription("Live identity keys the most recent janitor sweep enumerated"),
+		metric.WithDescription("Identity keys the most recent janitor sweep's ListKeys enumerated, including any whose Get subsequently failed"),
 	); err != nil {
 		err = fmt.Errorf("failed to create JanitorLiveKeys instrument, %w", err)
 		logErr(err.Error(), err)
