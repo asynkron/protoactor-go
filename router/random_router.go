@@ -1,6 +1,7 @@
 package router
 
 import (
+	"log"
 	"math/rand"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -32,6 +33,10 @@ func (state *randomRouterState) GetRoutees() *actor.PIDSet {
 }
 
 func (state *randomRouterState) RouteMessage(message interface{}) {
+	if state.routees.Empty() {
+		log.Println("[ROUTING] Random router failed to route message, no routees")
+		return
+	}
 	pid := randomRoutee(state.routees)
 	state.sender.Send(pid, message)
 }

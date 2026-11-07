@@ -1,6 +1,7 @@
 package router
 
 import (
+	"log"
 	"sync/atomic"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -33,6 +34,10 @@ func (state *roundRobinState) GetRoutees() *actor.PIDSet {
 }
 
 func (state *roundRobinState) RouteMessage(message interface{}) {
+	if state.routees.Empty() {
+		log.Println("[ROUTING] RoundRobin router failed to route message, no routees")
+		return
+	}
 	pid := roundRobinRoutee(&state.index, state.routees)
 	state.sender.Send(pid, message)
 }
